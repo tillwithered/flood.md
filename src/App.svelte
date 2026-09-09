@@ -784,6 +784,8 @@
   });
 
   $: currentChat = chats.find((chat) => chat.id === selectedChatId) ?? allChat(0);
+  $: searchActive = query.trim().length > 0;
+  $: currentProjectTaskTotal = tasks.filter((task) => selectedChatId === "all" || task.chatId === selectedChatId).length;
   $: currentProjectTasks = tasks
     .filter((task) => (selectedChatId === "all" || task.chat === currentChat.title) && taskMatchesQuery(task))
     .sort((left, right) => ({ urgent: 0, important: 1, normal: 2 })[left.urgency] - ({ urgent: 0, important: 1, normal: 2 })[right.urgency]);
@@ -801,6 +803,7 @@
   async function selectChat(chat: ChatItem) {
     await saveNow();
     if (conflictRemote) return;
+    query = "";
     selectedChatId = chat.id;
     activeSection = "tasks";
     workspaceView = "project";
@@ -1514,7 +1517,7 @@
         {#if sidebarCollapsed}
           <button class="sidebar-icon" aria-label="Поиск" onclick={() => setSidebarCollapsed(false)}><Search size={17} /></button>
         {:else}
-          <label class="search-field"><Search size={15} aria-hidden="true" /><input bind:value={query} aria-label="Поиск задач" placeholder="Поиск" /></label>
+          <div class="search-field"><Search size={15} aria-hidden="true" /><input bind:value={query} aria-label="Поиск задач" placeholder="Поиск" />{#if searchActive}<button class="search-clear" aria-label="Очистить поиск" title="Очистить поиск" onclick={() => (query = "")}><X size={14} /></button>{/if}</div>
         {/if}
       </div>
 
@@ -1624,7 +1627,7 @@
                   {/if}
                 </div>
               {/if}
-              <p>{loading ? "Загружаю задачи…" : `${currentOpenTasks.length} ${currentOpenTasks.length === 1 ? "открытая задача" : currentOpenTasks.length > 1 && currentOpenTasks.length < 5 ? "открытые задачи" : "открытых задач"}`}</p>
+              <p>{loading ? "Загружаю задачи…" : searchActive ? `Найдено ${currentProjectTasks.length} из ${currentProjectTaskTotal} задач` : `${currentOpenTasks.length} ${currentOpenTasks.length === 1 ? "открытая задача" : currentOpenTasks.length > 1 && currentOpenTasks.length < 5 ? "открытые задачи" : "открытых задач"}`}</p>
             </div>
             <div class="project-header-actions">
               <button class="project-add-button" aria-expanded={newTaskMenuAnchor === "workspace"} onclick={() => requestNewTask("workspace")}><Plus size={16} />Новая задача</button>
@@ -1646,25 +1649,29 @@
           {/if}
 
           {#if selectedChatId === "all"}
-            <div class="project-groups">
-              {#each chats.slice(1) as chat}
-                {@const chatTasks = currentOpenTasks.filter((task) => task.chat === chat.title)}
-                {#if chatTasks.length}
-                  <section class="project-group">
-                    <button class="project-group-title" onclick={() => selectChat(chat)}><span>{chat.title}</span><small>{chatTasks.length}</small><ChevronRight size={14} /></button>
-                    <div class="project-task-list">
-                      {#each chatTasks as task}
-                        <button class="project-task" onclick={() => openTask(task)}>
-                          <FloodGlyph kind={task.urgency} size={14} />
-                          <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}</small></span>
-                          <ChevronRight size={15} />
-                        </button>
-                      {/each}
-                    </div>
-                  </section>
-                {/if}
-              {/each}
-            </div>
+            {#if currentOpenTasks.length}
+              <div class="project-groups">
+                {#each chats.slice(1) as chat}
+                  {@const chatTasks = currentOpenTasks.filter((task) => task.chat === chat.title)}
+                  {#if chatTasks.length}
+                    <section class="project-group">
+                      <button class="project-group-title" onclick={() => selectChat(chat)}><span>{chat.title}</span><small>{chatTasks.length}</small><ChevronRight size={14} /></button>
+                      <div class="project-task-list">
+                        {#each chatTasks as task}
+                          <button class="project-task" onclick={() => openTask(task)}>
+                            <FloodGlyph kind={task.urgency} size={14} />
+                            <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}</small></span>
+                            <ChevronRight size={15} />
+                          </button>
+                        {/each}
+                      </div>
+                    </section>
+                  {/if}
+                {/each}
+              </div>
+            {:else}
+              <div class="project-empty"><p>{searchActive ? `По запросу «${query.trim()}» ничего не найдено` : "Открытых задач нет"}</p>{#if searchActive}<button onclick={() => (query = "")}>Сбросить поиск</button>{/if}</div>
+            {/if}
           {:else}
             <div class="project-task-list standalone">
               {#each currentOpenTasks as task}
@@ -1674,7 +1681,7 @@
                   <ChevronRight size={15} />
                 </button>
               {:else}
-                <div class="project-empty"><p>Открытых задач нет</p><button onclick={() => requestNewTask("workspace")}>Добавить задачу</button></div>
+                <div class="project-empty"><p>{searchActive ? `По запросу «${query.trim()}» ничего не найдено` : "Открытых задач нет"}</p><button onclick={() => searchActive ? (query = "") : requestNewTask("workspace")}>{searchActive ? "Сбросить поиск" : "Добавить задачу"}</button></div>
               {/each}
             </div>
           {/if}
