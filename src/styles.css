@@ -721,6 +721,8 @@ button { color: inherit; }
 :root[data-theme="dark"] .topbar-action,
 :root[data-theme="dark"] .urgency-trigger,
 :root[data-theme="dark"] .task-meta,
+:root[data-theme="dark"] .task-meta a,
+:root[data-theme="dark"] .source-snapshot,
 :root[data-theme="dark"] .project-task-copy small,
 :root[data-theme="dark"] .completed-toggle,
 :root[data-theme="dark"] .restore-button,
@@ -734,6 +736,7 @@ button { color: inherit; }
 :root[data-theme="dark"] .project-group-title,
 :root[data-theme="dark"] .form-actions button { color: var(--muted); }
 :root[data-theme="dark"] .new-task-button:hover,
+:root[data-theme="dark"] .icon-button:hover,
 :root[data-theme="dark"] .new-task-menu button:hover,
 :root[data-theme="dark"] .sidebar-row:hover,
 :root[data-theme="dark"] .sidebar-row.active,
@@ -752,6 +755,7 @@ button { color: inherit; }
 :root[data-theme="dark"] .project-task:hover,
 :root[data-theme="dark"] .completed-toggle:hover,
 :root[data-theme="dark"] .restore-button:hover { background: var(--hover); color: var(--ink); }
+:root[data-theme="dark"] .nested-task:focus-visible { background: var(--selected); color: var(--ink); }
 :root[data-theme="dark"] .create-chat-form,
 :root[data-theme="dark"] .search-field,
 :root[data-theme="dark"] .save-conflict,
@@ -760,10 +764,30 @@ button { color: inherit; }
 :root[data-theme="dark"] .source-date-button,
 :root[data-theme="dark"] .editor-block.code,
 :root[data-theme="dark"] .project-add-button { background: var(--field); }
+:root[data-theme="dark"] .project-add-button { color: var(--ink); }
 :root[data-theme="dark"] .search-field:focus-within,
 :root[data-theme="dark"] .theme-picker button.active, :root[data-theme="dark"] .language-picker button.active { background: var(--elevated); }
+:root[data-theme="dark"] .search-field:focus-within { border-color: var(--line); }
+:root[data-theme="dark"] .source-editor input:focus,
+:root[data-theme="dark"] .source-editor textarea:focus { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+:root[data-theme="dark"] .date-picker-head button:hover,
+:root[data-theme="dark"] .calendar-grid button:hover,
+:root[data-theme="dark"] .source-date-button:hover,
+:root[data-theme="dark"] .source-date-button[aria-expanded="true"],
+:root[data-theme="dark"] .form-actions button:last-child,
+:root[data-theme="dark"] .rename-chat-form button:hover { background: var(--hover); color: var(--ink); }
+:root[data-theme="dark"] .source-editor .time-fields input { background: var(--surface); }
+:root[data-theme="dark"] .calendar-grid button.outside,
+:root[data-theme="dark"] .calendar-weekdays span,
+:root[data-theme="dark"] .time-fields span,
+:root[data-theme="dark"] .project-task > svg,
+:root[data-theme="dark"] .editor-block.bullet::before,
+:root[data-theme="dark"] .editor-block.number::before { color: var(--faint); }
+:root[data-theme="dark"] .complete-button.completed { color: var(--success-ink); }
+:root[data-theme="dark"] .rename-chat-form input { border-color: var(--line); }
 :root[data-theme="dark"] .editor-block.quote,
 :root[data-theme="dark"] .project-task:hover { background: color-mix(in srgb, var(--hover) 70%, transparent); }
+:root[data-theme="dark"] .editor-block.quote { color: var(--muted); }
 :root[data-theme="dark"] .project-task::after { background: var(--soft-line); }
 :root[data-theme="dark"] .sidebar-footer { border-color: var(--soft-line); }
 
