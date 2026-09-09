@@ -173,7 +173,7 @@ button { color: inherit; }
 .sidebar-panel .search-field { margin: 0; border-color: var(--line); background: var(--background); }
 .sidebar-icon { display: grid; place-items: center; width: 40px; height: 36px; margin: 0 auto; border-radius: 9px; color: #666666; }
 .sidebar-icon:hover { background: var(--selected); color: var(--ink); }
-.sidebar-navigation { flex: 1; min-height: 0; padding: 3px 7px 12px; overflow-y: auto; }
+.sidebar-navigation { flex: 1; min-height: 0; padding: 3px 7px 12px; overflow-x: hidden; overflow-y: auto; }
 .sidebar-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; width: 100%; min-height: 38px; align-items: center; gap: 8px; padding: 0 9px; border-radius: 8px; color: #5f5f5f; font-size: 14px; text-align: left; }
 .sidebar-row:hover { background: #f4f4f4; color: var(--ink); }
 .sidebar-row.active { background: #f7f7f7; color: #171717; }
@@ -218,12 +218,17 @@ button { color: inherit; }
 .sidebar-search-empty { display: flex; align-items: center; gap: 8px; padding: 12px 10px; color: var(--faint); font-size: 12px; }
 .sidebar-footer { display: grid; gap: 2px; padding: 8px 7px 10px; border-top: 1px solid #e4e4e0; }
 .sidebar-panel.collapsed .sidebar-navigation, .sidebar-panel.collapsed .sidebar-footer { padding-right: 7px; padding-left: 7px; }
+.sidebar-panel.collapsed .sidebar-navigation { scrollbar-gutter: auto; scrollbar-width: none; }
+.sidebar-panel.collapsed .sidebar-navigation::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .sidebar-panel.collapsed .sidebar-row { display: grid; grid-template-columns: 1fr; width: 44px; height: 40px; justify-items: center; margin: 0 auto; padding: 0; }
 .sidebar-panel.collapsed .sidebar-row > span:not(.chat-avatar), .sidebar-panel.collapsed .sidebar-row > small { display: none; }
 .sidebar-panel.collapsed .chat-entry { height: 43px; }
 .sidebar-panel.collapsed .chat-avatar { width: 28px; height: 28px; }
 .sidebar-panel.collapsed .project-row { display: block; width: 44px; height: 40px; min-height: 40px; margin: 0 auto; padding-right: 0; }
 .sidebar-panel.collapsed .project-open { display: grid; grid-template-columns: 1fr; width: 44px; height: 40px; justify-items: center; padding: 0; border-radius: 8px; }
+.sidebar-panel.collapsed .project-open > span, .sidebar-panel.collapsed .project-open > small, .sidebar-panel.collapsed .project-expand, .sidebar-panel.collapsed .nested-tasks { display: none; }
+
+.sidebar-project-hint { position: fixed; z-index: 120; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: color-mix(in srgb, var(--elevated) 94%, transparent); color: var(--muted); box-shadow: 0 8px 24px var(--shadow); font-size: 11px; font-weight: 500; line-height: 1.25; white-space: nowrap; pointer-events: none; backdrop-filter: blur(12px); transform: translateY(-50%); animation: tooltip-in 120ms cubic-bezier(.2,.8,.3,1); }
 
 .window-context {
   grid-column: 2;
@@ -234,6 +239,7 @@ button { color: inherit; }
   color: #73736f;
   font-size: 13px;
 }
+.window-context span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .window-actions {
   position: relative;
@@ -649,6 +655,10 @@ button { color: inherit; }
   from { opacity: 0; transform: translateY(-4px) scale(.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+@keyframes tooltip-in {
+  from { opacity: 0; transform: translate(4px, -50%); }
+  to { opacity: 1; transform: translate(0, -50%); }
+}
 
 :root[data-theme="dark"] .icon-button,
 :root[data-theme="dark"] .new-task-button,
@@ -712,28 +722,24 @@ button { color: inherit; }
 }
 
 @media (max-width: 900px) {
-  .app-shell { --sidebar-width: 272px; }
-  .app-shell.sidebar-collapsed { --sidebar-width: 58px; }
+  .app-shell, .app-shell.sidebar-collapsed { --sidebar-width: 58px; }
+  .window-bar { grid-template-columns: 58px minmax(0, 1fr) auto; }
+  .app-content { grid-template-columns: 58px minmax(0, 1fr); }
+  .sidebar-titlebar { position: relative; z-index: 31; width: 272px; background: var(--background); box-shadow: 12px 0 24px rgb(0 0 0 / 6%); }
+  .sidebar-collapsed .sidebar-titlebar { width: 58px; box-shadow: none; }
+  .sidebar-panel { position: relative; z-index: 30; width: 272px; background: var(--background); box-shadow: 12px 0 24px rgb(0 0 0 / 6%); }
+  .sidebar-panel.collapsed { width: 58px; box-shadow: none; }
   .editor { width: min(600px, calc(100% - 40px)); padding-top: 48px; }
   .task-meta, .source-snapshot, .save-conflict { width: min(600px, calc(100% - 40px)); }
   .editor { padding-top: 18px; }
-  .complete-button span { display: none; }
+  .window-context { padding-left: 14px; }
+  .save-state { display: none; }
+  .window-actions .topbar-action, .window-actions .complete-button, .window-actions .urgency-trigger { width: 32px; justify-content: center; padding: 0; }
+  .window-actions .action-label { display: none; }
+  .window-actions .urgency-trigger > svg:last-child { display: none; }
 }
 
 @media (max-width: 700px) {
-  .app-shell { --sidebar-width: 58px; }
-  .sidebar-titlebar strong { display: none; }
-  .sidebar-titlebar { justify-content: center; padding: 0; }
-  .collapse-button { margin: 0; }
-  .sidebar-panel { width: 58px; }
-  .sidebar-panel .new-task-button span, .sidebar-panel .search-field, .sidebar-panel .sidebar-label, .sidebar-panel .nested-tasks, .sidebar-panel .sidebar-row > span:not(.chat-avatar), .sidebar-panel .sidebar-row > small { display: none; }
-  .sidebar-panel .sidebar-row { display: grid; grid-template-columns: 1fr; width: 44px; height: 40px; justify-items: center; margin: 0 auto; padding: 0; }
-  .sidebar-panel .new-task-button { justify-content: center; padding: 0; }
-  .sidebar-panel .project-row { display: block; width: 44px; height: 40px; min-height: 40px; margin: 0 auto; }
-  .sidebar-panel .project-open { display: grid; grid-template-columns: 1fr; width: 44px; height: 40px; justify-items: center; padding: 0; border-radius: 8px; }
-  .sidebar-panel .project-expand { display: none; }
-  .window-context { padding-left: 14px; }
   .window-controls button { width: 38px; }
-  .window-actions > .urgency-label, .window-actions > .urgency-menu, .window-actions > .topbar-action, .window-actions > .complete-button, .window-actions > .icon-button, .window-actions > .window-divider { display: none; }
   .project-page { width: min(720px, calc(100% - 40px)); padding-top: 48px; }
 }

@@ -118,6 +118,7 @@
   let imageViewer: { src: string; alt: string } | null = null;
   let imageViewerZoom = 1;
   let imageViewerDialog: HTMLDivElement;
+  let sidebarProjectHint: { label: string; left: number; top: number } | null = null;
 
   const uiPreferencesKey = "flood.ui.preferences";
 
@@ -159,7 +160,22 @@
 
   function setSidebarCollapsed(collapsed: boolean) {
     sidebarCollapsed = collapsed;
+    sidebarProjectHint = null;
     saveUiPreferences();
+  }
+
+  function showSidebarProjectHint(event: MouseEvent | FocusEvent, label: string) {
+    if (!sidebarCollapsed || !(event.currentTarget instanceof HTMLElement)) return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    sidebarProjectHint = {
+      label,
+      left: bounds.right + 10,
+      top: bounds.top + bounds.height / 2
+    };
+  }
+
+  function hideSidebarProjectHint() {
+    sidebarProjectHint = null;
   }
 
   function toggleCompletedVisibility() {
@@ -1528,6 +1544,9 @@
 {#if editorHint}
   <aside class="editor-hint" style:left={`${editorHint.left}px`} style:top={`${editorHint.top}px`} aria-live="polite">{editorHint.title}</aside>
 {/if}
+{#if sidebarProjectHint}
+  <aside class="sidebar-project-hint" style:left={`${sidebarProjectHint.left}px`} style:top={`${sidebarProjectHint.top}px`} role="tooltip">{sidebarProjectHint.label}</aside>
+{/if}
 {#if selectionToolbar}
   <div class:link-open={linkEditorOpen} class="selection-toolbar" style:left={`${selectionToolbar.left}px`} style:top={`${selectionToolbar.top}px`} role="toolbar" tabindex="-1" aria-label="Форматирование текста">
     <div class="selection-toolbar-actions" role="group" aria-label="Начертание" onpointerdown={(event) => event.preventDefault()}>
@@ -1565,7 +1584,7 @@
       {#if activeSection === "tasks" && workspaceView === "task" && selectedTask}
         <span class:error={saveState === "error"} class="save-state" title={saveError}>{saveState === "saving" ? "Сохраняю…" : saveState === "error" ? "Не сохранено" : saveState === "saved" ? "Сохранено" : ""}</span>
         <div class="urgency-menu topbar-urgency">
-          <button class="urgency-trigger" aria-haspopup="menu" aria-expanded={urgencyMenuOpen} onclick={() => { urgencyMenuOpen = !urgencyMenuOpen; sourceEditorOpen = false; taskActionMenuOpen = false; }}><FloodGlyph kind={selectedTask.urgency} size={14} /><span>{urgencyTitle(selectedTask.urgency)}</span><ChevronDown size={12} /></button>
+          <button class="urgency-trigger" aria-label={`Срочность: ${urgencyTitle(selectedTask.urgency)}`} title={`Срочность: ${urgencyTitle(selectedTask.urgency)}`} aria-haspopup="menu" aria-expanded={urgencyMenuOpen} onclick={() => { urgencyMenuOpen = !urgencyMenuOpen; sourceEditorOpen = false; taskActionMenuOpen = false; }}><FloodGlyph kind={selectedTask.urgency} size={14} /><span class="action-label">{urgencyTitle(selectedTask.urgency)}</span><ChevronDown size={12} /></button>
           {#if urgencyMenuOpen}
             <div class="urgency-options" role="menu">
               {#each (["normal", "important", "urgent"] as Urgency[]) as urgency}
@@ -1575,8 +1594,8 @@
           {/if}
         </div>
         <input class="attachment-input" bind:this={attachmentInput} type="file" multiple accept="image/*,audio/*,video/*,.pdf,.txt,.md" onchange={(event) => void importAttachments([...(event.currentTarget.files ?? [])])} />
-        <button class="topbar-action" aria-label="Добавить вложение" title="Добавить фото или файл" onclick={() => attachmentInput.click()}><Paperclip size={15} /><span>Вложение</span></button>
-        <button class:active={sourceEditorOpen} class="topbar-action source-action-button" aria-expanded={sourceEditorOpen} onclick={openSourceEditor}><MessageSquareText size={15} /><span>{selectedTask.hasSource ? "Источник" : "Добавить источник"}</span></button>
+        <button class="topbar-action" aria-label="Добавить вложение" title="Добавить фото или файл" onclick={() => attachmentInput.click()}><Paperclip size={15} /><span class="action-label">Вложение</span></button>
+        <button class:active={sourceEditorOpen} class="topbar-action source-action-button" aria-label={selectedTask.hasSource ? "Источник" : "Добавить источник"} title={selectedTask.hasSource ? "Источник" : "Добавить источник"} aria-expanded={sourceEditorOpen} onclick={openSourceEditor}><MessageSquareText size={15} /><span class="action-label">{selectedTask.hasSource ? "Источник" : "Добавить источник"}</span></button>
         {#if sourceEditorOpen}
           <form class="source-editor source-popover" onsubmit={saveSource}>
             <div class="source-popover-head"><strong>{selectedTask.hasSource ? "Источник задачи" : "Добавить источник"}</strong><button type="button" class="icon-button" aria-label="Закрыть" onclick={() => (sourceEditorOpen = false)}><X size={14} /></button></div>
@@ -1603,8 +1622,8 @@
             <div class="form-actions">{#if selectedTask.hasSource}<button type="button" class="danger-text" onclick={clearSource}>Удалить</button>{/if}<span></span><button type="button" onclick={() => (sourceEditorOpen = false)}>Отмена</button><button>Сохранить</button></div>
           </form>
         {/if}
-        <button class:completed={selectedTask.completed} class="complete-button" aria-label={selectedTask.completed ? "Вернуть задачу" : "Завершить задачу"} onclick={toggleComplete}>{#if selectedTask.completed}<CheckCircle2 size={17} />{:else}<Circle size={17} />{/if}<span>{selectedTask.completed ? "Выполнено" : "Завершить"}</span></button>
-        <button class="icon-button" aria-label="Другие действия" aria-expanded={taskActionMenuOpen} onclick={() => { taskActionMenuOpen = !taskActionMenuOpen; moveMenuOpen = false; urgencyMenuOpen = false; sourceEditorOpen = false; }}><MoreHorizontal size={18} /></button>
+        <button class:completed={selectedTask.completed} class="complete-button" aria-label={selectedTask.completed ? "Вернуть задачу" : "Завершить задачу"} title={selectedTask.completed ? "Вернуть задачу" : "Завершить задачу"} onclick={toggleComplete}>{#if selectedTask.completed}<CheckCircle2 size={17} />{:else}<Circle size={17} />{/if}<span class="action-label">{selectedTask.completed ? "Выполнено" : "Завершить"}</span></button>
+        <button class="icon-button" aria-label="Другие действия" title="Другие действия" aria-expanded={taskActionMenuOpen} onclick={() => { taskActionMenuOpen = !taskActionMenuOpen; moveMenuOpen = false; urgencyMenuOpen = false; sourceEditorOpen = false; }}><MoreHorizontal size={18} /></button>
         {#if taskActionMenuOpen}
           <div class:move-open={moveMenuOpen} class="task-actions-menu">
             {#if moveMenuOpen}
@@ -1660,8 +1679,8 @@
             {/each}
           </div>
         {:else}
-          <div class:active={activeSection === "tasks" && selectedChatId === "all"} class="project-row all-tasks-row" title="Все задачи">
-            <button class="project-open" onclick={() => chats[0] && selectChat(chats[0])} aria-label="Открыть все задачи">
+          <div class:active={activeSection === "tasks" && selectedChatId === "all"} class="project-row all-tasks-row">
+            <button class="project-open" onclick={() => chats[0] && selectChat(chats[0])} onmouseenter={(event) => showSidebarProjectHint(event, "Все задачи")} onmouseleave={hideSidebarProjectHint} onfocus={(event) => showSidebarProjectHint(event, "Все задачи")} onblur={hideSidebarProjectHint} aria-label="Открыть все задачи">
               <ListTodo size={17} /><span>Все задачи</span><small>{tasks.filter((task) => !task.completed).length}</small>
             </button>
             {#if !sidebarCollapsed}
@@ -1679,13 +1698,9 @@
 
           {#each chats.slice(1) as chat (chat.id)}
             <div class="chat-group">
-              <div class:active={activeSection === "tasks" && selectedChatId === chat.id} class="project-row" title={chat.title}>
-                <button class="project-open" onclick={() => selectChat(chat)} aria-label={`Открыть ${chat.title}`}>
-                  {#if sidebarCollapsed}
-                    <span class="chat-avatar">{chat.title.slice(0, 1)}</span>
-                  {:else}
-                    <Folder size={16} /><span>{chat.title}</span><small>{openTaskCount(chat.id) || ""}</small>
-                  {/if}
+              <div class:active={activeSection === "tasks" && selectedChatId === chat.id} class="project-row">
+                <button class="project-open" onclick={() => selectChat(chat)} onmouseenter={(event) => showSidebarProjectHint(event, chat.title)} onmouseleave={hideSidebarProjectHint} onfocus={(event) => showSidebarProjectHint(event, chat.title)} onblur={hideSidebarProjectHint} aria-label={`Открыть ${chat.title}`}>
+                  <Folder size={16} /><span>{chat.title}</span><small>{openTaskCount(chat.id) || ""}</small>
                 </button>
                 {#if !sidebarCollapsed}
                   <button type="button" class:expanded={expandedChatIds.includes(chat.id)} class="project-expand" aria-expanded={expandedChatIds.includes(chat.id)} onclick={() => toggleChat(chat.id)} aria-label={expandedChatIds.includes(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}><ChevronRight size={13} /></button>
