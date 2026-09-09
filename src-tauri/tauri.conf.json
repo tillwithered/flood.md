@@ -22,13 +22,7 @@
         "fullscreen": false
       }
     ],
-    "security": {
-      "csp": null,
-      "assetProtocol": {
-        "enable": true,
-        "scope": ["$APPDATA/io.flood.desktop/**"]
-      }
-    }
+    "security": { "csp": null }
   },
   "bundle": {
     "active": true,

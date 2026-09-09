@@ -163,6 +163,20 @@ fn resolve_task_attachment(
     )
 }
 
+#[tauri::command]
+fn read_task_attachment(
+    id: String,
+    relative_path: String,
+    state: State<'_, AppState>,
+) -> Result<tauri::ipc::Response, String> {
+    result(
+        state
+            .store
+            .read_task_attachment(&id, &relative_path)
+            .map(tauri::ipc::Response::new),
+    )
+}
+
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
@@ -200,7 +214,8 @@ pub fn run() {
             delete_trashed_task,
             empty_trash,
             save_task_attachment,
-            resolve_task_attachment
+            resolve_task_attachment,
+            read_task_attachment
         ])
         .run(tauri::generate_context!())
         .expect("не удалось запустить flood.md");

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ArrowRight, Bold, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Folder, FolderPlus, Heading1, Italic, Link, ListTodo, MessageSquareText, Minus, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, RotateCcw, Search, Settings, Square, Trash2, Underline, X } from "@lucide/svelte";
-  import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+  import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, tick } from "svelte";
@@ -64,6 +64,7 @@
 
   let editorRoot: HTMLDivElement;
   let attachmentInput: HTMLInputElement;
+  let attachmentObjectUrls: string[] = [];
   let activeSection: Section = "tasks";
   let workspaceView: WorkspaceView = "project";
   let selectedTaskId = "";
@@ -71,7 +72,8 @@
   let query = "";
   let showCompleted = false;
   let sidebarCollapsed = false;
-  let expandedChatIds = new Set<string>();
+  let expandedChatIds: string[] = [];
+  let allTasksExpanded = true;
   let themePreference: ThemePreference = "system";
   let markdown = "";
   let editorHint: MarkdownHint | null = null;
@@ -87,7 +89,7 @@
   let saveInFlight: Promise<void> | null = null;
   let conflictRemote: TaskRecord | null = null;
   let urgencyMenuOpen = false;
-  let newTaskMenuOpen = false;
+  let newTaskMenuAnchor: "sidebar" | "workspace" | null = null;
   let createChatOpen = false;
   let createChatTitle = "";
   let renameChatOpen = false;
@@ -120,7 +122,8 @@
       theme: themePreference,
       showCompleted,
       sidebarCollapsed,
-      expandedChatIds: [...expandedChatIds]
+      expandedChatIds,
+      allTasksExpanded
     }));
   }
 
@@ -136,7 +139,8 @@
       if (stored.theme === "system" || stored.theme === "light" || stored.theme === "dark") themePreference = stored.theme;
       if (typeof stored.showCompleted === "boolean") showCompleted = stored.showCompleted;
       if (typeof stored.sidebarCollapsed === "boolean") sidebarCollapsed = stored.sidebarCollapsed;
-      if (Array.isArray(stored.expandedChatIds)) expandedChatIds = new Set(stored.expandedChatIds.filter((id): id is string => typeof id === "string"));
+      if (Array.isArray(stored.expandedChatIds)) expandedChatIds = stored.expandedChatIds.filter((id): id is string => typeof id === "string");
+      if (typeof stored.allTasksExpanded === "boolean") allTasksExpanded = stored.allTasksExpanded;
     } catch {
       localStorage.removeItem(uiPreferencesKey);
     }
@@ -160,14 +164,18 @@
   }
 
   function isChatExpanded(chatId: string) {
-    return expandedChatIds.has(chatId);
+    return expandedChatIds.includes(chatId);
   }
 
   function setChatExpanded(chatId: string, expanded = true) {
-    const next = new Set(expandedChatIds);
-    if (expanded) next.add(chatId);
-    else next.delete(chatId);
-    expandedChatIds = next;
+    expandedChatIds = expanded
+      ? [...new Set([...expandedChatIds, chatId])]
+      : expandedChatIds.filter((id) => id !== chatId);
+    saveUiPreferences();
+  }
+
+  function toggleAllTasks() {
+    allTasksExpanded = !allTasksExpanded;
     saveUiPreferences();
   }
 
@@ -415,18 +423,26 @@
 
   async function hydrateAttachments() {
     if (!inTauri() || !selectedTaskId || !editorRoot) return;
+    for (const url of attachmentObjectUrls) URL.revokeObjectURL(url);
+    attachmentObjectUrls = [];
     for (const element of editorRoot.querySelectorAll<HTMLElement>("[data-attachment-path]")) {
       const relativePath = element.dataset.attachmentPath;
       if (!relativePath) continue;
       try {
-        const path = await invoke<string>("resolve_task_attachment", { id: selectedTaskId, relativePath });
-        const url = convertFileSrc(path);
+        const bytes = await invoke<ArrayBuffer>("read_task_attachment", { id: selectedTaskId, relativePath });
+        const url = URL.createObjectURL(new Blob([bytes], { type: attachmentMimeType(relativePath) }));
+        attachmentObjectUrls.push(url);
         if (element instanceof HTMLImageElement) element.src = url;
         else if (element instanceof HTMLAnchorElement) element.href = url;
       } catch {
         element.classList.add("missing-attachment");
       }
     }
+  }
+
+  function attachmentMimeType(path: string) {
+    const extension = path.split(".").pop()?.toLowerCase();
+    return ({ png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml", pdf: "application/pdf", mp3: "audio/mpeg", wav: "audio/wav", mp4: "video/mp4", webm: "video/webm", txt: "text/plain", md: "text/markdown" } as Record<string, string>)[extension ?? ""] ?? "application/octet-stream";
   }
 
   function serializeEditor() {
@@ -668,16 +684,18 @@
           fileName: file.name || (file.type === "image/png" ? "изображение.png" : file.type === "image/jpeg" ? "изображение.jpg" : "вложение"),
           bytes: [...new Uint8Array(await file.arrayBuffer())]
         });
-        const absolutePath = await invoke<string>("resolve_task_attachment", { id: selectedTaskId, relativePath });
+        const bytes = await invoke<ArrayBuffer>("read_task_attachment", { id: selectedTaskId, relativePath });
+        const objectUrl = URL.createObjectURL(new Blob([bytes], { type: file.type || attachmentMimeType(relativePath) }));
+        attachmentObjectUrls.push(objectUrl);
         const node = file.type.startsWith("image/") ? document.createElement("img") : document.createElement("a");
         node.dataset.attachmentPath = relativePath;
         if (node instanceof HTMLImageElement) {
           node.alt = file.name || "Изображение";
-          node.src = convertFileSrc(absolutePath);
+          node.src = objectUrl;
           node.contentEditable = "false";
         } else {
           node.textContent = file.name || "Вложение";
-          node.href = convertFileSrc(absolutePath);
+          node.href = objectUrl;
           node.target = "_blank";
           node.rel = "noreferrer";
         }
@@ -788,15 +806,13 @@
     workspaceView = "project";
     completedGroupOpen = false;
     deleteChatConfirmOpen = false;
-    if (chat.id !== "all") setChatExpanded(chat.id);
     editorHint = null;
     sourceEditorOpen = false;
     datePickerOpen = false;
     taskActionMenuOpen = false;
   }
 
-  function toggleChat(chat: ChatItem, event: MouseEvent) {
-    event.stopPropagation();
+  function toggleChat(chat: ChatItem) {
     setChatExpanded(chat.id, !isChatExpanded(chat.id));
   }
 
@@ -924,11 +940,11 @@
     void tick().then(() => renderMarkdown(markdown));
   }
 
-  function requestNewTask() {
+  function requestNewTask(anchor: "sidebar" | "workspace" = "workspace") {
     if (activeSection === "tasks" && selectedChatId !== "all" && currentChat.id !== "all") {
       void createDraft(currentChat);
     } else {
-      newTaskMenuOpen = !newTaskMenuOpen;
+      newTaskMenuAnchor = newTaskMenuAnchor === anchor ? null : anchor;
     }
   }
 
@@ -937,7 +953,7 @@
     if (conflictRemote) return;
     const targetChat = chosenChat ?? (selectedChatId === "all" ? undefined : currentChat);
     if (!targetChat || targetChat.id === "all" || !inTauri()) return;
-    newTaskMenuOpen = false;
+    newTaskMenuAnchor = null;
     let draft: TaskItem;
     try {
       const created = await invoke<TaskRecord>("create_task", {
@@ -1357,7 +1373,7 @@
         datePickerOpen = false;
       }
       if (!target?.closest(".date-picker-wrap")) datePickerOpen = false;
-      if (!target?.closest(".new-task-menu") && !target?.closest(".new-task-button")) newTaskMenuOpen = false;
+      if (!target?.closest(".new-task-menu") && !target?.closest(".new-task-button") && !target?.closest(".project-add-button")) newTaskMenuAnchor = null;
       if (!target?.closest(".task-actions-menu") && !target?.closest("[aria-label='Другие действия']")) {
         taskActionMenuOpen = false;
         moveMenuOpen = false;
@@ -1372,6 +1388,7 @@
       window.removeEventListener("blur", flush);
       document.removeEventListener("pointerdown", closeMenus);
       colorScheme.removeEventListener("change", updateSystemTheme);
+      for (const url of attachmentObjectUrls) URL.revokeObjectURL(url);
       unlisten?.();
       unlistenClose?.();
     };
@@ -1487,8 +1504,8 @@
   <div class="app-content">
     <aside class:collapsed={sidebarCollapsed} class="sidebar-panel" aria-label="Навигация">
       <div class="sidebar-primary">
-        <button class="new-task-button" aria-label="Новая задача" aria-expanded={newTaskMenuOpen} onclick={requestNewTask}><Plus size={17} /><span>Новая задача</span></button>
-        {#if newTaskMenuOpen && !sidebarCollapsed}
+        <button class="new-task-button" aria-label="Новая задача" aria-expanded={newTaskMenuAnchor === "sidebar"} onclick={() => requestNewTask("sidebar")}><Plus size={17} /><span>Новая задача</span></button>
+        {#if newTaskMenuAnchor === "sidebar" && !sidebarCollapsed}
           <div class="new-task-menu">
             <small>Выберите чат-проект</small>
             {#each chats.slice(1) as chat}<button onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
@@ -1502,11 +1519,16 @@
       </div>
 
       <nav class="sidebar-navigation" aria-label="Чаты и задачи">
-        <button class:active={activeSection === "tasks" && selectedChatId === "all"} class="sidebar-row all-tasks" onclick={() => chats[0] && selectChat(chats[0])} title="Все задачи">
-          <ListTodo size={17} /><span>Все задачи</span><small>{tasks.filter((task) => !task.completed).length}</small>
-        </button>
+        <div class:active={activeSection === "tasks" && selectedChatId === "all"} class="project-row all-tasks-row" title="Все задачи">
+          <button class="project-open" onclick={() => chats[0] && selectChat(chats[0])} aria-label="Открыть все задачи">
+            <ListTodo size={17} /><span>Все задачи</span><small>{tasks.filter((task) => !task.completed).length}</small>
+          </button>
+          {#if !sidebarCollapsed}
+            <button class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={toggleAllTasks} aria-label={allTasksExpanded ? "Свернуть все задачи" : "Раскрыть все задачи"}><ChevronRight size={13} /></button>
+          {/if}
+        </div>
 
-        {#if !sidebarCollapsed && selectedChatId === "all" && activeSection === "tasks"}
+        {#if !sidebarCollapsed && allTasksExpanded && activeSection === "tasks"}
           <div class="nested-tasks all-task-list">
             {#each visibleTasks as task}
               <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
@@ -1525,9 +1547,7 @@
                 {/if}
               </button>
               {#if !sidebarCollapsed}
-                <button class="project-expand" onclick={(event) => toggleChat(chat, event)} aria-label={isChatExpanded(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}>
-                  {#if isChatExpanded(chat.id)}<ChevronDown size={13} />{:else}<ChevronRight size={13} />{/if}
-                </button>
+                <button class:expanded={isChatExpanded(chat.id)} class="project-expand" aria-expanded={isChatExpanded(chat.id)} onclick={() => toggleChat(chat)} aria-label={isChatExpanded(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}><ChevronRight size={13} /></button>
               {/if}
             </div>
             {#if !sidebarCollapsed && isChatExpanded(chat.id) && activeSection === "tasks"}
@@ -1606,7 +1626,15 @@
               {/if}
               <p>{loading ? "Загружаю задачи…" : `${currentOpenTasks.length} ${currentOpenTasks.length === 1 ? "открытая задача" : currentOpenTasks.length > 1 && currentOpenTasks.length < 5 ? "открытые задачи" : "открытых задач"}`}</p>
             </div>
-            <button class="project-add-button" onclick={requestNewTask}><Plus size={16} />Новая задача</button>
+            <div class="project-header-actions">
+              <button class="project-add-button" aria-expanded={newTaskMenuAnchor === "workspace"} onclick={() => requestNewTask("workspace")}><Plus size={16} />Новая задача</button>
+              {#if newTaskMenuAnchor === "workspace"}
+                <div class="new-task-menu workspace-new-task-menu">
+                  <small>Выберите чат-проект</small>
+                  {#each chats.slice(1) as chat}<button onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
+                </div>
+              {/if}
+            </div>
           </header>
 
           {#if deleteChatConfirmOpen}
@@ -1645,7 +1673,7 @@
                   <ChevronRight size={15} />
                 </button>
               {:else}
-                <div class="project-empty"><p>Открытых задач нет</p><button onclick={requestNewTask}>Добавить задачу</button></div>
+                <div class="project-empty"><p>Открытых задач нет</p><button onclick={() => requestNewTask("workspace")}>Добавить задачу</button></div>
               {/each}
             </div>
           {/if}

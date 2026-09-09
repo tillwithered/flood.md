@@ -462,6 +462,15 @@ impl Store {
         Ok(path)
     }
 
+    pub fn read_task_attachment(
+        &self,
+        id: &str,
+        relative_path: &str,
+    ) -> Result<Vec<u8>, StoreError> {
+        let path = self.resolve_task_attachment(id, relative_path)?;
+        Ok(fs::read(path)?)
+    }
+
     fn set_trashed(
         &self,
         id: &str,
@@ -962,6 +971,7 @@ mod tests {
                 .unwrap()
                 .is_file()
         );
+        assert_eq!(store.read_task_attachment(&task.id, &relative).unwrap(), b"image-bytes");
 
         let moved = store
             .move_task(&task.id, &second.id, &task.version)
