@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <defs>
+    <filter id="blur12" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="12"/></filter>
+    <filter id="blur22" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="22"/></filter>
+    <filter id="blur34" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="34"/></filter>
+    <filter id="surface" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" seed="17" result="noise"/>
+      <feColorMatrix in="noise" type="saturate" values="0" result="grain"/>
+      <feComponentTransfer in="grain" result="faintGrain"><feFuncA type="table" tableValues="0 0.055"/></feComponentTransfer>
+      <feBlend in="SourceGraphic" in2="faintGrain" mode="soft-light"/>
+    </filter>
+    <filter id="innerGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
+      <feComposite in="blur" in2="SourceAlpha" operator="out" result="outer"/>
+      <feFlood flood-color="#FFFFFF" flood-opacity="0.55" result="white"/>
+      <feComposite in="white" in2="outer" operator="in" result="rim"/>
+      <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="rim"/></feMerge>
+    </filter>
+    <linearGradient id="pinkBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FF67D4"/><stop offset=".48" stop-color="#754CFF"/><stop offset="1" stop-color="#1DE2FF"/>
+    </linearGradient>
+    <linearGradient id="heat" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFF27A"/><stop offset=".35" stop-color="#FF8A37"/><stop offset=".74" stop-color="#FF343D"/><stop offset="1" stop-color="#FF36C8"/>
+    </linearGradient>
+    <radialGradient id="void"><stop stop-color="#02040B"/><stop offset=".55" stop-color="#091020"/><stop offset="1" stop-color="#15204A" stop-opacity="0"/></radialGradient>
+    <radialGradient id="cyan"><stop stop-color="#D9FFFF"/><stop offset=".25" stop-color="#46EAFF"/><stop offset=".65" stop-color="#167BFF"/><stop offset="1" stop-color="#2436FF" stop-opacity="0"/></radialGradient>
+    <radialGradient id="magenta"><stop stop-color="#FFD5F5"/><stop offset=".22" stop-color="#FF67DD"/><stop offset=".62" stop-color="#C134FF"/><stop offset="1" stop-color="#4723FF" stop-opacity="0"/></radialGradient>
+    <radialGradient id="acid"><stop stop-color="#F5FF94"/><stop offset=".28" stop-color="#AFFF24"/><stop offset=".68" stop-color="#31E94F"/><stop offset="1" stop-color="#008B68" stop-opacity="0"/></radialGradient>
+
+    <clipPath id="c1"><rect x="70" y="168" width="310" height="250" rx="48"/></clipPath>
+    <clipPath id="c2"><rect x="445" y="168" width="310" height="250" rx="48"/></clipPath>
+    <clipPath id="c3"><rect x="820" y="168" width="310" height="250" rx="48"/></clipPath>
+    <clipPath id="c4"><rect x="70" y="518" width="310" height="250" rx="48"/></clipPath>
+    <clipPath id="c5"><rect x="445" y="518" width="310" height="250" rx="48"/></clipPath>
+    <clipPath id="c6"><rect x="820" y="518" width="310" height="250" rx="48"/></clipPath>
+  </defs>
+
+  <rect width="1200" height="900" fill="#171717"/>
+  <text x="70" y="76" fill="#FFFFFF" font-family="Georgia, serif" font-size="42" letter-spacing="-1.2">Flood materials</text>
+  <text x="70" y="111" fill="#929292" font-family="Golos Text, Arial, sans-serif" font-size="15">Модульные поля · фигуры, blur, blend modes, тёмные ядра и световые края</text>
+
+  <!-- 01 Abyss bloom -->
+  <g clip-path="url(#c1)" filter="url(#surface)">
+    <rect x="70" y="168" width="310" height="250" fill="#090B18"/>
+    <ellipse cx="225" cy="414" rx="190" ry="120" fill="url(#heat)" filter="url(#blur34)"/>
+    <ellipse cx="96" cy="255" rx="125" ry="120" fill="url(#cyan)" filter="url(#blur22)" style="mix-blend-mode:screen"/>
+    <ellipse cx="360" cy="238" rx="115" ry="105" fill="url(#magenta)" filter="url(#blur22)" style="mix-blend-mode:screen"/>
+    <path d="M64 315C135 200 164 189 225 276C286 363 318 209 390 214" fill="none" stroke="#7DEEFF" stroke-width="30" filter="url(#blur12)" opacity=".82" style="mix-blend-mode:screen"/>
+    <ellipse cx="228" cy="238" rx="112" ry="96" fill="url(#void)" filter="url(#blur22)"/>
+    <rect x="70" y="168" width="310" height="250" rx="48" fill="none" stroke="#FFB1E9" stroke-opacity=".42" stroke-width="2"/>
+  </g>
+  <text x="70" y="454" fill="#FFFFFF" font-family="Golos Text, Arial, sans-serif" font-size="17" font-weight="600">01 · Abyss bloom</text>
+  <text x="70" y="477" fill="#858585" font-family="Golos Text, Arial, sans-serif" font-size="13">тёмная воронка, холодный край, горячее дно</text>
+
+  <!-- 02 Signal fold -->
+  <g clip-path="url(#c2)" filter="url(#surface)">
+    <rect x="445" y="168" width="310" height="250" fill="#080A13"/>
+    <ellipse cx="606" cy="296" rx="150" ry="135" fill="#FF343F" filter="url(#blur22)"/>
+    <path d="M398 405L690 122" stroke="#31DFFF" stroke-width="84" filter="url(#blur22)" opacity=".9" style="mix-blend-mode:screen"/>
+    <path d="M434 430L730 142" stroke="#EED8FF" stroke-width="20" filter="url(#blur12)" opacity=".92" style="mix-blend-mode:color-dodge"/>
+    <path d="M477 128C559 249 668 254 788 365" stroke="#050712" stroke-width="94" filter="url(#blur22)" opacity=".93"/>
+    <ellipse cx="685" cy="202" rx="92" ry="70" fill="url(#magenta)" filter="url(#blur22)" style="mix-blend-mode:screen"/>
+    <rect x="445" y="168" width="310" height="250" rx="48" fill="none" stroke="#8CDFFF" stroke-opacity=".46" stroke-width="2"/>
+  </g>
+  <text x="445" y="454" fill="#FFFFFF" font-family="Golos Text, Arial, sans-serif" font-size="17" font-weight="600">02 · Signal fold</text>
+  <text x="445" y="477" fill="#858585" font-family="Golos Text, Arial, sans-serif" font-size="13">пересечение потоков и световая складка</text>
+
+  <!-- 03 Violet well -->
+  <g clip-path="url(#c3)" filter="url(#surface)">
+    <rect x="820" y="168" width="310" height="250" fill="#120A1C"/>
+    <ellipse cx="975" cy="294" rx="182" ry="140" fill="url(#magenta)" filter="url(#blur22)"/>
+    <ellipse cx="975" cy="294" rx="102" ry="78" fill="#FF58D1" filter="url(#blur12)" opacity=".8" style="mix-blend-mode:screen"/>
+    <ellipse cx="975" cy="294" rx="66" ry="52" fill="#080811" filter="url(#blur12)"/>
+    <ellipse cx="975" cy="294" rx="30" ry="24" fill="#010106"/>
+    <ellipse cx="900" cy="220" rx="80" ry="66" fill="url(#cyan)" filter="url(#blur22)" opacity=".65" style="mix-blend-mode:screen"/>
+    <rect x="820" y="168" width="310" height="250" rx="48" fill="none" stroke="#FF9EE5" stroke-opacity=".5" stroke-width="2"/>
+  </g>
+  <text x="820" y="454" fill="#FFFFFF" font-family="Golos Text, Arial, sans-serif" font-size="17" font-weight="600">03 · Violet well</text>
+  <text x="820" y="477" fill="#858585" font-family="Golos Text, Arial, sans-serif" font-size="13">пульсирующее кольцо вокруг пустоты</text>
+
+  <!-- 04 Flood gate -->
+  <g clip-path="url(#c4)" filter="url(#surface)">
+    <rect x="70" y="518" width="310" height="250" fill="#070B18"/>
+    <ellipse cx="225" cy="780" rx="190" ry="105" fill="url(#heat)" filter="url(#blur22)"/>
+    <path d="M105 530C105 610 145 615 155 690C164 752 286 752 296 690C307 614 345 610 345 530" fill="none" stroke="#E691FF" stroke-width="72" filter="url(#blur22)" style="mix-blend-mode:screen"/>
+    <path d="M126 512C128 601 183 614 188 690C191 731 258 731 262 690C269 613 322 603 324 512" fill="none" stroke="#42E8FF" stroke-width="19" filter="url(#blur12)" opacity=".95" style="mix-blend-mode:color-dodge"/>
+    <path d="M150 508C152 610 197 625 200 694C202 715 247 715 249 694C254 625 299 610 301 508" fill="#050711" filter="url(#blur12)"/>
+    <circle cx="145" cy="574" r="22" fill="#5D26FF" filter="url(#blur12)" style="mix-blend-mode:screen"/>
+    <rect x="70" y="518" width="310" height="250" rx="48" fill="none" stroke="#83EDFF" stroke-opacity=".48" stroke-width="2"/>
+  </g>
+  <text x="70" y="804" fill="#FFFFFF" font-family="Golos Text, Arial, sans-serif" font-size="17" font-weight="600">04 · Flood gate</text>
+  <text x="70" y="827" fill="#858585" font-family="Golos Text, Arial, sans-serif" font-size="13">тёмный шлюз внутри светового контура</text>
+
+  <!-- 05 Acid rift -->
+  <g clip-path="url(#c5)" filter="url(#surface)">
+    <rect x="445" y="518" width="310" height="250" fill="#07120C"/>
+    <ellipse cx="600" cy="643" rx="178" ry="132" fill="url(#acid)" filter="url(#blur22)"/>
+    <path d="M446 694C505 565 559 594 606 546C654 496 697 598 763 552" fill="none" stroke="#BAFF39" stroke-width="38" filter="url(#blur12)" style="mix-blend-mode:screen"/>
+    <ellipse cx="600" cy="643" rx="85" ry="65" fill="#06100C" filter="url(#blur22)"/>
+    <ellipse cx="600" cy="643" rx="43" ry="34" fill="#020604"/>
+    <ellipse cx="690" cy="700" rx="72" ry="58" fill="url(#cyan)" filter="url(#blur22)" opacity=".62" style="mix-blend-mode:screen"/>
+    <rect x="445" y="518" width="310" height="250" rx="48" fill="none" stroke="#B8FF93" stroke-opacity=".45" stroke-width="2"/>
+  </g>
+  <text x="445" y="804" fill="#FFFFFF" font-family="Golos Text, Arial, sans-serif" font-size="17" font-weight="600">05 · Acid rift</text>
+  <text x="445" y="827" fill="#858585" font-family="Golos Text, Arial, sans-serif" font-size="13">кислотное поле, прорезанное тёмным ядром</text>
+
+  <!-- 06 Soft current -->
+  <g clip-path="url(#c6)" filter="url(#surface)">
+    <rect x="820" y="518" width="310" height="250" fill="#101020"/>
+    <ellipse cx="875" cy="560" rx="120" ry="95" fill="url(#magenta)" filter="url(#blur22)" style="mix-blend-mode:screen"/>
+    <ellipse cx="1090" cy="735" rx="135" ry="100" fill="url(#heat)" filter="url(#blur34)" style="mix-blend-mode:screen"/>
+    <path d="M782 702C856 536 930 744 1008 585C1043 513 1092 548 1164 514" fill="none" stroke="#563BFF" stroke-width="80" filter="url(#blur22)" opacity=".8"/>
+    <path d="M788 696C860 554 925 728 999 596C1044 516 1094 558 1162 526" fill="none" stroke="#FF73DE" stroke-width="22" filter="url(#blur12)" opacity=".86" style="mix-blend-mode:screen"/>
+    <path d="M807 610C900 661 938 538 1030 612C1081 653 1121 596 1160 580" fill="none" stroke="#080A16" stroke-width="54" filter="url(#blur22)"/>
+    <ellipse cx="1000" cy="608" rx="78" ry="48" fill="url(#cyan)" filter="url(#blur22)" opacity=".7" style="mix-blend-mode:screen"/>
+    <rect x="820" y="518" width="310" height="250" rx="48" fill="none" stroke="#C199FF" stroke-opacity=".46" stroke-width="2"/>
+  </g>
+  <text x="820" y="804" fill="#FFFFFF" font-family="Golos Text, Arial, sans-serif" font-size="17" font-weight="600">06 · Soft current</text>
+  <text x="820" y="827" fill="#858585" font-family="Golos Text, Arial, sans-serif" font-size="13">две световые массы вокруг тёмного течения</text>
+</svg>

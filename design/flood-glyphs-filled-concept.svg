@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" fill="none">
+  <defs>
+    <filter id="blur2" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2.2"/></filter>
+    <filter id="blur35" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="3.5"/></filter>
+    <filter id="flowWarp" x="-40%" y="-40%" width="180%" height="180%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035 0.07" numOctaves="2" seed="11" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.4" xChannelSelector="R" yChannelSelector="B"/>
+    </filter>
+    <filter id="iconLift" x="-60%" y="-60%" width="220%" height="220%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.6" flood-color="#6A3DAD" flood-opacity="0.22"/>
+    </filter>
+    <radialGradient id="hotField" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(7 20) rotate(-36) scale(14 10)">
+      <stop stop-color="#FFBF4D"/>
+      <stop offset="0.35" stop-color="#FF503E"/>
+      <stop offset="1" stop-color="#FF3F8E" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="violetField" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(20 7) rotate(128) scale(14 12)">
+      <stop stop-color="#D65CFF"/>
+      <stop offset="0.42" stop-color="#6558FF"/>
+      <stop offset="1" stop-color="#384BFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cyanField" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(5 8) rotate(18) scale(13 8)">
+      <stop stop-color="#9CFBFF"/>
+      <stop offset="0.34" stop-color="#29D7FF"/>
+      <stop offset="1" stop-color="#259BFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="voidField" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(12 10) rotate(90) scale(8 10)">
+      <stop stop-color="#050711"/>
+      <stop offset="0.52" stop-color="#10152A"/>
+      <stop offset="1" stop-color="#10152A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rimLight" x1="2" y1="2" x2="22" y2="23" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.72"/>
+      <stop offset="0.28" stop-color="#80ECFF" stop-opacity="0.15"/>
+      <stop offset="0.72" stop-color="#FF63B9" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="white" stop-opacity="0.45"/>
+    </linearGradient>
+
+    <g id="liquidMaterial" filter="url(#flowWarp)">
+      <rect width="24" height="24" fill="#0A0D1C"/>
+      <rect width="24" height="24" fill="url(#hotField)"/>
+      <rect width="24" height="24" fill="url(#violetField)"/>
+      <rect width="24" height="24" fill="url(#cyanField)"/>
+      <ellipse cx="12" cy="10" rx="7.5" ry="5.8" fill="url(#voidField)" filter="url(#blur2)"/>
+      <path d="M-2 13C5 5 10 19 17 10C20 6 23 7 27 4" stroke="#C7FAFF" stroke-opacity="0.78" stroke-width="2.3" filter="url(#blur2)"/>
+      <rect width="24" height="24" fill="url(#rimLight)" opacity="0.42"/>
+    </g>
+
+    <mask id="filled-all">
+      <path d="M2.5 5.5C5.7 2.2 9.2 7.9 12.4 5.3C15.8 2.5 19.3 7.8 21.5 5.4V9.2C18.4 11.9 15.3 6.9 12.3 9.5C9 12.3 5.4 6.9 2.5 9.6V5.5Z" fill="white"/>
+      <path d="M2.5 12.1C5.7 8.8 9.2 14.5 12.4 11.9C15.8 9.1 19.3 14.4 21.5 12V15.8C18.4 18.5 15.3 13.5 12.3 16.1C9 18.9 5.4 13.5 2.5 16.2V12.1Z" fill="white"/>
+      <path d="M4.2 18.6C7 16.2 9.7 20.6 12.5 18.4C15.3 16.1 18.2 20.4 20 18.5V21.2C17.4 23 15 19.9 12.5 21.9C9.7 24 6.7 20 4.2 22V18.6Z" fill="white"/>
+    </mask>
+    <mask id="filled-project">
+      <path d="M2.5 7.4C2.5 5.7 3.8 4.4 5.5 4.4H9.1L11.3 6.7H18.5C20.2 6.7 21.5 8 21.5 9.7V18.5C21.5 20.2 20.2 21.5 18.5 21.5H5.5C3.8 21.5 2.5 20.2 2.5 18.5V7.4Z" fill="white"/>
+      <path d="M1.5 13C5.1 8.8 8.7 16.2 12.4 12.8C15.7 9.8 19 14.7 22.4 11.2" stroke="black" stroke-width="2.4" stroke-linecap="round"/>
+    </mask>
+    <mask id="filled-task">
+      <circle cx="12" cy="12" r="9.5" fill="white"/>
+      <path d="M4.1 12.6C7.4 8.6 10.1 16.6 13.5 12.2C16 8.9 18.2 11.3 22.4 7.2" stroke="black" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="12" cy="12" r="3.1" fill="black"/>
+      <path d="M18.5 4.6L22 2.2" stroke="black" stroke-width="3.3" stroke-linecap="round"/>
+    </mask>
+    <mask id="filled-mcp">
+      <path d="M4 5.4C10.2 5.4 9.7 12 15.4 12H20M4 18.6C10.2 18.6 9.7 12 15.4 12" stroke="white" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="4" cy="5.4" r="2.5" fill="white"/>
+      <circle cx="4" cy="18.6" r="2.5" fill="white"/>
+      <circle cx="20" cy="12" r="2.5" fill="white"/>
+    </mask>
+  </defs>
+
+  <rect width="1200" height="760" fill="white"/>
+  <text x="72" y="76" fill="#171717" font-family="Golos Text, Arial, sans-serif" font-size="34" font-weight="650" letter-spacing="-1.2">Flood Glyphs · Filled</text>
+  <text x="72" y="107" fill="#737373" font-family="Golos Text, Arial, sans-serif" font-size="15">Цельные формы с многослойным жидким материалом, тёмными пустотами и световыми полями</text>
+
+  <g transform="translate(72 154)">
+    <rect width="246" height="398" rx="20" fill="#FAFAFA"/>
+    <g transform="translate(65 50) scale(4.85)" filter="url(#iconLift)"><g mask="url(#filled-all)"><use href="#liquidMaterial"/></g></g>
+    <text x="24" y="298" fill="#171717" font-family="Golos Text, Arial, sans-serif" font-size="18" font-weight="600">Все задачи</text>
+    <text x="24" y="325" fill="#777" font-family="Golos Text, Arial, sans-serif" font-size="13">Три слоя общего потока</text>
+    <g transform="translate(24 352) scale(.92)"><rect width="24" height="24" fill="#666" mask="url(#filled-all)"/></g>
+    <g transform="translate(62 352) scale(.92)" filter="url(#iconLift)"><g mask="url(#filled-all)"><use href="#liquidMaterial"/></g></g>
+  </g>
+
+  <g transform="translate(342 154)">
+    <rect width="246" height="398" rx="20" fill="#FAFAFA"/>
+    <g transform="translate(65 50) scale(4.85)" filter="url(#iconLift)"><g mask="url(#filled-project)"><use href="#liquidMaterial"/></g></g>
+    <text x="24" y="298" fill="#171717" font-family="Golos Text, Arial, sans-serif" font-size="18" font-weight="600">Чат-проект</text>
+    <text x="24" y="325" fill="#777" font-family="Golos Text, Arial, sans-serif" font-size="13">Объём, разделённый уровнем воды</text>
+    <g transform="translate(24 352) scale(.92)"><rect width="24" height="24" fill="#666" mask="url(#filled-project)"/></g>
+    <g transform="translate(62 352) scale(.92)" filter="url(#iconLift)"><g mask="url(#filled-project)"><use href="#liquidMaterial"/></g></g>
+  </g>
+
+  <g transform="translate(612 154)">
+    <rect width="246" height="398" rx="20" fill="#FAFAFA"/>
+    <g transform="translate(65 50) scale(4.85)" filter="url(#iconLift)"><g mask="url(#filled-task)"><use href="#liquidMaterial"/></g></g>
+    <text x="24" y="298" fill="#171717" font-family="Golos Text, Arial, sans-serif" font-size="18" font-weight="600">Задача</text>
+    <text x="24" y="325" fill="#777" font-family="Golos Text, Arial, sans-serif" font-size="13">Сгусток смысла внутри ряби</text>
+    <g transform="translate(24 352) scale(.92)"><rect width="24" height="24" fill="#666" mask="url(#filled-task)"/></g>
+    <g transform="translate(62 352) scale(.92)" filter="url(#iconLift)"><g mask="url(#filled-task)"><use href="#liquidMaterial"/></g></g>
+  </g>
+
+  <g transform="translate(882 154)">
+    <rect width="246" height="398" rx="20" fill="#FAFAFA"/>
+    <g transform="translate(65 50) scale(4.85)" filter="url(#iconLift)"><g mask="url(#filled-mcp)"><use href="#liquidMaterial"/></g></g>
+    <text x="24" y="298" fill="#171717" font-family="Golos Text, Arial, sans-serif" font-size="18" font-weight="600">MCP</text>
+    <text x="24" y="325" fill="#777" font-family="Golos Text, Arial, sans-serif" font-size="13">Слияние входящих потоков</text>
+    <g transform="translate(24 352) scale(.92)"><rect width="24" height="24" fill="#666" mask="url(#filled-mcp)"/></g>
+    <g transform="translate(62 352) scale(.92)" filter="url(#iconLift)"><g mask="url(#filled-mcp)"><use href="#liquidMaterial"/></g></g>
+  </g>
+
+  <g transform="translate(72 608)">
+    <text y="0" fill="#8A8A8A" font-family="Golos Text, Arial, sans-serif" font-size="12">НАВИГАЦИЯ · 20 PX</text>
+    <rect y="24" width="224" height="48" rx="10" fill="#F7F7F7"/>
+    <g transform="translate(14 37) scale(.92)" filter="url(#iconLift)"><g mask="url(#filled-project)"><use href="#liquidMaterial"/></g></g>
+    <text x="50" y="54" fill="#171717" font-family="Golos Text, Arial, sans-serif" font-size="14" font-weight="550">Zakup WMS</text>
+    <text x="198" y="54" fill="#8A8A8A" font-family="Golos Text, Arial, sans-serif" font-size="12">2</text>
+  </g>
+  <g transform="translate(390 608)">
+    <text y="0" fill="#8A8A8A" font-family="Golos Text, Arial, sans-serif" font-size="12">СПОКОЙНОЕ СОСТОЯНИЕ</text>
+    <g transform="translate(0 31)"><rect width="24" height="24" fill="#676767" mask="url(#filled-all)"/></g>
+    <g transform="translate(50 31)"><rect width="24" height="24" fill="#676767" mask="url(#filled-project)"/></g>
+    <g transform="translate(100 31)"><rect width="24" height="24" fill="#676767" mask="url(#filled-task)"/></g>
+    <g transform="translate(150 31)"><rect width="24" height="24" fill="#676767" mask="url(#filled-mcp)"/></g>
+  </g>
+  <g transform="translate(690 608)">
+    <text y="0" fill="#8A8A8A" font-family="Golos Text, Arial, sans-serif" font-size="12">ЖИДКИЙ МАТЕРИАЛ</text>
+    <rect y="24" width="438" height="48" rx="10" fill="#11131E"/>
+    <g transform="translate(14 36)"><g mask="url(#filled-all)"><use href="#liquidMaterial"/></g></g>
+    <g transform="translate(56 36)"><g mask="url(#filled-project)"><use href="#liquidMaterial"/></g></g>
+    <g transform="translate(98 36)"><g mask="url(#filled-task)"><use href="#liquidMaterial"/></g></g>
+    <g transform="translate(140 36)"><g mask="url(#filled-mcp)"><use href="#liquidMaterial"/></g></g>
+    <text x="190" y="54" fill="#D8D8E4" font-family="Golos Text, Arial, sans-serif" font-size="13">цветовые поля + тёмное ядро + искажение</text>
+  </g>
+</svg>

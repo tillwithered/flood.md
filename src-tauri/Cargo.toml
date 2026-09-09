@@ -1,0 +1,19 @@
+[package]
+name = "flood-desktop"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "flood_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.5.3", features = [] }
+
+[dependencies]
+flood-core = { path = "../crates/flood-core" }
+notify = "8.2.0"
+serde.workspace = true
+tauri = { version = "2.11.5", features = [] }
+

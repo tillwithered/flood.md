@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820">
+  <defs>
+    <filter id="b10" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="b18" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="18"/></filter>
+    <filter id="b28" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="28"/></filter>
+    <radialGradient id="redCore"><stop stop-color="#FFB24D"/><stop offset=".35" stop-color="#FF513E"/><stop offset=".72" stop-color="#FF315D"/><stop offset="1" stop-color="#FF315D" stop-opacity="0"/></radialGradient>
+    <radialGradient id="pinkCore"><stop stop-color="#FFD5FA"/><stop offset=".24" stop-color="#FF6BDB"/><stop offset=".64" stop-color="#B63DFF"/><stop offset="1" stop-color="#733CFF" stop-opacity="0"/></radialGradient>
+    <radialGradient id="blueCore"><stop stop-color="#D5FFFF"/><stop offset=".25" stop-color="#4AE8FF"/><stop offset=".63" stop-color="#168DFF"/><stop offset="1" stop-color="#334CFF" stop-opacity="0"/></radialGradient>
+    <linearGradient id="hotBand" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFF09A"/><stop offset=".35" stop-color="#FF9A45"/><stop offset=".7" stop-color="#FF3D50"/><stop offset="1" stop-color="#F539D1"/></linearGradient>
+    <linearGradient id="coolBand" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#B8FFFF"/><stop offset=".34" stop-color="#37D7FF"/><stop offset=".7" stop-color="#5962FF"/><stop offset="1" stop-color="#D55CFF"/></linearGradient>
+    <clipPath id="p1"><rect x="70" y="150" width="500" height="250" rx="48"/></clipPath>
+    <clipPath id="p2"><rect x="630" y="150" width="500" height="250" rx="48"/></clipPath>
+    <clipPath id="p3"><rect x="70" y="500" width="500" height="250" rx="48"/></clipPath>
+    <clipPath id="p4"><rect x="630" y="500" width="500" height="250" rx="48"/></clipPath>
+  </defs>
+
+  <rect width="1200" height="820" fill="#171717"/>
+  <text x="70" y="68" fill="white" font-family="Georgia, serif" font-size="40" letter-spacing="-1">Flood materials · finalists</text>
+  <text x="70" y="101" fill="#909090" font-family="Golos Text, Arial, sans-serif" font-size="14">Без общего warp-фильтра: геометрия фиксирована, blur применяется только к отдельным слоям</text>
+
+  <!-- 02A Signal Fold / cold -->
+  <g clip-path="url(#p1)">
+    <rect x="70" y="150" width="500" height="250" fill="#080A14"/>
+    <ellipse cx="326" cy="294" rx="190" ry="124" fill="url(#redCore)" filter="url(#b28)"/>
+    <path d="M28 423L448 82" stroke="url(#coolBand)" stroke-width="118" filter="url(#b18)" opacity=".92"/>
+    <path d="M66 429L478 99" stroke="#E6FCFF" stroke-width="18" filter="url(#b10)" opacity=".76" style="mix-blend-mode:screen"/>
+    <path d="M95 111C213 250 374 211 586 385" stroke="#050710" stroke-width="118" filter="url(#b18)"/>
+    <ellipse cx="490" cy="184" rx="105" ry="75" fill="url(#pinkCore)" filter="url(#b18)" opacity=".82" style="mix-blend-mode:screen"/>
+    <ellipse cx="125" cy="350" rx="90" ry="68" fill="url(#blueCore)" filter="url(#b18)" opacity=".74" style="mix-blend-mode:screen"/>
+    <rect x="71" y="151" width="498" height="248" rx="47" fill="none" stroke="#78DDFF" stroke-opacity=".36" stroke-width="2"/>
+  </g>
+  <text x="70" y="435" fill="white" font-family="Golos Text, Arial, sans-serif" font-size="17" font-weight="600">02A · Signal Fold / cold</text>
+  <text x="70" y="458" fill="#858585" font-family="Golos Text, Arial, sans-serif" font-size="13">холодная складка поверх горячего сигнала</text>
+
+  <!-- 02B Signal Fold / warm -->
+  <g clip-path="url(#p2)">
+    <rect x="630" y="150" width="500" height="250" fill="#0B0912"/>
+    <ellipse cx="875" cy="290" rx="198" ry="128" fill="url(#pinkCore)" filter="url(#b28)" opacity=".85"/>
+    <path d="M584 404L1003 79" stroke="url(#hotBand)" stroke-width="122" filter="url(#b18)" opacity=".94"/>
+    <path d="M616 421L1029 97" stroke="#FFF1C2" stroke-width="17" filter="url(#b10)" opacity=".74" style="mix-blend-mode:screen"/>
+    <path d="M656 106C764 246 943 203 1148 382" stroke="#070812" stroke-width="115" filter="url(#b18)"/>
+    <ellipse cx="1060" cy="198" rx="98" ry="72" fill="url(#blueCore)" filter="url(#b18)" opacity=".82" style="mix-blend-mode:screen"/>
+    <ellipse cx="684" cy="339" rx="78" ry="64" fill="#FF4C50" filter="url(#b18)" opacity=".58" style="mix-blend-mode:screen"/>
+    <rect x="631" y="151" width="498" height="248" rx="47" fill="none" stroke="#FFB87B" stroke-opacity=".38" stroke-width="2"/>
+  </g>
+  <text x="630" y="435" fill="white" font-family="Golos Text, Arial, sans-serif" font-size="17" font-weight="600">02B · Signal Fold / warm</text>
+  <text x="630" y="458" fill="#858585" font-family="Golos Text, Arial, sans-serif" font-size="13">тёплая складка с холодным выходом</text>
+
+  <!-- 04A Flood Gate / deep -->
+  <g clip-path="url(#p3)">
+    <rect x="70" y="500" width="500" height="250" fill="#070A14"/>
+    <ellipse cx="320" cy="770" rx="250" ry="105" fill="url(#redCore)" filter="url(#b28)"/>
+    <path d="M126 478C128 588 185 601 198 686C207 744 432 744 442 686C456 599 512 589 514 478" fill="none" stroke="#C65CFF" stroke-width="102" filter="url(#b28)" opacity=".78" style="mix-blend-mode:screen"/>
+    <path d="M153 474C155 576 216 601 223 683C227 722 410 722 416 683C426 599 486 576 488 474" fill="none" stroke="url(#coolBand)" stroke-width="29" filter="url(#b10)" opacity=".94"/>
+    <path d="M182 472C184 581 242 614 247 686C250 706 389 706 392 686C399 613 457 581 459 472" fill="#04060D" filter="url(#b10)"/>
+    <circle cx="195" cy="554" r="30" fill="#6330FF" filter="url(#b10)" opacity=".88" style="mix-blend-mode:screen"/>
+    <rect x="71" y="501" width="498" height="248" rx="47" fill="none" stroke="#89E9FF" stroke-opacity=".38" stroke-width="2"/>
+  </g>
+  <text x="70" y="785" fill="white" font-family="Golos Text, Arial, sans-serif" font-size="17" font-weight="600">04A · Flood Gate / deep</text>
+  <text x="70" y="808" fill="#858585" font-family="Golos Text, Arial, sans-serif" font-size="13">глубокий тёмный шлюз и горячая нижняя кромка</text>
+
+  <!-- 04B Flood Gate / clear -->
+  <g clip-path="url(#p4)">
+    <rect x="630" y="500" width="500" height="250" fill="#090B18"/>
+    <ellipse cx="880" cy="766" rx="245" ry="98" fill="url(#hotBand)" filter="url(#b28)"/>
+    <path d="M694 476C696 576 748 600 758 675C765 728 995 728 1002 675C1013 600 1064 576 1066 476" fill="none" stroke="#F08BFF" stroke-width="88" filter="url(#b18)" opacity=".75" style="mix-blend-mode:screen"/>
+    <path d="M720 476C722 568 780 597 785 675C788 712 972 712 976 675C984 597 1039 568 1041 476" fill="none" stroke="#66E7FF" stroke-width="22" filter="url(#b10)" opacity=".9"/>
+    <path d="M751 474C753 574 806 611 810 678C812 696 949 696 951 678C957 610 1010 574 1012 474" fill="#050711" filter="url(#b10)"/>
+    <circle cx="764" cy="547" r="24" fill="#8943FF" filter="url(#b10)" opacity=".8" style="mix-blend-mode:screen"/>
+    <rect x="631" y="501" width="498" height="248" rx="47" fill="none" stroke="#D4B3FF" stroke-opacity=".34" stroke-width="2"/>
+  </g>
+  <text x="630" y="785" fill="white" font-family="Golos Text, Arial, sans-serif" font-size="17" font-weight="600">04B · Flood Gate / clear</text>
+  <text x="630" y="808" fill="#858585" font-family="Golos Text, Arial, sans-serif" font-size="13">чистая версия с тонким cyan-контуром</text>
+</svg>
