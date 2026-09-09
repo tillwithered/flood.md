@@ -242,12 +242,11 @@ button { color: inherit; }
   align-items: center;
   gap: 6px;
 }
-.task-actions-menu { position: absolute; z-index: 45; top: 44px; right: 146px; display: grid; width: max-content; max-width: calc(100vw - 24px); max-height: min(360px, calc(100vh - 70px)); padding: 4px; overflow-y: auto; border: 1px solid var(--line); border-radius: 11px; background: var(--elevated); box-shadow: 0 12px 34px var(--shadow); }
-.task-actions-menu.move-open { width: max-content; max-width: min(260px, calc(100vw - 24px)); }
-.task-actions-menu button { display: flex; width: 100%; min-height: 34px; align-items: center; gap: 6px; padding: 0 6px; border: 0; border-radius: 7px; background: transparent; color: #555555; font-size: 13px; text-align: left; white-space: nowrap; cursor: pointer; }
+.task-actions-menu { position: absolute; z-index: 45; top: 44px; right: 146px; display: grid; width: max-content; max-width: calc(100vw - 24px); padding: 3px; overflow: visible; border: 1px solid var(--line); border-radius: 11px; background: var(--elevated); box-shadow: 0 12px 34px var(--shadow); }
+.task-actions-menu.move-open { width: max-content; max-width: min(360px, calc(100vw - 24px)); max-height: min(360px, calc(100vh - 70px)); overflow-y: auto; }
+.task-actions-menu button { display: flex; width: 100%; min-height: 34px; align-items: center; gap: 6px; padding: 0 3px 0 6px; border: 0; border-radius: 7px; background: transparent; color: #555555; font-size: 13px; text-align: left; white-space: nowrap; cursor: pointer; }
 .task-actions-menu button > svg { flex: 0 0 auto; }
 .task-actions-menu button > svg:last-child:not(:first-child) { margin-left: 2px; }
-.task-actions-menu.move-open button span { min-width: 0; max-width: 188px; overflow: hidden; text-overflow: ellipsis; }
 .task-actions-menu button:hover { background: #f7f7f7; color: var(--ink); }
 .task-actions-menu button:disabled { color: #a5a5a5; cursor: default; }
 .task-actions-menu button.danger { color: var(--danger-ink); }
@@ -604,7 +603,6 @@ button { color: inherit; }
 .setting-row.active .switch span { transform: translateX(14px); }
 
 .sidebar-navigation,
-.task-actions-menu,
 .task-list,
 .editor-page,
 .project-workspace {
