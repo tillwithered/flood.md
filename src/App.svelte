@@ -3,6 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { openUrl } from "@tauri-apps/plugin-opener";
   import { onMount, tick } from "svelte";
   import FloodGlyph from "./components/FloodGlyph.svelte";
 
@@ -361,9 +362,8 @@
           const link = document.createElement("a");
           appendInlineMarkdown(link, value.slice(cursor + 1, labelEnd));
           link.dataset.attachmentPath = path.startsWith("attachments/") ? path : "";
-          link.href = path;
-          link.target = "_blank";
-          link.rel = "noreferrer";
+          if (isHttpUrl(path)) decorateExternalLink(link, path);
+          else link.href = path;
           parent.append(link);
           cursor = pathEnd + 1;
           continue;
@@ -660,14 +660,31 @@
     }
   }
 
+  function decorateExternalLink(anchor: HTMLAnchorElement, url: string) {
+    anchor.href = url;
+    anchor.dataset.taskLink = "true";
+    anchor.dataset.linkHint = "Зажмите Ctrl, чтобы перейти";
+    anchor.rel = "noreferrer";
+  }
+
+  async function openTaskLink(url: string) {
+    if (!isHttpUrl(url)) return;
+    try {
+      if (inTauri()) await openUrl(url);
+      else window.open(url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      saveState = "error";
+      saveError = `Не удалось открыть ссылку: ${String(error)}`;
+    }
+  }
+
   function createSelectionLink(url: string) {
     if (!isHttpUrl(url) || !restoreSelection()) return false;
     document.execCommand("createLink", false, url.trim());
     const selection = window.getSelection();
     const anchor = selection?.anchorNode instanceof Element ? selection.anchorNode.closest("a") : selection?.anchorNode?.parentElement?.closest("a");
     if (anchor) {
-      anchor.target = "_blank";
-      anchor.rel = "noreferrer";
+      decorateExternalLink(anchor, url.trim());
     }
     serializeEditor();
     updateSelectionToolbar();
@@ -887,6 +904,15 @@
 
   function handleEditorClick(event: MouseEvent) {
     const target = event.target instanceof Element ? event.target : null;
+    const taskLink = target?.closest<HTMLAnchorElement>("a[data-task-link]");
+    if (taskLink) {
+      event.preventDefault();
+      if (event.ctrlKey) {
+        event.stopPropagation();
+        void openTaskLink(taskLink.href);
+      }
+      return;
+    }
     const view = target?.closest<HTMLElement>("[data-view-attachment]");
     if (view) {
       event.preventDefault();

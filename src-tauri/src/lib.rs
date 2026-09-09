@@ -179,6 +179,7 @@ fn read_task_attachment(
 
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let root = default_data_dir();
             let store = Store::new(&root)?;
