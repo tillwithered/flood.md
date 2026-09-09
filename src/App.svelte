@@ -101,6 +101,7 @@
   let datePickerOpen = false;
   let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   let formError = "";
+  let closingWindow = false;
 
   function taskTitle(description: string) {
     const first = description.split("\n").find((line) => line.trim())?.trim() ?? "Без названия";
@@ -917,15 +918,24 @@
     if (inTauri()) void getCurrentWindow().toggleMaximize();
   }
 
-  function closeWindow() {
-    if (inTauri()) void getCurrentWindow().close();
+  async function closeWindow() {
+    if (!inTauri() || closingWindow) return;
+    await saveNow();
+    if (conflictRemote) return;
+    closingWindow = true;
+    try {
+      await getCurrentWindow().destroy();
+    } catch (error) {
+      closingWindow = false;
+      saveState = "error";
+      saveError = `Не удалось закрыть приложение: ${String(error)}`;
+    }
   }
 
   onMount(() => {
     let unlisten: UnlistenFn | undefined;
     let unlistenClose: UnlistenFn | undefined;
     let disposed = false;
-    let closing = false;
     void (async () => {
       await loadData(false);
       if (disposed || !inTauri()) return;
@@ -936,13 +946,9 @@
         }, 220);
       });
       unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
-        if (closing || markdown === lastSavedMarkdown) return;
+        if (closingWindow) return;
         event.preventDefault();
-        await saveNow();
-        if (!conflictRemote) {
-          closing = true;
-          await getCurrentWindow().close();
-        }
+        await closeWindow();
       });
     })();
     const flush = () => { void saveNow(); };
