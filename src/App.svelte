@@ -55,7 +55,7 @@
   };
   type ChatItem = ProjectRecord & { open: number };
   type MarkdownHint = { title: string; left: number; top: number };
-  type TelegramStatus = { step: string; configured: boolean; account_name?: string; qr_link?: string; password_hint?: string; error?: string };
+  type TelegramStatus = { step: string; configured: boolean; managed_credentials: boolean; account_name?: string; qr_link?: string; password_hint?: string; error?: string };
   type TelegramChat = { id: number; title: string };
 
   const markdownHints: Record<string, MessageKey> = {
@@ -93,7 +93,7 @@
   let dataActionMessage = "";
   let pendingRestorePath = "";
   let mcpExecutable = "";
-  let telegramStatus: TelegramStatus = { step: "unconfigured", configured: false };
+  let telegramStatus: TelegramStatus = { step: "unconfigured", configured: false, managed_credentials: false };
   let telegramApiId = "";
   let telegramApiHash = "";
   let telegramPhone = "";
@@ -1801,8 +1801,6 @@
     void runTelegramAction(async () => {
       await invoke("telegram_disconnect");
       telegramChats = [];
-      telegramApiId = "";
-      await applyTelegramStatus({ step: "unconfigured", configured: false });
     });
   }
 

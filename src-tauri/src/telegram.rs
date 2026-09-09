@@ -7,10 +7,21 @@ use std::{
 use tauri::{AppHandle, Emitter};
 use tdlib::{enums, functions};
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+include!(concat!(env!("OUT_DIR"), "/telegram_credentials.rs"));
+
+#[derive(Clone, Debug)]
 struct TelegramConfig {
     api_id: i32,
     api_hash: String,
+    database_key: String,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+struct StoredTelegramConfig {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    api_id: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    api_hash: Option<String>,
     database_key: String,
 }
 
@@ -18,6 +29,7 @@ struct TelegramConfig {
 pub struct TelegramStatus {
     pub step: String,
     pub configured: bool,
+    pub managed_credentials: bool,
     pub account_name: Option<String>,
     pub qr_link: Option<String>,
     pub password_hint: Option<String>,
@@ -45,7 +57,33 @@ pub struct TelegramManager(Arc<TelegramInner>);
 
 impl TelegramManager {
     pub fn new(app: AppHandle, root: PathBuf) -> Self {
-        let config = read_config(&root).ok();
+        let stored = read_config(&root).ok();
+        let bundled = bundled_credentials();
+        let credentials = bundled.clone().or_else(|| {
+            stored
+                .as_ref()
+                .and_then(|value| Some((value.api_id?, value.api_hash.clone()?)))
+        });
+        let database_key = stored
+            .as_ref()
+            .map(|value| value.database_key.clone())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| ulid::Ulid::new().to_string());
+        let config = credentials.map(|(api_id, api_hash)| TelegramConfig {
+            api_id,
+            api_hash,
+            database_key: database_key.clone(),
+        });
+        if bundled.is_some() {
+            let _ = write_config(
+                &root,
+                &StoredTelegramConfig {
+                    api_id: None,
+                    api_hash: None,
+                    database_key,
+                },
+            );
+        }
         let status = TelegramStatus {
             step: if config.is_some() {
                 "starting"
@@ -54,6 +92,7 @@ impl TelegramManager {
             }
             .into(),
             configured: config.is_some(),
+            managed_credentials: bundled.is_some(),
             ..TelegramStatus::default()
         };
         let manager = Self(Arc::new(TelegramInner {
@@ -76,6 +115,9 @@ impl TelegramManager {
     }
 
     pub fn configure(&self, api_id: i32, api_hash: String) -> Result<TelegramStatus, String> {
+        if BUNDLED_TG_API_ID.is_some() {
+            return Err("В официальной сборке Telegram API уже настроен".into());
+        }
         let api_hash = api_hash.trim().to_owned();
         if api_id <= 0 || api_hash.len() < 16 {
             return Err("Проверьте API ID и API Hash".into());
@@ -89,11 +131,19 @@ impl TelegramManager {
             api_hash,
             database_key,
         };
-        write_config(&self.0.root, &config)?;
+        write_config(
+            &self.0.root,
+            &StoredTelegramConfig {
+                api_id: Some(config.api_id),
+                api_hash: Some(config.api_hash.clone()),
+                database_key: config.database_key.clone(),
+            },
+        )?;
         *self.0.config.lock().expect("telegram config lock") = Some(config);
         self.set_status(TelegramStatus {
             step: "starting".into(),
             configured: true,
+            managed_credentials: false,
             ..TelegramStatus::default()
         });
         self.start();
@@ -152,13 +202,6 @@ impl TelegramManager {
     pub async fn disconnect(&self) -> Result<(), String> {
         let client_id = self.client_id()?;
         functions::log_out(client_id).await.map_err(td_error)?;
-        let _ = fs::remove_file(config_path(&self.0.root));
-        *self.0.config.lock().expect("telegram config lock") = None;
-        self.set_status(TelegramStatus {
-            step: "unconfigured".into(),
-            configured: false,
-            ..TelegramStatus::default()
-        });
         Ok(())
     }
 
@@ -330,12 +373,12 @@ fn config_path(root: &Path) -> PathBuf {
     root.join("config.json")
 }
 
-fn read_config(root: &Path) -> Result<TelegramConfig, String> {
+fn read_config(root: &Path) -> Result<StoredTelegramConfig, String> {
     let bytes = fs::read(config_path(root)).map_err(|error| error.to_string())?;
     serde_json::from_slice(&bytes).map_err(|error| error.to_string())
 }
 
-fn write_config(root: &Path, config: &TelegramConfig) -> Result<(), String> {
+fn write_config(root: &Path, config: &StoredTelegramConfig) -> Result<(), String> {
     fs::create_dir_all(root).map_err(|error| error.to_string())?;
     let path = config_path(root);
     let temporary = root.join("config.json.tmp");
@@ -349,4 +392,23 @@ fn write_config(root: &Path, config: &TelegramConfig) -> Result<(), String> {
 
 fn td_error(error: tdlib::types::Error) -> String {
     error.message
+}
+
+fn bundled_credentials() -> Option<(i32, String)> {
+    let api_id = BUNDLED_TG_API_ID?;
+    let mut state = BUNDLED_TG_HASH_SEED.max(1);
+    let decoded = BUNDLED_TG_HASH
+        .iter()
+        .map(|byte| byte ^ next_mask(&mut state))
+        .collect::<Vec<_>>();
+    String::from_utf8(decoded)
+        .ok()
+        .map(|api_hash| (api_id, api_hash))
+}
+
+fn next_mask(state: &mut u64) -> u8 {
+    *state ^= *state << 13;
+    *state ^= *state >> 7;
+    *state ^= *state << 17;
+    (*state >> 24) as u8
 }
