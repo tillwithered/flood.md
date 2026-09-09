@@ -1,4 +1,4 @@
-use crate::{Chat, CreateTask, Task, TaskPatch, TaskStatus, TaskSummary};
+use crate::{CreateTask, Project, Task, TaskPatch, TaskStatus, TaskSummary};
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
 use fs2::FileExt;
@@ -40,7 +40,7 @@ pub struct Store {
 }
 
 #[derive(Serialize, Deserialize)]
-struct ChatDocument {
+struct ProjectDocument {
     format_version: u8,
     id: String,
     title: String,
@@ -52,7 +52,8 @@ struct ChatDocument {
 struct TaskDocument {
     format_version: u8,
     id: String,
-    chat_id: String,
+    #[serde(alias = "chat_id")]
+    project_id: String,
     created_at: chrono::DateTime<Utc>,
     updated_at: chrono::DateTime<Utc>,
     urgency: crate::Urgency,
@@ -91,7 +92,7 @@ pub fn default_data_dir() -> PathBuf {
 impl Store {
     pub fn new(root: impl Into<PathBuf>) -> Result<Self, StoreError> {
         let store = Self { root: root.into() };
-        fs::create_dir_all(store.chats_dir())?;
+        fs::create_dir_all(&store.root)?;
         let lock_path = store.root.join(".flood.lock");
         OpenOptions::new()
             .create(true)
@@ -99,6 +100,9 @@ impl Store {
             .read(true)
             .write(true)
             .open(lock_path)?;
+        let migration_lock = store.lock_exclusive()?;
+        store.migrate_legacy_layout()?;
+        drop(migration_lock);
         Ok(store)
     }
 
@@ -106,87 +110,141 @@ impl Store {
         &self.root
     }
 
-    pub fn list_chats(&self) -> Result<Vec<Chat>, StoreError> {
-        let _lock = self.lock_shared()?;
-        let mut chats = Vec::new();
-        for entry in fs::read_dir(self.chats_dir())? {
-            let entry = entry?;
-            if entry.file_type()?.is_dir() {
-                let path = entry.path().join("chat.md");
-                if path.exists() {
-                    chats.push(read_chat(&path)?);
+    fn migrate_legacy_layout(&self) -> Result<(), StoreError> {
+        let legacy_root = self.root.join("chats");
+        let projects_root = self.projects_dir();
+        if legacy_root.is_dir() && !projects_root.exists() {
+            fs::rename(&legacy_root, &projects_root)?;
+        } else if legacy_root.is_dir() {
+            for entry in fs::read_dir(&legacy_root)? {
+                let entry = entry?;
+                let destination = projects_root.join(entry.file_name());
+                if destination.exists() {
+                    return Err(StoreError::Validation(format!(
+                        "найдены одновременно старые и новые данные проекта {}",
+                        entry.file_name().to_string_lossy()
+                    )));
+                }
+                fs::rename(entry.path(), destination)?;
+            }
+            fs::remove_dir(&legacy_root)?;
+        }
+        fs::create_dir_all(&projects_root)?;
+
+        for entry in fs::read_dir(&projects_root)? {
+            let project_dir = entry?.path();
+            if !project_dir.is_dir() {
+                continue;
+            }
+            let old_document = project_dir.join("chat.md");
+            let new_document = project_dir.join("project.md");
+            if old_document.is_file() && !new_document.exists() {
+                fs::rename(old_document, new_document)?;
+            }
+            let tasks_dir = project_dir.join("tasks");
+            if !tasks_dir.is_dir() {
+                continue;
+            }
+            for task_entry in fs::read_dir(tasks_dir)? {
+                let task_path = task_entry?.path();
+                if task_path.extension().and_then(|value| value.to_str()) != Some("md") {
+                    continue;
+                }
+                let content = fs::read_to_string(&task_path)?;
+                if !content.contains("\nproject_id:") && content.contains("\nchat_id:") {
+                    atomic_write(
+                        &task_path,
+                        &content.replacen("\nchat_id:", "\nproject_id:", 1),
+                    )?;
                 }
             }
         }
-        chats.sort_by_key(|chat| chat.title.to_lowercase());
-        Ok(chats)
+        Ok(())
     }
 
-    pub fn get_chat(&self, id: &str) -> Result<Chat, StoreError> {
+    pub fn list_projects(&self) -> Result<Vec<Project>, StoreError> {
+        let _lock = self.lock_shared()?;
+        let mut projects = Vec::new();
+        for entry in fs::read_dir(self.projects_dir())? {
+            let entry = entry?;
+            if entry.file_type()?.is_dir() {
+                let path = entry.path().join("project.md");
+                if path.exists() {
+                    projects.push(read_project(&path)?);
+                }
+            }
+        }
+        projects.sort_by_key(|project| project.title.to_lowercase());
+        Ok(projects)
+    }
+
+    pub fn get_project(&self, id: &str) -> Result<Project, StoreError> {
         validate_id(id)?;
         let _lock = self.lock_shared()?;
-        let path = self.chat_path(id);
+        let path = self.project_path(id);
         if !path.exists() {
             return Err(StoreError::NotFound(id.to_owned()));
         }
-        read_chat(&path)
+        read_project(&path)
     }
 
-    pub fn create_chat(&self, title: &str) -> Result<Chat, StoreError> {
+    pub fn create_project(&self, title: &str) -> Result<Project, StoreError> {
         let title = clean_required(title, "название чата", 120)?;
         let _lock = self.lock_exclusive()?;
         let id = Ulid::new().to_string();
         let now = Utc::now();
-        let chat = Chat {
+        let project = Project {
             id,
             title,
             created_at: now,
             updated_at: now,
             version: String::new(),
         };
-        fs::create_dir_all(self.task_dir(&chat.id))?;
-        self.write_chat(&chat)?;
-        read_chat(&self.chat_path(&chat.id))
+        fs::create_dir_all(self.task_dir(&project.id))?;
+        self.write_project(&project)?;
+        read_project(&self.project_path(&project.id))
     }
 
-    pub fn update_chat(
+    pub fn update_project(
         &self,
         id: &str,
         title: &str,
         expected_version: &str,
-    ) -> Result<Chat, StoreError> {
+    ) -> Result<Project, StoreError> {
         validate_id(id)?;
         let title = clean_required(title, "название чата", 120)?;
         let _lock = self.lock_exclusive()?;
-        let mut chat = read_chat(&self.chat_path(id)).map_err(|error| map_missing(error, id))?;
-        ensure_version(&chat.version, expected_version)?;
-        chat.title = title;
-        chat.updated_at = Utc::now();
-        self.write_chat(&chat)?;
-        read_chat(&self.chat_path(id))
+        let mut project =
+            read_project(&self.project_path(id)).map_err(|error| map_missing(error, id))?;
+        ensure_version(&project.version, expected_version)?;
+        project.title = title;
+        project.updated_at = Utc::now();
+        self.write_project(&project)?;
+        read_project(&self.project_path(id))
     }
 
-    pub fn delete_chat(&self, id: &str, expected_version: &str) -> Result<(), StoreError> {
+    pub fn delete_project(&self, id: &str, expected_version: &str) -> Result<(), StoreError> {
         validate_id(id)?;
         let _lock = self.lock_exclusive()?;
-        let chat = read_chat(&self.chat_path(id)).map_err(|error| map_missing(error, id))?;
-        ensure_version(&chat.version, expected_version)?;
-        fs::remove_dir_all(self.chats_dir().join(id))?;
+        let project =
+            read_project(&self.project_path(id)).map_err(|error| map_missing(error, id))?;
+        ensure_version(&project.version, expected_version)?;
+        fs::remove_dir_all(self.projects_dir().join(id))?;
         Ok(())
     }
 
     pub fn list_tasks(
         &self,
-        chat_id: Option<&str>,
+        project_id: Option<&str>,
         include_completed: bool,
     ) -> Result<Vec<TaskSummary>, StoreError> {
         let _lock = self.lock_shared()?;
         let mut tasks = Vec::new();
-        let chats = if let Some(id) = chat_id {
+        let projects = if let Some(id) = project_id {
             validate_id(id)?;
-            vec![self.root.join("chats").join(id)]
+            vec![self.root.join("projects").join(id)]
         } else {
-            fs::read_dir(self.chats_dir())?
+            fs::read_dir(self.projects_dir())?
                 .filter_map(Result::ok)
                 .filter_map(|entry| {
                     entry
@@ -197,8 +255,8 @@ impl Store {
                 })
                 .collect()
         };
-        for chat in chats {
-            let dir = chat.join("tasks");
+        for project in projects {
+            let dir = project.join("tasks");
             if !dir.exists() {
                 continue;
             }
@@ -233,7 +291,7 @@ impl Store {
     pub fn list_trashed_tasks(&self) -> Result<Vec<TaskSummary>, StoreError> {
         let _lock = self.lock_shared()?;
         let mut tasks = Vec::new();
-        for entry in fs::read_dir(self.chats_dir())? {
+        for entry in fs::read_dir(self.projects_dir())? {
             let dir = entry?.path().join("tasks");
             if !dir.exists() {
                 continue;
@@ -253,17 +311,17 @@ impl Store {
     }
 
     pub fn create_task(&self, input: CreateTask) -> Result<Task, StoreError> {
-        validate_id(&input.chat_id)?;
+        validate_id(&input.project_id)?;
         let description = clean_required(&input.description, "описание задачи", 20_000)?;
         validate_source(&input.source)?;
         let _lock = self.lock_exclusive()?;
-        if !self.chat_path(&input.chat_id).exists() {
-            return Err(StoreError::NotFound(input.chat_id));
+        if !self.project_path(&input.project_id).exists() {
+            return Err(StoreError::NotFound(input.project_id));
         }
         let now = Utc::now();
         let task = Task {
             id: Ulid::new().to_string(),
-            chat_id: input.chat_id,
+            project_id: input.project_id,
             description,
             created_at: now,
             updated_at: now,
@@ -274,7 +332,7 @@ impl Store {
             version: String::new(),
         };
         self.write_task(&task)?;
-        read_task(&self.task_path(&task.chat_id, &task.id))
+        read_task(&self.task_path(&task.project_id, &task.id))
     }
 
     pub fn update_task(
@@ -302,7 +360,7 @@ impl Store {
         }
         task.updated_at = Utc::now();
         self.write_task(&task)?;
-        read_task(&self.task_path(&task.chat_id, id))
+        read_task(&self.task_path(&task.project_id, id))
     }
 
     pub fn complete_task(&self, id: &str, expected_version: &str) -> Result<Task, StoreError> {
@@ -330,25 +388,25 @@ impl Store {
     pub fn move_task(
         &self,
         id: &str,
-        chat_id: &str,
+        project_id: &str,
         expected_version: &str,
     ) -> Result<Task, StoreError> {
         validate_id(id)?;
-        validate_id(chat_id)?;
+        validate_id(project_id)?;
         let _lock = self.lock_exclusive()?;
-        if !self.chat_path(chat_id).exists() {
-            return Err(StoreError::NotFound(chat_id.to_owned()));
+        if !self.project_path(project_id).exists() {
+            return Err(StoreError::NotFound(project_id.to_owned()));
         }
         let mut task = self.find_task(id)?;
         ensure_version(&task.version, expected_version)?;
-        if task.chat_id == chat_id {
+        if task.project_id == project_id {
             return Ok(task);
         }
-        let old_path = self.task_path(&task.chat_id, id);
-        let new_path = self.task_path(chat_id, id);
-        let old_attachments = self.attachment_dir(&task.chat_id, id);
-        let new_attachments = self.attachment_dir(chat_id, id);
-        fs::create_dir_all(self.task_dir(chat_id))?;
+        let old_path = self.task_path(&task.project_id, id);
+        let new_path = self.task_path(project_id, id);
+        let old_attachments = self.attachment_dir(&task.project_id, id);
+        let new_attachments = self.attachment_dir(project_id, id);
+        fs::create_dir_all(self.task_dir(project_id))?;
         fs::rename(&old_path, &new_path)?;
         if old_attachments.exists() {
             if let Some(parent) = new_attachments.parent() {
@@ -359,12 +417,12 @@ impl Store {
                 return Err(error.into());
             }
         }
-        let old_chat_id = std::mem::replace(&mut task.chat_id, chat_id.to_owned());
+        let old_project_id = std::mem::replace(&mut task.project_id, project_id.to_owned());
         task.updated_at = Utc::now();
         if let Err(error) = self.write_task(&task) {
-            let _ = fs::rename(&new_path, self.task_path(&old_chat_id, id));
+            let _ = fs::rename(&new_path, self.task_path(&old_project_id, id));
             if new_attachments.exists() {
-                let _ = fs::rename(&new_attachments, self.attachment_dir(&old_chat_id, id));
+                let _ = fs::rename(&new_attachments, self.attachment_dir(&old_project_id, id));
             }
             return Err(error);
         }
@@ -389,8 +447,8 @@ impl Store {
                 "окончательно удалить можно только задачу из корзины".into(),
             ));
         }
-        fs::remove_file(self.task_path(&task.chat_id, id))?;
-        let attachments = self.attachment_dir(&task.chat_id, id);
+        fs::remove_file(self.task_path(&task.project_id, id))?;
+        let attachments = self.attachment_dir(&task.project_id, id);
         if attachments.exists() {
             fs::remove_dir_all(attachments)?;
         }
@@ -400,7 +458,7 @@ impl Store {
     pub fn empty_trash(&self) -> Result<usize, StoreError> {
         let _lock = self.lock_exclusive()?;
         let mut paths = Vec::new();
-        for entry in fs::read_dir(self.chats_dir())? {
+        for entry in fs::read_dir(self.projects_dir())? {
             let dir = entry?.path().join("tasks");
             if !dir.exists() {
                 continue;
@@ -440,7 +498,7 @@ impl Store {
         let _lock = self.lock_exclusive()?;
         let task = self.find_task(id)?;
         let stored_name = format!("{}-{clean_name}", Ulid::new());
-        let path = self.attachment_dir(&task.chat_id, id).join(&stored_name);
+        let path = self.attachment_dir(&task.project_id, id).join(&stored_name);
         atomic_write_bytes(&path, bytes)?;
         Ok(format!("attachments/{id}/{stored_name}"))
     }
@@ -458,7 +516,7 @@ impl Store {
             .strip_prefix(&prefix)
             .filter(|value| !value.is_empty() && !value.contains(['/', '\\']))
             .ok_or_else(|| StoreError::Validation("некорректный путь вложения".into()))?;
-        let path = self.attachment_dir(&task.chat_id, id).join(file_name);
+        let path = self.attachment_dir(&task.project_id, id).join(file_name);
         if !path.is_file() {
             return Err(StoreError::NotFound(relative_path.to_owned()));
         }
@@ -489,7 +547,7 @@ impl Store {
 
         let _lock = self.lock_shared()?;
         let mut files = Vec::new();
-        collect_backup_files(&self.chats_dir(), &mut files)?;
+        collect_backup_files(&self.projects_dir(), &mut files)?;
         let temporary = parent.join(format!(".flood-backup-{}.tmp", Ulid::new()));
         let result = (|| {
             let file = File::create(&temporary)?;
@@ -542,9 +600,9 @@ impl Store {
             .parent()
             .ok_or_else(|| StoreError::Backup("некорректная папка данных".into()))?;
         let restore_root = parent.join(format!(".flood-restore-{}", Ulid::new()));
-        let previous_chats = self
+        let previous_projects = self
             .root
-            .join(format!(".chats-before-restore-{}", Ulid::new()));
+            .join(format!(".projects-before-restore-{}", Ulid::new()));
         let result = (|| {
             fs::create_dir_all(&restore_root)?;
             let mut archive = ZipArchive::new(File::open(source)?)
@@ -553,7 +611,7 @@ impl Store {
                 return Err(StoreError::Backup("в архиве слишком много файлов".into()));
             }
             let mut total_size = 0_u64;
-            let mut has_chats = false;
+            let mut has_projects = false;
             for index in 0..archive.len() {
                 let mut entry = archive
                     .by_index(index)
@@ -562,17 +620,16 @@ impl Store {
                     .enclosed_name()
                     .ok_or_else(|| StoreError::Backup("архив содержит небезопасный путь".into()))?
                     .to_path_buf();
-                if relative
+                let root_name = relative
                     .components()
                     .next()
-                    .and_then(|part| part.as_os_str().to_str())
-                    != Some("chats")
-                {
+                    .and_then(|part| part.as_os_str().to_str());
+                if !matches!(root_name, Some("projects" | "chats")) {
                     return Err(StoreError::Backup(
                         "архив не является резервной копией flood.md".into(),
                     ));
                 }
-                has_chats = true;
+                has_projects = true;
                 total_size = total_size.saturating_add(entry.size());
                 if total_size > 1024 * 1024 * 1024 {
                     return Err(StoreError::Backup("архив превышает 1 ГБ".into()));
@@ -585,7 +642,16 @@ impl Store {
                         "символические ссылки не поддерживаются".into(),
                     ));
                 }
-                let output = restore_root.join(relative);
+                let mut migrated_relative = PathBuf::from("projects");
+                migrated_relative.extend(relative.components().skip(1));
+                if migrated_relative
+                    .file_name()
+                    .and_then(|value| value.to_str())
+                    == Some("chat.md")
+                {
+                    migrated_relative.set_file_name("project.md");
+                }
+                let output = restore_root.join(migrated_relative);
                 if entry.is_dir() {
                     fs::create_dir_all(output)?;
                     continue;
@@ -597,30 +663,30 @@ impl Store {
                 std::io::copy(&mut entry, &mut target)?;
                 target.sync_all()?;
             }
-            if !has_chats || !restore_root.join("chats").is_dir() {
+            if !has_projects || !restore_root.join("projects").is_dir() {
                 return Err(StoreError::Backup(
                     "в архиве отсутствует папка с проектами".into(),
                 ));
             }
 
             let candidate = Store::new(&restore_root)?;
-            candidate.list_chats()?;
+            candidate.list_projects()?;
             candidate.list_tasks(None, true)?;
             candidate.list_trashed_tasks()?;
 
             let _lock = self.lock_exclusive()?;
-            let current_chats = self.chats_dir();
-            fs::rename(&current_chats, &previous_chats)?;
-            if let Err(error) = fs::rename(restore_root.join("chats"), &current_chats) {
-                let _ = fs::rename(&previous_chats, &current_chats);
+            let current_projects = self.projects_dir();
+            fs::rename(&current_projects, &previous_projects)?;
+            if let Err(error) = fs::rename(restore_root.join("projects"), &current_projects) {
+                let _ = fs::rename(&previous_projects, &current_projects);
                 return Err(error.into());
             }
-            let _ = fs::remove_dir_all(&previous_chats);
+            let _ = fs::remove_dir_all(&previous_projects);
             Ok(())
         })();
         let _ = fs::remove_dir_all(&restore_root);
-        if result.is_err() && previous_chats.exists() && !self.chats_dir().exists() {
-            let _ = fs::rename(&previous_chats, self.chats_dir());
+        if result.is_err() && previous_projects.exists() && !self.projects_dir().exists() {
+            let _ = fs::rename(&previous_projects, self.projects_dir());
         }
         result
     }
@@ -638,27 +704,27 @@ impl Store {
         task.trashed_at = trashed.then(Utc::now);
         task.updated_at = Utc::now();
         self.write_task(&task)?;
-        read_task(&self.task_path(&task.chat_id, id))
+        read_task(&self.task_path(&task.project_id, id))
     }
 
-    fn chats_dir(&self) -> PathBuf {
-        self.root.join("chats")
+    fn projects_dir(&self) -> PathBuf {
+        self.root.join("projects")
     }
-    fn chat_path(&self, id: &str) -> PathBuf {
-        self.chats_dir().join(id).join("chat.md")
+    fn project_path(&self, id: &str) -> PathBuf {
+        self.projects_dir().join(id).join("project.md")
     }
-    fn task_dir(&self, chat_id: &str) -> PathBuf {
-        self.chats_dir().join(chat_id).join("tasks")
+    fn task_dir(&self, project_id: &str) -> PathBuf {
+        self.projects_dir().join(project_id).join("tasks")
     }
-    fn task_path(&self, chat_id: &str, id: &str) -> PathBuf {
-        self.task_dir(chat_id).join(format!("{id}.md"))
+    fn task_path(&self, project_id: &str, id: &str) -> PathBuf {
+        self.task_dir(project_id).join(format!("{id}.md"))
     }
-    fn attachment_dir(&self, chat_id: &str, id: &str) -> PathBuf {
-        self.task_dir(chat_id).join("attachments").join(id)
+    fn attachment_dir(&self, project_id: &str, id: &str) -> PathBuf {
+        self.task_dir(project_id).join("attachments").join(id)
     }
 
     fn find_task(&self, id: &str) -> Result<Task, StoreError> {
-        for entry in fs::read_dir(self.chats_dir())? {
+        for entry in fs::read_dir(self.projects_dir())? {
             let path = entry?.path().join("tasks").join(format!("{id}.md"));
             if path.exists() {
                 return read_task(&path);
@@ -667,23 +733,23 @@ impl Store {
         Err(StoreError::NotFound(id.to_owned()))
     }
 
-    fn write_chat(&self, chat: &Chat) -> Result<(), StoreError> {
-        let doc = ChatDocument {
+    fn write_project(&self, project: &Project) -> Result<(), StoreError> {
+        let doc = ProjectDocument {
             format_version: FORMAT_VERSION,
-            id: chat.id.clone(),
-            title: chat.title.clone(),
-            created_at: chat.created_at,
-            updated_at: chat.updated_at,
+            id: project.id.clone(),
+            title: project.title.clone(),
+            created_at: project.created_at,
+            updated_at: project.updated_at,
         };
-        let body = format!("# {}\n", chat.title);
-        atomic_write(&self.chat_path(&chat.id), &encode(&doc, &body)?)
+        let body = format!("# {}\n", project.title);
+        atomic_write(&self.project_path(&project.id), &encode(&doc, &body)?)
     }
 
     fn write_task(&self, task: &Task) -> Result<(), StoreError> {
         let doc = TaskDocument {
             format_version: FORMAT_VERSION,
             id: task.id.clone(),
-            chat_id: task.chat_id.clone(),
+            project_id: task.project_id.clone(),
             created_at: task.created_at,
             updated_at: task.updated_at,
             urgency: task.urgency.clone(),
@@ -692,7 +758,7 @@ impl Store {
             trashed_at: task.trashed_at,
         };
         atomic_write(
-            &self.task_path(&task.chat_id, &task.id),
+            &self.task_path(&task.project_id, &task.id),
             &encode(&doc, &task.description)?,
         )
     }
@@ -734,13 +800,13 @@ fn decode<T: DeserializeOwned>(path: &Path) -> Result<(T, String, String), Store
     Ok((metadata, body.trim().to_owned(), version))
 }
 
-fn read_chat(path: &Path) -> Result<Chat, StoreError> {
-    let (doc, _, version): (ChatDocument, _, _) = decode(path)?;
+fn read_project(path: &Path) -> Result<Project, StoreError> {
+    let (doc, _, version): (ProjectDocument, _, _) = decode(path)?;
     if doc.format_version != FORMAT_VERSION {
         return Err(invalid(path, "неподдерживаемая версия формата"));
     }
     validate_id(&doc.id)?;
-    Ok(Chat {
+    Ok(Project {
         id: doc.id,
         title: doc.title,
         created_at: doc.created_at,
@@ -755,10 +821,10 @@ fn read_task(path: &Path) -> Result<Task, StoreError> {
         return Err(invalid(path, "неподдерживаемая версия формата"));
     }
     validate_id(&doc.id)?;
-    validate_id(&doc.chat_id)?;
+    validate_id(&doc.project_id)?;
     Ok(Task {
         id: doc.id,
-        chat_id: doc.chat_id,
+        project_id: doc.project_id,
         description,
         created_at: doc.created_at,
         updated_at: doc.updated_at,
@@ -936,12 +1002,60 @@ mod tests {
     }
 
     #[test]
-    fn full_task_flow_and_conflict_detection() {
+    fn legacy_chat_layout_is_migrated_to_projects() {
         let store = temp_store();
-        let chat = store.create_chat("Рабочий чат").unwrap();
+        let root = store.root().to_path_buf();
+        let project = store.create_project("Старый проект").unwrap();
         let task = store
             .create_task(CreateTask {
-                chat_id: chat.id,
+                project_id: project.id.clone(),
+                description: "Сохранить задачу".into(),
+                urgency: crate::Urgency::Normal,
+                source: None,
+            })
+            .unwrap();
+        drop(store);
+
+        let current_root = root.join("projects");
+        let legacy_root = root.join("chats");
+        fs::rename(&current_root, &legacy_root).unwrap();
+        let project_dir = legacy_root.join(&project.id);
+        fs::rename(project_dir.join("project.md"), project_dir.join("chat.md")).unwrap();
+        let task_path = project_dir.join("tasks").join(format!("{}.md", task.id));
+        let content = fs::read_to_string(&task_path)
+            .unwrap()
+            .replace("project_id:", "chat_id:");
+        fs::write(&task_path, content).unwrap();
+
+        let migrated = Store::new(&root).unwrap();
+        assert!(!legacy_root.exists());
+        assert!(
+            root.join("projects")
+                .join(&project.id)
+                .join("project.md")
+                .is_file()
+        );
+        assert_eq!(migrated.get_task(&task.id).unwrap().project_id, project.id);
+        assert!(fs::read_to_string(task_path.with_file_name(format!("{}.md", task.id))).is_err());
+        let migrated_task = root
+            .join("projects")
+            .join(&project.id)
+            .join("tasks")
+            .join(format!("{}.md", task.id));
+        assert!(
+            fs::read_to_string(migrated_task)
+                .unwrap()
+                .contains("project_id:")
+        );
+    }
+
+    #[test]
+    fn full_task_flow_and_conflict_detection() {
+        let store = temp_store();
+        let project = store.create_project("Рабочий чат").unwrap();
+        let task = store
+            .create_task(CreateTask {
+                project_id: project.id,
                 description: "Подготовить отчёт".into(),
                 urgency: crate::Urgency::Important,
                 source: None,
@@ -969,16 +1083,16 @@ mod tests {
     #[test]
     fn markdown_is_readable_and_external_edits_change_version() {
         let store = temp_store();
-        let chat = store.create_chat("Флудилка").unwrap();
+        let project = store.create_project("Флудилка").unwrap();
         let task = store
             .create_task(CreateTask {
-                chat_id: chat.id,
+                project_id: project.id,
                 description: "Позвонить заказчику".into(),
                 urgency: crate::Urgency::Normal,
                 source: None,
             })
             .unwrap();
-        let path = store.task_path(&task.chat_id, &task.id);
+        let path = store.task_path(&task.project_id, &task.id);
         let original = fs::read_to_string(&path).unwrap();
         assert!(original.contains("Позвонить заказчику"));
         fs::write(&path, original.replace("Позвонить", "Написать")).unwrap();
@@ -991,9 +1105,9 @@ mod tests {
     #[test]
     fn task_metadata_and_source_round_trip_through_markdown() {
         let store = temp_store();
-        let chat = store.create_chat("Проект из чата").unwrap();
+        let project = store.create_project("Проект из чата").unwrap();
         let renamed = store
-            .update_chat(&chat.id, "Переименованный проект", &chat.version)
+            .update_project(&project.id, "Переименованный проект", &project.version)
             .unwrap();
         assert_eq!(renamed.title, "Переименованный проект");
         let source = crate::MessageSnapshot {
@@ -1004,17 +1118,17 @@ mod tests {
         };
         let task = store
             .create_task(CreateTask {
-                chat_id: chat.id,
+                project_id: project.id,
                 description: "# Проверить сборку\n\nПройти основной сценарий".into(),
                 urgency: crate::Urgency::Urgent,
                 source: Some(source.clone()),
             })
             .unwrap();
 
-        let content = fs::read_to_string(store.task_path(&task.chat_id, &task.id)).unwrap();
+        let content = fs::read_to_string(store.task_path(&task.project_id, &task.id)).unwrap();
         assert!(content.contains("created_at:"));
         assert!(content.contains("updated_at:"));
-        assert!(content.contains("chat_id:"));
+        assert!(content.contains("project_id:"));
         assert!(content.contains("urgency: urgent"));
         assert!(content.contains("status: open"));
         assert!(content.contains("author: Анна"));
@@ -1033,13 +1147,13 @@ mod tests {
     }
 
     #[test]
-    fn task_can_move_to_trash_restore_and_change_chat() {
+    fn task_can_move_to_trash_restore_and_change_project() {
         let store = temp_store();
-        let first = store.create_chat("Первый чат").unwrap();
-        let second = store.create_chat("Второй чат").unwrap();
+        let first = store.create_project("Первый чат").unwrap();
+        let second = store.create_project("Второй чат").unwrap();
         let task = store
             .create_task(CreateTask {
-                chat_id: first.id.clone(),
+                project_id: first.id.clone(),
                 description: "Перенести задачу".into(),
                 urgency: crate::Urgency::Normal,
                 source: None,
@@ -1049,7 +1163,7 @@ mod tests {
         let moved = store
             .move_task(&task.id, &second.id, &task.version)
             .unwrap();
-        assert_eq!(moved.chat_id, second.id);
+        assert_eq!(moved.project_id, second.id);
         assert!(!store.task_path(&first.id, &task.id).exists());
 
         let trashed = store.trash_task(&moved.id, &moved.version).unwrap();
@@ -1066,11 +1180,11 @@ mod tests {
     #[test]
     fn trashed_tasks_can_be_deleted_individually_or_together() {
         let store = temp_store();
-        let chat = store.create_chat("Корзина").unwrap();
+        let project = store.create_project("Корзина").unwrap();
         let create = |description: &str| {
             store
                 .create_task(CreateTask {
-                    chat_id: chat.id.clone(),
+                    project_id: project.id.clone(),
                     description: description.into(),
                     urgency: crate::Urgency::Normal,
                     source: None,
@@ -1094,12 +1208,12 @@ mod tests {
     }
 
     #[test]
-    fn chat_deletion_checks_version_and_removes_its_tasks() {
+    fn project_deletion_checks_version_and_removes_its_tasks() {
         let store = temp_store();
-        let chat = store.create_chat("На удаление").unwrap();
+        let project = store.create_project("На удаление").unwrap();
         let task = store
             .create_task(CreateTask {
-                chat_id: chat.id.clone(),
+                project_id: project.id.clone(),
                 description: "Задача вместе с чатом".into(),
                 urgency: crate::Urgency::Normal,
                 source: None,
@@ -1107,12 +1221,12 @@ mod tests {
             .unwrap();
 
         assert!(matches!(
-            store.delete_chat(&chat.id, "stale"),
+            store.delete_project(&project.id, "stale"),
             Err(StoreError::Conflict)
         ));
-        store.delete_chat(&chat.id, &chat.version).unwrap();
+        store.delete_project(&project.id, &project.version).unwrap();
         assert!(matches!(
-            store.get_chat(&chat.id),
+            store.get_project(&project.id),
             Err(StoreError::NotFound(_))
         ));
         assert!(matches!(
@@ -1124,11 +1238,11 @@ mod tests {
     #[test]
     fn attachments_follow_a_task_and_are_removed_with_it() {
         let store = temp_store();
-        let first = store.create_chat("Первый").unwrap();
-        let second = store.create_chat("Второй").unwrap();
+        let first = store.create_project("Первый").unwrap();
+        let second = store.create_project("Второй").unwrap();
         let task = store
             .create_task(CreateTask {
-                chat_id: first.id.clone(),
+                project_id: first.id.clone(),
                 description: "Задача с файлом".into(),
                 urgency: crate::Urgency::Normal,
                 source: None,
@@ -1170,10 +1284,10 @@ mod tests {
     #[test]
     fn backup_restores_markdown_and_attachments() {
         let store = temp_store();
-        let chat = store.create_chat("Резервная копия").unwrap();
+        let project = store.create_project("Резервная копия").unwrap();
         let task = store
             .create_task(CreateTask {
-                chat_id: chat.id,
+                project_id: project.id,
                 description: "# Исходная задача".into(),
                 urgency: crate::Urgency::Important,
                 source: None,

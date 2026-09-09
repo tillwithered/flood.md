@@ -9,7 +9,7 @@
 > [!NOTE]
 > Проект находится в активной разработке. Текущая версия сохраняет прогресс первой итерации и пока не является готовым релизом.
 
-Локальное Windows-приложение для задач, привязанных к рабочим чатам. Чат служит проектом, а Markdown-файлы остаются единственным источником правды.
+Локальное Windows-приложение для задач по проектам. Проект можно связать с рабочим чатом, а Markdown-файлы остаются единственным источником правды.
 
 ## Что уже работает
 
@@ -55,19 +55,19 @@ cargo build --release -p flood-mcp
 }
 ```
 
-Инструменты: `list_chats`, `get_chat`, `create_chat`, `update_chat`, `list_tasks`, `list_trashed_tasks`, `get_task`, `create_task`, `update_task`, `complete_task`, `move_task`, `trash_task`, `restore_task`.
+Инструменты: `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project`, `list_tasks`, `list_trashed_tasks`, `get_task`, `create_task`, `update_task`, `complete_task`, `move_task`, `trash_task`, `restore_task`, `delete_trashed_task`, `empty_trash`.
 
 `update_task` умеет менять описание, срочность, состояние и снимок исходного сообщения. Передайте `clear_source: true`, чтобы удалить снимок. Интерфейс автоматически сохраняет изменения после короткой паузы, при уходе из редактора и перед закрытием окна.
 
 ## Формат данных
 
-Каждый чат хранится в `chats/<chat-id>/chat.md`, каждая задача — в отдельном `chats/<chat-id>/tasks/<task-id>.md`. Метаданные находятся в YAML front matter, описание задачи — в обычном Markdown-теле файла. Поле `version`, возвращаемое приложением и MCP, вычисляется из содержимого файла и обязательно для изменений: это защищает внешние ручные правки от незаметного перетирания.
+Каждый проект хранится в `projects/<project-id>/project.md`, каждая задача — в отдельном `projects/<project-id>/tasks/<task-id>.md`. Метаданные находятся в YAML front matter, описание задачи — в обычном Markdown-теле файла. Поле `version`, возвращаемое приложением и MCP, вычисляется из содержимого файла и обязательно для изменений: это защищает внешние ручные правки от незаметного перетирания. Старый каталог `chats` переносится автоматически при первом запуске новой версии.
 
 ```markdown
 ---
 format_version: 1
 id: 01M21AQN9P0XMQBS39VNP0FK13
-chat_id: 01M21AQMP5ZW06S6DXVAX8P1MF
+project_id: 01M21AQMP5ZW06S6DXVAX8P1MF
 created_at: 2026-09-08T20:18:14Z
 updated_at: 2026-09-08T20:18:15Z
 urgency: important

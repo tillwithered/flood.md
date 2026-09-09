@@ -1093,6 +1093,7 @@ dependencies = [
  "chrono",
  "fs2",
  "hex",
+ "schemars 1.2.2",
  "serde",
  "serde_yaml",
  "sha2",
@@ -1128,6 +1129,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "ulid",
 ]
 
 [[package]]

@@ -21,10 +21,10 @@
   type UpdateState = "idle" | "checking" | "available" | "current" | "downloading" | "error";
   type DataActionState = "idle" | "backing-up" | "restoring" | "success" | "error";
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string };
-  type ChatRecord = { id: string; title: string; created_at: string; updated_at: string; version: string };
+  type ProjectRecord = { id: string; title: string; created_at: string; updated_at: string; version: string };
   type TaskRecord = {
     id: string;
-    chat_id: string;
+    project_id: string;
     description: string;
     created_at: string;
     updated_at: string;
@@ -52,7 +52,7 @@
     trashedAt?: string;
     version: string;
   };
-  type ChatItem = ChatRecord & { open: number };
+  type ChatItem = ProjectRecord & { open: number };
   type MarkdownHint = { title: string; left: number; top: number };
 
   const markdownHints: Record<string, MessageKey> = {
@@ -306,8 +306,8 @@
     return {
       id: task.id,
       title: taskTitle(task.description),
-      chat: chatTitle(task.chat_id, records),
-      chatId: task.chat_id,
+      chat: chatTitle(task.project_id, records),
+      chatId: task.project_id,
       updated: relativeDate(task.updated_at),
       createdAt: task.created_at,
       updatedAt: task.updated_at,
@@ -335,17 +335,17 @@
     }
     try {
       const previousSelected = tasks.find((task) => task.id === selectedTaskId);
-      let records = await invoke<ChatRecord[]>("list_chats");
+      let records = await invoke<ProjectRecord[]>("list_projects");
       if (!records.length) {
-        await invoke<ChatRecord>("create_chat", { title: t("personal") });
-        records = await invoke<ChatRecord[]>("list_chats");
+        await invoke<ProjectRecord>("create_project", { title: t("personal") });
+        records = await invoke<ProjectRecord[]>("list_projects");
       }
       const [summaries, trash] = await Promise.all([
-        invoke<TaskSummaryRecord[]>("list_tasks", { chatId: null, includeCompleted: true }),
+        invoke<TaskSummaryRecord[]>("list_tasks", { projectId: null, includeCompleted: true }),
         invoke<TaskSummaryRecord[]>("list_trashed_tasks")
       ]);
       const openCount = summaries.filter((task) => task.status === "open").length;
-      const nextChats = [allChat(openCount), ...records.map((chat) => ({ ...chat, open: summaries.filter((task) => task.chat_id === chat.id && task.status === "open").length }))];
+      const nextChats = [allChat(openCount), ...records.map((chat) => ({ ...chat, open: summaries.filter((task) => task.project_id === chat.id && task.status === "open").length }))];
       chats = nextChats;
       tasks = summaries.map((task) => {
         const converted = toTaskItem(task, nextChats);
@@ -635,7 +635,7 @@
       const work = (async () => {
         try {
           const created = await invoke<TaskRecord>("create_task", {
-            input: { chat_id: currentTask.chatId, description: content, urgency: currentTask.urgency, source: null }
+            input: { project_id: currentTask.chatId, description: content, urgency: currentTask.urgency, source: null }
           });
           const converted = toTaskItem(created);
           const latestDraft = tasks.find((task) => task.id === localId);
@@ -1404,7 +1404,7 @@
     const title = createChatTitle.trim();
     if (!title || !inTauri()) return;
     try {
-      const created = await invoke<ChatRecord>("create_chat", { title });
+      const created = await invoke<ProjectRecord>("create_project", { title });
       createChatTitle = "";
       createChatOpen = false;
       await loadData(true);
@@ -1427,7 +1427,7 @@
     const title = renameChatTitle.trim();
     if (!title || currentChat.id === "all" || !inTauri()) return;
     try {
-      const updated = await invoke<ChatRecord>("update_chat", { id: currentChat.id, title, expectedVersion: currentChat.version });
+      const updated = await invoke<ProjectRecord>("update_project", { id: currentChat.id, title, expectedVersion: currentChat.version });
       chats = chats.map((chat) => chat.id === updated.id ? { ...updated, open: openTaskCount(updated.id) } : chat);
       tasks = tasks.map((task) => task.chatId === updated.id ? { ...task, chat: updated.title } : task);
       trashedTasks = trashedTasks.map((task) => task.chatId === updated.id ? { ...task, chat: updated.title } : task);
@@ -1442,7 +1442,7 @@
     if (!await persistCurrentTask()) return;
     try {
       const deletedId = currentChat.id;
-      await invoke("delete_chat", { id: deletedId, expectedVersion: currentChat.version });
+      await invoke("delete_project", { id: deletedId, expectedVersion: currentChat.version });
       chats = chats.filter((chat) => chat.id !== deletedId);
       tasks = tasks.filter((task) => task.chatId !== deletedId);
       trashedTasks = trashedTasks.filter((task) => task.chatId !== deletedId);
@@ -1600,7 +1600,7 @@
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || chat.id === "all" || task.chatId === chat.id || conflictRemote || !inTauri()) return;
     try {
-      const moved = await invoke<TaskRecord>("move_task", { id: task.id, chatId: chat.id, expectedVersion: task.version });
+      const moved = await invoke<TaskRecord>("move_task", { id: task.id, projectId: chat.id, expectedVersion: task.version });
       const converted = toTaskItem(moved);
       tasks = tasks.map((item) => item.id === moved.id ? converted : item);
       selectedChatId = chat.id;

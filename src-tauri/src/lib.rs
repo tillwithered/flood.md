@@ -1,4 +1,4 @@
-use flood_core::{Chat, CreateTask, Store, Task, TaskPatch, TaskSummary, default_data_dir};
+use flood_core::{CreateTask, Project, Store, Task, TaskPatch, TaskSummary, default_data_dir};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use std::{path::PathBuf, sync::Mutex};
 use tauri::{Emitter, Manager, State};
@@ -13,44 +13,44 @@ fn result<T>(value: Result<T, flood_core::StoreError>) -> Result<T, String> {
 }
 
 #[tauri::command]
-fn list_chats(state: State<'_, AppState>) -> Result<Vec<Chat>, String> {
-    result(state.store.list_chats())
+fn list_projects(state: State<'_, AppState>) -> Result<Vec<Project>, String> {
+    result(state.store.list_projects())
 }
 
 #[tauri::command]
-fn create_chat(title: String, state: State<'_, AppState>) -> Result<Chat, String> {
-    result(state.store.create_chat(&title))
+fn create_project(title: String, state: State<'_, AppState>) -> Result<Project, String> {
+    result(state.store.create_project(&title))
 }
 
 #[tauri::command]
-fn update_chat(
+fn update_project(
     id: String,
     title: String,
     expected_version: String,
     state: State<'_, AppState>,
-) -> Result<Chat, String> {
-    result(state.store.update_chat(&id, &title, &expected_version))
+) -> Result<Project, String> {
+    result(state.store.update_project(&id, &title, &expected_version))
 }
 
 #[tauri::command]
-fn delete_chat(
+fn delete_project(
     id: String,
     expected_version: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    result(state.store.delete_chat(&id, &expected_version))
+    result(state.store.delete_project(&id, &expected_version))
 }
 
 #[tauri::command]
 fn list_tasks(
-    chat_id: Option<String>,
+    project_id: Option<String>,
     include_completed: bool,
     state: State<'_, AppState>,
 ) -> Result<Vec<TaskSummary>, String> {
     result(
         state
             .store
-            .list_tasks(chat_id.as_deref(), include_completed),
+            .list_tasks(project_id.as_deref(), include_completed),
     )
 }
 
@@ -100,11 +100,11 @@ fn clear_task_source(
 #[tauri::command]
 fn move_task(
     id: String,
-    chat_id: String,
+    project_id: String,
     expected_version: String,
     state: State<'_, AppState>,
 ) -> Result<Task, String> {
-    result(state.store.move_task(&id, &chat_id, &expected_version))
+    result(state.store.move_task(&id, &project_id, &expected_version))
 }
 
 #[tauri::command]
@@ -229,10 +229,10 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            list_chats,
-            create_chat,
-            update_chat,
-            delete_chat,
+            list_projects,
+            create_project,
+            update_project,
+            delete_project,
             list_tasks,
             get_task,
             list_trashed_tasks,

@@ -1,10 +1,12 @@
 use flood_core::{
-    CreateTask, MessageSnapshot, Store, TaskPatch, TaskStatus, Urgency, default_data_dir,
+    CreateTask, MessageSnapshot, Project, Store, Task, TaskPatch, TaskStatus, TaskSummary, Urgency,
+    default_data_dir,
 };
 use rmcp::{
-    ServiceExt, handler::server::wrapper::Parameters, schemars, tool, tool_router, transport::stdio,
+    Json, ServiceExt, handler::server::wrapper::Parameters, schemars, tool, tool_router,
+    transport::stdio,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone)]
 struct FloodServer {
@@ -18,18 +20,18 @@ struct IdArgs {
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ListTasksArgs {
-    chat_id: Option<String>,
+    project_id: Option<String>,
     #[serde(default)]
     include_completed: bool,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
-struct CreateChatArgs {
+struct CreateProjectArgs {
     title: String,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
-struct UpdateChatArgs {
+struct UpdateProjectArgs {
     id: String,
     title: String,
     expected_version: String,
@@ -45,7 +47,7 @@ struct SnapshotArgs {
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct CreateTaskArgs {
-    chat_id: String,
+    project_id: String,
     description: String,
     urgency: Option<String>,
     source: Option<SnapshotArgs>,
@@ -64,13 +66,7 @@ struct UpdateTaskArgs {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
-struct CompleteTaskArgs {
-    id: String,
-    expected_version: String,
-}
-
-#[derive(Debug, Deserialize, schemars::JsonSchema)]
-struct VersionedTaskArgs {
+struct VersionedArgs {
     id: String,
     expected_version: String,
 }
@@ -78,136 +74,322 @@ struct VersionedTaskArgs {
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct MoveTaskArgs {
     id: String,
-    chat_id: String,
+    project_id: String,
     expected_version: String,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct ProjectsOutput {
+    projects: Vec<Project>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct ProjectOutput {
+    project: Project,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TasksOutput {
+    tasks: Vec<TaskSummary>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TaskOutput {
+    task: Task,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct MutationOutput {
+    success: bool,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct DeleteCountOutput {
+    deleted: usize,
 }
 
 #[tool_router(server_handler)]
 impl FloodServer {
-    #[tool(description = "Получить список проектов")]
-    fn list_chats(&self) -> String {
-        json(self.store.list_chats())
-    }
-
-    #[tool(description = "Прочитать проект по стабильному идентификатору")]
-    fn get_chat(&self, Parameters(args): Parameters<IdArgs>) -> String {
-        json(self.store.get_chat(&args.id))
-    }
-
-    #[tool(description = "Создать проект для задач")]
-    fn create_chat(&self, Parameters(args): Parameters<CreateChatArgs>) -> String {
-        json(self.store.create_chat(&args.title))
-    }
-
-    #[tool(description = "Переименовать проект. expected_version возьмите из get_chat или list_chats")]
-    fn update_chat(&self, Parameters(args): Parameters<UpdateChatArgs>) -> String {
-        json(
-            self.store
-                .update_chat(&args.id, &args.title, &args.expected_version),
+    #[tool(
+        description = "Получить список проектов",
+        annotations(
+            title = "Список проектов",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
         )
+    )]
+    fn list_projects(&self) -> Result<Json<ProjectsOutput>, String> {
+        self.store
+            .list_projects()
+            .map(|projects| Json(ProjectsOutput { projects }))
+            .map_err(store_error)
     }
 
     #[tool(
-        description = "Окончательно удалить проект и все его задачи; передайте актуальный expected_version"
-    )]
-    fn delete_chat(&self, Parameters(args): Parameters<VersionedTaskArgs>) -> String {
-        json(self.store.delete_chat(&args.id, &args.expected_version))
-    }
-
-    #[tool(description = "Получить задачи выбранного проекта или всех проектов")]
-    fn list_tasks(&self, Parameters(args): Parameters<ListTasksArgs>) -> String {
-        json(
-            self.store
-                .list_tasks(args.chat_id.as_deref(), args.include_completed),
+        description = "Прочитать проект по стабильному идентификатору",
+        annotations(
+            title = "Прочитать проект",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
         )
-    }
-
-    #[tool(description = "Прочитать задачу и её локальный снимок исходного сообщения")]
-    fn get_task(&self, Parameters(args): Parameters<IdArgs>) -> String {
-        json(self.store.get_task(&args.id))
-    }
-
-    #[tool(description = "Получить задачи из корзины")]
-    fn list_trashed_tasks(&self) -> String {
-        json(self.store.list_trashed_tasks())
-    }
-
-    #[tool(description = "Создать открытую задачу. urgency: normal, important или urgent")]
-    fn create_task(&self, Parameters(args): Parameters<CreateTaskArgs>) -> String {
-        let input: Result<CreateTask, String> = (|| {
-            Ok(CreateTask {
-                chat_id: args.chat_id,
-                description: args.description,
-                urgency: parse_urgency(args.urgency.as_deref().unwrap_or("normal"))?,
-                source: args.source.map(parse_snapshot).transpose()?,
-            })
-        })();
-        match input {
-            Ok(input) => json(self.store.create_task(input)),
-            Err(error) => error_json(error),
-        }
+    )]
+    fn get_project(
+        &self,
+        Parameters(args): Parameters<IdArgs>,
+    ) -> Result<Json<ProjectOutput>, String> {
+        self.store
+            .get_project(&args.id)
+            .map(|project| Json(ProjectOutput { project }))
+            .map_err(store_error)
     }
 
     #[tool(
-        description = "Изменить задачу. status: open или completed; передайте актуальный expected_version"
+        description = "Создать проект для задач",
+        annotations(
+            title = "Создать проект",
+            destructive_hint = false,
+            open_world_hint = false
+        )
     )]
-    fn update_task(&self, Parameters(args): Parameters<UpdateTaskArgs>) -> String {
-        let patch: Result<TaskPatch, String> = (|| {
-            let source = if args.clear_source {
-                Some(None)
-            } else {
-                args.source.map(parse_snapshot).transpose()?.map(Some)
-            };
-            Ok(TaskPatch {
-                description: args.description,
-                urgency: args.urgency.as_deref().map(parse_urgency).transpose()?,
-                status: args.status.as_deref().map(parse_status).transpose()?,
-                source,
-            })
-        })();
-        match patch {
-            Ok(patch) => json(
-                self.store
-                    .update_task(&args.id, patch, &args.expected_version),
-            ),
-            Err(error) => error_json(error),
-        }
+    fn create_project(
+        &self,
+        Parameters(args): Parameters<CreateProjectArgs>,
+    ) -> Result<Json<ProjectOutput>, String> {
+        self.store
+            .create_project(&args.title)
+            .map(|project| Json(ProjectOutput { project }))
+            .map_err(store_error)
     }
 
-    #[tool(description = "Отметить задачу выполненной; передайте актуальный expected_version")]
-    fn complete_task(&self, Parameters(args): Parameters<CompleteTaskArgs>) -> String {
-        json(self.store.complete_task(&args.id, &args.expected_version))
+    #[tool(
+        description = "Переименовать проект. expected_version возьмите из get_project или list_projects",
+        annotations(title = "Переименовать проект", open_world_hint = false)
+    )]
+    fn update_project(
+        &self,
+        Parameters(args): Parameters<UpdateProjectArgs>,
+    ) -> Result<Json<ProjectOutput>, String> {
+        self.store
+            .update_project(&args.id, &args.title, &args.expected_version)
+            .map(|project| Json(ProjectOutput { project }))
+            .map_err(store_error)
     }
 
-    #[tool(description = "Переместить задачу в другой проект")]
-    fn move_task(&self, Parameters(args): Parameters<MoveTaskArgs>) -> String {
-        json(
-            self.store
-                .move_task(&args.id, &args.chat_id, &args.expected_version),
+    #[tool(
+        description = "Окончательно удалить проект и все его задачи; требуется актуальный expected_version",
+        annotations(
+            title = "Удалить проект",
+            destructive_hint = true,
+            open_world_hint = false
         )
+    )]
+    fn delete_project(
+        &self,
+        Parameters(args): Parameters<VersionedArgs>,
+    ) -> Result<Json<MutationOutput>, String> {
+        self.store
+            .delete_project(&args.id, &args.expected_version)
+            .map(|_| Json(MutationOutput { success: true }))
+            .map_err(store_error)
     }
 
-    #[tool(description = "Переместить задачу в восстанавливаемую корзину")]
-    fn trash_task(&self, Parameters(args): Parameters<VersionedTaskArgs>) -> String {
-        json(self.store.trash_task(&args.id, &args.expected_version))
-    }
-
-    #[tool(description = "Восстановить задачу из корзины")]
-    fn restore_task(&self, Parameters(args): Parameters<VersionedTaskArgs>) -> String {
-        json(self.store.restore_task(&args.id, &args.expected_version))
-    }
-
-    #[tool(description = "Окончательно удалить одну задачу из корзины")]
-    fn delete_trashed_task(&self, Parameters(args): Parameters<VersionedTaskArgs>) -> String {
-        json(
-            self.store
-                .delete_trashed_task(&args.id, &args.expected_version),
+    #[tool(
+        description = "Получить задачи одного проекта или всех проектов",
+        annotations(
+            title = "Список задач",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
         )
+    )]
+    fn list_tasks(
+        &self,
+        Parameters(args): Parameters<ListTasksArgs>,
+    ) -> Result<Json<TasksOutput>, String> {
+        self.store
+            .list_tasks(args.project_id.as_deref(), args.include_completed)
+            .map(|tasks| Json(TasksOutput { tasks }))
+            .map_err(store_error)
     }
 
-    #[tool(description = "Окончательно удалить все задачи из корзины")]
-    fn empty_trash(&self) -> String {
-        json(self.store.empty_trash())
+    #[tool(
+        description = "Прочитать задачу и локальный снимок исходного сообщения",
+        annotations(
+            title = "Прочитать задачу",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn get_task(&self, Parameters(args): Parameters<IdArgs>) -> Result<Json<TaskOutput>, String> {
+        self.store
+            .get_task(&args.id)
+            .map(|task| Json(TaskOutput { task }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Получить задачи из корзины",
+        annotations(
+            title = "Задачи в корзине",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn list_trashed_tasks(&self) -> Result<Json<TasksOutput>, String> {
+        self.store
+            .list_trashed_tasks()
+            .map(|tasks| Json(TasksOutput { tasks }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Создать открытую задачу. urgency: normal, important или urgent",
+        annotations(
+            title = "Создать задачу",
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn create_task(
+        &self,
+        Parameters(args): Parameters<CreateTaskArgs>,
+    ) -> Result<Json<TaskOutput>, String> {
+        let input = CreateTask {
+            project_id: args.project_id,
+            description: args.description,
+            urgency: parse_urgency(args.urgency.as_deref().unwrap_or("normal"))?,
+            source: args.source.map(parse_snapshot).transpose()?,
+        };
+        self.store
+            .create_task(input)
+            .map(|task| Json(TaskOutput { task }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Изменить задачу. status: open или completed; требуется актуальный expected_version",
+        annotations(title = "Изменить задачу", open_world_hint = false)
+    )]
+    fn update_task(
+        &self,
+        Parameters(args): Parameters<UpdateTaskArgs>,
+    ) -> Result<Json<TaskOutput>, String> {
+        let source = if args.clear_source {
+            Some(None)
+        } else {
+            args.source.map(parse_snapshot).transpose()?.map(Some)
+        };
+        let patch = TaskPatch {
+            description: args.description,
+            urgency: args.urgency.as_deref().map(parse_urgency).transpose()?,
+            status: args.status.as_deref().map(parse_status).transpose()?,
+            source,
+        };
+        self.store
+            .update_task(&args.id, patch, &args.expected_version)
+            .map(|task| Json(TaskOutput { task }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Отметить задачу выполненной; требуется актуальный expected_version",
+        annotations(title = "Завершить задачу", open_world_hint = false)
+    )]
+    fn complete_task(
+        &self,
+        Parameters(args): Parameters<VersionedArgs>,
+    ) -> Result<Json<TaskOutput>, String> {
+        self.store
+            .complete_task(&args.id, &args.expected_version)
+            .map(|task| Json(TaskOutput { task }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Переместить задачу в другой проект; требуется актуальный expected_version",
+        annotations(title = "Переместить задачу", open_world_hint = false)
+    )]
+    fn move_task(
+        &self,
+        Parameters(args): Parameters<MoveTaskArgs>,
+    ) -> Result<Json<TaskOutput>, String> {
+        self.store
+            .move_task(&args.id, &args.project_id, &args.expected_version)
+            .map(|task| Json(TaskOutput { task }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Переместить задачу в восстанавливаемую корзину",
+        annotations(
+            title = "Переместить в корзину",
+            destructive_hint = true,
+            open_world_hint = false
+        )
+    )]
+    fn trash_task(
+        &self,
+        Parameters(args): Parameters<VersionedArgs>,
+    ) -> Result<Json<TaskOutput>, String> {
+        self.store
+            .trash_task(&args.id, &args.expected_version)
+            .map(|task| Json(TaskOutput { task }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Восстановить задачу из корзины",
+        annotations(
+            title = "Восстановить задачу",
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn restore_task(
+        &self,
+        Parameters(args): Parameters<VersionedArgs>,
+    ) -> Result<Json<TaskOutput>, String> {
+        self.store
+            .restore_task(&args.id, &args.expected_version)
+            .map(|task| Json(TaskOutput { task }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Окончательно удалить одну задачу из корзины",
+        annotations(
+            title = "Удалить задачу навсегда",
+            destructive_hint = true,
+            open_world_hint = false
+        )
+    )]
+    fn delete_trashed_task(
+        &self,
+        Parameters(args): Parameters<VersionedArgs>,
+    ) -> Result<Json<MutationOutput>, String> {
+        self.store
+            .delete_trashed_task(&args.id, &args.expected_version)
+            .map(|_| Json(MutationOutput { success: true }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Окончательно удалить все задачи из корзины",
+        annotations(
+            title = "Очистить корзину",
+            destructive_hint = true,
+            open_world_hint = false
+        )
+    )]
+    fn empty_trash(&self) -> Result<Json<DeleteCountOutput>, String> {
+        self.store
+            .empty_trash()
+            .map(|deleted| Json(DeleteCountOutput { deleted }))
+            .map_err(store_error)
     }
 }
 
@@ -245,16 +427,8 @@ fn parse_snapshot(value: SnapshotArgs) -> Result<MessageSnapshot, String> {
     })
 }
 
-fn json<T: serde::Serialize, E: std::fmt::Display>(result: Result<T, E>) -> String {
-    match result {
-        Ok(value) => serde_json::to_string_pretty(&value)
-            .unwrap_or_else(|error| error_json(error.to_string())),
-        Err(error) => error_json(error.to_string()),
-    }
-}
-
-fn error_json(error: impl std::fmt::Display) -> String {
-    serde_json::json!({ "error": error.to_string() }).to_string()
+fn store_error(error: impl std::fmt::Display) -> String {
+    error.to_string()
 }
 
 #[tokio::main]
@@ -265,4 +439,80 @@ async fn main() -> anyhow::Result<()> {
     let service = server.serve(stdio()).await?;
     service.waiting().await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rmcp::handler::server::tool::IntoCallToolResult;
+    use ulid::Ulid;
+
+    fn server() -> FloodServer {
+        FloodServer {
+            store: Store::new(std::env::temp_dir().join(format!("flood-mcp-test-{}", Ulid::new())))
+                .unwrap(),
+        }
+    }
+
+    #[test]
+    fn tools_expose_structured_schemas_and_safety_annotations() {
+        let _server = server();
+        let tools = FloodServer::tool_router().list_all();
+        assert!(tools.iter().all(|tool| tool.output_schema.is_some()));
+
+        let list = tools
+            .iter()
+            .find(|tool| tool.name == "list_projects")
+            .unwrap();
+        assert_eq!(
+            list.annotations
+                .as_ref()
+                .and_then(|value| value.read_only_hint),
+            Some(true)
+        );
+        assert_eq!(
+            list.annotations
+                .as_ref()
+                .and_then(|value| value.open_world_hint),
+            Some(false)
+        );
+
+        let delete = tools
+            .iter()
+            .find(|tool| tool.name == "delete_project")
+            .unwrap();
+        assert_eq!(
+            delete
+                .annotations
+                .as_ref()
+                .and_then(|value| value.destructive_hint),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn project_and_task_flow_returns_structured_content() {
+        let server = server();
+        let project = server
+            .create_project(Parameters(CreateProjectArgs {
+                title: "Работа".into(),
+            }))
+            .unwrap()
+            .0
+            .project;
+        let task = server
+            .create_task(Parameters(CreateTaskArgs {
+                project_id: project.id,
+                description: "Проверить MCP".into(),
+                urgency: Some("important".into()),
+                source: None,
+            }))
+            .unwrap();
+        let result = task.into_call_tool_result().unwrap();
+        let rmcp::model::CallToolResponse::Complete(result) = result else {
+            panic!("ожидался завершённый результат");
+        };
+        assert!(result.structured_content.is_some());
+        assert_eq!(result.is_error, Some(false));
+    }
 }
