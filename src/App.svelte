@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowRight, Bold, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Folder, FolderPlus, Heading1, Italic, Link, ListTodo, Maximize2, MessageSquareText, Minus, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, RotateCcw, Search, Settings, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
+  import { ArrowRight, Bold, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Folder, FolderPlus, Heading1, Link, ListTodo, Maximize2, MessageSquareText, Minus, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, RotateCcw, Search, Settings, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -635,7 +635,7 @@
     return true;
   }
 
-  function applyInlineFormat(command: "bold" | "italic" | "underline") {
+  function applyInlineFormat(command: "bold" | "underline") {
     if (!restoreSelection()) return;
     document.execCommand(command);
     serializeEditor();
@@ -1533,7 +1533,6 @@
     <div class="selection-toolbar-actions" role="group" aria-label="Начертание" onpointerdown={(event) => event.preventDefault()}>
       <button aria-label="Большой заголовок" title="Большой" onclick={applyLargeHeading}><Heading1 size={15} /></button>
       <button aria-label="Жирный" title="Жирный" onclick={() => applyInlineFormat("bold")}><Bold size={14} /></button>
-      <button aria-label="Курсив" title="Курсив" onclick={() => applyInlineFormat("italic")}><Italic size={14} /></button>
       <button aria-label="Подчёркнутый" title="Подчёркнутый" onclick={() => applyInlineFormat("underline")}><Underline size={14} /></button>
       <span></span>
       <button class:active={linkEditorOpen} aria-label="Добавить ссылку" title="Добавить ссылку" onclick={linkSelectionFromClipboard}><Link size={14} /></button>

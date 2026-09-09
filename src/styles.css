@@ -20,8 +20,8 @@
   --field: #f7f7f7;
   --shadow: rgb(0 0 0 / 11%);
   --selection: #e6e6e2;
-  --danger-surface: #fff5f5;
-  --danger-ink: #991b1b;
+  --danger-surface: #fff0f3;
+  --danger-ink: #d92f55;
   --success-surface: #f0f7f1;
   --success-ink: #166534;
   --on-ink: #ffffff;
@@ -51,8 +51,8 @@
   --field: #20201e;
   --shadow: rgb(0 0 0 / 36%);
   --selection: #3c3c38;
-  --danger-surface: #2b1719;
-  --danger-ink: #ff9b9b;
+  --danger-surface: #32171f;
+  --danger-ink: #ff607d;
   --success-surface: #16261a;
   --success-ink: #8fd49b;
   --on-ink: #151513;
@@ -242,15 +242,16 @@ button { color: inherit; }
   align-items: center;
   gap: 6px;
 }
-.task-actions-menu { position: absolute; z-index: 45; top: 44px; right: 146px; display: grid; width: 190px; max-height: min(360px, calc(100vh - 70px)); padding: 5px; overflow-y: auto; border: 1px solid var(--line); border-radius: 11px; background: var(--elevated); box-shadow: 0 12px 34px var(--shadow); }
-.task-actions-menu button { display: grid; grid-template-columns: 20px minmax(0, 1fr) 16px; min-height: 34px; align-items: center; gap: 7px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: #555555; font-size: 13px; text-align: left; cursor: pointer; }
+.task-actions-menu { position: absolute; z-index: 45; top: 44px; right: 146px; display: grid; width: max-content; max-width: min(260px, calc(100vw - 24px)); max-height: min(360px, calc(100vh - 70px)); padding: 5px; overflow-y: auto; border: 1px solid var(--line); border-radius: 11px; background: var(--elevated); box-shadow: 0 12px 34px var(--shadow); }
+.task-actions-menu button { display: grid; grid-template-columns: 20px auto 16px; min-width: 100%; min-height: 34px; align-items: center; gap: 7px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: #555555; font-size: 13px; text-align: left; cursor: pointer; }
+.task-actions-menu button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .task-actions-menu button:hover { background: #f7f7f7; color: var(--ink); }
 .task-actions-menu button:disabled { color: #a5a5a5; cursor: default; }
-.task-actions-menu button.danger { color: #a52a2a; }
+.task-actions-menu button.danger { color: var(--danger-ink); }
 .task-actions-menu .menu-back { grid-template-columns: 20px minmax(0, 1fr); margin-bottom: 4px; color: #777777; font-size: 12px; }
 .task-actions-menu .menu-back svg { transform: rotate(180deg); }
 .save-state { min-width: 72px; color: #9a9a9a; font-size: 12px; text-align: right; }
-.save-state.error { color: #b91c1c; }
+.save-state.error { color: var(--danger-ink); }
 
 .window-divider { width: 1px; height: 20px; margin: 0 2px 0 4px; background: var(--line); }
 .window-controls { display: flex; align-self: stretch; }
@@ -394,8 +395,8 @@ button { color: inherit; }
 .form-actions button { padding: 0; border: 0; background: transparent; color: #555555; font-size: 12px; font-weight: 600; cursor: pointer; }
 .form-actions button:last-child { height: 30px; padding: 0 10px; border-radius: 8px; background: #f1f1f1; color: var(--ink); }
 .form-actions button:last-child:hover { background: #e9e9e9; }
-.form-actions .danger-text { color: #a52a2a; }
-.form-error { margin: 0; color: #b91c1c; font-size: 12px; }
+.form-actions .danger-text { color: var(--danger-ink); }
+.form-error { margin: 0; color: var(--danger-ink); font-size: 12px; }
 .editor {
   display: block;
   width: min(600px, calc(100% - 64px));
@@ -459,7 +460,7 @@ button { color: inherit; }
 }
 .editor-block.code { margin: 5px 0; padding: 8px 11px; border-radius: 8px; background: #f7f7f7; font: 13px/1.55 "Cascadia Mono", Consolas, monospace; }
 
-.editor-hint { position: fixed; z-index: 40; min-height: 26px; padding: 5px 10px; border: 0; border-radius: 999px; background: #f7f7f7; color: #666666; font-size: 12px; font-weight: 400; line-height: 16px; white-space: nowrap; box-shadow: 0 3px 10px rgb(0 0 0 / 4%); pointer-events: none; }
+.editor-hint { position: fixed; z-index: 40; min-height: 26px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: color-mix(in srgb, var(--elevated) 94%, transparent); color: var(--muted); font-size: 11px; font-weight: 500; line-height: 1.25; white-space: nowrap; box-shadow: 0 8px 24px var(--shadow); backdrop-filter: blur(12px); pointer-events: none; animation: popover-in 120ms cubic-bezier(.2,.8,.3,1); }
 .selection-toolbar { position: fixed; z-index: 70; display: grid; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--elevated); box-shadow: 0 9px 28px var(--shadow); animation: popover-in 120ms cubic-bezier(.2,.8,.3,1); }
 .selection-toolbar-actions { display: flex; height: 28px; align-items: center; gap: 2px; }
 .selection-toolbar button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
@@ -545,7 +546,7 @@ button { color: inherit; }
 .quiet-danger-button:hover { background: var(--danger-surface); color: var(--danger-ink); }
 .destructive-confirm { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 18px; margin: -14px 0 26px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--elevated); color: var(--ink); box-shadow: 0 10px 30px color-mix(in srgb, var(--shadow) 58%, transparent); animation: reveal-list 150ms ease-out; }
 .project-delete-confirm { grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; padding: 10px 12px 10px 10px; }
-.confirm-glyph { display: grid; width: 48px; height: 48px; place-items: center; overflow: hidden; border: 1px solid color-mix(in srgb, var(--danger-ink) 9%, var(--line)); border-radius: 14px; background: radial-gradient(circle at 32% 25%, color-mix(in srgb, #ffffff 72%, transparent), transparent 46%), color-mix(in srgb, var(--danger-surface) 74%, var(--elevated)); }
+.confirm-glyph { display: grid; width: 48px; height: 48px; place-items: center; overflow: hidden; border: 0; border-radius: 14px; background: color-mix(in srgb, var(--danger-surface) 76%, var(--elevated)); }
 .confirm-copy { display: grid; min-width: 0; gap: 3px; }
 .destructive-confirm strong { overflow: hidden; color: var(--ink); font-size: 13px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .destructive-confirm small { color: var(--muted); font-size: 11px; }
@@ -553,8 +554,8 @@ button { color: inherit; }
 .destructive-confirm button, .trash-actions button { height: 30px; padding: 0 9px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: background-color 120ms ease, color 120ms ease, transform 120ms ease; }
 .destructive-confirm button:hover, .trash-actions button:hover { background: var(--hover); color: var(--ink); }
 .destructive-confirm button:active { transform: scale(.97); }
-.destructive-confirm .danger-button { background: var(--danger-ink); color: var(--background); box-shadow: 0 4px 12px color-mix(in srgb, var(--danger-ink) 18%, transparent); }
-.destructive-confirm .danger-button:hover { background: color-mix(in srgb, var(--danger-ink) 88%, var(--ink)); color: var(--background); }
+.destructive-confirm .danger-button { background: var(--danger-surface); color: var(--danger-ink); box-shadow: none; }
+.destructive-confirm .danger-button:hover { background: color-mix(in srgb, var(--danger-surface) 78%, var(--danger-ink)); color: var(--danger-ink); }
 .trash-delete-button { display: grid; place-items: center; width: 30px; padding: 0 !important; color: var(--muted) !important; }
 .trash-delete-button:hover, .trash-actions .danger-text { color: var(--danger-ink) !important; }
 
@@ -697,7 +698,6 @@ button { color: inherit; }
 :root[data-theme="dark"] .source-editor textarea,
 :root[data-theme="dark"] .source-date-button,
 :root[data-theme="dark"] .editor-block.code,
-:root[data-theme="dark"] .editor-hint,
 :root[data-theme="dark"] .project-add-button { background: var(--field); }
 :root[data-theme="dark"] .search-field:focus-within,
 :root[data-theme="dark"] .theme-picker button.active { background: var(--elevated); }
