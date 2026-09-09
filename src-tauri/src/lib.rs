@@ -177,9 +177,29 @@ fn read_task_attachment(
     )
 }
 
+#[tauri::command]
+fn data_directory() -> String {
+    default_data_dir().to_string_lossy().into_owned()
+}
+
+#[tauri::command]
+fn mcp_executable_path(app: tauri::AppHandle) -> Result<String, String> {
+    let executable = app
+        .path()
+        .resource_dir()
+        .map_err(|error| error.to_string())?
+        .join("flood-mcp.exe");
+    Ok(executable
+        .to_string_lossy()
+        .trim_start_matches(r"\\?\")
+        .to_owned())
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             let root = default_data_dir();
             let store = Store::new(&root)?;
@@ -216,7 +236,9 @@ pub fn run() {
             empty_trash,
             save_task_attachment,
             resolve_task_attachment,
-            read_task_attachment
+            read_task_attachment,
+            data_directory,
+            mcp_executable_path
         ])
         .run(tauri::generate_context!())
         .expect("не удалось запустить flood.md");

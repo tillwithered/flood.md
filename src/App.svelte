@@ -1,17 +1,22 @@
 <script lang="ts">
-  import { ArrowRight, Bold, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Folder, FolderPlus, Heading1, Link, ListTodo, Maximize2, MessageSquareText, Minus, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, RotateCcw, Search, Settings, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
+  import { ArrowRight, Bold, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Database, Download, ExternalLink, Folder, FolderOpen, FolderPlus, Heading1, Info, Languages, Link, ListTodo, Maximize2, MessageSquareText, Minus, MoreHorizontal, Palette, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, RefreshCw, RotateCcw, Search, Settings, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
+  import { getVersion } from "@tauri-apps/api/app";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { openUrl } from "@tauri-apps/plugin-opener";
+  import { openPath, openUrl } from "@tauri-apps/plugin-opener";
+  import { relaunch } from "@tauri-apps/plugin-process";
+  import { check, type Update } from "@tauri-apps/plugin-updater";
   import { onMount, tick } from "svelte";
   import FloodGlyph from "./components/FloodGlyph.svelte";
 
-  type Section = "tasks" | "trash" | "mcp" | "settings";
+  type Section = "tasks" | "trash" | "settings";
+  type SettingsSection = "general" | "appearance" | "data" | "integrations" | "about";
   type WorkspaceView = "project" | "task";
   type Urgency = "normal" | "important" | "urgent";
   type SaveState = "idle" | "saving" | "saved" | "error";
   type ThemePreference = "system" | "light" | "dark";
+  type UpdateState = "idle" | "checking" | "available" | "current" | "downloading" | "error";
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string };
   type ChatRecord = { id: string; title: string; created_at: string; updated_at: string; version: string };
   type TaskRecord = {
@@ -76,6 +81,15 @@
   let expandedChatIds: string[] = [];
   let allTasksExpanded = true;
   let themePreference: ThemePreference = "system";
+  let reduceMotion = false;
+  let settingsSection: SettingsSection = "general";
+  let appVersion = "0.1.0";
+  let dataDirectory = "";
+  let mcpExecutable = "";
+  let updateState: UpdateState = "idle";
+  let updateMessage = "";
+  let availableUpdate: Update | null = null;
+  let updateProgress = 0;
   let markdown = "";
   let editorHint: MarkdownHint | null = null;
   let copied = false;
@@ -125,6 +139,7 @@
   function saveUiPreferences() {
     localStorage.setItem(uiPreferencesKey, JSON.stringify({
       theme: themePreference,
+      reduceMotion,
       showCompleted,
       sidebarCollapsed,
       expandedChatIds,
@@ -138,10 +153,15 @@
     document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", dark ? "#111110" : "#ffffff");
   }
 
+  function applyMotionPreference() {
+    document.documentElement.dataset.motion = reduceMotion ? "reduced" : "full";
+  }
+
   function loadUiPreferences() {
     try {
       const stored = JSON.parse(localStorage.getItem(uiPreferencesKey) ?? "{}") as Record<string, unknown>;
       if (stored.theme === "system" || stored.theme === "light" || stored.theme === "dark") themePreference = stored.theme;
+      if (typeof stored.reduceMotion === "boolean") reduceMotion = stored.reduceMotion;
       if (typeof stored.showCompleted === "boolean") showCompleted = stored.showCompleted;
       if (typeof stored.sidebarCollapsed === "boolean") sidebarCollapsed = stored.sidebarCollapsed;
       if (Array.isArray(stored.expandedChatIds)) expandedChatIds = stored.expandedChatIds.filter((id): id is string => typeof id === "string");
@@ -150,6 +170,7 @@
       localStorage.removeItem(uiPreferencesKey);
     }
     applyTheme();
+    applyMotionPreference();
   }
 
   function setTheme(theme: ThemePreference) {
@@ -180,6 +201,12 @@
 
   function toggleCompletedVisibility() {
     showCompleted = !showCompleted;
+    saveUiPreferences();
+  }
+
+  function toggleMotionPreference() {
+    reduceMotion = !reduceMotion;
+    applyMotionPreference();
     saveUiPreferences();
   }
 
@@ -1451,9 +1478,57 @@
   }
 
   async function copyMcpConfig() {
-    await navigator.clipboard.writeText(`{"command":"C:\\\\path\\\\to\\\\flood-mcp.exe"}`);
+    await navigator.clipboard.writeText(JSON.stringify({ command: mcpExecutable || "flood-mcp.exe" }, null, 2));
     copied = true;
     window.setTimeout(() => (copied = false), 1400);
+  }
+
+  async function openDataDirectory() {
+    if (dataDirectory) await openPath(dataDirectory);
+  }
+
+  async function checkForUpdates() {
+    if (!inTauri() || updateState === "checking" || updateState === "downloading") return;
+    updateState = "checking";
+    updateMessage = "Проверяем GitHub Releases…";
+    updateProgress = 0;
+    try {
+      availableUpdate?.close();
+      availableUpdate = await check({ timeout: 15_000 });
+      if (availableUpdate) {
+        updateState = "available";
+        updateMessage = `Доступна версия ${availableUpdate.version}`;
+      } else {
+        updateState = "current";
+        updateMessage = "Установлена последняя версия";
+      }
+    } catch (error) {
+      updateState = "error";
+      const details = String(error);
+      updateMessage = details.includes("valid release JSON")
+        ? "Канал обновлений готов — опубликованных версий пока нет"
+        : "Не удалось проверить обновления. Попробуйте позже";
+    }
+  }
+
+  async function installAvailableUpdate() {
+    if (!availableUpdate || updateState === "downloading") return;
+    updateState = "downloading";
+    updateMessage = "Загружаем обновление…";
+    let downloaded = 0;
+    let total = 0;
+    try {
+      await availableUpdate.downloadAndInstall((event) => {
+        if (event.event === "Started") total = event.data.contentLength ?? 0;
+        if (event.event === "Progress") downloaded += event.data.chunkLength;
+        if (total > 0) updateProgress = Math.min(100, Math.round(downloaded / total * 100));
+      });
+      updateMessage = "Обновление установлено. Перезапускаем…";
+      await relaunch();
+    } catch (error) {
+      updateState = "error";
+      updateMessage = `Не удалось установить обновление: ${String(error)}`;
+    }
   }
 
   function inTauri() {
@@ -1492,6 +1567,9 @@
     let disposed = false;
     void (async () => {
       if (inTauri()) {
+        appVersion = await getVersion();
+        dataDirectory = await invoke<string>("data_directory");
+        mcpExecutable = await invoke<string>("mcp_executable_path");
         unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
           if (closingWindow) return;
           event.preventDefault();
@@ -1577,7 +1655,7 @@
       {#if activeSection === "tasks"}
         <span>{workspaceView === "task" && selectedTask ? selectedTask.chat : currentChat.title}</span>
       {:else}
-        <span>{activeSection === "trash" ? "Корзина" : activeSection === "mcp" ? "MCP" : "Настройки"}</span>
+        <span>{activeSection === "trash" ? "Корзина" : "Настройки"}</span>
       {/if}
     </div>
     <div class="window-actions" data-tauri-drag-region="false">
@@ -1688,7 +1766,7 @@
             {/if}
           </div>
 
-          {#if !sidebarCollapsed && allTasksExpanded && activeSection === "tasks"}
+          {#if !sidebarCollapsed && allTasksExpanded}
             <div class="nested-tasks all-task-list">
               {#each visibleTasks as task}
                 <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
@@ -1706,7 +1784,7 @@
                   <button type="button" class:expanded={expandedChatIds.includes(chat.id)} class="project-expand" aria-expanded={expandedChatIds.includes(chat.id)} onclick={() => toggleChat(chat.id)} aria-label={expandedChatIds.includes(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}><ChevronRight size={13} /></button>
                 {/if}
               </div>
-              {#if !sidebarCollapsed && expandedChatIds.includes(chat.id) && activeSection === "tasks"}
+              {#if !sidebarCollapsed && expandedChatIds.includes(chat.id)}
                 <div class="nested-tasks">
                   {#each tasksForChat(chat) as task}
                     <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
@@ -1734,7 +1812,6 @@
       </nav>
 
       <nav class="sidebar-footer" aria-label="Системные разделы">
-        <button class:active={activeSection === "mcp"} class="sidebar-row" onclick={() => changeSection("mcp")} title="MCP"><Plug size={17} /><span>MCP</span><FloodGlyph kind="connected" size={10} label="Готов" /></button>
         <button class:active={activeSection === "settings"} class="sidebar-row" onclick={() => changeSection("settings")} title="Настройки"><Settings size={17} /><span>Настройки</span></button>
       </nav>
     </aside>
@@ -1890,24 +1967,52 @@
           </div>
         </div>
       </section>
-    {:else if activeSection === "mcp"}
-      <section class="workspace simple-workspace"><div class="mcp-card"><span class="status-pill"><FloodGlyph kind="connected" size={11} motion="pulse" />Готов</span><h2>Подключить агента</h2><p>Добавьте локальный сервер в MCP-клиент. Задачи останутся на этом компьютере.</p><div class="code-row"><code>target/release/flood-mcp.exe</code><button class="icon-button" aria-label="Копировать конфигурацию" onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div></div></section>
     {:else}
-      <section class="workspace simple-workspace">
+      <section class="workspace settings-workspace">
         <div class="settings-page">
-          <h2>Настройки</h2>
-          <section class="settings-group">
-            <div class="settings-heading"><strong>Внешний вид</strong><small>Тема интерфейса применяется сразу</small></div>
-            <div class="theme-picker" aria-label="Тема интерфейса">
-              <button class:active={themePreference === "system"} onclick={() => setTheme("system")}>Системная</button>
-              <button class:active={themePreference === "light"} onclick={() => setTheme("light")}>Светлая</button>
-              <button class:active={themePreference === "dark"} onclick={() => setTheme("dark")}>Тёмная</button>
+          <header class="settings-header"><h2>Настройки</h2><p>Приложение, данные и локальные подключения</p></header>
+          <div class="settings-layout">
+            <nav class="settings-nav" aria-label="Разделы настроек">
+              <button class:active={settingsSection === "general"} onclick={() => (settingsSection = "general")}><Settings size={16} />Общие</button>
+              <button class:active={settingsSection === "appearance"} onclick={() => (settingsSection = "appearance")}><Palette size={16} />Внешний вид</button>
+              <button class:active={settingsSection === "data"} onclick={() => (settingsSection = "data")}><Database size={16} />Данные</button>
+              <button class:active={settingsSection === "integrations"} onclick={() => (settingsSection = "integrations")}><Plug size={16} />Интеграции <span class="integration-chip"><FloodGlyph kind="connected" size={8} />MCP</span></button>
+              <button class:active={settingsSection === "about"} onclick={() => (settingsSection = "about")}><Info size={16} />О приложении</button>
+            </nav>
+            <div class="settings-content">
+              {#if settingsSection === "general"}
+                <section class="settings-section">
+                  <div class="settings-section-title"><h3>Общие</h3><p>Основное поведение flood.md</p></div>
+                  <div class="setting-static"><span><Languages size={16} /><span><strong>Язык</strong><small>Язык интерфейса</small></span></span><span class="setting-value">Русский</span></div>
+                  <button class:active={showCompleted} class="setting-row" onclick={toggleCompletedVisibility}><span><ListTodo size={16} /><span><strong>Показывать выполненные</strong><small>Включает завершённые задачи в списках</small></span></span><span class="switch"><span></span></span></button>
+                </section>
+              {:else if settingsSection === "appearance"}
+                <section class="settings-section">
+                  <div class="settings-section-title"><h3>Внешний вид</h3><p>Тема и движение интерфейса</p></div>
+                  <div class="settings-control"><strong>Тема</strong><div class="theme-picker" aria-label="Тема интерфейса"><button class:active={themePreference === "system"} onclick={() => setTheme("system")}>Системная</button><button class:active={themePreference === "light"} onclick={() => setTheme("light")}>Светлая</button><button class:active={themePreference === "dark"} onclick={() => setTheme("dark")}>Тёмная</button></div></div>
+                  <button class:active={reduceMotion} class="setting-row" onclick={toggleMotionPreference}><span><span><strong>Уменьшить анимации</strong><small>Отключает декоративное движение</small></span></span><span class="switch"><span></span></span></button>
+                </section>
+              {:else if settingsSection === "data"}
+                <section class="settings-section">
+                  <div class="settings-section-title"><h3>Данные</h3><p>Markdown остаётся единственным источником правды</p></div>
+                  <div class="data-location"><span><FolderOpen size={17} /><span><strong>Папка с задачами</strong><code>{dataDirectory || "Доступна в приложении"}</code></span></span><button onclick={openDataDirectory} disabled={!dataDirectory}>Открыть</button></div>
+                  <button class="settings-action" onclick={() => loadData(true)}><RefreshCw size={15} />Перечитать файлы</button>
+                </section>
+              {:else if settingsSection === "integrations"}
+                <section class="settings-section">
+                  <div class="settings-section-title"><h3>Интеграции</h3><p>Локальные подключения без отправки данных в облако</p></div>
+                  <div class="integration-card"><div class="integration-head"><span><FloodGlyph kind="connected" size={15} motion="pulse" /><span><strong>MCP-сервер</strong><small>Готов к подключению</small></span></span><span class="status-text">Работает локально</span></div><p>Скопируйте конфигурацию в MCP-клиент. Сервер использует те же Markdown-файлы, что и приложение.</p><div class="code-row"><code>{mcpExecutable || "flood-mcp.exe"}</code><button class="icon-button" aria-label="Копировать конфигурацию" onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div></div>
+                </section>
+              {:else}
+                <section class="settings-section">
+                  <div class="settings-section-title"><h3>О приложении</h3><p>flood.md {appVersion}</p></div>
+                  <div class="about-brand"><FloodGlyph kind="brand" size={42} /><span><strong>flood.md</strong><small>Локальные задачи без лишнего шума</small></span></div>
+                  <div class="update-row"><span><strong>Обновления</strong><small>{updateMessage || "Проверка через GitHub Releases"}</small>{#if updateState === "downloading"}<progress max="100" value={updateProgress}></progress>{/if}</span>{#if updateState === "available"}<button class="primary-small" onclick={installAvailableUpdate}><Download size={15} />Установить {availableUpdate?.version}</button>{:else}<button onclick={checkForUpdates} disabled={updateState === "checking" || updateState === "downloading"}><span class:spinning={updateState === "checking"} class="update-icon"><RefreshCw size={15} /></span>{updateState === "checking" ? "Проверяем" : "Проверить"}</button>{/if}</div>
+                  <button class="settings-action" onclick={() => openUrl("https://github.com/tillwithered/flood")}><ExternalLink size={15} />Открыть GitHub</button>
+                </section>
+              {/if}
             </div>
-          </section>
-          <section class="settings-group">
-            <div class="settings-heading"><strong>Задачи</strong><small>Настройка списков в навигации</small></div>
-            <button class:active={showCompleted} class="setting-row" onclick={toggleCompletedVisibility}><span><strong>Показывать выполненные</strong><small>Включает завершённые задачи в списках</small></span><span class="switch"><span></span></span></button>
-          </section>
+          </div>
         </div>
       </section>
     {/if}
