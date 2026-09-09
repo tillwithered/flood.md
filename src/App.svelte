@@ -10,6 +10,7 @@
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import { onMount, tick } from "svelte";
   import FloodGlyph from "./components/FloodGlyph.svelte";
+  import { translate, type Locale, type MessageKey } from "./i18n";
 
   type Section = "tasks" | "trash" | "settings";
   type SettingsSection = "general" | "appearance" | "data" | "integrations" | "about";
@@ -54,14 +55,14 @@
   type ChatItem = ChatRecord & { open: number };
   type MarkdownHint = { title: string; left: number; top: number };
 
-  const markdownHints: Record<string, Pick<MarkdownHint, "title">> = {
-    "#": { title: "Большой заголовок" },
-    "##": { title: "Средний заголовок" },
-    "###": { title: "Маленький заголовок" },
-    "-": { title: "Маркированный список" },
-    "1.": { title: "Нумерованный список" },
-    ">": { title: "Цитата" },
-    "```": { title: "Блок кода" }
+  const markdownHints: Record<string, MessageKey> = {
+    "#": "largeHeading",
+    "##": "largeHeading",
+    "###": "largeHeading",
+    "-": "textStyle",
+    "1.": "textStyle",
+    ">": "textStyle",
+    "```": "textStyle"
   };
 
   let tasks: TaskItem[] = [];
@@ -85,6 +86,7 @@
   let sidebarCollapsed = false;
   let expandedChatIds: string[] = [];
   let allTasksExpanded = true;
+  let locale: Locale = "ru";
   let themePreference: ThemePreference = "system";
   let reduceMotion = false;
   let settingsSection: SettingsSection = "general";
@@ -144,9 +146,16 @@
 
   const uiPreferencesKey = "flood.ui.preferences";
 
+  function translator(forLocale: Locale) {
+    return (key: MessageKey, values: Record<string, string | number> = {}) => translate(forLocale, key, values);
+  }
+
+  let t = translator(locale);
+
   function saveUiPreferences() {
     localStorage.setItem(uiPreferencesKey, JSON.stringify({
       theme: themePreference,
+      locale,
       reduceMotion,
       showCompleted,
       sidebarCollapsed,
@@ -169,6 +178,7 @@
     try {
       const stored = JSON.parse(localStorage.getItem(uiPreferencesKey) ?? "{}") as Record<string, unknown>;
       if (stored.theme === "system" || stored.theme === "light" || stored.theme === "dark") themePreference = stored.theme;
+      if (stored.locale === "ru" || stored.locale === "en") locale = stored.locale;
       if (typeof stored.reduceMotion === "boolean") reduceMotion = stored.reduceMotion;
       if (typeof stored.showCompleted === "boolean") showCompleted = stored.showCompleted;
       if (typeof stored.sidebarCollapsed === "boolean") sidebarCollapsed = stored.sidebarCollapsed;
@@ -179,6 +189,34 @@
     }
     applyTheme();
     applyMotionPreference();
+    document.documentElement.lang = locale;
+    t = translator(locale);
+  }
+
+  function setLocale(nextLocale: Locale) {
+    locale = nextLocale;
+    t = translator(locale);
+    document.documentElement.lang = locale;
+    chats = chats.map((chat) => chat.id === "all" ? { ...chat, title: t("allTasks") } : chat);
+    tasks = tasks.map((task) => ({ ...task, updated: relativeDate(task.updatedAt) }));
+    trashedTasks = trashedTasks.map((task) => ({ ...task, updated: relativeDate(task.updatedAt) }));
+    dataActionMessage = "";
+    updateMessage = "";
+    saveUiPreferences();
+  }
+
+  function openTasksLabel(count: number) {
+    if (locale === "en") return t(count === 1 ? "openTaskOne" : "openTaskMany", { count });
+    const lastTwo = count % 100;
+    const last = count % 10;
+    const key: MessageKey = lastTwo >= 11 && lastTwo <= 14
+      ? "openTaskMany"
+      : last === 1
+        ? "openTaskOne"
+        : last >= 2 && last <= 4
+          ? "openTaskFew"
+          : "openTaskMany";
+    return t(key, { count });
   }
 
   function setTheme(theme: ThemePreference) {
@@ -235,7 +273,7 @@
   }
 
   function taskTitle(description: string) {
-    const first = description.split("\n").find((line) => line.trim())?.trim() ?? "Без названия";
+    const first = description.split("\n").find((line) => line.trim())?.trim() ?? t("untitled");
     const plain = first
       .replace(/^#{1,3}\s+/, "")
       .replace(/^[-*>]\s+/, "")
@@ -244,21 +282,21 @@
       .replace(/\*\*|\*/g, "")
       .replace(/<\/?u>/g, "")
       .trim();
-    return plain || "Без названия";
+    return plain || t("untitled");
   }
 
   function relativeDate(value: string) {
     const date = new Date(value);
     const seconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
-    if (seconds < 60) return "сейчас";
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} мин`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} ч`;
-    if (seconds < 172800) return "вчера";
-    return new Intl.DateTimeFormat("ru", { day: "numeric", month: "short" }).format(date);
+    if (seconds < 60) return t("now");
+    if (seconds < 3600) return t("minutesShort", { count: Math.floor(seconds / 60) });
+    if (seconds < 86400) return t("hoursShort", { count: Math.floor(seconds / 3600) });
+    if (seconds < 172800) return t("yesterday");
+    return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", { day: "numeric", month: "short" }).format(date);
   }
 
   function fullDate(value: string) {
-    return new Intl.DateTimeFormat("ru", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+    return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
   }
 
   function fileName(path: string) {
@@ -266,7 +304,7 @@
   }
 
   function chatTitle(chatId: string, records = chats) {
-    return records.find((chat) => chat.id === chatId)?.title ?? "Неизвестный проект";
+    return records.find((chat) => chat.id === chatId)?.title ?? t("unknownProject");
   }
 
   function toTaskItem(task: TaskRecord | TaskSummaryRecord, records = chats): TaskItem {
@@ -292,12 +330,12 @@
 
   function allChat(open: number): ChatItem {
     const now = new Date(0).toISOString();
-    return { id: "all", title: "Все задачи", open, created_at: now, updated_at: now, version: "" };
+    return { id: "all", title: t("allTasks"), open, created_at: now, updated_at: now, version: "" };
   }
 
   async function loadData(preserveSelection = true) {
     if (!inTauri()) {
-      loadError = "Файлы доступны в окне desktop-приложения";
+      loadError = t("desktopFiles");
       loading = false;
       return;
     }
@@ -305,7 +343,7 @@
       const previousSelected = tasks.find((task) => task.id === selectedTaskId);
       let records = await invoke<ChatRecord[]>("list_chats");
       if (!records.length) {
-        await invoke<ChatRecord>("create_chat", { title: "Личное" });
+        await invoke<ChatRecord>("create_chat", { title: t("personal") });
         records = await invoke<ChatRecord[]>("list_chats");
       }
       const [summaries, trash] = await Promise.all([
@@ -445,10 +483,10 @@
     card.className = "attachment-card";
     card.dataset.attachmentKind = "image";
     card.dataset.attachmentPath = relativePath;
-    card.dataset.attachmentAlt = alt || "Изображение";
+    card.dataset.attachmentAlt = alt || t("image");
     card.contentEditable = "false";
     const image = document.createElement("img");
-    image.alt = alt || "Изображение";
+    image.alt = alt || t("image");
     if (source) image.src = source;
     image.draggable = false;
     const tools = document.createElement("span");
@@ -457,15 +495,15 @@
     view.type = "button";
     view.className = "attachment-tool";
     view.dataset.viewAttachment = "true";
-    view.setAttribute("aria-label", `Открыть ${image.alt} на весь экран`);
-    view.title = "Открыть на весь экран";
+    view.setAttribute("aria-label", `${t("openFullscreen")}: ${image.alt}`);
+    view.title = t("openFullscreen");
     view.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "attachment-tool danger";
     remove.dataset.removeAttachment = "true";
-    remove.setAttribute("aria-label", `Убрать изображение ${image.alt} из задачи`);
-    remove.title = "Убрать изображение";
+    remove.setAttribute("aria-label", `${t("removeImage")}: ${image.alt}`);
+    remove.title = t("removeImage");
     remove.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/></svg>';
     tools.append(view, remove);
     card.append(image, tools);
@@ -475,12 +513,12 @@
   function serializeInline(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
     if (!(node instanceof HTMLElement)) return "";
-    if (node.dataset.attachmentKind === "image") return `![${node.dataset.attachmentAlt ?? "Изображение"}](${node.dataset.attachmentPath ?? ""})`;
+    if (node.dataset.attachmentKind === "image") return `![${node.dataset.attachmentAlt ?? t("image")}](${node.dataset.attachmentPath ?? ""})`;
     const content = [...node.childNodes].map(serializeInline).join("");
     if (node.tagName === "STRONG" || node.tagName === "B") return `**${content}**`;
     if (node.tagName === "EM" || node.tagName === "I") return `*${content}*`;
     if (node.tagName === "U") return `<u>${content}</u>`;
-    if (node.tagName === "IMG") return `![${node.getAttribute("alt") ?? "Изображение"}](${node.dataset.attachmentPath ?? ""})`;
+    if (node.tagName === "IMG") return `![${node.getAttribute("alt") ?? t("image")}](${node.dataset.attachmentPath ?? ""})`;
     if (node.tagName === "A") return `[${content}](${node.dataset.attachmentPath || node.getAttribute("href") || ""})`;
     return node.tagName === "BR" ? "" : content;
   }
@@ -586,7 +624,7 @@
         return;
       }
       const localId = currentTask.id;
-      const content = currentTask.markdown.replace(/^#\s*$/, "# Новая задача");
+      const content = currentTask.markdown.replace(/^#\s*$/, `# ${t("newTask")}`);
       saveState = "saving";
       const work = (async () => {
         try {
@@ -778,7 +816,7 @@
   function decorateExternalLink(anchor: HTMLAnchorElement, url: string) {
     anchor.href = url;
     anchor.dataset.taskLink = "true";
-    anchor.dataset.linkHint = "Зажмите Ctrl, чтобы перейти";
+    anchor.dataset.linkHint = t("holdCtrl");
     anchor.rel = "noreferrer";
   }
 
@@ -789,7 +827,7 @@
       else window.open(url, "_blank", "noopener,noreferrer");
     } catch (error) {
       saveState = "error";
-      saveError = `Не удалось открыть ссылку: ${String(error)}`;
+      saveError = t("openLinkError", { error: String(error) });
     }
   }
 
@@ -850,17 +888,17 @@
       try {
         const relativePath = await invoke<string>("save_task_attachment", {
           id: selectedTaskId,
-          fileName: file.name || (file.type === "image/png" ? "изображение.png" : file.type === "image/jpeg" ? "изображение.jpg" : "вложение"),
+          fileName: file.name || (file.type === "image/png" ? "image.png" : file.type === "image/jpeg" ? "image.jpg" : "attachment"),
           bytes: [...new Uint8Array(await file.arrayBuffer())]
         });
         const bytes = await invoke<ArrayBuffer>("read_task_attachment", { id: selectedTaskId, relativePath });
         const objectUrl = URL.createObjectURL(new Blob([bytes], { type: file.type || attachmentMimeType(relativePath) }));
         attachmentObjectUrls.push(objectUrl);
         const imageFile = file.type.startsWith("image/");
-        const node = imageFile ? createImageAttachment(file.name || "Изображение", relativePath, objectUrl) : document.createElement("a");
+        const node = imageFile ? createImageAttachment(file.name || t("image"), relativePath, objectUrl) : document.createElement("a");
         if (node instanceof HTMLAnchorElement) {
           node.dataset.attachmentPath = relativePath;
-          node.textContent = file.name || "Вложение";
+          node.textContent = file.name || t("attachment");
           node.href = objectUrl;
           node.target = "_blank";
           node.rel = "noreferrer";
@@ -893,7 +931,7 @@
         serializeEditor();
       } catch (error) {
         saveState = "error";
-        saveError = `Не удалось добавить вложение: ${String(error)}`;
+        saveError = t("attachmentError", { error: String(error) });
       }
     }
     attachmentInput.value = "";
@@ -935,13 +973,14 @@
 
   function updateHint(block: HTMLElement | null) {
     const typed = block?.textContent ?? "";
-    const match = markdownHints[typed];
-    if (!block || !match) { editorHint = null; return; }
+    const hintKey = markdownHints[typed];
+    if (!block || !hintKey) { editorHint = null; return; }
     const bounds = block.getBoundingClientRect();
     const sidebarEdge = sidebarCollapsed ? 58 : 304;
-    const estimatedWidth = Math.min(180, match.title.length * 7 + 24);
+    const title = t(hintKey);
+    const estimatedWidth = Math.min(180, title.length * 7 + 24);
     editorHint = {
-      ...match,
+      title,
       left: Math.max(sidebarEdge + 8, bounds.left - 12 - estimatedWidth),
       top: Math.max(58, Math.min(bounds.top + (bounds.height - 26) / 2, window.innerHeight - 34))
     };
@@ -1001,7 +1040,7 @@
   async function openImageViewer(card: HTMLElement) {
     const image = card.querySelector("img");
     if (!image?.src) return;
-    imageViewer = { src: image.src, alt: image.alt || "Изображение" };
+    imageViewer = { src: image.src, alt: image.alt || t("image") };
     imageViewerZoom = 1;
     await tick();
     imageViewerDialog?.focus();
@@ -1239,10 +1278,10 @@
     const now = new Date().toISOString();
     const draft: TaskItem = {
       id: `draft-${Date.now()}`,
-      title: "Новая задача",
+      title: t("newTask"),
       chat: targetChat.title,
       chatId: targetChat.id,
-      updated: "сейчас",
+      updated: t("now"),
       createdAt: now,
       updatedAt: now,
       urgency: "normal",
@@ -1346,12 +1385,12 @@
   }
 
   function sourceDateLabel(value: string) {
-    if (!value) return "Дата не указана";
-    return new Intl.DateTimeFormat("ru", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+    if (!value) return t("dateNotSpecified");
+    return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
   }
 
   function calendarTitle(month: Date) {
-    return new Intl.DateTimeFormat("ru", { month: "long", year: "numeric" }).format(month);
+    return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", { month: "long", year: "numeric" }).format(month);
   }
 
   function calendarDays(month: Date) {
@@ -1434,7 +1473,7 @@
     await saveNow(true);
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || !sourceText.trim() || conflictRemote || !inTauri()) {
-      if (!sourceText.trim()) formError = "Добавьте текст исходного сообщения";
+      if (!sourceText.trim()) formError = t("addSourceText");
       return;
     }
     try {
@@ -1579,7 +1618,7 @@
   }
 
   function urgencyTitle(urgency: Urgency) {
-    return urgency === "urgent" ? "Срочная" : urgency === "important" ? "Важная" : "Обычная";
+    return urgency === "urgent" ? t("urgent") : urgency === "important" ? t("important") : t("normal");
   }
 
   async function changeUrgency(urgency: Urgency) {
@@ -1634,9 +1673,9 @@
     const now = new Date();
     const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const destination = await saveDialog({
-      title: "Сохранить резервную копию",
+      title: t("saveBackup"),
       defaultPath: `flood-backup-${date}.zip`,
-      filters: [{ name: "Резервная копия flood.md", extensions: ["zip"] }]
+      filters: [{ name: t("backupFile"), extensions: ["zip"] }]
     });
     if (!destination) return;
     dataActionState = "backing-up";
@@ -1644,7 +1683,7 @@
     try {
       await invoke("create_backup", { destination });
       dataActionState = "success";
-      dataActionMessage = `Сохранено: ${fileName(destination)}`;
+      dataActionMessage = t("backupSaved", { file: fileName(destination) });
     } catch (error) {
       dataActionState = "error";
       dataActionMessage = String(error);
@@ -1654,10 +1693,10 @@
   async function chooseBackupToRestore() {
     if (dataActionState === "backing-up" || dataActionState === "restoring") return;
     const source = await openDialog({
-      title: "Выбрать резервную копию",
+      title: t("chooseBackup"),
       multiple: false,
       directory: false,
-      filters: [{ name: "Резервная копия flood.md", extensions: ["zip"] }]
+      filters: [{ name: t("backupFile"), extensions: ["zip"] }]
     });
     if (!source) return;
     pendingRestorePath = source;
@@ -1679,7 +1718,7 @@
       workspaceView = "project";
       await loadData(false);
       dataActionState = "success";
-      dataActionMessage = "Данные восстановлены";
+      dataActionMessage = t("dataRestored");
       pendingRestorePath = "";
     } catch (error) {
       dataActionState = "error";
@@ -1690,31 +1729,31 @@
   async function checkForUpdates() {
     if (!inTauri() || updateState === "checking" || updateState === "downloading") return;
     updateState = "checking";
-    updateMessage = "Проверяем GitHub Releases…";
+    updateMessage = t("updateChecking");
     updateProgress = 0;
     try {
       availableUpdate?.close();
       availableUpdate = await check({ timeout: 15_000 });
       if (availableUpdate) {
         updateState = "available";
-        updateMessage = `Доступна версия ${availableUpdate.version}`;
+        updateMessage = t("updateAvailable", { version: availableUpdate.version });
       } else {
         updateState = "current";
-        updateMessage = "Установлена последняя версия";
+        updateMessage = t("updateCurrent");
       }
     } catch (error) {
       updateState = "error";
       const details = String(error);
       updateMessage = details.includes("valid release JSON")
-        ? "Канал обновлений готов — опубликованных версий пока нет"
-        : "Не удалось проверить обновления. Попробуйте позже";
+        ? t("updateNoPublished")
+        : t("updateFailed");
     }
   }
 
   async function installAvailableUpdate() {
     if (!availableUpdate || updateState === "downloading") return;
     updateState = "downloading";
-    updateMessage = "Загружаем обновление…";
+    updateMessage = t("updateDownloading");
     let downloaded = 0;
     let total = 0;
     try {
@@ -1723,11 +1762,11 @@
         if (event.event === "Progress") downloaded += event.data.chunkLength;
         if (total > 0) updateProgress = Math.min(100, Math.round(downloaded / total * 100));
       });
-      updateMessage = "Обновление установлено. Перезапускаем…";
+      updateMessage = t("updateRestarting");
       await relaunch();
     } catch (error) {
       updateState = "error";
-      updateMessage = `Не удалось установить обновление: ${String(error)}`;
+      updateMessage = t("updateInstallFailed", { error: String(error) });
     }
   }
 
@@ -1753,7 +1792,7 @@
     } catch (error) {
       closingWindow = false;
       saveState = "error";
-      saveError = `Не удалось закрыть приложение: ${String(error)}`;
+      saveError = t("closeAppError", { error: String(error) });
     }
   }
 
@@ -1795,7 +1834,7 @@
       }
       if (!target?.closest(".date-picker-wrap")) datePickerOpen = false;
       if (!target?.closest(".new-task-menu") && !target?.closest(".new-task-button") && !target?.closest(".project-add-button")) newTaskMenuAnchor = null;
-      if (!target?.closest(".task-actions-menu") && !target?.closest("[aria-label='Другие действия']")) {
+      if (!target?.closest(".task-actions-menu") && !target?.closest(".task-actions-trigger")) {
         taskActionMenuOpen = false;
         moveMenuOpen = false;
       }
@@ -1826,18 +1865,18 @@
   <aside class="sidebar-project-hint" style:left={`${sidebarProjectHint.left}px`} style:top={`${sidebarProjectHint.top}px`} role="tooltip">{sidebarProjectHint.label}</aside>
 {/if}
 {#if selectionToolbar}
-  <div class:link-open={linkEditorOpen} class="selection-toolbar" style:left={`${selectionToolbar.left}px`} style:top={`${selectionToolbar.top}px`} role="toolbar" tabindex="-1" aria-label="Форматирование текста">
-    <div class="selection-toolbar-actions" role="group" aria-label="Начертание" onpointerdown={(event) => event.preventDefault()}>
-      <button aria-label="Большой заголовок" title="Большой" onclick={applyLargeHeading}><Heading1 size={15} /></button>
-      <button aria-label="Жирный" title="Жирный" onclick={() => applyInlineFormat("bold")}><Bold size={14} /></button>
-      <button aria-label="Подчёркнутый" title="Подчёркнутый" onclick={() => applyInlineFormat("underline")}><Underline size={14} /></button>
+  <div class:link-open={linkEditorOpen} class="selection-toolbar" style:left={`${selectionToolbar.left}px`} style:top={`${selectionToolbar.top}px`} role="toolbar" tabindex="-1" aria-label={t("formatting")}>
+    <div class="selection-toolbar-actions" role="group" aria-label={t("textStyle")} onpointerdown={(event) => event.preventDefault()}>
+      <button aria-label={t("largeHeading")} title={t("large")} onclick={applyLargeHeading}><Heading1 size={15} /></button>
+      <button aria-label={t("bold")} title={t("bold")} onclick={() => applyInlineFormat("bold")}><Bold size={14} /></button>
+      <button aria-label={t("underline")} title={t("underline")} onclick={() => applyInlineFormat("underline")}><Underline size={14} /></button>
       <span></span>
-      <button class:active={linkEditorOpen} aria-label="Добавить ссылку" title="Добавить ссылку" onclick={linkSelectionFromClipboard}><Link size={14} /></button>
+      <button class:active={linkEditorOpen} aria-label={t("addLink")} title={t("addLink")} onclick={linkSelectionFromClipboard}><Link size={14} /></button>
     </div>
     {#if linkEditorOpen}
       <form class="selection-link-form" onsubmit={submitSelectionLink}>
-        <input bind:value={linkDraft} inputmode="url" aria-label="Адрес ссылки" placeholder="https://…" />
-        <button aria-label="Применить ссылку"><Check size={14} /></button>
+        <input bind:value={linkDraft} inputmode="url" aria-label={t("linkAddress")} placeholder="https://…" />
+        <button aria-label={t("applyLink")}><Check size={14} /></button>
       </form>
     {/if}
   </div>
@@ -1847,26 +1886,26 @@
   <header class="window-bar" data-tauri-drag-region="deep">
     <div class="sidebar-titlebar" data-tauri-drag-region="deep">
       {#if !sidebarCollapsed}<FloodGlyph kind="brand" size={22} /><strong>flood.md</strong>{/if}
-      <button class="icon-button collapse-button" aria-label={sidebarCollapsed ? "Развернуть панель" : "Свернуть панель"} data-tauri-drag-region="false" onclick={() => setSidebarCollapsed(!sidebarCollapsed)}>
+      <button class="icon-button collapse-button" aria-label={sidebarCollapsed ? t("expandSidebar") : t("collapseSidebar")} data-tauri-drag-region="false" onclick={() => setSidebarCollapsed(!sidebarCollapsed)}>
         {#if sidebarCollapsed}<PanelLeftOpen size={17} />{:else}<PanelLeftClose size={17} />{/if}
       </button>
     </div>
     <div class="window-context" data-tauri-drag-region="deep">
       {#if activeSection === "tasks"}
         {#if workspaceView === "task" && selectedTask}
-          <button class="window-context-back" aria-label={`Вернуться в проект ${selectedTask.chat}`} title="Вернуться в проект · Alt+←" onclick={backToProject}><ChevronLeft size={14} /><span>{selectedTask.chat}</span></button>
+          <button class="window-context-back" aria-label={t("backToProject", { project: selectedTask.chat })} title={`${t("backToProject", { project: selectedTask.chat })} · Alt+←`} onclick={backToProject}><ChevronLeft size={14} /><span>{selectedTask.chat}</span></button>
         {:else}
           <span>{currentChat.title}</span>
         {/if}
       {:else}
-        <span>{activeSection === "trash" ? "Корзина" : "Настройки"}</span>
+        <span>{activeSection === "trash" ? t("trash") : t("settings")}</span>
       {/if}
     </div>
     <div class="window-actions" data-tauri-drag-region="false">
       {#if activeSection === "tasks" && workspaceView === "task" && selectedTask}
-        <span class:error={saveState === "error"} class="save-state" title={saveError}>{saveState === "saving" ? "Сохраняю…" : saveState === "error" ? "Не сохранено" : saveState === "saved" ? "Сохранено" : ""}</span>
+        <span class:error={saveState === "error"} class="save-state" title={saveError}>{saveState === "saving" ? t("saving") : saveState === "error" ? t("notSaved") : saveState === "saved" ? t("saved") : ""}</span>
         <div class="urgency-menu topbar-urgency">
-          <button class="urgency-trigger" aria-label={`Срочность: ${urgencyTitle(selectedTask.urgency)}`} title={`Срочность: ${urgencyTitle(selectedTask.urgency)}`} aria-haspopup="menu" aria-expanded={urgencyMenuOpen} onclick={() => { urgencyMenuOpen = !urgencyMenuOpen; sourceEditorOpen = false; taskActionMenuOpen = false; }}><FloodGlyph kind={selectedTask.urgency} size={14} /><span class="action-label">{urgencyTitle(selectedTask.urgency)}</span><ChevronDown size={12} /></button>
+          <button class="urgency-trigger" aria-label={t("urgency", { value: urgencyTitle(selectedTask.urgency) })} title={t("urgency", { value: urgencyTitle(selectedTask.urgency) })} aria-haspopup="menu" aria-expanded={urgencyMenuOpen} onclick={() => { urgencyMenuOpen = !urgencyMenuOpen; sourceEditorOpen = false; taskActionMenuOpen = false; }}><FloodGlyph kind={selectedTask.urgency} size={14} /><span class="action-label">{urgencyTitle(selectedTask.urgency)}</span><ChevronDown size={12} /></button>
           {#if urgencyMenuOpen}
             <div class="urgency-options" role="menu">
               {#each (["normal", "important", "urgent"] as Urgency[]) as urgency}
@@ -1876,79 +1915,79 @@
           {/if}
         </div>
         <input class="attachment-input" bind:this={attachmentInput} type="file" multiple accept="image/*,audio/*,video/*,.pdf,.txt,.md" onchange={(event) => void importAttachments([...(event.currentTarget.files ?? [])])} />
-        <button class="topbar-action" aria-label="Добавить вложение" title="Добавить фото или файл" onclick={() => attachmentInput.click()}><Paperclip size={15} /><span class="action-label">Вложение</span></button>
-        <button class:active={sourceEditorOpen} class="topbar-action source-action-button" aria-label={selectedTask.hasSource ? "Источник" : "Добавить источник"} title={selectedTask.hasSource ? "Источник" : "Добавить источник"} aria-expanded={sourceEditorOpen} onclick={openSourceEditor}><MessageSquareText size={15} /><span class="action-label">{selectedTask.hasSource ? "Источник" : "Добавить источник"}</span></button>
+        <button class="topbar-action" aria-label={t("addAttachment")} title={t("attachmentTitle")} onclick={() => attachmentInput.click()}><Paperclip size={15} /><span class="action-label">{t("attachment")}</span></button>
+        <button class:active={sourceEditorOpen} class="topbar-action source-action-button" aria-label={selectedTask.hasSource ? t("source") : t("addSource")} title={selectedTask.hasSource ? t("source") : t("addSource")} aria-expanded={sourceEditorOpen} onclick={openSourceEditor}><MessageSquareText size={15} /><span class="action-label">{selectedTask.hasSource ? t("source") : t("addSource")}</span></button>
         {#if sourceEditorOpen}
           <form class="source-editor source-popover" onsubmit={saveSource}>
-            <div class="source-popover-head"><strong>{selectedTask.hasSource ? "Источник задачи" : "Добавить источник"}</strong><button type="button" class="icon-button" aria-label="Закрыть" onclick={() => (sourceEditorOpen = false)}><X size={14} /></button></div>
-            <label class="source-message"><span>Сообщение</span><textarea bind:value={sourceText} rows="4" placeholder="Вставьте исходное сообщение"></textarea></label>
-            <div class="source-detail-row"><span>Автор</span><input bind:value={sourceAuthor} placeholder="Не указан" /></div>
+            <div class="source-popover-head"><strong>{selectedTask.hasSource ? t("taskSource") : t("addSource")}</strong><button type="button" class="icon-button" aria-label={t("close")} onclick={() => (sourceEditorOpen = false)}><X size={14} /></button></div>
+            <label class="source-message"><span>{t("message")}</span><textarea bind:value={sourceText} rows="4" placeholder={t("sourcePlaceholder")}></textarea></label>
+            <div class="source-detail-row"><span>{t("author")}</span><input bind:value={sourceAuthor} placeholder={t("notSpecified")} /></div>
             <div class="source-detail-row date-picker-wrap">
-              <span>Дата</span>
+              <span>{t("date")}</span>
               <button type="button" class="source-date-button" aria-expanded={datePickerOpen} onclick={openDatePicker}><CalendarDays size={15} /><span>{sourceDateLabel(sourceSentAt)}</span><ChevronDown size={12} /></button>
               {#if datePickerOpen}
                 <div class="date-picker">
-                  <div class="date-picker-head"><button type="button" aria-label="Предыдущий месяц" onclick={() => changeCalendarMonth(-1)}><ChevronLeft size={15} /></button><strong>{calendarTitle(calendarMonth)}</strong><button type="button" aria-label="Следующий месяц" onclick={() => changeCalendarMonth(1)}><ChevronRight size={15} /></button></div>
-                  <div class="calendar-weekdays">{#each ["пн", "вт", "ср", "чт", "пт", "сб", "вс"] as day}<span>{day}</span>{/each}</div>
+                  <div class="date-picker-head"><button type="button" aria-label={t("previousMonth")} onclick={() => changeCalendarMonth(-1)}><ChevronLeft size={15} /></button><strong>{calendarTitle(calendarMonth)}</strong><button type="button" aria-label={t("nextMonth")} onclick={() => changeCalendarMonth(1)}><ChevronRight size={15} /></button></div>
+                  <div class="calendar-weekdays">{#each (locale === "ru" ? ["пн", "вт", "ср", "чт", "пт", "сб", "вс"] : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]) as day}<span>{day}</span>{/each}</div>
                   <div class="calendar-grid">
                     {#each calendarDays(calendarMonth) as day (day.date.toISOString())}
                       <button type="button" class:outside={!day.currentMonth} class:selected={isSelectedSourceDay(day.date, sourceSentAt)} class:today={sameCalendarDay(day.date, new Date())} onclick={() => setSourceDate(day.date)}>{day.date.getDate()}</button>
                     {/each}
                   </div>
-                  <div class="date-picker-footer"><button type="button" class="today-button" onclick={() => { const today = new Date(); calendarMonth = new Date(today.getFullYear(), today.getMonth(), 1); setSourceDate(today); }}>Сегодня</button><div class="time-fields"><input bind:value={sourceHour} inputmode="numeric" maxlength="2" aria-label="Часы" onblur={updateSourceTime} /><span>:</span><input bind:value={sourceMinute} inputmode="numeric" maxlength="2" aria-label="Минуты" onblur={updateSourceTime} /></div></div>
+                  <div class="date-picker-footer"><button type="button" class="today-button" onclick={() => { const today = new Date(); calendarMonth = new Date(today.getFullYear(), today.getMonth(), 1); setSourceDate(today); }}>{t("today")}</button><div class="time-fields"><input bind:value={sourceHour} inputmode="numeric" maxlength="2" aria-label={t("hours")} onblur={updateSourceTime} /><span>:</span><input bind:value={sourceMinute} inputmode="numeric" maxlength="2" aria-label={t("minutes")} onblur={updateSourceTime} /></div></div>
                 </div>
               {/if}
             </div>
-            <div class="source-detail-row"><span>Ссылка</span><input bind:value={sourceUrl} type="url" placeholder="Не указана" /></div>
+            <div class="source-detail-row"><span>{t("link")}</span><input bind:value={sourceUrl} type="url" placeholder={t("notSpecified")} /></div>
             {#if formError}<p class="form-error">{formError}</p>{/if}
-            <div class="form-actions">{#if selectedTask.hasSource}<button type="button" class="danger-text" onclick={clearSource}>Удалить</button>{/if}<span></span><button type="button" onclick={() => (sourceEditorOpen = false)}>Отмена</button><button>Сохранить</button></div>
+            <div class="form-actions">{#if selectedTask.hasSource}<button type="button" class="danger-text" onclick={clearSource}>{t("delete")}</button>{/if}<span></span><button type="button" onclick={() => (sourceEditorOpen = false)}>{t("cancel")}</button><button>{t("save")}</button></div>
           </form>
         {/if}
-        <button class:completed={selectedTask.completed} class="complete-button" aria-label={selectedTask.completed ? "Вернуть задачу" : "Завершить задачу"} title={selectedTask.completed ? "Вернуть задачу" : "Завершить задачу"} onclick={toggleComplete}>{#if selectedTask.completed}<CheckCircle2 size={17} />{:else}<Circle size={17} />{/if}<span class="action-label">{selectedTask.completed ? "Выполнено" : "Завершить"}</span></button>
-        <button class="icon-button" aria-label="Другие действия" title="Другие действия" aria-expanded={taskActionMenuOpen} onclick={() => { taskActionMenuOpen = !taskActionMenuOpen; moveMenuOpen = false; urgencyMenuOpen = false; sourceEditorOpen = false; }}><MoreHorizontal size={18} /></button>
+        <button class:completed={selectedTask.completed} class="complete-button" aria-label={selectedTask.completed ? t("restoreTask") : t("completeTask")} title={selectedTask.completed ? t("restoreTask") : t("completeTask")} onclick={toggleComplete}>{#if selectedTask.completed}<CheckCircle2 size={17} />{:else}<Circle size={17} />{/if}<span class="action-label">{selectedTask.completed ? t("completed") : t("complete")}</span></button>
+        <button class="icon-button task-actions-trigger" aria-label={t("otherActions")} title={t("otherActions")} aria-expanded={taskActionMenuOpen} onclick={() => { taskActionMenuOpen = !taskActionMenuOpen; moveMenuOpen = false; urgencyMenuOpen = false; sourceEditorOpen = false; }}><MoreHorizontal size={18} /></button>
         {#if taskActionMenuOpen}
           <div class:move-open={moveMenuOpen} class="task-actions-menu">
             {#if moveMenuOpen}
-              <button class="menu-back" onclick={() => (moveMenuOpen = false)}><ChevronRight size={14} />Переместить в…</button>
+              <button class="menu-back" onclick={() => (moveMenuOpen = false)}><ChevronRight size={14} />{t("moveTo")}</button>
               {#each chats.slice(1) as chat}
                 <button disabled={chat.id === selectedTask.chatId} onclick={() => moveSelectedTask(chat)}><Folder size={15} /><span>{chat.title}</span>{#if chat.id === selectedTask.chatId}<Check size={14} />{/if}</button>
               {/each}
             {:else}
-              <button onclick={() => (moveMenuOpen = true)}><ArrowRight size={15} /><span>Переместить</span><ChevronRight size={14} /></button>
-              <button class="danger" onclick={trashSelectedTask}><Trash2 size={15} /><span>В корзину</span></button>
+              <button onclick={() => (moveMenuOpen = true)}><ArrowRight size={15} /><span>{t("move")}</span><ChevronRight size={14} /></button>
+              <button class="danger" onclick={trashSelectedTask}><Trash2 size={15} /><span>{t("moveToTrash")}</span></button>
             {/if}
           </div>
         {/if}
         <span class="window-divider" aria-hidden="true"></span>
       {/if}
       <div class="window-controls">
-        <button aria-label="Свернуть" onclick={minimizeWindow}><Minus size={15} strokeWidth={1.6} /></button>
-        <button aria-label="Развернуть" onclick={toggleMaximizeWindow}><Square size={12} strokeWidth={1.6} /></button>
-        <button class="window-close" aria-label="Закрыть" onclick={closeWindow}><X size={16} strokeWidth={1.6} /></button>
+        <button aria-label={t("minimize")} onclick={minimizeWindow}><Minus size={15} strokeWidth={1.6} /></button>
+        <button aria-label={t("maximize")} onclick={toggleMaximizeWindow}><Square size={12} strokeWidth={1.6} /></button>
+        <button class="window-close" aria-label={t("close")} onclick={closeWindow}><X size={16} strokeWidth={1.6} /></button>
       </div>
     </div>
   </header>
 
   <div class="app-content">
-    <aside class:collapsed={sidebarCollapsed} class="sidebar-panel" aria-label="Навигация">
+    <aside class:collapsed={sidebarCollapsed} class="sidebar-panel" aria-label={t("navigation")}>
       <div class="sidebar-primary">
-        <button class="new-task-button" aria-label="Новая задача" aria-expanded={newTaskMenuAnchor === "sidebar"} onclick={() => requestNewTask("sidebar")}><Plus size={17} /><span>Новая задача</span></button>
+        <button class="new-task-button" aria-label={t("newTask")} aria-expanded={newTaskMenuAnchor === "sidebar"} onclick={() => requestNewTask("sidebar")}><Plus size={17} /><span>{t("newTask")}</span></button>
         {#if newTaskMenuAnchor === "sidebar" && !sidebarCollapsed}
           <div class="new-task-menu">
-            <small>Выберите проект</small>
+            <small>{t("chooseProject")}</small>
             {#each chats.slice(1) as chat}<button title={chat.title} onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
           </div>
         {/if}
         {#if sidebarCollapsed}
-          <button class="sidebar-icon" aria-label="Поиск" onclick={() => setSidebarCollapsed(false)}><Search size={17} /></button>
+          <button class="sidebar-icon" aria-label={t("search")} onclick={() => setSidebarCollapsed(false)}><Search size={17} /></button>
         {:else}
-          <div class="search-field"><Search size={15} aria-hidden="true" /><input bind:this={searchInput} bind:value={query} aria-label="Поиск задач" placeholder="Поиск" />{#if searchActive}<button class="search-clear" aria-label="Очистить поиск" title="Очистить поиск" onclick={() => (query = "")}><X size={14} /></button>{/if}</div>
+          <div class="search-field"><Search size={15} aria-hidden="true" /><input bind:this={searchInput} bind:value={query} aria-label={t("searchTasks")} placeholder={t("search")} />{#if searchActive}<button class="search-clear" aria-label={t("clearSearch")} title={t("clearSearch")} onclick={() => (query = "")}><X size={14} /></button>{/if}</div>
         {/if}
       </div>
 
-      <nav class="sidebar-navigation" aria-label="Проекты и задачи">
+      <nav class="sidebar-navigation" aria-label={t("projectsAndTasks")}>
         {#if searchActive && !sidebarCollapsed}
-          <div class="sidebar-search-results" aria-label="Результаты поиска">
+          <div class="sidebar-search-results" aria-label={t("searchResults")}>
             {#each sidebarSearchGroups as group (group.chat.id)}
               <section class="sidebar-search-group">
                 <button class="search-project-result" onclick={() => selectChat(group.chat)}><Folder size={15} /><span>{group.chat.title}</span><small>{group.tasks.length}</small></button>
@@ -1957,16 +1996,16 @@
                 {/each}
               </section>
             {:else}
-              <div class="sidebar-search-empty"><Search size={15} /><span>Ничего не найдено</span></div>
+              <div class="sidebar-search-empty"><Search size={15} /><span>{t("nothingFound")}</span></div>
             {/each}
           </div>
         {:else}
           <div class:active={activeSection === "tasks" && selectedChatId === "all"} class="project-row all-tasks-row">
-            <button class="project-open" onclick={() => chats[0] && selectChat(chats[0])} onmouseenter={(event) => showSidebarProjectHint(event, "Все задачи")} onmouseleave={hideSidebarProjectHint} onfocus={(event) => showSidebarProjectHint(event, "Все задачи")} onblur={hideSidebarProjectHint} aria-label="Открыть все задачи">
-              <ListTodo size={17} /><span>Все задачи</span><small>{tasks.filter((task) => !isLocalDraft(task) && !task.completed).length}</small>
+            <button class="project-open" onclick={() => chats[0] && selectChat(chats[0])} onmouseenter={(event) => showSidebarProjectHint(event, t("allTasks"))} onmouseleave={hideSidebarProjectHint} onfocus={(event) => showSidebarProjectHint(event, t("allTasks"))} onblur={hideSidebarProjectHint} aria-label={t("openAllTasks")}>
+              <ListTodo size={17} /><span>{t("allTasks")}</span><small>{tasks.filter((task) => !isLocalDraft(task) && !task.completed).length}</small>
             </button>
             {#if !sidebarCollapsed}
-              <button type="button" class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={toggleAllTasks} aria-label={allTasksExpanded ? "Свернуть все задачи" : "Раскрыть все задачи"}><ChevronRight size={13} /></button>
+              <button type="button" class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={toggleAllTasks} aria-label={allTasksExpanded ? t("collapseAllTasks") : t("expandAllTasks")}><ChevronRight size={13} /></button>
             {/if}
           </div>
 
@@ -1981,18 +2020,18 @@
           {#each chats.slice(1) as chat (chat.id)}
             <div class="chat-group">
               <div class:active={activeSection === "tasks" && selectedChatId === chat.id} class="project-row">
-                <button class="project-open" onclick={() => selectChat(chat)} onmouseenter={(event) => showSidebarProjectHint(event, chat.title)} onmouseleave={hideSidebarProjectHint} onfocus={(event) => showSidebarProjectHint(event, chat.title)} onblur={hideSidebarProjectHint} aria-label={`Открыть ${chat.title}`}>
+                <button class="project-open" onclick={() => selectChat(chat)} onmouseenter={(event) => showSidebarProjectHint(event, chat.title)} onmouseleave={hideSidebarProjectHint} onfocus={(event) => showSidebarProjectHint(event, chat.title)} onblur={hideSidebarProjectHint} aria-label={t("openProject", { project: chat.title })}>
                   <Folder size={16} /><span>{chat.title}</span><small>{openTaskCount(chat.id) || ""}</small>
                 </button>
                 {#if !sidebarCollapsed}
-                  <button type="button" class:expanded={expandedChatIds.includes(chat.id)} class="project-expand" aria-expanded={expandedChatIds.includes(chat.id)} onclick={() => toggleChat(chat.id)} aria-label={expandedChatIds.includes(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}><ChevronRight size={13} /></button>
+                  <button type="button" class:expanded={expandedChatIds.includes(chat.id)} class="project-expand" aria-expanded={expandedChatIds.includes(chat.id)} onclick={() => toggleChat(chat.id)} aria-label={expandedChatIds.includes(chat.id) ? t("collapseProject", { project: chat.title }) : t("expandProject", { project: chat.title })}><ChevronRight size={13} /></button>
                 {/if}
               </div>
               {#if !sidebarCollapsed && expandedChatIds.includes(chat.id)}
                 <div class="nested-tasks">
                   {#each tasksForChat(chat) as task}
                     <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
-                  {:else}<span class="nested-empty">Нет открытых задач</span>{/each}
+                  {:else}<span class="nested-empty">{t("noOpenTasks")}</span>{/each}
                 </div>
               {/if}
             </div>
@@ -2003,42 +2042,42 @@
           {#if createChatOpen}
             <form class="create-chat-form" onsubmit={submitCreateChat}>
               <FolderPlus size={15} />
-              <input bind:value={createChatTitle} aria-label="Название проекта" placeholder="Название проекта" />
-              <button aria-label="Создать"><Check size={14} /></button>
-              <button type="button" aria-label="Отмена" onclick={() => { createChatOpen = false; createChatTitle = ""; }}><X size={14} /></button>
+              <input bind:value={createChatTitle} aria-label={t("projectName")} placeholder={t("projectName")} />
+              <button aria-label={t("create")}><Check size={14} /></button>
+              <button type="button" aria-label={t("cancel")} onclick={() => { createChatOpen = false; createChatTitle = ""; }}><X size={14} /></button>
             </form>
           {:else}
-            <button class="sidebar-row add-chat-row" onclick={() => (createChatOpen = true)}><FolderPlus size={16} /><span>Новый проект</span></button>
+            <button class="sidebar-row add-chat-row" onclick={() => (createChatOpen = true)}><FolderPlus size={16} /><span>{t("newProject")}</span></button>
           {/if}
         {/if}
 
-        <button class:active={activeSection === "trash"} class="sidebar-row trash-row" onclick={() => changeSection("trash")} title="Корзина"><Trash2 size={16} /><span>Корзина</span><small>{trashedTasks.length || ""}</small></button>
+        <button class:active={activeSection === "trash"} class="sidebar-row trash-row" onclick={() => changeSection("trash")} title={t("trash")}><Trash2 size={16} /><span>{t("trash")}</span><small>{trashedTasks.length || ""}</small></button>
       </nav>
 
-      <nav class="sidebar-footer" aria-label="Системные разделы">
-        <button class:active={activeSection === "settings"} class="sidebar-row" onclick={() => changeSection("settings")} title="Настройки"><Settings size={17} /><span>Настройки</span></button>
+      <nav class="sidebar-footer" aria-label={t("systemSections")}>
+        <button class:active={activeSection === "settings"} class="sidebar-row" onclick={() => changeSection("settings")} title={t("settings")}><Settings size={17} /><span>{t("settings")}</span></button>
       </nav>
     </aside>
 
     {#if activeSection === "tasks" && workspaceView === "task" && selectedTask}
       <section class="workspace">
         <div class="editor-page">
-          <div class="task-meta" aria-label="Метаданные задачи">
+          <div class="task-meta" aria-label={t("taskMetadata")}>
             <span>{selectedTask.chat}</span>
-            <span title={fullDate(selectedTask.createdAt)}>Создана {fullDate(selectedTask.createdAt)}</span>
-            <span class="source-meta"><FloodGlyph kind="info" size={13} />{selectedTask.source?.author ? `Из сообщения · ${selectedTask.source.author}` : selectedTask.hasSource ? "Из сообщения" : "Добавлена вручную"}</span>
-            {#if selectedTask.source?.url}<a href={selectedTask.source.url} target="_blank" rel="noreferrer">Открыть сообщение</a>{/if}
+            <span title={fullDate(selectedTask.createdAt)}>{t("created", { date: fullDate(selectedTask.createdAt) })}</span>
+            <span class="source-meta"><FloodGlyph kind="info" size={13} />{selectedTask.source?.author ? t("fromMessageAuthor", { author: selectedTask.source.author }) : selectedTask.hasSource ? t("fromMessage") : t("addedManually")}</span>
+            {#if selectedTask.source?.url}<a href={selectedTask.source.url} target="_blank" rel="noreferrer">{t("openMessage")}</a>{/if}
           </div>
           {#if conflictRemote}
             <div class="save-conflict" role="alert">
-              <span><strong>Файл изменён снаружи.</strong> Выберите, какую версию оставить.</span>
-              <div><button onclick={useDiskVersion}>Версию с диска</button><button onclick={keepLocalVersion}>Мою версию</button></div>
+              <span><strong>{t("externalChange")}</strong> {t("chooseVersion")}</span>
+              <div><button onclick={useDiskVersion}>{t("diskVersion")}</button><button onclick={keepLocalVersion}>{t("localVersion")}</button></div>
             </div>
           {/if}
-          <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label="Редактор задачи" spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={() => { editorHint = null; void saveNow(); }}></div>
+          <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label={t("taskEditor")} spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={() => { editorHint = null; void saveNow(); }}></div>
           {#if selectedTask.source?.text}
             <details class="source-snapshot">
-              <summary><FloodGlyph kind="info" size={15} />Исходное сообщение</summary>
+              <summary><FloodGlyph kind="info" size={15} />{t("sourceMessage")}</summary>
               <p>{selectedTask.source.text}</p>
             </details>
           {/if}
@@ -2047,28 +2086,28 @@
     {:else if activeSection === "tasks"}
       <section class="workspace project-workspace">
         <div class="project-page">
-          {#if loadError}<div class="data-error"><strong>Не удалось открыть данные</strong><span>{loadError}</span></div>{/if}
+          {#if loadError}<div class="data-error"><strong>{t("dataOpenError")}</strong><span>{loadError}</span></div>{/if}
           <header class="project-header">
             <div>
               {#if renameChatOpen}
-                <form class="rename-chat-form" onsubmit={submitRenameChat}><input bind:value={renameChatTitle} aria-label="Название проекта" /><button aria-label="Сохранить"><Check size={16} /></button><button type="button" aria-label="Отмена" onclick={() => (renameChatOpen = false)}><X size={16} /></button></form>
+                <form class="rename-chat-form" onsubmit={submitRenameChat}><input bind:value={renameChatTitle} aria-label={t("projectName")} /><button aria-label={t("save")}><Check size={16} /></button><button type="button" aria-label={t("cancel")} onclick={() => (renameChatOpen = false)}><X size={16} /></button></form>
                 {#if formError}<span class="form-error">{formError}</span>{/if}
               {:else}
                 <div class="project-title-row">
                   <h1>{currentChat.title}</h1>
                   {#if currentChat.id !== "all"}
-                    <button class="icon-button" aria-label="Переименовать проект" onclick={startRenameChat}><Pencil size={15} /></button>
-                    <button class="icon-button danger-icon" aria-label="Удалить проект" onclick={() => (deleteChatConfirmOpen = true)}><Trash2 size={15} /></button>
+                    <button class="icon-button" aria-label={t("renameProject")} onclick={startRenameChat}><Pencil size={15} /></button>
+                    <button class="icon-button danger-icon" aria-label={t("deleteProject")} onclick={() => (deleteChatConfirmOpen = true)}><Trash2 size={15} /></button>
                   {/if}
                 </div>
               {/if}
-              <p>{loading ? "Загружаю задачи…" : `${currentOpenTasks.length} ${currentOpenTasks.length === 1 ? "открытая задача" : currentOpenTasks.length > 1 && currentOpenTasks.length < 5 ? "открытые задачи" : "открытых задач"}`}</p>
+              <p>{loading ? t("loadingTasks") : openTasksLabel(currentOpenTasks.length)}</p>
             </div>
             <div class="project-header-actions">
-              <button class="project-add-button" aria-expanded={newTaskMenuAnchor === "workspace"} onclick={() => requestNewTask("workspace")}><Plus size={16} />Новая задача</button>
+              <button class="project-add-button" aria-expanded={newTaskMenuAnchor === "workspace"} onclick={() => requestNewTask("workspace")}><Plus size={16} />{t("newTask")}</button>
               {#if newTaskMenuAnchor === "workspace"}
                 <div class="new-task-menu workspace-new-task-menu">
-                  <small>Выберите проект</small>
+                  <small>{t("chooseProject")}</small>
                   {#each chats.slice(1) as chat}<button title={chat.title} onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
                 </div>
               {/if}
@@ -2077,9 +2116,9 @@
 
           {#if deleteChatConfirmOpen}
             <div class="destructive-confirm project-delete-confirm" role="alert">
-              <span class="confirm-glyph"><FloodGlyph kind="urgent" size={40} motion="pop" label="Удаление проекта" /></span>
-              <span class="confirm-copy"><strong>Удалить «{currentChat.title}»?</strong><small>Проект и все его задачи будут удалены навсегда.</small></span>
-              <div class="confirm-actions"><button onclick={() => (deleteChatConfirmOpen = false)}>Отмена</button><button class="danger-button" onclick={deleteCurrentChat}>Удалить</button></div>
+              <span class="confirm-glyph"><FloodGlyph kind="urgent" size={40} motion="pop" label={t("deleteProject")} /></span>
+              <span class="confirm-copy"><strong>{t("deleteProjectQuestion", { project: currentChat.title })}</strong><small>{t("deleteProjectWarning")}</small></span>
+              <div class="confirm-actions"><button onclick={() => (deleteChatConfirmOpen = false)}>{t("cancel")}</button><button class="danger-button" onclick={deleteCurrentChat}>{t("delete")}</button></div>
             </div>
           {/if}
 
@@ -2105,18 +2144,18 @@
                 {/each}
               </div>
             {:else}
-              <div class="project-empty"><p>Открытых задач нет</p></div>
+              <div class="project-empty"><p>{t("noOpenTasks")}</p></div>
             {/if}
           {:else}
             <div class="project-task-list standalone">
               {#each currentOpenTasks as task}
                 <button class="project-task" onclick={() => openTask(task)}>
                   <FloodGlyph kind={task.urgency} size={14} />
-                  <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}{task.urgency !== "normal" ? ` · ${task.urgency === "urgent" ? "Срочно" : "Важно"}` : ""}</small></span>
+                  <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}{task.urgency !== "normal" ? ` · ${t(task.urgency === "urgent" ? "urgentShort" : "importantShort")}` : ""}</small></span>
                   <ChevronRight size={15} />
                 </button>
               {:else}
-                <div class="project-empty"><p>Открытых задач нет</p><button onclick={() => requestNewTask("workspace")}>Добавить задачу</button></div>
+                <div class="project-empty"><p>{t("noOpenTasks")}</p><button onclick={() => requestNewTask("workspace")}>{t("addTask")}</button></div>
               {/each}
             </div>
           {/if}
@@ -2125,7 +2164,7 @@
             <section class="completed-group">
               <button class="completed-toggle" onclick={() => (completedGroupOpen = !completedGroupOpen)}>
                 {#if completedGroupOpen}<ChevronDown size={14} />{:else}<ChevronRight size={14} />{/if}
-                <span>Выполненные</span><small>{currentCompletedTasks.length}</small>
+                <span>{t("completedGroup")}</span><small>{currentCompletedTasks.length}</small>
               </button>
               {#if completedGroupOpen}
                 <div class="project-task-list completed-list">
@@ -2142,31 +2181,31 @@
       <section class="workspace project-workspace">
         <div class="project-page trash-page">
           <header class="project-header">
-            <div><h1>Корзина</h1><p>Задачи можно восстановить вместе со всеми метаданными</p></div>
-            {#if trashedTasks.length}<button class="quiet-danger-button" onclick={() => (emptyTrashConfirmOpen = true)}><Trash2 size={14} />Очистить</button>{/if}
+            <div><h1>{t("trash")}</h1><p>{t("trashDescription")}</p></div>
+            {#if trashedTasks.length}<button class="quiet-danger-button" onclick={() => (emptyTrashConfirmOpen = true)}><Trash2 size={14} />{t("clear")}</button>{/if}
           </header>
           {#if emptyTrashConfirmOpen}
             <div class="destructive-confirm" role="alert">
-              <span class="confirm-copy"><strong>Очистить корзину?</strong><small>Все задачи в корзине будут удалены без возможности восстановления.</small></span>
-              <div class="confirm-actions"><button onclick={() => (emptyTrashConfirmOpen = false)}>Отмена</button><button class="danger-button" onclick={emptyTrash}>Удалить всё</button></div>
+              <span class="confirm-copy"><strong>{t("clearTrashQuestion")}</strong><small>{t("clearTrashWarning")}</small></span>
+              <div class="confirm-actions"><button onclick={() => (emptyTrashConfirmOpen = false)}>{t("cancel")}</button><button class="danger-button" onclick={emptyTrash}>{t("deleteAll")}</button></div>
             </div>
           {/if}
           <div class="project-task-list standalone">
             {#each trashedTasks as task}
               <div class="project-task trash-task">
                 <Trash2 size={16} />
-                <span class="project-task-copy"><strong>{task.title}</strong><small>{task.chat}{task.trashedAt ? ` · удалена ${relativeDate(task.trashedAt)}` : ""}</small></span>
+                <span class="project-task-copy"><strong>{task.title}</strong><small>{task.chat}{task.trashedAt ? ` · ${t("deletedAgo", { date: relativeDate(task.trashedAt) })}` : ""}</small></span>
                 <span class="trash-actions">
                   {#if purgeTaskId === task.id}
-                    <button onclick={() => (purgeTaskId = "")}>Отмена</button><button class="danger-text" onclick={() => deleteTrashedTask(task)}>Удалить</button>
+                    <button onclick={() => (purgeTaskId = "")}>{t("cancel")}</button><button class="danger-text" onclick={() => deleteTrashedTask(task)}>{t("delete")}</button>
                   {:else}
-                    <button class="restore-button" onclick={() => restoreTask(task)}><RotateCcw size={14} />Восстановить</button>
-                    <button class="trash-delete-button" aria-label="Удалить навсегда" title="Удалить навсегда" onclick={() => (purgeTaskId = task.id)}><Trash2 size={14} /></button>
+                    <button class="restore-button" onclick={() => restoreTask(task)}><RotateCcw size={14} />{t("restore")}</button>
+                    <button class="trash-delete-button" aria-label={t("deleteForever")} title={t("deleteForever")} onclick={() => (purgeTaskId = task.id)}><Trash2 size={14} /></button>
                   {/if}
                 </span>
               </div>
             {:else}
-              <div class="project-empty"><p>Корзина пуста</p></div>
+              <div class="project-empty"><p>{t("emptyTrash")}</p></div>
             {/each}
           </div>
         </div>
@@ -2174,57 +2213,57 @@
     {:else}
       <section class="workspace settings-workspace">
         <div class="settings-page">
-          <header class="settings-header"><h2>Настройки</h2><p>Приложение, данные и локальные подключения</p></header>
+          <header class="settings-header"><h2>{t("settings")}</h2><p>{t("settingsDescription")}</p></header>
           <div class="settings-layout">
-            <nav class="settings-nav" aria-label="Разделы настроек">
-              <button class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => (settingsSection = "general")}><Settings size={16} />Общие</button>
-              <button class:active={settingsSection === "appearance"} aria-current={settingsSection === "appearance" ? "page" : undefined} onclick={() => (settingsSection = "appearance")}><Palette size={16} />Внешний вид</button>
-              <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => (settingsSection = "data")}><Database size={16} />Данные</button>
-              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => (settingsSection = "integrations")}><Plug size={16} />Интеграции <span class="integration-chip">MCP</span></button>
-              <button class:active={settingsSection === "about"} aria-current={settingsSection === "about" ? "page" : undefined} onclick={() => (settingsSection = "about")}><Info size={16} />О приложении</button>
+            <nav class="settings-nav" aria-label={t("settingsSections")}>
+              <button class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => (settingsSection = "general")}><Settings size={16} />{t("general")}</button>
+              <button class:active={settingsSection === "appearance"} aria-current={settingsSection === "appearance" ? "page" : undefined} onclick={() => (settingsSection = "appearance")}><Palette size={16} />{t("appearance")}</button>
+              <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => (settingsSection = "data")}><Database size={16} />{t("data")}</button>
+              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => (settingsSection = "integrations")}><Plug size={16} />{t("integrations")} <span class="integration-chip">MCP</span></button>
+              <button class:active={settingsSection === "about"} aria-current={settingsSection === "about" ? "page" : undefined} onclick={() => (settingsSection = "about")}><Info size={16} />{t("about")}</button>
             </nav>
             <div class="settings-content">
               {#if settingsSection === "general"}
                 <section class="settings-section">
-                  <div class="settings-section-title"><h3>Общие</h3><p>Основное поведение flood.md</p></div>
-                  <div class="setting-static"><span><Languages size={16} /><span><strong>Язык</strong><small>Язык интерфейса</small></span></span><span class="setting-value">Русский</span></div>
-                  <button class:active={showCompleted} class="setting-row" role="switch" aria-checked={showCompleted} onclick={toggleCompletedVisibility}><span><ListTodo size={16} /><span><strong>Показывать выполненные</strong><small>Включает завершённые задачи в списках</small></span></span><span class="switch"><span></span></span></button>
+                  <div class="settings-section-title"><h3>{t("general")}</h3><p>{t("generalDescription")}</p></div>
+                  <div class="setting-static"><span><Languages size={16} /><span><strong>{t("language")}</strong><small>{t("interfaceLanguage")}</small></span></span><div class="language-picker" aria-label={t("interfaceLanguage")}><button class:active={locale === "ru"} aria-pressed={locale === "ru"} onclick={() => setLocale("ru")}>{t("russian")}</button><button class:active={locale === "en"} aria-pressed={locale === "en"} onclick={() => setLocale("en")}>{t("english")}</button></div></div>
+                  <button class:active={showCompleted} class="setting-row" role="switch" aria-checked={showCompleted} onclick={toggleCompletedVisibility}><span><ListTodo size={16} /><span><strong>{t("showCompleted")}</strong><small>{t("showCompletedDescription")}</small></span></span><span class="switch"><span></span></span></button>
                 </section>
               {:else if settingsSection === "appearance"}
                 <section class="settings-section">
-                  <div class="settings-section-title"><h3>Внешний вид</h3><p>Тема и движение интерфейса</p></div>
-                  <div class="settings-control"><strong>Тема</strong><div class="theme-picker" aria-label="Тема интерфейса"><button class:active={themePreference === "system"} aria-pressed={themePreference === "system"} onclick={() => setTheme("system")}>Системная</button><button class:active={themePreference === "light"} aria-pressed={themePreference === "light"} onclick={() => setTheme("light")}>Светлая</button><button class:active={themePreference === "dark"} aria-pressed={themePreference === "dark"} onclick={() => setTheme("dark")}>Тёмная</button></div></div>
-                  <button class:active={reduceMotion} class="setting-row" role="switch" aria-checked={reduceMotion} onclick={toggleMotionPreference}><span><span><strong>Уменьшить анимации</strong><small>Отключает декоративное движение</small></span></span><span class="switch"><span></span></span></button>
+                  <div class="settings-section-title"><h3>{t("appearance")}</h3><p>{t("appearanceDescription")}</p></div>
+                  <div class="settings-control"><strong>{t("theme")}</strong><div class="theme-picker" aria-label={t("interfaceTheme")}><button class:active={themePreference === "system"} aria-pressed={themePreference === "system"} onclick={() => setTheme("system")}>{t("systemTheme")}</button><button class:active={themePreference === "light"} aria-pressed={themePreference === "light"} onclick={() => setTheme("light")}>{t("lightTheme")}</button><button class:active={themePreference === "dark"} aria-pressed={themePreference === "dark"} onclick={() => setTheme("dark")}>{t("darkTheme")}</button></div></div>
+                  <button class:active={reduceMotion} class="setting-row" role="switch" aria-checked={reduceMotion} onclick={toggleMotionPreference}><span><span><strong>{t("reduceMotion")}</strong><small>{t("reduceMotionDescription")}</small></span></span><span class="switch"><span></span></span></button>
                 </section>
               {:else if settingsSection === "data"}
                 <section class="settings-section">
-                  <div class="settings-section-title"><h3>Данные</h3><p>Markdown остаётся единственным источником правды</p></div>
-                  <div class="data-location"><span><FolderOpen size={17} /><span><strong>Папка с задачами</strong><code>{dataDirectory || "Доступна в приложении"}</code></span></span><button onclick={openDataDirectory} disabled={!dataDirectory}>Открыть</button></div>
+                  <div class="settings-section-title"><h3>{t("data")}</h3><p>{t("dataDescription")}</p></div>
+                  <div class="data-location"><span><FolderOpen size={17} /><span><strong>{t("tasksFolder")}</strong><code>{dataDirectory || t("availableInApp")}</code></span></span><button onclick={openDataDirectory} disabled={!dataDirectory}>{t("open")}</button></div>
                   <div class="data-actions">
-                    <button onclick={createDataBackup} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><Download size={15} />{dataActionState === "backing-up" ? "Сохраняю…" : "Создать копию"}</button>
-                    <button onclick={chooseBackupToRestore} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><RotateCcw size={15} />Восстановить</button>
-                    <button onclick={() => loadData(true)} disabled={dataActionState === "restoring"}><RefreshCw size={15} />Перечитать</button>
+                    <button onclick={createDataBackup} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><Download size={15} />{dataActionState === "backing-up" ? t("backingUp") : t("createBackup")}</button>
+                    <button onclick={chooseBackupToRestore} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><RotateCcw size={15} />{t("restoreBackup")}</button>
+                    <button onclick={() => loadData(true)} disabled={dataActionState === "restoring"}><RefreshCw size={15} />{t("reload")}</button>
                   </div>
                   {#if pendingRestorePath}
                     <div class="restore-confirm" role="alert">
                       <FloodGlyph kind="info" size={32} />
-                      <span><strong>Восстановить {fileName(pendingRestorePath)}?</strong><small>Текущие проекты и задачи будут заменены содержимым копии.</small></span>
-                      <div><button onclick={() => (pendingRestorePath = "")}>Отмена</button><button class="restore-button" onclick={restoreDataBackup}>Восстановить</button></div>
+                      <span><strong>{t("restoreBackupQuestion", { file: fileName(pendingRestorePath) })}</strong><small>{t("restoreBackupWarning")}</small></span>
+                      <div><button onclick={() => (pendingRestorePath = "")}>{t("cancel")}</button><button class="restore-button" onclick={restoreDataBackup}>{t("restoreBackup")}</button></div>
                     </div>
                   {/if}
                   {#if dataActionMessage}<p class:error={dataActionState === "error"} class="data-action-message" role="status">{dataActionMessage}</p>{/if}
                 </section>
               {:else if settingsSection === "integrations"}
                 <section class="settings-section">
-                  <div class="settings-section-title"><h3>Интеграции</h3><p>Локальные подключения без отправки данных в облако</p></div>
-                  <div class="integration-card"><div class="integration-head"><span><FloodGlyph kind="connected" size={15} /><span><strong>MCP-сервер</strong><small>Установлен вместе с приложением</small></span></span><span class="status-text">Установлен</span></div><p>Конфигурацию можно скопировать в MCP-клиент. Сервер работает с той же локальной папкой Markdown.</p><div class="code-row" title={mcpExecutable || "flood-mcp.exe"}><code>{fileName(mcpExecutable || "flood-mcp.exe")}</code><button class="icon-button" aria-label="Копировать конфигурацию" title={copied ? "Скопировано" : "Копировать конфигурацию"} onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div></div>
+                  <div class="settings-section-title"><h3>{t("integrations")}</h3><p>{t("integrationsDescription")}</p></div>
+                  <div class="integration-card"><div class="integration-head"><span><FloodGlyph kind="connected" size={15} /><span><strong>{t("mcpServer")}</strong><small>{t("installedWithApp")}</small></span></span><span class="status-text">{t("installed")}</span></div><p>{t("mcpDescription")}</p><div class="code-row" title={mcpExecutable || "flood-mcp.exe"}><code>{fileName(mcpExecutable || "flood-mcp.exe")}</code><button class="icon-button" aria-label={t("copyConfiguration")} title={copied ? t("copied") : t("copyConfiguration")} onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div></div>
                 </section>
               {:else}
                 <section class="settings-section">
-                  <div class="settings-section-title"><h3>О приложении</h3><p>flood.md {appVersion}</p></div>
-                  <div class="about-brand"><FloodGlyph kind="brand" size={42} /><span><strong>flood.md</strong><small>Локальные задачи без лишнего шума</small></span></div>
-                  <div class="update-row"><span><strong>Обновления</strong><small>{updateMessage || "Проверка через GitHub Releases"}</small>{#if updateState === "downloading"}<progress max="100" value={updateProgress}></progress>{/if}</span>{#if updateState === "available"}<button class="primary-small" onclick={installAvailableUpdate}><Download size={15} />Установить {availableUpdate?.version}</button>{:else}<button onclick={checkForUpdates} disabled={updateState === "checking" || updateState === "downloading"}><span class:spinning={updateState === "checking"} class="update-icon"><RefreshCw size={15} /></span>{updateState === "checking" ? "Проверяем" : "Проверить"}</button>{/if}</div>
-                  <button class="settings-action" onclick={() => openUrl("https://github.com/tillwithered/flood")}><ExternalLink size={15} />Открыть GitHub</button>
+                  <div class="settings-section-title"><h3>{t("about")}</h3><p>flood.md {appVersion}</p></div>
+                  <div class="about-brand"><FloodGlyph kind="brand" size={42} /><span><strong>flood.md</strong><small>{t("localTasksNoNoise")}</small></span></div>
+                  <div class="update-row"><span><strong>{t("updates")}</strong><small>{updateMessage || t("updateViaGithub")}</small>{#if updateState === "downloading"}<progress max="100" value={updateProgress}></progress>{/if}</span>{#if updateState === "available"}<button class="primary-small" onclick={installAvailableUpdate}><Download size={15} />{t("installVersion", { version: availableUpdate?.version ?? "" })}</button>{:else}<button onclick={checkForUpdates} disabled={updateState === "checking" || updateState === "downloading"}><span class:spinning={updateState === "checking"} class="update-icon"><RefreshCw size={15} /></span>{updateState === "checking" ? t("checking") : t("check")}</button>{/if}</div>
+                  <button class="settings-action" onclick={() => openUrl("https://github.com/tillwithered/flood")}><ExternalLink size={15} />{t("openGithub")}</button>
                 </section>
               {/if}
             </div>
@@ -2236,15 +2275,15 @@
 </main>
 
 {#if imageViewer}
-  <div class="image-viewer" bind:this={imageViewerDialog} role="dialog" aria-modal="true" aria-label={`Просмотр ${imageViewer.alt}`} tabindex="-1">
+  <div class="image-viewer" bind:this={imageViewerDialog} role="dialog" aria-modal="true" aria-label={t("imageViewer", { image: imageViewer.alt })} tabindex="-1">
     <div class="image-viewer-stage" onwheel={(event) => { event.preventDefault(); changeImageZoom(event.deltaY < 0 ? .2 : -.2); }}>
       <img src={imageViewer.src} alt={imageViewer.alt} draggable="false" style:zoom={imageViewerZoom} />
     </div>
-    <div class="image-viewer-toolbar" aria-label="Масштаб изображения">
-      <button aria-label="Уменьшить" title="Уменьшить" onclick={() => changeImageZoom(-.2)}><ZoomOut size={17} /></button>
-      <button class="image-zoom-value" aria-label="Сбросить масштаб" title="Сбросить масштаб" onclick={() => (imageViewerZoom = 1)}>{Math.round(imageViewerZoom * 100)}%</button>
-      <button aria-label="Увеличить" title="Увеличить" onclick={() => changeImageZoom(.2)}><ZoomIn size={17} /></button>
+    <div class="image-viewer-toolbar" aria-label={t("imageZoom")}>
+      <button aria-label={t("zoomOut")} title={t("zoomOut")} onclick={() => changeImageZoom(-.2)}><ZoomOut size={17} /></button>
+      <button class="image-zoom-value" aria-label={t("resetZoom")} title={t("resetZoom")} onclick={() => (imageViewerZoom = 1)}>{Math.round(imageViewerZoom * 100)}%</button>
+      <button aria-label={t("zoomIn")} title={t("zoomIn")} onclick={() => changeImageZoom(.2)}><ZoomIn size={17} /></button>
     </div>
-    <button class="image-viewer-close" aria-label="Закрыть просмотр" title="Закрыть" onclick={closeImageViewer}><X size={18} /></button>
+    <button class="image-viewer-close" aria-label={t("closeViewer")} title={t("close")} onclick={closeImageViewer}><X size={18} /></button>
   </div>
 {/if}

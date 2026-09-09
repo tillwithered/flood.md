@@ -107,7 +107,7 @@ button { color: inherit; }
   transition: background-color 120ms ease, color 120ms ease;
 }
 .icon-button:hover { background: var(--hover); color: #454542; }
-.icon-button:focus-visible, .sidebar-row:focus-visible, .nested-task:focus-visible, .new-task-button:focus-visible, .project-open:focus-visible, .project-expand:focus-visible, .project-task:focus-visible, .project-add-button:focus-visible, .window-context-back:focus-visible, .settings-nav button:focus-visible, .theme-picker button:focus-visible, .setting-row:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.icon-button:focus-visible, .sidebar-row:focus-visible, .nested-task:focus-visible, .new-task-button:focus-visible, .project-open:focus-visible, .project-expand:focus-visible, .project-task:focus-visible, .project-add-button:focus-visible, .window-context-back:focus-visible, .settings-nav button:focus-visible, .theme-picker button:focus-visible, .language-picker button:focus-visible, .setting-row:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 
 .app-shell {
   --sidebar-width: 304px;
@@ -614,11 +614,13 @@ button { color: inherit; }
 .settings-section small { color: var(--muted); font-size: 12px; font-weight: 400; }
 .setting-value, .status-text { color: var(--muted); font-size: 12px; }
 .settings-control { display: grid; gap: 12px; padding: 0 0 22px; }
-.theme-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 3px; border-radius: 10px; background: var(--surface); }
-.theme-picker button { height: 32px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease; }
-.theme-picker button:hover { color: var(--ink); }
-.theme-picker button:active { transform: scale(.98); }
-.theme-picker button.active { background: var(--elevated); color: var(--ink); box-shadow: 0 1px 4px var(--shadow); }
+.theme-picker, .language-picker { display: grid; gap: 3px; padding: 3px; border-radius: 10px; background: var(--surface); }
+.theme-picker { grid-template-columns: repeat(3, 1fr); }
+.language-picker { grid-template-columns: repeat(2, minmax(72px, 1fr)); }
+.theme-picker button, .language-picker button { height: 32px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease; }
+.theme-picker button:hover, .language-picker button:hover { color: var(--ink); }
+.theme-picker button:active, .language-picker button:active { transform: scale(.98); }
+.theme-picker button.active, .language-picker button.active { background: var(--elevated); color: var(--ink); box-shadow: 0 1px 4px var(--shadow); }
 .switch { display: flex; width: 32px; height: 18px; align-items: center; padding: 2px; border-radius: 999px; background: #d8d8d4; transition: background-color 120ms ease; }
 .switch span { width: 14px; height: 14px; border-radius: 50%; background: var(--background); box-shadow: 0 1px 2px rgb(0 0 0 / 12%); transition: transform 120ms ease; }
 .setting-row.active .switch { background: var(--ink); }
@@ -757,7 +759,7 @@ button { color: inherit; }
 :root[data-theme="dark"] .editor-block.code,
 :root[data-theme="dark"] .project-add-button { background: var(--field); }
 :root[data-theme="dark"] .search-field:focus-within,
-:root[data-theme="dark"] .theme-picker button.active { background: var(--elevated); }
+:root[data-theme="dark"] .theme-picker button.active, :root[data-theme="dark"] .language-picker button.active { background: var(--elevated); }
 :root[data-theme="dark"] .editor-block.quote,
 :root[data-theme="dark"] .project-task:hover { background: color-mix(in srgb, var(--hover) 70%, transparent); }
 :root[data-theme="dark"] .project-task::after { background: var(--soft-line); }
