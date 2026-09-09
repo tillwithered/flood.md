@@ -331,7 +331,7 @@ button { color: inherit; }
   display: flex;
   width: min(600px, calc(100% - 64px));
   flex: 0 0 auto;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px 14px;
   margin: 0 auto;
@@ -339,9 +339,13 @@ button { color: inherit; }
   color: #8a8a8a;
   font-size: 12px;
   line-height: 20px;
+  overflow: hidden;
 }
-.task-meta span + span::before, .task-meta a::before { margin-right: 14px; color: #d0d0d0; content: "·"; }
-.task-meta .source-meta { display: inline-flex; align-items: center; gap: 5px; }
+.task-meta > span, .task-meta > a { min-width: 0; white-space: nowrap; }
+.task-meta > span + span::before, .task-meta > a::before { margin-right: 14px; color: #d0d0d0; content: "·"; }
+.task-meta .task-project-meta { max-width: 190px; flex: 0 1 190px; overflow: hidden; text-overflow: ellipsis; }
+.task-meta .source-meta { display: inline-flex; flex: 0 1 auto; align-items: center; gap: 5px; overflow: hidden; }
+.source-meta-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .task-meta a { color: #666666; text-decoration: none; }
 .task-meta a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .urgency-menu { position: relative; display: inline-flex; align-items: center; }
@@ -446,7 +450,7 @@ button { color: inherit; }
 .editor-block.heading-2 { min-height: 31px; font-size: 22px; }
 .editor-block.heading-3 { min-height: 27px; font-size: 18px; }
 .editor-block.paragraph:has(> br:only-child) { min-height: 18px; }
-.editor.draft-editor .editor-block.heading-1:has(> br:only-child)::before { color: var(--faint); content: "Новая задача"; }
+.editor.draft-editor .editor-block.heading-1:has(> br:only-child)::before { color: var(--faint); content: attr(data-placeholder); }
 .editor-block.bullet, .editor-block.number { padding-left: 24px; }
 .editor-block.bullet::before, .editor-block.number::before { position: absolute; left: 4px; color: #707070; }
 .editor-block.bullet::before { content: "•"; }
@@ -465,11 +469,8 @@ button { color: inherit; }
   left: 14px;
   width: 18px;
   height: 18px;
-  border-radius: 7px;
-  background: var(--flood-gradient);
-  box-shadow: inset 0 0 4px rgb(255 255 255 / 38%), 0 2px 7px rgb(103 58 183 / 16%);
+  background: url("./assets/flood-material/glyphs/info.png") center / contain no-repeat;
   content: "";
-  filter: saturate(0.92);
 }
 .editor-block.code { margin: 5px 0; padding: 8px 11px; border-radius: 8px; background: #f7f7f7; font: 13px/1.55 "Cascadia Mono", Consolas, monospace; }
 
@@ -491,9 +492,10 @@ button { color: inherit; }
 .editor-block a[data-task-link]:hover::after { opacity: 1; transform: translate(-50%, 0); }
 .attachment-card { position: relative; display: block; width: fit-content; max-width: 100%; margin: 12px 0; border-radius: 14px; line-height: 0; }
 .attachment-card img { display: block; width: auto; max-width: min(100%, 560px); max-height: 420px; margin: 0; border-radius: 14px; object-fit: contain; box-shadow: 0 4px 22px var(--shadow); }
+.attachment-card.keyboard-selected { box-shadow: 0 0 0 2px var(--selection); }
 .attachment-tools { position: absolute; top: 10px; left: calc(100% + 10px); display: flex; gap: 3px; padding: 4px; border: 1px solid var(--line); border-radius: 11px; background: color-mix(in srgb, var(--elevated) 92%, transparent); opacity: 0; box-shadow: 0 10px 28px var(--shadow); backdrop-filter: blur(14px); transform: translateX(-5px); transition: opacity 130ms ease, transform 130ms ease; }
 .attachment-tools::before { position: absolute; top: 0; right: 100%; width: 12px; height: 100%; content: ""; }
-.attachment-card:hover .attachment-tools, .attachment-tools:focus-within { opacity: 1; transform: translateX(0); }
+.attachment-card:hover .attachment-tools, .attachment-card.keyboard-selected .attachment-tools, .attachment-tools:focus-within { opacity: 1; transform: translateX(0); }
 .attachment-tool { display: grid; width: 30px; height: 30px; place-items: center; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; }
 .attachment-tool:hover { background: var(--hover); color: var(--ink); }
 .attachment-tool.danger:hover { background: var(--danger-surface); color: var(--danger-ink); }

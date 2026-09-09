@@ -56,13 +56,7 @@
   type MarkdownHint = { title: string; left: number; top: number };
 
   const markdownHints: Record<string, MessageKey> = {
-    "#": "largeHeading",
-    "##": "largeHeading",
-    "###": "largeHeading",
-    "-": "textStyle",
-    "1.": "textStyle",
-    ">": "textStyle",
-    "```": "textStyle"
+    "#": "largeHeading"
   };
 
   let tasks: TaskItem[] = [];
@@ -473,6 +467,7 @@
     const block = document.createElement("div");
     block.dataset.block = kind;
     block.className = `editor-block ${kind}`;
+    if (kind === "heading-1" && !text) block.dataset.placeholder = t("newTask");
     if (text) appendInlineMarkdown(block, text);
     else block.append(document.createElement("br"));
     return block;
@@ -959,11 +954,79 @@
     block.focus();
     const selection = window.getSelection();
     const range = document.createRange();
-    const text = block.firstChild?.nodeType === Node.TEXT_NODE ? block.firstChild : block;
-    range.setStart(text, Math.min(offset, text.textContent?.length ?? 0));
+    const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+    let remaining = Math.max(0, offset);
+    let textNode = walker.nextNode();
+    while (textNode) {
+      const length = textNode.textContent?.length ?? 0;
+      if (remaining <= length) {
+        range.setStart(textNode, remaining);
+        range.collapse(true);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        return;
+      }
+      remaining -= length;
+      textNode = walker.nextNode();
+    }
+    range.setStart(block, offset > 0 ? block.childNodes.length : 0);
     range.collapse(true);
     selection?.removeAllRanges();
     selection?.addRange(range);
+  }
+
+  function ensureBlockContent(block: HTMLElement) {
+    if (!(block.textContent ?? "").length && !block.querySelector("[data-attachment-path]")) {
+      block.replaceChildren(document.createElement("br"));
+    }
+  }
+
+  function selectedAttachment() {
+    return editorRoot?.querySelector<HTMLElement>(".attachment-card.keyboard-selected") ?? null;
+  }
+
+  function clearAttachmentSelection() {
+    selectedAttachment()?.classList.remove("keyboard-selected");
+  }
+
+  function selectAttachment(card: HTMLElement) {
+    clearAttachmentSelection();
+    card.classList.add("keyboard-selected");
+  }
+
+  function removeSelectedAttachment(card: HTMLElement) {
+    const block = card.closest<HTMLElement>(".editor-block");
+    if (!block) return;
+    const next = block.nextElementSibling as HTMLElement | null;
+    const previous = block.previousElementSibling as HTMLElement | null;
+    card.remove();
+    if (!(block.textContent ?? "").length && editorRoot.children.length > 1) {
+      block.remove();
+      if (next) placeCaret(next, 0);
+      else if (previous) placeCaret(previous, previous.textContent?.length ?? 0);
+    } else {
+      ensureBlockContent(block);
+      placeCaret(block, 0);
+    }
+    serializeEditor();
+  }
+
+  function splitBlockAtSelection(block: HTMLElement, nextKind: BlockKind) {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return null;
+    const selectionRange = selection.getRangeAt(0);
+    if (!selectionRange.collapsed) selectionRange.deleteContents();
+    const tailRange = document.createRange();
+    tailRange.setStart(selectionRange.startContainer, selectionRange.startOffset);
+    tailRange.setEnd(block, block.childNodes.length);
+    const tail = tailRange.extractContents();
+    const next = createBlock(nextKind);
+    if (tail.childNodes.length) next.replaceChildren(tail);
+    ensureBlockContent(block);
+    ensureBlockContent(next);
+    block.after(next);
+    placeCaret(next, 0);
+    return next;
   }
 
   function setBlockKind(block: HTMLElement, kind: BlockKind) {
@@ -1095,6 +1158,7 @@
 
   function handleEditorClick(event: MouseEvent) {
     const target = event.target instanceof Element ? event.target : null;
+    if (!target?.closest(".attachment-card")) clearAttachmentSelection();
     const taskLink = target?.closest<HTMLAnchorElement>("a[data-task-link]");
     if (taskLink) {
       event.preventDefault();
@@ -1119,7 +1183,7 @@
       const card = remove.closest<HTMLElement>(".attachment-card");
       const block = card?.closest<HTMLElement>(".editor-block");
       card?.remove();
-      if (block && !block.childNodes.length) block.append(document.createElement("br"));
+      if (block) ensureBlockContent(block);
       if (block) placeCaret(block, 0);
       serializeEditor();
       return;
@@ -1151,6 +1215,7 @@
   }
 
   function syncEditor() {
+    clearAttachmentSelection();
     const block = currentBlock();
     if (!block) return;
     if (selectedTaskId === draftTaskId) draftDirty = true;
@@ -1162,6 +1227,13 @@
   function handleEditorKeydown(event: KeyboardEvent) {
     const block = currentBlock();
     if (!block) return;
+    const keyboardAttachment = selectedAttachment();
+    if (keyboardAttachment && (event.key === "Backspace" || event.key === "Delete")) {
+      event.preventDefault();
+      removeSelectedAttachment(keyboardAttachment);
+      return;
+    }
+    if (keyboardAttachment && !["Shift", "Control", "Alt", "Meta"].includes(event.key)) clearAttachmentSelection();
     const offset = caretOffset(block);
     const text = block.textContent ?? "";
     const kind = (block.dataset.block as BlockKind) || "paragraph";
@@ -1195,11 +1267,7 @@
         return;
       }
       const nextKind = kind === "bullet" || kind === "number" ? kind : "paragraph";
-      const next = createBlock(nextKind, text.slice(offset));
-      block.textContent = text.slice(0, offset);
-      if (!block.textContent) block.append(document.createElement("br"));
-      block.after(next);
-      placeCaret(next, 0);
+      splitBlockAtSelection(block, nextKind);
       serializeEditor();
       return;
     }
@@ -1214,9 +1282,16 @@
       const previous = block.previousElementSibling as HTMLElement | null;
       if (previous) {
         event.preventDefault();
+        const previousAttachment = previous.querySelector<HTMLElement>(".attachment-card");
+        if (previousAttachment) {
+          selectAttachment(previousAttachment);
+          return;
+        }
         const previousText = previous.textContent ?? "";
-        previous.textContent = previousText + text;
+        if (previous.querySelector(":scope > br:only-child")) previous.replaceChildren();
+        while (block.firstChild) previous.append(block.firstChild);
         block.remove();
+        ensureBlockContent(previous);
         placeCaret(previous, previousText.length);
         serializeEditor();
       }
@@ -1619,6 +1694,11 @@
 
   function urgencyTitle(urgency: Urgency) {
     return urgency === "urgent" ? t("urgent") : urgency === "important" ? t("important") : t("normal");
+  }
+
+  function taskSourceLabel(task: TaskItem) {
+    if (task.source?.author) return t("fromMessageAuthor", { author: task.source.author });
+    return task.hasSource ? t("fromMessage") : t("addedManually");
   }
 
   async function changeUrgency(urgency: Urgency) {
@@ -2063,9 +2143,9 @@
       <section class="workspace">
         <div class="editor-page">
           <div class="task-meta" aria-label={t("taskMetadata")}>
-            <span>{selectedTask.chat}</span>
+            <span class="task-project-meta" title={selectedTask.chat}>{selectedTask.chat}</span>
             <span title={fullDate(selectedTask.createdAt)}>{t("created", { date: fullDate(selectedTask.createdAt) })}</span>
-            <span class="source-meta"><FloodGlyph kind="info" size={13} />{selectedTask.source?.author ? t("fromMessageAuthor", { author: selectedTask.source.author }) : selectedTask.hasSource ? t("fromMessage") : t("addedManually")}</span>
+            <span class="source-meta" title={taskSourceLabel(selectedTask)}><FloodGlyph kind="info" size={13} /><span class="source-meta-label">{taskSourceLabel(selectedTask)}</span></span>
             {#if selectedTask.source?.url}<a href={selectedTask.source.url} target="_blank" rel="noreferrer">{t("openMessage")}</a>{/if}
           </div>
           {#if conflictRemote}
@@ -2074,7 +2154,7 @@
               <div><button onclick={useDiskVersion}>{t("diskVersion")}</button><button onclick={keepLocalVersion}>{t("localVersion")}</button></div>
             </div>
           {/if}
-          <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label={t("taskEditor")} spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={() => { editorHint = null; void saveNow(); }}></div>
+          <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label={t("taskEditor")} spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={() => { editorHint = null; clearAttachmentSelection(); void saveNow(); }}></div>
           {#if selectedTask.source?.text}
             <details class="source-snapshot">
               <summary><FloodGlyph kind="info" size={15} />{t("sourceMessage")}</summary>
