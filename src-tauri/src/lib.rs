@@ -3,9 +3,13 @@ use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use std::{path::PathBuf, sync::Mutex};
 use tauri::{Emitter, Manager, State};
 
+mod telegram;
+use telegram::{TelegramChat, TelegramManager, TelegramStatus};
+
 struct AppState {
     store: Store,
     _watcher: Mutex<RecommendedWatcher>,
+    telegram: TelegramManager,
 }
 
 fn result<T>(value: Result<T, flood_core::StoreError>) -> Result<T, String> {
@@ -205,6 +209,53 @@ fn mcp_executable_path(app: tauri::AppHandle) -> Result<String, String> {
         .to_owned())
 }
 
+#[tauri::command]
+fn telegram_status(state: State<'_, AppState>) -> TelegramStatus {
+    state.telegram.status()
+}
+
+#[tauri::command]
+fn telegram_configure(
+    api_id: i32,
+    api_hash: String,
+    state: State<'_, AppState>,
+) -> Result<TelegramStatus, String> {
+    state.telegram.configure(api_id, api_hash)
+}
+
+#[tauri::command]
+async fn telegram_request_qr(state: State<'_, AppState>) -> Result<(), String> {
+    state.telegram.request_qr().await
+}
+
+#[tauri::command]
+async fn telegram_submit_phone(phone: String, state: State<'_, AppState>) -> Result<(), String> {
+    state.telegram.submit_phone(phone).await
+}
+
+#[tauri::command]
+async fn telegram_submit_code(code: String, state: State<'_, AppState>) -> Result<(), String> {
+    state.telegram.submit_code(code).await
+}
+
+#[tauri::command]
+async fn telegram_submit_password(
+    password: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    state.telegram.submit_password(password).await
+}
+
+#[tauri::command]
+async fn telegram_list_chats(state: State<'_, AppState>) -> Result<Vec<TelegramChat>, String> {
+    state.telegram.chats().await
+}
+
+#[tauri::command]
+async fn telegram_disconnect(state: State<'_, AppState>) -> Result<(), String> {
+    state.telegram.disconnect().await
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -222,9 +273,14 @@ pub fn run() {
                     }
                 })?;
             watcher.watch(store.root(), RecursiveMode::Recursive)?;
+            let telegram = TelegramManager::new(
+                app.handle().clone(),
+                app.path().app_local_data_dir()?.join("telegram"),
+            );
             app.manage(AppState {
                 store,
                 _watcher: Mutex::new(watcher),
+                telegram,
             });
             Ok(())
         })
@@ -251,7 +307,15 @@ pub fn run() {
             data_directory,
             create_backup,
             restore_backup,
-            mcp_executable_path
+            mcp_executable_path,
+            telegram_status,
+            telegram_configure,
+            telegram_request_qr,
+            telegram_submit_phone,
+            telegram_submit_code,
+            telegram_submit_password,
+            telegram_list_chats,
+            telegram_disconnect
         ])
         .run(tauri::generate_context!())
         .expect("не удалось запустить flood.md");

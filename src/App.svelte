@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowRight, Bold, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Database, Download, ExternalLink, Folder, FolderOpen, FolderPlus, Heading1, Info, Languages, Link, ListTodo, Maximize2, MessageSquareText, Minus, MoreHorizontal, Palette, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, RefreshCw, RotateCcw, Search, Settings, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
+  import { ArrowRight, Bold, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Database, Download, ExternalLink, Folder, FolderOpen, FolderPlus, Heading1, Info, Languages, Link, ListTodo, LogOut, Maximize2, MessageSquareText, Minus, MoreHorizontal, Palette, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, QrCode, RefreshCw, RotateCcw, Search, Send, Settings, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { getVersion } from "@tauri-apps/api/app";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -9,6 +9,7 @@
   import { relaunch } from "@tauri-apps/plugin-process";
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import { onMount, tick } from "svelte";
+  import QRCode from "qrcode";
   import FloodGlyph from "./components/FloodGlyph.svelte";
   import { translate, type Locale, type MessageKey } from "./i18n";
 
@@ -54,6 +55,8 @@
   };
   type ChatItem = ProjectRecord & { open: number };
   type MarkdownHint = { title: string; left: number; top: number };
+  type TelegramStatus = { step: string; configured: boolean; account_name?: string; qr_link?: string; password_hint?: string; error?: string };
+  type TelegramChat = { id: number; title: string };
 
   const markdownHints: Record<string, MessageKey> = {
     "#": "largeHeading"
@@ -90,6 +93,16 @@
   let dataActionMessage = "";
   let pendingRestorePath = "";
   let mcpExecutable = "";
+  let telegramStatus: TelegramStatus = { step: "unconfigured", configured: false };
+  let telegramApiId = "";
+  let telegramApiHash = "";
+  let telegramPhone = "";
+  let telegramCode = "";
+  let telegramPassword = "";
+  let telegramBusy = false;
+  let telegramError = "";
+  let telegramQrDataUrl = "";
+  let telegramChats: TelegramChat[] = [];
   let updateState: UpdateState = "idle";
   let updateMessage = "";
   let availableUpdate: Update | null = null;
@@ -1745,6 +1758,54 @@
     window.setTimeout(() => (copied = false), 1400);
   }
 
+  async function applyTelegramStatus(status: TelegramStatus) {
+    telegramStatus = status;
+    telegramError = status.error ?? "";
+    telegramQrDataUrl = status.qr_link
+      ? await QRCode.toDataURL(status.qr_link, { width: 184, margin: 1, color: { dark: "#111111", light: "#ffffff" } })
+      : "";
+    if (status.step === "ready") telegramChats = await invoke<TelegramChat[]>("telegram_list_chats").catch(() => []);
+  }
+
+  function telegramStatusLabel() {
+    if (telegramStatus.step === "ready") return t("connected");
+    if (telegramStatus.step === "unconfigured") return t("notConnected");
+    if (["code", "password", "qr", "phone"].includes(telegramStatus.step)) return t("authorization");
+    return t("connecting");
+  }
+
+  async function runTelegramAction(action: () => Promise<unknown>) {
+    if (telegramBusy) return;
+    telegramBusy = true;
+    telegramError = "";
+    try { await action(); }
+    catch (error) { telegramError = String(error); }
+    finally { telegramBusy = false; }
+  }
+
+  function configureTelegram(event: SubmitEvent) {
+    event.preventDefault();
+    const apiId = Number.parseInt(telegramApiId.trim(), 10);
+    void runTelegramAction(async () => {
+      const status = await invoke<TelegramStatus>("telegram_configure", { apiId, apiHash: telegramApiHash.trim() });
+      telegramApiHash = "";
+      await applyTelegramStatus(status);
+    });
+  }
+
+  function requestTelegramQr() { void runTelegramAction(() => invoke("telegram_request_qr")); }
+  function submitTelegramPhone(event: SubmitEvent) { event.preventDefault(); void runTelegramAction(() => invoke("telegram_submit_phone", { phone: telegramPhone.trim() })); }
+  function submitTelegramCode(event: SubmitEvent) { event.preventDefault(); void runTelegramAction(() => invoke("telegram_submit_code", { code: telegramCode.trim() })); }
+  function submitTelegramPassword(event: SubmitEvent) { event.preventDefault(); void runTelegramAction(() => invoke("telegram_submit_password", { password: telegramPassword })); }
+  function disconnectTelegram() {
+    void runTelegramAction(async () => {
+      await invoke("telegram_disconnect");
+      telegramChats = [];
+      telegramApiId = "";
+      await applyTelegramStatus({ step: "unconfigured", configured: false });
+    });
+  }
+
   async function openDataDirectory() {
     if (dataDirectory) await openPath(dataDirectory);
   }
@@ -1882,12 +1943,15 @@
     colorScheme.addEventListener("change", updateSystemTheme);
     let unlisten: UnlistenFn | undefined;
     let unlistenClose: UnlistenFn | undefined;
+    let unlistenTelegram: UnlistenFn | undefined;
     let disposed = false;
     void (async () => {
       if (inTauri()) {
         appVersion = await getVersion();
         dataDirectory = await invoke<string>("data_directory");
         mcpExecutable = await invoke<string>("mcp_executable_path");
+        await applyTelegramStatus(await invoke<TelegramStatus>("telegram_status"));
+        unlistenTelegram = await listen<TelegramStatus>("telegram-status", (event) => void applyTelegramStatus(event.payload));
         unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
           if (closingWindow) return;
           event.preventDefault();
@@ -1930,6 +1994,7 @@
       for (const url of attachmentObjectUrls) URL.revokeObjectURL(url);
       unlisten?.();
       unlistenClose?.();
+      unlistenTelegram?.();
     };
   });
 </script>
@@ -2302,7 +2367,7 @@
               <button class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => (settingsSection = "general")}><Settings size={16} />{t("general")}</button>
               <button class:active={settingsSection === "appearance"} aria-current={settingsSection === "appearance" ? "page" : undefined} onclick={() => (settingsSection = "appearance")}><Palette size={16} />{t("appearance")}</button>
               <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => (settingsSection = "data")}><Database size={16} />{t("data")}</button>
-              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => (settingsSection = "integrations")}><Plug size={16} />{t("integrations")} <span class="integration-chip">MCP</span></button>
+              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => (settingsSection = "integrations")}><Plug size={16} />{t("integrations")} <span class:connected={telegramStatus.step === "ready"} class="integration-chip">{telegramStatus.step === "ready" ? "2" : "1"}</span></button>
               <button class:active={settingsSection === "about"} aria-current={settingsSection === "about" ? "page" : undefined} onclick={() => (settingsSection = "about")}><Info size={16} />{t("about")}</button>
             </nav>
             <div class="settings-content">
@@ -2339,6 +2404,36 @@
               {:else if settingsSection === "integrations"}
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>{t("integrations")}</h3><p>{t("integrationsDescription")}</p></div>
+                  <div class="integration-card telegram-card">
+                    <div class="integration-head"><span><Send size={16} /><span><strong>Telegram</strong><small>{telegramStatus.account_name || t("tdlibClient")}</small></span></span><span class:connected={telegramStatus.step === "ready"} class="status-text">{telegramStatusLabel()}</span></div>
+                    {#if telegramStatus.step === "unconfigured"}
+                      <p>{t("telegramDescription")}</p>
+                      <form class="telegram-form credentials" onsubmit={configureTelegram}>
+                        <label><span>API ID</span><input bind:value={telegramApiId} inputmode="numeric" autocomplete="off" placeholder="12345678" required /></label>
+                        <label><span>API Hash</span><input bind:value={telegramApiHash} type="password" autocomplete="off" placeholder="••••••••••••••••" required /></label>
+                        <button class="primary-button" disabled={telegramBusy}>{t("connect")}</button>
+                      </form>
+                      <button class="telegram-help" onclick={() => openUrl("https://my.telegram.org/apps")}><ExternalLink size={13} />{t("getTelegramKeys")}</button>
+                    {:else if telegramStatus.step === "phone"}
+                      <p>{t("telegramChooseLogin")}</p>
+                      <div class="telegram-login-options"><button class="primary-button" disabled={telegramBusy} onclick={requestTelegramQr}><QrCode size={15} />{t("loginWithQr")}</button><span>{t("or")}</span></div>
+                      <form class="telegram-form inline" onsubmit={submitTelegramPhone}><label><span>{t("phoneNumber")}</span><input bind:value={telegramPhone} type="tel" autocomplete="tel" placeholder="+7 700 000 00 00" required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
+                    {:else if telegramStatus.step === "qr"}
+                      <div class="telegram-qr">{#if telegramQrDataUrl}<img src={telegramQrDataUrl} alt={t("telegramQrCode")} />{/if}<span><strong>{t("scanQr")}</strong><small>{t("scanQrDescription")}</small></span></div>
+                      <button class="telegram-help" onclick={() => openUrl(telegramStatus.qr_link || "tg://login")}><ExternalLink size={13} />{t("openInTelegram")}</button>
+                    {:else if telegramStatus.step === "code"}
+                      <form class="telegram-form inline" onsubmit={submitTelegramCode}><label><span>{t("telegramCode")}</span><input bind:value={telegramCode} inputmode="numeric" autocomplete="one-time-code" required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
+                    {:else if telegramStatus.step === "password"}
+                      <form class="telegram-form inline" onsubmit={submitTelegramPassword}><label><span>{t("telegramPassword")}</span><input bind:value={telegramPassword} type="password" autocomplete="current-password" placeholder={telegramStatus.password_hint || ""} required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
+                    {:else if telegramStatus.step === "ready"}
+                      <p>{t("telegramReady", { count: telegramChats.length })}</p>
+                      {#if telegramChats.length}<div class="telegram-chat-preview">{#each telegramChats.slice(0, 4) as chat (chat.id)}<span>{chat.title}</span>{/each}{#if telegramChats.length > 4}<small>+{telegramChats.length - 4}</small>{/if}</div>{/if}
+                      <button class="telegram-help danger" disabled={telegramBusy} onclick={disconnectTelegram}><LogOut size={13} />{t("disconnect")}</button>
+                    {:else}
+                      <div class="telegram-loading"><RefreshCw class="spinning" size={15} />{t("connecting")}</div>
+                    {/if}
+                    {#if telegramError}<p class="telegram-error">{telegramError}</p>{/if}
+                  </div>
                   <div class="integration-card"><div class="integration-head"><span><FloodGlyph kind="connected" size={15} /><span><strong>{t("mcpServer")}</strong><small>{t("installedWithApp")}</small></span></span><span class="status-text">{t("installed")}</span></div><p>{t("mcpDescription")}</p><div class="code-row" title={mcpExecutable || "flood-mcp.exe"}><code>{fileName(mcpExecutable || "flood-mcp.exe")}</code><button class="icon-button" aria-label={t("copyConfiguration")} title={copied ? t("copied") : t("copyConfiguration")} onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div></div>
                 </section>
               {:else}
