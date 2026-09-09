@@ -816,22 +816,26 @@
   $: selectedTask = tasks.find((task) => task.id === selectedTaskId);
   function taskMatchesQuery(task: TaskItem) {
     const haystack = `${task.title}\n${task.markdown}\n${task.sourceAuthor ?? ""}`.toLocaleLowerCase("ru");
-    return haystack.includes(query.trim().toLocaleLowerCase("ru"));
+    return haystack.includes(normalizedQuery);
   }
 
-  $: visibleTasks = tasks.filter((task) => (showCompleted || !task.completed) && taskMatchesQuery(task));
-
   $: currentChat = chats.find((chat) => chat.id === selectedChatId) ?? allChat(0);
-  $: searchActive = query.trim().length > 0;
-  $: currentProjectTaskTotal = tasks.filter((task) => selectedChatId === "all" || task.chatId === selectedChatId).length;
+  $: normalizedQuery = query.trim().toLocaleLowerCase("ru");
+  $: searchActive = normalizedQuery.length > 0;
+  $: visibleTasks = tasks.filter((task) => showCompleted || !task.completed);
+  $: sidebarSearchGroups = searchActive ? chats.slice(1).map((chat) => {
+    const projectMatches = chat.title.toLocaleLowerCase("ru").includes(normalizedQuery);
+    const projectTasks = tasks.filter((task) => task.chatId === chat.id);
+    return { chat, tasks: projectMatches ? projectTasks : projectTasks.filter(taskMatchesQuery), projectMatches };
+  }).filter((group) => group.projectMatches || group.tasks.length) : [];
   $: currentProjectTasks = tasks
-    .filter((task) => (selectedChatId === "all" || task.chat === currentChat.title) && taskMatchesQuery(task))
+    .filter((task) => selectedChatId === "all" || task.chatId === selectedChatId)
     .sort((left, right) => ({ urgent: 0, important: 1, normal: 2 })[left.urgency] - ({ urgent: 0, important: 1, normal: 2 })[right.urgency]);
   $: currentOpenTasks = currentProjectTasks.filter((task) => !task.completed);
   $: currentCompletedTasks = currentProjectTasks.filter((task) => task.completed);
 
   function tasksForChat(chat: ChatItem) {
-    return tasks.filter((task) => task.chat === chat.title && (showCompleted || !task.completed) && taskMatchesQuery(task));
+    return tasks.filter((task) => task.chatId === chat.id && (showCompleted || !task.completed));
   }
 
   function openTaskCount(chatId: string) {
@@ -852,8 +856,11 @@
     taskActionMenuOpen = false;
   }
 
-  function toggleChat(chat: ChatItem) {
-    setChatExpanded(chat.id, !isChatExpanded(chat.id));
+  function toggleChat(chatId: string) {
+    expandedChatIds = isChatExpanded(chatId)
+      ? expandedChatIds.filter((id) => id !== chatId)
+      : [...expandedChatIds, chatId];
+    window.setTimeout(saveUiPreferences, 0);
   }
 
   async function openImageViewer(card: HTMLElement) {
@@ -1614,46 +1621,61 @@
       </div>
 
       <nav class="sidebar-navigation" aria-label="Проекты и задачи">
-        <div class:active={activeSection === "tasks" && selectedChatId === "all"} class="project-row all-tasks-row" title="Все задачи">
-          <button class="project-open" onclick={() => chats[0] && selectChat(chats[0])} aria-label="Открыть все задачи">
-            <ListTodo size={17} /><span>Все задачи</span><small>{tasks.filter((task) => !task.completed).length}</small>
-          </button>
-          {#if !sidebarCollapsed}
-            <button type="button" class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={(event) => { event.stopPropagation(); toggleAllTasks(); }} aria-label={allTasksExpanded ? "Свернуть все задачи" : "Раскрыть все задачи"}><ChevronRight size={13} /></button>
-          {/if}
-        </div>
-
-        {#if !sidebarCollapsed && allTasksExpanded && activeSection === "tasks"}
-          <div class="nested-tasks all-task-list">
-            {#each visibleTasks as task}
-              <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
+        {#if searchActive && !sidebarCollapsed}
+          <div class="sidebar-search-results" aria-label="Результаты поиска">
+            {#each sidebarSearchGroups as group (group.chat.id)}
+              <section class="sidebar-search-group">
+                <button class="search-project-result" onclick={() => selectChat(group.chat)}><Folder size={15} /><span>{group.chat.title}</span><small>{group.tasks.length}</small></button>
+                {#each group.tasks as task (task.id)}
+                  <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
+                {/each}
+              </section>
+            {:else}
+              <div class="sidebar-search-empty"><Search size={15} /><span>Ничего не найдено</span></div>
             {/each}
           </div>
-        {/if}
-
-        {#each chats.slice(1) as chat (chat.id)}
-          <div class="chat-group">
-            <div class:active={activeSection === "tasks" && selectedChatId === chat.id} class="project-row" title={chat.title}>
-              <button class="project-open" onclick={() => selectChat(chat)} aria-label={`Открыть ${chat.title}`}>
-                {#if sidebarCollapsed}
-                  <span class="chat-avatar">{chat.title.slice(0, 1)}</span>
-                {:else}
-                  <Folder size={16} /><span>{chat.title}</span><small>{openTaskCount(chat.id) || ""}</small>
-                {/if}
-              </button>
-              {#if !sidebarCollapsed}
-                <button type="button" class:expanded={isChatExpanded(chat.id)} class="project-expand" aria-expanded={isChatExpanded(chat.id)} onclick={(event) => { event.stopPropagation(); toggleChat(chat); }} aria-label={isChatExpanded(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}><ChevronRight size={13} /></button>
-              {/if}
-            </div>
-            {#if !sidebarCollapsed && isChatExpanded(chat.id) && activeSection === "tasks"}
-              <div class="nested-tasks">
-                {#each tasksForChat(chat) as task}
-                  <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
-                {:else}<span class="nested-empty">Нет открытых задач</span>{/each}
-              </div>
+        {:else}
+          <div class:active={activeSection === "tasks" && selectedChatId === "all"} class="project-row all-tasks-row" title="Все задачи">
+            <button class="project-open" onclick={() => chats[0] && selectChat(chats[0])} aria-label="Открыть все задачи">
+              <ListTodo size={17} /><span>Все задачи</span><small>{tasks.filter((task) => !task.completed).length}</small>
+            </button>
+            {#if !sidebarCollapsed}
+              <button type="button" class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={toggleAllTasks} aria-label={allTasksExpanded ? "Свернуть все задачи" : "Раскрыть все задачи"}><ChevronRight size={13} /></button>
             {/if}
           </div>
-        {/each}
+
+          {#if !sidebarCollapsed && allTasksExpanded && activeSection === "tasks"}
+            <div class="nested-tasks all-task-list">
+              {#each visibleTasks as task}
+                <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
+              {/each}
+            </div>
+          {/if}
+
+          {#each chats.slice(1) as chat (chat.id)}
+            <div class="chat-group">
+              <div class:active={activeSection === "tasks" && selectedChatId === chat.id} class="project-row" title={chat.title}>
+                <button class="project-open" onclick={() => selectChat(chat)} aria-label={`Открыть ${chat.title}`}>
+                  {#if sidebarCollapsed}
+                    <span class="chat-avatar">{chat.title.slice(0, 1)}</span>
+                  {:else}
+                    <Folder size={16} /><span>{chat.title}</span><small>{openTaskCount(chat.id) || ""}</small>
+                  {/if}
+                </button>
+                {#if !sidebarCollapsed}
+                  <button type="button" class:expanded={expandedChatIds.includes(chat.id)} class="project-expand" aria-expanded={expandedChatIds.includes(chat.id)} onclick={() => toggleChat(chat.id)} aria-label={expandedChatIds.includes(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}><ChevronRight size={13} /></button>
+                {/if}
+              </div>
+              {#if !sidebarCollapsed && expandedChatIds.includes(chat.id) && activeSection === "tasks"}
+                <div class="nested-tasks">
+                  {#each tasksForChat(chat) as task}
+                    <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
+                  {:else}<span class="nested-empty">Нет открытых задач</span>{/each}
+                </div>
+              {/if}
+            </div>
+          {/each}
+        {/if}
 
         {#if !sidebarCollapsed}
           {#if createChatOpen}
@@ -1719,7 +1741,7 @@
                   {/if}
                 </div>
               {/if}
-              <p>{loading ? "Загружаю задачи…" : searchActive ? `Найдено ${currentProjectTasks.length} из ${currentProjectTaskTotal} задач` : `${currentOpenTasks.length} ${currentOpenTasks.length === 1 ? "открытая задача" : currentOpenTasks.length > 1 && currentOpenTasks.length < 5 ? "открытые задачи" : "открытых задач"}`}</p>
+              <p>{loading ? "Загружаю задачи…" : `${currentOpenTasks.length} ${currentOpenTasks.length === 1 ? "открытая задача" : currentOpenTasks.length > 1 && currentOpenTasks.length < 5 ? "открытые задачи" : "открытых задач"}`}</p>
             </div>
             <div class="project-header-actions">
               <button class="project-add-button" aria-expanded={newTaskMenuAnchor === "workspace"} onclick={() => requestNewTask("workspace")}><Plus size={16} />Новая задача</button>
@@ -1762,7 +1784,7 @@
                 {/each}
               </div>
             {:else}
-              <div class="project-empty"><p>{searchActive ? `По запросу «${query.trim()}» ничего не найдено` : "Открытых задач нет"}</p>{#if searchActive}<button onclick={() => (query = "")}>Сбросить поиск</button>{/if}</div>
+              <div class="project-empty"><p>Открытых задач нет</p></div>
             {/if}
           {:else}
             <div class="project-task-list standalone">
@@ -1773,7 +1795,7 @@
                   <ChevronRight size={15} />
                 </button>
               {:else}
-                <div class="project-empty"><p>{searchActive ? `По запросу «${query.trim()}» ничего не найдено` : "Открытых задач нет"}</p><button onclick={() => searchActive ? (query = "") : requestNewTask("workspace")}>{searchActive ? "Сбросить поиск" : "Добавить задачу"}</button></div>
+                <div class="project-empty"><p>Открытых задач нет</p><button onclick={() => requestNewTask("workspace")}>Добавить задачу</button></div>
               {/each}
             </div>
           {/if}

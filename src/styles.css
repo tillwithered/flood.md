@@ -189,13 +189,13 @@ button { color: inherit; }
 .create-chat-form button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: #777777; cursor: pointer; }
 .create-chat-form button:hover { background: #eeeeee; color: var(--ink); }
 .chat-meta { display: flex; align-items: center; gap: 6px; color: #8a8a8a; }
-.project-row { display: grid; grid-template-columns: minmax(0, 1fr) 28px; min-height: 38px; align-items: center; border-radius: 8px; color: #5f5f5f; }
+.project-row { position: relative; display: block; min-height: 38px; padding-right: 34px; border-radius: 8px; color: #5f5f5f; }
 .project-row:hover { background: #fafafa; color: var(--ink); }
 .project-row.active { background: #f7f7f7; color: var(--ink); }
-.project-open { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; min-width: 0; height: 38px; align-items: center; gap: 8px; padding: 0 2px 0 9px; border: 0; border-radius: 8px 0 0 8px; background: transparent; color: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.project-open { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; width: 100%; min-width: 0; height: 38px; align-items: center; gap: 8px; padding: 0 2px 0 9px; border: 0; border-radius: 8px 0 0 8px; background: transparent; color: inherit; font-size: 14px; text-align: left; cursor: pointer; }
 .project-open > span:not(.chat-avatar) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .project-open small { color: #92928d; font-size: 12px; }
-.project-expand { display: grid; place-items: center; width: 28px; height: 38px; padding: 0; border: 0; border-radius: 0 8px 8px 0; background: transparent; color: #8a8a8a; cursor: pointer; }
+.project-expand { position: absolute; z-index: 2; top: 0; right: 0; display: grid; width: 34px; height: 38px; place-items: center; padding: 0; border: 0; border-radius: 0 8px 8px 0; background: transparent; color: #8a8a8a; cursor: pointer; }
 .project-expand:hover { color: var(--ink); }
 .project-expand svg { transition: transform 140ms cubic-bezier(.2,.75,.3,1); }
 .project-expand.expanded svg { transform: rotate(90deg); }
@@ -208,13 +208,21 @@ button { color: inherit; }
 .nested-task span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .all-task-list { margin-bottom: 10px; }
 .nested-empty { padding: 8px; color: #999994; font-size: 12px; }
+.sidebar-search-results { display: grid; gap: 10px; padding: 3px 0 10px; }
+.sidebar-search-group { display: grid; gap: 1px; }
+.search-project-result { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; min-height: 34px; align-items: center; gap: 8px; padding: 0 9px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; }
+.search-project-result:hover { background: var(--hover); }
+.search-project-result span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-project-result small { color: var(--faint); font-size: 11px; font-weight: 400; }
+.sidebar-search-group .nested-task { margin-left: 22px; }
+.sidebar-search-empty { display: flex; align-items: center; gap: 8px; padding: 12px 10px; color: var(--faint); font-size: 12px; }
 .sidebar-footer { display: grid; gap: 2px; padding: 8px 7px 10px; border-top: 1px solid #e4e4e0; }
 .sidebar-panel.collapsed .sidebar-navigation, .sidebar-panel.collapsed .sidebar-footer { padding-right: 7px; padding-left: 7px; }
 .sidebar-panel.collapsed .sidebar-row { display: grid; grid-template-columns: 1fr; width: 44px; height: 40px; justify-items: center; margin: 0 auto; padding: 0; }
 .sidebar-panel.collapsed .sidebar-row > span:not(.chat-avatar), .sidebar-panel.collapsed .sidebar-row > small { display: none; }
 .sidebar-panel.collapsed .chat-entry { height: 43px; }
 .sidebar-panel.collapsed .chat-avatar { width: 28px; height: 28px; }
-.sidebar-panel.collapsed .project-row { display: block; width: 44px; height: 40px; min-height: 40px; margin: 0 auto; }
+.sidebar-panel.collapsed .project-row { display: block; width: 44px; height: 40px; min-height: 40px; margin: 0 auto; padding-right: 0; }
 .sidebar-panel.collapsed .project-open { display: grid; grid-template-columns: 1fr; width: 44px; height: 40px; justify-items: center; padding: 0; border-radius: 8px; }
 
 .window-context {
