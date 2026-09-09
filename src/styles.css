@@ -41,7 +41,6 @@ button { color: inherit; }
   .nested-task,
   .search-field,
   .chat-avatar,
-  .brand-glow,
   .editor-block.quote,
   .editor-block.code,
   .project-add-button,
@@ -106,24 +105,6 @@ button { color: inherit; }
   padding: 0 10px 0 16px;
   border-right: 1px solid var(--soft-line);
   background: #ffffff;
-}
-.brand-glow {
-  position: relative;
-  width: 15px;
-  height: 15px;
-  flex: 0 0 auto;
-  overflow: hidden;
-  border-radius: 6px;
-  background: var(--flood-gradient);
-  box-shadow: inset 0 0 5px rgb(255 255 255 / 38%), 0 2px 7px rgb(103 58 183 / 16%);
-}
-.brand-glow::after {
-  position: absolute;
-  inset: -3px;
-  border-radius: inherit;
-  background: radial-gradient(circle at 58% 45%, rgb(20 10 28 / 70%), transparent 46%);
-  content: "";
-  filter: blur(2px);
 }
 .sidebar-titlebar strong { overflow: hidden; font-size: 14px; font-weight: 650; letter-spacing: -0.02em; text-overflow: ellipsis; white-space: nowrap; }
 .collapse-button { margin-left: auto; }
@@ -190,7 +171,6 @@ button { color: inherit; }
 .all-task-list { margin-bottom: 10px; }
 .nested-empty { padding: 8px; color: #999994; font-size: 12px; }
 .sidebar-footer { display: grid; gap: 2px; padding: 8px 7px 10px; border-top: 1px solid #e4e4e0; }
-.online-dot { width: 6px; height: 6px; border-radius: 50%; background: #166534; }
 .sidebar-panel.collapsed .sidebar-navigation, .sidebar-panel.collapsed .sidebar-footer { padding-right: 7px; padding-left: 7px; }
 .sidebar-panel.collapsed .sidebar-row { display: grid; grid-template-columns: 1fr; width: 44px; height: 40px; justify-items: center; margin: 0 auto; padding: 0; }
 .sidebar-panel.collapsed .sidebar-row > span:not(.chat-avatar), .sidebar-panel.collapsed .sidebar-row > small { display: none; }
@@ -274,9 +254,6 @@ button { color: inherit; }
 .task-copy { display: grid; gap: 4px; min-width: 0; }
 .task-copy strong { overflow: hidden; font-size: 14px; font-weight: 570; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
 .task-copy small { display: flex; align-items: center; gap: 5px; overflow: hidden; color: #8a8a85; font-size: 12px; line-height: 1.2; white-space: nowrap; }
-.urgency-dot { width: 14px; height: 3px; border-radius: 999px; background: #d1d1d1; }
-.urgency-dot.important { background: var(--priority-important); box-shadow: 0 1px 5px rgb(241 79 134 / 14%); }
-.urgency-dot.urgent { background: var(--priority-urgent); box-shadow: 0 1px 6px rgb(255 53 95 / 18%); }
 .empty-list { padding: 36px 12px; color: var(--faint); font-size: 14px; text-align: center; }
 
 .workspace { display: flex; min-width: 0; flex-direction: column; overflow: hidden; background: white; }
@@ -304,6 +281,7 @@ button { color: inherit; }
   line-height: 20px;
 }
 .task-meta span + span::before, .task-meta a::before { margin-right: 14px; color: #d0d0d0; content: "·"; }
+.task-meta .source-meta { display: inline-flex; align-items: center; gap: 5px; }
 .task-meta a { color: #666666; text-decoration: none; }
 .task-meta a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
 .urgency-menu { position: relative; display: inline-flex; align-items: center; }
@@ -397,7 +375,7 @@ button { color: inherit; }
   color: #6f6f6f;
   font-size: 13px;
 }
-.source-snapshot summary { width: fit-content; cursor: pointer; font-weight: 550; }
+.source-snapshot summary { display: inline-flex; width: fit-content; align-items: center; gap: 7px; cursor: pointer; font-weight: 550; }
 .source-snapshot p { margin: 12px 0 0; white-space: pre-wrap; line-height: 1.55; }
 .data-error { display: grid; gap: 3px; margin-bottom: 24px; padding: 12px 14px; border-radius: 9px; background: #fff5f5; color: #991b1b; font-size: 12px; }
 .data-error strong { font-size: 13px; }
@@ -496,7 +474,6 @@ button { color: inherit; }
 .integration-row strong { font-size: 14px; font-weight: 600; }
 .integration-row small { color: var(--muted); font-size: 12px; }
 .status-pill { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 18px; padding: 5px 8px; border-radius: 999px; background: #f0f7f1; color: #166534; font-size: 12px; font-weight: 600; }
-.status-pill span { width: 5px; height: 5px; border-radius: 50%; background: #166534; }
 .code-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 7px 8px 7px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .code-row code { overflow: hidden; color: #555552; font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 

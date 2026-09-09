@@ -1,0 +1,13 @@
+{
+  "version": "0.1.0",
+  "format": "png",
+  "glyphs": {
+    "brand": "glyphs/brand.png",
+    "normal": "glyphs/normal.png",
+    "important": "glyphs/important.png",
+    "urgent": "glyphs/urgent.png",
+    "completed": "glyphs/completed.png",
+    "connected": "glyphs/connected.png",
+    "info": "glyphs/info.png"
+  }
+}

@@ -4,6 +4,7 @@
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, tick } from "svelte";
+  import FloodGlyph from "./components/FloodGlyph.svelte";
 
   type Section = "tasks" | "trash" | "mcp" | "settings";
   type WorkspaceView = "project" | "task";
@@ -982,7 +983,7 @@
 <main class:sidebar-collapsed={sidebarCollapsed} class="app-shell">
   <header class="window-bar" data-tauri-drag-region="deep">
     <div class="sidebar-titlebar" data-tauri-drag-region="deep">
-      {#if !sidebarCollapsed}<span class="brand-glow" aria-hidden="true"></span><strong>flood.md</strong>{/if}
+      {#if !sidebarCollapsed}<FloodGlyph kind="brand" size={22} /><strong>flood.md</strong>{/if}
       <button class="icon-button collapse-button" aria-label={sidebarCollapsed ? "Развернуть панель" : "Свернуть панель"} data-tauri-drag-region="false" onclick={() => (sidebarCollapsed = !sidebarCollapsed)}>
         {#if sidebarCollapsed}<PanelLeftOpen size={17} />{:else}<PanelLeftClose size={17} />{/if}
       </button>
@@ -998,11 +999,11 @@
       {#if activeSection === "tasks" && workspaceView === "task" && selectedTask}
         <span class:error={saveState === "error"} class="save-state" title={saveError}>{saveState === "saving" ? "Сохраняю…" : saveState === "error" ? "Не сохранено" : saveState === "saved" ? "Сохранено" : ""}</span>
         <div class="urgency-menu topbar-urgency">
-          <button class="urgency-trigger" aria-haspopup="menu" aria-expanded={urgencyMenuOpen} onclick={() => { urgencyMenuOpen = !urgencyMenuOpen; sourceEditorOpen = false; taskActionMenuOpen = false; }}><span class:important={selectedTask.urgency === "important"} class:urgent={selectedTask.urgency === "urgent"} class="urgency-dot"></span><span>{urgencyTitle(selectedTask.urgency)}</span><ChevronDown size={12} /></button>
+          <button class="urgency-trigger" aria-haspopup="menu" aria-expanded={urgencyMenuOpen} onclick={() => { urgencyMenuOpen = !urgencyMenuOpen; sourceEditorOpen = false; taskActionMenuOpen = false; }}><FloodGlyph kind={selectedTask.urgency} size={14} /><span>{urgencyTitle(selectedTask.urgency)}</span><ChevronDown size={12} /></button>
           {#if urgencyMenuOpen}
             <div class="urgency-options" role="menu">
               {#each (["normal", "important", "urgent"] as Urgency[]) as urgency}
-                <button class:selected={selectedTask.urgency === urgency} role="menuitem" onclick={() => changeUrgency(urgency)}><span class:important={urgency === "important"} class:urgent={urgency === "urgent"} class="urgency-dot"></span><span>{urgencyTitle(urgency)}</span>{#if selectedTask.urgency === urgency}<Check size={14} />{/if}</button>
+                <button class:selected={selectedTask.urgency === urgency} role="menuitem" onclick={() => changeUrgency(urgency)}><FloodGlyph kind={urgency} size={14} /><span>{urgencyTitle(urgency)}</span>{#if selectedTask.urgency === urgency}<Check size={14} />{/if}</button>
               {/each}
             </div>
           {/if}
@@ -1084,7 +1085,7 @@
         {#if !sidebarCollapsed && selectedChatId === "all" && activeSection === "tasks"}
           <div class="nested-tasks all-task-list">
             {#each visibleTasks as task}
-              <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><span class:important={task.urgency === "important"} class:urgent={task.urgency === "urgent"} class="urgency-dot"></span><span>{task.title}</span></button>
+              <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
             {/each}
           </div>
         {/if}
@@ -1108,7 +1109,7 @@
             {#if !sidebarCollapsed && expandedChatId === chat.id && activeSection === "tasks"}
               <div class="nested-tasks">
                 {#each tasksForChat(chat) as task}
-                  <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><span class:important={task.urgency === "important"} class:urgent={task.urgency === "urgent"} class="urgency-dot"></span><span>{task.title}</span></button>
+                  <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
                 {:else}<span class="nested-empty">Нет открытых задач</span>{/each}
               </div>
             {/if}
@@ -1132,7 +1133,7 @@
       </nav>
 
       <nav class="sidebar-footer" aria-label="Системные разделы">
-        <button class:active={activeSection === "mcp"} class="sidebar-row" onclick={() => changeSection("mcp")} title="MCP"><Plug size={17} /><span>MCP</span><small class="online-dot" aria-label="Готов"></small></button>
+        <button class:active={activeSection === "mcp"} class="sidebar-row" onclick={() => changeSection("mcp")} title="MCP"><Plug size={17} /><span>MCP</span><FloodGlyph kind="connected" size={10} label="Готов" /></button>
         <button class:active={activeSection === "settings"} class="sidebar-row" onclick={() => changeSection("settings")} title="Настройки"><Settings size={17} /><span>Настройки</span></button>
       </nav>
     </aside>
@@ -1143,7 +1144,7 @@
           <div class="task-meta" aria-label="Метаданные задачи">
             <span>{selectedTask.chat}</span>
             <span title={fullDate(selectedTask.createdAt)}>Создана {fullDate(selectedTask.createdAt)}</span>
-            <span>{selectedTask.source?.author ? `Из сообщения · ${selectedTask.source.author}` : selectedTask.hasSource ? "Из сообщения" : "Добавлена вручную"}</span>
+            <span class="source-meta"><FloodGlyph kind="info" size={13} />{selectedTask.source?.author ? `Из сообщения · ${selectedTask.source.author}` : selectedTask.hasSource ? "Из сообщения" : "Добавлена вручную"}</span>
             {#if selectedTask.source?.url}<a href={selectedTask.source.url} target="_blank" rel="noreferrer">Открыть сообщение</a>{/if}
           </div>
           {#if conflictRemote}
@@ -1155,7 +1156,7 @@
           <div class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label="Редактор задачи" spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onkeyup={() => updateHint(currentBlock())} onclick={() => updateHint(currentBlock())} onblur={() => { editorHint = null; void saveNow(); }}></div>
           {#if selectedTask.source?.text}
             <details class="source-snapshot">
-              <summary>Исходное сообщение</summary>
+              <summary><FloodGlyph kind="info" size={15} />Исходное сообщение</summary>
               <p>{selectedTask.source.text}</p>
             </details>
           {/if}
@@ -1188,7 +1189,7 @@
                     <div class="project-task-list">
                       {#each chatTasks as task}
                         <button class="project-task" onclick={() => openTask(task)}>
-                          <span class:important={task.urgency === "important"} class:urgent={task.urgency === "urgent"} class="urgency-dot"></span>
+                          <FloodGlyph kind={task.urgency} size={14} />
                           <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}</small></span>
                           <ChevronRight size={15} />
                         </button>
@@ -1202,7 +1203,7 @@
             <div class="project-task-list standalone">
               {#each currentOpenTasks as task}
                 <button class="project-task" onclick={() => openTask(task)}>
-                  <span class:important={task.urgency === "important"} class:urgent={task.urgency === "urgent"} class="urgency-dot"></span>
+                  <FloodGlyph kind={task.urgency} size={14} />
                   <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}{task.urgency !== "normal" ? ` · ${task.urgency === "urgent" ? "Срочно" : "Важно"}` : ""}</small></span>
                   <ChevronRight size={15} />
                 </button>
@@ -1221,7 +1222,7 @@
               {#if completedGroupOpen}
                 <div class="project-task-list completed-list">
                   {#each currentCompletedTasks as task}
-                    <button class="project-task completed-task" onclick={() => openTask(task)}><CheckCircle2 size={16} /><span class="project-task-copy"><strong>{task.title}</strong><small>{task.chat}</small></span><ChevronRight size={15} /></button>
+                    <button class="project-task completed-task" onclick={() => openTask(task)}><FloodGlyph kind="completed" size={16} motion="pop" /><span class="project-task-copy"><strong>{task.title}</strong><small>{task.chat}</small></span><ChevronRight size={15} /></button>
                   {/each}
                 </div>
               {/if}
@@ -1247,7 +1248,7 @@
         </div>
       </section>
     {:else if activeSection === "mcp"}
-      <section class="workspace simple-workspace"><div class="mcp-card"><span class="status-pill"><span></span>Готов</span><h2>Подключить агента</h2><p>Добавьте локальный сервер в MCP-клиент. Задачи останутся на этом компьютере.</p><div class="code-row"><code>target/release/flood-mcp.exe</code><button class="icon-button" aria-label="Копировать конфигурацию" onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div></div></section>
+      <section class="workspace simple-workspace"><div class="mcp-card"><span class="status-pill"><FloodGlyph kind="connected" size={11} motion="pulse" />Готов</span><h2>Подключить агента</h2><p>Добавьте локальный сервер в MCP-клиент. Задачи останутся на этом компьютере.</p><div class="code-row"><code>target/release/flood-mcp.exe</code><button class="icon-button" aria-label="Копировать конфигурацию" onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div></div></section>
     {:else}
       <section class="workspace simple-workspace"><div class="settings-page"><h2>Настройки</h2><button class:active={showCompleted} class="setting-row" onclick={() => (showCompleted = !showCompleted)}><span><strong>Показывать выполненные</strong><small>Включает завершённые задачи в списках</small></span><span class="switch"><span></span></span></button></div></section>
     {/if}
