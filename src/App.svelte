@@ -4,6 +4,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { openPath, openUrl } from "@tauri-apps/plugin-opener";
   import { relaunch } from "@tauri-apps/plugin-process";
   import { check, type Update } from "@tauri-apps/plugin-updater";
@@ -17,6 +18,7 @@
   type SaveState = "idle" | "saving" | "saved" | "error";
   type ThemePreference = "system" | "light" | "dark";
   type UpdateState = "idle" | "checking" | "available" | "current" | "downloading" | "error";
+  type DataActionState = "idle" | "backing-up" | "restoring" | "success" | "error";
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string };
   type ChatRecord = { id: string; title: string; created_at: string; updated_at: string; version: string };
   type TaskRecord = {
@@ -88,6 +90,9 @@
   let settingsSection: SettingsSection = "general";
   let appVersion = "0.1.0";
   let dataDirectory = "";
+  let dataActionState: DataActionState = "idle";
+  let dataActionMessage = "";
+  let pendingRestorePath = "";
   let mcpExecutable = "";
   let updateState: UpdateState = "idle";
   let updateMessage = "";
@@ -1623,6 +1628,65 @@
     if (dataDirectory) await openPath(dataDirectory);
   }
 
+  async function createDataBackup() {
+    await saveNow();
+    if (conflictRemote || dataActionState === "backing-up" || dataActionState === "restoring") return;
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const destination = await saveDialog({
+      title: "Сохранить резервную копию",
+      defaultPath: `flood-backup-${date}.zip`,
+      filters: [{ name: "Резервная копия flood.md", extensions: ["zip"] }]
+    });
+    if (!destination) return;
+    dataActionState = "backing-up";
+    dataActionMessage = "";
+    try {
+      await invoke("create_backup", { destination });
+      dataActionState = "success";
+      dataActionMessage = `Сохранено: ${fileName(destination)}`;
+    } catch (error) {
+      dataActionState = "error";
+      dataActionMessage = String(error);
+    }
+  }
+
+  async function chooseBackupToRestore() {
+    if (dataActionState === "backing-up" || dataActionState === "restoring") return;
+    const source = await openDialog({
+      title: "Выбрать резервную копию",
+      multiple: false,
+      directory: false,
+      filters: [{ name: "Резервная копия flood.md", extensions: ["zip"] }]
+    });
+    if (!source) return;
+    pendingRestorePath = source;
+    dataActionState = "idle";
+    dataActionMessage = "";
+  }
+
+  async function restoreDataBackup() {
+    if (!pendingRestorePath || dataActionState === "restoring") return;
+    await saveNow();
+    if (conflictRemote) return;
+    dataActionState = "restoring";
+    dataActionMessage = "";
+    try {
+      await invoke("restore_backup", { source: pendingRestorePath });
+      discardLocalDraft();
+      selectedTaskId = "";
+      selectedChatId = "all";
+      workspaceView = "project";
+      await loadData(false);
+      dataActionState = "success";
+      dataActionMessage = "Данные восстановлены";
+      pendingRestorePath = "";
+    } catch (error) {
+      dataActionState = "error";
+      dataActionMessage = String(error);
+    }
+  }
+
   async function checkForUpdates() {
     if (!inTauri() || updateState === "checking" || updateState === "downloading") return;
     updateState = "checking";
@@ -1717,7 +1781,7 @@
       unlisten = await listen("data-changed", () => {
         window.clearTimeout(refreshTimer);
         refreshTimer = window.setTimeout(() => {
-          if (!draftTaskId && saveState !== "saving" && markdown === lastSavedMarkdown) void loadData(true);
+          if (!draftTaskId && dataActionState !== "restoring" && saveState !== "saving" && markdown === lastSavedMarkdown) void loadData(true);
         }, 220);
       });
     })();
@@ -2136,7 +2200,19 @@
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>Данные</h3><p>Markdown остаётся единственным источником правды</p></div>
                   <div class="data-location"><span><FolderOpen size={17} /><span><strong>Папка с задачами</strong><code>{dataDirectory || "Доступна в приложении"}</code></span></span><button onclick={openDataDirectory} disabled={!dataDirectory}>Открыть</button></div>
-                  <button class="settings-action" onclick={() => loadData(true)}><RefreshCw size={15} />Перечитать файлы</button>
+                  <div class="data-actions">
+                    <button onclick={createDataBackup} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><Download size={15} />{dataActionState === "backing-up" ? "Сохраняю…" : "Создать копию"}</button>
+                    <button onclick={chooseBackupToRestore} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><RotateCcw size={15} />Восстановить</button>
+                    <button onclick={() => loadData(true)} disabled={dataActionState === "restoring"}><RefreshCw size={15} />Перечитать</button>
+                  </div>
+                  {#if pendingRestorePath}
+                    <div class="restore-confirm" role="alert">
+                      <FloodGlyph kind="info" size={32} />
+                      <span><strong>Восстановить {fileName(pendingRestorePath)}?</strong><small>Текущие проекты и задачи будут заменены содержимым копии.</small></span>
+                      <div><button onclick={() => (pendingRestorePath = "")}>Отмена</button><button class="restore-button" onclick={restoreDataBackup}>Восстановить</button></div>
+                    </div>
+                  {/if}
+                  {#if dataActionMessage}<p class:error={dataActionState === "error"} class="data-action-message" role="status">{dataActionMessage}</p>{/if}
                 </section>
               {:else if settingsSection === "integrations"}
                 <section class="settings-section">

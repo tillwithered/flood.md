@@ -628,6 +628,19 @@ button { color: inherit; }
 .data-location button:disabled, .update-row button:disabled { opacity: .5; cursor: default; }
 .settings-action { justify-self: start; margin-top: 16px; background: transparent; color: var(--muted); }
 .settings-action:hover { background: var(--hover); color: var(--ink); }
+.data-actions { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 16px; }
+.data-actions button { display: inline-flex; height: 32px; align-items: center; gap: 7px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 550; cursor: pointer; }
+.data-actions button:hover { background: var(--hover); color: var(--ink); }
+.data-actions button:disabled { opacity: .45; cursor: default; }
+.restore-confirm { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--elevated); animation: reveal-list 150ms ease-out; }
+.restore-confirm > span { display: grid; min-width: 0; gap: 3px; }
+.restore-confirm > span strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.restore-confirm > div { display: flex; gap: 4px; }
+.restore-confirm button { height: 30px; padding: 0 9px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; }
+.restore-confirm button:hover { background: var(--hover); color: var(--ink); }
+.restore-confirm .restore-button { background: var(--surface); color: var(--ink); }
+.data-action-message { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+.data-action-message.error { color: var(--danger-ink); }
 .integration-card { display: grid; min-width: 0; gap: 18px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .integration-card > * { min-width: 0; }
 .integration-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }

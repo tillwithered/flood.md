@@ -7,11 +7,12 @@ use sha2::{Digest, Sha256};
 use std::{
     env,
     fs::{self, File, OpenOptions},
-    io::Write,
+    io::{Read, Write},
     path::{Path, PathBuf},
 };
 use thiserror::Error;
 use ulid::Ulid;
+use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 const FORMAT_VERSION: u8 = 1;
 
@@ -29,6 +30,8 @@ pub enum StoreError {
     Io(#[from] std::io::Error),
     #[error("ошибка YAML: {0}")]
     Yaml(#[from] serde_yaml::Error),
+    #[error("ошибка резервной копии: {0}")]
+    Backup(String),
 }
 
 #[derive(Clone, Debug)]
@@ -471,6 +474,157 @@ impl Store {
         Ok(fs::read(path)?)
     }
 
+    pub fn create_backup(&self, destination: &Path) -> Result<(), StoreError> {
+        let parent = destination
+            .parent()
+            .ok_or_else(|| StoreError::Backup("некорректный путь сохранения".into()))?;
+        fs::create_dir_all(parent)?;
+        let root = fs::canonicalize(&self.root)?;
+        let destination_parent = fs::canonicalize(parent)?;
+        if destination_parent.starts_with(&root) {
+            return Err(StoreError::Backup(
+                "резервную копию нельзя сохранить внутри папки данных".into(),
+            ));
+        }
+
+        let _lock = self.lock_shared()?;
+        let mut files = Vec::new();
+        collect_backup_files(&self.chats_dir(), &mut files)?;
+        let temporary = parent.join(format!(".flood-backup-{}.tmp", Ulid::new()));
+        let result = (|| {
+            let file = File::create(&temporary)?;
+            let mut archive = ZipWriter::new(file);
+            let options = SimpleFileOptions::default()
+                .compression_method(zip::CompressionMethod::Deflated)
+                .unix_permissions(0o600);
+            let mut buffer = [0_u8; 64 * 1024];
+            for path in files {
+                let relative = path
+                    .strip_prefix(&self.root)
+                    .map_err(|_| StoreError::Backup("некорректный путь данных".into()))?;
+                let name = relative.to_string_lossy().replace('\\', "/");
+                archive
+                    .start_file(name, options)
+                    .map_err(|error| StoreError::Backup(error.to_string()))?;
+                let mut source = File::open(path)?;
+                loop {
+                    let read = source.read(&mut buffer)?;
+                    if read == 0 {
+                        break;
+                    }
+                    archive
+                        .write_all(&buffer[..read])
+                        .map_err(|error| StoreError::Backup(error.to_string()))?;
+                }
+            }
+            archive
+                .finish()
+                .map_err(|error| StoreError::Backup(error.to_string()))?
+                .sync_all()?;
+            if destination.exists() {
+                fs::remove_file(destination)?;
+            }
+            fs::rename(&temporary, destination)?;
+            Ok(())
+        })();
+        if result.is_err() {
+            let _ = fs::remove_file(&temporary);
+        }
+        result
+    }
+
+    pub fn restore_backup(&self, source: &Path) -> Result<(), StoreError> {
+        if !source.is_file() {
+            return Err(StoreError::Backup("файл резервной копии не найден".into()));
+        }
+        let parent = self
+            .root
+            .parent()
+            .ok_or_else(|| StoreError::Backup("некорректная папка данных".into()))?;
+        let restore_root = parent.join(format!(".flood-restore-{}", Ulid::new()));
+        let previous_chats = self
+            .root
+            .join(format!(".chats-before-restore-{}", Ulid::new()));
+        let result = (|| {
+            fs::create_dir_all(&restore_root)?;
+            let mut archive = ZipArchive::new(File::open(source)?)
+                .map_err(|error| StoreError::Backup(error.to_string()))?;
+            if archive.len() > 20_000 {
+                return Err(StoreError::Backup("в архиве слишком много файлов".into()));
+            }
+            let mut total_size = 0_u64;
+            let mut has_chats = false;
+            for index in 0..archive.len() {
+                let mut entry = archive
+                    .by_index(index)
+                    .map_err(|error| StoreError::Backup(error.to_string()))?;
+                let relative = entry
+                    .enclosed_name()
+                    .ok_or_else(|| StoreError::Backup("архив содержит небезопасный путь".into()))?
+                    .to_path_buf();
+                if relative
+                    .components()
+                    .next()
+                    .and_then(|part| part.as_os_str().to_str())
+                    != Some("chats")
+                {
+                    return Err(StoreError::Backup(
+                        "архив не является резервной копией flood.md".into(),
+                    ));
+                }
+                has_chats = true;
+                total_size = total_size.saturating_add(entry.size());
+                if total_size > 1024 * 1024 * 1024 {
+                    return Err(StoreError::Backup("архив превышает 1 ГБ".into()));
+                }
+                if entry
+                    .unix_mode()
+                    .is_some_and(|mode| mode & 0o170000 == 0o120000)
+                {
+                    return Err(StoreError::Backup(
+                        "символические ссылки не поддерживаются".into(),
+                    ));
+                }
+                let output = restore_root.join(relative);
+                if entry.is_dir() {
+                    fs::create_dir_all(output)?;
+                    continue;
+                }
+                if let Some(parent) = output.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                let mut target = File::create(output)?;
+                std::io::copy(&mut entry, &mut target)?;
+                target.sync_all()?;
+            }
+            if !has_chats || !restore_root.join("chats").is_dir() {
+                return Err(StoreError::Backup(
+                    "в архиве отсутствует папка с проектами".into(),
+                ));
+            }
+
+            let candidate = Store::new(&restore_root)?;
+            candidate.list_chats()?;
+            candidate.list_tasks(None, true)?;
+            candidate.list_trashed_tasks()?;
+
+            let _lock = self.lock_exclusive()?;
+            let current_chats = self.chats_dir();
+            fs::rename(&current_chats, &previous_chats)?;
+            if let Err(error) = fs::rename(restore_root.join("chats"), &current_chats) {
+                let _ = fs::rename(&previous_chats, &current_chats);
+                return Err(error.into());
+            }
+            let _ = fs::remove_dir_all(&previous_chats);
+            Ok(())
+        })();
+        let _ = fs::remove_dir_all(&restore_root);
+        if result.is_err() && previous_chats.exists() && !self.chats_dir().exists() {
+            let _ = fs::rename(&previous_chats, self.chats_dir());
+        }
+        result
+    }
+
     fn set_trashed(
         &self,
         id: &str,
@@ -633,6 +787,24 @@ fn atomic_write_bytes(path: &Path, content: &[u8]) -> Result<(), StoreError> {
     let mut file = AtomicWriteFile::options().open(path)?;
     file.write_all(content)?;
     file.commit()?;
+    Ok(())
+}
+
+fn collect_backup_files(directory: &Path, output: &mut Vec<PathBuf>) -> Result<(), StoreError> {
+    if !directory.exists() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(directory)? {
+        let entry = entry?;
+        let path = entry.path();
+        let kind = entry.file_type()?;
+        if kind.is_dir() {
+            collect_backup_files(&path, output)?;
+        } else if kind.is_file() {
+            output.push(path);
+        }
+    }
+    output.sort();
     Ok(())
 }
 
@@ -971,7 +1143,10 @@ mod tests {
                 .unwrap()
                 .is_file()
         );
-        assert_eq!(store.read_task_attachment(&task.id, &relative).unwrap(), b"image-bytes");
+        assert_eq!(
+            store.read_task_attachment(&task.id, &relative).unwrap(),
+            b"image-bytes"
+        );
 
         let moved = store
             .move_task(&task.id, &second.id, &task.version)
@@ -990,5 +1165,47 @@ mod tests {
             store.resolve_task_attachment(&task.id, &relative),
             Err(StoreError::NotFound(_))
         ));
+    }
+
+    #[test]
+    fn backup_restores_markdown_and_attachments() {
+        let store = temp_store();
+        let chat = store.create_chat("Резервная копия").unwrap();
+        let task = store
+            .create_task(CreateTask {
+                chat_id: chat.id,
+                description: "# Исходная задача".into(),
+                urgency: crate::Urgency::Important,
+                source: None,
+            })
+            .unwrap();
+        let attachment = store
+            .save_task_attachment(&task.id, "пример.png", b"backup-image")
+            .unwrap();
+        let archive = env::temp_dir().join(format!("flood-backup-test-{}.zip", Ulid::new()));
+        store.create_backup(&archive).unwrap();
+
+        let changed = store
+            .update_task(
+                &task.id,
+                TaskPatch {
+                    description: Some("# Изменённая задача".into()),
+                    ..Default::default()
+                },
+                &task.version,
+            )
+            .unwrap();
+        assert_eq!(changed.description, "# Изменённая задача");
+
+        store.restore_backup(&archive).unwrap();
+        assert_eq!(
+            store.get_task(&task.id).unwrap().description,
+            "# Исходная задача"
+        );
+        assert_eq!(
+            store.read_task_attachment(&task.id, &attachment).unwrap(),
+            b"backup-image"
+        );
+        let _ = fs::remove_file(archive);
     }
 }

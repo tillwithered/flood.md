@@ -1,6 +1,6 @@
 use flood_core::{Chat, CreateTask, Store, Task, TaskPatch, TaskSummary, default_data_dir};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
-use std::sync::Mutex;
+use std::{path::PathBuf, sync::Mutex};
 use tauri::{Emitter, Manager, State};
 
 struct AppState {
@@ -183,6 +183,16 @@ fn data_directory() -> String {
 }
 
 #[tauri::command]
+fn create_backup(destination: String, state: State<'_, AppState>) -> Result<(), String> {
+    result(state.store.create_backup(&PathBuf::from(destination)))
+}
+
+#[tauri::command]
+fn restore_backup(source: String, state: State<'_, AppState>) -> Result<(), String> {
+    result(state.store.restore_backup(&PathBuf::from(source)))
+}
+
+#[tauri::command]
 fn mcp_executable_path(app: tauri::AppHandle) -> Result<String, String> {
     let executable = app
         .path()
@@ -198,6 +208,7 @@ fn mcp_executable_path(app: tauri::AppHandle) -> Result<String, String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
@@ -238,6 +249,8 @@ pub fn run() {
             resolve_task_attachment,
             read_task_attachment,
             data_directory,
+            create_backup,
+            restore_backup,
             mcp_executable_path
         ])
         .run(tauri::generate_context!())
