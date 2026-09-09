@@ -85,7 +85,7 @@
   <g transform="translate(342 154)">
     <rect width="246" height="398" rx="20" fill="#FAFAFA"/>
     <g transform="translate(65 50) scale(4.85)" filter="url(#iconLift)"><g mask="url(#filled-project)"><use href="#liquidMaterial"/></g></g>
-    <text x="24" y="298" fill="#171717" font-family="Golos Text, Arial, sans-serif" font-size="18" font-weight="600">Чат-проект</text>
+    <text x="24" y="298" fill="#171717" font-family="Golos Text, Arial, sans-serif" font-size="18" font-weight="600">Проект</text>
     <text x="24" y="325" fill="#777" font-family="Golos Text, Arial, sans-serif" font-size="13">Объём, разделённый уровнем воды</text>
     <g transform="translate(24 352) scale(.92)"><rect width="24" height="24" fill="#666" mask="url(#filled-project)"/></g>
     <g transform="translate(62 352) scale(.92)" filter="url(#iconLift)"><g mask="url(#filled-project)"><use href="#liquidMaterial"/></g></g>

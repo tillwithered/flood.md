@@ -84,22 +84,22 @@ struct MoveTaskArgs {
 
 #[tool_router(server_handler)]
 impl FloodServer {
-    #[tool(description = "Получить список зарегистрированных чатов")]
+    #[tool(description = "Получить список проектов")]
     fn list_chats(&self) -> String {
         json(self.store.list_chats())
     }
 
-    #[tool(description = "Прочитать чат по стабильному идентификатору")]
+    #[tool(description = "Прочитать проект по стабильному идентификатору")]
     fn get_chat(&self, Parameters(args): Parameters<IdArgs>) -> String {
         json(self.store.get_chat(&args.id))
     }
 
-    #[tool(description = "Создать чат-контейнер для задач")]
+    #[tool(description = "Создать проект для задач")]
     fn create_chat(&self, Parameters(args): Parameters<CreateChatArgs>) -> String {
         json(self.store.create_chat(&args.title))
     }
 
-    #[tool(description = "Переименовать чат. expected_version возьмите из get_chat или list_chats")]
+    #[tool(description = "Переименовать проект. expected_version возьмите из get_chat или list_chats")]
     fn update_chat(&self, Parameters(args): Parameters<UpdateChatArgs>) -> String {
         json(
             self.store
@@ -108,13 +108,13 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Окончательно удалить чат-проект и все его задачи; передайте актуальный expected_version"
+        description = "Окончательно удалить проект и все его задачи; передайте актуальный expected_version"
     )]
     fn delete_chat(&self, Parameters(args): Parameters<VersionedTaskArgs>) -> String {
         json(self.store.delete_chat(&args.id, &args.expected_version))
     }
 
-    #[tool(description = "Получить задачи выбранного чата или всех чатов")]
+    #[tool(description = "Получить задачи выбранного проекта или всех проектов")]
     fn list_tasks(&self, Parameters(args): Parameters<ListTasksArgs>) -> String {
         json(
             self.store
@@ -179,7 +179,7 @@ impl FloodServer {
         json(self.store.complete_task(&args.id, &args.expected_version))
     }
 
-    #[tool(description = "Переместить задачу в другой чат-проект")]
+    #[tool(description = "Переместить задачу в другой проект")]
     fn move_task(&self, Parameters(args): Parameters<MoveTaskArgs>) -> String {
         json(
             self.store

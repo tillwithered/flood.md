@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowRight, Bold, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Folder, FolderPlus, Heading1, Italic, Link, ListTodo, MessageSquareText, Minus, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, RotateCcw, Search, Settings, Square, Trash2, Underline, X } from "@lucide/svelte";
+  import { ArrowRight, Bold, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Folder, FolderPlus, Heading1, Italic, Link, ListTodo, Maximize2, MessageSquareText, Minus, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, RotateCcw, Search, Settings, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -114,6 +114,9 @@
   let savedSelection: Range | null = null;
   let linkEditorOpen = false;
   let linkDraft = "";
+  let imageViewer: { src: string; alt: string } | null = null;
+  let imageViewerZoom = 1;
+  let imageViewerDialog: HTMLDivElement;
 
   const uiPreferencesKey = "flood.ui.preferences";
 
@@ -207,7 +210,7 @@
   }
 
   function chatTitle(chatId: string, records = chats) {
-    return records.find((chat) => chat.id === chatId)?.title ?? "Неизвестный чат";
+    return records.find((chat) => chat.id === chatId)?.title ?? "Неизвестный проект";
   }
 
   function toTaskItem(task: TaskRecord | TaskSummaryRecord, records = chats): TaskItem {
@@ -393,14 +396,24 @@
     image.alt = alt || "Изображение";
     if (source) image.src = source;
     image.draggable = false;
+    const tools = document.createElement("span");
+    tools.className = "attachment-tools";
+    const view = document.createElement("button");
+    view.type = "button";
+    view.className = "attachment-tool";
+    view.dataset.viewAttachment = "true";
+    view.setAttribute("aria-label", `Открыть ${image.alt} на весь экран`);
+    view.title = "Открыть на весь экран";
+    view.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
     const remove = document.createElement("button");
     remove.type = "button";
-    remove.className = "attachment-remove";
+    remove.className = "attachment-tool danger";
     remove.dataset.removeAttachment = "true";
     remove.setAttribute("aria-label", `Убрать изображение ${image.alt} из задачи`);
     remove.title = "Убрать изображение";
-    remove.textContent = "×";
-    card.append(image, remove);
+    remove.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/></svg>';
+    tools.append(view, remove);
+    card.append(image, tools);
     return card;
   }
 
@@ -843,8 +856,38 @@
     setChatExpanded(chat.id, !isChatExpanded(chat.id));
   }
 
+  async function openImageViewer(card: HTMLElement) {
+    const image = card.querySelector("img");
+    if (!image?.src) return;
+    imageViewer = { src: image.src, alt: image.alt || "Изображение" };
+    imageViewerZoom = 1;
+    await tick();
+    imageViewerDialog?.focus();
+  }
+
+  function closeImageViewer() {
+    imageViewer = null;
+    imageViewerZoom = 1;
+  }
+
+  function changeImageZoom(step: number) {
+    imageViewerZoom = Math.min(4, Math.max(.5, Math.round((imageViewerZoom + step) * 10) / 10));
+  }
+
+  function handleWindowKeydown(event: KeyboardEvent) {
+    if (imageViewer && event.key === "Escape") closeImageViewer();
+  }
+
   function handleEditorClick(event: MouseEvent) {
     const target = event.target instanceof Element ? event.target : null;
+    const view = target?.closest<HTMLElement>("[data-view-attachment]");
+    if (view) {
+      event.preventDefault();
+      event.stopPropagation();
+      const card = view.closest<HTMLElement>(".attachment-card");
+      if (card) void openImageViewer(card);
+      return;
+    }
     const remove = target?.closest<HTMLElement>("[data-remove-attachment]");
     if (remove) {
       event.preventDefault();
@@ -1447,6 +1490,7 @@
 </script>
 
 <svelte:head><title>flood.md</title></svelte:head>
+<svelte:window onkeydown={handleWindowKeydown} />
 
 {#if editorHint}
   <aside class="editor-hint" style:left={`${editorHint.left}px`} style:top={`${editorHint.top}px`} aria-live="polite">{editorHint.title}</aside>
@@ -1558,7 +1602,7 @@
         <button class="new-task-button" aria-label="Новая задача" aria-expanded={newTaskMenuAnchor === "sidebar"} onclick={() => requestNewTask("sidebar")}><Plus size={17} /><span>Новая задача</span></button>
         {#if newTaskMenuAnchor === "sidebar" && !sidebarCollapsed}
           <div class="new-task-menu">
-            <small>Выберите чат-проект</small>
+            <small>Выберите проект</small>
             {#each chats.slice(1) as chat}<button onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
           </div>
         {/if}
@@ -1569,13 +1613,13 @@
         {/if}
       </div>
 
-      <nav class="sidebar-navigation" aria-label="Чаты и задачи">
+      <nav class="sidebar-navigation" aria-label="Проекты и задачи">
         <div class:active={activeSection === "tasks" && selectedChatId === "all"} class="project-row all-tasks-row" title="Все задачи">
           <button class="project-open" onclick={() => chats[0] && selectChat(chats[0])} aria-label="Открыть все задачи">
             <ListTodo size={17} /><span>Все задачи</span><small>{tasks.filter((task) => !task.completed).length}</small>
           </button>
           {#if !sidebarCollapsed}
-            <button class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={(event) => { event.preventDefault(); event.stopPropagation(); toggleAllTasks(); }} aria-label={allTasksExpanded ? "Свернуть все задачи" : "Раскрыть все задачи"}><ChevronRight size={13} /></button>
+            <button type="button" class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={(event) => { event.stopPropagation(); toggleAllTasks(); }} aria-label={allTasksExpanded ? "Свернуть все задачи" : "Раскрыть все задачи"}><ChevronRight size={13} /></button>
           {/if}
         </div>
 
@@ -1587,7 +1631,7 @@
           </div>
         {/if}
 
-        {#each chats.slice(1) as chat}
+        {#each chats.slice(1) as chat (chat.id)}
           <div class="chat-group">
             <div class:active={activeSection === "tasks" && selectedChatId === chat.id} class="project-row" title={chat.title}>
               <button class="project-open" onclick={() => selectChat(chat)} aria-label={`Открыть ${chat.title}`}>
@@ -1598,7 +1642,7 @@
                 {/if}
               </button>
               {#if !sidebarCollapsed}
-                <button class:expanded={isChatExpanded(chat.id)} class="project-expand" aria-expanded={isChatExpanded(chat.id)} onclick={(event) => { event.preventDefault(); event.stopPropagation(); toggleChat(chat); }} aria-label={isChatExpanded(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}><ChevronRight size={13} /></button>
+                <button type="button" class:expanded={isChatExpanded(chat.id)} class="project-expand" aria-expanded={isChatExpanded(chat.id)} onclick={(event) => { event.stopPropagation(); toggleChat(chat); }} aria-label={isChatExpanded(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}><ChevronRight size={13} /></button>
               {/if}
             </div>
             {#if !sidebarCollapsed && isChatExpanded(chat.id) && activeSection === "tasks"}
@@ -1615,12 +1659,12 @@
           {#if createChatOpen}
             <form class="create-chat-form" onsubmit={submitCreateChat}>
               <FolderPlus size={15} />
-              <input bind:value={createChatTitle} aria-label="Название чат-проекта" placeholder="Название чат-проекта" />
+              <input bind:value={createChatTitle} aria-label="Название проекта" placeholder="Название проекта" />
               <button aria-label="Создать"><Check size={14} /></button>
               <button type="button" aria-label="Отмена" onclick={() => { createChatOpen = false; createChatTitle = ""; }}><X size={14} /></button>
             </form>
           {:else}
-            <button class="sidebar-row add-chat-row" onclick={() => (createChatOpen = true)}><FolderPlus size={16} /><span>Новый чат-проект</span></button>
+            <button class="sidebar-row add-chat-row" onclick={() => (createChatOpen = true)}><FolderPlus size={16} /><span>Новый проект</span></button>
           {/if}
         {/if}
 
@@ -1664,14 +1708,14 @@
           <header class="project-header">
             <div>
               {#if renameChatOpen}
-                <form class="rename-chat-form" onsubmit={submitRenameChat}><input bind:value={renameChatTitle} aria-label="Название чат-проекта" /><button aria-label="Сохранить"><Check size={16} /></button><button type="button" aria-label="Отмена" onclick={() => (renameChatOpen = false)}><X size={16} /></button></form>
+                <form class="rename-chat-form" onsubmit={submitRenameChat}><input bind:value={renameChatTitle} aria-label="Название проекта" /><button aria-label="Сохранить"><Check size={16} /></button><button type="button" aria-label="Отмена" onclick={() => (renameChatOpen = false)}><X size={16} /></button></form>
                 {#if formError}<span class="form-error">{formError}</span>{/if}
               {:else}
                 <div class="project-title-row">
                   <h1>{currentChat.title}</h1>
                   {#if currentChat.id !== "all"}
-                    <button class="icon-button" aria-label="Переименовать чат-проект" onclick={startRenameChat}><Pencil size={15} /></button>
-                    <button class="icon-button danger-icon" aria-label="Удалить чат-проект" onclick={() => (deleteChatConfirmOpen = true)}><Trash2 size={15} /></button>
+                    <button class="icon-button" aria-label="Переименовать проект" onclick={startRenameChat}><Pencil size={15} /></button>
+                    <button class="icon-button danger-icon" aria-label="Удалить проект" onclick={() => (deleteChatConfirmOpen = true)}><Trash2 size={15} /></button>
                   {/if}
                 </div>
               {/if}
@@ -1681,7 +1725,7 @@
               <button class="project-add-button" aria-expanded={newTaskMenuAnchor === "workspace"} onclick={() => requestNewTask("workspace")}><Plus size={16} />Новая задача</button>
               {#if newTaskMenuAnchor === "workspace"}
                 <div class="new-task-menu workspace-new-task-menu">
-                  <small>Выберите чат-проект</small>
+                  <small>Выберите проект</small>
                   {#each chats.slice(1) as chat}<button onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
                 </div>
               {/if}
@@ -1690,8 +1734,8 @@
 
           {#if deleteChatConfirmOpen}
             <div class="destructive-confirm project-delete-confirm" role="alert">
-              <span class="confirm-glyph"><FloodGlyph kind="urgent" size={40} motion="pop" label="Удаление чат-проекта" /></span>
-              <span class="confirm-copy"><strong>Удалить «{currentChat.title}»?</strong><small>Чат-проект и все его задачи будут удалены навсегда.</small></span>
+              <span class="confirm-glyph"><FloodGlyph kind="urgent" size={40} motion="pop" label="Удаление проекта" /></span>
+              <span class="confirm-copy"><strong>Удалить «{currentChat.title}»?</strong><small>Проект и все его задачи будут удалены навсегда.</small></span>
               <div class="confirm-actions"><button onclick={() => (deleteChatConfirmOpen = false)}>Отмена</button><button class="danger-button" onclick={deleteCurrentChat}>Удалить</button></div>
             </div>
           {/if}
@@ -1807,3 +1851,17 @@
     {/if}
   </div>
 </main>
+
+{#if imageViewer}
+  <div class="image-viewer" bind:this={imageViewerDialog} role="dialog" aria-modal="true" aria-label={`Просмотр ${imageViewer.alt}`} tabindex="-1">
+    <div class="image-viewer-stage" onwheel={(event) => { event.preventDefault(); changeImageZoom(event.deltaY < 0 ? .2 : -.2); }}>
+      <img src={imageViewer.src} alt={imageViewer.alt} draggable="false" style:zoom={imageViewerZoom} />
+    </div>
+    <div class="image-viewer-toolbar" aria-label="Масштаб изображения">
+      <button aria-label="Уменьшить" title="Уменьшить" onclick={() => changeImageZoom(-.2)}><ZoomOut size={17} /></button>
+      <button class="image-zoom-value" aria-label="Сбросить масштаб" title="Сбросить масштаб" onclick={() => (imageViewerZoom = 1)}>{Math.round(imageViewerZoom * 100)}%</button>
+      <button aria-label="Увеличить" title="Увеличить" onclick={() => changeImageZoom(.2)}><ZoomIn size={17} /></button>
+    </div>
+    <button class="image-viewer-close" aria-label="Закрыть просмотр" title="Закрыть" onclick={closeImageViewer}><X size={18} /></button>
+  </div>
+{/if}
