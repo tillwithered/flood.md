@@ -74,8 +74,11 @@
   let activeSection: Section = "tasks";
   let workspaceView: WorkspaceView = "project";
   let selectedTaskId = "";
+  let draftTaskId = "";
+  let draftDirty = false;
   let selectedChatId = "all";
   let query = "";
+  let searchInput: HTMLInputElement;
   let showCompleted = false;
   let sidebarCollapsed = false;
   let expandedChatIds: string[] = [];
@@ -251,6 +254,10 @@
 
   function fullDate(value: string) {
     return new Intl.DateTimeFormat("ru", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+  }
+
+  function fileName(path: string) {
+    return path.split(/[\\/]/).pop() || path;
   }
 
   function chatTitle(chatId: string, records = chats) {
@@ -545,9 +552,69 @@
     saveTimer = window.setTimeout(() => { void saveNow(); }, 900);
   }
 
-  async function saveNow() {
+  function isLocalDraft(task: TaskItem) {
+    return task.id === draftTaskId;
+  }
+
+  function discardLocalDraft() {
+    if (!draftTaskId) return;
+    tasks = tasks.filter((task) => task.id !== draftTaskId);
+    if (selectedTaskId === draftTaskId) selectedTaskId = "";
+    draftTaskId = "";
+    draftDirty = false;
+    markdown = "";
+    lastSavedMarkdown = "";
+    saveState = "idle";
+  }
+
+  async function saveNow(forceDraft = false) {
     window.clearTimeout(saveTimer);
     if (!inTauri() || !selectedTaskId) return;
+    const currentTask = tasks.find((item) => item.id === selectedTaskId);
+    if (currentTask && isLocalDraft(currentTask)) {
+      if (!draftDirty && !forceDraft) {
+        saveState = "idle";
+        return;
+      }
+      if (saveInFlight) {
+        await saveInFlight;
+        return;
+      }
+      const localId = currentTask.id;
+      const content = currentTask.markdown.replace(/^#\s*$/, "# Новая задача");
+      saveState = "saving";
+      const work = (async () => {
+        try {
+          const created = await invoke<TaskRecord>("create_task", {
+            input: { chat_id: currentTask.chatId, description: content, urgency: currentTask.urgency, source: null }
+          });
+          const converted = toTaskItem(created);
+          const latestDraft = tasks.find((task) => task.id === localId);
+          const hasNewerText = Boolean(latestDraft && latestDraft.markdown !== currentTask.markdown);
+          const nextTask = hasNewerText && latestDraft
+            ? { ...converted, markdown: latestDraft.markdown, title: latestDraft.title }
+            : converted;
+          tasks = tasks.map((task) => task.id === localId ? nextTask : task);
+          if (selectedTaskId === localId) {
+            selectedTaskId = converted.id;
+            markdown = nextTask.markdown;
+            lastSavedMarkdown = converted.markdown;
+          }
+          draftTaskId = "";
+          draftDirty = false;
+          saveState = "saved";
+          saveError = "";
+          if (hasNewerText) scheduleSave();
+        } catch (error) {
+          saveState = "error";
+          saveError = String(error);
+        }
+      })();
+      saveInFlight = work;
+      await work;
+      saveInFlight = null;
+      return;
+    }
     if (saveInFlight) {
       await saveInFlight;
       const queued = tasks.find((task) => task.id === selectedTaskId);
@@ -772,6 +839,8 @@
 
   async function importAttachments(files: File[]) {
     if (!selectedTaskId || !inTauri()) return;
+    await saveNow(true);
+    if (draftTaskId || saveState === "error") return;
     for (const file of files) {
       try {
         const relativePath = await invoke<string>("save_task_attachment", {
@@ -882,29 +951,30 @@
   $: currentChat = chats.find((chat) => chat.id === selectedChatId) ?? allChat(0);
   $: normalizedQuery = query.trim().toLocaleLowerCase("ru");
   $: searchActive = normalizedQuery.length > 0;
-  $: visibleTasks = tasks.filter((task) => showCompleted || !task.completed);
+  $: visibleTasks = tasks.filter((task) => !isLocalDraft(task) && (showCompleted || !task.completed));
   $: sidebarSearchGroups = searchActive ? chats.slice(1).map((chat) => {
     const projectMatches = chat.title.toLocaleLowerCase("ru").includes(normalizedQuery);
-    const projectTasks = tasks.filter((task) => task.chatId === chat.id);
+    const projectTasks = tasks.filter((task) => !isLocalDraft(task) && task.chatId === chat.id);
     return { chat, tasks: projectMatches ? projectTasks : projectTasks.filter(taskMatchesQuery), projectMatches };
   }).filter((group) => group.projectMatches || group.tasks.length) : [];
   $: currentProjectTasks = tasks
-    .filter((task) => selectedChatId === "all" || task.chatId === selectedChatId)
+    .filter((task) => !isLocalDraft(task) && (selectedChatId === "all" || task.chatId === selectedChatId))
     .sort((left, right) => ({ urgent: 0, important: 1, normal: 2 })[left.urgency] - ({ urgent: 0, important: 1, normal: 2 })[right.urgency]);
   $: currentOpenTasks = currentProjectTasks.filter((task) => !task.completed);
   $: currentCompletedTasks = currentProjectTasks.filter((task) => task.completed);
 
   function tasksForChat(chat: ChatItem) {
-    return tasks.filter((task) => task.chatId === chat.id && (showCompleted || !task.completed));
+    return tasks.filter((task) => !isLocalDraft(task) && task.chatId === chat.id && (showCompleted || !task.completed));
   }
 
   function openTaskCount(chatId: string) {
-    return tasks.filter((task) => !task.completed && (chatId === "all" || task.chatId === chatId)).length;
+    return tasks.filter((task) => !isLocalDraft(task) && !task.completed && (chatId === "all" || task.chatId === chatId)).length;
   }
 
   async function selectChat(chat: ChatItem) {
     await saveNow();
     if (conflictRemote) return;
+    discardLocalDraft();
     selectedChatId = chat.id;
     activeSection = "tasks";
     workspaceView = "project";
@@ -941,8 +1011,42 @@
     imageViewerZoom = Math.min(4, Math.max(.5, Math.round((imageViewerZoom + step) * 10) / 10));
   }
 
-  function handleWindowKeydown(event: KeyboardEvent) {
-    if (imageViewer && event.key === "Escape") closeImageViewer();
+  async function handleWindowKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      if (imageViewer) closeImageViewer();
+      else if (newTaskMenuAnchor || urgencyMenuOpen || taskActionMenuOpen || sourceEditorOpen || datePickerOpen) {
+        newTaskMenuAnchor = null;
+        urgencyMenuOpen = false;
+        taskActionMenuOpen = false;
+        moveMenuOpen = false;
+        sourceEditorOpen = false;
+        datePickerOpen = false;
+      }
+      else if (activeSection === "tasks" && workspaceView === "task") await backToProject();
+      return;
+    }
+    if (event.ctrlKey && event.key.toLocaleLowerCase() === "k") {
+      event.preventDefault();
+      setSidebarCollapsed(false);
+      await tick();
+      searchInput?.focus();
+      searchInput?.select();
+      return;
+    }
+    if (event.ctrlKey && event.key.toLocaleLowerCase() === "n") {
+      event.preventDefault();
+      requestNewTask(workspaceView === "project" ? "workspace" : "sidebar");
+      return;
+    }
+    if (event.ctrlKey && event.key.toLocaleLowerCase() === "s") {
+      event.preventDefault();
+      await saveNow();
+      return;
+    }
+    if (event.altKey && event.key === "ArrowLeft" && activeSection === "tasks" && workspaceView === "task") {
+      event.preventDefault();
+      await backToProject();
+    }
   }
 
   function handleEditorClick(event: MouseEvent) {
@@ -1005,6 +1109,7 @@
   function syncEditor() {
     const block = currentBlock();
     if (!block) return;
+    if (selectedTaskId === draftTaskId) draftDirty = true;
     const transformed = transformTypedMarker(block);
     serializeEditor();
     updateHint(transformed ? null : block);
@@ -1083,6 +1188,7 @@
   async function openTask(task: TaskItem) {
     await saveNow();
     if (conflictRemote) return;
+    discardLocalDraft();
     let fullTask = task;
     if (inTauri()) {
       try {
@@ -1121,28 +1227,51 @@
   async function createDraft(chosenChat?: ChatItem) {
     await saveNow();
     if (conflictRemote) return;
+    discardLocalDraft();
     const targetChat = chosenChat ?? (selectedChatId === "all" ? undefined : currentChat);
     if (!targetChat || targetChat.id === "all" || !inTauri()) return;
     newTaskMenuAnchor = null;
-    let draft: TaskItem;
-    try {
-      const created = await invoke<TaskRecord>("create_task", {
-        input: { chat_id: targetChat.id, description: "# Новая задача", urgency: "normal", source: null }
-      });
-      draft = toTaskItem(created);
-    } catch (error) {
-      loadError = String(error);
-      return;
-    }
+    const now = new Date().toISOString();
+    const draft: TaskItem = {
+      id: `draft-${Date.now()}`,
+      title: "Новая задача",
+      chat: targetChat.title,
+      chatId: targetChat.id,
+      updated: "сейчас",
+      createdAt: now,
+      updatedAt: now,
+      urgency: "normal",
+      completed: false,
+      markdown: "# ",
+      hasSource: false,
+      version: ""
+    };
+    draftTaskId = draft.id;
+    draftDirty = false;
     tasks = [draft, ...tasks];
     selectedChatId = targetChat.id;
     setChatExpanded(targetChat.id);
     selectedTaskId = draft.id;
     markdown = draft.markdown;
     lastSavedMarkdown = draft.markdown;
-    saveState = "saved";
+    saveState = "idle";
     workspaceView = "task";
     void tick().then(() => { renderMarkdown(markdown); void focusEditor(); });
+  }
+
+  async function backToProject() {
+    await saveNow();
+    if (conflictRemote) return;
+    discardLocalDraft();
+    workspaceView = "project";
+    selectedTaskId = "";
+    markdown = "";
+    lastSavedMarkdown = "";
+    editorHint = null;
+    selectionToolbar = null;
+    taskActionMenuOpen = false;
+    sourceEditorOpen = false;
+    datePickerOpen = false;
   }
 
   async function submitCreateChat(event: SubmitEvent) {
@@ -1297,7 +1426,7 @@
 
   async function saveSource(event: SubmitEvent) {
     event.preventDefault();
-    await saveNow();
+    await saveNow(true);
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || !sourceText.trim() || conflictRemote || !inTauri()) {
       if (!sourceText.trim()) formError = "Добавьте текст исходного сообщения";
@@ -1343,7 +1472,7 @@
   }
 
   async function moveSelectedTask(chat: ChatItem) {
-    await saveNow();
+    await saveNow(true);
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || chat.id === "all" || task.chatId === chat.id || conflictRemote || !inTauri()) return;
     try {
@@ -1363,6 +1492,12 @@
   }
 
   async function trashSelectedTask() {
+    if (selectedTaskId === draftTaskId) {
+      discardLocalDraft();
+      workspaceView = "project";
+      taskActionMenuOpen = false;
+      return;
+    }
     await saveNow();
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || conflictRemote || !inTauri()) return;
@@ -1418,7 +1553,7 @@
   }
 
   async function toggleComplete() {
-    await saveNow();
+    await saveNow(true);
     if (conflictRemote) return;
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || !inTauri()) return;
@@ -1444,7 +1579,7 @@
 
   async function changeUrgency(urgency: Urgency) {
     urgencyMenuOpen = false;
-    await saveNow();
+    await saveNow(true);
     if (conflictRemote) return;
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || !inTauri() || urgency === task.urgency) return;
@@ -1469,6 +1604,7 @@
     if (activeSection === section) return;
     await saveNow();
     if (conflictRemote) return;
+    discardLocalDraft();
     activeSection = section;
     deleteChatConfirmOpen = false;
     emptyTrashConfirmOpen = false;
@@ -1581,7 +1717,7 @@
       unlisten = await listen("data-changed", () => {
         window.clearTimeout(refreshTimer);
         refreshTimer = window.setTimeout(() => {
-          if (saveState !== "saving" && markdown === lastSavedMarkdown) void loadData(true);
+          if (!draftTaskId && saveState !== "saving" && markdown === lastSavedMarkdown) void loadData(true);
         }, 220);
       });
     })();
@@ -1653,7 +1789,11 @@
     </div>
     <div class="window-context" data-tauri-drag-region="deep">
       {#if activeSection === "tasks"}
-        <span>{workspaceView === "task" && selectedTask ? selectedTask.chat : currentChat.title}</span>
+        {#if workspaceView === "task" && selectedTask}
+          <button class="window-context-back" aria-label={`Вернуться в проект ${selectedTask.chat}`} title="Вернуться в проект · Alt+←" onclick={backToProject}><ChevronLeft size={14} /><span>{selectedTask.chat}</span></button>
+        {:else}
+          <span>{currentChat.title}</span>
+        {/if}
       {:else}
         <span>{activeSection === "trash" ? "Корзина" : "Настройки"}</span>
       {/if}
@@ -1732,13 +1872,13 @@
         {#if newTaskMenuAnchor === "sidebar" && !sidebarCollapsed}
           <div class="new-task-menu">
             <small>Выберите проект</small>
-            {#each chats.slice(1) as chat}<button onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
+            {#each chats.slice(1) as chat}<button title={chat.title} onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
           </div>
         {/if}
         {#if sidebarCollapsed}
           <button class="sidebar-icon" aria-label="Поиск" onclick={() => setSidebarCollapsed(false)}><Search size={17} /></button>
         {:else}
-          <div class="search-field"><Search size={15} aria-hidden="true" /><input bind:value={query} aria-label="Поиск задач" placeholder="Поиск" />{#if searchActive}<button class="search-clear" aria-label="Очистить поиск" title="Очистить поиск" onclick={() => (query = "")}><X size={14} /></button>{/if}</div>
+          <div class="search-field"><Search size={15} aria-hidden="true" /><input bind:this={searchInput} bind:value={query} aria-label="Поиск задач" placeholder="Поиск" />{#if searchActive}<button class="search-clear" aria-label="Очистить поиск" title="Очистить поиск" onclick={() => (query = "")}><X size={14} /></button>{/if}</div>
         {/if}
       </div>
 
@@ -1759,7 +1899,7 @@
         {:else}
           <div class:active={activeSection === "tasks" && selectedChatId === "all"} class="project-row all-tasks-row">
             <button class="project-open" onclick={() => chats[0] && selectChat(chats[0])} onmouseenter={(event) => showSidebarProjectHint(event, "Все задачи")} onmouseleave={hideSidebarProjectHint} onfocus={(event) => showSidebarProjectHint(event, "Все задачи")} onblur={hideSidebarProjectHint} aria-label="Открыть все задачи">
-              <ListTodo size={17} /><span>Все задачи</span><small>{tasks.filter((task) => !task.completed).length}</small>
+              <ListTodo size={17} /><span>Все задачи</span><small>{tasks.filter((task) => !isLocalDraft(task) && !task.completed).length}</small>
             </button>
             {#if !sidebarCollapsed}
               <button type="button" class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={toggleAllTasks} aria-label={allTasksExpanded ? "Свернуть все задачи" : "Раскрыть все задачи"}><ChevronRight size={13} /></button>
@@ -1831,7 +1971,7 @@
               <div><button onclick={useDiskVersion}>Версию с диска</button><button onclick={keepLocalVersion}>Мою версию</button></div>
             </div>
           {/if}
-          <div class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label="Редактор задачи" spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={() => { editorHint = null; void saveNow(); }}></div>
+          <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label="Редактор задачи" spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={() => { editorHint = null; void saveNow(); }}></div>
           {#if selectedTask.source?.text}
             <details class="source-snapshot">
               <summary><FloodGlyph kind="info" size={15} />Исходное сообщение</summary>
@@ -1865,7 +2005,7 @@
               {#if newTaskMenuAnchor === "workspace"}
                 <div class="new-task-menu workspace-new-task-menu">
                   <small>Выберите проект</small>
-                  {#each chats.slice(1) as chat}<button onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
+                  {#each chats.slice(1) as chat}<button title={chat.title} onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
                 </div>
               {/if}
             </div>
@@ -1973,24 +2113,24 @@
           <header class="settings-header"><h2>Настройки</h2><p>Приложение, данные и локальные подключения</p></header>
           <div class="settings-layout">
             <nav class="settings-nav" aria-label="Разделы настроек">
-              <button class:active={settingsSection === "general"} onclick={() => (settingsSection = "general")}><Settings size={16} />Общие</button>
-              <button class:active={settingsSection === "appearance"} onclick={() => (settingsSection = "appearance")}><Palette size={16} />Внешний вид</button>
-              <button class:active={settingsSection === "data"} onclick={() => (settingsSection = "data")}><Database size={16} />Данные</button>
-              <button class:active={settingsSection === "integrations"} onclick={() => (settingsSection = "integrations")}><Plug size={16} />Интеграции <span class="integration-chip"><FloodGlyph kind="connected" size={8} />MCP</span></button>
-              <button class:active={settingsSection === "about"} onclick={() => (settingsSection = "about")}><Info size={16} />О приложении</button>
+              <button class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => (settingsSection = "general")}><Settings size={16} />Общие</button>
+              <button class:active={settingsSection === "appearance"} aria-current={settingsSection === "appearance" ? "page" : undefined} onclick={() => (settingsSection = "appearance")}><Palette size={16} />Внешний вид</button>
+              <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => (settingsSection = "data")}><Database size={16} />Данные</button>
+              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => (settingsSection = "integrations")}><Plug size={16} />Интеграции <span class="integration-chip">MCP</span></button>
+              <button class:active={settingsSection === "about"} aria-current={settingsSection === "about" ? "page" : undefined} onclick={() => (settingsSection = "about")}><Info size={16} />О приложении</button>
             </nav>
             <div class="settings-content">
               {#if settingsSection === "general"}
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>Общие</h3><p>Основное поведение flood.md</p></div>
                   <div class="setting-static"><span><Languages size={16} /><span><strong>Язык</strong><small>Язык интерфейса</small></span></span><span class="setting-value">Русский</span></div>
-                  <button class:active={showCompleted} class="setting-row" onclick={toggleCompletedVisibility}><span><ListTodo size={16} /><span><strong>Показывать выполненные</strong><small>Включает завершённые задачи в списках</small></span></span><span class="switch"><span></span></span></button>
+                  <button class:active={showCompleted} class="setting-row" role="switch" aria-checked={showCompleted} onclick={toggleCompletedVisibility}><span><ListTodo size={16} /><span><strong>Показывать выполненные</strong><small>Включает завершённые задачи в списках</small></span></span><span class="switch"><span></span></span></button>
                 </section>
               {:else if settingsSection === "appearance"}
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>Внешний вид</h3><p>Тема и движение интерфейса</p></div>
-                  <div class="settings-control"><strong>Тема</strong><div class="theme-picker" aria-label="Тема интерфейса"><button class:active={themePreference === "system"} onclick={() => setTheme("system")}>Системная</button><button class:active={themePreference === "light"} onclick={() => setTheme("light")}>Светлая</button><button class:active={themePreference === "dark"} onclick={() => setTheme("dark")}>Тёмная</button></div></div>
-                  <button class:active={reduceMotion} class="setting-row" onclick={toggleMotionPreference}><span><span><strong>Уменьшить анимации</strong><small>Отключает декоративное движение</small></span></span><span class="switch"><span></span></span></button>
+                  <div class="settings-control"><strong>Тема</strong><div class="theme-picker" aria-label="Тема интерфейса"><button class:active={themePreference === "system"} aria-pressed={themePreference === "system"} onclick={() => setTheme("system")}>Системная</button><button class:active={themePreference === "light"} aria-pressed={themePreference === "light"} onclick={() => setTheme("light")}>Светлая</button><button class:active={themePreference === "dark"} aria-pressed={themePreference === "dark"} onclick={() => setTheme("dark")}>Тёмная</button></div></div>
+                  <button class:active={reduceMotion} class="setting-row" role="switch" aria-checked={reduceMotion} onclick={toggleMotionPreference}><span><span><strong>Уменьшить анимации</strong><small>Отключает декоративное движение</small></span></span><span class="switch"><span></span></span></button>
                 </section>
               {:else if settingsSection === "data"}
                 <section class="settings-section">
@@ -2001,7 +2141,7 @@
               {:else if settingsSection === "integrations"}
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>Интеграции</h3><p>Локальные подключения без отправки данных в облако</p></div>
-                  <div class="integration-card"><div class="integration-head"><span><FloodGlyph kind="connected" size={15} motion="pulse" /><span><strong>MCP-сервер</strong><small>Готов к подключению</small></span></span><span class="status-text">Работает локально</span></div><p>Скопируйте конфигурацию в MCP-клиент. Сервер использует те же Markdown-файлы, что и приложение.</p><div class="code-row"><code>{mcpExecutable || "flood-mcp.exe"}</code><button class="icon-button" aria-label="Копировать конфигурацию" onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div></div>
+                  <div class="integration-card"><div class="integration-head"><span><FloodGlyph kind="connected" size={15} /><span><strong>MCP-сервер</strong><small>Установлен вместе с приложением</small></span></span><span class="status-text">Установлен</span></div><p>Конфигурацию можно скопировать в MCP-клиент. Сервер работает с той же локальной папкой Markdown.</p><div class="code-row" title={mcpExecutable || "flood-mcp.exe"}><code>{fileName(mcpExecutable || "flood-mcp.exe")}</code><button class="icon-button" aria-label="Копировать конфигурацию" title={copied ? "Скопировано" : "Копировать конфигурацию"} onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div></div>
                 </section>
               {:else}
                 <section class="settings-section">
