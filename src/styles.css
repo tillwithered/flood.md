@@ -447,10 +447,14 @@ button { color: inherit; }
 .editor-block.code { margin: 5px 0; padding: 8px 11px; border-radius: 8px; background: #f7f7f7; font: 13px/1.55 "Cascadia Mono", Consolas, monospace; }
 
 .editor-hint { position: fixed; z-index: 40; min-height: 26px; padding: 5px 10px; border: 0; border-radius: 999px; background: #f7f7f7; color: #666666; font-size: 12px; font-weight: 400; line-height: 16px; white-space: nowrap; box-shadow: 0 3px 10px rgb(0 0 0 / 4%); pointer-events: none; }
-.selection-toolbar { position: fixed; z-index: 70; display: flex; height: 34px; align-items: center; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--elevated); box-shadow: 0 9px 28px var(--shadow); animation: popover-in 120ms cubic-bezier(.2,.8,.3,1); }
+.selection-toolbar { position: fixed; z-index: 70; display: grid; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--elevated); box-shadow: 0 9px 28px var(--shadow); animation: popover-in 120ms cubic-bezier(.2,.8,.3,1); }
+.selection-toolbar-actions { display: flex; height: 28px; align-items: center; gap: 2px; }
 .selection-toolbar button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
 .selection-toolbar button:hover { background: var(--hover); color: var(--ink); }
-.selection-toolbar > span { width: 1px; height: 17px; margin: 0 2px; background: var(--line); }
+.selection-toolbar button.active { background: var(--selected); color: var(--ink); }
+.selection-toolbar-actions > span { width: 1px; height: 17px; margin: 0 2px; background: var(--line); }
+.selection-link-form { display: grid; grid-template-columns: minmax(0, 1fr) 28px; gap: 3px; width: 248px; padding-top: 3px; border-top: 1px solid var(--soft-line); }
+.selection-link-form input { min-width: 0; height: 30px; padding: 0 7px; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 12px; }
 .attachment-input { display: none; }
 .editor-block strong { font-weight: 700; }
 .editor-block em { font-style: italic; }

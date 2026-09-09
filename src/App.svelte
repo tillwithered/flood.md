@@ -110,6 +110,8 @@
   let purgeTaskId = "";
   let selectionToolbar: { left: number; top: number } | null = null;
   let savedSelection: Range | null = null;
+  let linkEditorOpen = false;
+  let linkDraft = "";
 
   const uiPreferencesKey = "flood.ui.preferences";
 
@@ -171,7 +173,15 @@
 
   function taskTitle(description: string) {
     const first = description.split("\n").find((line) => line.trim())?.trim() ?? "Без названия";
-    return first.replace(/^#{1,3}\s+/, "").replace(/^[-*>]\s+/, "").trim() || "Без названия";
+    const plain = first
+      .replace(/^#{1,3}\s+/, "")
+      .replace(/^[-*>]\s+/, "")
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/\*\*|\*/g, "")
+      .replace(/<\/?u>/g, "")
+      .trim();
+    return plain || "Без названия";
   }
 
   function relativeDate(value: string) {
@@ -291,40 +301,72 @@
 
   function appendInlineMarkdown(parent: HTMLElement, value: string) {
     let cursor = 0;
-    const token = /(!\[([^\]]*)\]\((attachments\/[^\s)]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*|<u>([^<]+)<\/u>|\[([^\]]+)\]\((https?:\/\/[^\s)]+|attachments\/[^\s)]+)\))/g;
-    for (const match of value.matchAll(token)) {
-      const index = match.index ?? 0;
-      if (index > cursor) parent.append(document.createTextNode(value.slice(cursor, index)));
-      if (match[2] !== undefined && match[3]) {
-        const image = document.createElement("img");
-        image.alt = match[2];
-        image.dataset.attachmentPath = match[3];
-        image.contentEditable = "false";
-        parent.append(image);
-      } else if (match[4]) {
-        const strong = document.createElement("strong");
-        strong.textContent = match[4];
-        parent.append(strong);
-      } else if (match[5]) {
-        const em = document.createElement("em");
-        em.textContent = match[5];
-        parent.append(em);
-      } else if (match[6]) {
-        const underline = document.createElement("u");
-        underline.textContent = match[6];
-        parent.append(underline);
-      } else if (match[7] && match[8]) {
-        const link = document.createElement("a");
-        link.textContent = match[7];
-        link.dataset.attachmentPath = match[8].startsWith("attachments/") ? match[8] : "";
-        link.href = match[8];
-        link.target = "_blank";
-        link.rel = "noreferrer";
-        parent.append(link);
+    while (cursor < value.length) {
+      if (value.startsWith("![", cursor)) {
+        const labelEnd = value.indexOf("](", cursor + 2);
+        const pathEnd = labelEnd >= 0 ? value.indexOf(")", labelEnd + 2) : -1;
+        const path = pathEnd >= 0 ? value.slice(labelEnd + 2, pathEnd) : "";
+        if (labelEnd >= 0 && pathEnd >= 0 && path.startsWith("attachments/")) {
+          const image = document.createElement("img");
+          image.alt = value.slice(cursor + 2, labelEnd);
+          image.dataset.attachmentPath = path;
+          image.contentEditable = "false";
+          parent.append(image);
+          cursor = pathEnd + 1;
+          continue;
+        }
       }
-      cursor = index + match[0].length;
+      if (value.startsWith("**", cursor)) {
+        const end = value.indexOf("**", cursor + 2);
+        if (end > cursor + 2) {
+          const strong = document.createElement("strong");
+          appendInlineMarkdown(strong, value.slice(cursor + 2, end));
+          parent.append(strong);
+          cursor = end + 2;
+          continue;
+        }
+      }
+      if (value[cursor] === "*") {
+        const end = value.indexOf("*", cursor + 1);
+        if (end > cursor + 1) {
+          const em = document.createElement("em");
+          appendInlineMarkdown(em, value.slice(cursor + 1, end));
+          parent.append(em);
+          cursor = end + 1;
+          continue;
+        }
+      }
+      if (value.startsWith("<u>", cursor)) {
+        const end = value.indexOf("</u>", cursor + 3);
+        if (end > cursor + 3) {
+          const underline = document.createElement("u");
+          appendInlineMarkdown(underline, value.slice(cursor + 3, end));
+          parent.append(underline);
+          cursor = end + 4;
+          continue;
+        }
+      }
+      if (value[cursor] === "[") {
+        const labelEnd = value.indexOf("](", cursor + 1);
+        const pathEnd = labelEnd >= 0 ? value.indexOf(")", labelEnd + 2) : -1;
+        const path = pathEnd >= 0 ? value.slice(labelEnd + 2, pathEnd) : "";
+        if (labelEnd >= 0 && pathEnd >= 0 && (isHttpUrl(path) || path.startsWith("attachments/"))) {
+          const link = document.createElement("a");
+          appendInlineMarkdown(link, value.slice(cursor + 1, labelEnd));
+          link.dataset.attachmentPath = path.startsWith("attachments/") ? path : "";
+          link.href = path;
+          link.target = "_blank";
+          link.rel = "noreferrer";
+          parent.append(link);
+          cursor = pathEnd + 1;
+          continue;
+        }
+      }
+      const nextCandidates = [value.indexOf("![", cursor + 1), value.indexOf("**", cursor + 1), value.indexOf("*", cursor + 1), value.indexOf("<u>", cursor + 1), value.indexOf("[", cursor + 1)].filter((index) => index >= 0);
+      const next = nextCandidates.length ? Math.min(...nextCandidates) : value.length;
+      parent.append(document.createTextNode(value.slice(cursor, Math.max(cursor + 1, next))));
+      cursor = Math.max(cursor + 1, next);
     }
-    if (cursor < value.length) parent.append(document.createTextNode(value.slice(cursor)));
   }
 
   function createBlock(kind: BlockKind, text = "") {
@@ -510,6 +552,7 @@
     if (!selection?.rangeCount || !editorRoot) {
       selectionToolbar = null;
       savedSelection = null;
+      linkEditorOpen = false;
       return;
     }
     const range = selection.getRangeAt(0);
@@ -517,11 +560,13 @@
     if (!container || !editorRoot.contains(container)) {
       selectionToolbar = null;
       savedSelection = null;
+      linkEditorOpen = false;
       return;
     }
     savedSelection = range.cloneRange();
     if (selection.isCollapsed) {
       selectionToolbar = null;
+      linkEditorOpen = false;
       return;
     }
     const rect = range.getBoundingClientRect();
@@ -579,10 +624,21 @@
   }
 
   async function linkSelectionFromClipboard() {
+    linkEditorOpen = true;
+    if (selectionToolbar) selectionToolbar = { ...selectionToolbar, left: Math.min(selectionToolbar.left, window.innerWidth - 268), top: Math.max(58, selectionToolbar.top - 35) };
     try {
-      createSelectionLink(await navigator.clipboard.readText());
+      const clipboard = await navigator.clipboard.readText();
+      linkDraft = isHttpUrl(clipboard) ? clipboard.trim() : "";
     } catch {
-      // Ctrl+V over a selection remains available when clipboard read permission is denied.
+      linkDraft = "";
+    }
+  }
+
+  function submitSelectionLink(event: SubmitEvent) {
+    event.preventDefault();
+    if (createSelectionLink(linkDraft)) {
+      linkEditorOpen = false;
+      linkDraft = "";
     }
   }
 
@@ -609,7 +665,7 @@
       try {
         const relativePath = await invoke<string>("save_task_attachment", {
           id: selectedTaskId,
-          fileName: file.name || "вложение",
+          fileName: file.name || (file.type === "image/png" ? "изображение.png" : file.type === "image/jpeg" ? "изображение.jpg" : "вложение"),
           bytes: [...new Uint8Array(await file.arrayBuffer())]
         });
         const absolutePath = await invoke<string>("resolve_task_attachment", { id: selectedTaskId, relativePath });
@@ -1328,13 +1384,21 @@
   <aside class="editor-hint" style:left={`${editorHint.left}px`} style:top={`${editorHint.top}px`} aria-live="polite">{editorHint.title}</aside>
 {/if}
 {#if selectionToolbar}
-  <div class="selection-toolbar" style:left={`${selectionToolbar.left}px`} style:top={`${selectionToolbar.top}px`} role="toolbar" tabindex="-1" aria-label="Форматирование текста" onpointerdown={(event) => event.preventDefault()}>
-    <button aria-label="Большой заголовок" title="Большой" onclick={applyLargeHeading}><Heading1 size={15} /></button>
-    <button aria-label="Жирный" title="Жирный" onclick={() => applyInlineFormat("bold")}><Bold size={14} /></button>
-    <button aria-label="Курсив" title="Курсив" onclick={() => applyInlineFormat("italic")}><Italic size={14} /></button>
-    <button aria-label="Подчёркнутый" title="Подчёркнутый" onclick={() => applyInlineFormat("underline")}><Underline size={14} /></button>
-    <span></span>
-    <button aria-label="Вставить ссылку из буфера" title="Ссылка из буфера" onclick={linkSelectionFromClipboard}><Link size={14} /></button>
+  <div class:link-open={linkEditorOpen} class="selection-toolbar" style:left={`${selectionToolbar.left}px`} style:top={`${selectionToolbar.top}px`} role="toolbar" tabindex="-1" aria-label="Форматирование текста">
+    <div class="selection-toolbar-actions" role="group" aria-label="Начертание" onpointerdown={(event) => event.preventDefault()}>
+      <button aria-label="Большой заголовок" title="Большой" onclick={applyLargeHeading}><Heading1 size={15} /></button>
+      <button aria-label="Жирный" title="Жирный" onclick={() => applyInlineFormat("bold")}><Bold size={14} /></button>
+      <button aria-label="Курсив" title="Курсив" onclick={() => applyInlineFormat("italic")}><Italic size={14} /></button>
+      <button aria-label="Подчёркнутый" title="Подчёркнутый" onclick={() => applyInlineFormat("underline")}><Underline size={14} /></button>
+      <span></span>
+      <button class:active={linkEditorOpen} aria-label="Добавить ссылку" title="Добавить ссылку" onclick={linkSelectionFromClipboard}><Link size={14} /></button>
+    </div>
+    {#if linkEditorOpen}
+      <form class="selection-link-form" onsubmit={submitSelectionLink}>
+        <input bind:value={linkDraft} inputmode="url" aria-label="Адрес ссылки" placeholder="https://…" />
+        <button aria-label="Применить ссылку"><Check size={14} /></button>
+      </form>
+    {/if}
   </div>
 {/if}
 

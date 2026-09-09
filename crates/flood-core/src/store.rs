@@ -639,7 +639,24 @@ fn clean_file_name(value: &str) -> Result<String, StoreError> {
     Ok(name
         .chars()
         .map(|char| {
-            if matches!(char, '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*') {
+            if char.is_whitespace()
+                || matches!(
+                    char,
+                    '<' | '>'
+                        | ':'
+                        | '"'
+                        | '/'
+                        | '\\'
+                        | '|'
+                        | '?'
+                        | '*'
+                        | '('
+                        | ')'
+                        | '['
+                        | ']'
+                        | '`'
+                )
+            {
                 '_'
             } else {
                 char
