@@ -263,6 +263,8 @@ button { color: inherit; }
 .task-actions-menu .menu-back svg { transform: rotate(180deg); }
 .save-state { min-width: 72px; color: #9a9a9a; font-size: 12px; text-align: right; }
 .save-state.error { color: var(--danger-ink); }
+.save-retry { display: inline-flex; height: 28px; align-items: center; justify-content: flex-end; gap: 4px; padding: 0 6px; border: 0; border-radius: 7px; background: transparent; color: var(--danger-ink); cursor: pointer; }
+.save-retry:hover { background: var(--danger-surface); }
 
 .window-divider { width: 1px; height: 20px; margin: 0 2px 0 4px; background: var(--line); }
 .window-controls { display: flex; align-self: stretch; }
@@ -807,7 +809,8 @@ button { color: inherit; }
   .task-meta, .source-snapshot, .save-conflict { width: min(600px, calc(100% - 40px)); }
   .editor { padding-top: 18px; }
   .window-context { padding-left: 14px; }
-  .save-state { display: none; }
+  .save-state:not(.save-retry) { display: none; }
+  .save-retry { min-width: 28px; width: 28px; justify-content: center; font-size: 0; }
   .window-actions .topbar-action, .window-actions .complete-button, .window-actions .urgency-trigger { width: 32px; justify-content: center; padding: 0; }
   .window-actions .action-label { display: none; }
   .window-actions .urgency-trigger > svg:last-child { display: none; }

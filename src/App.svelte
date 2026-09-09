@@ -594,6 +594,17 @@
     return task.id === draftTaskId;
   }
 
+  function hasUnsavedTaskChanges() {
+    const task = tasks.find((item) => item.id === selectedTaskId);
+    if (!task) return false;
+    return isLocalDraft(task) ? draftDirty : task.markdown !== lastSavedMarkdown;
+  }
+
+  async function persistCurrentTask(forceDraft = false) {
+    await saveNow(forceDraft);
+    return !conflictRemote && !hasUnsavedTaskChanges();
+  }
+
   function discardLocalDraft() {
     if (!draftTaskId) return;
     tasks = tasks.filter((task) => task.id !== draftTaskId);
@@ -877,8 +888,7 @@
 
   async function importAttachments(files: File[]) {
     if (!selectedTaskId || !inTauri()) return;
-    await saveNow(true);
-    if (draftTaskId || saveState === "error") return;
+    if (!await persistCurrentTask(true)) return;
     for (const file of files) {
       try {
         const relativePath = await invoke<string>("save_task_attachment", {
@@ -1079,8 +1089,7 @@
   }
 
   async function selectChat(chat: ChatItem) {
-    await saveNow();
-    if (conflictRemote) return;
+    if (!await persistCurrentTask()) return;
     discardLocalDraft();
     selectedChatId = chat.id;
     activeSection = "tasks";
@@ -1305,8 +1314,7 @@
   }
 
   async function openTask(task: TaskItem) {
-    await saveNow();
-    if (conflictRemote) return;
+    if (!await persistCurrentTask()) return;
     discardLocalDraft();
     let fullTask = task;
     if (inTauri()) {
@@ -1344,8 +1352,7 @@
   }
 
   async function createDraft(chosenChat?: ChatItem) {
-    await saveNow();
-    if (conflictRemote) return;
+    if (!await persistCurrentTask()) return;
     discardLocalDraft();
     const targetChat = chosenChat ?? (selectedChatId === "all" ? undefined : currentChat);
     if (!targetChat || targetChat.id === "all" || !inTauri()) return;
@@ -1379,8 +1386,7 @@
   }
 
   async function backToProject() {
-    await saveNow();
-    if (conflictRemote) return;
+    if (!await persistCurrentTask()) return;
     discardLocalDraft();
     workspaceView = "project";
     selectedTaskId = "";
@@ -1433,8 +1439,7 @@
 
   async function deleteCurrentChat() {
     if (currentChat.id === "all" || !inTauri()) return;
-    await saveNow();
-    if (conflictRemote) return;
+    if (!await persistCurrentTask()) return;
     try {
       const deletedId = currentChat.id;
       await invoke("delete_chat", { id: deletedId, expectedVersion: currentChat.version });
@@ -1545,7 +1550,7 @@
 
   async function saveSource(event: SubmitEvent) {
     event.preventDefault();
-    await saveNow(true);
+    if (!await persistCurrentTask(true)) return;
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || !sourceText.trim() || conflictRemote || !inTauri()) {
       if (!sourceText.trim()) formError = t("addSourceText");
@@ -1575,7 +1580,7 @@
   }
 
   async function clearSource() {
-    await saveNow();
+    if (!await persistCurrentTask()) return;
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || conflictRemote || !inTauri()) return;
     try {
@@ -1591,7 +1596,7 @@
   }
 
   async function moveSelectedTask(chat: ChatItem) {
-    await saveNow(true);
+    if (!await persistCurrentTask(true)) return;
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || chat.id === "all" || task.chatId === chat.id || conflictRemote || !inTauri()) return;
     try {
@@ -1617,7 +1622,7 @@
       taskActionMenuOpen = false;
       return;
     }
-    await saveNow();
+    if (!await persistCurrentTask()) return;
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || conflictRemote || !inTauri()) return;
     try {
@@ -1672,8 +1677,7 @@
   }
 
   async function toggleComplete() {
-    await saveNow(true);
-    if (conflictRemote) return;
+    if (!await persistCurrentTask(true)) return;
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || !inTauri()) return;
     try {
@@ -1703,8 +1707,7 @@
 
   async function changeUrgency(urgency: Urgency) {
     urgencyMenuOpen = false;
-    await saveNow(true);
-    if (conflictRemote) return;
+    if (!await persistCurrentTask(true)) return;
     const task = tasks.find((item) => item.id === selectedTaskId);
     if (!task || !inTauri() || urgency === task.urgency) return;
     try {
@@ -1726,8 +1729,7 @@
 
   async function changeSection(section: Section) {
     if (activeSection === section) return;
-    await saveNow();
-    if (conflictRemote) return;
+    if (!await persistCurrentTask()) return;
     discardLocalDraft();
     activeSection = section;
     deleteChatConfirmOpen = false;
@@ -1748,8 +1750,7 @@
   }
 
   async function createDataBackup() {
-    await saveNow();
-    if (conflictRemote || dataActionState === "backing-up" || dataActionState === "restoring") return;
+    if (!await persistCurrentTask() || dataActionState === "backing-up" || dataActionState === "restoring") return;
     const now = new Date();
     const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const destination = await saveDialog({
@@ -1786,8 +1787,7 @@
 
   async function restoreDataBackup() {
     if (!pendingRestorePath || dataActionState === "restoring") return;
-    await saveNow();
-    if (conflictRemote) return;
+    if (!await persistCurrentTask()) return;
     dataActionState = "restoring";
     dataActionMessage = "";
     try {
@@ -1864,8 +1864,7 @@
 
   async function closeWindow() {
     if (!inTauri() || closingWindow) return;
-    await saveNow();
-    if (conflictRemote) return;
+    if (!await persistCurrentTask()) return;
     closingWindow = true;
     try {
       await getCurrentWindow().destroy();
@@ -1983,7 +1982,11 @@
     </div>
     <div class="window-actions" data-tauri-drag-region="false">
       {#if activeSection === "tasks" && workspaceView === "task" && selectedTask}
-        <span class:error={saveState === "error"} class="save-state" title={saveError}>{saveState === "saving" ? t("saving") : saveState === "error" ? t("notSaved") : saveState === "saved" ? t("saved") : ""}</span>
+        {#if saveState === "error" && hasUnsavedTaskChanges()}
+          <button class="save-state save-retry" title={`${t("retrySave")}: ${saveError}`} aria-label={t("retrySave")} onclick={() => void saveNow()}><RefreshCw size={12} />{t("notSaved")}</button>
+        {:else}
+          <span class="save-state" title={saveError}>{saveState === "saving" ? t("saving") : saveState === "saved" ? t("saved") : ""}</span>
+        {/if}
         <div class="urgency-menu topbar-urgency">
           <button class="urgency-trigger" aria-label={t("urgency", { value: urgencyTitle(selectedTask.urgency) })} title={t("urgency", { value: urgencyTitle(selectedTask.urgency) })} aria-haspopup="menu" aria-expanded={urgencyMenuOpen} onclick={() => { urgencyMenuOpen = !urgencyMenuOpen; sourceEditorOpen = false; taskActionMenuOpen = false; }}><FloodGlyph kind={selectedTask.urgency} size={14} /><span class="action-label">{urgencyTitle(selectedTask.urgency)}</span><ChevronDown size={12} /></button>
           {#if urgencyMenuOpen}
