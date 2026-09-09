@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { ArrowRight, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Folder, FolderPlus, ListTodo, MessageSquareText, Minus, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Pencil, Plus, Plug, RotateCcw, Search, Settings, Square, Trash2, X } from "@lucide/svelte";
-  import { invoke } from "@tauri-apps/api/core";
+  import { ArrowRight, Bold, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Folder, FolderPlus, Heading1, Italic, Link, ListTodo, MessageSquareText, Minus, MoreHorizontal, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, RotateCcw, Search, Settings, Square, Trash2, Underline, X } from "@lucide/svelte";
+  import { convertFileSrc, invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, tick } from "svelte";
@@ -10,6 +10,7 @@
   type WorkspaceView = "project" | "task";
   type Urgency = "normal" | "important" | "urgent";
   type SaveState = "idle" | "saving" | "saved" | "error";
+  type ThemePreference = "system" | "light" | "dark";
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string };
   type ChatRecord = { id: string; title: string; created_at: string; updated_at: string; version: string };
   type TaskRecord = {
@@ -62,6 +63,7 @@
   type BlockKind = "paragraph" | "heading-1" | "heading-2" | "heading-3" | "bullet" | "number" | "quote" | "code";
 
   let editorRoot: HTMLDivElement;
+  let attachmentInput: HTMLInputElement;
   let activeSection: Section = "tasks";
   let workspaceView: WorkspaceView = "project";
   let selectedTaskId = "";
@@ -69,7 +71,8 @@
   let query = "";
   let showCompleted = false;
   let sidebarCollapsed = false;
-  let expandedChatId: string | null = null;
+  let expandedChatIds = new Set<string>();
+  let themePreference: ThemePreference = "system";
   let markdown = "";
   let editorHint: MarkdownHint | null = null;
   let copied = false;
@@ -102,6 +105,69 @@
   let calendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
   let formError = "";
   let closingWindow = false;
+  let deleteChatConfirmOpen = false;
+  let emptyTrashConfirmOpen = false;
+  let purgeTaskId = "";
+  let selectionToolbar: { left: number; top: number } | null = null;
+  let savedSelection: Range | null = null;
+
+  const uiPreferencesKey = "flood.ui.preferences";
+
+  function saveUiPreferences() {
+    localStorage.setItem(uiPreferencesKey, JSON.stringify({
+      theme: themePreference,
+      showCompleted,
+      sidebarCollapsed,
+      expandedChatIds: [...expandedChatIds]
+    }));
+  }
+
+  function applyTheme() {
+    const dark = themePreference === "dark" || (themePreference === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", dark ? "#111110" : "#ffffff");
+  }
+
+  function loadUiPreferences() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(uiPreferencesKey) ?? "{}") as Record<string, unknown>;
+      if (stored.theme === "system" || stored.theme === "light" || stored.theme === "dark") themePreference = stored.theme;
+      if (typeof stored.showCompleted === "boolean") showCompleted = stored.showCompleted;
+      if (typeof stored.sidebarCollapsed === "boolean") sidebarCollapsed = stored.sidebarCollapsed;
+      if (Array.isArray(stored.expandedChatIds)) expandedChatIds = new Set(stored.expandedChatIds.filter((id): id is string => typeof id === "string"));
+    } catch {
+      localStorage.removeItem(uiPreferencesKey);
+    }
+    applyTheme();
+  }
+
+  function setTheme(theme: ThemePreference) {
+    themePreference = theme;
+    applyTheme();
+    saveUiPreferences();
+  }
+
+  function setSidebarCollapsed(collapsed: boolean) {
+    sidebarCollapsed = collapsed;
+    saveUiPreferences();
+  }
+
+  function toggleCompletedVisibility() {
+    showCompleted = !showCompleted;
+    saveUiPreferences();
+  }
+
+  function isChatExpanded(chatId: string) {
+    return expandedChatIds.has(chatId);
+  }
+
+  function setChatExpanded(chatId: string, expanded = true) {
+    const next = new Set(expandedChatIds);
+    if (expanded) next.add(chatId);
+    else next.delete(chatId);
+    expandedChatIds = next;
+    saveUiPreferences();
+  }
 
   function taskTitle(description: string) {
     const first = description.split("\n").find((line) => line.trim())?.trim() ?? "Без названия";
@@ -223,13 +289,63 @@
     return { kind: "paragraph", text: line };
   }
 
+  function appendInlineMarkdown(parent: HTMLElement, value: string) {
+    let cursor = 0;
+    const token = /(!\[([^\]]*)\]\((attachments\/[^\s)]+)\)|\*\*([^*]+)\*\*|\*([^*]+)\*|<u>([^<]+)<\/u>|\[([^\]]+)\]\((https?:\/\/[^\s)]+|attachments\/[^\s)]+)\))/g;
+    for (const match of value.matchAll(token)) {
+      const index = match.index ?? 0;
+      if (index > cursor) parent.append(document.createTextNode(value.slice(cursor, index)));
+      if (match[2] !== undefined && match[3]) {
+        const image = document.createElement("img");
+        image.alt = match[2];
+        image.dataset.attachmentPath = match[3];
+        image.contentEditable = "false";
+        parent.append(image);
+      } else if (match[4]) {
+        const strong = document.createElement("strong");
+        strong.textContent = match[4];
+        parent.append(strong);
+      } else if (match[5]) {
+        const em = document.createElement("em");
+        em.textContent = match[5];
+        parent.append(em);
+      } else if (match[6]) {
+        const underline = document.createElement("u");
+        underline.textContent = match[6];
+        parent.append(underline);
+      } else if (match[7] && match[8]) {
+        const link = document.createElement("a");
+        link.textContent = match[7];
+        link.dataset.attachmentPath = match[8].startsWith("attachments/") ? match[8] : "";
+        link.href = match[8];
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        parent.append(link);
+      }
+      cursor = index + match[0].length;
+    }
+    if (cursor < value.length) parent.append(document.createTextNode(value.slice(cursor)));
+  }
+
   function createBlock(kind: BlockKind, text = "") {
     const block = document.createElement("div");
     block.dataset.block = kind;
     block.className = `editor-block ${kind}`;
-    block.textContent = text;
-    if (!text) block.append(document.createElement("br"));
+    if (text) appendInlineMarkdown(block, text);
+    else block.append(document.createElement("br"));
     return block;
+  }
+
+  function serializeInline(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
+    if (!(node instanceof HTMLElement)) return "";
+    const content = [...node.childNodes].map(serializeInline).join("");
+    if (node.tagName === "STRONG" || node.tagName === "B") return `**${content}**`;
+    if (node.tagName === "EM" || node.tagName === "I") return `*${content}*`;
+    if (node.tagName === "U") return `<u>${content}</u>`;
+    if (node.tagName === "IMG") return `![${node.getAttribute("alt") ?? "Изображение"}](${node.dataset.attachmentPath ?? ""})`;
+    if (node.tagName === "A") return `[${content}](${node.dataset.attachmentPath || node.getAttribute("href") || ""})`;
+    return node.tagName === "BR" ? "" : content;
   }
 
   function renumberLists() {
@@ -252,6 +368,23 @@
       return createBlock(block.kind, block.text);
     }));
     renumberLists();
+    void hydrateAttachments();
+  }
+
+  async function hydrateAttachments() {
+    if (!inTauri() || !selectedTaskId || !editorRoot) return;
+    for (const element of editorRoot.querySelectorAll<HTMLElement>("[data-attachment-path]")) {
+      const relativePath = element.dataset.attachmentPath;
+      if (!relativePath) continue;
+      try {
+        const path = await invoke<string>("resolve_task_attachment", { id: selectedTaskId, relativePath });
+        const url = convertFileSrc(path);
+        if (element instanceof HTMLImageElement) element.src = url;
+        else if (element instanceof HTMLAnchorElement) element.href = url;
+      } catch {
+        element.classList.add("missing-attachment");
+      }
+    }
   }
 
   function serializeEditor() {
@@ -260,7 +393,7 @@
     markdown = blocks.map((block) => {
       const kind = (block.dataset.block as BlockKind) || "paragraph";
       const prefix = kind === "number" ? `${block.dataset.number ?? "1"}. ` : blockPrefixes[kind];
-      return `${prefix}${block.textContent ?? ""}`;
+      return `${prefix}${[...block.childNodes].map(serializeInline).join("")}`;
     }).join("\n");
     const titleBlock = blocks.find((block) => block.dataset.block === "heading-1");
     const nextTitle = titleBlock?.textContent?.trim();
@@ -372,6 +505,159 @@
     return element?.closest<HTMLElement>(".editor-block") ?? null;
   }
 
+  function updateSelectionToolbar() {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount || !editorRoot) {
+      selectionToolbar = null;
+      savedSelection = null;
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    const container = range.commonAncestorContainer instanceof Element ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement;
+    if (!container || !editorRoot.contains(container)) {
+      selectionToolbar = null;
+      savedSelection = null;
+      return;
+    }
+    savedSelection = range.cloneRange();
+    if (selection.isCollapsed) {
+      selectionToolbar = null;
+      return;
+    }
+    const rect = range.getBoundingClientRect();
+    selectionToolbar = {
+      left: Math.max(12, Math.min(window.innerWidth - 214, rect.left + rect.width / 2 - 103)),
+      top: Math.max(58, rect.top - 44)
+    };
+  }
+
+  function restoreSelection() {
+    if (!savedSelection) return false;
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(savedSelection);
+    return true;
+  }
+
+  function applyInlineFormat(command: "bold" | "italic" | "underline") {
+    if (!restoreSelection()) return;
+    document.execCommand(command);
+    serializeEditor();
+    updateSelectionToolbar();
+  }
+
+  function applyLargeHeading() {
+    if (!restoreSelection()) return;
+    const block = currentBlock();
+    if (!block) return;
+    setBlockKind(block, block.dataset.block === "heading-1" ? "paragraph" : "heading-1");
+    serializeEditor();
+    updateSelectionToolbar();
+  }
+
+  function isHttpUrl(value: string) {
+    try {
+      const url = new URL(value.trim());
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }
+
+  function createSelectionLink(url: string) {
+    if (!isHttpUrl(url) || !restoreSelection()) return false;
+    document.execCommand("createLink", false, url.trim());
+    const selection = window.getSelection();
+    const anchor = selection?.anchorNode instanceof Element ? selection.anchorNode.closest("a") : selection?.anchorNode?.parentElement?.closest("a");
+    if (anchor) {
+      anchor.target = "_blank";
+      anchor.rel = "noreferrer";
+    }
+    serializeEditor();
+    updateSelectionToolbar();
+    return true;
+  }
+
+  async function linkSelectionFromClipboard() {
+    try {
+      createSelectionLink(await navigator.clipboard.readText());
+    } catch {
+      // Ctrl+V over a selection remains available when clipboard read permission is denied.
+    }
+  }
+
+  function handleEditorPaste(event: ClipboardEvent) {
+    const files = [...(event.clipboardData?.files ?? [])];
+    if (files.length) {
+      event.preventDefault();
+      if (window.getSelection()?.rangeCount) savedSelection = window.getSelection()!.getRangeAt(0).cloneRange();
+      void importAttachments(files);
+      return;
+    }
+    const selection = window.getSelection();
+    const pasted = event.clipboardData?.getData("text/plain") ?? "";
+    if (!selection?.isCollapsed && isHttpUrl(pasted)) {
+      event.preventDefault();
+      savedSelection = selection!.getRangeAt(0).cloneRange();
+      createSelectionLink(pasted);
+    }
+  }
+
+  async function importAttachments(files: File[]) {
+    if (!selectedTaskId || !inTauri()) return;
+    for (const file of files) {
+      try {
+        const relativePath = await invoke<string>("save_task_attachment", {
+          id: selectedTaskId,
+          fileName: file.name || "вложение",
+          bytes: [...new Uint8Array(await file.arrayBuffer())]
+        });
+        const absolutePath = await invoke<string>("resolve_task_attachment", { id: selectedTaskId, relativePath });
+        const node = file.type.startsWith("image/") ? document.createElement("img") : document.createElement("a");
+        node.dataset.attachmentPath = relativePath;
+        if (node instanceof HTMLImageElement) {
+          node.alt = file.name || "Изображение";
+          node.src = convertFileSrc(absolutePath);
+          node.contentEditable = "false";
+        } else {
+          node.textContent = file.name || "Вложение";
+          node.href = convertFileSrc(absolutePath);
+          node.target = "_blank";
+          node.rel = "noreferrer";
+        }
+        restoreSelection();
+        const selection = window.getSelection();
+        const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
+        const block = currentBlock() ?? editorRoot.lastElementChild as HTMLElement | null;
+        if (range && block) {
+          range.deleteContents();
+          range.insertNode(node);
+          range.setStartAfter(node);
+          range.collapse(true);
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+          savedSelection = range.cloneRange();
+        } else if (block) {
+          block.append(node);
+        }
+        serializeEditor();
+      } catch (error) {
+        saveState = "error";
+        saveError = `Не удалось добавить вложение: ${String(error)}`;
+      }
+    }
+    attachmentInput.value = "";
+  }
+
+  function handleEditorDrop(event: DragEvent) {
+    const files = [...(event.dataTransfer?.files ?? [])];
+    if (!files.length) return;
+    event.preventDefault();
+    const range = document.caretRangeFromPoint?.(event.clientX, event.clientY);
+    if (range) savedSelection = range.cloneRange();
+    void importAttachments(files);
+  }
+
   function caretOffset(block: HTMLElement) {
     const selection = window.getSelection();
     if (!selection?.rangeCount) return 0;
@@ -445,7 +731,8 @@
     activeSection = "tasks";
     workspaceView = "project";
     completedGroupOpen = false;
-    if (chat.id !== "all") expandedChatId = chat.id;
+    deleteChatConfirmOpen = false;
+    if (chat.id !== "all") setChatExpanded(chat.id);
     editorHint = null;
     sourceEditorOpen = false;
     datePickerOpen = false;
@@ -454,7 +741,7 @@
 
   function toggleChat(chat: ChatItem, event: MouseEvent) {
     event.stopPropagation();
-    expandedChatId = expandedChatId === chat.id ? null : chat.id;
+    setChatExpanded(chat.id, !isChatExpanded(chat.id));
   }
 
   function markerKind(marker: string): BlockKind | null {
@@ -567,7 +854,7 @@
     const owner = chats.find((chat) => chat.id === fullTask.chatId);
     if (owner) {
       selectedChatId = owner.id;
-      expandedChatId = owner.id;
+      setChatExpanded(owner.id);
     }
     selectedTaskId = fullTask.id;
     markdown = fullTask.markdown;
@@ -607,7 +894,7 @@
     }
     tasks = [draft, ...tasks];
     selectedChatId = targetChat.id;
-    expandedChatId = targetChat.id;
+    setChatExpanded(targetChat.id);
     selectedTaskId = draft.id;
     markdown = draft.markdown;
     lastSavedMarkdown = draft.markdown;
@@ -649,6 +936,27 @@
       tasks = tasks.map((task) => task.chatId === updated.id ? { ...task, chat: updated.title } : task);
       trashedTasks = trashedTasks.map((task) => task.chatId === updated.id ? { ...task, chat: updated.title } : task);
       renameChatOpen = false;
+    } catch (error) {
+      formError = String(error);
+    }
+  }
+
+  async function deleteCurrentChat() {
+    if (currentChat.id === "all" || !inTauri()) return;
+    await saveNow();
+    if (conflictRemote) return;
+    try {
+      const deletedId = currentChat.id;
+      await invoke("delete_chat", { id: deletedId, expectedVersion: currentChat.version });
+      chats = chats.filter((chat) => chat.id !== deletedId);
+      tasks = tasks.filter((task) => task.chatId !== deletedId);
+      trashedTasks = trashedTasks.filter((task) => task.chatId !== deletedId);
+      setChatExpanded(deletedId, false);
+      selectedChatId = "all";
+      selectedTaskId = "";
+      workspaceView = "project";
+      deleteChatConfirmOpen = false;
+      formError = "";
     } catch (error) {
       formError = String(error);
     }
@@ -801,7 +1109,7 @@
       const converted = toTaskItem(moved);
       tasks = tasks.map((item) => item.id === moved.id ? converted : item);
       selectedChatId = chat.id;
-      expandedChatId = chat.id;
+      setChatExpanded(chat.id);
       lastSavedMarkdown = converted.markdown;
       taskActionMenuOpen = false;
       moveMenuOpen = false;
@@ -838,6 +1146,30 @@
       const restored = toTaskItem(await invoke<TaskRecord>("restore_task", { id: task.id, expectedVersion: task.version }));
       trashedTasks = trashedTasks.filter((item) => item.id !== task.id);
       tasks = [restored, ...tasks];
+    } catch (error) {
+      loadError = String(error);
+    }
+  }
+
+  async function deleteTrashedTask(task: TaskItem) {
+    if (!inTauri()) return;
+    try {
+      await invoke("delete_trashed_task", { id: task.id, expectedVersion: task.version });
+      trashedTasks = trashedTasks.filter((item) => item.id !== task.id);
+      purgeTaskId = "";
+      loadError = "";
+    } catch (error) {
+      loadError = String(error);
+    }
+  }
+
+  async function emptyTrash() {
+    if (!inTauri()) return;
+    try {
+      await invoke<number>("empty_trash");
+      trashedTasks = [];
+      emptyTrashConfirmOpen = false;
+      loadError = "";
     } catch (error) {
       loadError = String(error);
     }
@@ -896,6 +1228,9 @@
     await saveNow();
     if (conflictRemote) return;
     activeSection = section;
+    deleteChatConfirmOpen = false;
+    emptyTrashConfirmOpen = false;
+    purgeTaskId = "";
     editorHint = null;
     if (section === "tasks") { await tick(); renderMarkdown(markdown); await focusEditor(); }
   }
@@ -933,10 +1268,21 @@
   }
 
   onMount(() => {
+    loadUiPreferences();
+    const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
+    const updateSystemTheme = () => { if (themePreference === "system") applyTheme(); };
+    colorScheme.addEventListener("change", updateSystemTheme);
     let unlisten: UnlistenFn | undefined;
     let unlistenClose: UnlistenFn | undefined;
     let disposed = false;
     void (async () => {
+      if (inTauri()) {
+        unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
+          if (closingWindow) return;
+          event.preventDefault();
+          await closeWindow();
+        });
+      }
       await loadData(false);
       if (disposed || !inTauri()) return;
       unlisten = await listen("data-changed", () => {
@@ -944,11 +1290,6 @@
         refreshTimer = window.setTimeout(() => {
           if (saveState !== "saving" && markdown === lastSavedMarkdown) void loadData(true);
         }, 220);
-      });
-      unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
-        if (closingWindow) return;
-        event.preventDefault();
-        await closeWindow();
       });
     })();
     const flush = () => { void saveNow(); };
@@ -974,6 +1315,7 @@
       window.clearTimeout(refreshTimer);
       window.removeEventListener("blur", flush);
       document.removeEventListener("pointerdown", closeMenus);
+      colorScheme.removeEventListener("change", updateSystemTheme);
       unlisten?.();
       unlistenClose?.();
     };
@@ -985,12 +1327,22 @@
 {#if editorHint}
   <aside class="editor-hint" style:left={`${editorHint.left}px`} style:top={`${editorHint.top}px`} aria-live="polite">{editorHint.title}</aside>
 {/if}
+{#if selectionToolbar}
+  <div class="selection-toolbar" style:left={`${selectionToolbar.left}px`} style:top={`${selectionToolbar.top}px`} role="toolbar" tabindex="-1" aria-label="Форматирование текста" onpointerdown={(event) => event.preventDefault()}>
+    <button aria-label="Большой заголовок" title="Большой" onclick={applyLargeHeading}><Heading1 size={15} /></button>
+    <button aria-label="Жирный" title="Жирный" onclick={() => applyInlineFormat("bold")}><Bold size={14} /></button>
+    <button aria-label="Курсив" title="Курсив" onclick={() => applyInlineFormat("italic")}><Italic size={14} /></button>
+    <button aria-label="Подчёркнутый" title="Подчёркнутый" onclick={() => applyInlineFormat("underline")}><Underline size={14} /></button>
+    <span></span>
+    <button aria-label="Вставить ссылку из буфера" title="Ссылка из буфера" onclick={linkSelectionFromClipboard}><Link size={14} /></button>
+  </div>
+{/if}
 
 <main class:sidebar-collapsed={sidebarCollapsed} class="app-shell">
   <header class="window-bar" data-tauri-drag-region="deep">
     <div class="sidebar-titlebar" data-tauri-drag-region="deep">
       {#if !sidebarCollapsed}<FloodGlyph kind="brand" size={22} /><strong>flood.md</strong>{/if}
-      <button class="icon-button collapse-button" aria-label={sidebarCollapsed ? "Развернуть панель" : "Свернуть панель"} data-tauri-drag-region="false" onclick={() => (sidebarCollapsed = !sidebarCollapsed)}>
+      <button class="icon-button collapse-button" aria-label={sidebarCollapsed ? "Развернуть панель" : "Свернуть панель"} data-tauri-drag-region="false" onclick={() => setSidebarCollapsed(!sidebarCollapsed)}>
         {#if sidebarCollapsed}<PanelLeftOpen size={17} />{:else}<PanelLeftClose size={17} />{/if}
       </button>
     </div>
@@ -1014,6 +1366,8 @@
             </div>
           {/if}
         </div>
+        <input class="attachment-input" bind:this={attachmentInput} type="file" multiple accept="image/*,audio/*,video/*,.pdf,.txt,.md" onchange={(event) => void importAttachments([...(event.currentTarget.files ?? [])])} />
+        <button class="topbar-action" aria-label="Добавить вложение" title="Добавить фото или файл" onclick={() => attachmentInput.click()}><Paperclip size={15} /><span>Вложение</span></button>
         <button class:active={sourceEditorOpen} class="topbar-action source-action-button" aria-expanded={sourceEditorOpen} onclick={openSourceEditor}><MessageSquareText size={15} /><span>{selectedTask.hasSource ? "Источник" : "Добавить источник"}</span></button>
         {#if sourceEditorOpen}
           <form class="source-editor source-popover" onsubmit={saveSource}>
@@ -1077,7 +1431,7 @@
           </div>
         {/if}
         {#if sidebarCollapsed}
-          <button class="sidebar-icon" aria-label="Поиск" onclick={() => (sidebarCollapsed = false)}><Search size={17} /></button>
+          <button class="sidebar-icon" aria-label="Поиск" onclick={() => setSidebarCollapsed(false)}><Search size={17} /></button>
         {:else}
           <label class="search-field"><Search size={15} aria-hidden="true" /><input bind:value={query} aria-label="Поиск задач" placeholder="Поиск" /></label>
         {/if}
@@ -1107,12 +1461,12 @@
                 {/if}
               </button>
               {#if !sidebarCollapsed}
-                <button class="project-expand" onclick={(event) => toggleChat(chat, event)} aria-label={expandedChatId === chat.id ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}>
-                  {#if expandedChatId === chat.id}<ChevronDown size={13} />{:else}<ChevronRight size={13} />{/if}
+                <button class="project-expand" onclick={(event) => toggleChat(chat, event)} aria-label={isChatExpanded(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}>
+                  {#if isChatExpanded(chat.id)}<ChevronDown size={13} />{:else}<ChevronRight size={13} />{/if}
                 </button>
               {/if}
             </div>
-            {#if !sidebarCollapsed && expandedChatId === chat.id && activeSection === "tasks"}
+            {#if !sidebarCollapsed && isChatExpanded(chat.id) && activeSection === "tasks"}
               <div class="nested-tasks">
                 {#each tasksForChat(chat) as task}
                   <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
@@ -1159,7 +1513,7 @@
               <div><button onclick={useDiskVersion}>Версию с диска</button><button onclick={keepLocalVersion}>Мою версию</button></div>
             </div>
           {/if}
-          <div class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label="Редактор задачи" spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onkeyup={() => updateHint(currentBlock())} onclick={() => updateHint(currentBlock())} onblur={() => { editorHint = null; void saveNow(); }}></div>
+          <div class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label="Редактор задачи" spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={() => updateHint(currentBlock())} onblur={() => { editorHint = null; void saveNow(); }}></div>
           {#if selectedTask.source?.text}
             <details class="source-snapshot">
               <summary><FloodGlyph kind="info" size={15} />Исходное сообщение</summary>
@@ -1178,12 +1532,25 @@
                 <form class="rename-chat-form" onsubmit={submitRenameChat}><input bind:value={renameChatTitle} aria-label="Название чат-проекта" /><button aria-label="Сохранить"><Check size={16} /></button><button type="button" aria-label="Отмена" onclick={() => (renameChatOpen = false)}><X size={16} /></button></form>
                 {#if formError}<span class="form-error">{formError}</span>{/if}
               {:else}
-                <div class="project-title-row"><h1>{currentChat.title}</h1>{#if currentChat.id !== "all"}<button class="icon-button" aria-label="Переименовать чат-проект" onclick={startRenameChat}><Pencil size={15} /></button>{/if}</div>
+                <div class="project-title-row">
+                  <h1>{currentChat.title}</h1>
+                  {#if currentChat.id !== "all"}
+                    <button class="icon-button" aria-label="Переименовать чат-проект" onclick={startRenameChat}><Pencil size={15} /></button>
+                    <button class="icon-button danger-icon" aria-label="Удалить чат-проект" onclick={() => (deleteChatConfirmOpen = true)}><Trash2 size={15} /></button>
+                  {/if}
+                </div>
               {/if}
               <p>{loading ? "Загружаю задачи…" : `${currentOpenTasks.length} ${currentOpenTasks.length === 1 ? "открытая задача" : currentOpenTasks.length > 1 && currentOpenTasks.length < 5 ? "открытые задачи" : "открытых задач"}`}</p>
             </div>
             <button class="project-add-button" onclick={requestNewTask}><Plus size={16} />Новая задача</button>
           </header>
+
+          {#if deleteChatConfirmOpen}
+            <div class="destructive-confirm" role="alert">
+              <span><strong>Удалить «{currentChat.title}»?</strong><small>Чат-проект и все его задачи будут удалены навсегда.</small></span>
+              <div><button onclick={() => (deleteChatConfirmOpen = false)}>Отмена</button><button class="danger-button" onclick={deleteCurrentChat}>Удалить</button></div>
+            </div>
+          {/if}
 
           {#if selectedChatId === "all"}
             <div class="project-groups">
@@ -1239,13 +1606,29 @@
     {:else if activeSection === "trash"}
       <section class="workspace project-workspace">
         <div class="project-page trash-page">
-          <header class="project-header"><div><h1>Корзина</h1><p>Задачи можно восстановить вместе со всеми метаданными</p></div></header>
+          <header class="project-header">
+            <div><h1>Корзина</h1><p>Задачи можно восстановить вместе со всеми метаданными</p></div>
+            {#if trashedTasks.length}<button class="quiet-danger-button" onclick={() => (emptyTrashConfirmOpen = true)}><Trash2 size={14} />Очистить</button>{/if}
+          </header>
+          {#if emptyTrashConfirmOpen}
+            <div class="destructive-confirm" role="alert">
+              <span><strong>Очистить корзину?</strong><small>Все задачи в корзине будут удалены без возможности восстановления.</small></span>
+              <div><button onclick={() => (emptyTrashConfirmOpen = false)}>Отмена</button><button class="danger-button" onclick={emptyTrash}>Удалить всё</button></div>
+            </div>
+          {/if}
           <div class="project-task-list standalone">
             {#each trashedTasks as task}
               <div class="project-task trash-task">
                 <Trash2 size={16} />
                 <span class="project-task-copy"><strong>{task.title}</strong><small>{task.chat}{task.trashedAt ? ` · удалена ${relativeDate(task.trashedAt)}` : ""}</small></span>
-                <button class="restore-button" onclick={() => restoreTask(task)}><RotateCcw size={14} />Восстановить</button>
+                <span class="trash-actions">
+                  {#if purgeTaskId === task.id}
+                    <button onclick={() => (purgeTaskId = "")}>Отмена</button><button class="danger-text" onclick={() => deleteTrashedTask(task)}>Удалить</button>
+                  {:else}
+                    <button class="restore-button" onclick={() => restoreTask(task)}><RotateCcw size={14} />Восстановить</button>
+                    <button class="trash-delete-button" aria-label="Удалить навсегда" title="Удалить навсегда" onclick={() => (purgeTaskId = task.id)}><Trash2 size={14} /></button>
+                  {/if}
+                </span>
               </div>
             {:else}
               <div class="project-empty"><p>Корзина пуста</p></div>
@@ -1256,7 +1639,23 @@
     {:else if activeSection === "mcp"}
       <section class="workspace simple-workspace"><div class="mcp-card"><span class="status-pill"><FloodGlyph kind="connected" size={11} motion="pulse" />Готов</span><h2>Подключить агента</h2><p>Добавьте локальный сервер в MCP-клиент. Задачи останутся на этом компьютере.</p><div class="code-row"><code>target/release/flood-mcp.exe</code><button class="icon-button" aria-label="Копировать конфигурацию" onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div></div></section>
     {:else}
-      <section class="workspace simple-workspace"><div class="settings-page"><h2>Настройки</h2><button class:active={showCompleted} class="setting-row" onclick={() => (showCompleted = !showCompleted)}><span><strong>Показывать выполненные</strong><small>Включает завершённые задачи в списках</small></span><span class="switch"><span></span></span></button></div></section>
+      <section class="workspace simple-workspace">
+        <div class="settings-page">
+          <h2>Настройки</h2>
+          <section class="settings-group">
+            <div class="settings-heading"><strong>Внешний вид</strong><small>Тема интерфейса применяется сразу</small></div>
+            <div class="theme-picker" aria-label="Тема интерфейса">
+              <button class:active={themePreference === "system"} onclick={() => setTheme("system")}>Системная</button>
+              <button class:active={themePreference === "light"} onclick={() => setTheme("light")}>Светлая</button>
+              <button class:active={themePreference === "dark"} onclick={() => setTheme("dark")}>Тёмная</button>
+            </div>
+          </section>
+          <section class="settings-group">
+            <div class="settings-heading"><strong>Задачи</strong><small>Настройка списков в навигации</small></div>
+            <button class:active={showCompleted} class="setting-row" onclick={toggleCompletedVisibility}><span><strong>Показывать выполненные</strong><small>Включает завершённые задачи в списках</small></span><span class="switch"><span></span></span></button>
+          </section>
+        </div>
+      </section>
     {/if}
   </div>
 </main>

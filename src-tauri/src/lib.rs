@@ -33,6 +33,15 @@ fn update_chat(
 }
 
 #[tauri::command]
+fn delete_chat(
+    id: String,
+    expected_version: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    result(state.store.delete_chat(&id, &expected_version))
+}
+
+#[tauri::command]
 fn list_tasks(
     chat_id: Option<String>,
     include_completed: bool,
@@ -116,6 +125,44 @@ fn restore_task(
     result(state.store.restore_task(&id, &expected_version))
 }
 
+#[tauri::command]
+fn delete_trashed_task(
+    id: String,
+    expected_version: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    result(state.store.delete_trashed_task(&id, &expected_version))
+}
+
+#[tauri::command]
+fn empty_trash(state: State<'_, AppState>) -> Result<usize, String> {
+    result(state.store.empty_trash())
+}
+
+#[tauri::command]
+fn save_task_attachment(
+    id: String,
+    file_name: String,
+    bytes: Vec<u8>,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    result(state.store.save_task_attachment(&id, &file_name, &bytes))
+}
+
+#[tauri::command]
+fn resolve_task_attachment(
+    id: String,
+    relative_path: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    result(
+        state
+            .store
+            .resolve_task_attachment(&id, &relative_path)
+            .map(|path| path.to_string_lossy().into_owned()),
+    )
+}
+
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
@@ -139,6 +186,7 @@ pub fn run() {
             list_chats,
             create_chat,
             update_chat,
+            delete_chat,
             list_tasks,
             get_task,
             list_trashed_tasks,
@@ -148,7 +196,11 @@ pub fn run() {
             clear_task_source,
             move_task,
             trash_task,
-            restore_task
+            restore_task,
+            delete_trashed_task,
+            empty_trash,
+            save_task_attachment,
+            resolve_task_attachment
         ])
         .run(tauri::generate_context!())
         .expect("не удалось запустить flood.md");

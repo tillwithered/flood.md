@@ -163,6 +163,15 @@ impl Store {
         read_chat(&self.chat_path(id))
     }
 
+    pub fn delete_chat(&self, id: &str, expected_version: &str) -> Result<(), StoreError> {
+        validate_id(id)?;
+        let _lock = self.lock_exclusive()?;
+        let chat = read_chat(&self.chat_path(id)).map_err(|error| map_missing(error, id))?;
+        ensure_version(&chat.version, expected_version)?;
+        fs::remove_dir_all(self.chats_dir().join(id))?;
+        Ok(())
+    }
+
     pub fn list_tasks(
         &self,
         chat_id: Option<&str>,
@@ -304,11 +313,7 @@ impl Store {
         )
     }
 
-    pub fn clear_task_source(
-        &self,
-        id: &str,
-        expected_version: &str,
-    ) -> Result<Task, StoreError> {
+    pub fn clear_task_source(&self, id: &str, expected_version: &str) -> Result<Task, StoreError> {
         self.update_task(
             id,
             TaskPatch {
@@ -338,12 +343,26 @@ impl Store {
         }
         let old_path = self.task_path(&task.chat_id, id);
         let new_path = self.task_path(chat_id, id);
+        let old_attachments = self.attachment_dir(&task.chat_id, id);
+        let new_attachments = self.attachment_dir(chat_id, id);
         fs::create_dir_all(self.task_dir(chat_id))?;
         fs::rename(&old_path, &new_path)?;
+        if old_attachments.exists() {
+            if let Some(parent) = new_attachments.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            if let Err(error) = fs::rename(&old_attachments, &new_attachments) {
+                let _ = fs::rename(&new_path, &old_path);
+                return Err(error.into());
+            }
+        }
         let old_chat_id = std::mem::replace(&mut task.chat_id, chat_id.to_owned());
         task.updated_at = Utc::now();
         if let Err(error) = self.write_task(&task) {
             let _ = fs::rename(&new_path, self.task_path(&old_chat_id, id));
+            if new_attachments.exists() {
+                let _ = fs::rename(&new_attachments, self.attachment_dir(&old_chat_id, id));
+            }
             return Err(error);
         }
         read_task(&new_path)
@@ -355,6 +374,92 @@ impl Store {
 
     pub fn restore_task(&self, id: &str, expected_version: &str) -> Result<Task, StoreError> {
         self.set_trashed(id, expected_version, false)
+    }
+
+    pub fn delete_trashed_task(&self, id: &str, expected_version: &str) -> Result<(), StoreError> {
+        validate_id(id)?;
+        let _lock = self.lock_exclusive()?;
+        let task = self.find_task(id)?;
+        ensure_version(&task.version, expected_version)?;
+        if task.trashed_at.is_none() {
+            return Err(StoreError::Validation(
+                "окончательно удалить можно только задачу из корзины".into(),
+            ));
+        }
+        fs::remove_file(self.task_path(&task.chat_id, id))?;
+        let attachments = self.attachment_dir(&task.chat_id, id);
+        if attachments.exists() {
+            fs::remove_dir_all(attachments)?;
+        }
+        Ok(())
+    }
+
+    pub fn empty_trash(&self) -> Result<usize, StoreError> {
+        let _lock = self.lock_exclusive()?;
+        let mut paths = Vec::new();
+        for entry in fs::read_dir(self.chats_dir())? {
+            let dir = entry?.path().join("tasks");
+            if !dir.exists() {
+                continue;
+            }
+            for entry in fs::read_dir(dir)? {
+                let path = entry?.path();
+                if path.extension().and_then(|value| value.to_str()) == Some("md")
+                    && read_task(&path)?.trashed_at.is_some()
+                {
+                    let attachments = task_attachment_dir(&path);
+                    paths.push((path, attachments));
+                }
+            }
+        }
+        for (path, attachments) in &paths {
+            fs::remove_file(path)?;
+            if attachments.exists() {
+                fs::remove_dir_all(attachments)?;
+            }
+        }
+        Ok(paths.len())
+    }
+
+    pub fn save_task_attachment(
+        &self,
+        id: &str,
+        file_name: &str,
+        bytes: &[u8],
+    ) -> Result<String, StoreError> {
+        validate_id(id)?;
+        if bytes.is_empty() || bytes.len() > 25 * 1024 * 1024 {
+            return Err(StoreError::Validation(
+                "вложение должно быть размером от 1 байта до 25 МБ".into(),
+            ));
+        }
+        let clean_name = clean_file_name(file_name)?;
+        let _lock = self.lock_exclusive()?;
+        let task = self.find_task(id)?;
+        let stored_name = format!("{}-{clean_name}", Ulid::new());
+        let path = self.attachment_dir(&task.chat_id, id).join(&stored_name);
+        atomic_write_bytes(&path, bytes)?;
+        Ok(format!("attachments/{id}/{stored_name}"))
+    }
+
+    pub fn resolve_task_attachment(
+        &self,
+        id: &str,
+        relative_path: &str,
+    ) -> Result<PathBuf, StoreError> {
+        validate_id(id)?;
+        let _lock = self.lock_shared()?;
+        let task = self.find_task(id)?;
+        let prefix = format!("attachments/{id}/");
+        let file_name = relative_path
+            .strip_prefix(&prefix)
+            .filter(|value| !value.is_empty() && !value.contains(['/', '\\']))
+            .ok_or_else(|| StoreError::Validation("некорректный путь вложения".into()))?;
+        let path = self.attachment_dir(&task.chat_id, id).join(file_name);
+        if !path.is_file() {
+            return Err(StoreError::NotFound(relative_path.to_owned()));
+        }
+        Ok(path)
     }
 
     fn set_trashed(
@@ -384,6 +489,9 @@ impl Store {
     }
     fn task_path(&self, chat_id: &str, id: &str) -> PathBuf {
         self.task_dir(chat_id).join(format!("{id}.md"))
+    }
+    fn attachment_dir(&self, chat_id: &str, id: &str) -> PathBuf {
+        self.task_dir(chat_id).join("attachments").join(id)
     }
 
     fn find_task(&self, id: &str) -> Result<Task, StoreError> {
@@ -507,6 +615,49 @@ fn atomic_write(path: &Path, content: &str) -> Result<(), StoreError> {
     file.write_all(content.as_bytes())?;
     file.commit()?;
     Ok(())
+}
+
+fn atomic_write_bytes(path: &Path, content: &[u8]) -> Result<(), StoreError> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let mut file = AtomicWriteFile::options().open(path)?;
+    file.write_all(content)?;
+    file.commit()?;
+    Ok(())
+}
+
+fn clean_file_name(value: &str) -> Result<String, StoreError> {
+    let name = Path::new(value)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("")
+        .trim();
+    if name.is_empty() || name.len() > 180 {
+        return Err(StoreError::Validation("некорректное имя вложения".into()));
+    }
+    Ok(name
+        .chars()
+        .map(|char| {
+            if matches!(char, '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*') {
+                '_'
+            } else {
+                char
+            }
+        })
+        .collect())
+}
+
+fn task_attachment_dir(task_path: &Path) -> PathBuf {
+    let id = task_path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("");
+    task_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join("attachments")
+        .join(id)
 }
 
 fn digest(content: &[u8]) -> String {
@@ -672,7 +823,10 @@ mod tests {
 
         let restored = store.get_task(&task.id).unwrap();
         assert_eq!(restored.source, Some(source));
-        assert_eq!(restored.description, "# Проверить сборку\n\nПройти основной сценарий");
+        assert_eq!(
+            restored.description,
+            "# Проверить сборку\n\nПройти основной сценарий"
+        );
 
         let cleared = store
             .clear_task_source(&restored.id, &restored.version)
@@ -694,7 +848,9 @@ mod tests {
             })
             .unwrap();
 
-        let moved = store.move_task(&task.id, &second.id, &task.version).unwrap();
+        let moved = store
+            .move_task(&task.id, &second.id, &task.version)
+            .unwrap();
         assert_eq!(moved.chat_id, second.id);
         assert!(!store.task_path(&first.id, &task.id).exists());
 
@@ -707,5 +863,105 @@ mod tests {
         assert!(restored.trashed_at.is_none());
         assert_eq!(store.list_tasks(None, true).unwrap().len(), 1);
         assert!(store.list_trashed_tasks().unwrap().is_empty());
+    }
+
+    #[test]
+    fn trashed_tasks_can_be_deleted_individually_or_together() {
+        let store = temp_store();
+        let chat = store.create_chat("Корзина").unwrap();
+        let create = |description: &str| {
+            store
+                .create_task(CreateTask {
+                    chat_id: chat.id.clone(),
+                    description: description.into(),
+                    urgency: crate::Urgency::Normal,
+                    source: None,
+                })
+                .unwrap()
+        };
+        let first = create("Первая");
+        let second = create("Вторая");
+        let first = store.trash_task(&first.id, &first.version).unwrap();
+        store.trash_task(&second.id, &second.version).unwrap();
+
+        store
+            .delete_trashed_task(&first.id, &first.version)
+            .unwrap();
+        assert!(matches!(
+            store.get_task(&first.id),
+            Err(StoreError::NotFound(_))
+        ));
+        assert_eq!(store.empty_trash().unwrap(), 1);
+        assert!(store.list_trashed_tasks().unwrap().is_empty());
+    }
+
+    #[test]
+    fn chat_deletion_checks_version_and_removes_its_tasks() {
+        let store = temp_store();
+        let chat = store.create_chat("На удаление").unwrap();
+        let task = store
+            .create_task(CreateTask {
+                chat_id: chat.id.clone(),
+                description: "Задача вместе с чатом".into(),
+                urgency: crate::Urgency::Normal,
+                source: None,
+            })
+            .unwrap();
+
+        assert!(matches!(
+            store.delete_chat(&chat.id, "stale"),
+            Err(StoreError::Conflict)
+        ));
+        store.delete_chat(&chat.id, &chat.version).unwrap();
+        assert!(matches!(
+            store.get_chat(&chat.id),
+            Err(StoreError::NotFound(_))
+        ));
+        assert!(matches!(
+            store.get_task(&task.id),
+            Err(StoreError::NotFound(_))
+        ));
+    }
+
+    #[test]
+    fn attachments_follow_a_task_and_are_removed_with_it() {
+        let store = temp_store();
+        let first = store.create_chat("Первый").unwrap();
+        let second = store.create_chat("Второй").unwrap();
+        let task = store
+            .create_task(CreateTask {
+                chat_id: first.id.clone(),
+                description: "Задача с файлом".into(),
+                urgency: crate::Urgency::Normal,
+                source: None,
+            })
+            .unwrap();
+        let relative = store
+            .save_task_attachment(&task.id, "макет.png", b"image-bytes")
+            .unwrap();
+        assert!(
+            store
+                .resolve_task_attachment(&task.id, &relative)
+                .unwrap()
+                .is_file()
+        );
+
+        let moved = store
+            .move_task(&task.id, &second.id, &task.version)
+            .unwrap();
+        assert!(
+            store
+                .resolve_task_attachment(&task.id, &relative)
+                .unwrap()
+                .is_file()
+        );
+        let trashed = store.trash_task(&moved.id, &moved.version).unwrap();
+        store
+            .delete_trashed_task(&trashed.id, &trashed.version)
+            .unwrap();
+        assert!(matches!(
+            store.resolve_task_attachment(&task.id, &relative),
+            Err(StoreError::NotFound(_))
+        ));
     }
 }

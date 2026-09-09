@@ -107,6 +107,13 @@ impl FloodServer {
         )
     }
 
+    #[tool(
+        description = "Окончательно удалить чат-проект и все его задачи; передайте актуальный expected_version"
+    )]
+    fn delete_chat(&self, Parameters(args): Parameters<VersionedTaskArgs>) -> String {
+        json(self.store.delete_chat(&args.id, &args.expected_version))
+    }
+
     #[tool(description = "Получить задачи выбранного чата или всех чатов")]
     fn list_tasks(&self, Parameters(args): Parameters<ListTasksArgs>) -> String {
         json(
@@ -188,6 +195,19 @@ impl FloodServer {
     #[tool(description = "Восстановить задачу из корзины")]
     fn restore_task(&self, Parameters(args): Parameters<VersionedTaskArgs>) -> String {
         json(self.store.restore_task(&args.id, &args.expected_version))
+    }
+
+    #[tool(description = "Окончательно удалить одну задачу из корзины")]
+    fn delete_trashed_task(&self, Parameters(args): Parameters<VersionedTaskArgs>) -> String {
+        json(
+            self.store
+                .delete_trashed_task(&args.id, &args.expected_version),
+        )
+    }
+
+    #[tool(description = "Окончательно удалить все задачи из корзины")]
+    fn empty_trash(&self) -> String {
+        json(self.store.empty_trash())
     }
 }
 
