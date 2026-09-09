@@ -242,8 +242,9 @@ button { color: inherit; }
   align-items: center;
   gap: 6px;
 }
-.task-actions-menu { position: absolute; z-index: 45; top: 44px; right: 146px; display: grid; width: max-content; max-width: min(260px, calc(100vw - 24px)); max-height: min(360px, calc(100vh - 70px)); padding: 5px; overflow-y: auto; border: 1px solid var(--line); border-radius: 11px; background: var(--elevated); box-shadow: 0 12px 34px var(--shadow); }
-.task-actions-menu button { display: grid; grid-template-columns: 20px auto 16px; min-width: 100%; min-height: 34px; align-items: center; gap: 7px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: #555555; font-size: 13px; text-align: left; cursor: pointer; }
+.task-actions-menu { position: absolute; z-index: 45; top: 44px; right: 146px; display: grid; width: 146px; max-width: calc(100vw - 24px); max-height: min(360px, calc(100vh - 70px)); padding: 5px; overflow-y: auto; border: 1px solid var(--line); border-radius: 11px; background: var(--elevated); box-shadow: 0 12px 34px var(--shadow); }
+.task-actions-menu.move-open { width: min(220px, calc(100vw - 24px)); }
+.task-actions-menu button { display: grid; grid-template-columns: 16px minmax(0, 1fr) 12px; min-height: 34px; align-items: center; gap: 6px; padding: 0 6px; border: 0; border-radius: 7px; background: transparent; color: #555555; font-size: 13px; text-align: left; cursor: pointer; }
 .task-actions-menu button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .task-actions-menu button:hover { background: #f7f7f7; color: var(--ink); }
 .task-actions-menu button:disabled { color: #a5a5a5; cursor: default; }

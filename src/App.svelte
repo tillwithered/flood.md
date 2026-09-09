@@ -1606,7 +1606,7 @@
         <button class:completed={selectedTask.completed} class="complete-button" aria-label={selectedTask.completed ? "Вернуть задачу" : "Завершить задачу"} onclick={toggleComplete}>{#if selectedTask.completed}<CheckCircle2 size={17} />{:else}<Circle size={17} />{/if}<span>{selectedTask.completed ? "Выполнено" : "Завершить"}</span></button>
         <button class="icon-button" aria-label="Другие действия" aria-expanded={taskActionMenuOpen} onclick={() => { taskActionMenuOpen = !taskActionMenuOpen; moveMenuOpen = false; urgencyMenuOpen = false; sourceEditorOpen = false; }}><MoreHorizontal size={18} /></button>
         {#if taskActionMenuOpen}
-          <div class="task-actions-menu">
+          <div class:move-open={moveMenuOpen} class="task-actions-menu">
             {#if moveMenuOpen}
               <button class="menu-back" onclick={() => (moveMenuOpen = false)}><ChevronRight size={14} />Переместить в…</button>
               {#each chats.slice(1) as chat}
