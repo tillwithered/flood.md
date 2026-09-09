@@ -1638,9 +1638,10 @@
           </header>
 
           {#if deleteChatConfirmOpen}
-            <div class="destructive-confirm" role="alert">
-              <span><strong>Удалить «{currentChat.title}»?</strong><small>Чат-проект и все его задачи будут удалены навсегда.</small></span>
-              <div><button onclick={() => (deleteChatConfirmOpen = false)}>Отмена</button><button class="danger-button" onclick={deleteCurrentChat}>Удалить</button></div>
+            <div class="destructive-confirm project-delete-confirm" role="alert">
+              <span class="confirm-glyph"><FloodGlyph kind="urgent" size={40} motion="pop" label="Удаление чат-проекта" /></span>
+              <span class="confirm-copy"><strong>Удалить «{currentChat.title}»?</strong><small>Чат-проект и все его задачи будут удалены навсегда.</small></span>
+              <div class="confirm-actions"><button onclick={() => (deleteChatConfirmOpen = false)}>Отмена</button><button class="danger-button" onclick={deleteCurrentChat}>Удалить</button></div>
             </div>
           {/if}
 
@@ -1704,8 +1705,8 @@
           </header>
           {#if emptyTrashConfirmOpen}
             <div class="destructive-confirm" role="alert">
-              <span><strong>Очистить корзину?</strong><small>Все задачи в корзине будут удалены без возможности восстановления.</small></span>
-              <div><button onclick={() => (emptyTrashConfirmOpen = false)}>Отмена</button><button class="danger-button" onclick={emptyTrash}>Удалить всё</button></div>
+              <span class="confirm-copy"><strong>Очистить корзину?</strong><small>Все задачи в корзине будут удалены без возможности восстановления.</small></span>
+              <div class="confirm-actions"><button onclick={() => (emptyTrashConfirmOpen = false)}>Отмена</button><button class="danger-button" onclick={emptyTrash}>Удалить всё</button></div>
             </div>
           {/if}
           <div class="project-task-list standalone">
