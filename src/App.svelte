@@ -315,11 +315,7 @@
         const pathEnd = labelEnd >= 0 ? value.indexOf(")", labelEnd + 2) : -1;
         const path = pathEnd >= 0 ? value.slice(labelEnd + 2, pathEnd) : "";
         if (labelEnd >= 0 && pathEnd >= 0 && path.startsWith("attachments/")) {
-          const image = document.createElement("img");
-          image.alt = value.slice(cursor + 2, labelEnd);
-          image.dataset.attachmentPath = path;
-          image.contentEditable = "false";
-          parent.append(image);
+          parent.append(createImageAttachment(value.slice(cursor + 2, labelEnd), path));
           cursor = pathEnd + 1;
           continue;
         }
@@ -386,9 +382,32 @@
     return block;
   }
 
+  function createImageAttachment(alt: string, relativePath: string, source = "") {
+    const card = document.createElement("span");
+    card.className = "attachment-card";
+    card.dataset.attachmentKind = "image";
+    card.dataset.attachmentPath = relativePath;
+    card.dataset.attachmentAlt = alt || "Изображение";
+    card.contentEditable = "false";
+    const image = document.createElement("img");
+    image.alt = alt || "Изображение";
+    if (source) image.src = source;
+    image.draggable = false;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "attachment-remove";
+    remove.dataset.removeAttachment = "true";
+    remove.setAttribute("aria-label", `Убрать изображение ${image.alt} из задачи`);
+    remove.title = "Убрать изображение";
+    remove.textContent = "×";
+    card.append(image, remove);
+    return card;
+  }
+
   function serializeInline(node: Node): string {
     if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
     if (!(node instanceof HTMLElement)) return "";
+    if (node.dataset.attachmentKind === "image") return `![${node.dataset.attachmentAlt ?? "Изображение"}](${node.dataset.attachmentPath ?? ""})`;
     const content = [...node.childNodes].map(serializeInline).join("");
     if (node.tagName === "STRONG" || node.tagName === "B") return `**${content}**`;
     if (node.tagName === "EM" || node.tagName === "I") return `*${content}*`;
@@ -432,7 +451,10 @@
         const bytes = await invoke<ArrayBuffer>("read_task_attachment", { id: selectedTaskId, relativePath });
         const url = URL.createObjectURL(new Blob([bytes], { type: attachmentMimeType(relativePath) }));
         attachmentObjectUrls.push(url);
-        if (element instanceof HTMLImageElement) element.src = url;
+        if (element.dataset.attachmentKind === "image") {
+          const image = element.querySelector("img");
+          if (image) image.src = url;
+        } else if (element instanceof HTMLImageElement) element.src = url;
         else if (element instanceof HTMLAnchorElement) element.href = url;
       } catch {
         element.classList.add("missing-attachment");
@@ -687,13 +709,10 @@
         const bytes = await invoke<ArrayBuffer>("read_task_attachment", { id: selectedTaskId, relativePath });
         const objectUrl = URL.createObjectURL(new Blob([bytes], { type: file.type || attachmentMimeType(relativePath) }));
         attachmentObjectUrls.push(objectUrl);
-        const node = file.type.startsWith("image/") ? document.createElement("img") : document.createElement("a");
-        node.dataset.attachmentPath = relativePath;
-        if (node instanceof HTMLImageElement) {
-          node.alt = file.name || "Изображение";
-          node.src = objectUrl;
-          node.contentEditable = "false";
-        } else {
+        const imageFile = file.type.startsWith("image/");
+        const node = imageFile ? createImageAttachment(file.name || "Изображение", relativePath, objectUrl) : document.createElement("a");
+        if (node instanceof HTMLAnchorElement) {
+          node.dataset.attachmentPath = relativePath;
           node.textContent = file.name || "Вложение";
           node.href = objectUrl;
           node.target = "_blank";
@@ -703,7 +722,17 @@
         const selection = window.getSelection();
         const range = selection?.rangeCount ? selection.getRangeAt(0) : null;
         const block = currentBlock() ?? editorRoot.lastElementChild as HTMLElement | null;
-        if (range && block) {
+        if (imageFile && block) {
+          const attachmentBlock = createBlock("paragraph");
+          attachmentBlock.replaceChildren(node);
+          const blockIsEmpty = !(block.textContent ?? "").trim() && !block.querySelector("[data-attachment-path]");
+          if (blockIsEmpty) block.replaceWith(attachmentBlock);
+          else block.after(attachmentBlock);
+          const next = createBlock("paragraph");
+          attachmentBlock.after(next);
+          placeCaret(next, 0);
+          savedSelection = window.getSelection()?.rangeCount ? window.getSelection()!.getRangeAt(0).cloneRange() : null;
+        } else if (range && block) {
           range.deleteContents();
           range.insertNode(node);
           range.setStartAfter(node);
@@ -777,11 +806,7 @@
     return haystack.includes(query.trim().toLocaleLowerCase("ru"));
   }
 
-  $: visibleTasks = tasks.filter((task) => {
-    const matchesStatus = showCompleted || !task.completed;
-    const matchesChat = selectedChatId === "all" || task.chat === chats.find((chat) => chat.id === selectedChatId)?.title;
-    return matchesStatus && matchesChat && taskMatchesQuery(task);
-  });
+  $: visibleTasks = tasks.filter((task) => (showCompleted || !task.completed) && taskMatchesQuery(task));
 
   $: currentChat = chats.find((chat) => chat.id === selectedChatId) ?? allChat(0);
   $: searchActive = query.trim().length > 0;
@@ -803,7 +828,6 @@
   async function selectChat(chat: ChatItem) {
     await saveNow();
     if (conflictRemote) return;
-    query = "";
     selectedChatId = chat.id;
     activeSection = "tasks";
     workspaceView = "project";
@@ -817,6 +841,23 @@
 
   function toggleChat(chat: ChatItem) {
     setChatExpanded(chat.id, !isChatExpanded(chat.id));
+  }
+
+  function handleEditorClick(event: MouseEvent) {
+    const target = event.target instanceof Element ? event.target : null;
+    const remove = target?.closest<HTMLElement>("[data-remove-attachment]");
+    if (remove) {
+      event.preventDefault();
+      event.stopPropagation();
+      const card = remove.closest<HTMLElement>(".attachment-card");
+      const block = card?.closest<HTMLElement>(".editor-block");
+      card?.remove();
+      if (block && !block.childNodes.length) block.append(document.createElement("br"));
+      if (block) placeCaret(block, 0);
+      serializeEditor();
+      return;
+    }
+    updateHint(currentBlock());
   }
 
   function markerKind(marker: string): BlockKind | null {
@@ -873,6 +914,13 @@
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       editorHint = null;
+      if (block.querySelector(".attachment-card")) {
+        const next = createBlock("paragraph");
+        block.after(next);
+        placeCaret(next, 0);
+        serializeEditor();
+        return;
+      }
       if (!text && (kind === "bullet" || kind === "number" || kind === "quote")) {
         setBlockKind(block, "paragraph");
         serializeEditor();
@@ -1527,7 +1575,7 @@
             <ListTodo size={17} /><span>Все задачи</span><small>{tasks.filter((task) => !task.completed).length}</small>
           </button>
           {#if !sidebarCollapsed}
-            <button class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={toggleAllTasks} aria-label={allTasksExpanded ? "Свернуть все задачи" : "Раскрыть все задачи"}><ChevronRight size={13} /></button>
+            <button class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={(event) => { event.preventDefault(); event.stopPropagation(); toggleAllTasks(); }} aria-label={allTasksExpanded ? "Свернуть все задачи" : "Раскрыть все задачи"}><ChevronRight size={13} /></button>
           {/if}
         </div>
 
@@ -1550,7 +1598,7 @@
                 {/if}
               </button>
               {#if !sidebarCollapsed}
-                <button class:expanded={isChatExpanded(chat.id)} class="project-expand" aria-expanded={isChatExpanded(chat.id)} onclick={() => toggleChat(chat)} aria-label={isChatExpanded(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}><ChevronRight size={13} /></button>
+                <button class:expanded={isChatExpanded(chat.id)} class="project-expand" aria-expanded={isChatExpanded(chat.id)} onclick={(event) => { event.preventDefault(); event.stopPropagation(); toggleChat(chat); }} aria-label={isChatExpanded(chat.id) ? `Свернуть ${chat.title}` : `Раскрыть ${chat.title}`}><ChevronRight size={13} /></button>
               {/if}
             </div>
             {#if !sidebarCollapsed && isChatExpanded(chat.id) && activeSection === "tasks"}
@@ -1600,7 +1648,7 @@
               <div><button onclick={useDiskVersion}>Версию с диска</button><button onclick={keepLocalVersion}>Мою версию</button></div>
             </div>
           {/if}
-          <div class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label="Редактор задачи" spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={() => updateHint(currentBlock())} onblur={() => { editorHint = null; void saveNow(); }}></div>
+          <div class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label="Редактор задачи" spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={() => { editorHint = null; void saveNow(); }}></div>
           {#if selectedTask.source?.text}
             <details class="source-snapshot">
               <summary><FloodGlyph kind="info" size={15} />Исходное сообщение</summary>
