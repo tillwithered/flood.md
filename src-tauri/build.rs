@@ -28,7 +28,10 @@ fn generate_telegram_credentials() {
             let api_id: i32 = api_id.parse().expect("TG_API_ID must be a positive integer");
             let api_hash = api_hash.trim();
             assert!(api_id > 0, "TG_API_ID must be a positive integer");
-            assert!(api_hash.len() >= 16, "TG_API_HASH is too short");
+            assert!(
+                api_hash.len() == 32 && api_hash.bytes().all(|byte| byte.is_ascii_hexdigit()),
+                "TG_API_HASH must contain exactly 32 hexadecimal characters"
+            );
 
             let seed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos() as u64
                 ^ u64::from(std::process::id()).rotate_left(17);

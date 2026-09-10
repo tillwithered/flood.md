@@ -1190,7 +1190,7 @@ dependencies = [
 
 [[package]]
 name = "flood-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "atomic-write-file",
  "chrono",
@@ -1207,8 +1207,9 @@ dependencies = [
 
 [[package]]
 name = "flood-desktop"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
+ "base64 0.22.1",
  "flood-core",
  "notify",
  "serde",
@@ -1226,7 +1227,7 @@ dependencies = [
 
 [[package]]
 name = "flood-mcp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "flood-core",

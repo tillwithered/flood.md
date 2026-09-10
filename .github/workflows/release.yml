@@ -42,11 +42,11 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "flood.md ${{ github.ref_name }}"
           releaseBody: |
-            ## flood.md 0.1.0
+            ## flood.md ${{ github.ref_name }}
 
-            First public Windows release: local Markdown projects and tasks, Telegram integration through TDLib, message-to-task import, local MCP server, themes, attachments, backups, and safe conflict handling.
+            Windows bugfix release: Telegram TDLib connection repair and safe migration of the local database encryption key.
 
-            Первый публичный релиз для Windows: локальные Markdown-проекты и задачи, Telegram через TDLib, импорт сообщений в задачи, локальный MCP-сервер, темы, вложения, резервные копии и защита от конфликтов.
+            Исправление для Windows: восстановлено подключение Telegram через TDLib и добавлена безопасная миграция локального ключа шифрования базы.
           releaseDraft: false
           prerelease: false
           updaterJsonPreferNsis: true

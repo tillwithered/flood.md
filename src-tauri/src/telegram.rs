@@ -1,3 +1,4 @@
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -77,19 +78,30 @@ impl TelegramManager {
         let database_key = stored
             .as_ref()
             .map(|value| value.database_key.clone())
-            .filter(|value| !value.is_empty())
-            .unwrap_or_else(|| ulid::Ulid::new().to_string());
-        let config = credentials.map(|(api_id, api_hash)| TelegramConfig {
-            api_id,
-            api_hash,
-            database_key: database_key.clone(),
-        });
+            .filter(|value| valid_database_key(value))
+            .unwrap_or_else(generate_database_key);
+        let config = credentials
+            .clone()
+            .map(|(api_id, api_hash)| TelegramConfig {
+                api_id,
+                api_hash,
+                database_key: database_key.clone(),
+            });
         if bundled.is_some() {
             let _ = write_config(
                 &root,
                 &StoredTelegramConfig {
                     api_id: None,
                     api_hash: None,
+                    database_key,
+                },
+            );
+        } else if let Some((api_id, api_hash)) = credentials {
+            let _ = write_config(
+                &root,
+                &StoredTelegramConfig {
+                    api_id: Some(api_id),
+                    api_hash: Some(api_hash),
                     database_key,
                 },
             );
@@ -129,13 +141,19 @@ impl TelegramManager {
             return Err("В официальной сборке Telegram API уже настроен".into());
         }
         let api_hash = api_hash.trim().to_owned();
-        if api_id <= 0 || api_hash.len() < 16 {
+        if api_id <= 0 || !valid_api_hash(&api_hash) {
             return Err("Проверьте API ID и API Hash".into());
         }
         let database_key = self
             .config()
             .map(|value| value.database_key)
-            .unwrap_or_else(|| ulid::Ulid::new().to_string());
+            .or_else(|| {
+                read_config(&self.0.root)
+                    .ok()
+                    .map(|value| value.database_key)
+                    .filter(|value| valid_database_key(value))
+            })
+            .unwrap_or_else(generate_database_key);
         let config = TelegramConfig {
             api_id,
             api_hash,
@@ -440,6 +458,23 @@ fn config_path(root: &Path) -> PathBuf {
     root.join("config.json")
 }
 
+fn generate_database_key() -> String {
+    let first = ulid::Ulid::new().to_bytes();
+    let second = ulid::Ulid::new().to_bytes();
+    let mut bytes = [0_u8; 32];
+    bytes[..16].copy_from_slice(&first);
+    bytes[16..].copy_from_slice(&second);
+    STANDARD.encode(bytes)
+}
+
+fn valid_database_key(value: &str) -> bool {
+    STANDARD.decode(value).is_ok_and(|bytes| !bytes.is_empty())
+}
+
+fn valid_api_hash(value: &str) -> bool {
+    value.len() == 32 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
 fn read_config(root: &Path) -> Result<StoredTelegramConfig, String> {
     let bytes = fs::read(config_path(root)).map_err(|error| error.to_string())?;
     serde_json::from_slice(&bytes).map_err(|error| error.to_string())
@@ -492,4 +527,29 @@ fn next_mask(state: &mut u64) -> u8 {
     *state ^= *state >> 7;
     *state ^= *state << 17;
     (*state >> 24) as u8
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{generate_database_key, valid_api_hash, valid_database_key};
+    use base64::{Engine as _, engine::general_purpose::STANDARD};
+
+    #[test]
+    fn generated_database_key_is_valid_32_byte_base64() {
+        let key = generate_database_key();
+        assert!(valid_database_key(&key));
+        assert_eq!(STANDARD.decode(key).unwrap().len(), 32);
+    }
+
+    #[test]
+    fn legacy_ulid_database_key_is_rejected() {
+        assert!(!valid_database_key(&ulid::Ulid::new().to_string()));
+    }
+
+    #[test]
+    fn api_hash_requires_32_hexadecimal_characters() {
+        assert!(valid_api_hash("0123456789abcdef0123456789abcdef"));
+        assert!(!valid_api_hash("0123456789abcdef"));
+        assert!(!valid_api_hash("0123456789abcdef0123456789abcdeg"));
+    }
 }
