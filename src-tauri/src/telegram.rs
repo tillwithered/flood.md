@@ -6,6 +6,7 @@ use flood_core::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::HashMap,
     fs,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
@@ -52,6 +53,7 @@ pub struct TelegramChat {
 #[derive(Clone, Debug, Serialize)]
 pub struct TelegramMessage {
     pub id: i64,
+    pub message_ids: Vec<i64>,
     pub chat_id: i64,
     pub text: String,
     pub author: String,
@@ -295,14 +297,20 @@ impl TelegramManager {
             Err(_) => "Telegram".into(),
         };
         let mut result = Vec::new();
-        for message in history.messages.into_iter().flatten() {
-            let text = message_text(&message.content);
-            let media = message_media(&message.content, message.id);
+        for group in group_telegram_messages(history.messages.into_iter().flatten().collect()) {
+            let (text, media) = combined_message_content(&group);
             if text.trim().is_empty() && media.is_empty() {
                 continue;
             }
+            let message = representative_message(&group).clone();
             let author = self.sender_name(&message.sender_id, client_id).await;
-            let is_reply_to_me = reply_is_to_me(&message, client_id).await;
+            let mut is_reply_to_me = false;
+            for item in &group {
+                if reply_is_to_me(item, client_id).await {
+                    is_reply_to_me = true;
+                    break;
+                }
+            }
             let url =
                 match functions::get_message_link(chat_id, message.id, 0, false, false, client_id)
                     .await
@@ -312,6 +320,7 @@ impl TelegramManager {
                 };
             result.push(TelegramMessage {
                 id: message.id,
+                message_ids: group.iter().map(|item| item.id).collect(),
                 chat_id,
                 text,
                 author,
@@ -319,7 +328,7 @@ impl TelegramManager {
                 url,
                 chat_title: chat_title.clone(),
                 media,
-                is_mention: message.contains_unread_mention,
+                is_mention: group.iter().any(|item| item.contains_unread_mention),
                 is_reply_to_me,
             });
         }
@@ -330,14 +339,21 @@ impl TelegramManager {
         &self,
         project_id: &str,
         link: &TelegramProjectLink,
-        message_id: i64,
+        message_ids: &[i64],
     ) -> Result<TelegramInboxCandidate, String> {
         let client_id = self.client_id()?;
-        let enums::Message::Message(message) =
-            functions::get_message(link.chat_id, message_id, client_id)
-                .await
-                .map_err(td_error)?;
-        self.candidate_from_message(project_id, link, message, InboxCandidateReason::Manual)
+        if message_ids.is_empty() || message_ids.len() > 20 {
+            return Err("Выберите от 1 до 20 сообщений Telegram".into());
+        }
+        let mut messages = Vec::with_capacity(message_ids.len());
+        for message_id in message_ids {
+            let enums::Message::Message(message) =
+                functions::get_message(link.chat_id, *message_id, client_id)
+                    .await
+                    .map_err(td_error)?;
+            messages.push(message);
+        }
+        self.candidate_from_messages(project_id, link, messages, InboxCandidateReason::Manual)
             .await
     }
 
@@ -357,12 +373,13 @@ impl TelegramManager {
                 functions::get_chat_history(link.chat_id, 0, 0, limit, false, client_id)
                     .await
                     .map_err(td_error)?;
-            for message in history.messages.into_iter().flatten() {
-                if message.is_outgoing {
+            for group in group_telegram_messages(history.messages.into_iter().flatten().collect()) {
+                if group.iter().all(|message| message.is_outgoing)
+                    && link.inbox_mode != TelegramInboxMode::All
+                {
                     continue;
                 }
-                let text = message_text(&message.content);
-                let media = message_media(&message.content, message.id);
+                let (text, media) = combined_message_content(&group);
                 if text.trim().is_empty() && media.is_empty() {
                     continue;
                 }
@@ -371,9 +388,11 @@ impl TelegramManager {
                     .account_username
                     .as_ref()
                     .is_some_and(|username| contains_username_mention(&text, username));
-                let reason = if message.contains_unread_mention || username_mention {
+                let reason = if group.iter().any(|message| message.contains_unread_mention)
+                    || username_mention
+                {
                     Some(InboxCandidateReason::Mention)
-                } else if reply_is_to_me(&message, client_id).await {
+                } else if any_reply_is_to_me(&group, client_id).await {
                     Some(InboxCandidateReason::Reply)
                 } else if link.inbox_mode == TelegramInboxMode::All {
                     Some(InboxCandidateReason::LinkedChat)
@@ -382,10 +401,10 @@ impl TelegramManager {
                 };
                 if let Some(reason) = reason {
                     candidates.push(
-                        self.candidate_from_message_with_content(
+                        self.candidate_from_messages_with_content(
                             &project.id,
                             link,
-                            message,
+                            group,
                             reason,
                             text,
                             media,
@@ -415,32 +434,35 @@ impl TelegramManager {
         }
     }
 
-    async fn candidate_from_message(
+    async fn candidate_from_messages(
         &self,
         project_id: &str,
         link: &TelegramProjectLink,
-        message: tdlib::types::Message,
+        messages: Vec<tdlib::types::Message>,
         reason: InboxCandidateReason,
     ) -> Result<TelegramInboxCandidate, String> {
-        let text = message_text(&message.content);
-        let media = message_media(&message.content, message.id);
+        if messages.is_empty() {
+            return Err("Сообщение Telegram не найдено".into());
+        }
+        let (text, media) = combined_message_content(&messages);
         if text.trim().is_empty() && media.is_empty() {
             return Err("В сообщении нет текста или поддерживаемого медиа".into());
         }
-        self.candidate_from_message_with_content(project_id, link, message, reason, text, media)
+        self.candidate_from_messages_with_content(project_id, link, messages, reason, text, media)
             .await
     }
 
-    async fn candidate_from_message_with_content(
+    async fn candidate_from_messages_with_content(
         &self,
         project_id: &str,
         link: &TelegramProjectLink,
-        message: tdlib::types::Message,
+        messages: Vec<tdlib::types::Message>,
         reason: InboxCandidateReason,
         text: String,
         media: Vec<flood_core::SourceMedia>,
     ) -> Result<TelegramInboxCandidate, String> {
         let client_id = self.client_id()?;
+        let message = representative_message(&messages);
         let author = self.sender_name(&message.sender_id, client_id).await;
         let url =
             match functions::get_message_link(link.chat_id, message.id, 0, false, false, client_id)
@@ -451,8 +473,13 @@ impl TelegramManager {
             };
         let sent_at = DateTime::from_timestamp(message.date.into(), 0)
             .ok_or_else(|| "Telegram вернул некорректную дату сообщения".to_string())?;
+        let identity = messages
+            .iter()
+            .find_map(|message| (message.media_album_id != 0).then_some(message.media_album_id))
+            .map(|album_id| format!("album:{album_id}"))
+            .unwrap_or_else(|| message.id.to_string());
         Ok(TelegramInboxCandidate {
-            id: format!("telegram:{project_id}:{}:{}", link.chat_id, message.id),
+            id: format!("telegram:{project_id}:{}:{identity}", link.chat_id),
             project_id: project_id.to_owned(),
             chat_id: link.chat_id,
             chat_title: link.title.clone(),
@@ -753,6 +780,59 @@ async fn reply_is_to_me(message: &tdlib::types::Message, client_id: i32) -> bool
     )
 }
 
+async fn any_reply_is_to_me(messages: &[tdlib::types::Message], client_id: i32) -> bool {
+    for message in messages {
+        if reply_is_to_me(message, client_id).await {
+            return true;
+        }
+    }
+    false
+}
+
+fn group_telegram_messages(
+    messages: Vec<tdlib::types::Message>,
+) -> Vec<Vec<tdlib::types::Message>> {
+    group_by_album(messages, |message| message.media_album_id)
+}
+
+fn group_by_album<T>(items: Vec<T>, album_id: impl Fn(&T) -> i64) -> Vec<Vec<T>> {
+    let mut groups = Vec::<Vec<T>>::new();
+    let mut album_positions = HashMap::<i64, usize>::new();
+    for item in items {
+        let current_album_id = album_id(&item);
+        if current_album_id == 0 {
+            groups.push(vec![item]);
+        } else if let Some(index) = album_positions.get(&current_album_id).copied() {
+            groups[index].push(item);
+        } else {
+            album_positions.insert(current_album_id, groups.len());
+            groups.push(vec![item]);
+        }
+    }
+    groups
+}
+
+fn combined_message_content(messages: &[tdlib::types::Message]) -> (String, Vec<SourceMedia>) {
+    let mut texts = Vec::<String>::new();
+    let mut media = Vec::new();
+    for message in messages {
+        let text = message_text(&message.content);
+        let text = text.trim();
+        if !text.is_empty() && !texts.iter().any(|existing| existing == text) {
+            texts.push(text.to_owned());
+        }
+        media.extend(message_media(&message.content, message.id));
+    }
+    (texts.join("\n\n"), media)
+}
+
+fn representative_message(messages: &[tdlib::types::Message]) -> &tdlib::types::Message {
+    messages
+        .iter()
+        .find(|message| !message_text(&message.content).trim().is_empty())
+        .unwrap_or(&messages[0])
+}
+
 fn message_media(content: &enums::MessageContent, message_id: i64) -> Vec<SourceMedia> {
     let media = match content {
         enums::MessageContent::MessageAnimation(message) => Some(media_item(
@@ -853,8 +933,8 @@ fn next_mask(state: &mut u64) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::{
-        contains_username_mention, generate_database_key, message_media, normalize_database_key,
-        valid_api_hash, valid_database_key,
+        contains_username_mention, generate_database_key, group_by_album, message_media,
+        normalize_database_key, valid_api_hash, valid_database_key,
     };
     use base64::{Engine as _, engine::general_purpose::STANDARD};
 
@@ -929,5 +1009,17 @@ mod tests {
         assert_eq!(media[0].provider_file_id, Some(2));
         assert_eq!(media[0].file_name, "photo-77.jpg");
         assert_eq!(media[0].size, Some(2048));
+    }
+
+    #[test]
+    fn telegram_album_messages_are_grouped_without_merging_regular_messages() {
+        let groups = group_by_album(
+            vec![(14, 900), (13, 900), (12, 0), (11, 800), (10, 800)],
+            |message| message.1,
+        );
+        assert_eq!(groups.len(), 3);
+        assert_eq!(groups[0], vec![(14, 900), (13, 900)]);
+        assert_eq!(groups[1][0], (12, 0));
+        assert_eq!(groups[2].len(), 2);
     }
 }

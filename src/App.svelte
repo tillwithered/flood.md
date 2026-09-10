@@ -5,7 +5,7 @@
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
-  import { openPath, openUrl } from "@tauri-apps/plugin-opener";
+  import { openUrl } from "@tauri-apps/plugin-opener";
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import { onMount, tick } from "svelte";
   import QRCode from "qrcode";
@@ -59,7 +59,7 @@
   type MarkdownHint = { title: string; left: number; top: number };
   type TelegramStatus = { step: string; configured: boolean; managed_credentials: boolean; account_name?: string; account_username?: string; qr_link?: string; password_hint?: string; error?: string };
   type TelegramChat = { id: number; title: string };
-  type TelegramMessage = { id: number; chat_id: number; text: string; author: string; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean };
+  type TelegramMessage = { id: number; message_ids?: number[]; chat_id: number; text: string; author: string; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean };
   type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; discovered_at: string; processed_at?: string; task_id?: string };
 
   const markdownHints: Record<string, MessageKey> = {
@@ -328,6 +328,10 @@
 
   function fullDate(value: string) {
     return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+  }
+
+  function compactDate(value: string) {
+    return new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", { day: "numeric", month: "short", year: "numeric" }).format(new Date(value));
   }
 
   function fileName(path: string) {
@@ -1104,6 +1108,7 @@
 
   $: currentChat = chats.find((chat) => chat.id === selectedChatId) ?? allChat(0);
   $: telegramConnectionsProject = chats.find((chat) => chat.id === telegramPickerProjectId && chat.id !== "all");
+  $: telegramVisibleChats = telegramChatSearch.trim() ? telegramSearchResults : telegramChats;
   $: normalizedQuery = query.trim().toLocaleLowerCase("ru");
   $: searchActive = normalizedQuery.length > 0;
   $: visibleTasks = tasks.filter((task) => !isLocalDraft(task) && (showCompleted || !task.completed));
@@ -1746,6 +1751,10 @@
     return task.hasSource ? t("fromMessage") : t("addedManually");
   }
 
+  function taskSourceMetaLabel(task: TaskItem) {
+    return task.source?.provider === "telegram" ? t("fromTelegram") : taskSourceLabel(task);
+  }
+
   async function changeUrgency(urgency: Urgency) {
     urgencyMenuOpen = false;
     if (!await persistCurrentTask(true)) return;
@@ -1836,11 +1845,6 @@
     return t(mode === "manual" ? "telegramModeManual" : mode === "all" ? "telegramModeAll" : "telegramModeMentions");
   }
 
-  function filteredTelegramChats(project: ChatItem) {
-    const query = telegramPickerProjectId === project.id ? telegramChatSearch.trim().toLocaleLowerCase(locale) : "";
-    return query ? telegramSearchResults : telegramChats;
-  }
-
   function openTelegramConnections(projectId: string) {
     telegramPickerProjectId = projectId;
     telegramChatSearch = "";
@@ -1865,6 +1869,7 @@
       telegramSearchLoading = false;
       return;
     }
+    telegramSearchResults = [];
     const projectId = telegramPickerProjectId;
     telegramSearchLoading = true;
     telegramSearchTimer = window.setTimeout(async () => {
@@ -1887,6 +1892,11 @@
         expectedVersion: project.version
       });
       chats = chats.map((chat) => chat.id === updated.id ? { ...updated, telegram_chats: updated.telegram_chats ?? [], open: chat.open } : chat);
+      if (updated.telegram_chats?.some((link) => link.inbox_mode !== "manual")) {
+        const inbox = await invoke<TelegramInboxCandidate[]>("telegram_refresh_inbox", { projectId: updated.id, limitPerChat: 40 });
+        if (telegramInboxOpen && currentChat.id === updated.id) telegramInbox = inbox;
+        else if (telegramInboxOpen && currentChat.id === "all") telegramInbox = await invoke<TelegramInboxCandidate[]>("telegram_list_inbox", { projectId: null, includeProcessed: false });
+      }
       telegramError = "";
     } catch (error) {
       telegramError = String(error);
@@ -1944,7 +1954,7 @@
       await invoke<TelegramInboxCandidate>("telegram_add_inbox_message", {
         projectId: currentChat.id,
         chatId: message.chat_id,
-        messageId: message.id
+        messageIds: message.message_ids?.length ? message.message_ids : [message.id]
       });
       telegramQueuedMessageIds = [...telegramQueuedMessageIds, message.id];
     } catch (error) {
@@ -2007,11 +2017,58 @@
 
   async function downloadTelegramSourceMedia(index: number) {
     if (!selectedTask || downloadingSourceMedia >= 0) return;
+    if (!await persistCurrentTask(true)) return;
     downloadingSourceMedia = index;
     try {
-      const saved = await invoke<TaskRecord>("telegram_download_source_media", { taskId: selectedTask.id, mediaIndex: index });
-      const converted = toTaskItem(saved, chats);
-      tasks = tasks.map((task) => task.id === converted.id ? converted : task);
+      let saved = await invoke<TaskRecord>("telegram_download_source_media", { taskId: selectedTask.id, mediaIndex: index });
+      saved = await insertSourceMediaRecord(saved, index);
+      await applyUpdatedTask(saved);
+    } catch (error) {
+      saveError = String(error);
+    } finally {
+      downloadingSourceMedia = -1;
+    }
+  }
+
+  function sourceMediaMarkdown(media: SourceMedia) {
+    if (!media.relative_path) return "";
+    const label = media.file_name.replace(/[\[\]\r\n]/g, " ").trim() || t("attachment");
+    return media.kind === "photo" ? `![${label}](${media.relative_path})` : `[${label}](${media.relative_path})`;
+  }
+
+  function sourceMediaInTask(media: SourceMedia) {
+    return Boolean(media.relative_path && selectedTask?.markdown.includes(`](${media.relative_path})`));
+  }
+
+  async function insertSourceMediaRecord(task: TaskRecord, index: number) {
+    const media = task.source?.media?.[index];
+    const attachment = media ? sourceMediaMarkdown(media) : "";
+    if (!media?.relative_path || !attachment || task.description.includes(`](${media.relative_path})`)) return task;
+    return invoke<TaskRecord>("update_task", {
+      id: task.id,
+      patch: { description: `${task.description.trimEnd()}\n\n${attachment}` },
+      expectedVersion: task.version
+    });
+  }
+
+  async function applyUpdatedTask(saved: TaskRecord) {
+    const converted = toTaskItem(saved, chats);
+    tasks = tasks.map((task) => task.id === converted.id ? converted : task);
+    if (selectedTaskId === converted.id) {
+      markdown = converted.markdown;
+      lastSavedMarkdown = converted.markdown;
+      saveState = "saved";
+      await tick();
+      renderMarkdown(markdown);
+    }
+  }
+
+  async function insertDownloadedSourceMedia(index: number) {
+    if (!selectedTask || downloadingSourceMedia >= 0 || !await persistCurrentTask(true)) return;
+    downloadingSourceMedia = index;
+    try {
+      const current = await invoke<TaskRecord>("get_task", { id: selectedTask.id });
+      await applyUpdatedTask(await insertSourceMediaRecord(current, index));
     } catch (error) {
       saveError = String(error);
     } finally {
@@ -2022,15 +2079,29 @@
   async function openSourceMedia(media: SourceMedia) {
     if (!selectedTask || !media.relative_path) return;
     try {
-      const path = await invoke<string>("resolve_task_attachment", { id: selectedTask.id, relativePath: media.relative_path });
-      await openPath(path);
+      if (media.kind === "photo" || media.mime_type?.startsWith("image/")) {
+        const bytes = await invoke<ArrayBuffer>("read_task_attachment", { id: selectedTask.id, relativePath: media.relative_path });
+        const url = URL.createObjectURL(new Blob([bytes], { type: media.mime_type || attachmentMimeType(media.relative_path) }));
+        attachmentObjectUrls.push(url);
+        imageViewer = { src: url, alt: media.file_name || t("image") };
+        imageViewerZoom = 1;
+        await tick();
+        imageViewerDialog?.focus();
+      } else {
+        await invoke("open_task_attachment", { id: selectedTask.id, relativePath: media.relative_path });
+      }
     } catch (error) {
       saveError = String(error);
     }
   }
 
   async function openDataDirectory() {
-    if (dataDirectory) await openPath(dataDirectory);
+    if (!dataDirectory) return;
+    try { await invoke("open_data_directory"); }
+    catch (error) {
+      dataActionState = "error";
+      dataActionMessage = String(error);
+    }
   }
 
   async function createDataBackup() {
@@ -2441,8 +2512,8 @@
         <div class="editor-page">
           <div class="task-meta" aria-label={t("taskMetadata")}>
             <span class="task-project-meta" title={selectedTask.chat}>{selectedTask.chat}</span>
-            <span title={fullDate(selectedTask.createdAt)}>{t("created", { date: fullDate(selectedTask.createdAt) })}</span>
-            <span class="source-meta" title={taskSourceLabel(selectedTask)}><FloodGlyph kind="info" size={13} /><span class="source-meta-label">{taskSourceLabel(selectedTask)}</span></span>
+            <span title={fullDate(selectedTask.createdAt)}>{t("created", { date: compactDate(selectedTask.createdAt) })}</span>
+            <span class="source-meta" title={taskSourceLabel(selectedTask)}><FloodGlyph kind="info" size={13} /><span class="source-meta-label">{taskSourceMetaLabel(selectedTask)}</span></span>
             {#if selectedTask.source?.url}<a href={selectedTask.source.url} target="_blank" rel="noreferrer">{t("openMessage")}</a>{/if}
           </div>
           {#if conflictRemote}
@@ -2459,7 +2530,7 @@
               {#if selectedTask.source.media?.length}
                 <div class="source-media-list">
                   {#each selectedTask.source.media as media, index}
-                    <div class="source-media-row"><Paperclip size={14} /><span><strong>{media.file_name}</strong><small>{t("telegramMedia")} · {media.size ? `${Math.max(1, Math.round(media.size / 1024))} КБ` : t("sizeUnknown")}</small></span>{#if media.relative_path}<button onclick={() => openSourceMedia(media)}>{t("open")}</button>{:else}<button disabled={downloadingSourceMedia >= 0} onclick={() => downloadTelegramSourceMedia(index)}>{#if downloadingSourceMedia === index}<RefreshCw class="spinning" size={13} />{:else}<Download size={13} />{/if}{t("download")}</button>{/if}</div>
+                    <div class="source-media-row"><Paperclip size={14} /><span><strong>{media.file_name}</strong><small>{t("telegramMedia")} · {media.size ? `${Math.max(1, Math.round(media.size / 1024))} КБ` : t("sizeUnknown")}</small></span><div class="source-media-actions">{#if media.relative_path}{#if sourceMediaInTask(media)}<span><Check size={12} />{t("inTask")}</span>{:else}<button disabled={downloadingSourceMedia >= 0} onclick={() => insertDownloadedSourceMedia(index)}><Plus size={13} />{t("addToTask")}</button>{/if}<button onclick={() => openSourceMedia(media)}>{t("open")}</button>{:else}<button disabled={downloadingSourceMedia >= 0} onclick={() => downloadTelegramSourceMedia(index)}>{#if downloadingSourceMedia === index}<RefreshCw class="spinning" size={13} />{:else}<Download size={13} />{/if}{t("addToTask")}</button>{/if}</div></div>
                   {/each}
                 </div>
               {/if}
@@ -2728,7 +2799,7 @@
         <section class="telegram-connections-section available">
           <h4>{t("availableTelegramChats")}</h4>
           <div class="telegram-connections-list">
-            {#each filteredTelegramChats(telegramConnectionsProject) as telegramChat (telegramChat.id)}
+            {#each telegramVisibleChats as telegramChat (telegramChat.id)}
               {@const linked = telegramConnectionsProject.telegram_chats.some((link) => link.chat_id === telegramChat.id)}
               <button class:active={linked} onclick={() => toggleProjectTelegramChat(telegramConnectionsProject, telegramChat)}><span class="picker-check">{#if linked}<Check size={13} />{/if}</span><span title={telegramChat.title}>{telegramChat.title}</span><small>{linked ? t("linked") : t("add")}</small></button>
             {:else}<div class="telegram-connections-empty">{t("nothingFound")}</div>{/each}

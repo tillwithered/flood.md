@@ -4,7 +4,8 @@ use flood_core::{
 };
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use std::{fs, path::PathBuf, sync::Mutex};
-use tauri::{Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, Manager, State};
+use tauri_plugin_opener::OpenerExt;
 
 mod telegram;
 use telegram::{TelegramChat, TelegramManager, TelegramMessage, TelegramStatus};
@@ -185,6 +186,29 @@ fn resolve_task_attachment(
 }
 
 #[tauri::command]
+fn open_task_attachment(
+    id: String,
+    relative_path: String,
+    state: State<'_, AppState>,
+    app: AppHandle,
+) -> Result<(), String> {
+    let path = result(state.store.resolve_task_attachment(&id, &relative_path))?;
+    app.opener()
+        .open_path(path.to_string_lossy().into_owned(), None::<String>)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn open_data_directory(state: State<'_, AppState>, app: AppHandle) -> Result<(), String> {
+    app.opener()
+        .open_path(
+            state.store.root().to_string_lossy().into_owned(),
+            None::<String>,
+        )
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn read_task_attachment(
     id: String,
     relative_path: String,
@@ -346,7 +370,8 @@ async fn telegram_refresh_all_inboxes(state: State<'_, AppState>) -> Result<usiz
 async fn telegram_add_inbox_message(
     project_id: String,
     chat_id: i64,
-    message_id: i64,
+    message_id: Option<i64>,
+    message_ids: Option<Vec<i64>>,
     state: State<'_, AppState>,
 ) -> Result<TelegramInboxCandidate, String> {
     let project = result(state.store.get_project(&project_id))?;
@@ -357,7 +382,14 @@ async fn telegram_add_inbox_message(
         .ok_or_else(|| "Этот Telegram-чат не связан с проектом".to_string())?;
     let candidate = state
         .telegram
-        .manual_candidate(&project_id, link, message_id)
+        .manual_candidate(
+            &project_id,
+            link,
+            &message_ids
+                .filter(|ids| !ids.is_empty())
+                .or_else(|| message_id.map(|id| vec![id]))
+                .ok_or_else(|| "Сообщение Telegram не выбрано".to_string())?,
+        )
         .await?;
     result(
         state
@@ -501,6 +533,8 @@ pub fn run() {
             save_task_attachment,
             resolve_task_attachment,
             read_task_attachment,
+            open_task_attachment,
+            open_data_directory,
             data_directory,
             create_backup,
             restore_backup,

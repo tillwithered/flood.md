@@ -333,7 +333,7 @@ button { color: inherit; }
   display: flex;
   width: min(600px, calc(100% - 64px));
   flex: 0 0 auto;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px 14px;
   margin: 0 auto;
@@ -341,12 +341,12 @@ button { color: inherit; }
   color: #8a8a8a;
   font-size: 12px;
   line-height: 20px;
-  overflow: hidden;
+  overflow: visible;
 }
-.task-meta > span, .task-meta > a { min-width: 0; white-space: nowrap; }
-.task-meta > span + span::before, .task-meta > a::before { margin-right: 14px; color: #d0d0d0; content: "·"; }
-.task-meta .task-project-meta { max-width: 190px; flex: 0 1 190px; overflow: hidden; text-overflow: ellipsis; }
-.task-meta .source-meta { display: inline-flex; flex: 0 1 auto; align-items: center; gap: 5px; overflow: hidden; }
+.task-meta > span, .task-meta > a { display: inline-flex; min-width: 0; align-items: center; white-space: nowrap; }
+.task-meta > span + span::before, .task-meta > a::before { flex: 0 0 auto; margin-right: 14px; color: #d0d0d0; content: "·"; }
+.task-meta .task-project-meta { max-width: 160px; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
+.task-meta .source-meta { display: inline-flex; max-width: 160px; flex: 0 1 auto; align-items: center; gap: 5px; overflow: hidden; }
 .source-meta-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .task-meta a { color: #666666; text-decoration: none; }
 .task-meta a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
@@ -755,7 +755,9 @@ button { color: inherit; }
 .source-media-row > span { display: grid; min-width: 0; gap: 2px; }
 .source-media-row strong { overflow: hidden; color: var(--ink); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .source-media-row small { font-size: 9px; }
-.source-media-row button { display: inline-flex; height: 28px; align-items: center; gap: 5px; padding: 0 8px; border: 0; border-radius: 7px; background: var(--elevated); color: var(--ink); font: inherit; font-size: 10px; cursor: pointer; }
+.source-media-actions { display: flex; align-items: center; gap: 5px; }
+.source-media-actions > span { display: inline-flex; align-items: center; gap: 4px; color: var(--success-ink); font-size: 10px; white-space: nowrap; }
+.source-media-row button { display: inline-flex; height: 28px; align-items: center; gap: 5px; padding: 0 8px; border: 0; border-radius: 7px; background: var(--elevated); color: var(--ink); font: inherit; font-size: 10px; white-space: nowrap; cursor: pointer; }
 .telegram-import-state { display: flex; min-height: 180px; align-items: center; justify-content: center; gap: 8px; padding: 24px; color: var(--muted); font-size: 12px; text-align: center; }
 .telegram-import-state.error { color: var(--danger-ink); }
 .about-brand { padding: 4px 0 24px; }
