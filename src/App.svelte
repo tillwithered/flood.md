@@ -83,6 +83,7 @@
     "#": "largeHeading"
   };
   const pendingUpdateVersionKey = "flood.pending-update-version";
+  const maxAttachmentBytes = 25 * 1024 * 1024;
   const telegramModes: TelegramInboxMode[] = ["manual", "mentions_and_replies", "all"];
   const mcpClients: McpClient[] = ["codex", "claude", "cursor", "manual"];
 
@@ -983,6 +984,11 @@
     if (!selectedTaskId || !inTauri()) return;
     if (!await persistCurrentTask(true)) return;
     for (const file of files) {
+      if (file.size > maxAttachmentBytes) {
+        saveState = "error";
+        saveError = t("attachmentTooLarge", { file: file.name || t("attachment") });
+        continue;
+      }
       try {
         const relativePath = await invoke<string>("save_task_attachment", {
           id: selectedTaskId,

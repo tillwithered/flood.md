@@ -22,6 +22,7 @@ use ulid::Ulid;
 use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 const FORMAT_VERSION: u8 = 1;
+const MAX_ATTACHMENT_BYTES: u64 = 25 * 1024 * 1024;
 
 #[derive(Debug, Error)]
 pub enum StoreError {
@@ -893,7 +894,7 @@ impl Store {
         bytes: &[u8],
     ) -> Result<String, StoreError> {
         validate_id(id)?;
-        if bytes.is_empty() || bytes.len() > 25 * 1024 * 1024 {
+        if bytes.is_empty() || bytes.len() as u64 > MAX_ATTACHMENT_BYTES {
             return Err(StoreError::Validation(
                 "вложение должно быть размером от 1 байта до 25 МБ".into(),
             ));
@@ -920,11 +921,19 @@ impl Store {
             .strip_prefix(&prefix)
             .filter(|value| !value.is_empty() && !value.contains(['/', '\\']))
             .ok_or_else(|| StoreError::Validation("некорректный путь вложения".into()))?;
-        let path = self.attachment_dir(&task.project_id, id).join(file_name);
+        let attachment_directory = self.attachment_dir(&task.project_id, id);
+        let path = attachment_directory.join(file_name);
         if !path.is_file() {
             return Err(StoreError::NotFound(relative_path.to_owned()));
         }
-        Ok(path)
+        let canonical_directory = fs::canonicalize(attachment_directory)?;
+        let canonical_path = fs::canonicalize(path)?;
+        if !canonical_path.starts_with(canonical_directory) {
+            return Err(StoreError::Validation(
+                "путь вложения выходит за папку задачи".into(),
+            ));
+        }
+        Ok(canonical_path)
     }
 
     pub fn read_task_attachment(
@@ -933,6 +942,12 @@ impl Store {
         relative_path: &str,
     ) -> Result<Vec<u8>, StoreError> {
         let path = self.resolve_task_attachment(id, relative_path)?;
+        let size = fs::metadata(&path)?.len();
+        if size == 0 || size > MAX_ATTACHMENT_BYTES {
+            return Err(StoreError::Validation(
+                "вложение должно быть размером от 1 байта до 25 МБ".into(),
+            ));
+        }
         Ok(fs::read(path)?)
     }
 
@@ -1414,6 +1429,23 @@ fn run_isolated_self_check(root: &Path, checks: &mut Vec<SelfCheckItem>) -> Resu
     });
     if !attachment_ok {
         return Err("Проверка вложений не пройдена".into());
+    }
+
+    let attachment_path_guarded = matches!(
+        store.resolve_task_attachment(
+            &updated.id,
+            &format!("attachments/{}/../project.md", updated.id),
+        ),
+        Err(StoreError::Validation(_))
+    );
+    checks.push(SelfCheckItem {
+        name: "Защита путей вложений".into(),
+        passed: attachment_path_guarded,
+        detail: (!attachment_path_guarded)
+            .then(|| "Выход за папку вложений не был заблокирован".into()),
+    });
+    if !attachment_path_guarded {
+        return Err("Проверка безопасных путей вложений не пройдена".into());
     }
 
     let completed = store
@@ -2334,6 +2366,26 @@ mod tests {
             store.read_task_attachment(&task.id, &relative).unwrap(),
             b"image-bytes"
         );
+        assert!(matches!(
+            store.resolve_task_attachment(
+                &task.id,
+                &format!("attachments/{}/../project.md", task.id)
+            ),
+            Err(StoreError::Validation(_))
+        ));
+
+        let oversized = store.resolve_task_attachment(&task.id, &relative).unwrap();
+        OpenOptions::new()
+            .write(true)
+            .open(&oversized)
+            .unwrap()
+            .set_len(MAX_ATTACHMENT_BYTES + 1)
+            .unwrap();
+        assert!(matches!(
+            store.read_task_attachment(&task.id, &relative),
+            Err(StoreError::Validation(_))
+        ));
+        std::fs::write(&oversized, b"image-bytes").unwrap();
 
         let moved = store
             .move_task(&task.id, &second.id, &task.version)
