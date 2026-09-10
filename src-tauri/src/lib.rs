@@ -671,6 +671,7 @@ async fn telegram_sync(
     }
     let status = TelegramSyncStatus {
         completed_at: Utc::now(),
+        request_id: pending_request.as_ref().map(|request| request.id.clone()),
         health,
         scanned_projects: inbox.scanned_projects,
         added_candidates: inbox.added,

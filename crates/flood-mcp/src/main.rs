@@ -273,6 +273,7 @@ struct TelegramInboxOutput {
 #[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TelegramSyncStatusOutput {
     status: Option<TelegramSyncStatus>,
+    pending_request: Option<TelegramSyncRequest>,
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
@@ -367,7 +368,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Получить время и результат последней фоновой синхронизации Telegram из локального состояния. Перед разбором входящих проверьте completed_at и health: MCP не подключается к Telegram сам и не должен считать старую очередь актуальной",
+        description = "Получить результат последней фоновой синхронизации Telegram и ожидающий запрос из локального состояния. После request_telegram_sync дождитесь, чтобы pending_request исчез, а status.request_id совпал с выданным request.id; затем проверьте health. MCP не подключается к Telegram сам и не должен считать старую очередь актуальной",
         annotations(
             title = "Свежесть Telegram-входящих",
             read_only_hint = true,
@@ -376,14 +377,16 @@ impl FloodServer {
         )
     )]
     fn get_telegram_sync_status(&self) -> Result<Json<TelegramSyncStatusOutput>, String> {
-        self.store
-            .telegram_sync_status()
-            .map(|status| Json(TelegramSyncStatusOutput { status }))
-            .map_err(store_error)
+        let status = self.store.telegram_sync_status().map_err(store_error)?;
+        let pending_request = self.store.telegram_sync_request().map_err(store_error)?;
+        Ok(Json(TelegramSyncStatusOutput {
+            status,
+            pending_request,
+        }))
     }
 
     #[tool(
-        description = "Попросить запущенное desktop-приложение обновить локальные Telegram-входящие и медиа через TDLib. Команда не читает чаты сама и не передаёт их содержимое через служебный файл. Возвращает request id и время; затем проверяйте get_telegram_sync_status, пока completed_at не станет новее requested_at. Если приложение закрыто, запрос сохранится до следующего запуска",
+        description = "Попросить запущенное desktop-приложение обновить локальные Telegram-входящие и медиа через TDLib. Команда не читает чаты сама и не передаёт их содержимое через служебный файл. Затем проверяйте get_telegram_sync_status: запрос выполнен, когда pending_request исчез, а status.request_id совпал с request.id. Если приложение закрыто, запрос сохранится до следующего запуска",
         annotations(
             title = "Запросить синхронизацию Telegram",
             read_only_hint = false,
@@ -398,7 +401,7 @@ impl FloodServer {
                 Json(TelegramSyncRequestOutput {
                     request,
                     queued: true,
-                    next_step: "Проверьте get_telegram_sync_status; completed_at должен быть не раньше requested_at",
+                    next_step: "Проверьте get_telegram_sync_status; pending_request должен исчезнуть, а status.request_id — совпасть с request.id",
                 })
             })
             .map_err(store_error)
@@ -1456,6 +1459,7 @@ mod tests {
         );
         let status = TelegramSyncStatus {
             completed_at: chrono::Utc::now(),
+            request_id: None,
             health: flood_core::TelegramSyncHealth::Partial,
             scanned_projects: 2,
             added_candidates: 4,
@@ -1471,6 +1475,8 @@ mod tests {
         );
         let requested = server.request_telegram_sync().unwrap().0;
         assert!(requested.queued);
+        let sync_state = server.get_telegram_sync_status().unwrap().0;
+        assert_eq!(sync_state.pending_request, Some(requested.request.clone()));
         assert_eq!(
             server.store.telegram_sync_request().unwrap().unwrap(),
             requested.request

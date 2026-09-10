@@ -404,6 +404,9 @@ impl Store {
         &self,
         status: &TelegramSyncStatus,
     ) -> Result<(), StoreError> {
+        if let Some(request_id) = &status.request_id {
+            validate_id(request_id)?;
+        }
         if status.errors.len() > 8 || status.errors.iter().any(|error| error.len() > 1_000) {
             return Err(StoreError::Validation(
                 "некорректный отчёт синхронизации Telegram".into(),
@@ -2253,6 +2256,7 @@ mod tests {
         assert!(store.telegram_sync_status().unwrap().is_none());
         let status = TelegramSyncStatus {
             completed_at: Utc::now(),
+            request_id: Some(Ulid::new().to_string()),
             health: crate::TelegramSyncHealth::Partial,
             scanned_projects: 2,
             added_candidates: 3,
@@ -2265,6 +2269,7 @@ mod tests {
 
         let invalid = TelegramSyncStatus {
             completed_at: Utc::now(),
+            request_id: None,
             health: crate::TelegramSyncHealth::Error,
             scanned_projects: 0,
             added_candidates: 0,

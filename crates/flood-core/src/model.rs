@@ -131,6 +131,8 @@ pub enum TelegramSyncHealth {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct TelegramSyncStatus {
     pub completed_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub request_id: Option<String>,
     pub health: TelegramSyncHealth,
     pub scanned_projects: usize,
     pub added_candidates: usize,

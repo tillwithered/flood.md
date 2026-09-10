@@ -359,6 +359,26 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
             .as_str()
             .is_some_and(|id| !id.is_empty())
     );
+    let requested_id = requested_sync["result"]["structuredContent"]["request"]["id"]
+        .as_str()
+        .unwrap();
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 14,
+            "method": "tools/call",
+            "params": {
+                "name": "get_telegram_sync_status",
+                "arguments": {}
+            }
+        }),
+    );
+    let queued_sync = receive(&mut stdout, 14);
+    assert_eq!(
+        queued_sync["result"]["structuredContent"]["pending_request"]["id"],
+        requested_id
+    );
 
     drop(stdin);
     assert!(child.wait().unwrap().success());
