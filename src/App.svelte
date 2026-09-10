@@ -71,6 +71,7 @@
   type TelegramSyncResult = { inbox: TelegramInboxSyncResult; media: TelegramMediaSyncResult; status?: TelegramSyncStatus };
   type TelegramSyncState = "idle" | "syncing" | "success" | "partial" | "error";
   type TelegramSyncSummary = { added: number; downloaded: number; failed: number; syncedAt: string };
+  type TelegramTaskDraft = { title: string; notes: string; urgency: Urgency };
   type StoreDiagnostics = { healthy: boolean; root: string; format_version: number; project_count: number; linked_chat_count: number; open_task_count: number; completed_task_count: number; trashed_task_count: number; pending_inbox_count: number; issues: string[] };
   type AttachmentCleanupReport = { total_files: number; total_bytes: number; orphaned_files: number; orphaned_bytes: number };
   type AttachmentCleanupResult = { removed_files: number; removed_bytes: number };
@@ -167,11 +168,15 @@
   let telegramTriageQueue: string[] = [];
   let telegramTriageTotal = 0;
   let telegramTriageCreated = 0;
+  let telegramTriageMediaFailures = 0;
   let telegramTriageNotice = "";
+  let telegramTriageNoticeWarning = false;
   let telegramTaskDraftCandidate: TelegramInboxCandidate | null = null;
   let telegramTaskDraftTitle = "";
   let telegramTaskDraftNotes = "";
   let telegramTaskDraftUrgency: Urgency = "normal";
+  let telegramTaskDrafts: Record<string, TelegramTaskDraft> = {};
+  let telegramTaskDraftRestored = false;
   let telegramTaskTitleInput: HTMLInputElement;
   let downloadingSourceMedia = -1;
   let telegramScanTimer: number | undefined;
@@ -2421,7 +2426,9 @@
     telegramTriageQueue = [];
     telegramTriageTotal = 0;
     telegramTriageCreated = 0;
+    telegramTriageMediaFailures = 0;
     telegramTriageNotice = "";
+    telegramTriageNoticeWarning = false;
     if (!wasOpen) {
       await tick();
       telegramInboxDialog?.focus();
@@ -2433,6 +2440,8 @@
       } else {
         telegramInbox = await invoke<TelegramInboxCandidate[]>("telegram_list_inbox", { projectId, includeProcessed: false });
       }
+      const visibleIds = new Set(telegramInbox.map((candidate) => candidate.id));
+      telegramTaskDrafts = Object.fromEntries(Object.entries(telegramTaskDrafts).filter(([id]) => visibleIds.has(id)));
     } catch (error) {
       telegramInboxError = String(error);
     } finally {
@@ -2454,26 +2463,58 @@
       telegramTriageQueue = [];
       telegramTriageTotal = 0;
       telegramTriageCreated = 0;
+      telegramTriageMediaFailures = 0;
+      telegramTriageNotice = "";
+      telegramTriageNoticeWarning = false;
     }
+    const savedDraft = telegramTaskDrafts[candidate.id];
     telegramTaskDraftCandidate = candidate;
-    telegramTaskDraftTitle = suggestedTelegramTaskTitle(candidate);
-    telegramTaskDraftNotes = "";
-    telegramTaskDraftUrgency = "normal";
+    telegramTaskDraftTitle = savedDraft?.title ?? suggestedTelegramTaskTitle(candidate);
+    telegramTaskDraftNotes = savedDraft?.notes ?? "";
+    telegramTaskDraftUrgency = savedDraft?.urgency ?? "normal";
+    telegramTaskDraftRestored = Boolean(savedDraft);
     telegramInboxError = "";
     await tick();
     telegramTaskTitleInput?.focus();
   }
 
+  function rememberTelegramTaskDraft() {
+    const candidate = telegramTaskDraftCandidate;
+    if (!candidate) return;
+    const suggestedTitle = suggestedTelegramTaskTitle(candidate);
+    const draft = {
+      title: telegramTaskDraftTitle,
+      notes: telegramTaskDraftNotes,
+      urgency: telegramTaskDraftUrgency
+    };
+    if (draft.title !== suggestedTitle || draft.notes.trim() || draft.urgency !== "normal") {
+      telegramTaskDrafts = { ...telegramTaskDrafts, [candidate.id]: draft };
+    } else {
+      discardTelegramTaskDraft(candidate.id);
+    }
+  }
+
+  function discardTelegramTaskDraft(candidateId: string) {
+    if (!telegramTaskDrafts[candidateId]) return;
+    const drafts = { ...telegramTaskDrafts };
+    delete drafts[candidateId];
+    telegramTaskDrafts = drafts;
+  }
+
   function closeTelegramTaskDraft() {
     if (telegramInboxProcessingId) return;
+    rememberTelegramTaskDraft();
     telegramTaskDraftCandidate = null;
+    telegramTaskDraftRestored = false;
     telegramTriageQueue = [];
     telegramTriageTotal = 0;
     telegramTriageCreated = 0;
+    telegramTriageMediaFailures = 0;
   }
 
   function closeTelegramInbox() {
     if (telegramInboxProcessingId) return;
+    rememberTelegramTaskDraft();
     const returnFocus = telegramInboxReturnFocus;
     telegramInboxReturnFocus = null;
     telegramTaskDraftCandidate = null;
@@ -2482,7 +2523,10 @@
     telegramTriageQueue = [];
     telegramTriageTotal = 0;
     telegramTriageCreated = 0;
+    telegramTriageMediaFailures = 0;
     telegramTriageNotice = "";
+    telegramTriageNoticeWarning = false;
+    telegramTaskDraftRestored = false;
     restoreModalFocus(returnFocus);
   }
 
@@ -2508,7 +2552,9 @@
     telegramTriageQueue = queue;
     telegramTriageTotal = queue.length;
     telegramTriageCreated = 0;
+    telegramTriageMediaFailures = 0;
     telegramTriageNotice = "";
+    telegramTriageNoticeWarning = false;
     const first = telegramInbox.find((candidate) => candidate.id === queue[0]);
     if (first) await beginTaskFromCandidate(first, true);
   }
@@ -2522,7 +2568,11 @@
       return;
     }
     telegramTaskDraftCandidate = null;
-    telegramTriageNotice = t("triageComplete", { created: telegramTriageCreated, total: telegramTriageTotal });
+    telegramTaskDraftRestored = false;
+    telegramTriageNoticeWarning = telegramTriageMediaFailures > 0;
+    telegramTriageNotice = telegramTriageMediaFailures
+      ? t("triageCompleteWithMedia", { created: telegramTriageCreated, total: telegramTriageTotal, count: telegramTriageMediaFailures })
+      : t("triageComplete", { created: telegramTriageCreated, total: telegramTriageTotal });
     telegramTriageQueue = [];
     telegramTriageTotal = 0;
   }
@@ -2530,6 +2580,7 @@
   function skipTelegramTriageCandidate() {
     const candidate = telegramTaskDraftCandidate;
     if (!candidate || !telegramTriageQueue.length || telegramInboxProcessingId) return;
+    rememberTelegramTaskDraft();
     void advanceTelegramTriage(candidate.id);
   }
 
@@ -2543,15 +2594,17 @@
       const description = telegramTaskDraftNotes.trim() ? `${title}\n\n${telegramTaskDraftNotes.trim()}` : title;
       const result = await invoke<TelegramTaskCreationResult>("telegram_create_task_from_candidate", { candidateId: candidate.id, description, urgency: telegramTaskDraftUrgency });
       const created = result.task;
+      discardTelegramTaskDraft(candidate.id);
       telegramInbox = telegramInbox.filter((item) => item.id !== candidate.id);
       await loadData(true);
       if (batchMode) {
         telegramTriageCreated += 1;
-        if (result.media_errors.length) saveError = t("someMediaNotAdded", { count: result.media_errors.length });
+        telegramTriageMediaFailures += result.media_errors.length;
         await advanceTelegramTriage(candidate.id);
         return;
       }
       telegramTaskDraftCandidate = null;
+      telegramTaskDraftRestored = false;
       telegramInboxOpen = false;
       await openTask(toTaskItem(created, chats));
       if (result.media_errors.length) saveError = t("someMediaNotAdded", { count: result.media_errors.length });
@@ -2567,6 +2620,7 @@
     telegramInboxProcessingId = candidate.id;
     try {
       await invoke("telegram_set_candidate_status", { candidateId: candidate.id, status: "dismissed" });
+      discardTelegramTaskDraft(candidate.id);
       telegramInbox = telegramInbox.filter((item) => item.id !== candidate.id);
       telegramInboxSelection = telegramInboxSelection.filter((id) => id !== candidate.id);
     } catch (error) {
@@ -3686,16 +3740,17 @@
       {#if telegramTaskDraftCandidate}
         <form class="telegram-task-composer" onsubmit={(event) => { event.preventDefault(); createTaskFromCandidate(); }}>
           <div class="telegram-task-fields">
-            <label><span>{t("taskTitle")}</span><input bind:this={telegramTaskTitleInput} bind:value={telegramTaskDraftTitle} maxlength="120" placeholder={t("taskTitlePlaceholder")} /></label>
-            <label><span>{t("taskNotes")}</span><textarea bind:value={telegramTaskDraftNotes} rows="4" placeholder={t("taskNotesPlaceholder")}></textarea></label>
-            <fieldset><legend>{t("urgencyLabel")}</legend><div class="telegram-task-urgency">{#each (["normal", "important", "urgent"] as Urgency[]) as urgency}<button type="button" class:active={telegramTaskDraftUrgency === urgency} onclick={() => (telegramTaskDraftUrgency = urgency)}><FloodGlyph kind={urgency} size={14} />{urgencyTitle(urgency)}</button>{/each}</div></fieldset>
+            {#if telegramTaskDraftRestored}<div class="telegram-draft-restored" role="status"><Check size={13} />{t("telegramDraftRestored")}</div>{/if}
+            <label><span>{t("taskTitle")}</span><input bind:this={telegramTaskTitleInput} bind:value={telegramTaskDraftTitle} maxlength="120" placeholder={t("taskTitlePlaceholder")} oninput={() => (telegramTaskDraftRestored = false)} /></label>
+            <label><span>{t("taskNotes")}</span><textarea bind:value={telegramTaskDraftNotes} rows="4" placeholder={t("taskNotesPlaceholder")} oninput={() => (telegramTaskDraftRestored = false)}></textarea></label>
+            <fieldset><legend>{t("urgencyLabel")}</legend><div class="telegram-task-urgency">{#each (["normal", "important", "urgent"] as Urgency[]) as urgency}<button type="button" class:active={telegramTaskDraftUrgency === urgency} onclick={() => { telegramTaskDraftUrgency = urgency; telegramTaskDraftRestored = false; }}><FloodGlyph kind={urgency} size={14} />{urgencyTitle(urgency)}</button>{/each}</div></fieldset>
           </div>
           <section class="telegram-task-source-preview"><div><Send size={14} /><span><strong>{telegramTaskDraftCandidate.author}</strong><small>{telegramTaskDraftCandidate.chat_title} · {fullDate(telegramTaskDraftCandidate.sent_at)}</small></span></div>{#if telegramTaskDraftCandidate.text}<p>{telegramTaskDraftCandidate.text}</p>{/if}{#if telegramTaskDraftCandidate.media?.length}<span class="telegram-auto-media"><Paperclip size={13} />{t("mediaWillBeAdded", { count: telegramTaskDraftCandidate.media.length })}</span>{/if}</section>
           {#if telegramInboxError}<p class="telegram-composer-error">{telegramInboxError}</p>{/if}
           <footer>{#if telegramTriageQueue.length}<button type="button" onclick={skipTelegramTriageCandidate} disabled={Boolean(telegramInboxProcessingId)}>{t("keepInInbox")}</button>{:else}<button type="button" onclick={closeTelegramTaskDraft} disabled={Boolean(telegramInboxProcessingId)}>{t("cancel")}</button>{/if}<button class="primary-button" type="submit" disabled={!telegramTaskDraftTitle.trim() || Boolean(telegramInboxProcessingId)}>{#if telegramInboxProcessingId}<RefreshCw class="spinning" size={14} />{:else}<Plus size={14} />{/if}{telegramTriageQueue.length > 1 ? t("createAndContinue") : t("createTask")}</button></footer>
         </form>
       {:else}<div class="telegram-inbox-body">
-        {#if telegramTriageNotice}<div class="telegram-triage-notice" role="status"><CheckCircle2 size={14} />{telegramTriageNotice}</div>{/if}
+        {#if telegramTriageNotice}<div class:warning={telegramTriageNoticeWarning} class="telegram-triage-notice" role="status">{#if telegramTriageNoticeWarning}<Paperclip size={14} />{:else}<CheckCircle2 size={14} />{/if}{telegramTriageNotice}</div>{/if}
         {#if !telegramInboxLoading && !telegramInboxError && telegramInbox.length}<div class="telegram-inbox-batch"><button class:active={allTelegramInboxCandidatesSelected()} aria-pressed={allTelegramInboxCandidatesSelected()} onclick={toggleAllTelegramInboxCandidates}><span class="picker-check">{#if allTelegramInboxCandidatesSelected()}<Check size={12} />{/if}</span>{allTelegramInboxCandidatesSelected() ? t("clearSelection") : t("selectAllMessages")}</button><small>{t("batchTriageHint")}</small></div>{/if}
         <div class:with-action-island={telegramInboxSelection.length > 0} class="telegram-message-list telegram-inbox-list">
           {#if telegramInboxLoading}<div class="telegram-list-skeleton" role="status"><span class="sr-only">{t("scanningMessages")}</span>{#each Array(6) as _}<div class="telegram-skeleton-row with-check" aria-hidden="true"><span></span><span><i></i><i></i></span><span></span></div>{/each}</div>

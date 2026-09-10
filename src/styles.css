@@ -920,6 +920,7 @@ button { color: inherit; }
 .telegram-inbox-panel { width: min(660px, calc(100vw - 56px)); grid-template-rows: 64px minmax(0, auto); }
 .telegram-inbox-body { position: relative; display: grid; min-height: 0; grid-template-rows: auto auto minmax(0, 1fr); overflow: hidden; }
 .telegram-triage-notice { display: flex; align-items: center; gap: 7px; margin: 9px 9px 0; padding: 9px 11px; border: 1px solid color-mix(in srgb, var(--success-ink) 18%, var(--line)); border-radius: 9px; background: var(--success-surface); color: var(--success-ink); font-size: var(--font-size-min); }
+.telegram-triage-notice.warning { border-color: color-mix(in srgb, #ff8a61 24%, var(--line)); background: color-mix(in srgb, #ffb067 10%, var(--elevated)); color: var(--ink); }
 .telegram-inbox-batch { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px 3px; }
 .telegram-inbox-batch > button { display: inline-flex; flex: 0 0 auto; min-height: 30px; align-items: center; gap: 7px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: var(--font-size-min); cursor: pointer; }
 .telegram-inbox-batch > button:hover { background: var(--hover); color: var(--ink); }
@@ -956,6 +957,7 @@ button { color: inherit; }
 @keyframes telegram-island-in { from { opacity: 0; transform: translate(-50%, 8px) scale(.98); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
 .telegram-task-composer { display: grid; min-height: 0; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
 .telegram-task-fields { display: grid; align-content: start; gap: 15px; padding: 18px 18px 0; overflow-y: auto; }
+.telegram-draft-restored { display: inline-flex; width: max-content; align-items: center; gap: 5px; margin-bottom: -3px; padding: 4px 7px; border-radius: 999px; background: var(--success-surface); color: var(--success-ink); font-size: var(--font-size-min); font-weight: 600; animation: reveal-list 150ms ease-out; }
 .telegram-task-fields label { display: grid; gap: 7px; }
 .telegram-task-fields label > span, .telegram-task-fields legend { color: var(--muted); font-size: var(--font-size-min); font-weight: 620; }
 .telegram-task-fields input, .telegram-task-fields textarea { width: 100%; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); font: inherit; font-size: 12px; outline: none; }
