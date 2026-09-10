@@ -609,7 +609,7 @@ button { color: inherit; }
 .settings-nav button:hover, .settings-nav button.active { background: var(--hover); color: var(--ink); }
 .integration-chip { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; color: var(--muted); font-size: 9px; font-weight: 650; letter-spacing: .03em; }
 .integration-chip.connected, .status-text.connected { color: var(--success-ink); }
-.status-text.error { color: var(--danger-ink); }
+.integration-chip.error, .status-text.error { color: var(--danger-ink); }
 .settings-content { min-width: 0; }
 .settings-section { display: grid; gap: 0; }
 .settings-section-title { display: grid; gap: 5px; padding-bottom: 22px; }
@@ -706,6 +706,35 @@ button { color: inherit; }
 .mcp-check-result strong { font-size: 12px; }
 .mcp-check-result small { color: currentColor; font-size: 10px; opacity: .8; }
 .mcp-check-result ul { display: grid; gap: 4px; margin: 6px 0 0; padding-left: 18px; color: currentColor; font-size: 10px; line-height: 1.4; }
+.mcp-settings-section { gap: 12px; }
+.mcp-readiness, .mcp-block { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--elevated); }
+.mcp-readiness-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.mcp-readiness-head > span { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.mcp-readiness-head > span > span, .mcp-block-title > span { display: grid; min-width: 0; gap: 3px; }
+.mcp-readiness-head strong, .mcp-block-title strong { font-size: 13px; font-weight: 630; }
+.mcp-readiness-head small, .mcp-block-title small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.readiness-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; overflow: hidden; border-radius: 10px; background: var(--line); }
+.readiness-list > span { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: start; gap: 7px; min-height: 64px; padding: 10px; background: var(--surface); }
+.readiness-list i { display: grid; width: 18px; height: 18px; place-items: center; border-radius: 50%; background: var(--elevated); color: var(--faint); font-style: normal; }
+.readiness-list > span.done i { background: var(--success-surface); color: var(--success-ink); }
+.readiness-list > span > span { display: grid; min-width: 0; gap: 3px; }
+.readiness-list strong { overflow: hidden; font-size: 11px; font-weight: 620; text-overflow: ellipsis; white-space: nowrap; }
+.readiness-list small { display: -webkit-box; overflow: hidden; color: var(--muted); font-size: 10px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.mcp-block-title { display: flex; align-items: center; gap: 9px; }
+.mcp-client-tabs { display: flex; gap: 3px; padding: 3px; border-radius: 9px; background: var(--surface); }
+.mcp-client-tabs button { flex: 1 1 0; min-height: 30px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font: inherit; font-size: 10px; cursor: pointer; transition: background-color 120ms ease, color 120ms ease, transform 120ms ease; }
+.mcp-client-tabs button:hover { color: var(--ink); }
+.mcp-client-tabs button:active { transform: scale(.98); }
+.mcp-client-tabs button.active { background: var(--elevated); color: var(--ink); box-shadow: 0 1px 3px var(--shadow); }
+.mcp-code { display: grid; grid-template-columns: minmax(0, 1fr) 34px; align-items: start; gap: 8px; min-height: 66px; padding: 9px 8px 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.mcp-code pre { min-width: 0; margin: 0; overflow: auto; color: var(--muted); font: 10px/1.5 "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; scrollbar-width: thin; }
+.mcp-code .icon-button { align-self: start; }
+.mcp-hint { margin: -4px 0 0; color: var(--faint); font-size: 10px; line-height: 1.45; }
+.mcp-safety { gap: 12px; }
+.mcp-capability-list { display: grid; gap: 7px; }
+.mcp-capability-list > span { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; line-height: 1.4; }
+.mcp-capability-list > span svg { flex: 0 0 auto; color: var(--success-ink); }
+.mcp-capability-list > span.protected svg { color: var(--ink); }
 .telegram-import-backdrop { position: fixed; z-index: 180; inset: 0; display: grid; place-items: center; padding: 40px; background: rgb(10 10 10 / 25%); backdrop-filter: blur(4px); animation: viewer-in 140ms ease-out; }
 .telegram-import-panel { display: grid; width: min(620px, calc(100vw - 56px)); max-height: min(720px, calc(100vh - 72px)); overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--elevated); color: var(--ink); box-shadow: 0 24px 90px rgb(0 0 0 / 22%); }
 .telegram-import-panel > header { display: flex; min-height: 64px; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 14px 12px 18px; border-bottom: 1px solid var(--line); }
@@ -1007,8 +1036,9 @@ button { color: inherit; }
   .project-page { width: min(720px, calc(100% - 40px)); padding-top: 48px; }
   .settings-page { width: calc(100% - 40px); padding-top: 36px; }
   .settings-layout { grid-template-columns: 1fr; gap: 26px; }
-  .settings-nav { position: static; grid-template-columns: repeat(5, max-content); overflow-x: auto; padding-bottom: 4px; }
+  .settings-nav { position: static; grid-template-columns: repeat(6, max-content); overflow-x: auto; padding-bottom: 4px; }
   .settings-nav button { width: auto; }
+  .readiness-list { grid-template-columns: 1fr; }
   .telegram-form.credentials { grid-template-columns: 1fr; }
   .telegram-qr { align-items: flex-start; flex-direction: column; }
   .telegram-import-backdrop { padding: 16px; }

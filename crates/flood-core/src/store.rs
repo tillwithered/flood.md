@@ -61,7 +61,7 @@ pub struct StoreDiagnostics {
     pub issues: Vec<String>,
 }
 
-#[derive(Clone, Debug, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct SelfCheckItem {
     pub name: String,
     pub passed: bool,
@@ -69,7 +69,7 @@ pub struct SelfCheckItem {
     pub detail: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct SelfCheckResult {
     pub passed: bool,
     pub duration_ms: u128,

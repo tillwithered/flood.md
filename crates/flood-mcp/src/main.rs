@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone)]
 struct FloodServer {
     store: Store,
+    allow_destructive: bool,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -167,8 +168,42 @@ struct TelegramCandidateOutput {
     candidate: TelegramInboxCandidate,
 }
 
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct RuntimeInfoOutput {
+    name: &'static str,
+    version: &'static str,
+    data_root: String,
+    destructive_actions_enabled: bool,
+    capabilities: Vec<&'static str>,
+}
+
 #[tool_router(server_handler)]
 impl FloodServer {
+    #[tool(
+        description = "Получить версию MCP-сервера, активную папку данных, доступные группы возможностей и состояние необратимых операций",
+        annotations(
+            title = "Сведения о flood.md MCP",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn get_runtime_info(&self) -> Json<RuntimeInfoOutput> {
+        Json(RuntimeInfoOutput {
+            name: "flood.md",
+            version: env!("CARGO_PKG_VERSION"),
+            data_root: self.store.root().to_string_lossy().into_owned(),
+            destructive_actions_enabled: self.allow_destructive,
+            capabilities: vec![
+                "projects",
+                "tasks",
+                "telegram_inbox",
+                "store_diagnostics",
+                "isolated_self_check",
+            ],
+        })
+    }
+
     #[tool(
         description = "Проверить доступность и целостность текущего локального Markdown-хранилища без изменения данных. Возвращает счётчики проектов, задач, корзины, Telegram-входящих и найденные проблемы",
         annotations(
@@ -274,6 +309,7 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<VersionedArgs>,
     ) -> Result<Json<MutationOutput>, String> {
+        self.ensure_destructive_allowed()?;
         self.store
             .delete_project(&args.id, &args.expected_version)
             .map(|_| Json(MutationOutput { success: true }))
@@ -554,6 +590,7 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<VersionedArgs>,
     ) -> Result<Json<MutationOutput>, String> {
+        self.ensure_destructive_allowed()?;
         self.store
             .delete_trashed_task(&args.id, &args.expected_version)
             .map(|_| Json(MutationOutput { success: true }))
@@ -569,10 +606,21 @@ impl FloodServer {
         )
     )]
     fn empty_trash(&self) -> Result<Json<DeleteCountOutput>, String> {
+        self.ensure_destructive_allowed()?;
         self.store
             .empty_trash()
             .map(|deleted| Json(DeleteCountOutput { deleted }))
             .map_err(store_error)
+    }
+}
+
+impl FloodServer {
+    fn ensure_destructive_allowed(&self) -> Result<(), String> {
+        if self.allow_destructive {
+            Ok(())
+        } else {
+            Err("Необратимые MCP-действия отключены. Выполните удаление в приложении или явно запустите сервер с FLOOD_MCP_ALLOW_DESTRUCTIVE=1".into())
+        }
     }
 }
 
@@ -652,8 +700,24 @@ fn store_error(error: impl std::fmt::Display) -> String {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    match std::env::args().nth(1).as_deref() {
+        Some("--version" | "-V") => {
+            println!("{}", env!("CARGO_PKG_VERSION"));
+            return Ok(());
+        }
+        Some("--self-check") => {
+            println!("{}", serde_json::to_string(&run_core_self_check())?);
+            return Ok(());
+        }
+        Some(argument) => anyhow::bail!("неизвестный аргумент: {argument}"),
+        None => {}
+    }
     let server = FloodServer {
         store: Store::new(default_data_dir())?,
+        allow_destructive: matches!(
+            std::env::var("FLOOD_MCP_ALLOW_DESTRUCTIVE").as_deref(),
+            Ok("1" | "true" | "yes")
+        ),
     };
     let service = server.serve(stdio()).await?;
     service.waiting().await?;
@@ -670,6 +734,7 @@ mod tests {
         FloodServer {
             store: Store::new(std::env::temp_dir().join(format!("flood-mcp-test-{}", Ulid::new())))
                 .unwrap(),
+            allow_destructive: false,
         }
     }
 
@@ -680,6 +745,7 @@ mod tests {
         assert!(tools.iter().all(|tool| tool.output_schema.is_some()));
         for name in [
             "diagnose_store",
+            "get_runtime_info",
             "run_self_check",
             "list_telegram_inbox",
             "get_telegram_candidate",
@@ -725,6 +791,52 @@ mod tests {
         assert!(diagnostics.healthy, "{:?}", diagnostics.issues);
         let self_check = _server.run_self_check().0;
         assert!(self_check.passed, "{:?}", self_check.checks);
+        let runtime = _server.get_runtime_info().0;
+        assert_eq!(runtime.version, env!("CARGO_PKG_VERSION"));
+        assert!(!runtime.destructive_actions_enabled);
+    }
+
+    #[test]
+    fn irreversible_actions_are_disabled_by_default() {
+        let server = server();
+        let project = server
+            .create_project(Parameters(CreateProjectArgs {
+                title: "Защищённый проект".into(),
+            }))
+            .unwrap()
+            .0
+            .project;
+        let error = match server.delete_project(Parameters(VersionedArgs {
+            id: project.id,
+            expected_version: project.version,
+        })) {
+            Ok(_) => panic!("необратимое действие не должно быть доступно по умолчанию"),
+            Err(error) => error,
+        };
+        assert!(error.contains("Необратимые MCP-действия отключены"));
+    }
+
+    #[test]
+    fn irreversible_actions_require_explicit_server_mode() {
+        let mut server = server();
+        server.allow_destructive = true;
+        let project = server
+            .create_project(Parameters(CreateProjectArgs {
+                title: "Удаляемый проект".into(),
+            }))
+            .unwrap()
+            .0
+            .project;
+        assert!(
+            server
+                .delete_project(Parameters(VersionedArgs {
+                    id: project.id,
+                    expected_version: project.version,
+                }))
+                .unwrap()
+                .0
+                .success
+        );
     }
 
     #[test]

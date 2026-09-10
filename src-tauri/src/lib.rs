@@ -1,13 +1,14 @@
 use flood_core::{
     CreateTask, InboxCandidateStatus, Project, SelfCheckResult, SourceMedia, SourceMediaKind,
     Store, StoreDiagnostics, Task, TaskPatch, TaskSummary, TelegramInboxCandidate,
-    TelegramProjectLink, Urgency, default_data_dir, run_self_check,
+    TelegramProjectLink, Urgency, default_data_dir,
 };
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::{
     fs,
     path::PathBuf,
+    process::Command,
     sync::{
         Mutex,
         atomic::{AtomicBool, Ordering},
@@ -36,6 +37,16 @@ struct TelegramTaskCreationResult {
 struct TelegramMediaSyncResult {
     downloaded: usize,
     failed: usize,
+}
+
+#[derive(Serialize)]
+struct McpRuntimeInfo {
+    executable_path: String,
+    available: bool,
+    version: Option<String>,
+    app_version: String,
+    compatible: bool,
+    source: &'static str,
 }
 
 struct MediaSyncGuard<'a>(&'a AtomicBool);
@@ -269,15 +280,64 @@ fn restore_backup(source: String, state: State<'_, AppState>) -> Result<(), Stri
 
 #[tauri::command]
 fn mcp_executable_path(app: tauri::AppHandle) -> Result<String, String> {
-    let executable = app
+    Ok(resolve_mcp_executable(&app)?
+        .0
+        .to_string_lossy()
+        .into_owned())
+}
+
+fn resolve_mcp_executable(app: &tauri::AppHandle) -> Result<(PathBuf, &'static str), String> {
+    let bundled = app
         .path()
         .resource_dir()
         .map_err(|error| error.to_string())?
         .join("flood-mcp.exe");
-    Ok(executable
-        .to_string_lossy()
-        .trim_start_matches(r"\\?\")
-        .to_owned())
+    if bundled.is_file() {
+        return Ok((bundled, "bundled"));
+    }
+
+    if cfg!(debug_assertions) {
+        let development = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new(env!("CARGO_MANIFEST_DIR")))
+            .join("target")
+            .join("debug")
+            .join("flood-mcp.exe");
+        return Ok((development, "development"));
+    }
+
+    Ok((bundled, "bundled"))
+}
+
+#[tauri::command]
+fn mcp_runtime_info(app: tauri::AppHandle) -> Result<McpRuntimeInfo, String> {
+    let (executable, source) = resolve_mcp_executable(&app)?;
+    let available = executable.is_file();
+    let version = available
+        .then(|| {
+            Command::new(&executable)
+                .arg("--version")
+                .output()
+                .ok()
+                .filter(|output| output.status.success())
+                .and_then(|output| String::from_utf8(output.stdout).ok())
+                .map(|value| value.trim().to_owned())
+                .filter(|value| !value.is_empty())
+        })
+        .flatten();
+    let app_version = app.package_info().version.to_string();
+    let compatible = version.as_deref() == Some(app_version.as_str());
+    Ok(McpRuntimeInfo {
+        executable_path: executable
+            .to_string_lossy()
+            .trim_start_matches(r"\\?\")
+            .to_owned(),
+        available,
+        version,
+        app_version,
+        compatible,
+        source,
+    })
 }
 
 #[tauri::command]
@@ -286,8 +346,20 @@ fn diagnose_store(state: State<'_, AppState>) -> StoreDiagnostics {
 }
 
 #[tauri::command]
-fn run_mcp_self_check() -> SelfCheckResult {
-    run_self_check()
+fn run_mcp_self_check(app: tauri::AppHandle) -> Result<SelfCheckResult, String> {
+    let (executable, _) = resolve_mcp_executable(&app)?;
+    if !executable.is_file() {
+        return Err("MCP-сервер не найден в установленной сборке".into());
+    }
+    let output = Command::new(&executable)
+        .arg("--self-check")
+        .output()
+        .map_err(|error| format!("не удалось запустить MCP-сервер: {error}"))?;
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
+    }
+    serde_json::from_slice(&output.stdout)
+        .map_err(|error| format!("MCP-сервер вернул некорректный результат: {error}"))
 }
 
 #[tauri::command]
@@ -700,6 +772,7 @@ pub fn run() {
             create_backup,
             restore_backup,
             mcp_executable_path,
+            mcp_runtime_info,
             diagnose_store,
             run_mcp_self_check,
             telegram_status,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowRight, Bold, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Database, Download, ExternalLink, Folder, FolderOpen, FolderPlus, Heading1, Info, Languages, Link, ListTodo, LogOut, Maximize2, MessageSquareText, Minus, MoreHorizontal, Palette, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, QrCode, RefreshCw, RotateCcw, Search, Send, Settings, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
+  import { ArrowRight, Bold, Bot, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Database, Download, ExternalLink, Folder, FolderOpen, FolderPlus, Heading1, Info, Languages, Link, ListTodo, LogOut, Maximize2, MessageSquareText, Minus, MoreHorizontal, Palette, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, QrCode, RefreshCw, RotateCcw, Search, Send, Settings, ShieldCheck, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { getVersion } from "@tauri-apps/api/app";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -13,7 +13,7 @@
   import { translate, type Locale, type MessageKey } from "./i18n";
 
   type Section = "tasks" | "trash" | "settings";
-  type SettingsSection = "general" | "appearance" | "data" | "integrations" | "about";
+  type SettingsSection = "general" | "appearance" | "data" | "integrations" | "mcp" | "about";
   type WorkspaceView = "project" | "task";
   type Urgency = "normal" | "important" | "urgent";
   type SaveState = "idle" | "saving" | "saved" | "error";
@@ -67,11 +67,14 @@
   type SelfCheckItem = { name: string; passed: boolean; detail?: string };
   type SelfCheckResult = { passed: boolean; duration_ms: number; checks: SelfCheckItem[] };
   type McpCheckState = "idle" | "checking" | "success" | "error";
+  type McpClient = "codex" | "claude" | "cursor" | "manual";
+  type McpRuntimeInfo = { executable_path: string; available: boolean; version?: string; app_version: string; compatible: boolean; source: "bundled" | "development" };
 
   const markdownHints: Record<string, MessageKey> = {
     "#": "largeHeading"
   };
   const telegramModes: TelegramInboxMode[] = ["manual", "mentions_and_replies", "all"];
+  const mcpClients: McpClient[] = ["codex", "claude", "cursor", "manual"];
 
   let tasks: TaskItem[] = [];
   let trashedTasks: TaskItem[] = [];
@@ -104,6 +107,8 @@
   let dataActionMessage = "";
   let pendingRestorePath = "";
   let mcpExecutable = "";
+  let mcpRuntime: McpRuntimeInfo | null = null;
+  let mcpClient: McpClient = "codex";
   let storeDiagnostics: StoreDiagnostics | null = null;
   let mcpCheckState: McpCheckState = "idle";
   let mcpSelfCheck: SelfCheckResult | null = null;
@@ -1804,9 +1809,25 @@
   }
 
   async function copyMcpConfig() {
-    await navigator.clipboard.writeText(JSON.stringify({ command: mcpExecutable || "flood-mcp.exe" }, null, 2));
+    await navigator.clipboard.writeText(mcpConfiguration(mcpClient));
     copied = true;
     window.setTimeout(() => (copied = false), 1400);
+  }
+
+  function mcpConfiguration(client: McpClient) {
+    const executable = mcpExecutable || "flood-mcp.exe";
+    if (client === "codex") {
+      return `[mcp_servers.flood]\ncommand = ${JSON.stringify(executable)}`;
+    }
+    if (client === "manual") return executable;
+    return JSON.stringify({ mcpServers: { flood: { command: executable } } }, null, 2);
+  }
+
+  function mcpRuntimeLabel() {
+    if (!mcpRuntime?.available) return t("mcpMissing");
+    if (!mcpRuntime.compatible) return t("mcpVersionMismatch");
+    if (mcpCheckState === "success") return t("mcpReady");
+    return t("mcpAvailable");
   }
 
   async function applyTelegramStatus(status: TelegramStatus) {
@@ -1867,13 +1888,16 @@
     mcpCheckState = "checking";
     mcpSelfCheck = null;
     try {
-      const [diagnostics, selfCheck] = await Promise.all([
+      const [runtime, diagnostics, selfCheck] = await Promise.all([
+        invoke<McpRuntimeInfo>("mcp_runtime_info"),
         invoke<StoreDiagnostics>("diagnose_store"),
         invoke<SelfCheckResult>("run_mcp_self_check")
       ]);
+      mcpRuntime = runtime;
+      mcpExecutable = runtime.executable_path;
       storeDiagnostics = diagnostics;
       mcpSelfCheck = selfCheck;
-      mcpCheckState = diagnostics.healthy && selfCheck.passed ? "success" : "error";
+      mcpCheckState = runtime.available && runtime.compatible && diagnostics.healthy && selfCheck.passed ? "success" : "error";
     } catch (error) {
       mcpSelfCheck = { passed: false, duration_ms: 0, checks: [{ name: t("mcpSelfCheckFailed"), passed: false, detail: String(error) }] };
       mcpCheckState = "error";
@@ -2330,7 +2354,9 @@
       if (inTauri()) {
         appVersion = await getVersion();
         dataDirectory = await invoke<string>("data_directory");
-        mcpExecutable = await invoke<string>("mcp_executable_path");
+        mcpRuntime = await invoke<McpRuntimeInfo>("mcp_runtime_info").catch(() => null);
+        mcpExecutable = mcpRuntime?.executable_path || await invoke<string>("mcp_executable_path");
+        if (mcpRuntime && (!mcpRuntime.available || !mcpRuntime.compatible)) mcpCheckState = "error";
         storeDiagnostics = await invoke<StoreDiagnostics>("diagnose_store").catch(() => null);
         await applyTelegramStatus(await invoke<TelegramStatus>("telegram_status"));
         unlistenTelegram = await listen<TelegramStatus>("telegram-status", (event) => void applyTelegramStatus(event.payload));
@@ -2776,7 +2802,8 @@
               <button class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => (settingsSection = "general")}><Settings size={16} />{t("general")}</button>
               <button class:active={settingsSection === "appearance"} aria-current={settingsSection === "appearance" ? "page" : undefined} onclick={() => (settingsSection = "appearance")}><Palette size={16} />{t("appearance")}</button>
               <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => (settingsSection = "data")}><Database size={16} />{t("data")}</button>
-              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => (settingsSection = "integrations")}><Plug size={16} />{t("integrations")} <span class:connected={telegramStatus.step === "ready"} class="integration-chip">{telegramStatus.step === "ready" ? "2" : "1"}</span></button>
+              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => (settingsSection = "integrations")}><Plug size={16} />{t("integrations")} <span class:connected={telegramStatus.step === "ready"} class:error={["database_error", "error"].includes(telegramStatus.step)} class="integration-chip">{telegramStatus.step === "ready" ? "1" : "·"}</span></button>
+              <button class:active={settingsSection === "mcp"} aria-current={settingsSection === "mcp" ? "page" : undefined} onclick={() => (settingsSection = "mcp")}><Bot size={16} />{t("mcpAndAi")} <span class:connected={mcpCheckState === "success"} class:error={mcpCheckState === "error"} class="integration-chip">{mcpCheckState === "success" ? "✓" : "·"}</span></button>
               <button class:active={settingsSection === "about"} aria-current={settingsSection === "about" ? "page" : undefined} onclick={() => (settingsSection = "about")}><Info size={16} />{t("about")}</button>
             </nav>
             <div class="settings-content">
@@ -2857,25 +2884,37 @@
                     {/if}
                     {#if telegramError && telegramStatus.step !== "database_error"}<p class="telegram-error">{telegramError}</p>{/if}
                   </div>
-                  <div class="integration-card mcp-integration-card">
-                    <div class="integration-head"><span><FloodGlyph kind={mcpCheckState === "error" ? "urgent" : "connected"} size={15} /><span><strong>{t("mcpServer")}</strong><small>{t("installedWithApp")}</small></span></span><span class:connected={mcpCheckState === "success"} class:error={mcpCheckState === "error"} class="status-text">{mcpCheckState === "checking" ? t("checking") : mcpCheckState === "success" ? t("mcpReady") : mcpCheckState === "error" ? t("needsAttention") : t("installed")}</span></div>
-                    <p>{t("mcpDescription")}</p>
-                    {#if storeDiagnostics}
-                      <div class="diagnostic-summary" aria-label={t("storeDiagnostics")}>
-                        <span><strong>{storeDiagnostics.project_count}</strong><small>{t("projects")}</small></span>
-                        <span><strong>{storeDiagnostics.open_task_count}</strong><small>{t("openTasks")}</small></span>
-                        <span><strong>{storeDiagnostics.pending_inbox_count}</strong><small>{t("inInbox")}</small></span>
-                      </div>
+                </section>
+              {:else if settingsSection === "mcp"}
+                <section class="settings-section mcp-settings-section">
+                  <div class="settings-section-title"><h3>{t("mcpAndAi")}</h3><p>{t("mcpPageDescription")}</p></div>
+                  <div class="mcp-readiness" aria-label={t("agentReadiness")}>
+                    <div class="mcp-readiness-head"><span><FloodGlyph kind={mcpCheckState === "error" ? "urgent" : mcpCheckState === "success" ? "connected" : "brand"} size={28} /><span><strong>{t("agentReadiness")}</strong><small>{mcpRuntimeLabel()}</small></span></span><button class="mcp-check-button" disabled={mcpCheckState === "checking"} onclick={runMcpSelfCheck}><RefreshCw class={mcpCheckState === "checking" ? "spinning" : ""} size={14} />{t("runSelfCheck")}</button></div>
+                    <div class="readiness-list">
+                      <span class:done={Boolean(mcpRuntime?.available)}><i>{#if mcpRuntime?.available}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("mcpBinary")}</strong><small>{mcpRuntime?.available ? `${fileName(mcpExecutable)} · ${mcpRuntime.version || "?"}` : t("mcpMissingDescription")}</small></span></span>
+                      <span class:done={Boolean(mcpRuntime?.compatible)}><i>{#if mcpRuntime?.compatible}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("versionCompatibility")}</strong><small>{mcpRuntime ? `${t("appVersionLabel")} ${mcpRuntime.app_version} · MCP ${mcpRuntime.version || "?"}` : t("notChecked")}</small></span></span>
+                      <span class:done={Boolean(storeDiagnostics?.healthy)}><i>{#if storeDiagnostics?.healthy}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("storeDiagnostics")}</strong><small>{storeDiagnostics ? t("storageSummary", { projects: storeDiagnostics.project_count, tasks: storeDiagnostics.open_task_count, inbox: storeDiagnostics.pending_inbox_count }) : t("notChecked")}</small></span></span>
+                      <span class:done={Boolean(mcpSelfCheck?.passed)}><i>{#if mcpSelfCheck?.passed}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("isolatedSelfCheck")}</strong><small>{mcpSelfCheck ? t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms }) : t("selfCheckDescription")}</small></span></span>
+                    </div>
+                    {#if mcpSelfCheck && !mcpSelfCheck.passed}
+                      <div class="mcp-check-result error" role="status"><strong>{t("someChecksFailed")}</strong><ul>{#each mcpSelfCheck.checks.filter((check) => !check.passed) as check}<li>{check.name}{check.detail ? `: ${check.detail}` : ""}</li>{/each}</ul></div>
                     {/if}
-                    <div class="code-row" title={mcpExecutable || "flood-mcp.exe"}><code>{fileName(mcpExecutable || "flood-mcp.exe")}</code><button class="icon-button" aria-label={t("copyConfiguration")} title={copied ? t("copied") : t("copyConfiguration")} onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div>
-                    <button class="mcp-check-button" disabled={mcpCheckState === "checking"} onclick={runMcpSelfCheck}><RefreshCw class={mcpCheckState === "checking" ? "spinning" : ""} size={14} />{t("runSelfCheck")}</button>
-                    {#if mcpSelfCheck}
-                      <div class:error={!mcpSelfCheck.passed} class="mcp-check-result" role="status">
-                        <strong>{mcpSelfCheck.passed ? t("allChecksPassed") : t("someChecksFailed")}</strong>
-                        <small>{t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms })}</small>
-                        {#if !mcpSelfCheck.passed}<ul>{#each mcpSelfCheck.checks.filter((check) => !check.passed) as check}<li>{check.name}{check.detail ? `: ${check.detail}` : ""}</li>{/each}</ul>{/if}
-                      </div>
-                    {/if}
+                  </div>
+
+                  <div class="mcp-block">
+                    <div class="mcp-block-title"><span><strong>{t("connectAgent")}</strong><small>{t("connectAgentDescription")}</small></span></div>
+                    <div class="mcp-client-tabs" role="tablist" aria-label={t("mcpClient")}>
+                      {#each mcpClients as client}
+                        <button class:active={mcpClient === client} role="tab" aria-selected={mcpClient === client} onclick={() => (mcpClient = client)}>{client === "manual" ? t("manual") : client === "codex" ? "Codex" : client === "claude" ? "Claude" : "Cursor"}</button>
+                      {/each}
+                    </div>
+                    <div class="mcp-code" title={mcpExecutable || "flood-mcp.exe"}><pre>{mcpConfiguration(mcpClient)}</pre><button class="icon-button" aria-label={t("copyConfiguration")} title={copied ? t("copied") : t("copyConfiguration")} onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div>
+                    <p class="mcp-hint">{t("restartMcpClient")}</p>
+                  </div>
+
+                  <div class="mcp-block mcp-safety">
+                    <div class="mcp-block-title"><ShieldCheck size={17} /><span><strong>{t("mcpSafety")}</strong><small>{t("mcpSafetyDescription")}</small></span></div>
+                    <div class="mcp-capability-list"><span><Check size={13} />{t("mcpCanRead")}</span><span><Check size={13} />{t("mcpCanChange")}</span><span><Check size={13} />{t("mcpCanProcessInbox")}</span><span class="protected"><ShieldCheck size={13} />{t("mcpDestructiveProtected")}</span></div>
                   </div>
                 </section>
               {:else}

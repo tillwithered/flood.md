@@ -5,6 +5,32 @@ use std::{
 };
 use ulid::Ulid;
 
+#[test]
+fn command_line_reports_version_and_runs_isolated_self_check() {
+    let version = Command::new(env!("CARGO_BIN_EXE_flood-mcp"))
+        .arg("--version")
+        .output()
+        .unwrap();
+    assert!(version.status.success());
+    assert_eq!(
+        String::from_utf8(version.stdout).unwrap().trim(),
+        env!("CARGO_PKG_VERSION")
+    );
+
+    let self_check = Command::new(env!("CARGO_BIN_EXE_flood-mcp"))
+        .arg("--self-check")
+        .output()
+        .unwrap();
+    assert!(self_check.status.success());
+    let result: Value = serde_json::from_slice(&self_check.stdout).unwrap();
+    assert_eq!(result["passed"], true);
+    assert!(
+        result["checks"]
+            .as_array()
+            .is_some_and(|checks| !checks.is_empty())
+    );
+}
+
 fn send(stdin: &mut impl Write, message: Value) {
     writeln!(stdin, "{message}").unwrap();
     stdin.flush().unwrap();
@@ -132,6 +158,52 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     let self_check = receive(&mut stdout, 5);
     assert_eq!(self_check["result"]["isError"], false);
     assert_eq!(self_check["result"]["structuredContent"]["passed"], true);
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 6,
+            "method": "tools/call",
+            "params": {
+                "name": "get_runtime_info",
+                "arguments": {}
+            }
+        }),
+    );
+    let runtime = receive(&mut stdout, 6);
+    assert_eq!(runtime["result"]["isError"], false);
+    assert_eq!(
+        runtime["result"]["structuredContent"]["version"],
+        env!("CARGO_PKG_VERSION")
+    );
+    assert_eq!(
+        runtime["result"]["structuredContent"]["destructive_actions_enabled"],
+        false
+    );
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 7,
+            "method": "tools/call",
+            "params": {
+                "name": "delete_project",
+                "arguments": {
+                    "id": created["result"]["structuredContent"]["project"]["id"],
+                    "expected_version": created["result"]["structuredContent"]["project"]["version"]
+                }
+            }
+        }),
+    );
+    let protected = receive(&mut stdout, 7);
+    assert_eq!(protected["result"]["isError"], true);
+    assert!(
+        protected["result"]["content"][0]["text"]
+            .as_str()
+            .is_some_and(|text| text.contains("Необратимые MCP-действия отключены"))
+    );
 
     drop(stdin);
     assert!(child.wait().unwrap().success());
