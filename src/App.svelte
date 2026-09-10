@@ -2162,6 +2162,18 @@
     }
   }
 
+  function telegramSyncIsStale(maxAgeMs = 60_000) {
+    if (!telegramSyncSummary?.syncedAt) return true;
+    const completedAt = new Date(telegramSyncSummary.syncedAt).getTime();
+    return !Number.isFinite(completedAt) || Date.now() - completedAt >= maxAgeMs;
+  }
+
+  function catchUpTelegramSync() {
+    if (document.visibilityState === "visible" && telegramStatus.step === "ready" && telegramSyncIsStale()) {
+      void syncTelegram();
+    }
+  }
+
   async function runMcpSelfCheck() {
     if (mcpCheckState === "checking") return;
     mcpCheckState = "checking";
@@ -2782,6 +2794,8 @@
     const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
     const updateSystemTheme = () => { if (themePreference === "system") applyTheme(); };
     colorScheme.addEventListener("change", updateSystemTheme);
+    document.addEventListener("visibilitychange", catchUpTelegramSync);
+    window.addEventListener("focus", catchUpTelegramSync);
     let unlisten: UnlistenFn | undefined;
     let unlistenClose: UnlistenFn | undefined;
     let unlistenTelegram: UnlistenFn | undefined;
@@ -2847,6 +2861,8 @@
       window.removeEventListener("blur", flush);
       document.removeEventListener("pointerdown", closeMenus);
       colorScheme.removeEventListener("change", updateSystemTheme);
+      document.removeEventListener("visibilitychange", catchUpTelegramSync);
+      window.removeEventListener("focus", catchUpTelegramSync);
       for (const url of attachmentObjectUrls) URL.revokeObjectURL(url);
       clearSourceMediaPreviews();
       unlisten?.();
