@@ -28,4 +28,5 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
       - run: npm run check
+      - run: cargo build --release --bin flood-mcp
       - run: cargo test --workspace
