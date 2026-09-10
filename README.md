@@ -10,6 +10,8 @@
   <img alt="Local first" src="https://img.shields.io/badge/data-local--first-111111?style=flat-square">
 </p>
 
+See [what changed in 0.1.4](CHANGELOG.md).
+
 ## Why flood.md
 
 Tasks often begin as a message, then disappear inside a busy chat. flood.md turns that message into a durable task while keeping the original author, date, text, and link as context.
@@ -22,6 +24,8 @@ Tasks often begin as a message, then disappear inside a busy chat. flood.md turn
 - **Focused editor:** Markdown, formatting, links, images, and local attachments.
 - **Safe changes:** atomic writes, stable IDs, conflict detection, backups, and trash.
 - **Agent-ready:** the bundled local MCP server uses the same task files.
+- **Controlled AI triage:** agents receive bounded inbox batches, preview a plan, and must present a confirmation token before applying it.
+- **Operational visibility:** Settings show storage health, Telegram synchronization, MCP readiness, attachment cleanup, and a bounded audit trail without task text.
 - **Offline core:** projects and tasks remain usable without Telegram or a network.
 
 ## Install
@@ -69,9 +73,9 @@ The default Windows data directory is `%APPDATA%\io.flood.desktop`. Set `FLOOD_D
 
 The installer includes `flood-mcp.exe`, a local stdio MCP server with project, task, source, state, move, and recoverable trash operations. Irreversible deletion is disabled by default; it can only be enabled for an explicitly launched server with `FLOOD_MCP_ALLOW_DESTRUCTIVE=1`. The server can also list and read Telegram inbox candidates, dismiss or restore them, and create an idempotent task with a concise title, optional notes, urgency, and its source snapshot. Processed candidates expose the linked task's title, urgency, and live completion state so an MCP client can distinguish pending work from work already done.
 
-For agent-assisted triage, `get_telegram_sync_status` reports when the desktop app last synchronized Telegram and whether that run succeeded, partially failed, or failed, so an agent can refuse to treat a stale local queue as current. `get_telegram_triage_batch` then returns a bounded page of at most 25 pending candidates with an opaque continuation cursor instead of dumping chat history into the model. `apply_telegram_triage` applies per-candidate `create_task`, `dismiss`, or `keep` decisions and returns an independent result for every item, so retries remain observable and task creation stays idempotent. The desktop inbox mirrors this review model with multi-select and a sequential, user-confirmed task composer.
+For agent-assisted triage, `get_telegram_sync_status` reports when the desktop app last synchronized Telegram and whether that run succeeded, partially failed, or failed, so an agent can refuse to treat a stale local queue as current. `get_telegram_triage_batch` then returns a bounded page of at most 25 pending candidates with an opaque continuation cursor instead of dumping chat history into the model. A triage plan must pass through `preview_telegram_triage`; only the returned token can authorize that exact, still-current plan in `apply_telegram_triage`. Every candidate receives an independent result, and retries remain observable and idempotent. The desktop inbox mirrors this review model with multi-select, preserved drafts, undo for dismissals, bounded history, and a sequential task composer.
 
-`get_runtime_info` reports the running server version, data folder, capabilities, and safety mode. `diagnose_store` reports local storage health without changing data, while `run_self_check` exercises the full task lifecycle in an isolated temporary store. The desktop app runs the same check through the actual bundled executable in **Settings → MCP & AI**, where ready-to-copy Codex, Claude, Cursor, and manual configurations are available. When MCP creates a task, the running desktop app downloads its Telegram media immediately; otherwise it resumes that work on the next launch. Desktop and MCP operations share validation, locking, and conflict rules.
+`get_workspace_brief` provides a bounded start-of-session view with storage readiness, priority work, Telegram freshness, recent metadata-only activity, and suggested next tools. `get_runtime_info` reports the running server version, data folder, capabilities, and safety mode. `diagnose_store` reports local storage health without changing data, while `run_self_check` exercises the full task lifecycle in an isolated temporary store. The desktop app runs the same check through the actual bundled executable in **Settings → MCP & AI**, where ready-to-copy Codex, Claude, Cursor, and manual configurations are available. Project and task creation require a stable `request_id`, preventing duplicates after timeouts or uncertain retries. When MCP creates a task, the running desktop app downloads its Telegram media immediately; otherwise it resumes that work on the next launch. Desktop and MCP operations share validation, locking, conflict rules, and an audit trail that intentionally excludes task and message text.
 
 For packaging and diagnostics, `flood-mcp.exe --version` prints the server version and `flood-mcp.exe --self-check` prints the isolated check result as JSON without starting the stdio transport.
 

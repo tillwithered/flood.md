@@ -44,9 +44,18 @@ jobs:
           releaseBody: |
             ## flood.md ${{ github.ref_name }}
 
-            Windows bugfix release: reliable in-app updates, a stable per-user installation and restored shortcuts.
+            A major local-first workflow update: Telegram inbox triage, media-aware task sources, bounded and confirmable MCP workflows, operational diagnostics, safer storage, and a more spacious settings experience.
 
-            Исправление для Windows: надёжное обновление внутри приложения, единая установка для текущего пользователя и восстановление ярлыков.
+            Большое обновление локального рабочего процесса: разбор входящих Telegram и медиа, ограниченные и подтверждаемые MCP-сценарии, диагностика, усиленная сохранность данных и более просторные настройки.
+
+            ### Highlights
+
+            - Bounded Telegram inbox with search, albums, media, drafts, undo, multi-select, and history.
+            - MCP workspace brief, search, priority digest, confirmed Telegram triage, readiness checks, and metadata-only activity history.
+            - Retry-safe project and task creation with mandatory idempotency keys.
+            - Expanded Settings, enforced 12 px minimum text, improved installation/update diagnostics, and hardened local storage.
+
+            Full details: [CHANGELOG.md](https://github.com/tillwithered/flood.md/blob/${{ github.ref_name }}/CHANGELOG.md).
           releaseDraft: false
           prerelease: false
           updaterJsonPreferNsis: true

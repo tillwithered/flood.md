@@ -3130,9 +3130,9 @@
     if (new URLSearchParams(window.location.search).get("preview") !== "mcp-readiness") return;
     activeSection = "settings";
     settingsSection = "mcp";
-    appVersion = "0.1.3";
+    appVersion = "0.1.4";
     mcpExecutable = "C:\\Program Files\\flood.md\\flood-mcp.exe";
-    mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.1.3", app_version: "0.1.3", compatible: true, source: "bundled" };
+    mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.1.4", app_version: "0.1.4", compatible: true, source: "bundled" };
     storeDiagnostics = { healthy: true, root: "preview", format_version: 1, project_count: 4, linked_chat_count: 2, open_task_count: 12, completed_task_count: 8, trashed_task_count: 1, pending_inbox_count: 5, issues: [] };
     mcpSelfCheck = { passed: true, duration_ms: 34, checks: [
       { name: "Изолированное хранилище", passed: true },
