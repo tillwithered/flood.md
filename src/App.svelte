@@ -6,7 +6,6 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
   import { openPath, openUrl } from "@tauri-apps/plugin-opener";
-  import { relaunch } from "@tauri-apps/plugin-process";
   import { check, type Update } from "@tauri-apps/plugin-updater";
   import { onMount, tick } from "svelte";
   import QRCode from "qrcode";
@@ -1968,13 +1967,13 @@
     let downloaded = 0;
     let total = 0;
     try {
-      await availableUpdate.downloadAndInstall((event) => {
+      await availableUpdate.download((event) => {
         if (event.event === "Started") total = event.data.contentLength ?? 0;
         if (event.event === "Progress") downloaded += event.data.chunkLength;
         if (total > 0) updateProgress = Math.min(100, Math.round(downloaded / total * 100));
       });
       updateMessage = t("updateRestarting");
-      await relaunch();
+      await availableUpdate.install({ restartAfterInstall: true });
     } catch (error) {
       updateState = "error";
       updateMessage = t("updateInstallFailed", { error: String(error) });

@@ -44,9 +44,9 @@ jobs:
           releaseBody: |
             ## flood.md ${{ github.ref_name }}
 
-            Windows bugfix release: Telegram TDLib connection repair and safe migration of the local database encryption key.
+            Windows bugfix release: reliable in-app updates, a stable per-user installation and restored shortcuts.
 
-            Исправление для Windows: восстановлено подключение Telegram через TDLib и добавлена безопасная миграция локального ключа шифрования базы.
+            Исправление для Windows: надёжное обновление внутри приложения, единая установка для текущего пользователя и восстановление ярлыков.
           releaseDraft: false
           prerelease: false
           updaterJsonPreferNsis: true
