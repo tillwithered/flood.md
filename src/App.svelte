@@ -2617,6 +2617,34 @@
     return "__TAURI_INTERNALS__" in window;
   }
 
+  function applyTelegramDevPreview() {
+    if (!import.meta.env.DEV || inTauri()) return;
+    const preview = new URLSearchParams(window.location.search).get("preview");
+    if (!preview?.startsWith("telegram-")) return;
+    telegramInboxOpen = true;
+    telegramInboxLoading = preview === "telegram-loading";
+    telegramInboxError = preview === "telegram-error" ? t("telegramPreviewError") : "";
+    if (preview !== "telegram-inbox") return;
+    telegramInbox = [
+      {
+        id: "preview-1", project_id: "preview", chat_id: -1001, chat_title: "Команда продукта", message_id: 101,
+        text: "@tillwithered собери, пожалуйста, итоговые правки по экрану интеграций и проверь пустые состояния.",
+        author: "Анна", sent_at: "2026-09-10T17:42:00Z", reason: "mention", status: "pending", media: [], discovered_at: "2026-09-10T17:42:10Z"
+      },
+      {
+        id: "preview-2", project_id: "preview", chat_id: -1001, chat_title: "Команда продукта", message_id: 102,
+        text: "Нужно сверить альбом с референсами и выбрать изображения для первой версии.",
+        author: "Илья", sent_at: "2026-09-10T17:31:00Z", reason: "reply", status: "pending",
+        media: [{ kind: "photo", file_name: "reference-1.jpg" }, { kind: "photo", file_name: "reference-2.jpg" }], discovered_at: "2026-09-10T17:31:10Z"
+      },
+      {
+        id: "preview-3", project_id: "preview", chat_id: -1002, chat_title: "Личное", message_id: 103,
+        text: "Зафиксировать результаты созвона и разнести следующие действия по проектам.",
+        author: "Олег", sent_at: "2026-09-10T16:58:00Z", reason: "manual", status: "pending", media: [], discovered_at: "2026-09-10T16:58:10Z"
+      }
+    ];
+  }
+
   function minimizeWindow() {
     if (inTauri()) void getCurrentWindow().minimize();
   }
@@ -2640,6 +2668,7 @@
 
   onMount(() => {
     loadUiPreferences();
+    applyTelegramDevPreview();
     const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
     const updateSystemTheme = () => { if (themePreference === "system") applyTheme(); };
     colorScheme.addEventListener("change", updateSystemTheme);
@@ -2797,7 +2826,7 @@
     <div class="window-actions" data-tauri-drag-region="false">
       {#if activeSection === "tasks" && workspaceView === "task" && selectedTask}
         {#if saveState === "error" && hasUnsavedTaskChanges()}
-          <button class="save-state save-retry" title={`${t("retrySave")}: ${saveError}`} aria-label={t("retrySave")} onclick={() => void saveNow()}><RefreshCw size={12} />{t("notSaved")}</button>
+          <button class="save-state save-retry" title={`${t("retrySave")}: ${saveError}`} aria-label={t("retrySave")} onclick={() => void saveNow()}><RefreshCw size={12} /><span class="save-retry-label">{t("notSaved")}</span></button>
         {:else}
           <span class="save-state" title={saveError}>{saveState === "saving" ? t("saving") : saveState === "saved" ? t("saved") : ""}</span>
         {/if}
@@ -3142,8 +3171,8 @@
                     <div class="setup-guide" aria-label={t("gettingStarted")}>
                       <header><span><strong>{t("gettingStarted")}</strong><small>{t("setupProgress", { completed: setupCompleted, total: 2 })}</small></span><div class="setup-progress" aria-hidden="true"><span class:complete={setupHasProject}></span><span class:complete={setupHasTask}></span></div></header>
                       <div class="setup-steps">
-                        <span class:complete={setupHasProject}>{#if setupHasProject}<CheckCircle2 size={15} />{:else}<Circle size={15} />{/if}<span><strong>{t("setupProject")}</strong><small>{t("setupProjectDescription")}</small></span></span>
-                        <span class:complete={setupHasTask}>{#if setupHasTask}<CheckCircle2 size={15} />{:else}<Circle size={15} />{/if}<span><strong>{t("setupFirstTask")}</strong><small>{t("setupFirstTaskDescription")}</small></span></span>
+                        <span class:complete={setupHasProject}><FloodGlyph kind={setupHasProject ? "completed" : "normal"} size={15} /><span><strong>{t("setupProject")}</strong><small>{t("setupProjectDescription")}</small></span></span>
+                        <span class:complete={setupHasTask}><FloodGlyph kind={setupHasTask ? "completed" : "normal"} size={15} /><span><strong>{t("setupFirstTask")}</strong><small>{t("setupFirstTaskDescription")}</small></span></span>
                       </div>
                       <button onclick={continueInitialSetup}>{setupHasProject ? t("addFirstTask") : t("createFirstProject")}<ArrowRight size={14} /></button>
                     </div>
@@ -3179,7 +3208,7 @@
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>{t("integrations")}</h3><p>{t("integrationsDescription")}</p></div>
                   <div class="integration-card telegram-card">
-                    <div class="integration-head"><span><Send size={16} /><span><strong>Telegram</strong><small>{telegramStatus.account_name || t("tdlibClient")}</small></span></span><span class:connected={telegramStatus.step === "ready"} class="status-text">{telegramStatusLabel()}</span></div>
+                    <div class="integration-head"><span><FloodGlyph kind={["database_error", "error"].includes(telegramStatus.step) ? "urgent" : telegramStatus.step === "ready" ? "connected" : "brand"} size={18} motion={telegramStatus.step === "ready" ? "pop" : "none"} /><span><strong>Telegram</strong><small>{telegramStatus.account_name || t("tdlibClient")}</small></span></span><span class:connected={telegramStatus.step === "ready"} class="status-text">{telegramStatusLabel()}</span></div>
                     {#if telegramStatus.step === "unconfigured"}
                       <p>{t("telegramDescription")}</p>
                       <form class="telegram-form credentials" onsubmit={configureTelegram}>
@@ -3324,9 +3353,9 @@
       {#if currentChat.telegram_chats.length > 1}<div class="telegram-import-tabs">{#each currentChat.telegram_chats as link (link.chat_id)}<button class:active={telegramImportChatId === link.chat_id} onclick={() => loadTelegramImportChat(link.chat_id)}>{link.title}</button>{/each}</div>{/if}
       <div class="telegram-message-list">
         {#if telegramMessagesLoading}
-          <div class="telegram-import-state"><RefreshCw class="spinning" size={16} />{t("loadingMessages")}</div>
+          <div class="telegram-list-skeleton" role="status"><span class="sr-only">{t("loadingMessages")}</span>{#each Array(6) as _}<div class="telegram-skeleton-row" aria-hidden="true"><span></span><span><i></i><i></i></span><span></span></div>{/each}</div>
         {:else if telegramImportError}
-          <div class="telegram-import-state error">{telegramImportError}</div>
+          <div class="telegram-import-state error"><span>{telegramImportError}</span><button onclick={() => loadTelegramImportChat(telegramImportChatId)}><RefreshCw size={13} />{t("retry")}</button></div>
         {:else}
           {#each telegramMessages as message (message.id)}
             <article class="telegram-message"><div><span><strong>{message.author || "Telegram"}</strong><small>{fullDate(new Date(message.sent_at * 1000).toISOString())}</small></span>{#if message.text}<p>{message.text}</p>{/if}{#if message.media.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: message.media.length })}</small>{/if}</div>{#if message.linked_task}<button class="telegram-task-link" disabled={message.linked_task.trashed} title={message.linked_task.title} onclick={() => openTelegramLinkedTask(message.linked_task!)}><FloodGlyph kind={message.linked_task.status === "completed" ? "completed" : message.linked_task.urgency} size={13} /><span><strong>{message.linked_task.title}</strong><small>{telegramLinkedTaskState(message.linked_task)}</small></span><ChevronRight size={14} /></button>{:else}<button class:queued={telegramQueuedMessageIds.includes(message.id)} disabled={Boolean(telegramImportingId) || telegramQueuedMessageIds.includes(message.id)} aria-label={t("addToInbox")} title={telegramQueuedMessageIds.includes(message.id) ? t("alreadyInInbox") : t("addToInbox")} onclick={() => importTelegramMessage(message)}>{#if telegramImportingId === message.id}<RefreshCw class="spinning" size={15} />{:else if telegramQueuedMessageIds.includes(message.id)}<Check size={16} />{:else}<Plus size={16} />{/if}</button>{/if}</article>
@@ -3358,11 +3387,15 @@
         {#if telegramTriageNotice}<div class="telegram-triage-notice" role="status"><CheckCircle2 size={14} />{telegramTriageNotice}</div>{/if}
         {#if !telegramInboxLoading && !telegramInboxError && telegramInbox.length}<div class="telegram-inbox-batch"><button class:active={allTelegramInboxCandidatesSelected()} aria-pressed={allTelegramInboxCandidatesSelected()} onclick={toggleAllTelegramInboxCandidates}><span class="picker-check">{#if allTelegramInboxCandidatesSelected()}<Check size={12} />{/if}</span>{allTelegramInboxCandidatesSelected() ? t("clearSelection") : t("selectAllMessages")}</button><small>{t("batchTriageHint")}</small></div>{/if}
         <div class:with-action-island={telegramInboxSelection.length > 0} class="telegram-message-list telegram-inbox-list">
-          {#if telegramInboxLoading}<div class="telegram-import-state"><RefreshCw class="spinning" size={16} />{t("scanningMessages")}</div>
-          {:else if telegramInboxError}<div class="telegram-import-state error">{telegramInboxError}</div>
+          {#if telegramInboxLoading}<div class="telegram-list-skeleton" role="status"><span class="sr-only">{t("scanningMessages")}</span>{#each Array(6) as _}<div class="telegram-skeleton-row with-check" aria-hidden="true"><span></span><span><i></i><i></i></span><span></span></div>{/each}</div>
+          {:else if telegramInboxError}<div class="telegram-import-state error"><span>{telegramInboxError}</span><button onclick={() => openTelegramInbox(false)}><RefreshCw size={13} />{t("retry")}</button></div>
           {:else}
             {#each telegramInbox as candidate (candidate.id)}
-              <article class:selected={telegramInboxSelection.includes(candidate.id)} class="inbox-candidate"><div class="inbox-candidate-head"><button class:active={telegramInboxSelection.includes(candidate.id)} class="inbox-select" disabled={Boolean(candidate.linked_task)} aria-label={telegramInboxSelection.includes(candidate.id) ? t("removeFromSelection") : t("addToSelection")} aria-pressed={telegramInboxSelection.includes(candidate.id)} onclick={() => toggleTelegramInboxCandidate(candidate.id)}><span class="picker-check">{#if telegramInboxSelection.includes(candidate.id)}<Check size={12} />{/if}</span></button><div class="inbox-candidate-meta"><span>{candidate.chat_title}</span><small>{telegramReasonLabel(candidate.reason)} · {fullDate(candidate.sent_at)}</small></div></div><strong>{candidate.author}</strong>{#if candidate.text}<p>{candidate.text}</p>{/if}{#if candidate.media?.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: candidate.media.length })}</small>{/if}<div class="inbox-candidate-actions">{#if candidate.linked_task}<button class="inbox-linked-task" disabled={candidate.linked_task.trashed} title={candidate.linked_task.title} onclick={() => openTelegramLinkedTask(candidate.linked_task!)}><FloodGlyph kind={candidate.linked_task.status === "completed" ? "completed" : candidate.linked_task.urgency} size={13} /><span>{candidate.linked_task.title}</span><small>{telegramLinkedTaskState(candidate.linked_task)}</small><ChevronRight size={13} /></button>{:else}<button disabled={Boolean(telegramInboxProcessingId)} onclick={() => dismissTelegramCandidate(candidate)}>{t("dismiss")}</button><button class="primary-button" disabled={Boolean(telegramInboxProcessingId)} onclick={() => beginTaskFromCandidate(candidate)}><Plus size={14} />{t("prepareTask")}</button>{/if}</div></article>
+              <article class:selected={telegramInboxSelection.includes(candidate.id)} class="inbox-candidate">
+                <button class:active={telegramInboxSelection.includes(candidate.id)} class="inbox-select" disabled={Boolean(candidate.linked_task)} aria-label={telegramInboxSelection.includes(candidate.id) ? t("removeFromSelection") : t("addToSelection")} aria-pressed={telegramInboxSelection.includes(candidate.id)} onclick={() => toggleTelegramInboxCandidate(candidate.id)}><span class="picker-check">{#if telegramInboxSelection.includes(candidate.id)}<Check size={12} />{/if}</span></button>
+                <div class="inbox-candidate-content"><div class="inbox-candidate-meta"><strong>{candidate.author}</strong><span title={candidate.chat_title}>{candidate.chat_title}</span><small>{telegramReasonLabel(candidate.reason)} · {fullDate(candidate.sent_at)}</small></div>{#if candidate.text}<p>{candidate.text}</p>{/if}{#if candidate.media?.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: candidate.media.length })}</small>{/if}</div>
+                <div class="inbox-candidate-actions">{#if candidate.linked_task}<button class="inbox-linked-task" disabled={candidate.linked_task.trashed} title={candidate.linked_task.title} onclick={() => openTelegramLinkedTask(candidate.linked_task!)}><FloodGlyph kind={candidate.linked_task.status === "completed" ? "completed" : candidate.linked_task.urgency} size={13} /><span>{candidate.linked_task.title}</span><small>{telegramLinkedTaskState(candidate.linked_task)}</small><ChevronRight size={13} /></button>{:else}<button disabled={Boolean(telegramInboxProcessingId)} onclick={() => dismissTelegramCandidate(candidate)}>{t("dismiss")}</button><button class="primary-button" disabled={Boolean(telegramInboxProcessingId)} aria-label={t("prepareTask")} title={t("prepareTask")} onclick={() => beginTaskFromCandidate(candidate)}><Plus size={14} />{t("prepareTaskShort")}</button>{/if}</div>
+              </article>
             {:else}<div class="telegram-import-state">{t("inboxEmpty")}</div>{/each}
           {/if}
         </div>

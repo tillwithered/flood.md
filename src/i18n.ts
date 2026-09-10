@@ -153,6 +153,8 @@ const ru = {
   backingUp: "Сохраняю…",
   restoreBackup: "Восстановить",
   reload: "Перечитать",
+  retry: "Повторить",
+  telegramPreviewError: "Telegram временно не ответил. Проверьте подключение и повторите попытку.",
   restoreBackupQuestion: "Восстановить {file}?",
   restoreBackupWarning:
     "Текущие проекты и задачи будут заменены содержимым копии.",
@@ -266,6 +268,7 @@ const ru = {
   dismiss: "Пропустить",
   createTask: "Создать задачу",
   prepareTask: "Подготовить задачу",
+  prepareTaskShort: "В задачу",
   selectAllMessages: "Выбрать все",
   clearSelection: "Снять выбор",
   addToSelection: "Добавить в выбор",
@@ -515,6 +518,8 @@ const en: Record<keyof typeof ru, string> = {
   backingUp: "Saving…",
   restoreBackup: "Restore",
   reload: "Reload",
+  retry: "Retry",
+  telegramPreviewError: "Telegram did not respond. Check the connection and try again.",
   restoreBackupQuestion: "Restore {file}?",
   restoreBackupWarning:
     "Current projects and tasks will be replaced with the backup contents.",
@@ -629,6 +634,7 @@ const en: Record<keyof typeof ru, string> = {
   dismiss: "Dismiss",
   createTask: "Create task",
   prepareTask: "Prepare task",
+  prepareTaskShort: "To task",
   selectAllMessages: "Select all",
   clearSelection: "Clear selection",
   addToSelection: "Add to selection",
