@@ -707,6 +707,8 @@ button { color: inherit; }
 .data-location code { display: block; overflow: hidden; max-width: 340px; color: var(--muted); font: var(--font-size-min)/1.4 "Cascadia Mono", Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
 .data-location button, .update-row button, .settings-action { display: inline-flex; height: 32px; flex: 0 0 auto; align-items: center; gap: 7px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 550; cursor: pointer; }
 .data-location button:disabled, .update-row button:disabled { opacity: .5; cursor: default; }
+.update-row.error small { color: var(--danger-ink); }
+.update-row.success small { color: var(--success-ink); }
 .settings-action { justify-self: start; margin-top: 16px; background: transparent; color: var(--muted); }
 .settings-action:hover { background: var(--hover); color: var(--ink); }
 .data-actions { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 16px; }

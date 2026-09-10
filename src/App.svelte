@@ -82,6 +82,7 @@
   const markdownHints: Record<string, MessageKey> = {
     "#": "largeHeading"
   };
+  const pendingUpdateVersionKey = "flood.pending-update-version";
   const telegramModes: TelegramInboxMode[] = ["manual", "mentions_and_replies", "all"];
   const mcpClients: McpClient[] = ["codex", "claude", "cursor", "manual"];
 
@@ -2636,6 +2637,11 @@
 
   async function checkForUpdates() {
     if (!inTauri() || updateState === "checking" || updateState === "downloading") return;
+    if (installationRuntime?.kind === "development") {
+      updateState = "error";
+      updateMessage = t("updateDevelopmentUnavailable");
+      return;
+    }
     updateState = "checking";
     updateMessage = t("updateChecking");
     updateProgress = 0;
@@ -2671,11 +2677,44 @@
         if (total > 0) updateProgress = Math.min(100, Math.round(downloaded / total * 100));
       });
       updateMessage = t("updateRestarting");
+      localStorage.setItem(pendingUpdateVersionKey, availableUpdate.version);
       await availableUpdate.install({ restartAfterInstall: true });
     } catch (error) {
+      localStorage.removeItem(pendingUpdateVersionKey);
       updateState = "error";
       updateMessage = t("updateInstallFailed", { error: String(error) });
     }
+  }
+
+  function reconcilePendingUpdate() {
+    const expectedVersion = localStorage.getItem(pendingUpdateVersionKey);
+    if (!expectedVersion) return;
+    if (installationRuntime?.kind === "development") {
+      updateState = "error";
+      updateMessage = t("updatePendingInstalledCopy", { version: expectedVersion });
+      return;
+    }
+    if (versionAtLeast(appVersion, expectedVersion)) {
+      localStorage.removeItem(pendingUpdateVersionKey);
+      updateState = "current";
+      updateMessage = t("updateInstalled", { version: appVersion });
+      return;
+    }
+    updateState = "error";
+    updateMessage = t("updateVersionMismatch", { expected: expectedVersion, current: appVersion });
+  }
+
+  function versionAtLeast(current: string, expected: string) {
+    const parse = (value: string) => value.split(".").slice(0, 3).map((part) => Number.parseInt(part, 10));
+    const currentParts = parse(current);
+    const expectedParts = parse(expected);
+    if (currentParts.some(Number.isNaN) || expectedParts.some(Number.isNaN)) return current === expected;
+    for (let index = 0; index < 3; index += 1) {
+      const currentPart = currentParts[index] ?? 0;
+      const expectedPart = expectedParts[index] ?? 0;
+      if (currentPart !== expectedPart) return currentPart > expectedPart;
+    }
+    return true;
   }
 
   function inTauri() {
@@ -2745,6 +2784,7 @@
       if (inTauri()) {
         appVersion = await getVersion();
         installationRuntime = await invoke<InstallationRuntimeInfo>("installation_runtime_info").catch(() => null);
+        reconcilePendingUpdate();
         dataDirectory = await invoke<string>("data_directory");
         mcpRuntime = await invoke<McpRuntimeInfo>("mcp_runtime_info").catch(() => null);
         mcpExecutable = mcpRuntime?.executable_path || await invoke<string>("mcp_executable_path");
@@ -3376,7 +3416,7 @@
                       </div>
                     {/if}
                   {/if}
-                  <div class="update-row"><span><strong>{t("updates")}</strong><small>{updateMessage || t("updateViaGithub")}</small>{#if updateState === "downloading"}<progress max="100" value={updateProgress}></progress>{/if}</span>{#if updateState === "available"}<button class="primary-small" onclick={installAvailableUpdate}><Download size={15} />{t("installVersion", { version: availableUpdate?.version ?? "" })}</button>{:else}<button onclick={checkForUpdates} disabled={updateState === "checking" || updateState === "downloading"}><span class:spinning={updateState === "checking"} class="update-icon"><RefreshCw size={15} /></span>{updateState === "checking" ? t("checking") : t("check")}</button>{/if}</div>
+                  <div class:error={updateState === "error"} class:success={updateState === "current" && Boolean(updateMessage)} class="update-row"><span><strong>{t("updates")}</strong><small>{updateMessage || (installationRuntime?.kind === "development" ? t("updateDevelopmentDescription") : t("updateViaGithub"))}</small>{#if updateState === "downloading"}<progress max="100" value={updateProgress}></progress>{/if}</span>{#if updateState === "available"}<button class="primary-small" onclick={installAvailableUpdate}><Download size={15} />{t("installVersion", { version: availableUpdate?.version ?? "" })}</button>{:else}<button onclick={checkForUpdates} disabled={updateState === "checking" || updateState === "downloading" || installationRuntime?.kind === "development"}><span class:spinning={updateState === "checking"} class="update-icon"><RefreshCw size={15} /></span>{updateState === "checking" ? t("checking") : t("check")}</button>{/if}</div>
                   <button class="settings-action" onclick={() => openUrl("https://github.com/tillwithered/flood.md")}><ExternalLink size={15} />{t("openGithub")}</button>
                 </section>
               {/if}
