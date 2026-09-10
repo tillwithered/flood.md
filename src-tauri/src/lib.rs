@@ -719,9 +719,12 @@ async fn telegram_refresh_inbox(
     state: State<'_, AppState>,
 ) -> Result<TelegramInboxPage, String> {
     let project = result(state.store.get_project(&project_id))?;
-    let candidates =
+    let refresh =
         with_telegram_timeout(state.telegram.refresh_candidates(&project, limit_per_chat)).await?;
-    result(state.store.upsert_telegram_candidates(candidates))?;
+    for chat in refresh.chats {
+        result(state.store.upsert_telegram_chat_snapshot(chat))?;
+    }
+    result(state.store.upsert_telegram_candidates(refresh.candidates))?;
     result(
         state
             .store
@@ -855,9 +858,12 @@ async fn refresh_all_inboxes(state: &AppState) -> Result<TelegramInboxSyncResult
         )
         .await
         {
-            Ok(Ok(candidates)) => {
+            Ok(Ok(refresh)) => {
                 scanned += 1;
-                added += result(state.store.upsert_telegram_candidates(candidates))?;
+                for chat in refresh.chats {
+                    result(state.store.upsert_telegram_chat_snapshot(chat))?;
+                }
+                added += result(state.store.upsert_telegram_candidates(refresh.candidates))?;
             }
             Ok(Err(error)) => {
                 failed += 1;

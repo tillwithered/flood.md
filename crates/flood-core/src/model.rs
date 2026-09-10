@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 pub struct Project {
     pub id: String,
     pub title: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub context: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -73,6 +75,15 @@ pub struct TelegramContextMessage {
     pub is_target: bool,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub media: Vec<SourceMedia>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct TelegramChatSnapshot {
+    pub chat_id: i64,
+    pub title: String,
+    pub synced_at: DateTime<Utc>,
+    #[serde(default)]
+    pub messages: Vec<TelegramContextMessage>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]

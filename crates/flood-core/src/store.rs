@@ -1,8 +1,9 @@
 use crate::{
     ActivityAction, ActivityEntityKind, ActivityEvent, ActivitySource, CreateTask,
     InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind, Task,
-    TaskPatch, TaskStatus, TaskSummary, TelegramContextMessage, TelegramInboxCandidate,
-    TelegramLinkedTask, TelegramProjectLink, TelegramSyncRequest, TelegramSyncStatus, Urgency,
+    TaskPatch, TaskStatus, TaskSummary, TelegramChatSnapshot, TelegramContextMessage,
+    TelegramInboxCandidate, TelegramLinkedTask, TelegramProjectLink, TelegramSyncRequest,
+    TelegramSyncStatus, Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
@@ -30,6 +31,7 @@ const MAX_TELEGRAM_INBOX_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_INTEGRATION_STATE_BYTES: u64 = 64 * 1024;
 const MAX_ACTIVITY_BYTES: u64 = 512 * 1024;
 const MAX_ACTIVITY_EVENTS: usize = 500;
+const MAX_TELEGRAM_CHAT_MESSAGES: usize = 100;
 
 #[derive(Debug, Error)]
 pub enum StoreError {
@@ -158,6 +160,26 @@ struct TelegramInboxDocument {
 }
 
 #[derive(Default, Serialize, Deserialize)]
+struct TelegramChatsDocument {
+    #[serde(default = "telegram_chats_format_version")]
+    format_version: u8,
+    #[serde(default)]
+    chats: Vec<TelegramChatSnapshot>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct TelegramChatPage {
+    pub chat_id: i64,
+    pub title: String,
+    pub synced_at: chrono::DateTime<Utc>,
+    pub messages: Vec<crate::TelegramContextMessage>,
+    pub oldest_message_id: Option<i64>,
+    pub newest_message_id: Option<i64>,
+    pub has_older: bool,
+    pub has_newer: bool,
+}
+
+#[derive(Default, Serialize, Deserialize)]
 struct ActivityDocument {
     #[serde(default = "activity_format_version")]
     format_version: u8,
@@ -166,6 +188,10 @@ struct ActivityDocument {
 }
 
 fn inbox_format_version() -> u8 {
+    1
+}
+
+fn telegram_chats_format_version() -> u8 {
     1
 }
 
@@ -491,6 +517,7 @@ impl Store {
         let project = Project {
             id,
             title,
+            context: String::new(),
             created_at: now,
             updated_at: now,
             telegram_chats: Vec::new(),
@@ -514,6 +541,28 @@ impl Store {
             read_project(&self.project_path(id)).map_err(|error| map_missing(error, id))?;
         ensure_version(&project.version, expected_version)?;
         project.title = title;
+        project.updated_at = Utc::now();
+        self.write_project(&project)?;
+        read_project(&self.project_path(id))
+    }
+
+    pub fn update_project_context(
+        &self,
+        id: &str,
+        context: &str,
+        expected_version: &str,
+    ) -> Result<Project, StoreError> {
+        validate_id(id)?;
+        if context.len() > 200_000 {
+            return Err(StoreError::Validation(
+                "контекст проекта превышает допустимые 200 КБ".into(),
+            ));
+        }
+        let _lock = self.lock_exclusive()?;
+        let mut project =
+            read_project(&self.project_path(id)).map_err(|error| map_missing(error, id))?;
+        ensure_version(&project.version, expected_version)?;
+        project.context = context.trim().to_owned();
         project.updated_at = Utc::now();
         self.write_project(&project)?;
         read_project(&self.project_path(id))
@@ -727,6 +776,112 @@ impl Store {
         }
         fs::remove_file(path)?;
         Ok(true)
+    }
+
+    pub fn upsert_telegram_chat_snapshot(
+        &self,
+        mut incoming: TelegramChatSnapshot,
+    ) -> Result<(), StoreError> {
+        validate_telegram_chat_snapshot(&incoming)?;
+        let _lock = self.lock_exclusive()?;
+        let mut document = self.read_telegram_chats()?;
+        if let Some(existing) = document
+            .chats
+            .iter_mut()
+            .find(|chat| chat.chat_id == incoming.chat_id)
+        {
+            let mut by_id = existing
+                .messages
+                .drain(..)
+                .map(|message| (message.message_id, message))
+                .collect::<HashMap<_, _>>();
+            for message in incoming.messages.drain(..) {
+                by_id.insert(message.message_id, message);
+            }
+            let mut messages = by_id.into_values().collect::<Vec<_>>();
+            messages.sort_by_key(|message| message.sent_at);
+            if messages.len() > MAX_TELEGRAM_CHAT_MESSAGES {
+                messages.drain(..messages.len() - MAX_TELEGRAM_CHAT_MESSAGES);
+            }
+            existing.title = incoming.title;
+            existing.synced_at = incoming.synced_at;
+            existing.messages = messages;
+        } else {
+            incoming.messages.sort_by_key(|message| message.sent_at);
+            if incoming.messages.len() > MAX_TELEGRAM_CHAT_MESSAGES {
+                incoming
+                    .messages
+                    .drain(..incoming.messages.len() - MAX_TELEGRAM_CHAT_MESSAGES);
+            }
+            document.chats.push(incoming);
+        }
+        document.chats.sort_by_key(|chat| chat.title.to_lowercase());
+        self.write_telegram_chats(&document)
+    }
+
+    pub fn list_telegram_chat_snapshots(&self) -> Result<Vec<TelegramChatSnapshot>, StoreError> {
+        let _lock = self.lock_shared()?;
+        Ok(self.read_telegram_chats()?.chats)
+    }
+
+    pub fn read_telegram_chat(
+        &self,
+        chat_id: i64,
+        before_message_id: Option<i64>,
+        after_message_id: Option<i64>,
+        limit: usize,
+    ) -> Result<TelegramChatPage, StoreError> {
+        if before_message_id.is_some() && after_message_id.is_some() {
+            return Err(StoreError::Validation(
+                "укажите только before_message_id или after_message_id".into(),
+            ));
+        }
+        let limit = limit.clamp(1, 50);
+        let _lock = self.lock_shared()?;
+        let chat = self
+            .read_telegram_chats()?
+            .chats
+            .into_iter()
+            .find(|chat| chat.chat_id == chat_id)
+            .ok_or_else(|| StoreError::NotFound(format!("Telegram-чат {chat_id}")))?;
+        let all = chat.messages;
+        let selected = if let Some(after) = after_message_id {
+            all.iter()
+                .filter(|message| message.message_id > after)
+                .take(limit)
+                .cloned()
+                .collect::<Vec<_>>()
+        } else {
+            let eligible = all
+                .iter()
+                .filter(|message| {
+                    before_message_id.is_none_or(|before| message.message_id < before)
+                })
+                .cloned()
+                .collect::<Vec<_>>();
+            eligible
+                .into_iter()
+                .rev()
+                .take(limit)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect()
+        };
+        let oldest_message_id = selected.first().map(|message| message.message_id);
+        let newest_message_id = selected.last().map(|message| message.message_id);
+        Ok(TelegramChatPage {
+            chat_id,
+            title: chat.title,
+            synced_at: chat.synced_at,
+            has_older: oldest_message_id
+                .is_some_and(|oldest| all.iter().any(|message| message.message_id < oldest)),
+            has_newer: newest_message_id
+                .is_some_and(|newest| all.iter().any(|message| message.message_id > newest)),
+            messages: selected,
+            oldest_message_id,
+            newest_message_id,
+        })
     }
 
     pub fn get_telegram_candidate(
@@ -1738,7 +1893,11 @@ impl Store {
             telegram: None,
             telegram_chats: project.telegram_chats.clone(),
         };
-        let body = format!("# {}\n", project.title);
+        let body = if project.context.is_empty() {
+            format!("# {}\n", project.title)
+        } else {
+            format!("# {}\n\n{}\n", project.title, project.context.trim())
+        };
         atomic_write(&self.project_path(&project.id), &encode(&doc, &body)?)
     }
 
@@ -1754,6 +1913,39 @@ impl Store {
         self.root
             .join("integrations")
             .join("telegram-sync-request.json")
+    }
+
+    fn telegram_chats_path(&self) -> PathBuf {
+        self.root.join("integrations").join("telegram-chats.json")
+    }
+
+    fn read_telegram_chats(&self) -> Result<TelegramChatsDocument, StoreError> {
+        let path = self.telegram_chats_path();
+        if !path.exists() {
+            return Ok(TelegramChatsDocument {
+                format_version: telegram_chats_format_version(),
+                chats: Vec::new(),
+            });
+        }
+        let document: TelegramChatsDocument =
+            serde_json::from_slice(&read_limited_bytes(&path, MAX_TELEGRAM_INBOX_BYTES)?)?;
+        if document.format_version != telegram_chats_format_version() {
+            return Err(StoreError::Validation(
+                "неподдерживаемая версия локальной ленты Telegram".into(),
+            ));
+        }
+        Ok(document)
+    }
+
+    fn write_telegram_chats(&self, document: &TelegramChatsDocument) -> Result<(), StoreError> {
+        let mut bytes = serde_json::to_vec_pretty(document)?;
+        bytes.push(b'\n');
+        if bytes.len() as u64 > MAX_TELEGRAM_INBOX_BYTES {
+            return Err(StoreError::Validation(
+                "локальная лента Telegram превышает безопасный размер".into(),
+            ));
+        }
+        atomic_write_bytes(&self.telegram_chats_path(), &bytes)
     }
 
     fn activity_path(&self) -> PathBuf {
@@ -2303,7 +2495,7 @@ fn decode<T: DeserializeOwned>(path: &Path) -> Result<(T, String, String), Store
 }
 
 fn read_project(path: &Path) -> Result<Project, StoreError> {
-    let (doc, _, version): (ProjectDocument, _, _) = decode(path)?;
+    let (doc, body, version): (ProjectDocument, _, _) = decode(path)?;
     if doc.format_version != FORMAT_VERSION {
         return Err(invalid(path, "неподдерживаемая версия формата"));
     }
@@ -2316,12 +2508,23 @@ fn read_project(path: &Path) -> Result<Project, StoreError> {
     }
     Ok(Project {
         id: doc.id,
+        context: project_context_from_body(&body, &doc.title),
         title: doc.title,
         created_at: doc.created_at,
         updated_at: doc.updated_at,
         telegram_chats,
         version,
     })
+}
+
+fn project_context_from_body(body: &str, title: &str) -> String {
+    let mut lines = body.lines();
+    let first = lines.next().unwrap_or_default().trim();
+    if first == format!("# {title}") {
+        lines.collect::<Vec<_>>().join("\n").trim().to_owned()
+    } else {
+        body.trim().to_owned()
+    }
 }
 
 fn read_task(path: &Path) -> Result<Task, StoreError> {
@@ -2428,7 +2631,7 @@ fn restore_entry_size_limit(path: &Path) -> u64 {
     }
     if path.starts_with("integrations") {
         return match path.file_name().and_then(|value| value.to_str()) {
-            Some("telegram-inbox.json") => MAX_TELEGRAM_INBOX_BYTES,
+            Some("telegram-inbox.json" | "telegram-chats.json") => MAX_TELEGRAM_INBOX_BYTES,
             Some("activity.json") => MAX_ACTIVITY_BYTES,
             _ => MAX_INTEGRATION_STATE_BYTES,
         };
@@ -2655,6 +2858,38 @@ fn validate_candidate(candidate: &TelegramInboxCandidate) -> Result<(), StoreErr
         ));
     }
     validate_source(&Some(candidate.snapshot()))
+}
+
+fn validate_telegram_chat_snapshot(snapshot: &TelegramChatSnapshot) -> Result<(), StoreError> {
+    clean_required(&snapshot.title, "название Telegram-чата", 240)?;
+    if snapshot.messages.len() > MAX_TELEGRAM_CHAT_MESSAGES {
+        return Err(StoreError::Validation(format!(
+            "локальная лента Telegram может содержать не более {MAX_TELEGRAM_CHAT_MESSAGES} сообщений"
+        )));
+    }
+    let mut seen = HashSet::new();
+    for message in &snapshot.messages {
+        if !seen.insert(message.message_id) {
+            return Err(StoreError::Validation(
+                "локальная лента Telegram содержит повтор сообщения".into(),
+            ));
+        }
+        clean_required(&message.author, "автор сообщения Telegram", 240)?;
+        if message.text.chars().count() > 20_000 {
+            return Err(StoreError::Validation(
+                "сообщение Telegram превышает ограничение 20000 символов".into(),
+            ));
+        }
+        if message.media.len() > 20 {
+            return Err(StoreError::Validation(
+                "сообщение Telegram может содержать не более 20 медиафайлов".into(),
+            ));
+        }
+        for media in &message.media {
+            clean_required(&media.file_name, "имя медиафайла Telegram", 240)?;
+        }
+    }
+    Ok(())
 }
 
 fn candidate_message_ids(candidate: &TelegramInboxCandidate) -> Vec<i64> {
@@ -3776,5 +4011,70 @@ mod tests {
         assert_eq!(restored_activity.events[0].id, backed_up_activity.id);
         assert!(store.telegram_sync_request().unwrap().is_none());
         let _ = fs::remove_file(archive);
+    }
+
+    #[test]
+    fn project_context_round_trips_and_survives_rename() {
+        let store = temp_store();
+        let project = store.create_project("Клиент").unwrap();
+        let context =
+            "## Репозиторий\n\n`C:/work/client`\n\n## Макеты\n\nhttps://figma.com/file/example";
+        let updated = store
+            .update_project_context(&project.id, context, &project.version)
+            .unwrap();
+        assert_eq!(updated.context, context);
+        let renamed = store
+            .update_project(&updated.id, "Клиентское приложение", &updated.version)
+            .unwrap();
+        assert_eq!(renamed.context, context);
+        let markdown = fs::read_to_string(store.project_path(&renamed.id)).unwrap();
+        assert!(markdown.contains("# Клиентское приложение"));
+        assert!(markdown.contains("## Репозиторий"));
+    }
+
+    #[test]
+    fn telegram_chat_snapshot_supports_human_style_paging() {
+        let store = temp_store();
+        let now = Utc::now();
+        let messages = (1..=30)
+            .map(|message_id| crate::TelegramContextMessage {
+                message_id,
+                message_ids: vec![message_id],
+                author: "Команда".into(),
+                sent_at: now + chrono::Duration::seconds(message_id),
+                text: format!("Сообщение {message_id}"),
+                url: None,
+                reply_to_message_id: None,
+                is_target: false,
+                media: Vec::new(),
+            })
+            .collect();
+        store
+            .upsert_telegram_chat_snapshot(TelegramChatSnapshot {
+                chat_id: -10042,
+                title: "Рабочий чат".into(),
+                synced_at: now,
+                messages,
+            })
+            .unwrap();
+
+        let latest = store.read_telegram_chat(-10042, None, None, 10).unwrap();
+        assert_eq!(latest.messages.first().unwrap().message_id, 21);
+        assert_eq!(latest.messages.last().unwrap().message_id, 30);
+        assert!(latest.has_older);
+        assert!(!latest.has_newer);
+
+        let older = store.read_telegram_chat(-10042, Some(21), None, 5).unwrap();
+        assert_eq!(older.messages.first().unwrap().message_id, 16);
+        assert_eq!(older.messages.last().unwrap().message_id, 20);
+        assert!(older.has_older);
+        assert!(older.has_newer);
+
+        let newer = store
+            .read_telegram_chat(-10042, None, Some(27), 10)
+            .unwrap();
+        assert_eq!(newer.messages.len(), 3);
+        assert_eq!(newer.messages[0].message_id, 28);
+        assert!(!newer.has_newer);
     }
 }

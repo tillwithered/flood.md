@@ -3,9 +3,9 @@ use flood_core::{
     ActivityAction, ActivityEntityKind, ActivityPage, ActivitySource, AttachmentCleanupReport,
     CreateTask, InboxCandidateStatus, MessageSnapshot, Project, RecordActivity, SelfCheckItem,
     SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
-    TaskStatus, TaskSummary, TelegramContextMessage, TelegramInboxCandidate, TelegramLinkedTask,
-    TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
-    run_self_check as run_core_self_check,
+    TaskStatus, TaskSummary, TelegramChatPage, TelegramContextMessage, TelegramInboxCandidate,
+    TelegramLinkedTask, TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, Urgency,
+    default_data_dir, run_self_check as run_core_self_check,
 };
 use rmcp::{
     Json, ServiceExt, handler::server::wrapper::Parameters, schemars, tool, tool_router,
@@ -78,6 +78,14 @@ struct CreateProjectArgs {
 struct UpdateProjectArgs {
     id: String,
     title: String,
+    expected_version: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct UpdateProjectContextArgs {
+    id: String,
+    /// Markdown-описание назначения проекта, важных ссылок, локальных путей и ограничений.
+    context: String,
     expected_version: String,
 }
 
@@ -381,6 +389,38 @@ struct TelegramContextOutput {
     message_count: usize,
     media_count: usize,
     bounded: bool,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ListTelegramChatsArgs {
+    project_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ReadTelegramChatArgs {
+    chat_id: i64,
+    /// Читать сообщения старше указанного ID. Нельзя сочетать с after_message_id.
+    before_message_id: Option<i64>,
+    /// Читать только новые сообщения после указанного ID. Нельзя сочетать с before_message_id.
+    after_message_id: Option<i64>,
+    /// От 1 до 50 сообщений. По умолчанию 20.
+    limit: Option<usize>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramChatSummaryOutput {
+    chat_id: i64,
+    title: String,
+    synced_at: DateTime<Utc>,
+    message_count: usize,
+    oldest_message_id: Option<i64>,
+    newest_message_id: Option<i64>,
+    project_ids: Vec<String>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramChatsOutput {
+    chats: Vec<TelegramChatSummaryOutput>,
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
@@ -697,6 +737,7 @@ impl FloodServer {
             destructive_actions_enabled: self.allow_destructive,
             capabilities: vec![
                 "projects",
+                "project_context",
                 "tasks",
                 "bounded_task_lists",
                 "bounded_task_search",
@@ -708,6 +749,7 @@ impl FloodServer {
                 "bounded_telegram_triage",
                 "confirmed_telegram_triage",
                 "telegram_conversation_context",
+                "telegram_chat_reader",
                 "telegram_sync_status",
                 "telegram_sync_request",
                 "store_diagnostics",
@@ -720,7 +762,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Получить единую ограниченную стартовую сводку flood.md для агента. Выполняет изолированный self-check MCP и возвращает readiness ready/attention/blocked, диагностику реального хранилища, аудит вложений, до 10 приоритетных задач, до 5 последних действий MCP, свежесть Telegram и следующие подходящие tools. Для понимания выбранного Telegram-кандидата используйте get_telegram_candidate_context. Создание проектов и задач защищено обязательным request_id от дублей при повторе. Не возвращает полную базу, тексты задач в журнале или Telegram-входящие. Используйте первым вызовом вместо серии широких списков",
+        description = "Получить единую ограниченную стартовую сводку flood.md для агента. Выполняет изолированный self-check MCP и возвращает readiness ready/attention/blocked, диагностику реального хранилища, аудит вложений, до 10 приоритетных задач, до 5 последних действий MCP, свежесть Telegram и следующие подходящие tools. Свежие связанные чаты открываются через list_telegram_chats/read_telegram_chat, выбранный кандидат — через get_telegram_candidate_context. Создание проектов и задач защищено обязательным request_id от дублей при повторе. Не возвращает полную базу, тексты задач в журнале или Telegram-входящие. Используйте первым вызовом вместо серии широких списков",
         annotations(
             title = "Рабочая сводка flood.md",
             read_only_hint = true,
@@ -781,6 +823,9 @@ impl FloodServer {
         if diagnostics.pending_inbox_count > 0 {
             suggested_tools.push("get_telegram_triage_batch");
         }
+        if telegram.fresh && diagnostics.linked_chat_count > 0 {
+            suggested_tools.push("list_telegram_chats");
+        }
         if !priority_tasks.tasks.is_empty() {
             suggested_tools.push("get_task");
         } else if diagnostics.project_count == 0 {
@@ -796,7 +841,7 @@ impl FloodServer {
         }
 
         Ok(Json(WorkspaceBriefOutput {
-            brief_version: 6,
+            brief_version: 7,
             runtime,
             readiness,
             self_check,
@@ -908,6 +953,84 @@ impl FloodServer {
     }
 
     #[tool(
+        description = "Показать локально синхронизированные Telegram-чаты как список диалогов: название, время обновления, диапазон и число сохранённых сообщений, а также связанные проекты. Можно ограничить одним project_id. Содержимое сообщений не возвращается",
+        annotations(
+            title = "Список Telegram-чатов",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn list_telegram_chats(
+        &self,
+        Parameters(args): Parameters<ListTelegramChatsArgs>,
+    ) -> Result<Json<TelegramChatsOutput>, String> {
+        if let Some(project_id) = args.project_id.as_deref() {
+            self.store.get_project(project_id).map_err(store_error)?;
+        }
+        let projects = self.store.list_projects().map_err(store_error)?;
+        let chats = self
+            .store
+            .list_telegram_chat_snapshots()
+            .map_err(store_error)?
+            .into_iter()
+            .filter_map(|chat| {
+                let project_ids = projects
+                    .iter()
+                    .filter(|project| {
+                        project
+                            .telegram_chats
+                            .iter()
+                            .any(|link| link.chat_id == chat.chat_id)
+                    })
+                    .map(|project| project.id.clone())
+                    .collect::<Vec<_>>();
+                if args
+                    .project_id
+                    .as_ref()
+                    .is_some_and(|project_id| !project_ids.contains(project_id))
+                {
+                    return None;
+                }
+                Some(TelegramChatSummaryOutput {
+                    chat_id: chat.chat_id,
+                    title: chat.title,
+                    synced_at: chat.synced_at,
+                    message_count: chat.messages.len(),
+                    oldest_message_id: chat.messages.first().map(|message| message.message_id),
+                    newest_message_id: chat.messages.last().map(|message| message.message_id),
+                    project_ids,
+                })
+            })
+            .collect();
+        Ok(Json(TelegramChatsOutput { chats }))
+    }
+
+    #[tool(
+        description = "Открыть локальный снимок Telegram-чата как ленту. Без курсора возвращает последние сообщения по времени; before_message_id листает назад, after_message_id возвращает новое после уже прочитанного сообщения. Порция ограничена 50 сообщениями, вся локальная лента — 100 сообщениями. MCP не обращается к Telegram напрямую: для обновления сначала используйте request_telegram_sync",
+        annotations(
+            title = "Прочитать Telegram-чат",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn read_telegram_chat(
+        &self,
+        Parameters(args): Parameters<ReadTelegramChatArgs>,
+    ) -> Result<Json<TelegramChatPage>, String> {
+        self.store
+            .read_telegram_chat(
+                args.chat_id,
+                args.before_message_id,
+                args.after_message_id,
+                args.limit.unwrap_or(20),
+            )
+            .map(Json)
+            .map_err(store_error)
+    }
+
+    #[tool(
         description = "Запустить изолированную самопроверку flood.md: создать временный проект и задачу, проверить конфликт версий, вложение, завершение, корзину, восстановление и повторное чтение. Пользовательские данные не изменяются",
         annotations(
             title = "Самопроверка flood.md",
@@ -998,6 +1121,32 @@ impl FloodServer {
         let project = self
             .store
             .update_project(&args.id, &args.title, &args.expected_version)
+            .map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::ProjectUpdated,
+            ActivityEntityKind::Project,
+            Some(project.id.clone()),
+            Some(project.id.clone()),
+            false,
+        );
+        Ok(Json(ProjectOutput { project }))
+    }
+
+    #[tool(
+        description = "Обновить читаемый Markdown-контекст проекта: назначение, ссылки на репозиторий и макеты, локальные пути, ограничения и договорённости. Данные остаются в project.md; секреты добавлять нельзя. expected_version возьмите из get_project",
+        annotations(
+            title = "Обновить контекст проекта",
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn update_project_context(
+        &self,
+        Parameters(args): Parameters<UpdateProjectContextArgs>,
+    ) -> Result<Json<ProjectOutput>, String> {
+        let project = self
+            .store
+            .update_project_context(&args.id, &args.context, &args.expected_version)
             .map_err(store_error)?;
         self.record_mcp_activity(
             ActivityAction::ProjectUpdated,
@@ -2393,11 +2542,14 @@ fn run_binary_self_check() -> SelfCheckResult {
         "inspect_attachment_storage",
         "list_recent_activity",
         "list_projects",
+        "update_project_context",
         "list_tasks",
         "search_tasks",
         "get_task_digest",
         "get_telegram_sync_status",
         "request_telegram_sync",
+        "list_telegram_chats",
+        "read_telegram_chat",
         "preview_telegram_triage",
         "apply_telegram_triage",
         "get_telegram_candidate_context",
@@ -2537,10 +2689,13 @@ mod tests {
             "get_workspace_brief",
             "list_recent_activity",
             "run_self_check",
+            "update_project_context",
             "search_tasks",
             "get_task_digest",
             "get_telegram_sync_status",
             "request_telegram_sync",
+            "list_telegram_chats",
+            "read_telegram_chat",
             "list_telegram_inbox",
             "get_telegram_triage_batch",
             "preview_telegram_triage",
@@ -2611,7 +2766,7 @@ mod tests {
         assert_eq!(runtime.version, env!("CARGO_PKG_VERSION"));
         assert!(!runtime.destructive_actions_enabled);
         let brief = _server.get_workspace_brief().unwrap().0;
-        assert_eq!(brief.brief_version, 6);
+        assert_eq!(brief.brief_version, 7);
         assert_eq!(brief.readiness.level, "ready");
         assert!(brief.readiness.agent_ready);
         assert_eq!(brief.readiness.checks.len(), 4);
@@ -2719,6 +2874,16 @@ mod tests {
             .unwrap()
             .0
             .project;
+        let project = server
+            .update_project_context(Parameters(UpdateProjectContextArgs {
+                id: project.id,
+                context: "## Репозиторий\n\n`C:/work/flood`".into(),
+                expected_version: project.version,
+            }))
+            .unwrap()
+            .0
+            .project;
+        assert!(project.context.contains("C:/work/flood"));
         let error = match server.delete_project(Parameters(VersionedArgs {
             id: project.id,
             expected_version: project.version,
@@ -2820,6 +2985,80 @@ mod tests {
         let returned_ids = [listed.tasks[0].id.clone(), second_page.tasks[0].id.clone()];
         assert!(returned_ids.contains(&task_id));
         assert!(returned_ids.contains(&second_task_id));
+    }
+
+    #[test]
+    fn telegram_chat_tools_open_and_page_the_local_timeline() {
+        let server = server();
+        let project = server.store.create_project("Чат команды").unwrap();
+        let project = server
+            .store
+            .set_project_telegram_chats(
+                &project.id,
+                vec![flood_core::TelegramProjectLink {
+                    chat_id: -10042,
+                    title: "Рабочий чат".into(),
+                    inbox_mode: flood_core::TelegramInboxMode::MentionsAndReplies,
+                }],
+                &project.version,
+            )
+            .unwrap();
+        let now = Utc::now();
+        server
+            .store
+            .upsert_telegram_chat_snapshot(flood_core::TelegramChatSnapshot {
+                chat_id: -10042,
+                title: "Рабочий чат".into(),
+                synced_at: now,
+                messages: (1..=12)
+                    .map(|message_id| TelegramContextMessage {
+                        message_id,
+                        message_ids: vec![message_id],
+                        author: "Команда".into(),
+                        sent_at: now + chrono::Duration::seconds(message_id),
+                        text: format!("Сообщение {message_id}"),
+                        url: None,
+                        reply_to_message_id: None,
+                        is_target: false,
+                        media: Vec::new(),
+                    })
+                    .collect(),
+            })
+            .unwrap();
+
+        let chats = server
+            .list_telegram_chats(Parameters(ListTelegramChatsArgs {
+                project_id: Some(project.id),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(chats.chats.len(), 1);
+        assert_eq!(chats.chats[0].message_count, 12);
+
+        let latest = server
+            .read_telegram_chat(Parameters(ReadTelegramChatArgs {
+                chat_id: -10042,
+                before_message_id: None,
+                after_message_id: None,
+                limit: Some(5),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(latest.messages[0].message_id, 8);
+        assert_eq!(latest.messages[4].message_id, 12);
+        assert!(latest.has_older);
+
+        let updates = server
+            .read_telegram_chat(Parameters(ReadTelegramChatArgs {
+                chat_id: -10042,
+                before_message_id: None,
+                after_message_id: Some(10),
+                limit: Some(5),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(updates.messages.len(), 2);
+        assert_eq!(updates.messages[0].message_id, 11);
     }
 
     #[test]

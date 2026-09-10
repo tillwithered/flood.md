@@ -26,7 +26,7 @@
   type TelegramContextMessage = { message_id: number; message_ids?: number[]; author: string; sent_at: string; text: string; url?: string; reply_to_message_id?: number; is_target: boolean; media?: SourceMedia[] };
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string; provider?: string; chat_id?: number; chat_title?: string; message_id?: number; message_ids?: number[]; media?: SourceMedia[]; context?: TelegramContextMessage[] };
   type TelegramProjectLink = { chat_id: number; title: string; inbox_mode: TelegramInboxMode };
-  type ProjectRecord = { id: string; title: string; created_at: string; updated_at: string; telegram_chats?: TelegramProjectLink[]; version: string };
+  type ProjectRecord = { id: string; title: string; context?: string; created_at: string; updated_at: string; telegram_chats?: TelegramProjectLink[]; version: string };
   type TaskRecord = {
     id: string;
     project_id: string;

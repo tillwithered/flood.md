@@ -3,7 +3,8 @@ use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::{DateTime, Utc};
 use flood_core::{
     InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind,
-    TelegramContextMessage, TelegramInboxCandidate, TelegramInboxMode, TelegramProjectLink,
+    TelegramChatSnapshot, TelegramContextMessage, TelegramInboxCandidate, TelegramInboxMode,
+    TelegramProjectLink,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -69,6 +70,11 @@ pub struct TelegramMessage {
     pub is_mention: bool,
     pub is_reply_to_me: bool,
     pub linked_task: Option<flood_core::TelegramLinkedTask>,
+}
+
+pub struct TelegramRefreshData {
+    pub candidates: Vec<TelegramInboxCandidate>,
+    pub chats: Vec<TelegramChatSnapshot>,
 }
 
 struct TelegramInner {
@@ -404,21 +410,53 @@ impl TelegramManager {
         &self,
         project: &Project,
         limit_per_chat: i32,
-    ) -> Result<Vec<TelegramInboxCandidate>, String> {
+    ) -> Result<TelegramRefreshData, String> {
         let client_id = self.client_id()?;
-        let limit = limit_per_chat.clamp(1, 100);
+        let candidate_limit = limit_per_chat.clamp(1, 100) as usize;
+        const CHAT_TIMELINE_LIMIT: i32 = 100;
         let mut candidates = Vec::new();
+        let mut chats = Vec::new();
         for link in &project.telegram_chats {
+            let enums::Messages::Messages(history) = functions::get_chat_history(
+                link.chat_id,
+                0,
+                0,
+                CHAT_TIMELINE_LIMIT,
+                false,
+                client_id,
+            )
+            .await
+            .map_err(td_error)?;
+            let groups = group_telegram_messages(history.messages.into_iter().flatten().collect());
+            let mut context_cache = HashMap::<usize, TelegramContextMessage>::new();
+            let mut sender_cache = HashMap::<String, String>::new();
+            let mut timeline = Vec::with_capacity(groups.len());
+            for group in &groups {
+                let sender = &representative_message(group).sender_id;
+                let sender_key = telegram_sender_key(sender);
+                let author = if let Some(author) = sender_cache.get(&sender_key) {
+                    author.clone()
+                } else {
+                    let author = self.sender_name(sender, client_id).await;
+                    sender_cache.insert(sender_key, author.clone());
+                    author
+                };
+                let message = timeline_message_from_messages(group, author)?;
+                if !message.text.trim().is_empty() || !message.media.is_empty() {
+                    timeline.push(message);
+                }
+            }
+            timeline.sort_by_key(|message| message.sent_at);
+            chats.push(TelegramChatSnapshot {
+                chat_id: link.chat_id,
+                title: link.title.clone(),
+                synced_at: Utc::now(),
+                messages: timeline,
+            });
             if link.inbox_mode == TelegramInboxMode::Manual {
                 continue;
             }
-            let enums::Messages::Messages(history) =
-                functions::get_chat_history(link.chat_id, 0, 0, limit, false, client_id)
-                    .await
-                    .map_err(td_error)?;
-            let groups = group_telegram_messages(history.messages.into_iter().flatten().collect());
-            let mut context_cache = HashMap::<usize, TelegramContextMessage>::new();
-            for (group_index, group) in groups.iter().enumerate() {
+            for (group_index, group) in groups.iter().enumerate().take(candidate_limit) {
                 if group.iter().all(|message| message.is_outgoing)
                     && link.inbox_mode != TelegramInboxMode::All
                 {
@@ -485,7 +523,7 @@ impl TelegramManager {
                 }
             }
         }
-        Ok(candidates)
+        Ok(TelegramRefreshData { candidates, chats })
     }
 
     pub async fn download_file(&self, file_id: i32) -> Result<PathBuf, String> {
@@ -995,6 +1033,34 @@ fn context_window_indices<T>(groups: &[Vec<T>], target_index: usize) -> Vec<usiz
     let start = target_index.saturating_sub(CONTEXT_ON_EACH_SIDE);
     let end = (target_index + CONTEXT_ON_EACH_SIDE + 1).min(groups.len());
     (start..end).collect()
+}
+
+fn telegram_sender_key(sender: &enums::MessageSender) -> String {
+    match sender {
+        enums::MessageSender::User(sender) => format!("user:{}", sender.user_id),
+        enums::MessageSender::Chat(sender) => format!("chat:{}", sender.chat_id),
+    }
+}
+
+fn timeline_message_from_messages(
+    messages: &[tdlib::types::Message],
+    author: String,
+) -> Result<TelegramContextMessage, String> {
+    let message = representative_message(messages);
+    let sent_at = DateTime::from_timestamp(message.date.into(), 0)
+        .ok_or_else(|| "Telegram вернул некорректную дату сообщения".to_string())?;
+    let (text, media) = combined_message_content(messages);
+    Ok(TelegramContextMessage {
+        message_id: message.id,
+        message_ids: messages.iter().map(|message| message.id).collect(),
+        author,
+        sent_at,
+        text,
+        url: None,
+        reply_to_message_id: reply_to_message_id(messages),
+        is_target: false,
+        media,
+    })
 }
 
 fn reply_to_message_id(messages: &[tdlib::types::Message]) -> Option<i64> {
