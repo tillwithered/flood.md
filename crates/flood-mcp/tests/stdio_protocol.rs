@@ -117,6 +117,11 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .find(|tool| tool["name"] == "get_telegram_sync_status")
         .unwrap();
     assert_eq!(sync_status["annotations"]["readOnlyHint"], true);
+    let search_tasks = tools
+        .iter()
+        .find(|tool| tool["name"] == "search_tasks")
+        .unwrap();
+    assert_eq!(search_tasks["annotations"]["readOnlyHint"], true);
 
     send(
         &mut stdin,
@@ -259,6 +264,45 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     assert_eq!(
         sync_status["result"]["structuredContent"]["status"],
         Value::Null
+    );
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 10,
+            "method": "tools/call",
+            "params": {
+                "name": "create_task",
+                "arguments": {
+                    "project_id": created["result"]["structuredContent"]["project"]["id"],
+                    "description": "Проверить полнотекстовый поиск MCP",
+                    "urgency": "important"
+                }
+            }
+        }),
+    );
+    let created_task = receive(&mut stdout, 10);
+    assert_eq!(created_task["result"]["isError"], false);
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 11,
+            "method": "tools/call",
+            "params": {
+                "name": "search_tasks",
+                "arguments": { "query": "полнотекстовый поиск", "limit": 5 }
+            }
+        }),
+    );
+    let search = receive(&mut stdout, 11);
+    assert_eq!(search["result"]["isError"], false);
+    assert_eq!(search["result"]["structuredContent"]["total_matches"], 1);
+    assert_eq!(
+        search["result"]["structuredContent"]["matches"][0]["id"],
+        created_task["result"]["structuredContent"]["task"]["id"]
     );
 
     drop(stdin);

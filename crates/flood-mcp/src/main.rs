@@ -30,6 +30,17 @@ struct ListTasksArgs {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct SearchTasksArgs {
+    /// Текст для поиска в названии, описании, проекте и локальном снимке Telegram-источника.
+    query: String,
+    project_id: Option<String>,
+    #[serde(default)]
+    include_completed: bool,
+    /// Максимум результатов от 1 до 50. По умолчанию 15.
+    limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct CreateProjectArgs {
     title: String,
 }
@@ -170,6 +181,30 @@ struct TasksOutput {
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TaskSearchHit {
+    id: String,
+    project_id: String,
+    project_title: String,
+    title: String,
+    snippet: String,
+    urgency: Urgency,
+    status: TaskStatus,
+    updated_at: String,
+    has_source: bool,
+    matched_fields: Vec<String>,
+    version: String,
+    score: u32,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct SearchTasksOutput {
+    query: String,
+    matches: Vec<TaskSearchHit>,
+    total_matches: usize,
+    truncated: bool,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TaskOutput {
     task: Task,
 }
@@ -253,6 +288,7 @@ impl FloodServer {
             capabilities: vec![
                 "projects",
                 "tasks",
+                "bounded_task_search",
                 "telegram_inbox",
                 "bounded_telegram_triage",
                 "telegram_sync_status",
@@ -407,6 +443,64 @@ impl FloodServer {
             .list_tasks(args.project_id.as_deref(), args.include_completed)
             .map(|tasks| Json(TasksOutput { tasks }))
             .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Найти задачи по фрагменту без загрузки всего хранилища в контекст. Ищет сразу по заголовку и описанию задачи, названию проекта, автору и локальному снимку Telegram-сообщения. Возвращает компактные ранжированные совпадения; полную карточку нужного результата прочитайте через get_task",
+        annotations(
+            title = "Поиск задач",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn search_tasks(
+        &self,
+        Parameters(args): Parameters<SearchTasksArgs>,
+    ) -> Result<Json<SearchTasksOutput>, String> {
+        let query = args.query.trim();
+        if query.is_empty() || query.chars().count() > 200 {
+            return Err("query должен содержать от 1 до 200 символов".into());
+        }
+        if let Some(project_id) = args.project_id.as_deref() {
+            self.store.get_project(project_id).map_err(store_error)?;
+        }
+        let project_titles = self
+            .store
+            .list_projects()
+            .map_err(store_error)?
+            .into_iter()
+            .map(|project| (project.id, project.title))
+            .collect::<std::collections::HashMap<_, _>>();
+        let query_lower = query.to_lowercase();
+        let terms = query_lower.split_whitespace().collect::<Vec<_>>();
+        let summaries = self
+            .store
+            .list_tasks(args.project_id.as_deref(), args.include_completed)
+            .map_err(store_error)?;
+        let mut matches = summaries
+            .into_iter()
+            .filter_map(|summary| {
+                let task = self.store.get_task(&summary.id).ok()?;
+                let project_title = project_titles.get(&task.project_id)?.clone();
+                task_search_hit(task, project_title, &query_lower, &terms)
+            })
+            .collect::<Vec<_>>();
+        matches.sort_by(|left, right| {
+            right
+                .score
+                .cmp(&left.score)
+                .then_with(|| right.updated_at.cmp(&left.updated_at))
+        });
+        let total_matches = matches.len();
+        let limit = args.limit.unwrap_or(15).clamp(1, 50);
+        matches.truncate(limit);
+        Ok(Json(SearchTasksOutput {
+            query: query.to_owned(),
+            truncated: total_matches > matches.len(),
+            total_matches,
+            matches,
+        }))
     }
 
     #[tool(
@@ -862,6 +956,113 @@ fn task_description(
     }
 }
 
+fn task_search_hit(
+    task: Task,
+    project_title: String,
+    query: &str,
+    terms: &[&str],
+) -> Option<TaskSearchHit> {
+    let title = compact_search_text(
+        task.description
+            .lines()
+            .find(|line| !line.trim().is_empty())
+            .unwrap_or("Без названия"),
+        120,
+    )
+    .trim_start_matches(['#', '-', '*', ' '])
+    .to_owned();
+    let source_text = task
+        .source
+        .as_ref()
+        .map(|source| source.text.as_str())
+        .unwrap_or("");
+    let source_meta = task
+        .source
+        .as_ref()
+        .map(|source| {
+            format!(
+                "{} {} {}",
+                source.author.as_deref().unwrap_or(""),
+                source.chat_title.as_deref().unwrap_or(""),
+                source
+                    .media
+                    .iter()
+                    .map(|media| media.file_name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" ")
+            )
+        })
+        .unwrap_or_default();
+    let title_lower = title.to_lowercase();
+    let description_lower = task.description.to_lowercase();
+    let project_lower = project_title.to_lowercase();
+    let source_lower = source_text.to_lowercase();
+    let source_meta_lower = source_meta.to_lowercase();
+    if terms.iter().any(|term| {
+        !title_lower.contains(term)
+            && !description_lower.contains(term)
+            && !project_lower.contains(term)
+            && !source_lower.contains(term)
+            && !source_meta_lower.contains(term)
+    }) {
+        return None;
+    }
+
+    let mut score = 0;
+    let mut matched_fields = Vec::new();
+    for (field, text, exact_score) in [
+        ("title", title_lower.as_str(), 120),
+        ("description", description_lower.as_str(), 80),
+        ("source", source_lower.as_str(), 70),
+        ("project", project_lower.as_str(), 50),
+        ("source_metadata", source_meta_lower.as_str(), 40),
+    ] {
+        if text.contains(query) {
+            score += exact_score;
+            matched_fields.push(field.to_owned());
+        } else if terms.iter().any(|term| text.contains(term)) {
+            score += exact_score / 4;
+            matched_fields.push(field.to_owned());
+        }
+    }
+    if title_lower.starts_with(query) {
+        score += 40;
+    }
+    let snippet_source = if source_lower.contains(query)
+        || (matched_fields.iter().any(|field| field == "source")
+            && !description_lower.contains(query))
+    {
+        source_text
+    } else {
+        &task.description
+    };
+    Some(TaskSearchHit {
+        id: task.id,
+        project_id: task.project_id,
+        project_title,
+        title,
+        snippet: compact_search_text(snippet_source, 240),
+        urgency: task.urgency,
+        status: task.status,
+        updated_at: task.updated_at.to_rfc3339(),
+        has_source: task.source.is_some(),
+        matched_fields,
+        version: task.version,
+        score,
+    })
+}
+
+fn compact_search_text(value: &str, max_chars: usize) -> String {
+    let normalized = value.split_whitespace().collect::<Vec<_>>().join(" ");
+    if normalized.chars().count() <= max_chars {
+        return normalized;
+    }
+    let mut compact = normalized.chars().take(max_chars).collect::<String>();
+    compact = compact.trim_end().to_owned();
+    compact.push('…');
+    compact
+}
+
 fn parse_snapshot(value: SnapshotArgs) -> Result<MessageSnapshot, String> {
     let sent_at = value
         .sent_at
@@ -968,6 +1169,7 @@ mod tests {
             "diagnose_store",
             "get_runtime_info",
             "run_self_check",
+            "search_tasks",
             "get_telegram_sync_status",
             "list_telegram_inbox",
             "get_telegram_triage_batch",
@@ -1115,6 +1317,88 @@ mod tests {
         };
         assert!(result.structured_content.is_some());
         assert_eq!(result.is_error, Some(false));
+    }
+
+    #[test]
+    fn task_search_is_ranked_bounded_and_includes_telegram_source() {
+        let server = server();
+        let project = server
+            .create_project(Parameters(CreateProjectArgs {
+                title: "Финансы".into(),
+            }))
+            .unwrap()
+            .0
+            .project;
+        let source_task = server
+            .create_task(Parameters(CreateTaskArgs {
+                project_id: project.id.clone(),
+                description: "Подготовить материалы к встрече".into(),
+                urgency: Some("important".into()),
+                source: Some(SnapshotArgs {
+                    text: "Нужно проверить маржинальность по итогам квартала".into(),
+                    author: Some("Анна".into()),
+                    sent_at: None,
+                    url: None,
+                    provider: Some("telegram".into()),
+                    chat_id: Some(-100),
+                    chat_title: Some("Рабочий чат".into()),
+                    message_id: Some(42),
+                    message_ids: vec![42],
+                    media: Vec::new(),
+                }),
+            }))
+            .unwrap()
+            .0
+            .task;
+        server
+            .create_task(Parameters(CreateTaskArgs {
+                project_id: project.id.clone(),
+                description: "Сверить квартальный отчёт".into(),
+                urgency: None,
+                source: None,
+            }))
+            .unwrap();
+
+        let source_matches = server
+            .search_tasks(Parameters(SearchTasksArgs {
+                query: "маржинальность".into(),
+                project_id: None,
+                include_completed: false,
+                limit: None,
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(source_matches.total_matches, 1);
+        assert_eq!(source_matches.matches[0].id, source_task.id);
+        assert!(
+            source_matches.matches[0]
+                .matched_fields
+                .contains(&"source".into())
+        );
+        assert!(source_matches.matches[0].snippet.contains("маржинальность"));
+
+        let bounded = server
+            .search_tasks(Parameters(SearchTasksArgs {
+                query: "Финансы".into(),
+                project_id: Some(project.id),
+                include_completed: false,
+                limit: Some(1),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(bounded.total_matches, 2);
+        assert_eq!(bounded.matches.len(), 1);
+        assert!(bounded.truncated);
+        assert!(
+            server
+                .search_tasks(Parameters(SearchTasksArgs {
+                    query: "  ".into(),
+                    project_id: None,
+                    include_completed: false,
+                    limit: None,
+                }))
+                .is_err()
+        );
     }
 
     #[test]

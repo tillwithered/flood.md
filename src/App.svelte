@@ -3394,7 +3394,7 @@
                   <div class="mcp-block mcp-examples">
                     <div class="mcp-block-title"><MessageSquareText size={17} /><span><strong>{t("mcpExampleTitle")}</strong><small>{t("mcpExampleDescription")}</small></span></div>
                     <div class="mcp-example-list">
-                      {#each [{ icon: ListTodo, prompt: t("mcpPromptPriorities") }, { icon: ListChecks, prompt: t("mcpPromptTelegram") }, { icon: ShieldCheck, prompt: t("mcpPromptDiagnostics") }] as example (example.prompt)}
+                      {#each [{ icon: ListTodo, prompt: t("mcpPromptPriorities") }, { icon: ListChecks, prompt: t("mcpPromptTelegram") }, { icon: Search, prompt: t("mcpPromptSearch") }, { icon: ShieldCheck, prompt: t("mcpPromptDiagnostics") }] as example (example.prompt)}
                         <button onclick={() => copyMcpPrompt(example.prompt)}><svelte:component this={example.icon} size={15} /><span>{example.prompt}</span><small>{copiedMcpPrompt === example.prompt ? t("copied") : t("copyPrompt")}</small></button>
                       {/each}
                     </div>
@@ -3402,7 +3402,7 @@
 
                   <div class="mcp-block mcp-safety">
                     <div class="mcp-block-title"><ShieldCheck size={17} /><span><strong>{t("mcpSafety")}</strong><small>{t("mcpSafetyDescription")}</small></span></div>
-                    <div class="mcp-capability-list"><span><Check size={13} />{t("mcpCanRead")}</span><span><Check size={13} />{t("mcpCanChange")}</span><span><Check size={13} />{t("mcpCanProcessInbox")}</span><span><Check size={13} />{t("mcpBoundedInbox")}</span><span class="protected"><ShieldCheck size={13} />{t("mcpDestructiveProtected")}</span><span class="protected"><ShieldCheck size={13} />{t("mcpHumanConfirmation")}</span></div>
+                    <div class="mcp-capability-list"><span><Check size={13} />{t("mcpCanRead")}</span><span><Check size={13} />{t("mcpCanSearch")}</span><span><Check size={13} />{t("mcpCanChange")}</span><span><Check size={13} />{t("mcpCanProcessInbox")}</span><span><Check size={13} />{t("mcpBoundedInbox")}</span><span class="protected"><ShieldCheck size={13} />{t("mcpDestructiveProtected")}</span><span class="protected"><ShieldCheck size={13} />{t("mcpHumanConfirmation")}</span></div>
                   </div>
                 </section>
               {:else}
