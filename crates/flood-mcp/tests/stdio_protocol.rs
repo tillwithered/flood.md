@@ -1,3 +1,4 @@
+use flood_core::{Store, TelegramInboxCandidate};
 use serde_json::{Value, json};
 use std::{
     io::{BufRead, BufReader, Write},
@@ -119,6 +120,21 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .find(|tool| tool["name"] == "get_telegram_triage_batch")
         .unwrap();
     assert_eq!(triage_batch["annotations"]["readOnlyHint"], true);
+    let triage_preview = tools
+        .iter()
+        .find(|tool| tool["name"] == "preview_telegram_triage")
+        .unwrap();
+    assert_eq!(triage_preview["annotations"]["readOnlyHint"], true);
+    let triage_apply = tools
+        .iter()
+        .find(|tool| tool["name"] == "apply_telegram_triage")
+        .unwrap();
+    assert!(triage_apply["inputSchema"]["properties"]["confirmation_token"].is_object());
+    assert!(
+        triage_apply["inputSchema"]["required"]
+            .as_array()
+            .is_some_and(|fields| fields.iter().any(|field| field == "confirmation_token"))
+    );
     let sync_status = tools
         .iter()
         .find(|tool| tool["name"] == "get_telegram_sync_status")
@@ -486,6 +502,179 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         created_task["result"]["structuredContent"]["task"]["id"]
     );
     assert_eq!(listed_tasks["result"]["structuredContent"]["remaining"], 0);
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 17,
+            "method": "tools/call",
+            "params": {
+                "name": "preview_telegram_triage",
+                "arguments": {
+                    "decisions": [{
+                        "candidate_id": "missing-candidate",
+                        "action": "keep"
+                    }]
+                }
+            }
+        }),
+    );
+    let triage_preview = receive(&mut stdout, 17);
+    assert_eq!(triage_preview["result"]["isError"], false);
+    assert_eq!(
+        triage_preview["result"]["structuredContent"]["ready"],
+        false
+    );
+    assert_eq!(triage_preview["result"]["structuredContent"]["invalid"], 1);
+    assert_eq!(
+        triage_preview["result"]["structuredContent"]["confirmation_token"],
+        Value::Null
+    );
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 18,
+            "method": "tools/call",
+            "params": {
+                "name": "apply_telegram_triage",
+                "arguments": {
+                    "decisions": [{
+                        "candidate_id": "missing-candidate",
+                        "action": "keep"
+                    }]
+                }
+            }
+        }),
+    );
+    let unconfirmed_triage = receive(&mut stdout, 18);
+    assert_eq!(unconfirmed_triage["result"]["isError"], true);
+
+    drop(stdin);
+    assert!(child.wait().unwrap().success());
+    let _ = std::fs::remove_dir_all(data_dir);
+}
+
+#[test]
+fn stdio_telegram_triage_requires_and_applies_the_previewed_plan() {
+    let data_dir = std::env::temp_dir().join(format!("flood-mcp-triage-{}", Ulid::new()));
+    let store = Store::new(&data_dir).unwrap();
+    let project = store.create_project("Telegram preview").unwrap();
+    let candidate_id = format!("telegram:{}:-10099:501", project.id);
+    let candidate: TelegramInboxCandidate = serde_json::from_value(json!({
+        "id": candidate_id,
+        "project_id": project.id,
+        "chat_id": -10099,
+        "chat_title": "Рабочий чат",
+        "message_id": 501,
+        "text": "Собрать итоги обсуждения и назначить ответственных",
+        "author": "Анна",
+        "sent_at": "2026-09-11T00:00:00Z",
+        "reason": "mention",
+        "status": "pending",
+        "media": [],
+        "discovered_at": "2026-09-11T00:00:01Z"
+    }))
+    .unwrap();
+    store.upsert_telegram_candidates(vec![candidate]).unwrap();
+    drop(store);
+
+    let mut child = Command::new(env!("CARGO_BIN_EXE_flood-mcp"))
+        .env("FLOOD_DATA_DIR", &data_dir)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    let mut stdout = BufReader::new(child.stdout.take().unwrap());
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-06-18",
+                "capabilities": {},
+                "clientInfo": { "name": "flood-triage-test", "version": "0.1.0" }
+            }
+        }),
+    );
+    assert!(receive(&mut stdout, 1).get("result").is_some());
+    send(
+        &mut stdin,
+        json!({ "jsonrpc": "2.0", "method": "notifications/initialized" }),
+    );
+    let decisions = json!([{
+        "candidate_id": candidate_id,
+        "action": "create_task",
+        "title": "Собрать итоги обсуждения",
+        "notes": "Назначить ответственных",
+        "urgency": "important"
+    }]);
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 2,
+            "method": "tools/call",
+            "params": {
+                "name": "preview_telegram_triage",
+                "arguments": { "decisions": decisions.clone() }
+            }
+        }),
+    );
+    let preview = receive(&mut stdout, 2);
+    assert_eq!(preview["result"]["isError"], false);
+    assert_eq!(preview["result"]["structuredContent"]["ready"], true);
+    assert_eq!(
+        preview["result"]["structuredContent"]["requires_confirmation"],
+        true
+    );
+    assert_eq!(
+        preview["result"]["structuredContent"]["items"][0]["author"],
+        "Анна"
+    );
+    let token = preview["result"]["structuredContent"]["confirmation_token"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    assert_eq!(token.len(), 64);
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {
+                "name": "apply_telegram_triage",
+                "arguments": { "decisions": decisions, "confirmation_token": token }
+            }
+        }),
+    );
+    let applied = receive(&mut stdout, 3);
+    assert_eq!(applied["result"]["isError"], false);
+    assert_eq!(applied["result"]["structuredContent"]["created"], 1);
+    assert_eq!(applied["result"]["structuredContent"]["failed"], 0);
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 4,
+            "method": "tools/call",
+            "params": {
+                "name": "list_tasks",
+                "arguments": { "project_id": project.id, "limit": 5 }
+            }
+        }),
+    );
+    let tasks = receive(&mut stdout, 4);
+    assert_eq!(tasks["result"]["structuredContent"]["total"], 1);
 
     drop(stdin);
     assert!(child.wait().unwrap().success());

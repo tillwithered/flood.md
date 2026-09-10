@@ -8,10 +8,12 @@ license.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
 flood-core = { path = "../flood-core" }
+hex.workspace = true
 rmcp.workspace = true
 schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]

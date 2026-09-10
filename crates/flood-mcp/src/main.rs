@@ -11,6 +11,7 @@ use rmcp::{
     transport::stdio,
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::time::Instant;
 
@@ -178,7 +179,7 @@ struct SetCandidateStatusArgs {
     status: String,
 }
 
-#[derive(Debug, Deserialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema)]
 struct TelegramTriageDecisionArgs {
     candidate_id: String,
     /// create_task, dismiss или keep.
@@ -189,8 +190,15 @@ struct TelegramTriageDecisionArgs {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct PreviewTelegramTriageArgs {
+    decisions: Vec<TelegramTriageDecisionArgs>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ApplyTelegramTriageArgs {
     decisions: Vec<TelegramTriageDecisionArgs>,
+    /// Обязательный токен из preview_telegram_triage для этого точного плана.
+    confirmation_token: String,
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
@@ -333,6 +341,45 @@ struct TelegramTriageDecisionOutput {
     success: bool,
     task: Option<Task>,
     error: Option<String>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramTriagePlanItem {
+    candidate_id: String,
+    action: String,
+    ready: bool,
+    candidate_status: Option<InboxCandidateStatus>,
+    author: Option<String>,
+    chat_title: Option<String>,
+    source_excerpt: Option<String>,
+    title: Option<String>,
+    notes: Option<String>,
+    urgency: Option<Urgency>,
+    media_count: usize,
+    linked_task_id: Option<String>,
+    warning: Option<String>,
+    error: Option<String>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct PreviewTelegramTriageOutput {
+    ready: bool,
+    creates: usize,
+    dismisses: usize,
+    keeps: usize,
+    invalid: usize,
+    requires_confirmation: bool,
+    confirmation_token: Option<String>,
+    items: Vec<TelegramTriagePlanItem>,
+}
+
+#[derive(Serialize)]
+struct TelegramTriageFingerprintItem {
+    decision: TelegramTriageDecisionArgs,
+    candidate_status: Option<InboxCandidateStatus>,
+    candidate_task_id: Option<String>,
+    candidate_processed_at: Option<String>,
+    candidate_digest: Option<String>,
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
@@ -602,6 +649,7 @@ impl FloodServer {
                 "telegram_inbox",
                 "bounded_telegram_lists",
                 "bounded_telegram_triage",
+                "confirmed_telegram_triage",
                 "telegram_sync_status",
                 "telegram_sync_request",
                 "store_diagnostics",
@@ -1149,7 +1197,23 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Применить до 25 решений по Telegram-входящим одной порцией. Для каждого кандидата action: create_task (нужен короткий title, notes необязательны), dismiss или keep. Результат возвращается отдельно для каждого решения; повторное создание задачи идемпотентно",
+        description = "Без изменений данных проверить план разбора до 25 Telegram-кандидатов. Для каждого решения укажите action: create_task (нужны короткий title, необязательные notes и urgency), dismiss или keep. Проверяет существование, текущее состояние, дубли, длину текста и срочность. Если ready=true, покажите items пользователю и только после подтверждения передайте confirmation_token вместе с неизменёнными decisions в apply_telegram_triage",
+        annotations(
+            title = "Проверить план разбора Telegram",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn preview_telegram_triage(
+        &self,
+        Parameters(args): Parameters<PreviewTelegramTriageArgs>,
+    ) -> Result<Json<PreviewTelegramTriageOutput>, String> {
+        self.build_telegram_triage_plan(&args.decisions).map(Json)
+    }
+
+    #[tool(
+        description = "После явного подтверждения пользователя применить до 25 решений из preview_telegram_triage. Передайте неизменённые decisions и обязательный confirmation_token из preview. Если план или состояние кандидатов изменились, команда остановится до любых изменений. Результат возвращается отдельно для каждого решения; повторное создание задачи идемпотентно",
         annotations(
             title = "Применить разбор Telegram",
             destructive_hint = false,
@@ -1160,8 +1224,25 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<ApplyTelegramTriageArgs>,
     ) -> Result<Json<ApplyTelegramTriageOutput>, String> {
-        if args.decisions.is_empty() || args.decisions.len() > 25 {
-            return Err("передайте от 1 до 25 решений".into());
+        let confirmation_token = args.confirmation_token.trim();
+        if confirmation_token.is_empty() {
+            return Err(
+                "сначала вызовите preview_telegram_triage и передайте confirmation_token после подтверждения пользователя"
+                    .into(),
+            );
+        }
+        let plan = self.build_telegram_triage_plan(&args.decisions)?;
+        if !plan.ready {
+            return Err(format!(
+                "план содержит {} некорректных решений; повторите preview_telegram_triage",
+                plan.invalid
+            ));
+        }
+        if plan.confirmation_token.as_deref() != Some(confirmation_token) {
+            return Err(
+                "confirmation_token устарел или относится к другому плану; повторите preview_telegram_triage"
+                    .into(),
+            );
         }
         let mut seen = HashSet::new();
         let mut output = ApplyTelegramTriageOutput {
@@ -1172,22 +1253,34 @@ impl FloodServer {
             results: Vec::with_capacity(args.decisions.len()),
         };
         for decision in args.decisions {
-            let candidate_id = decision.candidate_id.clone();
-            let action = decision.action.clone();
+            let candidate_id = decision.candidate_id.trim().to_owned();
+            let action = decision.action.trim().to_owned();
+            let title = decision
+                .title
+                .map(|value| value.trim().to_owned())
+                .filter(|value| !value.is_empty());
+            let notes = decision
+                .notes
+                .map(|value| value.trim().to_owned())
+                .filter(|value| !value.is_empty());
+            let urgency = decision
+                .urgency
+                .as_deref()
+                .unwrap_or("normal")
+                .trim()
+                .to_owned();
             let result = if !seen.insert(candidate_id.clone()) {
                 Err("один кандидат нельзя обработать дважды в одной порции".to_string())
             } else {
                 match action.as_str() {
-                    "create_task" => match decision.title {
-                        Some(title) => task_description(Some(title), decision.notes, None)
+                    "create_task" => match title {
+                        Some(title) => task_description(Some(title), notes, None)
                             .and_then(|description| {
                                 self.store
                                     .create_task_from_telegram_candidate(
                                         &candidate_id,
                                         description.as_deref(),
-                                        parse_urgency(
-                                            decision.urgency.as_deref().unwrap_or("normal"),
-                                        )?,
+                                        parse_urgency(&urgency)?,
                                     )
                                     .map_err(store_error)
                             })
@@ -1468,6 +1561,214 @@ impl FloodServer {
 }
 
 impl FloodServer {
+    fn build_telegram_triage_plan(
+        &self,
+        decisions: &[TelegramTriageDecisionArgs],
+    ) -> Result<PreviewTelegramTriageOutput, String> {
+        if decisions.is_empty() || decisions.len() > 25 {
+            return Err("передайте от 1 до 25 решений".into());
+        }
+        let mut seen = HashSet::new();
+        let mut items = Vec::with_capacity(decisions.len());
+        let mut fingerprint = Vec::with_capacity(decisions.len());
+        let mut creates = 0;
+        let mut dismisses = 0;
+        let mut keeps = 0;
+        let mut invalid = 0;
+
+        for decision in decisions {
+            let candidate_id = decision.candidate_id.trim().to_owned();
+            let action = decision.action.trim().to_owned();
+            let title = decision
+                .title
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToOwned::to_owned);
+            let notes = decision
+                .notes
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToOwned::to_owned);
+            let urgency_text = decision.urgency.as_deref().unwrap_or("normal").trim();
+            let normalized_decision = TelegramTriageDecisionArgs {
+                candidate_id: candidate_id.clone(),
+                action: action.clone(),
+                title: title.clone(),
+                notes: notes.clone(),
+                urgency: (action == "create_task").then(|| urgency_text.to_owned()),
+            };
+            let duplicate = !seen.insert(candidate_id.clone());
+            let mut lookup_error = None;
+            let candidate = if duplicate {
+                None
+            } else {
+                match self.store.get_telegram_candidate(&candidate_id) {
+                    Ok(candidate) => Some(candidate),
+                    Err(error) => {
+                        lookup_error = Some(error.to_string());
+                        None
+                    }
+                }
+            };
+            let mut error = if duplicate {
+                Some("один кандидат нельзя обработать дважды в одном плане".to_string())
+            } else {
+                lookup_error.map(|error| format!("не удалось прочитать Telegram-кандидат: {error}"))
+            };
+            let mut warning = None;
+            let mut parsed_urgency = None;
+
+            if error.is_none() {
+                let candidate = candidate.as_ref().expect("candidate checked");
+                match action.as_str() {
+                    "create_task" => {
+                        if title.is_none() {
+                            error = Some("title обязателен для action=create_task".into());
+                        } else if title
+                            .as_ref()
+                            .is_some_and(|title| title.chars().count() > 120)
+                        {
+                            error = Some("title не должен превышать 120 символов".into());
+                        } else {
+                            match parse_urgency(urgency_text) {
+                                Ok(urgency) => parsed_urgency = Some(urgency),
+                                Err(value) => error = Some(value),
+                            }
+                            if error.is_none() {
+                                match task_description(title.clone(), notes.clone(), None) {
+                                    Ok(Some(description))
+                                        if description.chars().count() > 20_000 =>
+                                    {
+                                        error = Some(
+                                            "title и notes вместе не должны превышать 20000 символов"
+                                                .into(),
+                                        );
+                                    }
+                                    Ok(_) => {}
+                                    Err(value) => error = Some(value),
+                                }
+                            }
+                        }
+                        match candidate.status {
+                            InboxCandidateStatus::Pending => {
+                                if !candidate.media.is_empty() {
+                                    warning = Some(format!(
+                                        "медиафайлов {}: desktop скачает их сейчас или при следующем запуске",
+                                        candidate.media.len()
+                                    ));
+                                }
+                            }
+                            InboxCandidateStatus::Imported if candidate.linked_task.is_some() => {
+                                warning = Some(
+                                    "задача уже существует; применение вернёт её без дубля".into(),
+                                );
+                            }
+                            InboxCandidateStatus::Imported => {
+                                error = Some(
+                                    "кандидат отмечен импортированным, но связанная задача недоступна"
+                                        .into(),
+                                );
+                            }
+                            InboxCandidateStatus::Dismissed => {
+                                error = Some(
+                                    "кандидат пропущен; сначала верните его во входящие".into(),
+                                );
+                            }
+                        }
+                    }
+                    "dismiss" => {
+                        if candidate.status == InboxCandidateStatus::Imported {
+                            error = Some(
+                                "импортированный кандидат нельзя пропустить: задача уже существует"
+                                    .into(),
+                            );
+                        } else if candidate.status == InboxCandidateStatus::Dismissed {
+                            warning = Some("кандидат уже пропущен; действие идемпотентно".into());
+                        }
+                    }
+                    "keep" => {
+                        if candidate.status != InboxCandidateStatus::Pending {
+                            error = Some("оставить можно только необработанный кандидат".into());
+                        }
+                    }
+                    _ => error = Some("action должен быть create_task, dismiss или keep".into()),
+                }
+            }
+
+            let ready = error.is_none();
+            if ready {
+                match action.as_str() {
+                    "create_task" => creates += 1,
+                    "dismiss" => dismisses += 1,
+                    "keep" => keeps += 1,
+                    _ => {}
+                }
+            } else {
+                invalid += 1;
+            }
+            let candidate_status = candidate.as_ref().map(|value| value.status.clone());
+            let linked_task_id = candidate
+                .as_ref()
+                .and_then(|value| value.linked_task.as_ref().map(|task| task.id.clone()));
+            let candidate_digest = candidate
+                .as_ref()
+                .map(|value| serde_json::to_vec(value).map(Sha256::digest))
+                .transpose()
+                .map_err(store_error)?
+                .map(hex::encode);
+            fingerprint.push(TelegramTriageFingerprintItem {
+                decision: normalized_decision,
+                candidate_status: candidate_status.clone(),
+                candidate_task_id: candidate.as_ref().and_then(|value| value.task_id.clone()),
+                candidate_processed_at: candidate
+                    .as_ref()
+                    .and_then(|value| value.processed_at.map(|date| date.to_rfc3339())),
+                candidate_digest,
+            });
+            items.push(TelegramTriagePlanItem {
+                candidate_id,
+                action,
+                ready,
+                candidate_status,
+                author: candidate.as_ref().map(|value| value.author.clone()),
+                chat_title: candidate.as_ref().map(|value| value.chat_title.clone()),
+                source_excerpt: candidate
+                    .as_ref()
+                    .map(|value| compact_search_text(&value.text, 180)),
+                title,
+                notes,
+                urgency: parsed_urgency,
+                media_count: candidate.as_ref().map_or(0, |value| value.media.len()),
+                linked_task_id,
+                warning,
+                error,
+            });
+        }
+
+        let ready = invalid == 0;
+        let confirmation_token = if ready {
+            let bytes = serde_json::to_vec(&fingerprint).map_err(store_error)?;
+            let mut digest = Sha256::new();
+            digest.update(b"flood.telegram-triage-plan.v1\0");
+            digest.update(bytes);
+            Some(hex::encode(digest.finalize()))
+        } else {
+            None
+        };
+        Ok(PreviewTelegramTriageOutput {
+            ready,
+            creates,
+            dismisses,
+            keeps,
+            invalid,
+            requires_confirmation: true,
+            confirmation_token,
+            items,
+        })
+    }
+
     fn ensure_destructive_allowed(&self) -> Result<(), String> {
         if self.allow_destructive {
             Ok(())
@@ -1737,6 +2038,8 @@ fn run_binary_self_check() -> SelfCheckResult {
         "get_task_digest",
         "get_telegram_sync_status",
         "request_telegram_sync",
+        "preview_telegram_triage",
+        "apply_telegram_triage",
         "run_self_check",
     ];
     let missing_tools = required_tools
@@ -1824,6 +2127,24 @@ mod tests {
         }
     }
 
+    fn apply_confirmed_triage(
+        server: &FloodServer,
+        decisions: Vec<TelegramTriageDecisionArgs>,
+    ) -> Result<Json<ApplyTelegramTriageOutput>, String> {
+        let preview = server
+            .preview_telegram_triage(Parameters(PreviewTelegramTriageArgs {
+                decisions: decisions.clone(),
+            }))?
+            .0;
+        let confirmation_token = preview
+            .confirmation_token
+            .ok_or_else(|| "план не готов к применению".to_string())?;
+        server.apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
+            decisions,
+            confirmation_token,
+        }))
+    }
+
     #[test]
     fn binary_self_check_covers_the_mcp_surface() {
         let result = run_binary_self_check();
@@ -1860,6 +2181,7 @@ mod tests {
             "request_telegram_sync",
             "list_telegram_inbox",
             "get_telegram_triage_batch",
+            "preview_telegram_triage",
             "apply_telegram_triage",
             "get_telegram_candidate",
             "create_task_from_telegram_candidate",
@@ -1898,6 +2220,24 @@ mod tests {
                 .as_ref()
                 .and_then(|value| value.destructive_hint),
             Some(true)
+        );
+        let triage_preview = tools
+            .iter()
+            .find(|tool| tool.name == "preview_telegram_triage")
+            .unwrap();
+        assert_eq!(
+            triage_preview
+                .annotations
+                .as_ref()
+                .and_then(|value| value.read_only_hint),
+            Some(true)
+        );
+        assert_eq!(
+            triage_preview
+                .annotations
+                .as_ref()
+                .and_then(|value| value.destructive_hint),
+            Some(false)
         );
 
         let diagnostics = _server.diagnose_store().0;
@@ -2254,6 +2594,90 @@ mod tests {
     }
 
     #[test]
+    fn confirmed_telegram_plan_rejects_stale_state_before_any_mutation() {
+        let server = server();
+        let project = server.store.create_project("Безопасный разбор").unwrap();
+        let make_candidate = |message_id: i64| {
+            serde_json::from_value::<TelegramInboxCandidate>(serde_json::json!({
+                "id": format!("telegram:{}:-10077:{message_id}", project.id),
+                "project_id": project.id,
+                "chat_id": -10077,
+                "chat_title": "Рабочий чат",
+                "message_id": message_id,
+                "text": format!("Сообщение {message_id}"),
+                "author": "Коллега",
+                "sent_at": "2026-09-10T10:00:00Z",
+                "reason": "mention",
+                "status": "pending",
+                "media": [],
+                "discovered_at": "2026-09-10T10:01:00Z"
+            }))
+            .unwrap()
+        };
+        let first = make_candidate(81);
+        let second = make_candidate(82);
+        server
+            .store
+            .upsert_telegram_candidates(vec![first.clone(), second.clone()])
+            .unwrap();
+        let decisions = vec![
+            TelegramTriageDecisionArgs {
+                candidate_id: first.id.clone(),
+                action: "dismiss".into(),
+                title: None,
+                notes: None,
+                urgency: None,
+            },
+            TelegramTriageDecisionArgs {
+                candidate_id: second.id.clone(),
+                action: "keep".into(),
+                title: None,
+                notes: None,
+                urgency: None,
+            },
+        ];
+        let preview = server
+            .preview_telegram_triage(Parameters(PreviewTelegramTriageArgs {
+                decisions: decisions.clone(),
+            }))
+            .unwrap()
+            .0;
+        assert!(preview.ready);
+        let token = preview.confirmation_token.unwrap();
+
+        let mut updated_second = second.clone();
+        updated_second.text = "Сообщение обновилось после preview".into();
+        server
+            .store
+            .upsert_telegram_candidates(vec![updated_second])
+            .unwrap();
+        assert!(
+            server
+                .apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
+                    decisions,
+                    confirmation_token: token,
+                }))
+                .is_err()
+        );
+        assert_eq!(
+            server
+                .store
+                .get_telegram_candidate(&first.id)
+                .unwrap()
+                .status,
+            InboxCandidateStatus::Pending
+        );
+        assert_eq!(
+            server
+                .store
+                .get_telegram_candidate(&second.id)
+                .unwrap()
+                .status,
+            InboxCandidateStatus::Pending
+        );
+    }
+
+    #[test]
     fn telegram_candidate_tools_cover_the_full_inbox_flow() {
         let server = server();
         let project = server
@@ -2346,18 +2770,53 @@ mod tests {
         assert_eq!(batch.candidates[0].id, candidate_id);
         assert_eq!(batch.remaining, 1);
         assert_eq!(batch.next_cursor.as_deref(), Some(candidate_id.as_str()));
-        let kept = server
-            .apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
-                decisions: vec![TelegramTriageDecisionArgs {
-                    candidate_id: candidate_id.clone(),
-                    action: "keep".into(),
-                    title: None,
-                    notes: None,
-                    urgency: None,
-                }],
+        let keep_decisions = vec![TelegramTriageDecisionArgs {
+            candidate_id: candidate_id.clone(),
+            action: "keep".into(),
+            title: None,
+            notes: None,
+            urgency: None,
+        }];
+        let preview = server
+            .preview_telegram_triage(Parameters(PreviewTelegramTriageArgs {
+                decisions: keep_decisions.clone(),
             }))
             .unwrap()
             .0;
+        assert!(preview.ready);
+        assert!(preview.requires_confirmation);
+        assert_eq!(preview.keeps, 1);
+        assert_eq!(preview.items[0].author.as_deref(), Some("Коллега"));
+        assert!(preview.items[0].source_excerpt.as_deref().is_some());
+        let token = preview.confirmation_token.unwrap();
+        assert!(
+            server
+                .apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
+                    decisions: keep_decisions.clone(),
+                    confirmation_token: String::new(),
+                }))
+                .is_err()
+        );
+        assert!(
+            server
+                .apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
+                    decisions: vec![TelegramTriageDecisionArgs {
+                        action: "dismiss".into(),
+                        ..keep_decisions[0].clone()
+                    }],
+                    confirmation_token: token,
+                }))
+                .is_err()
+        );
+        assert_eq!(
+            server
+                .store
+                .get_telegram_candidate(&candidate_id)
+                .unwrap()
+                .status,
+            InboxCandidateStatus::Pending
+        );
+        let kept = apply_confirmed_triage(&server, keep_decisions).unwrap().0;
         assert_eq!(kept.kept, 1);
         assert_eq!(kept.failed, 0);
 
@@ -2391,18 +2850,18 @@ mod tests {
         assert_eq!(continued.candidates.len(), 1);
         assert_eq!(continued.candidates[0].id, older_candidate_id);
         assert_eq!(continued.remaining, 0);
-        let dismissed_batch = server
-            .apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
-                decisions: vec![TelegramTriageDecisionArgs {
-                    candidate_id: older_candidate_id,
-                    action: "dismiss".into(),
-                    title: None,
-                    notes: None,
-                    urgency: None,
-                }],
-            }))
-            .unwrap()
-            .0;
+        let dismissed_batch = apply_confirmed_triage(
+            &server,
+            vec![TelegramTriageDecisionArgs {
+                candidate_id: older_candidate_id,
+                action: "dismiss".into(),
+                title: None,
+                notes: None,
+                urgency: None,
+            }],
+        )
+        .unwrap()
+        .0;
         assert_eq!(dismissed_batch.dismissed, 1);
         assert_eq!(dismissed_batch.failed, 0);
         assert!(
@@ -2424,7 +2883,7 @@ mod tests {
             }))
             .unwrap();
         let missing_title = server
-            .apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
+            .preview_telegram_triage(Parameters(PreviewTelegramTriageArgs {
                 decisions: vec![TelegramTriageDecisionArgs {
                     candidate_id: candidate_id.clone(),
                     action: "create_task".into(),
@@ -2435,20 +2894,21 @@ mod tests {
             }))
             .unwrap()
             .0;
-        assert_eq!(missing_title.created, 0);
-        assert_eq!(missing_title.failed, 1);
-        let applied = server
-            .apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
-                decisions: vec![TelegramTriageDecisionArgs {
-                    candidate_id: candidate_id.clone(),
-                    action: "create_task".into(),
-                    title: Some("Подготовить итог встречи".into()),
-                    notes: Some("Сверить решения и ответственных".into()),
-                    urgency: Some("important".into()),
-                }],
-            }))
-            .unwrap()
-            .0;
+        assert!(!missing_title.ready);
+        assert_eq!(missing_title.invalid, 1);
+        assert!(missing_title.confirmation_token.is_none());
+        let applied = apply_confirmed_triage(
+            &server,
+            vec![TelegramTriageDecisionArgs {
+                candidate_id: candidate_id.clone(),
+                action: "create_task".into(),
+                title: Some("Подготовить итог встречи".into()),
+                notes: Some("Сверить решения и ответственных".into()),
+                urgency: Some("important".into()),
+            }],
+        )
+        .unwrap()
+        .0;
         assert_eq!(applied.created, 1);
         assert_eq!(applied.failed, 0);
         let task = applied.results[0].task.clone().unwrap();
