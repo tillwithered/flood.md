@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 use std::{
     cmp::Reverse,
+    collections::{HashMap, HashSet},
     env,
     fs::{self, File, OpenOptions},
     io::{Read, Write},
@@ -64,6 +65,25 @@ pub struct StoreDiagnostics {
     pub trashed_task_count: usize,
     pub pending_inbox_count: usize,
     pub issues: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct AttachmentCleanupReport {
+    pub total_files: usize,
+    pub total_bytes: u64,
+    pub orphaned_files: usize,
+    pub orphaned_bytes: u64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct AttachmentCleanupResult {
+    pub removed_files: usize,
+    pub removed_bytes: u64,
+}
+
+struct AttachmentScan {
+    report: AttachmentCleanupReport,
+    orphaned: Vec<(PathBuf, u64)>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -1000,6 +1020,44 @@ impl Store {
         Ok(fs::read(path)?)
     }
 
+    pub fn attachment_cleanup_report(&self) -> Result<AttachmentCleanupReport, StoreError> {
+        let _lock = self.lock_shared()?;
+        Ok(self.scan_attachments()?.report)
+    }
+
+    pub fn cleanup_orphaned_attachments(&self) -> Result<AttachmentCleanupResult, StoreError> {
+        let _lock = self.lock_exclusive()?;
+        let scan = self.scan_attachments()?;
+        let mut removed_files = 0;
+        let mut removed_bytes = 0;
+        let mut candidate_directories = HashSet::new();
+
+        for (path, size) in scan.orphaned {
+            if let Some(parent) = path.parent() {
+                candidate_directories.insert(parent.to_path_buf());
+            }
+            match fs::remove_file(&path) {
+                Ok(()) => {
+                    removed_files += 1;
+                    removed_bytes += size;
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(StoreError::Io(error)),
+            }
+        }
+
+        for directory in candidate_directories {
+            if directory.is_dir() && fs::read_dir(&directory)?.next().is_none() {
+                fs::remove_dir(directory)?;
+            }
+        }
+
+        Ok(AttachmentCleanupResult {
+            removed_files,
+            removed_bytes,
+        })
+    }
+
     pub fn create_backup(&self, destination: &Path) -> Result<(), StoreError> {
         let parent = destination
             .parent()
@@ -1256,6 +1314,83 @@ impl Store {
     }
     fn attachment_dir(&self, project_id: &str, id: &str) -> PathBuf {
         self.task_dir(project_id).join("attachments").join(id)
+    }
+
+    fn scan_attachments(&self) -> Result<AttachmentScan, StoreError> {
+        let mut report = AttachmentCleanupReport {
+            total_files: 0,
+            total_bytes: 0,
+            orphaned_files: 0,
+            orphaned_bytes: 0,
+        };
+        let mut orphaned = Vec::new();
+
+        for project in fs::read_dir(self.projects_dir())? {
+            let tasks_directory = project?.path().join("tasks");
+            if !tasks_directory.is_dir() {
+                continue;
+            }
+
+            let mut tasks = HashMap::new();
+            for entry in fs::read_dir(&tasks_directory)? {
+                let path = entry?.path();
+                if path.extension().and_then(|value| value.to_str()) == Some("md") {
+                    let task = read_task(&path)?;
+                    tasks.insert(task.id.clone(), task);
+                }
+            }
+
+            let attachments_directory = tasks_directory.join("attachments");
+            if !attachments_directory.is_dir() {
+                continue;
+            }
+            let canonical_attachments = fs::canonicalize(&attachments_directory)?;
+
+            for task_directory in fs::read_dir(&attachments_directory)? {
+                let task_directory = task_directory?;
+                if !task_directory.file_type()?.is_dir() {
+                    continue;
+                }
+                let task_id = task_directory.file_name().to_string_lossy().into_owned();
+                let task = tasks.get(&task_id);
+                for attachment in fs::read_dir(task_directory.path())? {
+                    let attachment = attachment?;
+                    if !attachment.file_type()?.is_file() {
+                        continue;
+                    }
+                    let path = attachment.path();
+                    let canonical_path = fs::canonicalize(&path)?;
+                    if !canonical_path.starts_with(&canonical_attachments) {
+                        return Err(StoreError::Validation(
+                            "путь вложения выходит за папку проекта".into(),
+                        ));
+                    }
+                    let size = attachment.metadata()?.len();
+                    let file_name = attachment.file_name().to_string_lossy().into_owned();
+                    let relative_path = format!("attachments/{task_id}/{file_name}");
+                    let referenced = task.is_some_and(|task| {
+                        task.description.contains(&relative_path)
+                            || task.source.as_ref().is_some_and(|source| {
+                                source.media.iter().any(|media| {
+                                    media.relative_path.as_deref().is_some_and(|path| {
+                                        path.replace('\\', "/") == relative_path
+                                    })
+                                })
+                            })
+                    });
+
+                    report.total_files += 1;
+                    report.total_bytes = report.total_bytes.saturating_add(size);
+                    if !referenced {
+                        report.orphaned_files += 1;
+                        report.orphaned_bytes = report.orphaned_bytes.saturating_add(size);
+                        orphaned.push((canonical_path, size));
+                    }
+                }
+            }
+        }
+
+        Ok(AttachmentScan { report, orphaned })
     }
 
     fn find_task(&self, id: &str) -> Result<Task, StoreError> {
@@ -2617,6 +2752,94 @@ mod tests {
             store.resolve_task_attachment(&task.id, &relative),
             Err(StoreError::NotFound(_))
         ));
+    }
+
+    #[test]
+    fn attachment_cleanup_removes_only_unreferenced_files() {
+        let store = temp_store();
+        let project = store.create_project("Вложения").unwrap();
+        let task = store
+            .create_task(CreateTask {
+                project_id: project.id,
+                description: "Задача с вложениями".into(),
+                urgency: Urgency::Normal,
+                source: None,
+            })
+            .unwrap();
+        let markdown_attachment = store
+            .save_task_attachment(&task.id, "макет.png", b"markdown-image")
+            .unwrap();
+        let source_attachment = store
+            .save_task_attachment(&task.id, "source.jpg", b"source-image")
+            .unwrap();
+        let orphaned_attachment = store
+            .save_task_attachment(&task.id, "unused.bin", b"unused")
+            .unwrap();
+
+        let task = store
+            .update_task(
+                &task.id,
+                TaskPatch {
+                    description: Some(format!(
+                        "Задача с вложениями\n\n![Макет]({markdown_attachment})"
+                    )),
+                    source: Some(Some(crate::MessageSnapshot {
+                        text: "Исходное сообщение".into(),
+                        author: Some("Автор".into()),
+                        sent_at: Some(Utc::now()),
+                        url: None,
+                        provider: Some("telegram".into()),
+                        chat_id: Some(42),
+                        chat_title: Some("Чат".into()),
+                        message_id: Some(7),
+                        message_ids: vec![7],
+                        media: vec![SourceMedia {
+                            kind: SourceMediaKind::Photo,
+                            file_name: "source.jpg".into(),
+                            provider_file_id: None,
+                            mime_type: Some("image/jpeg".into()),
+                            size: Some(12),
+                            relative_path: Some(source_attachment.clone()),
+                        }],
+                    })),
+                    ..TaskPatch::default()
+                },
+                &task.version,
+            )
+            .unwrap();
+
+        let report = store.attachment_cleanup_report().unwrap();
+        assert_eq!(report.total_files, 3);
+        assert_eq!(report.orphaned_files, 1);
+        assert_eq!(report.orphaned_bytes, 6);
+
+        let result = store.cleanup_orphaned_attachments().unwrap();
+        assert_eq!(result.removed_files, 1);
+        assert_eq!(result.removed_bytes, 6);
+        assert!(matches!(
+            store.resolve_task_attachment(&task.id, &orphaned_attachment),
+            Err(StoreError::NotFound(_))
+        ));
+        assert_eq!(
+            store
+                .read_task_attachment(&task.id, &markdown_attachment)
+                .unwrap(),
+            b"markdown-image"
+        );
+        assert_eq!(
+            store
+                .read_task_attachment(&task.id, &source_attachment)
+                .unwrap(),
+            b"source-image"
+        );
+
+        let trashed = store.trash_task(&task.id, &task.version).unwrap();
+        let report = store.attachment_cleanup_report().unwrap();
+        assert_eq!(report.total_files, 2);
+        assert_eq!(report.orphaned_files, 0);
+        store
+            .delete_trashed_task(&trashed.id, &trashed.version)
+            .unwrap();
     }
 
     #[test]

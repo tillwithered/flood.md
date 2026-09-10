@@ -707,6 +707,8 @@ button { color: inherit; }
 .data-location code { display: block; overflow: hidden; max-width: 340px; color: var(--muted); font: var(--font-size-min)/1.4 "Cascadia Mono", Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
 .data-location button, .update-row button, .settings-action { display: inline-flex; height: 32px; flex: 0 0 auto; align-items: center; gap: 7px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 550; cursor: pointer; }
 .data-location button:disabled, .update-row button:disabled { opacity: .5; cursor: default; }
+.attachment-cleanup-row .danger-text { color: var(--danger-ink); }
+.attachment-cleanup-row .danger-text:hover { background: var(--danger-surface); }
 .update-row.error small { color: var(--danger-ink); }
 .update-row.success small { color: var(--success-ink); }
 .settings-action { justify-self: start; margin-top: 16px; background: transparent; color: var(--muted); }
@@ -722,8 +724,11 @@ button { color: inherit; }
 .restore-confirm button { height: 30px; padding: 0 9px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; }
 .restore-confirm button:hover { background: var(--hover); color: var(--ink); }
 .restore-confirm .restore-button { background: var(--surface); color: var(--ink); }
+.restore-confirm .cleanup-button { background: var(--danger-surface); color: var(--danger-ink); }
+.restore-confirm .cleanup-button:hover { background: color-mix(in srgb, var(--danger-surface) 82%, var(--danger-ink)); color: var(--danger-ink); }
 .data-action-message { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
 .data-action-message.error { color: var(--danger-ink); }
+.data-action-message.success { color: var(--success-ink); }
 .integration-card { display: grid; min-width: 0; gap: 18px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .integration-card > * { min-width: 0; }
 .integration-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -1209,6 +1214,8 @@ button { color: inherit; }
   .settings-layout { grid-template-columns: 1fr; gap: 26px; }
   .settings-nav { position: static; grid-template-columns: repeat(6, max-content); overflow-x: auto; padding-bottom: 4px; }
   .settings-nav button { width: auto; }
+  .restore-confirm { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+  .restore-confirm > div { grid-column: 2; }
   .readiness-list { grid-template-columns: 1fr; }
   .telegram-form.credentials { grid-template-columns: 1fr; }
   .telegram-qr { align-items: flex-start; flex-direction: column; }

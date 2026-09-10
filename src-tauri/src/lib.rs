@@ -1,9 +1,9 @@
 use chrono::Utc;
 use flood_core::{
-    CreateTask, InboxCandidateStatus, Project, SelfCheckResult, SourceMedia, SourceMediaKind,
-    Store, StoreDiagnostics, Task, TaskPatch, TaskSummary, TelegramInboxCandidate,
-    TelegramProjectLink, TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, Urgency,
-    default_data_dir,
+    AttachmentCleanupReport, AttachmentCleanupResult, CreateTask, InboxCandidateStatus, Project,
+    SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
+    TaskSummary, TelegramInboxCandidate, TelegramProjectLink, TelegramSyncHealth,
+    TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
 };
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -407,6 +407,20 @@ fn create_backup(destination: String, state: State<'_, AppState>) -> Result<(), 
 #[tauri::command]
 fn restore_backup(source: String, state: State<'_, AppState>) -> Result<(), String> {
     result(state.store.restore_backup(&PathBuf::from(source)))
+}
+
+#[tauri::command]
+fn attachment_cleanup_report(
+    state: State<'_, AppState>,
+) -> Result<AttachmentCleanupReport, String> {
+    result(state.store.attachment_cleanup_report())
+}
+
+#[tauri::command]
+fn cleanup_orphaned_attachments(
+    state: State<'_, AppState>,
+) -> Result<AttachmentCleanupResult, String> {
+    result(state.store.cleanup_orphaned_attachments())
 }
 
 #[tauri::command]
@@ -1101,6 +1115,8 @@ pub fn run() {
             data_directory,
             create_backup,
             restore_backup,
+            attachment_cleanup_report,
+            cleanup_orphaned_attachments,
             mcp_executable_path,
             mcp_runtime_info,
             installation_runtime_info,

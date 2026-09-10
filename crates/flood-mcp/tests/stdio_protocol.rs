@@ -139,6 +139,12 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert_eq!(workspace_brief["annotations"]["readOnlyHint"], true);
     assert_eq!(workspace_brief["annotations"]["openWorldHint"], false);
+    let attachment_audit = tools
+        .iter()
+        .find(|tool| tool["name"] == "inspect_attachment_storage")
+        .unwrap();
+    assert_eq!(attachment_audit["annotations"]["readOnlyHint"], true);
+    assert_eq!(attachment_audit["annotations"]["destructiveHint"], false);
     let list_tasks = tools
         .iter()
         .find(|tool| tool["name"] == "list_tasks")
@@ -410,7 +416,11 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     );
     let brief = receive(&mut stdout, 15);
     assert_eq!(brief["result"]["isError"], false);
-    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 1);
+    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 2);
+    assert_eq!(
+        brief["result"]["structuredContent"]["attachment_storage"]["orphaned_files"],
+        0
+    );
     assert_eq!(
         brief["result"]["structuredContent"]["priority_tasks"]["tasks"]
             .as_array()

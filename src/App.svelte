@@ -20,6 +20,7 @@
   type ThemePreference = "system" | "light" | "dark";
   type UpdateState = "idle" | "checking" | "available" | "current" | "downloading" | "error";
   type DataActionState = "idle" | "backing-up" | "restoring" | "success" | "error";
+  type AttachmentCleanupState = "idle" | "checking" | "cleaning" | "success" | "error";
   type TelegramInboxMode = "manual" | "mentions_and_replies" | "all";
   type SourceMedia = { kind: "photo" | "video" | "document" | "audio" | "voice" | "animation" | "other"; file_name: string; provider_file_id?: number; mime_type?: string; size?: number; relative_path?: string };
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string; provider?: string; chat_id?: number; chat_title?: string; message_id?: number; message_ids?: number[]; media?: SourceMedia[] };
@@ -71,6 +72,8 @@
   type TelegramSyncState = "idle" | "syncing" | "success" | "partial" | "error";
   type TelegramSyncSummary = { added: number; downloaded: number; failed: number; syncedAt: string };
   type StoreDiagnostics = { healthy: boolean; root: string; format_version: number; project_count: number; linked_chat_count: number; open_task_count: number; completed_task_count: number; trashed_task_count: number; pending_inbox_count: number; issues: string[] };
+  type AttachmentCleanupReport = { total_files: number; total_bytes: number; orphaned_files: number; orphaned_bytes: number };
+  type AttachmentCleanupResult = { removed_files: number; removed_bytes: number };
   type SelfCheckItem = { name: string; passed: boolean; detail?: string };
   type SelfCheckResult = { passed: boolean; duration_ms: number; checks: SelfCheckItem[] };
   type McpCheckState = "idle" | "checking" | "success" | "error";
@@ -118,6 +121,10 @@
   let dataActionState: DataActionState = "idle";
   let dataActionMessage = "";
   let pendingRestorePath = "";
+  let attachmentCleanupReport: AttachmentCleanupReport | null = null;
+  let attachmentCleanupState: AttachmentCleanupState = "idle";
+  let attachmentCleanupConfirm = false;
+  let attachmentCleanupMessage = "";
   let mcpExecutable = "";
   let mcpRuntime: McpRuntimeInfo | null = null;
   let installationRuntime: InstallationRuntimeInfo | null = null;
@@ -2742,6 +2749,45 @@
     }
   }
 
+  function formatFileSize(bytes: number) {
+    if (bytes < 1024) return `${bytes} ${t("bytes")}`;
+    const value = bytes < 1024 * 1024 ? bytes / 1024 : bytes / (1024 * 1024);
+    return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(value)} ${t(bytes < 1024 * 1024 ? "kilobytes" : "megabytes")}`;
+  }
+
+  async function loadAttachmentCleanupReport() {
+    if (!inTauri() || attachmentCleanupState === "checking" || attachmentCleanupState === "cleaning") return;
+    attachmentCleanupState = "checking";
+    attachmentCleanupMessage = "";
+    try {
+      attachmentCleanupReport = await invoke<AttachmentCleanupReport>("attachment_cleanup_report");
+      attachmentCleanupState = "idle";
+      if (!attachmentCleanupReport.orphaned_files) attachmentCleanupConfirm = false;
+    } catch (error) {
+      attachmentCleanupState = "error";
+      attachmentCleanupMessage = t("attachmentCleanupFailed", { error: String(error) });
+    }
+  }
+
+  async function cleanupOrphanedAttachments() {
+    if (attachmentCleanupState === "cleaning" || !await persistCurrentTask()) return;
+    attachmentCleanupState = "cleaning";
+    attachmentCleanupMessage = "";
+    try {
+      const cleanup = await invoke<AttachmentCleanupResult>("cleanup_orphaned_attachments");
+      attachmentCleanupReport = await invoke<AttachmentCleanupReport>("attachment_cleanup_report");
+      attachmentCleanupState = "success";
+      attachmentCleanupConfirm = false;
+      attachmentCleanupMessage = t("attachmentCleanupDone", {
+        count: cleanup.removed_files,
+        size: formatFileSize(cleanup.removed_bytes)
+      });
+    } catch (error) {
+      attachmentCleanupState = "error";
+      attachmentCleanupMessage = t("attachmentCleanupFailed", { error: String(error) });
+    }
+  }
+
   async function checkForUpdates() {
     if (!inTauri() || updateState === "checking" || updateState === "downloading") return;
     if (installationRuntime?.kind === "development") {
@@ -3383,7 +3429,7 @@
             <nav class="settings-nav" aria-label={t("settingsSections")}>
               <button class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => (settingsSection = "general")}><Settings size={16} />{t("general")}</button>
               <button class:active={settingsSection === "appearance"} aria-current={settingsSection === "appearance" ? "page" : undefined} onclick={() => (settingsSection = "appearance")}><Palette size={16} />{t("appearance")}</button>
-              <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => (settingsSection = "data")}><Database size={16} />{t("data")}</button>
+              <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => { settingsSection = "data"; void loadAttachmentCleanupReport(); }}><Database size={16} />{t("data")}</button>
               <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => (settingsSection = "integrations")}><Plug size={16} />{t("integrations")} <span class:connected={telegramStatus.step === "ready"} class:error={["database_error", "error"].includes(telegramStatus.step) || ["partial", "error"].includes(telegramSyncState)} class="integration-chip">{["database_error", "error"].includes(telegramStatus.step) || ["partial", "error"].includes(telegramSyncState) ? "!" : telegramStatus.step === "ready" ? "1" : "·"}</span></button>
               <button class:active={settingsSection === "mcp"} aria-current={settingsSection === "mcp" ? "page" : undefined} onclick={() => (settingsSection = "mcp")}><Bot size={16} />{t("mcpAndAi")} <span class:connected={mcpCheckState === "success"} class:error={mcpCheckState === "error"} class="integration-chip">{mcpCheckState === "success" ? "✓" : "·"}</span></button>
               <button class:active={settingsSection === "about"} aria-current={settingsSection === "about" ? "page" : undefined} onclick={() => (settingsSection = "about")}><Info size={16} />{t("about")}</button>
@@ -3415,6 +3461,22 @@
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>{t("data")}</h3><p>{t("dataDescription")}</p></div>
                   <div class="data-location"><span><FolderOpen size={17} /><span><strong>{t("tasksFolder")}</strong><code>{dataDirectory || t("availableInApp")}</code></span></span><button onclick={openDataDirectory} disabled={!dataDirectory}>{t("open")}</button></div>
+                  <div class="data-location attachment-cleanup-row">
+                    <span><Paperclip size={17} /><span><strong>{t("unusedAttachments")}</strong><small>{#if attachmentCleanupState === "checking"}{t("checkingAttachments")}{:else if attachmentCleanupReport}{attachmentCleanupReport.orphaned_files ? t("attachmentCleanupSummary", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) }) : t("attachmentsHealthy")}{:else}{t("unusedAttachmentsDescription")}{/if}</small></span></span>
+                    {#if attachmentCleanupReport?.orphaned_files}
+                      <button class="danger-text" onclick={() => (attachmentCleanupConfirm = true)} disabled={attachmentCleanupState === "checking" || attachmentCleanupState === "cleaning"}><Trash2 size={14} />{t("cleanAttachments")}</button>
+                    {:else}
+                      <button onclick={loadAttachmentCleanupReport} disabled={attachmentCleanupState === "checking" || attachmentCleanupState === "cleaning"}><RefreshCw class={attachmentCleanupState === "checking" ? "spinning" : ""} size={14} />{t("checkAttachments")}</button>
+                    {/if}
+                  </div>
+                  {#if attachmentCleanupConfirm && attachmentCleanupReport?.orphaned_files}
+                    <div class="restore-confirm attachment-cleanup-confirm" role="alert">
+                      <FloodGlyph kind="important" size={32} />
+                      <span><strong>{t("attachmentCleanupQuestion", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) })}</strong><small>{t("attachmentCleanupWarning")}</small></span>
+                      <div><button onclick={() => (attachmentCleanupConfirm = false)} disabled={attachmentCleanupState === "cleaning"}>{t("cancel")}</button><button class="cleanup-button" onclick={cleanupOrphanedAttachments} disabled={attachmentCleanupState === "cleaning"}>{attachmentCleanupState === "cleaning" ? t("cleaningAttachments") : t("delete")}</button></div>
+                    </div>
+                  {/if}
+                  {#if attachmentCleanupMessage}<p class:error={attachmentCleanupState === "error"} class:success={attachmentCleanupState === "success"} class="data-action-message" role="status">{attachmentCleanupMessage}</p>{/if}
                   <div class="data-actions">
                     <button onclick={createDataBackup} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><Download size={15} />{dataActionState === "backing-up" ? t("backingUp") : t("createBackup")}</button>
                     <button onclick={chooseBackupToRestore} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><RotateCcw size={15} />{t("restoreBackup")}</button>

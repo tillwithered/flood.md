@@ -1,8 +1,8 @@
 use flood_core::{
-    CreateTask, InboxCandidateStatus, MessageSnapshot, Project, SelfCheckResult, SourceMedia,
-    SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch, TaskStatus, TaskSummary,
-    TelegramInboxCandidate, TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
-    run_self_check as run_core_self_check,
+    AttachmentCleanupReport, CreateTask, InboxCandidateStatus, MessageSnapshot, Project,
+    SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
+    TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramSyncRequest, TelegramSyncStatus,
+    Urgency, default_data_dir, run_self_check as run_core_self_check,
 };
 use rmcp::{
     Json, ServiceExt, handler::server::wrapper::Parameters, schemars, tool, tool_router,
@@ -346,6 +346,7 @@ struct WorkspaceBriefOutput {
     brief_version: u8,
     runtime: RuntimeInfoOutput,
     diagnostics: StoreDiagnostics,
+    attachment_storage: AttachmentCleanupReport,
     priority_tasks: TaskDigestOutput,
     telegram: TelegramSyncStatusOutput,
     suggested_tools: Vec<&'static str>,
@@ -381,13 +382,14 @@ impl FloodServer {
                 "telegram_sync_status",
                 "telegram_sync_request",
                 "store_diagnostics",
+                "attachment_storage_audit",
                 "isolated_self_check",
             ],
         })
     }
 
     #[tool(
-        description = "Получить единую ограниченную стартовую сводку flood.md для агента: runtime, диагностику хранилища, до 10 приоритетных открытых задач, состояние синхронизации Telegram и следующие подходящие MCP tools. Не возвращает полную базу или тексты Telegram-входящих. Используйте первым вызовом вместо серии широких списков",
+        description = "Получить единую ограниченную стартовую сводку flood.md для агента: runtime, диагностику и аудит вложений, до 10 приоритетных открытых задач, состояние синхронизации Telegram и следующие подходящие MCP tools. Не возвращает полную базу или тексты Telegram-входящих. Используйте первым вызовом вместо серии широких списков",
         annotations(
             title = "Рабочая сводка flood.md",
             read_only_hint = true,
@@ -398,6 +400,10 @@ impl FloodServer {
     fn get_workspace_brief(&self) -> Result<Json<WorkspaceBriefOutput>, String> {
         let runtime = self.get_runtime_info().0;
         let diagnostics = self.store.diagnostics();
+        let attachment_storage = self
+            .store
+            .attachment_cleanup_report()
+            .map_err(store_error)?;
         let priority_tasks = self
             .get_task_digest(Parameters(TaskDigestArgs {
                 project_id: None,
@@ -411,6 +417,9 @@ impl FloodServer {
         let mut suggested_tools = Vec::new();
         if !diagnostics.healthy {
             suggested_tools.push("diagnose_store");
+        }
+        if attachment_storage.orphaned_files > 0 {
+            suggested_tools.push("inspect_attachment_storage");
         }
         if telegram.pending_request.is_some() {
             suggested_tools.push("get_telegram_sync_status");
@@ -430,9 +439,10 @@ impl FloodServer {
         suggested_tools.push("run_self_check");
 
         Ok(Json(WorkspaceBriefOutput {
-            brief_version: 1,
+            brief_version: 2,
             runtime,
             diagnostics,
+            attachment_storage,
             priority_tasks,
             telegram,
             suggested_tools,
@@ -450,6 +460,22 @@ impl FloodServer {
     )]
     fn diagnose_store(&self) -> Json<StoreDiagnostics> {
         Json(self.store.diagnostics())
+    }
+
+    #[tool(
+        description = "Проверить локальное хранилище вложений и посчитать файлы, на которые больше не ссылаются Markdown задач или Telegram-источники. Ничего не удаляет; очистка доступна только человеку в Настройки → Данные",
+        annotations(
+            title = "Аудит вложений flood.md",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn inspect_attachment_storage(&self) -> Result<Json<AttachmentCleanupReport>, String> {
+        self.store
+            .attachment_cleanup_report()
+            .map(Json)
+            .map_err(store_error)
     }
 
     #[tool(
@@ -1541,6 +1567,7 @@ mod tests {
         assert!(tools.iter().all(|tool| tool.output_schema.is_some()));
         for name in [
             "diagnose_store",
+            "inspect_attachment_storage",
             "get_runtime_info",
             "get_workspace_brief",
             "run_self_check",
@@ -1598,11 +1625,17 @@ mod tests {
         assert_eq!(runtime.version, env!("CARGO_PKG_VERSION"));
         assert!(!runtime.destructive_actions_enabled);
         let brief = _server.get_workspace_brief().unwrap().0;
-        assert_eq!(brief.brief_version, 1);
+        assert_eq!(brief.brief_version, 2);
         assert!(brief.diagnostics.healthy);
+        assert_eq!(brief.attachment_storage.total_files, 0);
+        assert_eq!(brief.attachment_storage.orphaned_files, 0);
         assert!(brief.priority_tasks.tasks.is_empty());
         assert!(brief.suggested_tools.contains(&"create_project"));
         assert!(brief.suggested_tools.contains(&"run_self_check"));
+        assert_eq!(
+            _server.inspect_attachment_storage().unwrap().0,
+            brief.attachment_storage
+        );
     }
 
     #[test]
