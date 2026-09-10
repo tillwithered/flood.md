@@ -680,6 +680,17 @@ button { color: inherit; }
 .setting-static > span:first-child > span, .setting-row > span:first-child > span, .data-location > span:first-child > span, .integration-head > span:first-child > span, .about-brand > span, .update-row > span:first-child { display: grid; gap: 4px; }
 .settings-section strong { font-size: 14px; font-weight: 600; }
 .settings-section small { color: var(--muted); font-size: 12px; font-weight: 400; }
+.installation-runtime { display: grid; gap: 10px; padding: 16px 0; border-top: 1px solid var(--line); }
+.installation-runtime-summary { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.installation-runtime-summary > span { display: grid; min-width: 0; gap: 3px; }
+.installation-path { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.installation-path code, .parallel-install-warning code { min-width: 0; overflow: hidden; color: var(--muted); font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.installation-path code { flex: 1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.installation-path button, .parallel-install-warning button { display: inline-flex; height: 32px; flex: 0 0 auto; align-items: center; gap: 6px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 550; cursor: pointer; }
+.installation-path button:hover, .parallel-install-warning button:hover { background: var(--hover); }
+.parallel-install-warning { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 10px; margin-bottom: 16px; padding: 12px; border: 1px solid color-mix(in srgb, #ff8a61 22%, var(--line)); border-radius: 10px; background: color-mix(in srgb, #ffb067 9%, var(--elevated)); }
+.parallel-install-warning > span { display: grid; min-width: 0; gap: 4px; }
+.parallel-install-warning code { display: block; margin-top: 3px; }
 .setting-value, .status-text { color: var(--muted); font-size: 12px; }
 .settings-control { display: grid; gap: 12px; padding: 0 0 22px; }
 .theme-picker, .language-picker { display: grid; gap: 3px; padding: 3px; border-radius: 10px; background: var(--surface); }

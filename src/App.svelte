@@ -75,6 +75,7 @@
   type McpCheckState = "idle" | "checking" | "success" | "error";
   type McpClient = "codex" | "claude" | "cursor" | "manual";
   type McpRuntimeInfo = { executable_path: string; available: boolean; version?: string; app_version: string; compatible: boolean; source: "bundled" | "development" };
+  type InstallationRuntimeInfo = { executable_path: string; directory_path: string; kind: "installed" | "development" | "portable"; parallel_installed_copy?: string };
   type CommandGroup = "actions" | "projects" | "tasks";
   type CommandItem = { id: string; group: CommandGroup; title: string; meta?: string; keywords: string; urgency?: Urgency; completed?: boolean };
 
@@ -116,6 +117,7 @@
   let pendingRestorePath = "";
   let mcpExecutable = "";
   let mcpRuntime: McpRuntimeInfo | null = null;
+  let installationRuntime: InstallationRuntimeInfo | null = null;
   let mcpClient: McpClient = "codex";
   let storeDiagnostics: StoreDiagnostics | null = null;
   let mcpCheckState: McpCheckState = "idle";
@@ -380,6 +382,11 @@
 
   function fileName(path: string) {
     return path.split(/[\\/]/).pop() || path;
+  }
+
+  function fileDirectory(path: string) {
+    const separator = Math.max(path.lastIndexOf("\\"), path.lastIndexOf("/"));
+    return separator >= 0 ? path.slice(0, separator) : path;
   }
 
   function chatTitle(chatId: string, records = chats) {
@@ -2560,6 +2567,16 @@
     }
   }
 
+  async function openApplicationDirectory(path: string) {
+    try { await invoke("open_application_directory", { path }); }
+    catch (error) { updateMessage = String(error); }
+  }
+
+  function installationKindLabel() {
+    if (!installationRuntime) return "";
+    return t(installationRuntime.kind === "installed" ? "installedBuild" : installationRuntime.kind === "development" ? "developmentBuild" : "portableBuild");
+  }
+
   async function createDataBackup() {
     if (!await persistCurrentTask() || dataActionState === "backing-up" || dataActionState === "restoring") return;
     const now = new Date();
@@ -2727,6 +2744,7 @@
     void (async () => {
       if (inTauri()) {
         appVersion = await getVersion();
+        installationRuntime = await invoke<InstallationRuntimeInfo>("installation_runtime_info").catch(() => null);
         dataDirectory = await invoke<string>("data_directory");
         mcpRuntime = await invoke<McpRuntimeInfo>("mcp_runtime_info").catch(() => null);
         mcpExecutable = mcpRuntime?.executable_path || await invoke<string>("mcp_executable_path");
@@ -3345,6 +3363,19 @@
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>{t("about")}</h3><p>flood.md {appVersion}</p></div>
                   <div class="about-brand"><FloodGlyph kind="brand" size={42} /><span><strong>flood.md</strong><small>{t("localTasksNoNoise")}</small></span></div>
+                  {#if installationRuntime}
+                    <div class="installation-runtime">
+                      <span class="installation-runtime-summary"><FloodGlyph kind={installationRuntime.parallel_installed_copy ? "important" : installationRuntime.kind === "installed" ? "connected" : "brand"} size={18} /><span><strong>{t("applicationLaunch")}</strong><small>{installationKindLabel()}</small></span></span>
+                      <div class="installation-path"><code title={installationRuntime.executable_path}>{installationRuntime.executable_path}</code><button onclick={() => openApplicationDirectory(installationRuntime!.directory_path)}><FolderOpen size={14} />{t("openFolder")}</button></div>
+                    </div>
+                    {#if installationRuntime.parallel_installed_copy}
+                      <div class="parallel-install-warning" role="status">
+                        <FloodGlyph kind="important" size={18} />
+                        <span><strong>{t("parallelInstallFound")}</strong><small>{t("parallelInstallDescription")}</small><code title={installationRuntime.parallel_installed_copy}>{installationRuntime.parallel_installed_copy}</code></span>
+                        <button onclick={() => openApplicationDirectory(fileDirectory(installationRuntime!.parallel_installed_copy!))}><FolderOpen size={14} />{t("show")}</button>
+                      </div>
+                    {/if}
+                  {/if}
                   <div class="update-row"><span><strong>{t("updates")}</strong><small>{updateMessage || t("updateViaGithub")}</small>{#if updateState === "downloading"}<progress max="100" value={updateProgress}></progress>{/if}</span>{#if updateState === "available"}<button class="primary-small" onclick={installAvailableUpdate}><Download size={15} />{t("installVersion", { version: availableUpdate?.version ?? "" })}</button>{:else}<button onclick={checkForUpdates} disabled={updateState === "checking" || updateState === "downloading"}><span class:spinning={updateState === "checking"} class="update-icon"><RefreshCw size={15} /></span>{updateState === "checking" ? t("checking") : t("check")}</button>{/if}</div>
                   <button class="settings-action" onclick={() => openUrl("https://github.com/tillwithered/flood.md")}><ExternalLink size={15} />{t("openGithub")}</button>
                 </section>

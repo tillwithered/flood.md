@@ -71,6 +71,14 @@ struct McpRuntimeInfo {
     source: &'static str,
 }
 
+#[derive(Serialize)]
+struct InstallationRuntimeInfo {
+    executable_path: String,
+    directory_path: String,
+    kind: &'static str,
+    parallel_installed_copy: Option<String>,
+}
+
 struct SyncGuard<'a>(&'a AtomicBool);
 
 const TELEGRAM_PROJECT_SYNC_TIMEOUT: Duration = Duration::from_secs(20);
@@ -92,6 +100,95 @@ impl Drop for SyncGuard<'_> {
 
 fn result<T>(value: Result<T, flood_core::StoreError>) -> Result<T, String> {
     value.map_err(|error| error.to_string())
+}
+
+fn paths_match(left: &std::path::Path, right: &std::path::Path) -> bool {
+    match (left.canonicalize(), right.canonicalize()) {
+        (Ok(left), Ok(right)) => left == right,
+        _ => left == right,
+    }
+}
+
+fn expected_windows_install_executable() -> Option<PathBuf> {
+    #[cfg(windows)]
+    {
+        Some(
+            PathBuf::from(std::env::var_os("LOCALAPPDATA")?)
+                .join("flood.md")
+                .join("flood-desktop.exe"),
+        )
+    }
+    #[cfg(not(windows))]
+    {
+        None
+    }
+}
+
+fn classify_installation(
+    executable: &std::path::Path,
+    expected_install: Option<&std::path::Path>,
+    development: bool,
+) -> (&'static str, Option<PathBuf>) {
+    let is_installed = expected_install.is_some_and(|expected| paths_match(executable, expected));
+    let parallel_installed_copy = expected_install
+        .filter(|expected| expected.is_file() && !paths_match(executable, expected))
+        .map(std::path::Path::to_path_buf);
+    let kind = if development {
+        "development"
+    } else if is_installed {
+        "installed"
+    } else {
+        "portable"
+    };
+    (kind, parallel_installed_copy)
+}
+
+#[tauri::command]
+fn installation_runtime_info() -> Result<InstallationRuntimeInfo, String> {
+    let executable = std::env::current_exe()
+        .map_err(|error| format!("Не удалось определить путь приложения: {error}"))?;
+    let directory = executable
+        .parent()
+        .ok_or_else(|| "Не удалось определить папку приложения".to_string())?
+        .to_path_buf();
+    let expected_install = expected_windows_install_executable();
+    let (kind, parallel_installed_copy) = classify_installation(
+        &executable,
+        expected_install.as_deref(),
+        cfg!(debug_assertions),
+    );
+    let parallel_installed_copy =
+        parallel_installed_copy.map(|path| path.to_string_lossy().into_owned());
+
+    Ok(InstallationRuntimeInfo {
+        executable_path: executable.to_string_lossy().into_owned(),
+        directory_path: directory.to_string_lossy().into_owned(),
+        kind,
+        parallel_installed_copy,
+    })
+}
+
+#[tauri::command]
+fn open_application_directory(path: String, app: AppHandle) -> Result<(), String> {
+    let executable = std::env::current_exe()
+        .map_err(|error| format!("Не удалось определить путь приложения: {error}"))?;
+    let current_directory = executable
+        .parent()
+        .ok_or_else(|| "Не удалось определить папку приложения".to_string())?;
+    let requested = PathBuf::from(path);
+    let expected_install = expected_windows_install_executable();
+    let allowed = paths_match(&requested, current_directory)
+        || expected_install
+            .as_deref()
+            .filter(|expected| expected.is_file())
+            .and_then(std::path::Path::parent)
+            .is_some_and(|directory| paths_match(&requested, directory));
+    if !allowed {
+        return Err("Можно открыть только папку текущей или установленной копии".to_string());
+    }
+    app.opener()
+        .open_path(requested.to_string_lossy().into_owned(), None::<&str>)
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -993,6 +1090,8 @@ pub fn run() {
             restore_backup,
             mcp_executable_path,
             mcp_runtime_info,
+            installation_runtime_info,
+            open_application_directory,
             diagnose_store,
             run_mcp_self_check,
             telegram_status,
@@ -1023,7 +1122,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{description_with_source_media, push_sync_error};
+    use super::{classify_installation, description_with_source_media, push_sync_error};
     use flood_core::{SourceMedia, SourceMediaKind};
 
     #[test]
@@ -1053,5 +1152,29 @@ mod tests {
         assert_eq!(errors.len(), 8);
         assert_eq!(errors.first().map(String::as_str), Some("ошибка 0"));
         assert_eq!(errors.last().map(String::as_str), Some("ошибка 7"));
+    }
+
+    #[test]
+    fn installation_classification_distinguishes_dev_installed_and_portable() {
+        let root = std::env::temp_dir().join(format!("flood-install-test-{}", ulid::Ulid::new()));
+        std::fs::create_dir_all(&root).unwrap();
+        let current = root.join("development").join("flood-desktop.exe");
+        let installed = root.join("installed").join("flood-desktop.exe");
+        std::fs::create_dir_all(current.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(installed.parent().unwrap()).unwrap();
+        std::fs::write(&current, b"dev").unwrap();
+        std::fs::write(&installed, b"installed").unwrap();
+
+        let (kind, parallel) = classify_installation(&current, Some(&installed), true);
+        assert_eq!(kind, "development");
+        assert_eq!(parallel.as_deref(), Some(installed.as_path()));
+        let (kind, parallel) = classify_installation(&installed, Some(&installed), false);
+        assert_eq!(kind, "installed");
+        assert!(parallel.is_none());
+        let (kind, parallel) = classify_installation(&current, None, false);
+        assert_eq!(kind, "portable");
+        assert!(parallel.is_none());
+
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
