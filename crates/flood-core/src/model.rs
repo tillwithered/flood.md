@@ -8,8 +8,8 @@ pub struct Project {
     pub title: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub telegram: Option<TelegramProjectLink>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub telegram_chats: Vec<TelegramProjectLink>,
     pub version: String,
 }
 
@@ -17,6 +17,43 @@ pub struct Project {
 pub struct TelegramProjectLink {
     pub chat_id: i64,
     pub title: String,
+    #[serde(default)]
+    pub inbox_mode: TelegramInboxMode,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TelegramInboxMode {
+    Manual,
+    #[default]
+    MentionsAndReplies,
+    All,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum SourceMediaKind {
+    Photo,
+    Video,
+    Document,
+    Audio,
+    Voice,
+    Animation,
+    Other,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct SourceMedia {
+    pub kind: SourceMediaKind,
+    pub file_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_file_id: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mime_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub size: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub relative_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -43,6 +80,72 @@ pub struct MessageSnapshot {
     pub sent_at: Option<DateTime<Utc>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chat_id: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub chat_title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub message_id: Option<i64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub media: Vec<SourceMedia>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum InboxCandidateReason {
+    Manual,
+    Mention,
+    Reply,
+    LinkedChat,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum InboxCandidateStatus {
+    Pending,
+    Dismissed,
+    Imported,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct TelegramInboxCandidate {
+    pub id: String,
+    pub project_id: String,
+    pub chat_id: i64,
+    pub chat_title: String,
+    pub message_id: i64,
+    pub text: String,
+    pub author: String,
+    pub sent_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    pub reason: InboxCandidateReason,
+    pub status: InboxCandidateStatus,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub media: Vec<SourceMedia>,
+    pub discovered_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub processed_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub task_id: Option<String>,
+}
+
+impl TelegramInboxCandidate {
+    pub fn snapshot(&self) -> MessageSnapshot {
+        MessageSnapshot {
+            text: self.text.clone(),
+            author: Some(self.author.clone()),
+            sent_at: Some(self.sent_at),
+            url: self.url.clone(),
+            provider: Some("telegram".into()),
+            chat_id: Some(self.chat_id),
+            chat_title: Some(self.chat_title.clone()),
+            message_id: Some(self.message_id),
+            media: self.media.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]

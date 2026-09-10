@@ -1,6 +1,9 @@
-use flood_core::{CreateTask, Project, Store, Task, TaskPatch, TaskSummary, default_data_dir};
+use flood_core::{
+    CreateTask, InboxCandidateStatus, Project, Store, Task, TaskPatch, TaskSummary,
+    TelegramInboxCandidate, TelegramProjectLink, Urgency, default_data_dir,
+};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
-use std::{path::PathBuf, sync::Mutex};
+use std::{fs, path::PathBuf, sync::Mutex};
 use tauri::{Emitter, Manager, State};
 
 mod telegram;
@@ -37,16 +40,16 @@ fn update_project(
 }
 
 #[tauri::command]
-fn set_project_telegram(
+fn set_project_telegram_chats(
     id: String,
-    telegram: Option<flood_core::TelegramProjectLink>,
+    telegram_chats: Vec<TelegramProjectLink>,
     expected_version: String,
     state: State<'_, AppState>,
 ) -> Result<Project, String> {
     result(
         state
             .store
-            .set_project_telegram(&id, telegram, &expected_version),
+            .set_project_telegram_chats(&id, telegram_chats, &expected_version),
     )
 }
 
@@ -266,12 +269,174 @@ async fn telegram_list_chats(state: State<'_, AppState>) -> Result<Vec<TelegramC
 }
 
 #[tauri::command]
+async fn telegram_search_chats(
+    query: String,
+    limit: i32,
+    state: State<'_, AppState>,
+) -> Result<Vec<TelegramChat>, String> {
+    state.telegram.search_chats(query, limit).await
+}
+
+#[tauri::command]
 async fn telegram_list_messages(
     chat_id: i64,
     limit: i32,
     state: State<'_, AppState>,
 ) -> Result<Vec<TelegramMessage>, String> {
     state.telegram.messages(chat_id, limit).await
+}
+
+#[tauri::command]
+fn telegram_list_inbox(
+    project_id: Option<String>,
+    include_processed: bool,
+    state: State<'_, AppState>,
+) -> Result<Vec<TelegramInboxCandidate>, String> {
+    result(
+        state
+            .store
+            .list_telegram_inbox(project_id.as_deref(), include_processed),
+    )
+}
+
+#[tauri::command]
+async fn telegram_refresh_inbox(
+    project_id: String,
+    limit_per_chat: i32,
+    state: State<'_, AppState>,
+) -> Result<Vec<TelegramInboxCandidate>, String> {
+    let project = result(state.store.get_project(&project_id))?;
+    let candidates = state
+        .telegram
+        .refresh_candidates(&project, limit_per_chat)
+        .await?;
+    result(state.store.upsert_telegram_candidates(candidates))?;
+    result(state.store.list_telegram_inbox(Some(&project_id), false))
+}
+
+#[tauri::command]
+async fn telegram_refresh_all_inboxes(state: State<'_, AppState>) -> Result<usize, String> {
+    let projects = result(state.store.list_projects())?;
+    let mut added = 0;
+    let mut first_error = None;
+    let mut scanned = 0;
+    for project in projects
+        .into_iter()
+        .filter(|project| !project.telegram_chats.is_empty())
+    {
+        match state.telegram.refresh_candidates(&project, 40).await {
+            Ok(candidates) => {
+                scanned += 1;
+                added += result(state.store.upsert_telegram_candidates(candidates))?;
+            }
+            Err(error) => {
+                first_error.get_or_insert(error);
+            }
+        };
+    }
+    if scanned == 0
+        && let Some(error) = first_error
+    {
+        return Err(error);
+    }
+    Ok(added)
+}
+
+#[tauri::command]
+async fn telegram_add_inbox_message(
+    project_id: String,
+    chat_id: i64,
+    message_id: i64,
+    state: State<'_, AppState>,
+) -> Result<TelegramInboxCandidate, String> {
+    let project = result(state.store.get_project(&project_id))?;
+    let link = project
+        .telegram_chats
+        .iter()
+        .find(|link| link.chat_id == chat_id)
+        .ok_or_else(|| "Этот Telegram-чат не связан с проектом".to_string())?;
+    let candidate = state
+        .telegram
+        .manual_candidate(&project_id, link, message_id)
+        .await?;
+    result(
+        state
+            .store
+            .upsert_telegram_candidates(vec![candidate.clone()]),
+    )?;
+    Ok(candidate)
+}
+
+#[tauri::command]
+fn telegram_set_candidate_status(
+    candidate_id: String,
+    status: InboxCandidateStatus,
+    state: State<'_, AppState>,
+) -> Result<TelegramInboxCandidate, String> {
+    result(
+        state
+            .store
+            .set_telegram_candidate_status(&candidate_id, status),
+    )
+}
+
+#[tauri::command]
+fn telegram_create_task_from_candidate(
+    candidate_id: String,
+    description: Option<String>,
+    urgency: Urgency,
+    state: State<'_, AppState>,
+) -> Result<Task, String> {
+    result(state.store.create_task_from_telegram_candidate(
+        &candidate_id,
+        description.as_deref(),
+        urgency,
+    ))
+}
+
+#[tauri::command]
+async fn telegram_download_source_media(
+    task_id: String,
+    media_index: usize,
+    state: State<'_, AppState>,
+) -> Result<Task, String> {
+    let mut task = result(state.store.get_task(&task_id))?;
+    let media = task
+        .source
+        .as_ref()
+        .and_then(|source| source.media.get(media_index))
+        .cloned()
+        .ok_or_else(|| "Медиафайл источника не найден".to_string())?;
+    if media.relative_path.is_some() {
+        return Ok(task);
+    }
+    if media.size.is_some_and(|size| size > 25 * 1024 * 1024) {
+        return Err("Медиафайл больше допустимых 25 МБ".into());
+    }
+    let file_id = media
+        .provider_file_id
+        .ok_or_else(|| "У медиафайла нет идентификатора Telegram".to_string())?;
+    let downloaded = state.telegram.download_file(file_id).await?;
+    let bytes = fs::read(downloaded).map_err(|error| error.to_string())?;
+    state.telegram.release_downloaded_file(file_id).await;
+    let relative_path = result(state.store.save_task_attachment(
+        &task_id,
+        &media.file_name,
+        &bytes,
+    ))?;
+    let mut source = task
+        .source
+        .take()
+        .ok_or_else(|| "Источник задачи не найден".to_string())?;
+    source.media[media_index].relative_path = Some(relative_path);
+    result(state.store.update_task(
+        &task_id,
+        TaskPatch {
+            source: Some(Some(source)),
+            ..TaskPatch::default()
+        },
+        &task.version,
+    ))
 }
 
 #[tauri::command]
@@ -295,10 +460,10 @@ pub fn run() {
                     }
                 })?;
             watcher.watch(store.root(), RecursiveMode::Recursive)?;
-            let telegram = TelegramManager::new(
-                app.handle().clone(),
-                app.path().app_local_data_dir()?.join("telegram"),
-            );
+            let telegram_root = std::env::var_os("FLOOD_TELEGRAM_DIR")
+                .map(PathBuf::from)
+                .unwrap_or(app.path().app_local_data_dir()?.join("telegram"));
+            let telegram = TelegramManager::new(app.handle().clone(), telegram_root);
             app.manage(AppState {
                 store,
                 _watcher: Mutex::new(watcher),
@@ -310,7 +475,7 @@ pub fn run() {
             list_projects,
             create_project,
             update_project,
-            set_project_telegram,
+            set_project_telegram_chats,
             delete_project,
             list_tasks,
             get_task,
@@ -338,7 +503,15 @@ pub fn run() {
             telegram_submit_code,
             telegram_submit_password,
             telegram_list_chats,
+            telegram_search_chats,
             telegram_list_messages,
+            telegram_list_inbox,
+            telegram_refresh_inbox,
+            telegram_refresh_all_inboxes,
+            telegram_add_inbox_message,
+            telegram_set_candidate_status,
+            telegram_create_task_from_candidate,
+            telegram_download_source_media,
             telegram_disconnect
         ])
         .run(tauri::generate_context!())

@@ -1,5 +1,6 @@
 use flood_core::{
-    CreateTask, MessageSnapshot, Project, Store, Task, TaskPatch, TaskStatus, TaskSummary, Urgency,
+    CreateTask, InboxCandidateStatus, MessageSnapshot, Project, SourceMedia, SourceMediaKind,
+    Store, Task, TaskPatch, TaskStatus, TaskSummary, TelegramInboxCandidate, Urgency,
     default_data_dir,
 };
 use rmcp::{
@@ -43,6 +44,22 @@ struct SnapshotArgs {
     author: Option<String>,
     sent_at: Option<String>,
     url: Option<String>,
+    provider: Option<String>,
+    chat_id: Option<i64>,
+    chat_title: Option<String>,
+    message_id: Option<i64>,
+    #[serde(default)]
+    media: Vec<SourceMediaArgs>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct SourceMediaArgs {
+    kind: String,
+    file_name: String,
+    provider_file_id: Option<i32>,
+    mime_type: Option<String>,
+    size: Option<u64>,
+    relative_path: Option<String>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -78,6 +95,31 @@ struct MoveTaskArgs {
     expected_version: String,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ListTelegramInboxArgs {
+    project_id: Option<String>,
+    #[serde(default)]
+    include_processed: bool,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct CandidateIdArgs {
+    candidate_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct CreateTaskFromCandidateArgs {
+    candidate_id: String,
+    description: Option<String>,
+    urgency: Option<String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct SetCandidateStatusArgs {
+    candidate_id: String,
+    status: String,
+}
+
 #[derive(Debug, Serialize, schemars::JsonSchema)]
 struct ProjectsOutput {
     projects: Vec<Project>,
@@ -106,6 +148,16 @@ struct MutationOutput {
 #[derive(Debug, Serialize, schemars::JsonSchema)]
 struct DeleteCountOutput {
     deleted: usize,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramInboxOutput {
+    candidates: Vec<TelegramInboxCandidate>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramCandidateOutput {
+    candidate: TelegramInboxCandidate,
 }
 
 #[tool_router(server_handler)]
@@ -227,6 +279,85 @@ impl FloodServer {
         self.store
             .get_task(&args.id)
             .map(|task| Json(TaskOutput { task }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Получить локальную очередь Telegram-кандидатов. По умолчанию возвращаются только необработанные сообщения; переписка целиком не загружается",
+        annotations(
+            title = "Входящие из Telegram",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn list_telegram_inbox(
+        &self,
+        Parameters(args): Parameters<ListTelegramInboxArgs>,
+    ) -> Result<Json<TelegramInboxOutput>, String> {
+        self.store
+            .list_telegram_inbox(args.project_id.as_deref(), args.include_processed)
+            .map(|candidates| Json(TelegramInboxOutput { candidates }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Прочитать один Telegram-кандидат с локальным снимком текста, метаданными и списком медиа",
+        annotations(
+            title = "Прочитать Telegram-кандидат",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn get_telegram_candidate(
+        &self,
+        Parameters(args): Parameters<CandidateIdArgs>,
+    ) -> Result<Json<TelegramCandidateOutput>, String> {
+        self.store
+            .get_telegram_candidate(&args.candidate_id)
+            .map(|candidate| Json(TelegramCandidateOutput { candidate }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Создать задачу из Telegram-кандидата и сохранить снимок источника. Повторный вызов для уже импортированного кандидата возвращает ту же задачу",
+        annotations(
+            title = "Создать задачу из Telegram",
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn create_task_from_telegram_candidate(
+        &self,
+        Parameters(args): Parameters<CreateTaskFromCandidateArgs>,
+    ) -> Result<Json<TaskOutput>, String> {
+        self.store
+            .create_task_from_telegram_candidate(
+                &args.candidate_id,
+                args.description.as_deref(),
+                parse_urgency(args.urgency.as_deref().unwrap_or("normal"))?,
+            )
+            .map(|task| Json(TaskOutput { task }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Изменить состояние Telegram-кандидата: pending возвращает во входящие, dismissed скрывает как нерелевантный",
+        annotations(title = "Обработать Telegram-кандидат", open_world_hint = false)
+    )]
+    fn set_telegram_candidate_status(
+        &self,
+        Parameters(args): Parameters<SetCandidateStatusArgs>,
+    ) -> Result<Json<TelegramCandidateOutput>, String> {
+        let status = match args.status.as_str() {
+            "pending" => InboxCandidateStatus::Pending,
+            "dismissed" => InboxCandidateStatus::Dismissed,
+            _ => return Err("status должен быть pending или dismissed".into()),
+        };
+        self.store
+            .set_telegram_candidate_status(&args.candidate_id, status)
+            .map(|candidate| Json(TelegramCandidateOutput { candidate }))
             .map_err(store_error)
     }
 
@@ -424,6 +555,41 @@ fn parse_snapshot(value: SnapshotArgs) -> Result<MessageSnapshot, String> {
         author: value.author,
         sent_at,
         url: value.url,
+        provider: value.provider,
+        chat_id: value.chat_id,
+        chat_title: value.chat_title,
+        message_id: value.message_id,
+        media: value
+            .media
+            .into_iter()
+            .map(parse_source_media)
+            .collect::<Result<_, _>>()?,
+    })
+}
+
+fn parse_source_media(value: SourceMediaArgs) -> Result<SourceMedia, String> {
+    let kind = match value.kind.as_str() {
+        "photo" => SourceMediaKind::Photo,
+        "video" => SourceMediaKind::Video,
+        "document" => SourceMediaKind::Document,
+        "audio" => SourceMediaKind::Audio,
+        "voice" => SourceMediaKind::Voice,
+        "animation" => SourceMediaKind::Animation,
+        "other" => SourceMediaKind::Other,
+        _ => {
+            return Err(
+                "media.kind должен быть photo, video, document, audio, voice, animation или other"
+                    .into(),
+            );
+        }
+    };
+    Ok(SourceMedia {
+        kind,
+        file_name: value.file_name,
+        provider_file_id: value.provider_file_id,
+        mime_type: value.mime_type,
+        size: value.size,
+        relative_path: value.relative_path,
     })
 }
 
@@ -459,6 +625,17 @@ mod tests {
         let _server = server();
         let tools = FloodServer::tool_router().list_all();
         assert!(tools.iter().all(|tool| tool.output_schema.is_some()));
+        for name in [
+            "list_telegram_inbox",
+            "get_telegram_candidate",
+            "create_task_from_telegram_candidate",
+            "set_telegram_candidate_status",
+        ] {
+            assert!(
+                tools.iter().any(|tool| tool.name == name),
+                "нет MCP tool {name}"
+            );
+        }
 
         let list = tools
             .iter()
