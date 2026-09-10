@@ -122,6 +122,11 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .find(|tool| tool["name"] == "search_tasks")
         .unwrap();
     assert_eq!(search_tasks["annotations"]["readOnlyHint"], true);
+    let task_digest = tools
+        .iter()
+        .find(|tool| tool["name"] == "get_task_digest")
+        .unwrap();
+    assert_eq!(task_digest["annotations"]["readOnlyHint"], true);
 
     send(
         &mut stdin,
@@ -302,6 +307,26 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     assert_eq!(search["result"]["structuredContent"]["total_matches"], 1);
     assert_eq!(
         search["result"]["structuredContent"]["matches"][0]["id"],
+        created_task["result"]["structuredContent"]["task"]["id"]
+    );
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 12,
+            "method": "tools/call",
+            "params": {
+                "name": "get_task_digest",
+                "arguments": { "urgencies": ["important"], "limit": 5 }
+            }
+        }),
+    );
+    let digest = receive(&mut stdout, 12);
+    assert_eq!(digest["result"]["isError"], false);
+    assert_eq!(digest["result"]["structuredContent"]["counts"]["total"], 1);
+    assert_eq!(
+        digest["result"]["structuredContent"]["tasks"][0]["id"],
         created_task["result"]["structuredContent"]["task"]["id"]
     );
 

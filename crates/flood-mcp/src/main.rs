@@ -41,6 +41,20 @@ struct SearchTasksArgs {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct TaskDigestArgs {
+    project_id: Option<String>,
+    #[serde(default)]
+    include_completed: bool,
+    /// Необязательный фильтр: normal, important, urgent.
+    #[serde(default)]
+    urgencies: Vec<String>,
+    /// Идентификатор последней задачи из предыдущей порции.
+    cursor: Option<String>,
+    /// Размер порции от 1 до 50. По умолчанию 20.
+    limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct CreateProjectArgs {
     title: String,
 }
@@ -205,6 +219,38 @@ struct SearchTasksOutput {
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
+struct CompactTaskOutput {
+    id: String,
+    project_id: String,
+    project_title: String,
+    title: String,
+    snippet: String,
+    urgency: Urgency,
+    status: TaskStatus,
+    updated_at: String,
+    has_source: bool,
+    version: String,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TaskDigestCounts {
+    total: usize,
+    open: usize,
+    completed: usize,
+    normal: usize,
+    important: usize,
+    urgent: usize,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TaskDigestOutput {
+    tasks: Vec<CompactTaskOutput>,
+    counts: TaskDigestCounts,
+    next_cursor: Option<String>,
+    remaining: usize,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TaskOutput {
     task: Task,
 }
@@ -289,6 +335,7 @@ impl FloodServer {
                 "projects",
                 "tasks",
                 "bounded_task_search",
+                "bounded_task_digest",
                 "telegram_inbox",
                 "bounded_telegram_triage",
                 "telegram_sync_status",
@@ -500,6 +547,109 @@ impl FloodServer {
             truncated: total_matches > matches.len(),
             total_matches,
             matches,
+        }))
+    }
+
+    #[tool(
+        description = "Получить компактный приоритетный дайджест задач без полных Markdown-документов. Можно ограничить проект и срочность; открытые срочные задачи идут первыми. Возвращает счётчики, до 50 коротких карточек, next_cursor и число оставшихся. Используйте вместо list_tasks для обзора нагрузки",
+        annotations(
+            title = "Дайджест задач",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn get_task_digest(
+        &self,
+        Parameters(args): Parameters<TaskDigestArgs>,
+    ) -> Result<Json<TaskDigestOutput>, String> {
+        if let Some(project_id) = args.project_id.as_deref() {
+            self.store.get_project(project_id).map_err(store_error)?;
+        }
+        let urgency_filter = args
+            .urgencies
+            .iter()
+            .map(|value| parse_urgency(value))
+            .collect::<Result<Vec<_>, _>>()?;
+        let project_titles = self
+            .store
+            .list_projects()
+            .map_err(store_error)?
+            .into_iter()
+            .map(|project| (project.id, project.title))
+            .collect::<std::collections::HashMap<_, _>>();
+        let mut tasks = self
+            .store
+            .list_tasks(args.project_id.as_deref(), args.include_completed)
+            .map_err(store_error)?
+            .into_iter()
+            .filter(|task| urgency_filter.is_empty() || urgency_filter.contains(&task.urgency))
+            .collect::<Vec<_>>();
+        tasks.sort_by(|left, right| {
+            task_status_rank(&left.status)
+                .cmp(&task_status_rank(&right.status))
+                .then_with(|| {
+                    task_urgency_rank(&left.urgency).cmp(&task_urgency_rank(&right.urgency))
+                })
+                .then_with(|| right.updated_at.cmp(&left.updated_at))
+                .then_with(|| left.id.cmp(&right.id))
+        });
+        let counts = TaskDigestCounts {
+            total: tasks.len(),
+            open: tasks
+                .iter()
+                .filter(|task| task.status == TaskStatus::Open)
+                .count(),
+            completed: tasks
+                .iter()
+                .filter(|task| task.status == TaskStatus::Completed)
+                .count(),
+            normal: tasks
+                .iter()
+                .filter(|task| task.urgency == Urgency::Normal)
+                .count(),
+            important: tasks
+                .iter()
+                .filter(|task| task.urgency == Urgency::Important)
+                .count(),
+            urgent: tasks
+                .iter()
+                .filter(|task| task.urgency == Urgency::Urgent)
+                .count(),
+        };
+        let start = match args.cursor.as_deref() {
+            Some(cursor) => tasks
+                .iter()
+                .position(|task| task.id == cursor)
+                .map(|index| index + 1)
+                .ok_or_else(|| {
+                    "cursor не найден в текущем дайджесте; начните заново".to_string()
+                })?,
+            None => 0,
+        };
+        let limit = args.limit.unwrap_or(20).clamp(1, 50);
+        let remaining = tasks.len().saturating_sub(start);
+        let page = tasks
+            .into_iter()
+            .skip(start)
+            .take(limit)
+            .map(|task| {
+                let project_title = project_titles
+                    .get(&task.project_id)
+                    .cloned()
+                    .unwrap_or_else(|| "Неизвестный проект".into());
+                compact_task_output(task, project_title)
+            })
+            .collect::<Vec<_>>();
+        let remaining = remaining.saturating_sub(page.len());
+        let next_cursor = (remaining > 0)
+            .then(|| page.last().map(|task| task.id.clone()))
+            .flatten();
+        Ok(Json(TaskDigestOutput {
+            tasks: page,
+            counts,
+            next_cursor,
+            remaining,
         }))
     }
 
@@ -1052,6 +1202,45 @@ fn task_search_hit(
     })
 }
 
+fn compact_task_output(task: TaskSummary, project_title: String) -> CompactTaskOutput {
+    let title = compact_search_text(
+        task.description
+            .lines()
+            .find(|line| !line.trim().is_empty())
+            .unwrap_or("Без названия"),
+        120,
+    )
+    .trim_start_matches(['#', '-', '*', ' '])
+    .to_owned();
+    CompactTaskOutput {
+        id: task.id,
+        project_id: task.project_id,
+        project_title,
+        title,
+        snippet: compact_search_text(&task.description, 180),
+        urgency: task.urgency,
+        status: task.status,
+        updated_at: task.updated_at.to_rfc3339(),
+        has_source: task.has_source,
+        version: task.version,
+    }
+}
+
+fn task_status_rank(status: &TaskStatus) -> u8 {
+    match status {
+        TaskStatus::Open => 0,
+        TaskStatus::Completed => 1,
+    }
+}
+
+fn task_urgency_rank(urgency: &Urgency) -> u8 {
+    match urgency {
+        Urgency::Urgent => 0,
+        Urgency::Important => 1,
+        Urgency::Normal => 2,
+    }
+}
+
 fn compact_search_text(value: &str, max_chars: usize) -> String {
     let normalized = value.split_whitespace().collect::<Vec<_>>().join(" ");
     if normalized.chars().count() <= max_chars {
@@ -1170,6 +1359,7 @@ mod tests {
             "get_runtime_info",
             "run_self_check",
             "search_tasks",
+            "get_task_digest",
             "get_telegram_sync_status",
             "list_telegram_inbox",
             "get_telegram_triage_batch",
@@ -1399,6 +1589,64 @@ mod tests {
                 }))
                 .is_err()
         );
+    }
+
+    #[test]
+    fn task_digest_prioritizes_urgent_work_and_paginates() {
+        let server = server();
+        let project = server
+            .create_project(Parameters(CreateProjectArgs {
+                title: "Релиз".into(),
+            }))
+            .unwrap()
+            .0
+            .project;
+        for (description, urgency) in [
+            ("Обычная задача", "normal"),
+            ("Важная задача", "important"),
+            ("Срочная задача", "urgent"),
+        ] {
+            server
+                .create_task(Parameters(CreateTaskArgs {
+                    project_id: project.id.clone(),
+                    description: description.into(),
+                    urgency: Some(urgency.into()),
+                    source: None,
+                }))
+                .unwrap();
+        }
+
+        let first = server
+            .get_task_digest(Parameters(TaskDigestArgs {
+                project_id: Some(project.id.clone()),
+                include_completed: false,
+                urgencies: Vec::new(),
+                cursor: None,
+                limit: Some(2),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(first.counts.total, 3);
+        assert_eq!(first.counts.urgent, 1);
+        assert_eq!(first.tasks[0].urgency, Urgency::Urgent);
+        assert_eq!(first.tasks[1].urgency, Urgency::Important);
+        assert_eq!(first.remaining, 1);
+        assert!(first.next_cursor.is_some());
+
+        let second = server
+            .get_task_digest(Parameters(TaskDigestArgs {
+                project_id: Some(project.id),
+                include_completed: false,
+                urgencies: Vec::new(),
+                cursor: first.next_cursor,
+                limit: Some(2),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(second.tasks.len(), 1);
+        assert_eq!(second.tasks[0].urgency, Urgency::Normal);
+        assert_eq!(second.remaining, 0);
+        assert!(second.next_cursor.is_none());
     }
 
     #[test]
