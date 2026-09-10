@@ -2060,6 +2060,49 @@ fn run_isolated_self_check(root: &Path, checks: &mut Vec<SelfCheckItem>) -> Resu
         return Err("Проверка запроса синхронизации Telegram не пройдена".into());
     }
 
+    let first_activity = store
+        .record_activity(RecordActivity {
+            source: ActivitySource::Mcp,
+            action: ActivityAction::ProjectCreated,
+            entity_kind: ActivityEntityKind::Project,
+            entity_id: Some(project.id.clone()),
+            project_id: Some(project.id.clone()),
+            reversible: true,
+        })
+        .map_err(|error| error.to_string())?;
+    let second_activity = store
+        .record_activity(RecordActivity {
+            source: ActivitySource::Mcp,
+            action: ActivityAction::TaskCompleted,
+            entity_kind: ActivityEntityKind::Task,
+            entity_id: Some(completed.id.clone()),
+            project_id: Some(completed.project_id.clone()),
+            reversible: true,
+        })
+        .map_err(|error| error.to_string())?;
+    let first_page = store
+        .list_activity(None, 1)
+        .map_err(|error| error.to_string())?;
+    let second_page = Store::new(root)
+        .and_then(|reopened| reopened.list_activity(first_page.next_cursor.as_deref(), 1))
+        .map_err(|error| error.to_string())?;
+    let activity_ok = first_page.total == 2
+        && first_page.remaining == 1
+        && first_page.events.first().map(|event| event.id.as_str())
+            == Some(second_activity.id.as_str())
+        && second_page.remaining == 0
+        && second_page.events.first().map(|event| event.id.as_str())
+            == Some(first_activity.id.as_str());
+    checks.push(SelfCheckItem {
+        name: "Ограниченный журнал действий MCP".into(),
+        passed: activity_ok,
+        detail: (!activity_ok)
+            .then(|| "Журнал не сохранился, нарушил порядок или пагинацию".into()),
+    });
+    if !activity_ok {
+        return Err("Проверка журнала действий MCP не пройдена".into());
+    }
+
     let diagnostics = store.diagnostics();
     checks.push(SelfCheckItem {
         name: "Диагностика Markdown-хранилища".into(),
@@ -3406,6 +3449,16 @@ mod tests {
         store
             .upsert_telegram_candidates(vec![candidate.clone()])
             .unwrap();
+        let backed_up_activity = store
+            .record_activity(RecordActivity {
+                source: ActivitySource::Mcp,
+                action: ActivityAction::TaskCreated,
+                entity_kind: ActivityEntityKind::Task,
+                entity_id: Some(task.id.clone()),
+                project_id: Some(task.project_id.clone()),
+                reversible: true,
+            })
+            .unwrap();
         let transient_sync_request = store.request_telegram_sync().unwrap();
         let archive = env::temp_dir().join(format!("flood-backup-test-{}.zip", Ulid::new()));
         store.create_backup(&archive).unwrap();
@@ -3429,6 +3482,16 @@ mod tests {
         store
             .set_telegram_candidate_status(&candidate.id, InboxCandidateStatus::Dismissed)
             .unwrap();
+        store
+            .record_activity(RecordActivity {
+                source: ActivitySource::Mcp,
+                action: ActivityAction::TaskUpdated,
+                entity_kind: ActivityEntityKind::Task,
+                entity_id: Some(task.id.clone()),
+                project_id: Some(task.project_id.clone()),
+                reversible: false,
+            })
+            .unwrap();
 
         store.restore_backup(&archive).unwrap();
         assert_eq!(
@@ -3440,6 +3503,9 @@ mod tests {
             b"backup-image"
         );
         assert_eq!(store.list_telegram_inbox(None, false).unwrap().len(), 1);
+        let restored_activity = store.list_activity(None, 10).unwrap();
+        assert_eq!(restored_activity.total, 1);
+        assert_eq!(restored_activity.events[0].id, backed_up_activity.id);
         assert!(store.telegram_sync_request().unwrap().is_none());
         let _ = fs::remove_file(archive);
     }

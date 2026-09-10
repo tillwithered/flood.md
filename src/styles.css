@@ -860,6 +860,8 @@ button { color: inherit; }
 .mcp-code pre { min-width: 0; margin: 0; overflow: auto; color: var(--muted); font: var(--font-size-min)/1.5 "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; scrollbar-width: thin; }
 .mcp-code .icon-button { align-self: start; }
 .mcp-hint { margin: -4px 0 0; color: var(--faint); font-size: var(--font-size-min); line-height: 1.45; }
+.mcp-dev-hint { display: flex; align-items: flex-start; gap: 6px; color: var(--success-ink); }
+.mcp-dev-hint svg { flex: 0 0 auto; margin-top: 2px; }
 .mcp-examples { gap: 11px; }
 .mcp-example-list { display: grid; gap: 4px; }
 .mcp-example-list > button { display: grid; min-width: 0; min-height: 44px; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 8px; border: 0; border-radius: 9px; background: var(--surface); color: var(--muted); font: inherit; text-align: left; cursor: pointer; transition: background-color 120ms ease, color 120ms ease, transform 120ms ease; }

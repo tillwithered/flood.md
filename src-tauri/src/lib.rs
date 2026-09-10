@@ -67,6 +67,8 @@ struct TelegramSyncResult {
 #[derive(Serialize)]
 struct McpRuntimeInfo {
     executable_path: String,
+    launch_command: String,
+    launch_args: Vec<String>,
     available: bool,
     version: Option<String>,
     app_version: String,
@@ -529,17 +531,45 @@ fn mcp_runtime_info(app: tauri::AppHandle) -> Result<McpRuntimeInfo, String> {
         .flatten();
     let app_version = app.package_info().version.to_string();
     let compatible = version.as_deref() == Some(app_version.as_str());
+    let (launch_command, launch_args) = mcp_launch_spec(&executable, source);
     Ok(McpRuntimeInfo {
         executable_path: executable
             .to_string_lossy()
             .trim_start_matches(r"\\?\")
             .to_owned(),
+        launch_command,
+        launch_args,
         available,
         version,
         app_version,
         compatible,
         source,
     })
+}
+
+fn mcp_launch_spec(executable: &Path, source: &str) -> (String, Vec<String>) {
+    if source == "development" {
+        let launcher = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")))
+            .join("scripts")
+            .join("run-flood-mcp-dev.ps1");
+        if launcher.is_file() {
+            return (
+                "powershell.exe".into(),
+                vec![
+                    "-NoLogo".into(),
+                    "-NoProfile".into(),
+                    "-NonInteractive".into(),
+                    "-ExecutionPolicy".into(),
+                    "Bypass".into(),
+                    "-File".into(),
+                    launcher.to_string_lossy().into_owned(),
+                ],
+            );
+        }
+    }
+    (executable.to_string_lossy().into_owned(), Vec::new())
 }
 
 #[tauri::command]
@@ -1244,7 +1274,9 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{classify_installation, description_with_source_media, push_sync_error};
+    use super::{
+        classify_installation, description_with_source_media, mcp_launch_spec, push_sync_error,
+    };
     use flood_core::{SourceMedia, SourceMediaKind};
 
     #[test]
@@ -1298,5 +1330,20 @@ mod tests {
         assert!(parallel.is_none());
 
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn development_mcp_uses_an_unlocked_temporary_launcher() {
+        let executable = std::path::Path::new(r"C:\workspace\target\debug\flood-mcp.exe");
+        let (command, args) = mcp_launch_spec(executable, "development");
+        assert_eq!(command, "powershell.exe");
+        assert!(args.iter().any(|arg| arg == "-NonInteractive"));
+        let launcher = args.last().expect("launcher path");
+        assert!(launcher.ends_with("run-flood-mcp-dev.ps1"));
+        assert!(std::path::Path::new(launcher).is_file());
+
+        let (command, args) = mcp_launch_spec(executable, "bundled");
+        assert_eq!(command, executable.to_string_lossy());
+        assert!(args.is_empty());
     }
 }

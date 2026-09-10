@@ -80,7 +80,7 @@
   type SelfCheckResult = { passed: boolean; duration_ms: number; checks: SelfCheckItem[] };
   type McpCheckState = "idle" | "checking" | "success" | "error";
   type McpClient = "codex" | "claude" | "cursor" | "manual";
-  type McpRuntimeInfo = { executable_path: string; available: boolean; version?: string; app_version: string; compatible: boolean; source: "bundled" | "development" };
+  type McpRuntimeInfo = { executable_path: string; launch_command: string; launch_args: string[]; available: boolean; version?: string; app_version: string; compatible: boolean; source: "bundled" | "development" };
   type InstallationRuntimeInfo = { executable_path: string; directory_path: string; kind: "installed" | "development" | "portable"; parallel_installed_copy?: string };
   type ActivityAction = "project_created" | "project_updated" | "project_deleted" | "task_created" | "task_updated" | "task_completed" | "task_moved" | "task_trashed" | "task_restored" | "task_deleted" | "trash_emptied" | "telegram_task_created" | "telegram_candidate_dismissed" | "telegram_candidate_restored" | "telegram_sync_requested";
   type ActivityEvent = { id: string; occurred_at: string; source: "mcp"; action: ActivityAction; entity_kind: "workspace" | "project" | "task" | "telegram_candidate"; entity_id?: string; project_id?: string; reversible: boolean };
@@ -2129,12 +2129,13 @@
   }
 
   function mcpConfiguration(client: McpClient) {
-    const executable = mcpExecutable || "flood-mcp.exe";
+    const executable = mcpRuntime?.launch_command || mcpExecutable || "flood-mcp.exe";
+    const args = mcpRuntime?.launch_args ?? [];
     if (client === "codex") {
-      return `[mcp_servers.flood]\ncommand = ${JSON.stringify(executable)}`;
+      return `[mcp_servers.flood]\ncommand = ${JSON.stringify(executable)}${args.length ? `\nargs = ${JSON.stringify(args)}` : ""}`;
     }
-    if (client === "manual") return executable;
-    return JSON.stringify({ mcpServers: { flood: { command: executable } } }, null, 2);
+    if (client === "manual") return [executable, ...args.map((arg) => JSON.stringify(arg))].join(" ");
+    return JSON.stringify({ mcpServers: { flood: { command: executable, ...(args.length ? { args } : {}) } } }, null, 2);
   }
 
   function mcpRuntimeLabel() {
@@ -3131,7 +3132,7 @@
     settingsSection = "mcp";
     appVersion = "0.1.3";
     mcpExecutable = "C:\\Program Files\\flood.md\\flood-mcp.exe";
-    mcpRuntime = { executable_path: mcpExecutable, available: true, version: "0.1.3", app_version: "0.1.3", compatible: true, source: "bundled" };
+    mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.1.3", app_version: "0.1.3", compatible: true, source: "bundled" };
     storeDiagnostics = { healthy: true, root: "preview", format_version: 1, project_count: 4, linked_chat_count: 2, open_task_count: 12, completed_task_count: 8, trashed_task_count: 1, pending_inbox_count: 5, issues: [] };
     mcpSelfCheck = { passed: true, duration_ms: 34, checks: [
       { name: "Изолированное хранилище", passed: true },
@@ -3894,6 +3895,7 @@
                     </div>
                     <div class="mcp-code" title={mcpExecutable || "flood-mcp.exe"}><pre>{mcpConfiguration(mcpClient)}</pre><button class="icon-button" aria-label={t("copyConfiguration")} title={copied ? t("copied") : t("copyConfiguration")} onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div>
                     <p class="mcp-hint">{t("restartMcpClient")}</p>
+                    {#if mcpRuntime?.source === "development"}<p class="mcp-hint mcp-dev-hint"><ShieldCheck size={13} />{t("mcpDevLauncherDescription")}</p>{/if}
                   </div>
 
                   <div class="mcp-block mcp-examples">
