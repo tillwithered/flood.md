@@ -63,6 +63,7 @@ pub struct TelegramMessage {
     pub media: Vec<SourceMedia>,
     pub is_mention: bool,
     pub is_reply_to_me: bool,
+    pub linked_task: Option<flood_core::TelegramLinkedTask>,
 }
 
 struct TelegramInner {
@@ -330,6 +331,7 @@ impl TelegramManager {
                 media,
                 is_mention: group.iter().any(|item| item.contains_unread_mention),
                 is_reply_to_me,
+                linked_task: None,
             });
         }
         Ok(result)
@@ -484,6 +486,7 @@ impl TelegramManager {
             chat_id: link.chat_id,
             chat_title: link.title.clone(),
             message_id: message.id,
+            message_ids: messages.iter().map(|message| message.id).collect(),
             text,
             author,
             sent_at,
@@ -494,6 +497,7 @@ impl TelegramManager {
             discovered_at: Utc::now(),
             processed_at: None,
             task_id: None,
+            linked_task: None,
         })
     }
 

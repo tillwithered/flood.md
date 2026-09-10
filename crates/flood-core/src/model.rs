@@ -72,6 +72,15 @@ pub enum TaskStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct TelegramLinkedTask {
+    pub id: String,
+    pub title: String,
+    pub urgency: Urgency,
+    pub status: TaskStatus,
+    pub trashed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct MessageSnapshot {
     pub text: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -88,6 +97,8 @@ pub struct MessageSnapshot {
     pub chat_title: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub message_id: Option<i64>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub message_ids: Vec<i64>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub media: Vec<SourceMedia>,
 }
@@ -116,6 +127,8 @@ pub struct TelegramInboxCandidate {
     pub chat_id: i64,
     pub chat_title: String,
     pub message_id: i64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub message_ids: Vec<i64>,
     pub text: String,
     pub author: String,
     pub sent_at: DateTime<Utc>,
@@ -130,6 +143,8 @@ pub struct TelegramInboxCandidate {
     pub processed_at: Option<DateTime<Utc>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub task_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub linked_task: Option<TelegramLinkedTask>,
 }
 
 impl TelegramInboxCandidate {
@@ -143,7 +158,30 @@ impl TelegramInboxCandidate {
             chat_id: Some(self.chat_id),
             chat_title: Some(self.chat_title.clone()),
             message_id: Some(self.message_id),
+            message_ids: if self.message_ids.is_empty() {
+                vec![self.message_id]
+            } else {
+                self.message_ids.clone()
+            },
             media: self.media.clone(),
+        }
+    }
+}
+
+impl From<&Task> for TelegramLinkedTask {
+    fn from(task: &Task) -> Self {
+        Self {
+            id: task.id.clone(),
+            title: task
+                .description
+                .lines()
+                .find(|line| !line.trim().is_empty())
+                .map(str::trim)
+                .unwrap_or("Без названия")
+                .to_owned(),
+            urgency: task.urgency.clone(),
+            status: task.status.clone(),
+            trashed: task.trashed_at.is_some(),
         }
     }
 }

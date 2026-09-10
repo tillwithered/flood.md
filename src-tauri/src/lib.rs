@@ -1,9 +1,17 @@
 use flood_core::{
-    CreateTask, InboxCandidateStatus, Project, Store, Task, TaskPatch, TaskSummary,
-    TelegramInboxCandidate, TelegramProjectLink, Urgency, default_data_dir,
+    CreateTask, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind, Store, Task,
+    TaskPatch, TaskSummary, TelegramInboxCandidate, TelegramProjectLink, Urgency, default_data_dir,
 };
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
-use std::{fs, path::PathBuf, sync::Mutex};
+use serde::Serialize;
+use std::{
+    fs,
+    path::PathBuf,
+    sync::{
+        Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
+};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
 
@@ -14,6 +22,27 @@ struct AppState {
     store: Store,
     _watcher: Mutex<RecommendedWatcher>,
     telegram: TelegramManager,
+    telegram_media_syncing: AtomicBool,
+}
+
+#[derive(Serialize)]
+struct TelegramTaskCreationResult {
+    task: Task,
+    media_errors: Vec<String>,
+}
+
+#[derive(Serialize)]
+struct TelegramMediaSyncResult {
+    downloaded: usize,
+    failed: usize,
+}
+
+struct MediaSyncGuard<'a>(&'a AtomicBool);
+
+impl Drop for MediaSyncGuard<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
+    }
 }
 
 fn result<T>(value: Result<T, flood_core::StoreError>) -> Result<T, String> {
@@ -305,9 +334,25 @@ async fn telegram_search_chats(
 async fn telegram_list_messages(
     chat_id: i64,
     limit: i32,
+    project_id: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<TelegramMessage>, String> {
-    state.telegram.messages(chat_id, limit).await
+    let mut messages = state.telegram.messages(chat_id, limit).await?;
+    if let Some(project_id) = project_id {
+        let message_groups = messages
+            .iter()
+            .map(|message| message.message_ids.clone())
+            .collect::<Vec<_>>();
+        let linked_tasks = result(state.store.telegram_tasks_for_messages(
+            &project_id,
+            chat_id,
+            &message_groups,
+        ))?;
+        for (message, linked_task) in messages.iter_mut().zip(linked_tasks) {
+            message.linked_task = linked_task;
+        }
+    }
+    Ok(messages)
 }
 
 #[tauri::command]
@@ -413,17 +458,118 @@ fn telegram_set_candidate_status(
 }
 
 #[tauri::command]
-fn telegram_create_task_from_candidate(
+async fn telegram_create_task_from_candidate(
     candidate_id: String,
     description: Option<String>,
     urgency: Urgency,
     state: State<'_, AppState>,
-) -> Result<Task, String> {
-    result(state.store.create_task_from_telegram_candidate(
+) -> Result<TelegramTaskCreationResult, String> {
+    let task = result(state.store.create_task_from_telegram_candidate(
         &candidate_id,
         description.as_deref(),
         urgency,
+    ))?;
+    let (task, media_errors) = download_all_task_source_media(&state, task).await;
+    Ok(TelegramTaskCreationResult { task, media_errors })
+}
+
+fn source_media_markdown(media: &SourceMedia) -> Option<String> {
+    let path = media.relative_path.as_deref()?;
+    let label = media
+        .file_name
+        .replace(['[', ']', '\r', '\n'], " ")
+        .trim()
+        .to_owned();
+    Some(if media.kind == SourceMediaKind::Photo {
+        format!("![{label}]({path})")
+    } else {
+        format!("[{label}]({path})")
+    })
+}
+
+fn description_with_source_media(description: &str, media: &SourceMedia) -> Option<String> {
+    let relative_path = media.relative_path.as_deref()?;
+    if description.contains(&format!("]({relative_path})")) {
+        return None;
+    }
+    source_media_markdown(media).map(|markdown| format!("{}\n\n{markdown}", description.trim_end()))
+}
+
+async fn download_task_source_media(
+    state: &AppState,
+    task_id: &str,
+    media_index: usize,
+) -> Result<Task, String> {
+    let mut task = result(state.store.get_task(task_id))?;
+    let media = task
+        .source
+        .as_ref()
+        .and_then(|source| source.media.get(media_index))
+        .cloned()
+        .ok_or_else(|| "Медиафайл источника не найден".to_string())?;
+    if let Some(relative_path) = media.relative_path.as_deref()
+        && task.description.contains(&format!("]({relative_path})"))
+    {
+        return Ok(task);
+    }
+    let relative_path = if let Some(path) = media.relative_path.clone() {
+        path
+    } else {
+        if media.size.is_some_and(|size| size > 25 * 1024 * 1024) {
+            return Err("Медиафайл больше допустимых 25 МБ".into());
+        }
+        let file_id = media
+            .provider_file_id
+            .ok_or_else(|| "У медиафайла нет идентификатора Telegram".to_string())?;
+        let downloaded = state.telegram.download_file(file_id).await?;
+        let bytes = (|| {
+            let actual_size = fs::metadata(&downloaded)
+                .map_err(|error| error.to_string())?
+                .len();
+            if actual_size > 25 * 1024 * 1024 {
+                return Err("Медиафайл больше допустимых 25 МБ".into());
+            }
+            fs::read(&downloaded).map_err(|error| error.to_string())
+        })();
+        state.telegram.release_downloaded_file(file_id).await;
+        let bytes = bytes?;
+        result(
+            state
+                .store
+                .save_task_attachment(task_id, &media.file_name, &bytes),
+        )?
+    };
+    let mut source = task
+        .source
+        .take()
+        .ok_or_else(|| "Источник задачи не найден".to_string())?;
+    source.media[media_index].relative_path = Some(relative_path.clone());
+    let description = description_with_source_media(&task.description, &source.media[media_index]);
+    result(state.store.update_task(
+        task_id,
+        TaskPatch {
+            source: Some(Some(source)),
+            description,
+            ..TaskPatch::default()
+        },
+        &task.version,
     ))
+}
+
+async fn download_all_task_source_media(state: &AppState, mut task: Task) -> (Task, Vec<String>) {
+    let media_count = task
+        .source
+        .as_ref()
+        .map(|source| source.media.len())
+        .unwrap_or_default();
+    let mut media_errors = Vec::new();
+    for index in 0..media_count {
+        match download_task_source_media(state, &task.id, index).await {
+            Ok(updated) => task = updated,
+            Err(error) => media_errors.push(error),
+        }
+    }
+    (task, media_errors)
 }
 
 #[tauri::command]
@@ -432,52 +578,50 @@ async fn telegram_download_source_media(
     media_index: usize,
     state: State<'_, AppState>,
 ) -> Result<Task, String> {
-    let mut task = result(state.store.get_task(&task_id))?;
-    let media = task
-        .source
-        .as_ref()
-        .and_then(|source| source.media.get(media_index))
-        .cloned()
-        .ok_or_else(|| "Медиафайл источника не найден".to_string())?;
-    if media.relative_path.is_some() {
-        return Ok(task);
+    download_task_source_media(&state, &task_id, media_index).await
+}
+
+#[tauri::command]
+async fn telegram_sync_task_media(
+    state: State<'_, AppState>,
+) -> Result<TelegramMediaSyncResult, String> {
+    if state
+        .telegram_media_syncing
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        return Ok(TelegramMediaSyncResult {
+            downloaded: 0,
+            failed: 0,
+        });
     }
-    if media.size.is_some_and(|size| size > 25 * 1024 * 1024) {
-        return Err("Медиафайл больше допустимых 25 МБ".into());
-    }
-    let file_id = media
-        .provider_file_id
-        .ok_or_else(|| "У медиафайла нет идентификатора Telegram".to_string())?;
-    let downloaded = state.telegram.download_file(file_id).await?;
-    let bytes = (|| {
-        let actual_size = fs::metadata(&downloaded)
-            .map_err(|error| error.to_string())?
-            .len();
-        if actual_size > 25 * 1024 * 1024 {
-            return Err("Медиафайл больше допустимых 25 МБ".into());
+    let _guard = MediaSyncGuard(&state.telegram_media_syncing);
+    let tasks = result(state.store.list_tasks(None, true))?;
+    let mut downloaded = 0;
+    let mut failed = 0;
+    for summary in tasks {
+        let task = result(state.store.get_task(&summary.id))?;
+        let missing = task
+            .source
+            .as_ref()
+            .filter(|source| source.provider.as_deref() == Some("telegram"))
+            .map(|source| {
+                source
+                    .media
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(index, media)| media.relative_path.is_none().then_some(index))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        for index in missing {
+            match download_task_source_media(&state, &task.id, index).await {
+                Ok(_) => downloaded += 1,
+                Err(_) => failed += 1,
+            }
         }
-        fs::read(&downloaded).map_err(|error| error.to_string())
-    })();
-    state.telegram.release_downloaded_file(file_id).await;
-    let bytes = bytes?;
-    let relative_path = result(state.store.save_task_attachment(
-        &task_id,
-        &media.file_name,
-        &bytes,
-    ))?;
-    let mut source = task
-        .source
-        .take()
-        .ok_or_else(|| "Источник задачи не найден".to_string())?;
-    source.media[media_index].relative_path = Some(relative_path);
-    result(state.store.update_task(
-        &task_id,
-        TaskPatch {
-            source: Some(Some(source)),
-            ..TaskPatch::default()
-        },
-        &task.version,
-    ))
+    }
+    Ok(TelegramMediaSyncResult { downloaded, failed })
 }
 
 #[tauri::command]
@@ -509,6 +653,7 @@ pub fn run() {
                 store,
                 _watcher: Mutex::new(watcher),
                 telegram,
+                telegram_media_syncing: AtomicBool::new(false),
             });
             Ok(())
         })
@@ -555,8 +700,33 @@ pub fn run() {
             telegram_set_candidate_status,
             telegram_create_task_from_candidate,
             telegram_download_source_media,
+            telegram_sync_task_media,
             telegram_disconnect
         ])
         .run(tauri::generate_context!())
         .expect("не удалось запустить flood.md");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::description_with_source_media;
+    use flood_core::{SourceMedia, SourceMediaKind};
+
+    #[test]
+    fn downloaded_telegram_media_is_inserted_once_into_task_markdown() {
+        let photo = SourceMedia {
+            kind: SourceMediaKind::Photo,
+            file_name: "album-one.jpg".into(),
+            provider_file_id: Some(10),
+            mime_type: Some("image/jpeg".into()),
+            size: Some(2048),
+            relative_path: Some("attachments/album-one.jpg".into()),
+        };
+        let description = description_with_source_media("Подготовить отчёт", &photo).unwrap();
+        assert_eq!(
+            description,
+            "Подготовить отчёт\n\n![album-one.jpg](attachments/album-one.jpg)"
+        );
+        assert!(description_with_source_media(&description, &photo).is_none());
+    }
 }

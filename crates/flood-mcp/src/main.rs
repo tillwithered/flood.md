@@ -49,6 +49,8 @@ struct SnapshotArgs {
     chat_title: Option<String>,
     message_id: Option<i64>,
     #[serde(default)]
+    message_ids: Vec<i64>,
+    #[serde(default)]
     media: Vec<SourceMediaArgs>,
 }
 
@@ -110,7 +112,12 @@ struct CandidateIdArgs {
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct CreateTaskFromCandidateArgs {
     candidate_id: String,
+    /// Готовое Markdown-описание; оставлено для совместимости. Если не задано, используются title и notes.
     description: Option<String>,
+    /// Короткое, ориентированное на результат название задачи.
+    title: Option<String>,
+    /// Необязательный контекст или ожидаемый результат под названием.
+    notes: Option<String>,
     urgency: Option<String>,
 }
 
@@ -283,7 +290,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Получить локальную очередь Telegram-кандидатов. По умолчанию возвращаются только необработанные сообщения; переписка целиком не загружается",
+        description = "Получить локальную очередь Telegram-кандидатов. По умолчанию возвращаются только необработанные сообщения; include_processed=true также возвращает обработанные сообщения со linked_task, где видны название, срочность и текущее состояние задачи",
         annotations(
             title = "Входящие из Telegram",
             read_only_hint = true,
@@ -302,7 +309,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Прочитать один Telegram-кандидат с локальным снимком текста, метаданными и списком медиа",
+        description = "Прочитать один Telegram-кандидат с локальным снимком текста, метаданными, списком медиа и linked_task. linked_task показывает, какая задача уже создана по сообщению, её срочность и состояние",
         annotations(
             title = "Прочитать Telegram-кандидат",
             read_only_hint = true,
@@ -321,7 +328,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Создать задачу из Telegram-кандидата и сохранить снимок источника. Повторный вызов для уже импортированного кандидата возвращает ту же задачу",
+        description = "Создать задачу из Telegram-кандидата и сохранить снимок источника. Передайте короткий title, отдельно notes и urgency; исходное сообщение не нужно копировать в описание. Повторный вызов или другой кандидат для того же Telegram-сообщения возвращает существующую задачу без дубля. Desktop-приложение автоматически скачает медиа сразу, если запущено, либо при следующем запуске",
         annotations(
             title = "Создать задачу из Telegram",
             destructive_hint = false,
@@ -332,10 +339,29 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<CreateTaskFromCandidateArgs>,
     ) -> Result<Json<TaskOutput>, String> {
+        let description = match (args.description, args.title, args.notes) {
+            (Some(description), _, _) => Some(description),
+            (None, Some(title), notes) => {
+                let title = title.trim();
+                if title.is_empty() {
+                    return Err("title не может быть пустым".into());
+                }
+                Some(
+                    match notes
+                        .map(|notes| notes.trim().to_owned())
+                        .filter(|notes| !notes.is_empty())
+                    {
+                        Some(notes) => format!("{title}\n\n{notes}"),
+                        None => title.to_owned(),
+                    },
+                )
+            }
+            (None, None, _) => None,
+        };
         self.store
             .create_task_from_telegram_candidate(
                 &args.candidate_id,
-                args.description.as_deref(),
+                description.as_deref(),
                 parse_urgency(args.urgency.as_deref().unwrap_or("normal"))?,
             )
             .map(|task| Json(TaskOutput { task }))
@@ -559,6 +585,7 @@ fn parse_snapshot(value: SnapshotArgs) -> Result<MessageSnapshot, String> {
         chat_id: value.chat_id,
         chat_title: value.chat_title,
         message_id: value.message_id,
+        message_ids: value.message_ids,
         media: value
             .media
             .into_iter()
@@ -764,6 +791,8 @@ mod tests {
                 .create_task_from_telegram_candidate(Parameters(CreateTaskFromCandidateArgs {
                     candidate_id: candidate_id.clone(),
                     description: None,
+                    title: None,
+                    notes: None,
                     urgency: None,
                 }))
                 .is_err()
@@ -779,21 +808,41 @@ mod tests {
             .create_task_from_telegram_candidate(Parameters(CreateTaskFromCandidateArgs {
                 candidate_id: candidate_id.clone(),
                 description: None,
+                title: Some("Подготовить итог встречи".into()),
+                notes: Some("Сверить решения и ответственных".into()),
                 urgency: Some("important".into()),
             }))
             .unwrap()
             .0
             .task;
-        assert_eq!(task.description, "Подготовить итог встречи");
+        assert_eq!(
+            task.description,
+            "Подготовить итог встречи\n\nСверить решения и ответственных"
+        );
         assert_eq!(task.urgency, Urgency::Important);
         let source = task.source.as_ref().unwrap();
         assert_eq!(source.chat_id, Some(-10042));
         assert_eq!(source.media.len(), 1);
+        let processed = server
+            .list_telegram_inbox(Parameters(ListTelegramInboxArgs {
+                project_id: Some(project.id.clone()),
+                include_processed: true,
+            }))
+            .unwrap()
+            .0
+            .candidates;
+        assert_eq!(processed[0].linked_task.as_ref().unwrap().id, task.id);
+        assert_eq!(
+            processed[0].linked_task.as_ref().unwrap().urgency,
+            Urgency::Important
+        );
 
         let repeated = server
             .create_task_from_telegram_candidate(Parameters(CreateTaskFromCandidateArgs {
                 candidate_id,
                 description: Some("Не создавать дубль".into()),
+                title: None,
+                notes: None,
                 urgency: Some("urgent".into()),
             }))
             .unwrap()

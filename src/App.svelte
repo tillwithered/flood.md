@@ -22,7 +22,7 @@
   type DataActionState = "idle" | "backing-up" | "restoring" | "success" | "error";
   type TelegramInboxMode = "manual" | "mentions_and_replies" | "all";
   type SourceMedia = { kind: "photo" | "video" | "document" | "audio" | "voice" | "animation" | "other"; file_name: string; provider_file_id?: number; mime_type?: string; size?: number; relative_path?: string };
-  type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string; provider?: string; chat_id?: number; chat_title?: string; message_id?: number; media?: SourceMedia[] };
+  type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string; provider?: string; chat_id?: number; chat_title?: string; message_id?: number; message_ids?: number[]; media?: SourceMedia[] };
   type TelegramProjectLink = { chat_id: number; title: string; inbox_mode: TelegramInboxMode };
   type ProjectRecord = { id: string; title: string; created_at: string; updated_at: string; telegram_chats?: TelegramProjectLink[]; version: string };
   type TaskRecord = {
@@ -59,8 +59,10 @@
   type MarkdownHint = { title: string; left: number; top: number };
   type TelegramStatus = { step: string; configured: boolean; managed_credentials: boolean; account_name?: string; account_username?: string; qr_link?: string; password_hint?: string; error?: string };
   type TelegramChat = { id: number; title: string };
-  type TelegramMessage = { id: number; message_ids?: number[]; chat_id: number; text: string; author: string; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean };
-  type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; discovered_at: string; processed_at?: string; task_id?: string };
+  type TelegramLinkedTask = { id: string; title: string; urgency: Urgency; status: "open" | "completed"; trashed: boolean };
+  type TelegramMessage = { id: number; message_ids?: number[]; chat_id: number; text: string; author: string; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean; linked_task?: TelegramLinkedTask };
+  type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; message_ids?: number[]; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; discovered_at: string; processed_at?: string; task_id?: string; linked_task?: TelegramLinkedTask };
+  type TelegramTaskCreationResult = { task: TaskRecord; media_errors: string[] };
 
   const markdownHints: Record<string, MessageKey> = {
     "#": "largeHeading"
@@ -125,6 +127,11 @@
   let telegramInboxLoading = false;
   let telegramInboxError = "";
   let telegramInboxProcessingId = "";
+  let telegramTaskDraftCandidate: TelegramInboxCandidate | null = null;
+  let telegramTaskDraftTitle = "";
+  let telegramTaskDraftNotes = "";
+  let telegramTaskDraftUrgency: Urgency = "normal";
+  let telegramTaskTitleInput: HTMLInputElement;
   let downloadingSourceMedia = -1;
   let telegramScanTimer: number | undefined;
   let updateState: UpdateState = "idle";
@@ -1923,7 +1930,7 @@
     telegramImportError = "";
     telegramMessages = [];
     try {
-      telegramMessages = await invoke<TelegramMessage[]>("telegram_list_messages", { chatId, limit: 50 });
+      telegramMessages = await invoke<TelegramMessage[]>("telegram_list_messages", { chatId, limit: 50, projectId: currentChat.id === "all" ? null : currentChat.id });
     } catch (error) {
       telegramImportError = String(error);
     } finally {
@@ -1935,7 +1942,8 @@
     const first = currentChat.telegram_chats[0];
     if (!first || telegramMessagesLoading) return;
     telegramImportOpen = true;
-    telegramQueuedMessageIds = [];
+    const pending = await invoke<TelegramInboxCandidate[]>("telegram_list_inbox", { projectId: currentChat.id, includeProcessed: false });
+    telegramQueuedMessageIds = pending.flatMap((candidate) => candidate.message_ids?.length ? candidate.message_ids : [candidate.message_id]);
     await loadTelegramImportChat(first.chat_id);
   }
 
@@ -1982,15 +1990,45 @@
     }
   }
 
-  async function createTaskFromCandidate(candidate: TelegramInboxCandidate) {
+  function suggestedTelegramTaskTitle(candidate: TelegramInboxCandidate) {
+    const words = candidate.text.trim().split(/\s+/).filter(Boolean);
+    while (words[0]?.startsWith("@")) words.shift();
+    const normalized = words.join(" ").split(/\r?\n/)[0]?.trim();
+    if (!normalized) return candidate.media?.length ? t("telegramMediaTaskTitle", { count: candidate.media.length }) : t("telegramMessageTaskTitle");
+    const sentence = `${normalized.charAt(0).toLocaleUpperCase(locale)}${normalized.slice(1)}`;
+    return sentence.length > 88 ? `${sentence.slice(0, 87).trimEnd()}…` : sentence;
+  }
+
+  async function beginTaskFromCandidate(candidate: TelegramInboxCandidate) {
+    telegramTaskDraftCandidate = candidate;
+    telegramTaskDraftTitle = suggestedTelegramTaskTitle(candidate);
+    telegramTaskDraftNotes = "";
+    telegramTaskDraftUrgency = "normal";
+    telegramInboxError = "";
+    await tick();
+    telegramTaskTitleInput?.focus();
+  }
+
+  function closeTelegramTaskDraft() {
     if (telegramInboxProcessingId) return;
+    telegramTaskDraftCandidate = null;
+  }
+
+  async function createTaskFromCandidate() {
+    const candidate = telegramTaskDraftCandidate;
+    const title = telegramTaskDraftTitle.trim();
+    if (!candidate || !title || telegramInboxProcessingId) return;
     telegramInboxProcessingId = candidate.id;
     try {
-      const created = await invoke<TaskRecord>("telegram_create_task_from_candidate", { candidateId: candidate.id, description: null, urgency: "normal" });
+      const description = telegramTaskDraftNotes.trim() ? `${title}\n\n${telegramTaskDraftNotes.trim()}` : title;
+      const result = await invoke<TelegramTaskCreationResult>("telegram_create_task_from_candidate", { candidateId: candidate.id, description, urgency: telegramTaskDraftUrgency });
+      const created = result.task;
       telegramInbox = telegramInbox.filter((item) => item.id !== candidate.id);
       await loadData(true);
+      telegramTaskDraftCandidate = null;
       telegramInboxOpen = false;
       await openTask(toTaskItem(created, chats));
+      if (result.media_errors.length) saveError = t("someMediaNotAdded", { count: result.media_errors.length });
     } catch (error) {
       telegramInboxError = String(error);
     } finally {
@@ -2013,6 +2051,23 @@
 
   function telegramReasonLabel(reason: TelegramInboxCandidate["reason"]) {
     return t(reason === "mention" ? "telegramReasonMention" : reason === "reply" ? "telegramReasonReply" : reason === "manual" ? "telegramReasonManual" : "telegramReasonChat");
+  }
+
+  function telegramLinkedTaskState(task: TelegramLinkedTask) {
+    if (task.trashed) return t("taskInTrash");
+    return task.status === "completed" ? t("completed") : urgencyTitle(task.urgency);
+  }
+
+  async function openTelegramLinkedTask(task: TelegramLinkedTask) {
+    if (task.trashed) return;
+    try {
+      const record = await invoke<TaskRecord>("get_task", { id: task.id });
+      telegramImportOpen = false;
+      telegramInboxOpen = false;
+      await openTask(toTaskItem(record, chats));
+    } catch (error) {
+      telegramImportError = String(error);
+    }
   }
 
   async function downloadTelegramSourceMedia(index: number) {
@@ -2254,11 +2309,18 @@
       }
       await loadData(false);
       if (disposed || !inTauri()) return;
-      if (telegramStatus.step === "ready") void invoke("telegram_refresh_all_inboxes").catch(() => undefined);
+      if (telegramStatus.step === "ready") {
+        void invoke("telegram_refresh_all_inboxes").catch(() => undefined);
+        void invoke("telegram_sync_task_media").catch(() => undefined);
+      }
       telegramScanTimer = window.setInterval(() => {
-        if (telegramStatus.step === "ready") void invoke("telegram_refresh_all_inboxes").catch(() => undefined);
+        if (telegramStatus.step === "ready") {
+          void invoke("telegram_refresh_all_inboxes").catch(() => undefined);
+          void invoke("telegram_sync_task_media").catch(() => undefined);
+        }
       }, 120_000);
       unlisten = await listen("data-changed", () => {
+        if (telegramStatus.step === "ready") void invoke("telegram_sync_task_media").catch(() => undefined);
         window.clearTimeout(refreshTimer);
         refreshTimer = window.setTimeout(() => {
           if (!draftTaskId && dataActionState !== "restoring" && saveState !== "saving" && markdown === lastSavedMarkdown) void loadData(true);
@@ -2822,7 +2884,7 @@
           <div class="telegram-import-state error">{telegramImportError}</div>
         {:else}
           {#each telegramMessages as message (message.id)}
-            <article class="telegram-message"><div><span><strong>{message.author || "Telegram"}</strong><small>{fullDate(new Date(message.sent_at * 1000).toISOString())}</small></span>{#if message.text}<p>{message.text}</p>{/if}{#if message.media.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: message.media.length })}</small>{/if}</div><button class:queued={telegramQueuedMessageIds.includes(message.id)} disabled={Boolean(telegramImportingId) || telegramQueuedMessageIds.includes(message.id)} aria-label={t("addToInbox")} title={t("addToInbox")} onclick={() => importTelegramMessage(message)}>{#if telegramImportingId === message.id}<RefreshCw class="spinning" size={15} />{:else if telegramQueuedMessageIds.includes(message.id)}<Check size={16} />{:else}<Plus size={16} />{/if}</button></article>
+            <article class="telegram-message"><div><span><strong>{message.author || "Telegram"}</strong><small>{fullDate(new Date(message.sent_at * 1000).toISOString())}</small></span>{#if message.text}<p>{message.text}</p>{/if}{#if message.media.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: message.media.length })}</small>{/if}</div>{#if message.linked_task}<button class="telegram-task-link" disabled={message.linked_task.trashed} title={message.linked_task.title} onclick={() => openTelegramLinkedTask(message.linked_task!)}><FloodGlyph kind={message.linked_task.status === "completed" ? "completed" : message.linked_task.urgency} size={13} /><span><strong>{message.linked_task.title}</strong><small>{telegramLinkedTaskState(message.linked_task)}</small></span><ChevronRight size={14} /></button>{:else}<button class:queued={telegramQueuedMessageIds.includes(message.id)} disabled={Boolean(telegramImportingId) || telegramQueuedMessageIds.includes(message.id)} aria-label={t("addToInbox")} title={telegramQueuedMessageIds.includes(message.id) ? t("alreadyInInbox") : t("addToInbox")} onclick={() => importTelegramMessage(message)}>{#if telegramImportingId === message.id}<RefreshCw class="spinning" size={15} />{:else if telegramQueuedMessageIds.includes(message.id)}<Check size={16} />{:else}<Plus size={16} />{/if}</button>{/if}</article>
           {:else}
             <div class="telegram-import-state">{t("noTextMessages")}</div>
           {/each}
@@ -2833,18 +2895,29 @@
 {/if}
 
 {#if telegramInboxOpen}
-  <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget && !telegramInboxProcessingId) telegramInboxOpen = false; }}>
+  <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget && !telegramInboxProcessingId) { telegramTaskDraftCandidate = null; telegramInboxOpen = false; } }}>
     <div class="telegram-import-panel telegram-inbox-panel" role="dialog" aria-modal="true" aria-label={t("inbox")}>
-      <header><span><MessageSquareText size={17} /><span><strong>{t("inbox")}</strong><small>{t("inboxDescription")}</small></span></span><div><button class="icon-button" title={t("scanMessages")} disabled={telegramInboxLoading || currentChat.id === "all"} onclick={() => openTelegramInbox(true)}><RefreshCw class={telegramInboxLoading ? "spinning" : ""} size={16} /></button><button class="icon-button" aria-label={t("close")} onclick={() => (telegramInboxOpen = false)}><X size={16} /></button></div></header>
-      <div class="telegram-message-list telegram-inbox-list">
+      <header><span>{#if telegramTaskDraftCandidate}<button class="icon-button" aria-label={t("back")} onclick={closeTelegramTaskDraft}><ChevronLeft size={16} /></button>{:else}<MessageSquareText size={17} />{/if}<span><strong>{telegramTaskDraftCandidate ? t("telegramTaskDraft") : t("inbox")}</strong><small>{telegramTaskDraftCandidate ? t("telegramTaskDraftDescription") : t("inboxDescription")}</small></span></span><div>{#if !telegramTaskDraftCandidate}<button class="icon-button" title={t("scanMessages")} disabled={telegramInboxLoading || currentChat.id === "all"} onclick={() => openTelegramInbox(true)}><RefreshCw class={telegramInboxLoading ? "spinning" : ""} size={16} /></button>{/if}<button class="icon-button" aria-label={t("close")} onclick={() => { telegramTaskDraftCandidate = null; telegramInboxOpen = false; }}><X size={16} /></button></div></header>
+      {#if telegramTaskDraftCandidate}
+        <form class="telegram-task-composer" onsubmit={(event) => { event.preventDefault(); createTaskFromCandidate(); }}>
+          <div class="telegram-task-fields">
+            <label><span>{t("taskTitle")}</span><input bind:this={telegramTaskTitleInput} bind:value={telegramTaskDraftTitle} maxlength="120" placeholder={t("taskTitlePlaceholder")} /></label>
+            <label><span>{t("taskNotes")}</span><textarea bind:value={telegramTaskDraftNotes} rows="4" placeholder={t("taskNotesPlaceholder")}></textarea></label>
+            <fieldset><legend>{t("urgencyLabel")}</legend><div class="telegram-task-urgency">{#each (["normal", "important", "urgent"] as Urgency[]) as urgency}<button type="button" class:active={telegramTaskDraftUrgency === urgency} onclick={() => (telegramTaskDraftUrgency = urgency)}><FloodGlyph kind={urgency} size={14} />{urgencyTitle(urgency)}</button>{/each}</div></fieldset>
+          </div>
+          <section class="telegram-task-source-preview"><div><Send size={14} /><span><strong>{telegramTaskDraftCandidate.author}</strong><small>{telegramTaskDraftCandidate.chat_title} · {fullDate(telegramTaskDraftCandidate.sent_at)}</small></span></div>{#if telegramTaskDraftCandidate.text}<p>{telegramTaskDraftCandidate.text}</p>{/if}{#if telegramTaskDraftCandidate.media?.length}<span class="telegram-auto-media"><Paperclip size={13} />{t("mediaWillBeAdded", { count: telegramTaskDraftCandidate.media.length })}</span>{/if}</section>
+          {#if telegramInboxError}<p class="telegram-composer-error">{telegramInboxError}</p>{/if}
+          <footer><button type="button" onclick={closeTelegramTaskDraft} disabled={Boolean(telegramInboxProcessingId)}>{t("cancel")}</button><button class="primary-button" type="submit" disabled={!telegramTaskDraftTitle.trim() || Boolean(telegramInboxProcessingId)}>{#if telegramInboxProcessingId}<RefreshCw class="spinning" size={14} />{:else}<Plus size={14} />{/if}{t("createTask")}</button></footer>
+        </form>
+      {:else}<div class="telegram-message-list telegram-inbox-list">
         {#if telegramInboxLoading}<div class="telegram-import-state"><RefreshCw class="spinning" size={16} />{t("scanningMessages")}</div>
         {:else if telegramInboxError}<div class="telegram-import-state error">{telegramInboxError}</div>
         {:else}
           {#each telegramInbox as candidate (candidate.id)}
-            <article class="inbox-candidate"><div class="inbox-candidate-meta"><span>{candidate.chat_title}</span><small>{telegramReasonLabel(candidate.reason)} · {fullDate(candidate.sent_at)}</small></div><strong>{candidate.author}</strong>{#if candidate.text}<p>{candidate.text}</p>{/if}{#if candidate.media?.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: candidate.media.length })}</small>{/if}<div class="inbox-candidate-actions"><button disabled={Boolean(telegramInboxProcessingId)} onclick={() => dismissTelegramCandidate(candidate)}>{t("dismiss")}</button><button class="primary-button" disabled={Boolean(telegramInboxProcessingId)} onclick={() => createTaskFromCandidate(candidate)}>{#if telegramInboxProcessingId === candidate.id}<RefreshCw class="spinning" size={14} />{:else}<Plus size={14} />{/if}{t("createTask")}</button></div></article>
+            <article class="inbox-candidate"><div class="inbox-candidate-meta"><span>{candidate.chat_title}</span><small>{telegramReasonLabel(candidate.reason)} · {fullDate(candidate.sent_at)}</small></div><strong>{candidate.author}</strong>{#if candidate.text}<p>{candidate.text}</p>{/if}{#if candidate.media?.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: candidate.media.length })}</small>{/if}<div class="inbox-candidate-actions">{#if candidate.linked_task}<button class="inbox-linked-task" disabled={candidate.linked_task.trashed} title={candidate.linked_task.title} onclick={() => openTelegramLinkedTask(candidate.linked_task!)}><FloodGlyph kind={candidate.linked_task.status === "completed" ? "completed" : candidate.linked_task.urgency} size={13} /><span>{candidate.linked_task.title}</span><small>{telegramLinkedTaskState(candidate.linked_task)}</small><ChevronRight size={13} /></button>{:else}<button disabled={Boolean(telegramInboxProcessingId)} onclick={() => dismissTelegramCandidate(candidate)}>{t("dismiss")}</button><button class="primary-button" disabled={Boolean(telegramInboxProcessingId)} onclick={() => beginTaskFromCandidate(candidate)}><Plus size={14} />{t("prepareTask")}</button>{/if}</div></article>
           {:else}<div class="telegram-import-state">{t("inboxEmpty")}</div>{/each}
         {/if}
-      </div>
+      </div>{/if}
     </div>
   </div>
 {/if}
