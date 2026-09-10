@@ -23,6 +23,9 @@ use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 const FORMAT_VERSION: u8 = 1;
 const MAX_ATTACHMENT_BYTES: u64 = 25 * 1024 * 1024;
+const MAX_MARKDOWN_FILE_BYTES: u64 = 1024 * 1024;
+const MAX_TELEGRAM_INBOX_BYTES: u64 = 64 * 1024 * 1024;
+const MAX_INTEGRATION_STATE_BYTES: u64 = 64 * 1024;
 
 #[derive(Debug, Error)]
 pub enum StoreError {
@@ -262,7 +265,7 @@ impl Store {
                 if task_path.extension().and_then(|value| value.to_str()) != Some("md") {
                     continue;
                 }
-                let content = fs::read_to_string(&task_path)?;
+                let content = read_limited_utf8(&task_path, MAX_MARKDOWN_FILE_BYTES)?;
                 if !content.contains("\nproject_id:") && content.contains("\nchat_id:") {
                     atomic_write(
                         &task_path,
@@ -397,7 +400,10 @@ impl Store {
         if !path.exists() {
             return Ok(None);
         }
-        Ok(Some(serde_json::from_slice(&fs::read(path)?)?))
+        Ok(Some(serde_json::from_slice(&read_limited_bytes(
+            &path,
+            MAX_INTEGRATION_STATE_BYTES,
+        )?)?))
     }
 
     pub fn record_telegram_sync_status(
@@ -436,7 +442,10 @@ impl Store {
         if !path.exists() {
             return Ok(None);
         }
-        Ok(Some(serde_json::from_slice(&fs::read(path)?)?))
+        Ok(Some(serde_json::from_slice(&read_limited_bytes(
+            &path,
+            MAX_INTEGRATION_STATE_BYTES,
+        )?)?))
     }
 
     pub fn acknowledge_telegram_sync_request(&self, id: &str) -> Result<bool, StoreError> {
@@ -446,7 +455,8 @@ impl Store {
         if !path.exists() {
             return Ok(false);
         }
-        let request: TelegramSyncRequest = serde_json::from_slice(&fs::read(&path)?)?;
+        let request: TelegramSyncRequest =
+            serde_json::from_slice(&read_limited_bytes(&path, MAX_INTEGRATION_STATE_BYTES)?)?;
         if request.id != id {
             return Ok(false);
         }
@@ -1302,7 +1312,8 @@ impl Store {
                 candidates: Vec::new(),
             });
         }
-        let document: TelegramInboxDocument = serde_json::from_slice(&fs::read(&path)?)?;
+        let document: TelegramInboxDocument =
+            serde_json::from_slice(&read_limited_bytes(&path, MAX_TELEGRAM_INBOX_BYTES)?)?;
         if document.format_version != inbox_format_version() {
             return Err(StoreError::Validation(
                 "неподдерживаемая версия очереди Telegram".into(),
@@ -1314,6 +1325,11 @@ impl Store {
     fn write_telegram_inbox(&self, document: &TelegramInboxDocument) -> Result<(), StoreError> {
         let mut bytes = serde_json::to_vec_pretty(document)?;
         bytes.push(b'\n');
+        if bytes.len() as u64 > MAX_TELEGRAM_INBOX_BYTES {
+            return Err(StoreError::Validation(
+                "очередь Telegram превышает безопасный размер 64 МБ".into(),
+            ));
+        }
         atomic_write_bytes(&self.telegram_inbox_path(), &bytes)
     }
 
@@ -1494,6 +1510,25 @@ fn run_isolated_self_check(root: &Path, checks: &mut Vec<SelfCheckItem>) -> Resu
         return Err("Проверка безопасных путей вложений не пройдена".into());
     }
 
+    let oversized_path = root.join("oversized-self-check.md");
+    File::create(&oversized_path)
+        .and_then(|file| file.set_len(MAX_MARKDOWN_FILE_BYTES + 1))
+        .map_err(|error| error.to_string())?;
+    let oversized_file_guarded = matches!(
+        read_limited_utf8(&oversized_path, MAX_MARKDOWN_FILE_BYTES),
+        Err(StoreError::InvalidFile { .. })
+    );
+    let _ = fs::remove_file(&oversized_path);
+    checks.push(SelfCheckItem {
+        name: "Ограниченное чтение локальных файлов".into(),
+        passed: oversized_file_guarded,
+        detail: (!oversized_file_guarded)
+            .then(|| "Файл сверх безопасного лимита был прочитан в память".into()),
+    });
+    if !oversized_file_guarded {
+        return Err("Проверка ограниченного чтения не пройдена".into());
+    }
+
     let completed = store
         .complete_task(&updated.id, &updated.version)
         .map_err(|error| error.to_string())?;
@@ -1629,7 +1664,7 @@ fn encode<T: Serialize>(metadata: &T, body: &str) -> Result<String, StoreError> 
 }
 
 fn decode<T: DeserializeOwned>(path: &Path) -> Result<(T, String, String), StoreError> {
-    let content = fs::read_to_string(path)?;
+    let content = read_limited_utf8(path, MAX_MARKDOWN_FILE_BYTES)?;
     let version = digest(content.as_bytes());
     let rest = content
         .strip_prefix("---\n")
@@ -1685,6 +1720,11 @@ fn read_task(path: &Path) -> Result<Task, StoreError> {
 }
 
 fn atomic_write(path: &Path, content: &str) -> Result<(), StoreError> {
+    if content.len() as u64 > MAX_MARKDOWN_FILE_BYTES {
+        return Err(StoreError::Validation(
+            "Markdown-файл превышает безопасный размер 1 МБ".into(),
+        ));
+    }
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -1692,6 +1732,32 @@ fn atomic_write(path: &Path, content: &str) -> Result<(), StoreError> {
     file.write_all(content.as_bytes())?;
     file.commit()?;
     Ok(())
+}
+
+fn read_limited_utf8(path: &Path, max_bytes: u64) -> Result<String, StoreError> {
+    String::from_utf8(read_limited_bytes(path, max_bytes)?)
+        .map_err(|_| invalid(path, "файл должен быть в кодировке UTF-8"))
+}
+
+fn read_limited_bytes(path: &Path, max_bytes: u64) -> Result<Vec<u8>, StoreError> {
+    let metadata = fs::metadata(path)?;
+    if metadata.len() > max_bytes {
+        return Err(invalid(
+            path,
+            format!("размер файла превышает безопасный предел {max_bytes} байт"),
+        ));
+    }
+    let mut bytes = Vec::with_capacity(metadata.len().min(max_bytes) as usize);
+    File::open(path)?
+        .take(max_bytes + 1)
+        .read_to_end(&mut bytes)?;
+    if bytes.len() as u64 > max_bytes {
+        return Err(invalid(
+            path,
+            format!("размер файла превышает безопасный предел {max_bytes} байт"),
+        ));
+    }
+    Ok(bytes)
 }
 
 fn atomic_write_bytes(path: &Path, content: &[u8]) -> Result<(), StoreError> {
@@ -2502,6 +2568,44 @@ mod tests {
         assert!(matches!(
             store.resolve_task_attachment(&task.id, &relative),
             Err(StoreError::NotFound(_))
+        ));
+    }
+
+    #[test]
+    fn oversized_local_state_is_rejected_before_loading() {
+        let store = temp_store();
+        let project = store.create_project("Лимиты").unwrap();
+        let task = store
+            .create_task(CreateTask {
+                project_id: project.id.clone(),
+                description: "Проверить ограничение Markdown".into(),
+                urgency: Urgency::Normal,
+                source: None,
+            })
+            .unwrap();
+        File::options()
+            .write(true)
+            .open(store.task_path(&project.id, &task.id))
+            .unwrap()
+            .set_len(MAX_MARKDOWN_FILE_BYTES + 1)
+            .unwrap();
+        assert!(matches!(
+            store.get_task(&task.id),
+            Err(StoreError::InvalidFile { .. })
+        ));
+        let diagnostics = store.diagnostics();
+        assert!(!diagnostics.healthy);
+        assert!(!diagnostics.issues.is_empty());
+
+        let inbox_path = store.telegram_inbox_path();
+        fs::create_dir_all(inbox_path.parent().unwrap()).unwrap();
+        File::create(&inbox_path)
+            .unwrap()
+            .set_len(MAX_TELEGRAM_INBOX_BYTES + 1)
+            .unwrap();
+        assert!(matches!(
+            store.list_telegram_inbox(None, false),
+            Err(StoreError::InvalidFile { .. })
         ));
     }
 
