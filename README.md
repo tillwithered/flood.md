@@ -16,8 +16,9 @@ Tasks often begin as a message, then disappear inside a busy chat. flood.md turn
 
 - **Local-first:** readable `.md` files are the source of truth.
 - **Telegram through TDLib:** connect a personal account directly, without a bot.
-- **Project connections:** bind each flood.md project to its Telegram chat.
-- **Message import:** choose a recent message and create a task in one action.
+- **Project connections:** bind a project to one or several Telegram chats and choose a collection mode for each one.
+- **Telegram inbox:** review mentions, replies, all new messages from selected chats, or messages added manually before turning them into tasks.
+- **Source and media:** tasks preserve the original chat, author, date, message link, and media metadata; files are downloaded only on demand.
 - **Focused editor:** Markdown, formatting, links, images, and local attachments.
 - **Safe changes:** atomic writes, stable IDs, conflict detection, backups, and trash.
 - **Agent-ready:** the bundled local MCP server uses the same task files.
@@ -66,7 +67,7 @@ The default Windows data directory is `%APPDATA%\io.flood.desktop`. Set `FLOOD_D
 
 ## Local MCP server
 
-The installer includes `flood-mcp.exe`, a local stdio MCP server with project, task, source, state, move, trash, and permanent-delete operations. Copy its configuration from **Settings → Integrations**. Desktop and MCP operations share validation, locking, and conflict rules.
+The installer includes `flood-mcp.exe`, a local stdio MCP server with project, task, source, state, move, trash, and permanent-delete operations. It can also list and read Telegram inbox candidates, dismiss or restore them, and create an idempotent task with its source snapshot. Copy its configuration from **Settings → Integrations**. Desktop and MCP operations share validation, locking, and conflict rules.
 
 ## Development
 
