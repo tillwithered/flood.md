@@ -48,5 +48,5 @@ jobs:
 
             Первый публичный релиз для Windows: локальные Markdown-проекты и задачи, Telegram через TDLib, импорт сообщений в задачи, локальный MCP-сервер, темы, вложения, резервные копии и защита от конфликтов.
           releaseDraft: false
-          releasePrerelease: false
+          prerelease: false
           updaterJsonPreferNsis: true
