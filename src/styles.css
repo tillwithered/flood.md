@@ -643,8 +643,8 @@ button { color: inherit; }
 .code-row { display: flex; width: 100%; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 7px 8px 7px 13px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .code-row code { min-width: 0; flex: 1; overflow: hidden; color: #555552; font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
-.settings-workspace { overflow: auto; align-items: flex-start; scrollbar-gutter: stable; }
-.settings-page { width: min(1320px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 72px; }
+.settings-workspace { container: settings-workspace / inline-size; overflow: auto; align-items: flex-start; scrollbar-gutter: stable; }
+.settings-page { width: min(1480px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 72px; }
 .settings-header { margin-bottom: 34px; }
 .settings-header h2 { margin: 0 0 6px; font-size: 29px; font-weight: 680; letter-spacing: -0.045em; }
 .settings-header p, .settings-section-title p { margin: 0; color: var(--muted); font-size: 13px; }
@@ -854,6 +854,12 @@ button { color: inherit; }
 .mcp-capability-list > span { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: var(--font-size-min); line-height: 1.4; }
 .mcp-capability-list > span svg { flex: 0 0 auto; color: var(--success-ink); }
 .mcp-capability-list > span.protected svg { color: var(--ink); }
+
+@container settings-workspace (max-width: 1120px) {
+  .settings-layout { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+  .settings-nav { position: static; grid-auto-columns: max-content; grid-auto-flow: column; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+  .settings-nav button { width: auto; }
+}
 .telegram-import-backdrop { position: fixed; z-index: 180; inset: 0; display: grid; place-items: center; padding: 40px; background: rgb(10 10 10 / 25%); backdrop-filter: blur(4px); animation: viewer-in 140ms ease-out; }
 .telegram-import-panel { display: grid; width: min(620px, calc(100vw - 56px)); max-height: min(720px, calc(100vh - 72px)); overflow: hidden; border: 1px solid var(--line); border-radius: 16px; outline: 0; background: var(--elevated); color: var(--ink); box-shadow: 0 24px 90px rgb(0 0 0 / 22%); animation: modal-panel-in 150ms cubic-bezier(.2,.8,.3,1); }
 @keyframes modal-panel-in { from { opacity: 0; transform: translateY(7px) scale(.985); } to { opacity: 1; transform: none; } }
