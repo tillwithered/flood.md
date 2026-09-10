@@ -1163,6 +1163,9 @@
   $: currentOpenTasks = currentProjectTasks.filter((task) => !task.completed);
   $: currentCompletedTasks = currentProjectTasks.filter((task) => task.completed);
   $: commandResults = buildCommandResults(commandQuery, tasks, chats, locale, telegramStatus.step);
+  $: setupHasProject = chats.length > 1;
+  $: setupHasTask = tasks.some((task) => !isLocalDraft(task)) || trashedTasks.length > 0;
+  $: setupCompleted = Number(setupHasProject) + Number(setupHasTask);
 
   function tasksForChat(chat: ChatItem) {
     return tasks.filter((task) => !isLocalDraft(task) && task.chatId === chat.id && (showCompleted || !task.completed));
@@ -1247,6 +1250,19 @@
   async function openSettingsSection(section: SettingsSection) {
     await changeSection("settings");
     settingsSection = section;
+  }
+
+  async function continueInitialSetup() {
+    await changeSection("tasks");
+    if (activeSection !== "tasks") return;
+    if (!setupHasProject) {
+      createChatOpen = true;
+      return;
+    }
+    const project = chats[1];
+    if (!project) return;
+    await selectChat(project);
+    await createDraft(project);
   }
 
   async function executeCommand(item: CommandItem | undefined) {
@@ -3122,6 +3138,16 @@
               {#if settingsSection === "general"}
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>{t("general")}</h3><p>{t("generalDescription")}</p></div>
+                  {#if setupCompleted < 2}
+                    <div class="setup-guide" aria-label={t("gettingStarted")}>
+                      <header><span><strong>{t("gettingStarted")}</strong><small>{t("setupProgress", { completed: setupCompleted, total: 2 })}</small></span><div class="setup-progress" aria-hidden="true"><span class:complete={setupHasProject}></span><span class:complete={setupHasTask}></span></div></header>
+                      <div class="setup-steps">
+                        <span class:complete={setupHasProject}>{#if setupHasProject}<CheckCircle2 size={15} />{:else}<Circle size={15} />{/if}<span><strong>{t("setupProject")}</strong><small>{t("setupProjectDescription")}</small></span></span>
+                        <span class:complete={setupHasTask}>{#if setupHasTask}<CheckCircle2 size={15} />{:else}<Circle size={15} />{/if}<span><strong>{t("setupFirstTask")}</strong><small>{t("setupFirstTaskDescription")}</small></span></span>
+                      </div>
+                      <button onclick={continueInitialSetup}>{setupHasProject ? t("addFirstTask") : t("createFirstProject")}<ArrowRight size={14} /></button>
+                    </div>
+                  {/if}
                   <div class="setting-static"><span><Languages size={16} /><span><strong>{t("language")}</strong><small>{t("interfaceLanguage")}</small></span></span><div class="language-picker" aria-label={t("interfaceLanguage")}><button class:active={locale === "ru"} aria-pressed={locale === "ru"} onclick={() => setLocale("ru")}>{t("russian")}</button><button class:active={locale === "en"} aria-pressed={locale === "en"} onclick={() => setLocale("en")}>{t("english")}</button></div></div>
                   <button class:active={showCompleted} class="setting-row" role="switch" aria-checked={showCompleted} onclick={toggleCompletedVisibility}><span><ListTodo size={16} /><span><strong>{t("showCompleted")}</strong><small>{t("showCompletedDescription")}</small></span></span><span class="switch"><span></span></span></button>
                 </section>

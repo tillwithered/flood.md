@@ -107,7 +107,7 @@ button { color: inherit; }
   transition: background-color 120ms ease, color 120ms ease;
 }
 .icon-button:hover { background: var(--hover); color: #454542; }
-.icon-button:focus-visible, .sidebar-row:focus-visible, .nested-task:focus-visible, .new-task-button:focus-visible, .project-open:focus-visible, .project-expand:focus-visible, .project-task:focus-visible, .project-add-button:focus-visible, .window-context-back:focus-visible, .settings-nav button:focus-visible, .theme-picker button:focus-visible, .language-picker button:focus-visible, .setting-row:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.icon-button:focus-visible, .sidebar-row:focus-visible, .nested-task:focus-visible, .new-task-button:focus-visible, .project-open:focus-visible, .project-expand:focus-visible, .project-task:focus-visible, .project-add-button:focus-visible, .window-context-back:focus-visible, .settings-nav button:focus-visible, .theme-picker button:focus-visible, .language-picker button:focus-visible, .setting-row:focus-visible, .setup-guide > button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 
 .app-shell {
   --sidebar-width: 304px;
@@ -639,6 +639,22 @@ button { color: inherit; }
 .settings-section { display: grid; gap: 0; }
 .settings-section-title { display: grid; gap: 5px; padding-bottom: 22px; }
 .settings-section-title h3 { margin: 0; font-size: 21px; font-weight: 660; letter-spacing: -.025em; }
+.setup-guide { display: grid; gap: 14px; margin-bottom: 22px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--elevated); animation: reveal-list 150ms ease-out; }
+.setup-guide > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.setup-guide > header > span { display: grid; gap: 3px; }
+.setup-guide > header strong { font-size: 13px; }
+.setup-progress { display: grid; width: 58px; grid-template-columns: repeat(2, 1fr); gap: 3px; }
+.setup-progress span { height: 4px; border-radius: 999px; background: var(--line); transition: background-color 150ms ease; }
+.setup-progress span.complete { background: var(--success-ink); }
+.setup-steps { display: grid; gap: 1px; overflow: hidden; border-radius: 9px; background: var(--line); }
+.setup-steps > span { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 9px; padding: 10px; background: var(--surface); color: var(--faint); }
+.setup-steps > span.complete { color: var(--success-ink); }
+.setup-steps > span > span { display: grid; gap: 2px; }
+.setup-steps strong { color: var(--ink); font-size: 12px; }
+.setup-steps small { line-height: 1.35; }
+.setup-guide > button { display: inline-flex; width: max-content; height: 32px; align-items: center; gap: 7px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--ink); color: var(--on-ink); font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.setup-guide > button:hover { opacity: .88; }
+.setup-guide > button:active { transform: scale(.98); }
 .setting-static, .setting-row, .data-location, .update-row { display: flex; width: 100%; min-height: 64px; align-items: center; justify-content: space-between; gap: 20px; padding: 12px 0; border-top: 1px solid var(--line); text-align: left; }
 .setting-static > span:first-child, .setting-row > span:first-child, .data-location > span:first-child, .integration-head > span:first-child, .about-brand, .update-row > span:first-child { display: flex; min-width: 0; align-items: center; gap: 10px; }
 .setting-static > span:first-child > span, .setting-row > span:first-child > span, .data-location > span:first-child > span, .integration-head > span:first-child > span, .about-brand > span, .update-row > span:first-child { display: grid; gap: 4px; }
