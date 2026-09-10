@@ -57,6 +57,25 @@ pub struct SourceMedia {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct TelegramContextMessage {
+    pub message_id: i64,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub message_ids: Vec<i64>,
+    pub author: String,
+    pub sent_at: DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub text: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reply_to_message_id: Option<i64>,
+    #[serde(default)]
+    pub is_target: bool,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub media: Vec<SourceMedia>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Urgency {
     Normal,
@@ -101,6 +120,8 @@ pub struct MessageSnapshot {
     pub message_ids: Vec<i64>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub media: Vec<SourceMedia>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub context: Vec<TelegramContextMessage>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -215,6 +236,8 @@ pub struct TelegramInboxCandidate {
     pub status: InboxCandidateStatus,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub media: Vec<SourceMedia>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub context: Vec<TelegramContextMessage>,
     pub discovered_at: DateTime<Utc>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub processed_at: Option<DateTime<Utc>>,
@@ -241,6 +264,7 @@ impl TelegramInboxCandidate {
                 self.message_ids.clone()
             },
             media: self.media.clone(),
+            context: self.context.clone(),
         }
     }
 }

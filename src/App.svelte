@@ -23,7 +23,8 @@
   type AttachmentCleanupState = "idle" | "checking" | "cleaning" | "success" | "error";
   type TelegramInboxMode = "manual" | "mentions_and_replies" | "all";
   type SourceMedia = { kind: "photo" | "video" | "document" | "audio" | "voice" | "animation" | "other"; file_name: string; provider_file_id?: number; mime_type?: string; size?: number; relative_path?: string };
-  type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string; provider?: string; chat_id?: number; chat_title?: string; message_id?: number; message_ids?: number[]; media?: SourceMedia[] };
+  type TelegramContextMessage = { message_id: number; message_ids?: number[]; author: string; sent_at: string; text: string; url?: string; reply_to_message_id?: number; is_target: boolean; media?: SourceMedia[] };
+  type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string; provider?: string; chat_id?: number; chat_title?: string; message_id?: number; message_ids?: number[]; media?: SourceMedia[]; context?: TelegramContextMessage[] };
   type TelegramProjectLink = { chat_id: number; title: string; inbox_mode: TelegramInboxMode };
   type ProjectRecord = { id: string; title: string; created_at: string; updated_at: string; telegram_chats?: TelegramProjectLink[]; version: string };
   type TaskRecord = {
@@ -62,7 +63,7 @@
   type TelegramChat = { id: number; title: string };
   type TelegramLinkedTask = { id: string; title: string; urgency: Urgency; status: "open" | "completed"; trashed: boolean };
   type TelegramMessage = { id: number; message_ids?: number[]; chat_id: number; text: string; author: string; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean; linked_task?: TelegramLinkedTask };
-  type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; message_ids?: number[]; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; discovered_at: string; processed_at?: string; task_id?: string; linked_task?: TelegramLinkedTask };
+  type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; message_ids?: number[]; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; context?: TelegramContextMessage[]; discovered_at: string; processed_at?: string; task_id?: string; linked_task?: TelegramLinkedTask };
   type TelegramInboxPage = { candidates: TelegramInboxCandidate[]; total: number; next_cursor?: string; remaining: number };
   type TelegramTaskCreationResult = { task: TaskRecord; media_errors: string[] };
   type TelegramInboxSyncResult = { scanned_projects: number; added: number; failed_projects: number; errors: string[]; busy: boolean };
@@ -3161,12 +3162,19 @@
     void tick().then(() => telegramInboxDialog?.focus());
     telegramInboxLoading = preview === "telegram-loading";
     telegramInboxError = preview === "telegram-error" ? t("telegramPreviewError") : "";
-    if (preview !== "telegram-inbox" && preview !== "telegram-undo" && preview !== "telegram-history") return;
+    if (preview !== "telegram-inbox" && preview !== "telegram-context" && preview !== "telegram-undo" && preview !== "telegram-history") return;
     telegramInbox = [
       {
         id: "preview-1", project_id: "preview", chat_id: -1001, chat_title: "Команда продукта", message_id: 101,
         text: "@tillwithered собери, пожалуйста, итоговые правки по экрану интеграций и проверь пустые состояния.",
-        author: "Анна", sent_at: "2026-09-10T17:42:00Z", reason: "mention", status: "pending", media: [], discovered_at: "2026-09-10T17:42:10Z"
+        author: "Анна", sent_at: "2026-09-10T17:42:00Z", reason: "mention", status: "pending", media: [],
+        context: [
+          { message_id: 98, author: "Илья", sent_at: "2026-09-10T17:37:00Z", text: "На узком окне список чатов снова упирается в край.", is_target: false, media: [] },
+          { message_id: 99, author: "Олег", sent_at: "2026-09-10T17:39:00Z", text: "Да, и пустое состояние выглядит слишком системно.", is_target: false, media: [{ kind: "photo", file_name: "integrations-empty.png" }] },
+          { message_id: 101, author: "Анна", sent_at: "2026-09-10T17:42:00Z", text: "@tillwithered собери, пожалуйста, итоговые правки по экрану интеграций и проверь пустые состояния.", reply_to_message_id: 99, is_target: true, media: [] },
+          { message_id: 102, author: "Илья", sent_at: "2026-09-10T17:43:00Z", text: "И проверь тёмную тему после изменений.", is_target: false, media: [] }
+        ],
+        discovered_at: "2026-09-10T17:42:10Z"
       },
       {
         id: "preview-2", project_id: "preview", chat_id: -1001, chat_title: "Команда продукта", message_id: 102,
@@ -3183,7 +3191,9 @@
     telegramInboxTotal = telegramInbox.length;
     telegramInboxNextCursor = "";
     telegramInboxRemaining = 0;
-    if (preview === "telegram-undo") {
+    if (preview === "telegram-context") {
+      void beginTaskFromCandidate(telegramInbox[0]);
+    } else if (preview === "telegram-undo") {
       telegramDismissUndo = { ...telegramInbox[0], status: "dismissed", processed_at: new Date().toISOString() };
       telegramInbox = telegramInbox.slice(1);
       telegramInboxTotal = telegramInbox.length;
@@ -4005,14 +4015,32 @@
       <header><span>{#if telegramTaskDraftCandidate}<button class="icon-button" aria-label={t("back")} onclick={closeTelegramTaskDraft}><ChevronLeft size={16} /></button>{:else}<MessageSquareText size={17} />{/if}<span><strong>{telegramTaskDraftCandidate ? t("telegramTaskDraft") : t("inbox")}</strong><small>{telegramTaskDraftCandidate && telegramTriageTotal ? t("triageProgress", { current: telegramTriageTotal - telegramTriageQueue.length + 1, total: telegramTriageTotal }) : telegramTaskDraftCandidate ? t("telegramTaskDraftDescription") : t("inboxDescription")}</small></span></span><div>{#if !telegramTaskDraftCandidate && telegramInboxView === "pending"}<button class="icon-button" title={t("scanMessages")} disabled={telegramInboxLoading || currentChat.id === "all"} onclick={() => openTelegramInbox(true)}><RefreshCw class={telegramInboxLoading ? "spinning" : ""} size={16} /></button>{/if}<button class="icon-button" aria-label={t("close")} onclick={closeTelegramInbox}><X size={16} /></button></div></header>
       {#if telegramTaskDraftCandidate}
         <form class="telegram-task-composer" onsubmit={(event) => { event.preventDefault(); createTaskFromCandidate(); }}>
-          <div class="telegram-task-fields">
-            {#if telegramTaskDraftRestored}<div class="telegram-draft-restored" role="status"><Check size={13} />{t("telegramDraftRestored")}</div>{/if}
-            <label><span>{t("taskTitle")}</span><input bind:this={telegramTaskTitleInput} bind:value={telegramTaskDraftTitle} maxlength="120" placeholder={t("taskTitlePlaceholder")} oninput={() => (telegramTaskDraftRestored = false)} /></label>
-            <label><span>{t("taskNotes")}</span><textarea bind:value={telegramTaskDraftNotes} rows="4" placeholder={t("taskNotesPlaceholder")} oninput={() => (telegramTaskDraftRestored = false)}></textarea></label>
-            <fieldset><legend>{t("urgencyLabel")}</legend><div class="telegram-task-urgency">{#each (["normal", "important", "urgent"] as Urgency[]) as urgency}<button type="button" class:active={telegramTaskDraftUrgency === urgency} onclick={() => { telegramTaskDraftUrgency = urgency; telegramTaskDraftRestored = false; }}><FloodGlyph kind={urgency} size={14} />{urgencyTitle(urgency)}</button>{/each}</div></fieldset>
+          <div class="telegram-task-scroll">
+            <div class="telegram-task-fields">
+              {#if telegramTaskDraftRestored}<div class="telegram-draft-restored" role="status"><Check size={13} />{t("telegramDraftRestored")}</div>{/if}
+              <label><span>{t("taskTitle")}</span><input bind:this={telegramTaskTitleInput} bind:value={telegramTaskDraftTitle} maxlength="120" placeholder={t("taskTitlePlaceholder")} oninput={() => (telegramTaskDraftRestored = false)} /></label>
+              <label><span>{t("taskNotes")}</span><textarea bind:value={telegramTaskDraftNotes} rows="4" placeholder={t("taskNotesPlaceholder")} oninput={() => (telegramTaskDraftRestored = false)}></textarea></label>
+              <fieldset><legend>{t("urgencyLabel")}</legend><div class="telegram-task-urgency">{#each (["normal", "important", "urgent"] as Urgency[]) as urgency}<button type="button" class:active={telegramTaskDraftUrgency === urgency} onclick={() => { telegramTaskDraftUrgency = urgency; telegramTaskDraftRestored = false; }}><FloodGlyph kind={urgency} size={14} />{urgencyTitle(urgency)}</button>{/each}</div></fieldset>
+            </div>
+            {#if telegramTaskDraftCandidate.context?.length}
+              <section class="telegram-context-block telegram-task-context">
+                <header><span><FloodGlyph kind="info" size={16} /><strong>{t("conversationContext")}</strong></span><small>{t("contextMessages", { count: telegramTaskDraftCandidate.context.length })}</small></header>
+                <div class="telegram-context-list">
+                  {#each telegramTaskDraftCandidate.context as message (message.message_id)}
+                    <article class:target={message.is_target} class="telegram-context-message">
+                      <div><strong>{message.author || "Telegram"}</strong><span>{#if message.is_target}{t("targetMessage")} · {/if}{fullDate(message.sent_at)}</span></div>
+                      {#if message.text}<p>{message.text}</p>{/if}
+                      {#if message.media?.length}<small><Paperclip size={12} />{t("contextMediaCount", { count: message.media.length })}</small>{/if}
+                    </article>
+                  {/each}
+                </div>
+                {#if telegramTaskDraftCandidate.media?.length}<span class="telegram-auto-media"><Paperclip size={13} />{t("mediaWillBeAdded", { count: telegramTaskDraftCandidate.media.length })}</span>{/if}
+              </section>
+            {:else}
+              <section class="telegram-task-source-preview"><div><Send size={14} /><span><strong>{telegramTaskDraftCandidate.author}</strong><small>{telegramTaskDraftCandidate.chat_title} · {fullDate(telegramTaskDraftCandidate.sent_at)}</small></span></div>{#if telegramTaskDraftCandidate.text}<p>{telegramTaskDraftCandidate.text}</p>{/if}{#if telegramTaskDraftCandidate.media?.length}<span class="telegram-auto-media"><Paperclip size={13} />{t("mediaWillBeAdded", { count: telegramTaskDraftCandidate.media.length })}</span>{/if}</section>
+            {/if}
+            {#if telegramInboxError}<p class="telegram-composer-error">{telegramInboxError}</p>{/if}
           </div>
-          <section class="telegram-task-source-preview"><div><Send size={14} /><span><strong>{telegramTaskDraftCandidate.author}</strong><small>{telegramTaskDraftCandidate.chat_title} · {fullDate(telegramTaskDraftCandidate.sent_at)}</small></span></div>{#if telegramTaskDraftCandidate.text}<p>{telegramTaskDraftCandidate.text}</p>{/if}{#if telegramTaskDraftCandidate.media?.length}<span class="telegram-auto-media"><Paperclip size={13} />{t("mediaWillBeAdded", { count: telegramTaskDraftCandidate.media.length })}</span>{/if}</section>
-          {#if telegramInboxError}<p class="telegram-composer-error">{telegramInboxError}</p>{/if}
           <footer>{#if telegramTriageQueue.length}<button type="button" onclick={skipTelegramTriageCandidate} disabled={Boolean(telegramInboxProcessingId)}>{t("keepInInbox")}</button>{:else}<button type="button" onclick={closeTelegramTaskDraft} disabled={Boolean(telegramInboxProcessingId)}>{t("cancel")}</button>{/if}<button class="primary-button" type="submit" disabled={!telegramTaskDraftTitle.trim() || Boolean(telegramInboxProcessingId)}>{#if telegramInboxProcessingId}<RefreshCw class="spinning" size={14} />{:else}<Plus size={14} />{/if}{telegramTriageQueue.length > 1 ? t("createAndContinue") : t("createTask")}</button></footer>
         </form>
       {:else}<div class="telegram-inbox-body">
@@ -4030,7 +4058,7 @@
             {#each telegramInbox as candidate (candidate.id)}
               <article class:history={telegramInboxView === "history"} class:selected={telegramInboxSelection.includes(candidate.id)} class="inbox-candidate">
                 {#if telegramInboxView === "pending"}<button class:active={telegramInboxSelection.includes(candidate.id)} class="inbox-select" disabled={Boolean(candidate.linked_task)} aria-label={telegramInboxSelection.includes(candidate.id) ? t("removeFromSelection") : t("addToSelection")} aria-pressed={telegramInboxSelection.includes(candidate.id)} onclick={() => toggleTelegramInboxCandidate(candidate.id)}><span class="picker-check">{#if telegramInboxSelection.includes(candidate.id)}<Check size={12} />{/if}</span></button>{:else}<span class:imported={candidate.status === "imported"} class="inbox-history-state" title={candidate.status === "imported" ? t("telegramStatusImported") : t("telegramStatusDismissed")}>{#if candidate.status === "imported"}<Check size={14} />{:else}<RotateCcw size={14} />{/if}</span>{/if}
-                <div class="inbox-candidate-content"><div class="inbox-candidate-meta"><strong>{candidate.author}</strong><span title={candidate.chat_title}>{candidate.chat_title}</span><small>{telegramInboxView === "history" ? (candidate.status === "imported" ? t("telegramStatusImported") : t("telegramStatusDismissed")) : telegramReasonLabel(candidate.reason)} · {fullDate(candidate.processed_at ?? candidate.sent_at)}</small></div>{#if candidate.text}<p>{candidate.text}</p>{/if}{#if candidate.media?.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: candidate.media.length })}</small>{/if}</div>
+                <div class="inbox-candidate-content"><div class="inbox-candidate-meta"><strong>{candidate.author}</strong><span title={candidate.chat_title}>{candidate.chat_title}</span><small>{telegramInboxView === "history" ? (candidate.status === "imported" ? t("telegramStatusImported") : t("telegramStatusDismissed")) : telegramReasonLabel(candidate.reason)} · {fullDate(candidate.processed_at ?? candidate.sent_at)}</small></div>{#if candidate.text}<p>{candidate.text}</p>{/if}<div class="inbox-candidate-notes">{#if candidate.context && candidate.context.length > 1}<small><MessageSquareText size={12} />{t("contextMessages", { count: candidate.context.length })}</small>{/if}{#if candidate.media?.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: candidate.media.length })}</small>{/if}</div></div>
                 <div class="inbox-candidate-actions">{#if candidate.linked_task}<button class="inbox-linked-task" disabled={candidate.linked_task.trashed} title={candidate.linked_task.title} onclick={() => openTelegramLinkedTask(candidate.linked_task!)}><FloodGlyph kind={candidate.linked_task.status === "completed" ? "completed" : candidate.linked_task.urgency} size={13} /><span>{candidate.linked_task.title}</span><small>{telegramLinkedTaskState(candidate.linked_task)}</small><ChevronRight size={13} /></button>{:else if telegramInboxView === "history" && candidate.status === "dismissed"}<button disabled={Boolean(telegramInboxProcessingId)} onclick={() => restoreTelegramCandidate(candidate)}><RotateCcw size={13} />{t("restoreToInbox")}</button>{:else if telegramInboxView === "history"}<span class="inbox-missing-task">{t("linkedTaskUnavailable")}</span>{:else}<button disabled={Boolean(telegramInboxProcessingId)} onclick={() => dismissTelegramCandidate(candidate)}>{t("dismiss")}</button><button class="primary-button" disabled={Boolean(telegramInboxProcessingId)} aria-label={t("prepareTask")} title={t("prepareTask")} onclick={() => beginTaskFromCandidate(candidate)}><Plus size={14} />{t("prepareTaskShort")}</button>{/if}</div>
               </article>
             {:else}<div class="telegram-import-state">{telegramInboxView === "history" ? t("telegramHistoryEmpty") : t("inboxEmpty")}</div>{/each}
@@ -4048,10 +4076,25 @@
     <div class="telegram-import-panel source-viewer-panel" bind:this={sourceViewerDialog} role="dialog" aria-modal="true" aria-label={t("taskSource")} tabindex="-1" onkeydown={trapModalFocus}>
       <header><span><FloodGlyph kind="info" size={22} /><span><strong>{t("taskSource")}</strong><small>{selectedTask.source.chat_title || t("sourceMessage")}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeSourceViewer}><X size={16} /></button></header>
       <div class="source-viewer-body">
-        <section class="source-message-card">
-          <div class="source-message-meta"><span><strong>{selectedTask.source.author || t("notSpecified")}</strong><small>{selectedTask.source.provider === "telegram" ? "Telegram" : t("sourceMessage")}</small></span>{#if selectedTask.source.sent_at}<time datetime={selectedTask.source.sent_at}>{fullDate(selectedTask.source.sent_at)}</time>{/if}</div>
-          {#if selectedTask.source.text}<p>{selectedTask.source.text}</p>{:else}<p class="source-empty-text">{t("noSourceText")}</p>{/if}
-        </section>
+        {#if selectedTask.source.context?.length}
+          <section class="telegram-context-block source-context-block">
+            <header><span><FloodGlyph kind="info" size={16} /><strong>{t("conversationContext")}</strong></span><small>{t("contextMessages", { count: selectedTask.source.context.length })}</small></header>
+            <div class="telegram-context-list">
+              {#each selectedTask.source.context as message (message.message_id)}
+                <article class:target={message.is_target} class="telegram-context-message">
+                  <div><strong>{message.author || "Telegram"}</strong><span>{#if message.is_target}{t("targetMessage")} · {/if}{fullDate(message.sent_at)}</span></div>
+                  {#if message.text}<p>{message.text}</p>{:else}<p class="source-empty-text">{t("noSourceText")}</p>{/if}
+                  {#if message.media?.length}<small><Paperclip size={12} />{t("contextMediaCount", { count: message.media.length })}</small>{/if}
+                </article>
+              {/each}
+            </div>
+          </section>
+        {:else}
+          <section class="source-message-card">
+            <div class="source-message-meta"><span><strong>{selectedTask.source.author || t("notSpecified")}</strong><small>{selectedTask.source.provider === "telegram" ? "Telegram" : t("sourceMessage")}</small></span>{#if selectedTask.source.sent_at}<time datetime={selectedTask.source.sent_at}>{fullDate(selectedTask.source.sent_at)}</time>{/if}</div>
+            {#if selectedTask.source.text}<p>{selectedTask.source.text}</p>{:else}<p class="source-empty-text">{t("noSourceText")}</p>{/if}
+          </section>
+        {/if}
         {#if selectedTask.source.media?.length}
           <section class="source-viewer-section">
             <h4>{t("sourceFiles")} <span>{selectedTask.source.media.length}</span></h4>

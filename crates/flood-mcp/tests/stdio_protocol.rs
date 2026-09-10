@@ -130,6 +130,12 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .find(|tool| tool["name"] == "get_telegram_triage_batch")
         .unwrap();
     assert_eq!(triage_batch["annotations"]["readOnlyHint"], true);
+    let telegram_context = tools
+        .iter()
+        .find(|tool| tool["name"] == "get_telegram_candidate_context")
+        .unwrap();
+    assert_eq!(telegram_context["annotations"]["readOnlyHint"], true);
+    assert_eq!(telegram_context["annotations"]["openWorldHint"], false);
     let triage_preview = tools
         .iter()
         .find(|tool| tool["name"] == "preview_telegram_triage")
@@ -516,7 +522,7 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     );
     let brief = receive(&mut stdout, 15);
     assert_eq!(brief["result"]["isError"], false);
-    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 5);
+    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 6);
     assert_eq!(
         brief["result"]["structuredContent"]["readiness"]["level"],
         "ready"

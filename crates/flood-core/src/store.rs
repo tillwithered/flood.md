@@ -1,8 +1,8 @@
 use crate::{
     ActivityAction, ActivityEntityKind, ActivityEvent, ActivitySource, CreateTask,
     InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind, Task,
-    TaskPatch, TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramLinkedTask,
-    TelegramProjectLink, TelegramSyncRequest, TelegramSyncStatus, Urgency,
+    TaskPatch, TaskStatus, TaskSummary, TelegramContextMessage, TelegramInboxCandidate,
+    TelegramLinkedTask, TelegramProjectLink, TelegramSyncRequest, TelegramSyncStatus, Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
@@ -2122,6 +2122,37 @@ fn run_isolated_self_check(root: &Path, checks: &mut Vec<SelfCheckItem>) -> Resu
             size: Some(1024),
             relative_path: None,
         }],
+        context: vec![
+            TelegramContextMessage {
+                message_id: 41,
+                message_ids: vec![41],
+                author: "Коллега".into(),
+                sent_at: now - chrono::Duration::minutes(1),
+                text: "Нужен контекст перед постановкой задачи".into(),
+                url: Some("https://t.me/c/100000000001/41".into()),
+                reply_to_message_id: None,
+                is_target: false,
+                media: Vec::new(),
+            },
+            TelegramContextMessage {
+                message_id: 42,
+                message_ids: vec![42, 43],
+                author: "Self-check".into(),
+                sent_at: now,
+                text: "@flood преврати это сообщение в задачу".into(),
+                url: Some("https://t.me/c/100000000001/42".into()),
+                reply_to_message_id: Some(41),
+                is_target: true,
+                media: vec![SourceMedia {
+                    kind: SourceMediaKind::Photo,
+                    file_name: "self-check.jpg".into(),
+                    provider_file_id: Some(42),
+                    mime_type: Some("image/jpeg".into()),
+                    size: Some(1024),
+                    relative_path: None,
+                }],
+            },
+        ],
         discovered_at: now,
         processed_at: None,
         task_id: None,
@@ -2154,6 +2185,9 @@ fn run_isolated_self_check(root: &Path, checks: &mut Vec<SelfCheckItem>) -> Resu
             source.provider.as_deref() == Some("telegram")
                 && source.message_ids == vec![42, 43]
                 && source.media.len() == 1
+                && source.context.len() == 2
+                && source.context[0].message_id == 41
+                && source.context[1].is_target
         })
         && imported.status == InboxCandidateStatus::Imported
         && imported.task_id.as_deref() == Some(telegram_task.id.as_str())
@@ -2575,6 +2609,37 @@ fn validate_source(source: &Option<crate::MessageSnapshot>) -> Result<(), StoreE
                 ));
             }
         }
+        if source.context.len() > 20 {
+            return Err(StoreError::Validation(
+                "контекст источника может содержать не более 20 сообщений".into(),
+            ));
+        }
+        if !source.context.is_empty() && !source.context.iter().any(|message| message.is_target) {
+            return Err(StoreError::Validation(
+                "контекст источника должен отмечать исходное сообщение".into(),
+            ));
+        }
+        for message in &source.context {
+            clean_required(&message.author, "автор сообщения контекста", 240)?;
+            if message.text.chars().count() > 20_000 {
+                return Err(StoreError::Validation(
+                    "сообщение контекста: превышено ограничение 20000 символов".into(),
+                ));
+            }
+            if message.url.as_ref().is_some_and(|url| url.len() > 2_000) {
+                return Err(StoreError::Validation(
+                    "ссылка сообщения контекста слишком длинная".into(),
+                ));
+            }
+            if message.media.len() > 20 {
+                return Err(StoreError::Validation(
+                    "сообщение контекста может содержать не более 20 медиафайлов".into(),
+                ));
+            }
+            for media in &message.media {
+                clean_required(&media.file_name, "имя медиафайла контекста", 240)?;
+            }
+        }
     }
     Ok(())
 }
@@ -2882,6 +2947,7 @@ mod tests {
             .update_project(&project.id, "Переименованный проект", &project.version)
             .unwrap();
         assert_eq!(renamed.title, "Переименованный проект");
+        let now = Utc::now();
         let source = crate::MessageSnapshot {
             text: "Проверь сборку к вечеру".into(),
             author: Some("Анна".into()),
@@ -2893,6 +2959,30 @@ mod tests {
             message_id: Some(42),
             message_ids: vec![42],
             media: Vec::new(),
+            context: vec![
+                crate::TelegramContextMessage {
+                    message_id: 41,
+                    message_ids: vec![41],
+                    author: "Олег".into(),
+                    sent_at: now - chrono::Duration::minutes(2),
+                    text: "На старой прошивке пустой экран".into(),
+                    url: Some("https://example.com/message/41".into()),
+                    reply_to_message_id: None,
+                    is_target: false,
+                    media: Vec::new(),
+                },
+                crate::TelegramContextMessage {
+                    message_id: 42,
+                    message_ids: vec![42],
+                    author: "Анна".into(),
+                    sent_at: now,
+                    text: "Проверь сборку к вечеру".into(),
+                    url: Some("https://example.com/message/42".into()),
+                    reply_to_message_id: Some(41),
+                    is_target: true,
+                    media: Vec::new(),
+                },
+            ],
         };
         let task = store
             .create_task(CreateTask {
@@ -2976,6 +3066,30 @@ mod tests {
                 size: Some(1024),
                 relative_path: None,
             }],
+            context: vec![
+                crate::TelegramContextMessage {
+                    message_id: 76,
+                    message_ids: vec![76],
+                    author: "Олег".into(),
+                    sent_at: now - chrono::Duration::minutes(2),
+                    text: "На старой прошивке пустой экран".into(),
+                    url: Some("https://t.me/c/123/76".into()),
+                    reply_to_message_id: None,
+                    is_target: false,
+                    media: Vec::new(),
+                },
+                crate::TelegramContextMessage {
+                    message_id: 77,
+                    message_ids: vec![77],
+                    author: "Ирина".into(),
+                    sent_at: now,
+                    text: "@tillwithered подготовь макет".into(),
+                    url: Some("https://t.me/c/123/77".into()),
+                    reply_to_message_id: Some(76),
+                    is_target: true,
+                    media: Vec::new(),
+                },
+            ],
             discovered_at: now,
             processed_at: None,
             task_id: None,
@@ -3010,6 +3124,9 @@ mod tests {
             .unwrap();
         assert_eq!(task.source.as_ref().unwrap().message_id, Some(77));
         assert_eq!(task.source.as_ref().unwrap().media.len(), 1);
+        assert_eq!(task.source.as_ref().unwrap().context.len(), 2);
+        assert_eq!(task.source.as_ref().unwrap().context[0].message_id, 76);
+        assert!(task.source.as_ref().unwrap().context[1].is_target);
         assert!(store.list_telegram_inbox(None, false).unwrap().is_empty());
 
         let repeated = store
@@ -3087,6 +3204,7 @@ mod tests {
                 reason: InboxCandidateReason::Manual,
                 status: InboxCandidateStatus::Pending,
                 media: Vec::new(),
+                context: Vec::new(),
                 discovered_at: now,
                 processed_at: None,
                 task_id: None,
@@ -3231,6 +3349,7 @@ mod tests {
                 size: Some(2048),
                 relative_path: None,
             }],
+            context: Vec::new(),
             discovered_at: now,
             processed_at: None,
             task_id: None,
@@ -3448,6 +3567,7 @@ mod tests {
                             size: Some(12),
                             relative_path: Some(source_attachment.clone()),
                         }],
+                        context: Vec::new(),
                     })),
                     ..TaskPatch::default()
                 },
@@ -3588,6 +3708,7 @@ mod tests {
             reason: crate::InboxCandidateReason::Manual,
             status: InboxCandidateStatus::Pending,
             media: Vec::new(),
+            context: Vec::new(),
             discovered_at: now,
             processed_at: None,
             task_id: None,

@@ -3,8 +3,9 @@ use flood_core::{
     ActivityAction, ActivityEntityKind, ActivityPage, ActivitySource, AttachmentCleanupReport,
     CreateTask, InboxCandidateStatus, MessageSnapshot, Project, RecordActivity, SelfCheckItem,
     SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
-    TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramSyncHealth, TelegramSyncRequest,
-    TelegramSyncStatus, Urgency, default_data_dir, run_self_check as run_core_self_check,
+    TaskStatus, TaskSummary, TelegramContextMessage, TelegramInboxCandidate, TelegramLinkedTask,
+    TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
+    run_self_check as run_core_self_check,
 };
 use rmcp::{
     Json, ServiceExt, handler::server::wrapper::Parameters, schemars, tool, tool_router,
@@ -323,7 +324,7 @@ struct DeleteCountOutput {
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TelegramInboxOutput {
-    candidates: Vec<TelegramInboxCandidate>,
+    candidates: Vec<TelegramCandidateSummary>,
     total: usize,
     next_cursor: Option<String>,
     remaining: usize,
@@ -354,8 +355,37 @@ struct TelegramCandidateOutput {
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramCandidateSummary {
+    id: String,
+    project_id: String,
+    chat_id: i64,
+    chat_title: String,
+    message_id: i64,
+    message_ids: Vec<i64>,
+    text: String,
+    text_truncated: bool,
+    author: String,
+    sent_at: DateTime<Utc>,
+    url: Option<String>,
+    reason: flood_core::InboxCandidateReason,
+    status: InboxCandidateStatus,
+    media: Vec<SourceMedia>,
+    context_message_count: usize,
+    linked_task: Option<TelegramLinkedTask>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramContextOutput {
+    candidate: TelegramCandidateSummary,
+    messages: Vec<TelegramContextMessage>,
+    message_count: usize,
+    media_count: usize,
+    bounded: bool,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TelegramTriageBatchOutput {
-    candidates: Vec<TelegramInboxCandidate>,
+    candidates: Vec<TelegramCandidateSummary>,
     next_cursor: Option<String>,
     remaining: usize,
 }
@@ -677,6 +707,7 @@ impl FloodServer {
                 "bounded_telegram_lists",
                 "bounded_telegram_triage",
                 "confirmed_telegram_triage",
+                "telegram_conversation_context",
                 "telegram_sync_status",
                 "telegram_sync_request",
                 "store_diagnostics",
@@ -689,7 +720,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Получить единую ограниченную стартовую сводку flood.md для агента. Выполняет изолированный self-check MCP и возвращает readiness ready/attention/blocked, диагностику реального хранилища, аудит вложений, до 10 приоритетных задач, до 5 последних действий MCP, свежесть Telegram и следующие подходящие tools. Создание проектов и задач защищено обязательным request_id от дублей при повторе. Не возвращает полную базу, тексты задач в журнале или Telegram-входящие. Используйте первым вызовом вместо серии широких списков",
+        description = "Получить единую ограниченную стартовую сводку flood.md для агента. Выполняет изолированный self-check MCP и возвращает readiness ready/attention/blocked, диагностику реального хранилища, аудит вложений, до 10 приоритетных задач, до 5 последних действий MCP, свежесть Telegram и следующие подходящие tools. Для понимания выбранного Telegram-кандидата используйте get_telegram_candidate_context. Создание проектов и задач защищено обязательным request_id от дублей при повторе. Не возвращает полную базу, тексты задач в журнале или Telegram-входящие. Используйте первым вызовом вместо серии широких списков",
         annotations(
             title = "Рабочая сводка flood.md",
             read_only_hint = true,
@@ -765,7 +796,7 @@ impl FloodServer {
         }
 
         Ok(Json(WorkspaceBriefOutput {
-            brief_version: 5,
+            brief_version: 6,
             runtime,
             readiness,
             self_check,
@@ -1253,7 +1284,11 @@ impl FloodServer {
             )
             .map_err(store_error)?;
         Ok(Json(TelegramInboxOutput {
-            candidates: page.candidates,
+            candidates: page
+                .candidates
+                .iter()
+                .map(telegram_candidate_summary)
+                .collect(),
             total: page.total,
             next_cursor: page.next_cursor,
             remaining: page.remaining,
@@ -1285,7 +1320,11 @@ impl FloodServer {
             )
             .map_err(store_error)?;
         Ok(Json(TelegramTriageBatchOutput {
-            candidates: page.candidates,
+            candidates: page
+                .candidates
+                .iter()
+                .map(telegram_candidate_summary)
+                .collect(),
             next_cursor: page.next_cursor,
             remaining: page.remaining,
         }))
@@ -1478,6 +1517,26 @@ impl FloodServer {
         self.store
             .get_telegram_candidate(&args.candidate_id)
             .map(|candidate| Json(TelegramCandidateOutput { candidate }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Получить сохранённый ограниченный контекст вокруг одного Telegram-кандидата: исходное сообщение, соседние сообщения, прямой reply-контекст и метаданные медиа. Сообщения возвращаются по времени, исходное отмечено is_target=true. Контекст хранится локально и не загружает всю историю чата",
+        annotations(
+            title = "Контекст сообщения Telegram",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn get_telegram_candidate_context(
+        &self,
+        Parameters(args): Parameters<CandidateIdArgs>,
+    ) -> Result<Json<TelegramContextOutput>, String> {
+        self.store
+            .get_telegram_candidate(&args.candidate_id)
+            .map(telegram_context_output)
+            .map(Json)
             .map_err(store_error)
     }
 
@@ -2192,6 +2251,54 @@ fn compact_task_output(task: TaskSummary, project_title: String) -> CompactTaskO
     }
 }
 
+fn telegram_candidate_summary(candidate: &TelegramInboxCandidate) -> TelegramCandidateSummary {
+    const MAX_CANDIDATE_TEXT_CHARS: usize = 2_000;
+    TelegramCandidateSummary {
+        id: candidate.id.clone(),
+        project_id: candidate.project_id.clone(),
+        chat_id: candidate.chat_id,
+        chat_title: candidate.chat_title.clone(),
+        message_id: candidate.message_id,
+        message_ids: candidate.message_ids.clone(),
+        text: compact_search_text(&candidate.text, MAX_CANDIDATE_TEXT_CHARS),
+        text_truncated: candidate.text.chars().count() > MAX_CANDIDATE_TEXT_CHARS,
+        author: candidate.author.clone(),
+        sent_at: candidate.sent_at,
+        url: candidate.url.clone(),
+        reason: candidate.reason.clone(),
+        status: candidate.status.clone(),
+        media: candidate.media.clone(),
+        context_message_count: candidate.context.len().max(1),
+        linked_task: candidate.linked_task.clone(),
+    }
+}
+
+fn telegram_context_output(candidate: TelegramInboxCandidate) -> TelegramContextOutput {
+    let messages = if candidate.context.is_empty() {
+        vec![TelegramContextMessage {
+            message_id: candidate.message_id,
+            message_ids: candidate.message_ids.clone(),
+            author: candidate.author.clone(),
+            sent_at: candidate.sent_at,
+            text: candidate.text.clone(),
+            url: candidate.url.clone(),
+            reply_to_message_id: None,
+            is_target: true,
+            media: candidate.media.clone(),
+        }]
+    } else {
+        candidate.context.clone()
+    };
+    let media_count = messages.iter().map(|message| message.media.len()).sum();
+    TelegramContextOutput {
+        candidate: telegram_candidate_summary(&candidate),
+        message_count: messages.len(),
+        media_count,
+        messages,
+        bounded: true,
+    }
+}
+
 fn task_status_rank(status: &TaskStatus) -> u8 {
     match status {
         TaskStatus::Open => 0,
@@ -2242,6 +2349,7 @@ fn parse_snapshot(value: SnapshotArgs) -> Result<MessageSnapshot, String> {
             .into_iter()
             .map(parse_source_media)
             .collect::<Result<_, _>>()?,
+        context: Vec::new(),
     })
 }
 
@@ -2292,6 +2400,7 @@ fn run_binary_self_check() -> SelfCheckResult {
         "request_telegram_sync",
         "preview_telegram_triage",
         "apply_telegram_triage",
+        "get_telegram_candidate_context",
         "run_self_check",
     ];
     let missing_tools = required_tools
@@ -2437,6 +2546,7 @@ mod tests {
             "preview_telegram_triage",
             "apply_telegram_triage",
             "get_telegram_candidate",
+            "get_telegram_candidate_context",
             "create_task_from_telegram_candidate",
             "set_telegram_candidate_status",
         ] {
@@ -2501,7 +2611,7 @@ mod tests {
         assert_eq!(runtime.version, env!("CARGO_PKG_VERSION"));
         assert!(!runtime.destructive_actions_enabled);
         let brief = _server.get_workspace_brief().unwrap().0;
-        assert_eq!(brief.brief_version, 5);
+        assert_eq!(brief.brief_version, 6);
         assert_eq!(brief.readiness.level, "ready");
         assert!(brief.readiness.agent_ready);
         assert_eq!(brief.readiness.checks.len(), 4);
@@ -3021,6 +3131,29 @@ mod tests {
                 "mime_type": "image/jpeg",
                 "size": 2048
             }],
+            "context": [{
+                "message_id": 76,
+                "author": "Олег",
+                "sent_at": "2026-09-10T09:59:00Z",
+                "text": "Нужен итог встречи со списком ответственных",
+                "url": "https://t.me/c/42/76",
+                "is_target": false
+            }, {
+                "message_id": 77,
+                "author": "Коллега",
+                "sent_at": "2026-09-10T10:00:00Z",
+                "text": "Подготовить итог встречи",
+                "url": "https://t.me/c/42/77",
+                "reply_to_message_id": 76,
+                "is_target": true,
+                "media": [{
+                    "kind": "photo",
+                    "file_name": "photo-77.jpg",
+                    "provider_file_id": 701,
+                    "mime_type": "image/jpeg",
+                    "size": 2048
+                }]
+            }],
             "discovered_at": "2026-09-10T10:01:00Z"
         }))
         .unwrap();
@@ -3055,6 +3188,7 @@ mod tests {
             .unwrap()
             .0;
         assert_eq!(listed.candidates.len(), 1);
+        assert_eq!(listed.candidates[0].context_message_count, 2);
         assert_eq!(listed.total, 2);
         assert_eq!(listed.remaining, 1);
         assert_eq!(listed.next_cursor.as_deref(), Some(candidate_id.as_str()));
@@ -3082,8 +3216,23 @@ mod tests {
             .0;
         assert_eq!(batch.candidates.len(), 1);
         assert_eq!(batch.candidates[0].id, candidate_id);
+        assert_eq!(batch.candidates[0].context_message_count, 2);
         assert_eq!(batch.remaining, 1);
         assert_eq!(batch.next_cursor.as_deref(), Some(candidate_id.as_str()));
+        let context = server
+            .get_telegram_candidate_context(Parameters(CandidateIdArgs {
+                candidate_id: candidate_id.clone(),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(context.message_count, 2);
+        assert_eq!(context.media_count, 1);
+        assert!(context.bounded);
+        assert_eq!(context.candidate.context_message_count, 2);
+        assert_eq!(context.messages[0].message_id, 76);
+        assert!(!context.messages[0].is_target);
+        assert_eq!(context.messages[1].message_id, 77);
+        assert!(context.messages[1].is_target);
         let keep_decisions = vec![TelegramTriageDecisionArgs {
             candidate_id: candidate_id.clone(),
             action: "keep".into(),

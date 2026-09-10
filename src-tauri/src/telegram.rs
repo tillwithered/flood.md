@@ -3,7 +3,7 @@ use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::{DateTime, Utc};
 use flood_core::{
     InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind,
-    TelegramInboxCandidate, TelegramInboxMode, TelegramProjectLink,
+    TelegramContextMessage, TelegramInboxCandidate, TelegramInboxMode, TelegramProjectLink,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -381,8 +381,23 @@ impl TelegramManager {
                     .map_err(td_error)?;
             messages.push(message);
         }
-        self.candidate_from_messages(project_id, link, messages, InboxCandidateReason::Manual)
-            .await
+        let groups = group_telegram_messages(messages.clone());
+        let mut context = Vec::with_capacity(groups.len());
+        for group in &groups {
+            context.push(
+                self.context_message_from_messages(link, group, true)
+                    .await?,
+            );
+        }
+        context.sort_by_key(|message| message.sent_at);
+        self.candidate_from_messages(
+            project_id,
+            link,
+            messages,
+            InboxCandidateReason::Manual,
+            context,
+        )
+        .await
     }
 
     pub async fn refresh_candidates(
@@ -401,7 +416,9 @@ impl TelegramManager {
                 functions::get_chat_history(link.chat_id, 0, 0, limit, false, client_id)
                     .await
                     .map_err(td_error)?;
-            for group in group_telegram_messages(history.messages.into_iter().flatten().collect()) {
+            let groups = group_telegram_messages(history.messages.into_iter().flatten().collect());
+            let mut context_cache = HashMap::<usize, TelegramContextMessage>::new();
+            for (group_index, group) in groups.iter().enumerate() {
                 if group.iter().all(|message| message.is_outgoing)
                     && link.inbox_mode != TelegramInboxMode::All
                 {
@@ -428,14 +445,40 @@ impl TelegramManager {
                     None
                 };
                 if let Some(reason) = reason {
+                    let mut context_indices = context_window_indices(&groups, group_index);
+                    if let Some(reply_id) = reply_to_message_id(group)
+                        && let Some(reply_index) = groups.iter().position(|messages| {
+                            messages.iter().any(|message| message.id == reply_id)
+                        })
+                        && !context_indices.contains(&reply_index)
+                    {
+                        context_indices.push(reply_index);
+                    }
+                    context_indices.sort_unstable();
+                    let mut context = Vec::with_capacity(context_indices.len());
+                    for index in context_indices {
+                        let mut message = if let Some(message) = context_cache.get(&index) {
+                            message.clone()
+                        } else {
+                            let message = self
+                                .context_message_from_messages(link, &groups[index], false)
+                                .await?;
+                            context_cache.insert(index, message.clone());
+                            message
+                        };
+                        message.is_target = index == group_index;
+                        context.push(message);
+                    }
+                    context.sort_by_key(|message| message.sent_at);
                     candidates.push(
                         self.candidate_from_messages_with_content(
                             &project.id,
                             link,
-                            group,
+                            group.clone(),
                             reason,
                             text,
                             media,
+                            context,
                         )
                         .await?,
                     );
@@ -468,6 +511,7 @@ impl TelegramManager {
         link: &TelegramProjectLink,
         messages: Vec<tdlib::types::Message>,
         reason: InboxCandidateReason,
+        context: Vec<TelegramContextMessage>,
     ) -> Result<TelegramInboxCandidate, String> {
         if messages.is_empty() {
             return Err("Сообщение Telegram не найдено".into());
@@ -476,8 +520,10 @@ impl TelegramManager {
         if text.trim().is_empty() && media.is_empty() {
             return Err("В сообщении нет текста или поддерживаемого медиа".into());
         }
-        self.candidate_from_messages_with_content(project_id, link, messages, reason, text, media)
-            .await
+        self.candidate_from_messages_with_content(
+            project_id, link, messages, reason, text, media, context,
+        )
+        .await
     }
 
     async fn candidate_from_messages_with_content(
@@ -488,6 +534,7 @@ impl TelegramManager {
         reason: InboxCandidateReason,
         text: String,
         media: Vec<flood_core::SourceMedia>,
+        context: Vec<TelegramContextMessage>,
     ) -> Result<TelegramInboxCandidate, String> {
         let client_id = self.client_id()?;
         let message = representative_message(&messages);
@@ -520,10 +567,49 @@ impl TelegramManager {
             reason,
             status: InboxCandidateStatus::Pending,
             media,
+            context,
             discovered_at: Utc::now(),
             processed_at: None,
             task_id: None,
             linked_task: None,
+        })
+    }
+
+    async fn context_message_from_messages(
+        &self,
+        link: &TelegramProjectLink,
+        messages: &[tdlib::types::Message],
+        is_target: bool,
+    ) -> Result<TelegramContextMessage, String> {
+        let message = representative_message(messages);
+        let sent_at = DateTime::from_timestamp(message.date.into(), 0)
+            .ok_or_else(|| "Telegram вернул некорректную дату сообщения".to_string())?;
+        let url = match functions::get_message_link(
+            link.chat_id,
+            message.id,
+            0,
+            false,
+            false,
+            self.client_id()?,
+        )
+        .await
+        {
+            Ok(enums::MessageLink::MessageLink(link)) => Some(link.link),
+            Err(_) => None,
+        };
+        let (text, media) = combined_message_content(messages);
+        Ok(TelegramContextMessage {
+            message_id: message.id,
+            message_ids: messages.iter().map(|message| message.id).collect(),
+            author: self
+                .sender_name(&message.sender_id, self.client_id()?)
+                .await,
+            sent_at,
+            text,
+            url,
+            reply_to_message_id: reply_to_message_id(messages),
+            is_target,
+            media,
         })
     }
 
@@ -904,6 +990,22 @@ fn group_telegram_messages(
     group_by_album(messages, |message| message.media_album_id)
 }
 
+fn context_window_indices<T>(groups: &[Vec<T>], target_index: usize) -> Vec<usize> {
+    const CONTEXT_ON_EACH_SIDE: usize = 3;
+    let start = target_index.saturating_sub(CONTEXT_ON_EACH_SIDE);
+    let end = (target_index + CONTEXT_ON_EACH_SIDE + 1).min(groups.len());
+    (start..end).collect()
+}
+
+fn reply_to_message_id(messages: &[tdlib::types::Message]) -> Option<i64> {
+    messages.iter().find_map(|message| {
+        let enums::MessageReplyTo::Message(reply) = message.reply_to.as_ref()? else {
+            return None;
+        };
+        Some(reply.message_id)
+    })
+}
+
 fn group_by_album<T>(items: Vec<T>, album_id: impl Fn(&T) -> i64) -> Vec<Vec<T>> {
     let mut groups = Vec::<Vec<T>>::new();
     let mut album_positions = HashMap::<i64, usize>::new();
@@ -1047,8 +1149,8 @@ fn next_mask(state: &mut u64) -> u8 {
 mod tests {
     use super::{
         StoredTelegramConfig, config_backup_path, config_path, contains_username_mention,
-        generate_database_key, group_by_album, message_media, normalize_database_key, read_config,
-        valid_api_hash, valid_database_key, write_config,
+        context_window_indices, generate_database_key, group_by_album, message_media,
+        normalize_database_key, read_config, valid_api_hash, valid_database_key, write_config,
     };
     use base64::{Engine as _, engine::general_purpose::STANDARD};
     use std::{env, fs};
@@ -1154,5 +1256,16 @@ mod tests {
         assert_eq!(groups[0], vec![(14, 900), (13, 900)]);
         assert_eq!(groups[1][0], (12, 0));
         assert_eq!(groups[2].len(), 2);
+    }
+
+    #[test]
+    fn telegram_context_window_is_bounded_around_the_target() {
+        let groups = (0..12).map(|value| vec![value]).collect::<Vec<_>>();
+        assert_eq!(context_window_indices(&groups, 0), vec![0, 1, 2, 3]);
+        assert_eq!(
+            context_window_indices(&groups, 6),
+            vec![3, 4, 5, 6, 7, 8, 9]
+        );
+        assert_eq!(context_window_indices(&groups, 11), vec![8, 9, 10, 11]);
     }
 }
