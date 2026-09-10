@@ -401,6 +401,11 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         queued_sync["result"]["structuredContent"]["pending_request"]["id"],
         requested_id
     );
+    assert_eq!(
+        queued_sync["result"]["structuredContent"]["phase"],
+        "queued"
+    );
+    assert_eq!(queued_sync["result"]["structuredContent"]["fresh"], false);
 
     send(
         &mut stdin,
@@ -431,6 +436,10 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     assert_eq!(
         brief["result"]["structuredContent"]["telegram"]["pending_request"]["id"],
         requested_id
+    );
+    assert_eq!(
+        brief["result"]["structuredContent"]["telegram"]["phase"],
+        "queued"
     );
 
     send(

@@ -2178,9 +2178,9 @@
 
   function telegramSyncLabel() {
     if (telegramSyncState === "syncing") return t("telegramSyncing");
-    if (telegramSyncRequest) return t("telegramSyncRequested");
     if (telegramSyncState === "error") return t("telegramSyncFailed");
     if (telegramSyncState === "partial") return t("telegramSyncPartial");
+    if (telegramSyncRequest) return telegramSyncRequestIsDelayed() ? t("telegramSyncDelayed") : t("telegramSyncRequested");
     if (telegramSyncSummary) {
       return t("telegramSyncSummary", {
         time: new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", { hour: "2-digit", minute: "2-digit" }).format(new Date(telegramSyncSummary.syncedAt)),
@@ -2189,6 +2189,12 @@
       });
     }
     return t("telegramSyncAutomatic");
+  }
+
+  function telegramSyncRequestIsDelayed(maxAgeMs = 120_000) {
+    if (!telegramSyncRequest?.requested_at) return false;
+    const requestedAt = new Date(telegramSyncRequest.requested_at).getTime();
+    return !Number.isFinite(requestedAt) || Date.now() - requestedAt > maxAgeMs;
   }
 
   function applyTelegramSyncStatus(status: TelegramSyncStatus | null | undefined) {

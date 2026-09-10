@@ -446,13 +446,20 @@ impl Store {
 
     pub fn request_telegram_sync(&self) -> Result<TelegramSyncRequest, StoreError> {
         let _lock = self.lock_exclusive()?;
+        let path = self.telegram_sync_request_path();
+        if path.exists() {
+            let request: TelegramSyncRequest =
+                serde_json::from_slice(&read_limited_bytes(&path, MAX_INTEGRATION_STATE_BYTES)?)?;
+            validate_id(&request.id)?;
+            return Ok(request);
+        }
         let request = TelegramSyncRequest {
             id: Ulid::new().to_string(),
             requested_at: Utc::now(),
         };
         let mut bytes = serde_json::to_vec_pretty(&request)?;
         bytes.push(b'\n');
-        atomic_write_bytes(&self.telegram_sync_request_path(), &bytes)?;
+        atomic_write_bytes(&path, &bytes)?;
         Ok(request)
     }
 
@@ -2537,6 +2544,7 @@ mod tests {
         let store = temp_store();
         assert!(store.telegram_sync_request().unwrap().is_none());
         let request = store.request_telegram_sync().unwrap();
+        assert_eq!(store.request_telegram_sync().unwrap(), request);
         assert_eq!(
             store.telegram_sync_request().unwrap().as_ref(),
             Some(&request)

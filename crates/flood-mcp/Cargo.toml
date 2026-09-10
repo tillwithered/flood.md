@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+chrono.workspace = true
 flood-core = { path = "../flood-core" }
 rmcp.workspace = true
 schemars.workspace = true
@@ -14,5 +15,4 @@ serde_json.workspace = true
 tokio.workspace = true
 
 [dev-dependencies]
-chrono.workspace = true
 ulid.workspace = true

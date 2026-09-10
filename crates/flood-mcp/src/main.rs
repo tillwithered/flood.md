@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use flood_core::{
     AttachmentCleanupReport, CreateTask, InboxCandidateStatus, MessageSnapshot, Project,
     SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
@@ -10,6 +11,9 @@ use rmcp::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+
+const TELEGRAM_SYNC_FRESH_SECONDS: u64 = 5 * 60;
+const TELEGRAM_REQUEST_WAIT_SECONDS: u64 = 2 * 60;
 
 #[derive(Clone)]
 struct FloodServer {
@@ -293,6 +297,12 @@ struct TelegramInboxOutput {
 struct TelegramSyncStatusOutput {
     status: Option<TelegramSyncStatus>,
     pending_request: Option<TelegramSyncRequest>,
+    phase: &'static str,
+    fresh: bool,
+    request_completed: bool,
+    pending_age_seconds: Option<u64>,
+    status_age_seconds: Option<u64>,
+    next_action: &'static str,
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
@@ -350,6 +360,67 @@ struct WorkspaceBriefOutput {
     priority_tasks: TaskDigestOutput,
     telegram: TelegramSyncStatusOutput,
     suggested_tools: Vec<&'static str>,
+}
+
+fn elapsed_seconds(timestamp: &DateTime<Utc>) -> u64 {
+    Utc::now()
+        .signed_duration_since(timestamp)
+        .num_seconds()
+        .max(0) as u64
+}
+
+fn telegram_sync_output(
+    status: Option<TelegramSyncStatus>,
+    pending_request: Option<TelegramSyncRequest>,
+) -> TelegramSyncStatusOutput {
+    let pending_age_seconds = pending_request
+        .as_ref()
+        .map(|request| elapsed_seconds(&request.requested_at));
+    let status_age_seconds = status
+        .as_ref()
+        .map(|status| elapsed_seconds(&status.completed_at));
+    let request_completed = pending_request.as_ref().is_some_and(|request| {
+        status
+            .as_ref()
+            .and_then(|status| status.request_id.as_deref())
+            == Some(request.id.as_str())
+    });
+    let fresh = status_age_seconds.is_some_and(|age| age <= TELEGRAM_SYNC_FRESH_SECONDS)
+        && (pending_request.is_none() || request_completed);
+    let phase = if pending_request.is_some() && request_completed {
+        "completed_pending_ack"
+    } else if pending_age_seconds.is_some_and(|age| age > TELEGRAM_REQUEST_WAIT_SECONDS) {
+        "waiting_for_desktop"
+    } else if pending_request.is_some() {
+        "queued"
+    } else if status.is_some() {
+        "completed"
+    } else {
+        "never_synced"
+    };
+    let next_action = match phase {
+        "completed_pending_ack" => {
+            "Результат уже записан. Ориентируйтесь на status.health; desktop удалит служебный запрос при следующей синхронизации"
+        }
+        "waiting_for_desktop" => {
+            "Откройте flood.md и проверьте подключение Telegram. Не опрашивайте статус непрерывно"
+        }
+        "queued" => "Подождите короткое время и один раз повторите get_telegram_sync_status",
+        "completed" if fresh => "Данные свежие. Можно разбирать get_telegram_triage_batch",
+        "completed" => "Запросите request_telegram_sync перед разбором входящих",
+        _ => "Запросите request_telegram_sync; desktop выполнит синхронизацию через TDLib",
+    };
+
+    TelegramSyncStatusOutput {
+        status,
+        pending_request,
+        phase,
+        fresh,
+        request_completed,
+        pending_age_seconds,
+        status_age_seconds,
+        next_action,
+    }
 }
 
 #[tool_router(server_handler)]
@@ -421,9 +492,12 @@ impl FloodServer {
         if attachment_storage.orphaned_files > 0 {
             suggested_tools.push("inspect_attachment_storage");
         }
-        if telegram.pending_request.is_some() {
+        if telegram.phase == "queued" {
             suggested_tools.push("get_telegram_sync_status");
-        } else if diagnostics.linked_chat_count > 0 {
+        } else if telegram.pending_request.is_none()
+            && !telegram.fresh
+            && diagnostics.linked_chat_count > 0
+        {
             suggested_tools.push("request_telegram_sync");
         }
         if diagnostics.pending_inbox_count > 0 {
@@ -479,7 +553,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Получить результат последней фоновой синхронизации Telegram и ожидающий запрос из локального состояния. После request_telegram_sync дождитесь, чтобы pending_request исчез, а status.request_id совпал с выданным request.id; затем проверьте health. MCP не подключается к Telegram сам и не должен считать старую очередь актуальной",
+        description = "Получить результат последней фоновой синхронизации Telegram, возраст данных и состояние запроса: queued, waiting_for_desktop, completed_pending_ack, completed или never_synced. Следуйте next_action и не опрашивайте старый pending_request бесконечно. MCP не подключается к Telegram сам",
         annotations(
             title = "Свежесть Telegram-входящих",
             read_only_hint = true,
@@ -490,14 +564,11 @@ impl FloodServer {
     fn get_telegram_sync_status(&self) -> Result<Json<TelegramSyncStatusOutput>, String> {
         let status = self.store.telegram_sync_status().map_err(store_error)?;
         let pending_request = self.store.telegram_sync_request().map_err(store_error)?;
-        Ok(Json(TelegramSyncStatusOutput {
-            status,
-            pending_request,
-        }))
+        Ok(Json(telegram_sync_output(status, pending_request)))
     }
 
     #[tool(
-        description = "Попросить запущенное desktop-приложение обновить локальные Telegram-входящие и медиа через TDLib. Команда не читает чаты сама и не передаёт их содержимое через служебный файл. Затем проверяйте get_telegram_sync_status: запрос выполнен, когда pending_request исчез, а status.request_id совпал с request.id. Если приложение закрыто, запрос сохранится до следующего запуска",
+        description = "Идемпотентно попросить desktop-приложение обновить локальные Telegram-входящие и медиа через TDLib. Если запрос уже ожидает, вернётся тот же request.id вместо создания дубля. Команда не читает чаты сама и не передаёт их содержимое через служебный файл. Затем один раз проверьте get_telegram_sync_status и следуйте next_action",
         annotations(
             title = "Запросить синхронизацию Telegram",
             read_only_hint = false,
@@ -512,7 +583,7 @@ impl FloodServer {
                 Json(TelegramSyncRequestOutput {
                     request,
                     queued: true,
-                    next_step: "Проверьте get_telegram_sync_status; pending_request должен исчезнуть, а status.request_id — совпасть с request.id",
+                    next_step: "Проверьте get_telegram_sync_status и следуйте next_action; старый запрос не нужно опрашивать непрерывно",
                 })
             })
             .map_err(store_error)
@@ -1641,14 +1712,10 @@ mod tests {
     #[test]
     fn telegram_sync_freshness_is_visible_to_agents() {
         let server = server();
-        assert!(
-            server
-                .get_telegram_sync_status()
-                .unwrap()
-                .0
-                .status
-                .is_none()
-        );
+        let initial = server.get_telegram_sync_status().unwrap().0;
+        assert!(initial.status.is_none());
+        assert_eq!(initial.phase, "never_synced");
+        assert!(!initial.fresh);
         let status = TelegramSyncStatus {
             completed_at: chrono::Utc::now(),
             request_id: None,
@@ -1667,12 +1734,25 @@ mod tests {
         );
         let requested = server.request_telegram_sync().unwrap().0;
         assert!(requested.queued);
+        let repeated = server.request_telegram_sync().unwrap().0;
+        assert_eq!(repeated.request, requested.request);
         let sync_state = server.get_telegram_sync_status().unwrap().0;
         assert_eq!(sync_state.pending_request, Some(requested.request.clone()));
+        assert_eq!(sync_state.phase, "queued");
+        assert!(!sync_state.fresh);
         assert_eq!(
             server.store.telegram_sync_request().unwrap().unwrap(),
             requested.request
         );
+
+        let old_request = TelegramSyncRequest {
+            id: ulid::Ulid::new().to_string(),
+            requested_at: chrono::Utc::now() - chrono::Duration::minutes(3),
+        };
+        let waiting = telegram_sync_output(None, Some(old_request));
+        assert_eq!(waiting.phase, "waiting_for_desktop");
+        assert!(waiting.pending_age_seconds.unwrap() >= 180);
+        assert!(waiting.next_action.contains("Откройте flood.md"));
     }
 
     #[test]
