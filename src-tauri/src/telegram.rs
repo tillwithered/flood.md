@@ -9,7 +9,10 @@ use std::{
     collections::HashMap,
     fs,
     path::{Path, PathBuf},
-    sync::{Arc, Mutex},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 use tauri::{AppHandle, Emitter};
 use tdlib::{enums, functions};
@@ -74,6 +77,7 @@ struct TelegramInner {
     status: Mutex<TelegramStatus>,
     parameters_sent: Mutex<bool>,
     receiver_started: Mutex<bool>,
+    database_reset_requested: AtomicBool,
 }
 
 #[derive(Clone)]
@@ -137,6 +141,7 @@ impl TelegramManager {
             status: Mutex::new(status),
             parameters_sent: Mutex::new(false),
             receiver_started: Mutex::new(false),
+            database_reset_requested: AtomicBool::new(false),
         }));
         if manager.config().is_some() {
             manager.start();
@@ -163,7 +168,7 @@ impl TelegramManager {
                 read_config(&self.0.root)
                     .ok()
                     .map(|value| value.database_key)
-                    .filter(|value| valid_database_key(value))
+                    .filter(|value| !value.is_empty())
             })
             .unwrap_or_else(generate_database_key);
         let config = TelegramConfig {
@@ -216,6 +221,25 @@ impl TelegramManager {
         functions::check_authentication_password(password, self.client_id()?)
             .await
             .map_err(td_error)
+    }
+
+    pub async fn reset_database(&self) -> Result<(), String> {
+        if self.status().step != "database_error" {
+            return Err("Сброс доступен только при ошибке локальной базы Telegram".into());
+        }
+        self.0
+            .database_reset_requested
+            .store(true, Ordering::Release);
+        self.set_step("resetting");
+        if let Err(error) = functions::close(self.client_id()?).await {
+            self.0
+                .database_reset_requested
+                .store(false, Ordering::Release);
+            let message = td_error(error);
+            self.set_error(message.clone());
+            return Err(message);
+        }
+        Ok(())
     }
 
     pub async fn chats(&self) -> Result<Vec<TelegramChat>, String> {
@@ -661,6 +685,20 @@ impl TelegramManager {
             enums::AuthorizationState::Closed => {
                 *self.0.client_id.lock().expect("telegram client lock") = None;
                 *self.0.parameters_sent.lock().expect("telegram parameters lock") = false;
+                if self
+                    .0
+                    .database_reset_requested
+                    .swap(false, Ordering::AcqRel)
+                {
+                    match self.reset_database_files_and_key() {
+                        Ok(()) => {
+                            self.set_step("starting");
+                            self.start();
+                        }
+                        Err(error) => self.set_error(error),
+                    }
+                    return;
+                }
                 if self.config().is_some() {
                     self.set_step("starting");
                     self.start();
@@ -685,6 +723,14 @@ impl TelegramManager {
 
     fn set_error(&self, error: String) {
         let mut status = self.status();
+        status.step = if error
+            .to_ascii_lowercase()
+            .contains("database encryption key")
+        {
+            "database_error".into()
+        } else {
+            "error".into()
+        };
         status.error = Some(error);
         self.set_status(status);
     }
@@ -692,6 +738,32 @@ impl TelegramManager {
     fn set_status(&self, status: TelegramStatus) {
         *self.0.status.lock().expect("telegram status lock") = status.clone();
         let _ = self.0.app.emit("telegram-status", status);
+    }
+
+    fn reset_database_files_and_key(&self) -> Result<(), String> {
+        let database = self.0.root.join("database");
+        if database.exists() {
+            let recovery = self.0.root.join(format!(
+                "recovery-{}-key-mismatch",
+                Utc::now().format("%Y%m%d-%H%M%S")
+            ));
+            fs::create_dir_all(&recovery).map_err(|error| error.to_string())?;
+            fs::rename(&database, recovery.join("database")).map_err(|error| error.to_string())?;
+        }
+        let mut config = self
+            .config()
+            .ok_or_else(|| "Конфигурация Telegram не найдена".to_string())?;
+        config.database_key = generate_database_key();
+        write_config(
+            &self.0.root,
+            &StoredTelegramConfig {
+                api_id: BUNDLED_TG_API_ID.is_none().then_some(config.api_id),
+                api_hash: BUNDLED_TG_API_ID.is_none().then(|| config.api_hash.clone()),
+                database_key: config.database_key.clone(),
+            },
+        )?;
+        *self.0.config.lock().expect("telegram config lock") = Some(config);
+        Ok(())
     }
 }
 
@@ -708,6 +780,7 @@ fn generate_database_key() -> String {
     STANDARD.encode(bytes)
 }
 
+#[cfg(test)]
 fn valid_database_key(value: &str) -> bool {
     STANDARD.decode(value).is_ok_and(|bytes| !bytes.is_empty())
 }
@@ -715,10 +788,10 @@ fn valid_database_key(value: &str) -> bool {
 fn normalize_database_key(value: &str) -> Option<String> {
     if value.is_empty() {
         None
-    } else if valid_database_key(value) {
-        Some(value.to_owned())
     } else {
-        Some(STANDARD.encode(value.as_bytes()))
+        // TDLib compares the exact string, not decoded key bytes. Re-encoding a
+        // legacy key makes an existing encrypted database impossible to open.
+        Some(value.to_owned())
     }
 }
 
@@ -917,7 +990,7 @@ fn media_item(
 
 fn bundled_credentials() -> Option<(i32, String)> {
     let api_id = BUNDLED_TG_API_ID?;
-    let mut state = BUNDLED_TG_HASH_SEED.max(1);
+    let mut state = nonzero_seed(BUNDLED_TG_HASH_SEED);
     let decoded = BUNDLED_TG_HASH
         .iter()
         .map(|byte| byte ^ next_mask(&mut state))
@@ -925,6 +998,10 @@ fn bundled_credentials() -> Option<(i32, String)> {
     String::from_utf8(decoded)
         .ok()
         .map(|api_hash| (api_id, api_hash))
+}
+
+fn nonzero_seed(seed: u64) -> u64 {
+    seed.max(1)
 }
 
 fn next_mask(state: &mut u64) -> u8 {
@@ -950,11 +1027,10 @@ mod tests {
     }
 
     #[test]
-    fn legacy_ulid_database_key_preserves_its_original_bytes() {
+    fn legacy_database_key_preserves_the_exact_string() {
         let legacy = ulid::Ulid::new().to_string();
         let migrated = normalize_database_key(&legacy).unwrap();
-        assert!(valid_database_key(&migrated));
-        assert_eq!(STANDARD.decode(migrated).unwrap(), legacy.as_bytes());
+        assert_eq!(migrated, legacy);
     }
 
     #[test]

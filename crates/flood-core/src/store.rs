@@ -5,13 +5,16 @@ use crate::{
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
 use fs2::FileExt;
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sha2::{Digest, Sha256};
 use std::{
+    cmp::Reverse,
     env,
     fs::{self, File, OpenOptions},
     io::{Read, Write},
     path::{Path, PathBuf},
+    time::Instant,
 };
 use thiserror::Error;
 use ulid::Ulid;
@@ -42,6 +45,35 @@ pub enum StoreError {
 #[derive(Clone, Debug)]
 pub struct Store {
     root: PathBuf,
+}
+
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+pub struct StoreDiagnostics {
+    pub healthy: bool,
+    pub root: String,
+    pub format_version: u8,
+    pub project_count: usize,
+    pub linked_chat_count: usize,
+    pub open_task_count: usize,
+    pub completed_task_count: usize,
+    pub trashed_task_count: usize,
+    pub pending_inbox_count: usize,
+    pub issues: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+pub struct SelfCheckItem {
+    pub name: String,
+    pub passed: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, JsonSchema)]
+pub struct SelfCheckResult {
+    pub passed: bool,
+    pub duration_ms: u128,
+    pub checks: Vec<SelfCheckItem>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -129,6 +161,63 @@ impl Store {
 
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    pub fn diagnostics(&self) -> StoreDiagnostics {
+        let mut diagnostics = StoreDiagnostics {
+            healthy: true,
+            root: self.root.to_string_lossy().into_owned(),
+            format_version: FORMAT_VERSION,
+            project_count: 0,
+            linked_chat_count: 0,
+            open_task_count: 0,
+            completed_task_count: 0,
+            trashed_task_count: 0,
+            pending_inbox_count: 0,
+            issues: Vec::new(),
+        };
+
+        match self.list_projects() {
+            Ok(projects) => {
+                diagnostics.project_count = projects.len();
+                diagnostics.linked_chat_count = projects
+                    .iter()
+                    .map(|project| project.telegram_chats.len())
+                    .sum();
+            }
+            Err(error) => diagnostics
+                .issues
+                .push(format!("Не удалось прочитать проекты: {error}")),
+        }
+        match self.list_tasks(None, true) {
+            Ok(tasks) => {
+                diagnostics.open_task_count = tasks
+                    .iter()
+                    .filter(|task| task.status == TaskStatus::Open)
+                    .count();
+                diagnostics.completed_task_count = tasks
+                    .iter()
+                    .filter(|task| task.status == TaskStatus::Completed)
+                    .count();
+            }
+            Err(error) => diagnostics
+                .issues
+                .push(format!("Не удалось прочитать задачи: {error}")),
+        }
+        match self.list_trashed_tasks() {
+            Ok(tasks) => diagnostics.trashed_task_count = tasks.len(),
+            Err(error) => diagnostics
+                .issues
+                .push(format!("Не удалось прочитать корзину: {error}")),
+        }
+        match self.list_telegram_inbox(None, false) {
+            Ok(candidates) => diagnostics.pending_inbox_count = candidates.len(),
+            Err(error) => diagnostics
+                .issues
+                .push(format!("Не удалось прочитать входящие Telegram: {error}")),
+        }
+        diagnostics.healthy = diagnostics.issues.is_empty();
+        diagnostics
     }
 
     fn migrate_legacy_layout(&self) -> Result<(), StoreError> {
@@ -296,7 +385,7 @@ impl Store {
                 .as_ref()
                 .map(TelegramLinkedTask::from);
         }
-        candidates.sort_by(|left, right| right.sent_at.cmp(&left.sent_at));
+        candidates.sort_by_key(|candidate| Reverse(candidate.sent_at));
         Ok(candidates)
     }
 
@@ -586,7 +675,7 @@ impl Store {
                 }
             }
         }
-        tasks.sort_by(|left, right| right.trashed_at.cmp(&left.trashed_at));
+        tasks.sort_by_key(|task| Reverse(task.trashed_at));
         Ok(tasks.into_iter().map(TaskSummary::from).collect())
     }
 
@@ -977,12 +1066,12 @@ impl Store {
             }
             let current_integrations = self.root.join("integrations");
             let restored_integrations = restore_root.join("integrations");
-            if current_integrations.exists() {
-                if let Err(error) = fs::rename(&current_integrations, &previous_integrations) {
-                    let _ = fs::remove_dir_all(&current_projects);
-                    let _ = fs::rename(&previous_projects, &current_projects);
-                    return Err(error.into());
-                }
+            if current_integrations.exists()
+                && let Err(error) = fs::rename(&current_integrations, &previous_integrations)
+            {
+                let _ = fs::remove_dir_all(&current_projects);
+                let _ = fs::rename(&previous_projects, &current_projects);
+                return Err(error.into());
             }
             if restored_integrations.exists()
                 && let Err(error) = fs::rename(&restored_integrations, &current_integrations)
@@ -1163,6 +1252,131 @@ impl Store {
         file.lock_exclusive()?;
         Ok(StoreLock(file))
     }
+}
+
+pub fn run_self_check() -> SelfCheckResult {
+    let started = Instant::now();
+    let root = env::temp_dir().join(format!("flood-self-check-{}", Ulid::new()));
+    let mut checks = Vec::new();
+    let result = run_isolated_self_check(&root, &mut checks);
+    if let Err(error) = result {
+        checks.push(SelfCheckItem {
+            name: "Завершение проверки".into(),
+            passed: false,
+            detail: Some(error),
+        });
+    }
+    if let Err(error) = fs::remove_dir_all(&root)
+        && root.exists()
+    {
+        checks.push(SelfCheckItem {
+            name: "Очистка временных данных".into(),
+            passed: false,
+            detail: Some(error.to_string()),
+        });
+    }
+    SelfCheckResult {
+        passed: checks.iter().all(|check| check.passed),
+        duration_ms: started.elapsed().as_millis(),
+        checks,
+    }
+}
+
+fn run_isolated_self_check(root: &Path, checks: &mut Vec<SelfCheckItem>) -> Result<(), String> {
+    let store = Store::new(root).map_err(|error| error.to_string())?;
+    checks.push(SelfCheckItem {
+        name: "Изолированное хранилище".into(),
+        passed: true,
+        detail: None,
+    });
+
+    let project = store
+        .create_project("Проверка flood.md")
+        .map_err(|error| error.to_string())?;
+    let task = store
+        .create_task(CreateTask {
+            project_id: project.id.clone(),
+            description: "Проверить полный цикл задачи".into(),
+            urgency: Urgency::Important,
+            source: None,
+        })
+        .map_err(|error| error.to_string())?;
+    checks.push(SelfCheckItem {
+        name: "Создание проекта и задачи".into(),
+        passed: true,
+        detail: None,
+    });
+
+    let updated = store
+        .update_task(
+            &task.id,
+            TaskPatch {
+                description: Some("Проверить полный цикл задачи и конфликт".into()),
+                ..TaskPatch::default()
+            },
+            &task.version,
+        )
+        .map_err(|error| error.to_string())?;
+    let conflict_detected = matches!(
+        store.complete_task(&task.id, &task.version),
+        Err(StoreError::Conflict)
+    );
+    checks.push(SelfCheckItem {
+        name: "Защита от перезаписи внешних изменений".into(),
+        passed: conflict_detected,
+        detail: (!conflict_detected).then(|| "Устаревшая версия не вызвала конфликт".into()),
+    });
+    if !conflict_detected {
+        return Err("Проверка конфликтов не пройдена".into());
+    }
+
+    let attachment_path = store
+        .save_task_attachment(&updated.id, "self-check.txt", b"flood-self-check")
+        .map_err(|error| error.to_string())?;
+    let attachment = store
+        .read_task_attachment(&updated.id, &attachment_path)
+        .map_err(|error| error.to_string())?;
+    let attachment_ok = attachment == b"flood-self-check";
+    checks.push(SelfCheckItem {
+        name: "Запись и чтение вложений".into(),
+        passed: attachment_ok,
+        detail: (!attachment_ok).then(|| "Содержимое вложения изменилось".into()),
+    });
+    if !attachment_ok {
+        return Err("Проверка вложений не пройдена".into());
+    }
+
+    let completed = store
+        .complete_task(&updated.id, &updated.version)
+        .map_err(|error| error.to_string())?;
+    let trashed = store
+        .trash_task(&completed.id, &completed.version)
+        .map_err(|error| error.to_string())?;
+    let restored = store
+        .restore_task(&trashed.id, &trashed.version)
+        .map_err(|error| error.to_string())?;
+    let reopened = Store::new(root)
+        .and_then(|store| store.get_task(&restored.id))
+        .map_err(|error| error.to_string())?;
+    let lifecycle_ok = reopened.status == TaskStatus::Completed && reopened.trashed_at.is_none();
+    checks.push(SelfCheckItem {
+        name: "Завершение, корзина и восстановление".into(),
+        passed: lifecycle_ok,
+        detail: (!lifecycle_ok).then(|| "Состояние задачи не сохранилось после перезапуска".into()),
+    });
+    if !lifecycle_ok {
+        return Err("Проверка жизненного цикла задачи не пройдена".into());
+    }
+
+    let diagnostics = store.diagnostics();
+    checks.push(SelfCheckItem {
+        name: "Диагностика Markdown-хранилища".into(),
+        passed: diagnostics.healthy
+            && diagnostics.project_count == 1
+            && diagnostics.completed_task_count == 1,
+        detail: (!diagnostics.healthy).then(|| diagnostics.issues.join("; ")),
+    });
+    Ok(())
 }
 
 fn encode<T: Serialize>(metadata: &T, body: &str) -> Result<String, StoreError> {
@@ -1485,7 +1699,7 @@ fn compact_telegram_inbox(document: &mut TelegramInboxDocument) {
     });
     document
         .candidates
-        .sort_by(|left, right| right.sent_at.cmp(&left.sent_at));
+        .sort_by_key(|candidate| Reverse(candidate.sent_at));
     let mut pending_per_project = std::collections::HashMap::<String, usize>::new();
     let mut processed_per_project = std::collections::HashMap::<String, usize>::new();
     document.candidates.retain(|candidate| {

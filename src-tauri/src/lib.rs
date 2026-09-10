@@ -1,6 +1,7 @@
 use flood_core::{
-    CreateTask, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind, Store, Task,
-    TaskPatch, TaskSummary, TelegramInboxCandidate, TelegramProjectLink, Urgency, default_data_dir,
+    CreateTask, InboxCandidateStatus, Project, SelfCheckResult, SourceMedia, SourceMediaKind,
+    Store, StoreDiagnostics, Task, TaskPatch, TaskSummary, TelegramInboxCandidate,
+    TelegramProjectLink, Urgency, default_data_dir, run_self_check,
 };
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -277,6 +278,16 @@ fn mcp_executable_path(app: tauri::AppHandle) -> Result<String, String> {
         .to_string_lossy()
         .trim_start_matches(r"\\?\")
         .to_owned())
+}
+
+#[tauri::command]
+fn diagnose_store(state: State<'_, AppState>) -> StoreDiagnostics {
+    state.store.diagnostics()
+}
+
+#[tauri::command]
+fn run_mcp_self_check() -> SelfCheckResult {
+    run_self_check()
 }
 
 #[tauri::command]
@@ -629,6 +640,11 @@ async fn telegram_disconnect(state: State<'_, AppState>) -> Result<(), String> {
     state.telegram.disconnect().await
 }
 
+#[tauri::command]
+async fn telegram_reset_database(state: State<'_, AppState>) -> Result<(), String> {
+    state.telegram.reset_database().await
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -684,6 +700,8 @@ pub fn run() {
             create_backup,
             restore_backup,
             mcp_executable_path,
+            diagnose_store,
+            run_mcp_self_check,
             telegram_status,
             telegram_configure,
             telegram_request_qr,
@@ -701,7 +719,8 @@ pub fn run() {
             telegram_create_task_from_candidate,
             telegram_download_source_media,
             telegram_sync_task_media,
-            telegram_disconnect
+            telegram_disconnect,
+            telegram_reset_database
         ])
         .run(tauri::generate_context!())
         .expect("не удалось запустить flood.md");

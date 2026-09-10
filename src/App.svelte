@@ -63,6 +63,10 @@
   type TelegramMessage = { id: number; message_ids?: number[]; chat_id: number; text: string; author: string; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean; linked_task?: TelegramLinkedTask };
   type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; message_ids?: number[]; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; discovered_at: string; processed_at?: string; task_id?: string; linked_task?: TelegramLinkedTask };
   type TelegramTaskCreationResult = { task: TaskRecord; media_errors: string[] };
+  type StoreDiagnostics = { healthy: boolean; root: string; format_version: number; project_count: number; linked_chat_count: number; open_task_count: number; completed_task_count: number; trashed_task_count: number; pending_inbox_count: number; issues: string[] };
+  type SelfCheckItem = { name: string; passed: boolean; detail?: string };
+  type SelfCheckResult = { passed: boolean; duration_ms: number; checks: SelfCheckItem[] };
+  type McpCheckState = "idle" | "checking" | "success" | "error";
 
   const markdownHints: Record<string, MessageKey> = {
     "#": "largeHeading"
@@ -100,6 +104,9 @@
   let dataActionMessage = "";
   let pendingRestorePath = "";
   let mcpExecutable = "";
+  let storeDiagnostics: StoreDiagnostics | null = null;
+  let mcpCheckState: McpCheckState = "idle";
+  let mcpSelfCheck: SelfCheckResult | null = null;
   let telegramStatus: TelegramStatus = { step: "unconfigured", configured: false, managed_credentials: false };
   let telegramApiId = "";
   let telegramApiHash = "";
@@ -1815,6 +1822,7 @@
     if (telegramStatus.step === "ready") return t("connected");
     if (telegramStatus.step === "unconfigured") return t("notConnected");
     if (["code", "password", "qr", "phone"].includes(telegramStatus.step)) return t("authorization");
+    if (["database_error", "error"].includes(telegramStatus.step)) return t("needsAttention");
     return t("connecting");
   }
 
@@ -1846,6 +1854,30 @@
       await invoke("telegram_disconnect");
       telegramChats = [];
     });
+  }
+
+  function resetTelegramDatabase() {
+    void runTelegramAction(async () => {
+      await invoke("telegram_reset_database");
+    });
+  }
+
+  async function runMcpSelfCheck() {
+    if (mcpCheckState === "checking") return;
+    mcpCheckState = "checking";
+    mcpSelfCheck = null;
+    try {
+      const [diagnostics, selfCheck] = await Promise.all([
+        invoke<StoreDiagnostics>("diagnose_store"),
+        invoke<SelfCheckResult>("run_mcp_self_check")
+      ]);
+      storeDiagnostics = diagnostics;
+      mcpSelfCheck = selfCheck;
+      mcpCheckState = diagnostics.healthy && selfCheck.passed ? "success" : "error";
+    } catch (error) {
+      mcpSelfCheck = { passed: false, duration_ms: 0, checks: [{ name: t("mcpSelfCheckFailed"), passed: false, detail: String(error) }] };
+      mcpCheckState = "error";
+    }
   }
 
   function telegramModeLabel(mode: TelegramInboxMode) {
@@ -2299,6 +2331,7 @@
         appVersion = await getVersion();
         dataDirectory = await invoke<string>("data_directory");
         mcpExecutable = await invoke<string>("mcp_executable_path");
+        storeDiagnostics = await invoke<StoreDiagnostics>("diagnose_store").catch(() => null);
         await applyTelegramStatus(await invoke<TelegramStatus>("telegram_status"));
         unlistenTelegram = await listen<TelegramStatus>("telegram-status", (event) => void applyTelegramStatus(event.payload));
         unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
@@ -2813,12 +2846,37 @@
                         {/each}
                       </div>
                       <button class="telegram-help danger" disabled={telegramBusy} onclick={disconnectTelegram}><LogOut size={13} />{t("disconnect")}</button>
+                    {:else if telegramStatus.step === "database_error"}
+                      <div class="integration-recovery" role="alert">
+                        <FloodGlyph kind="urgent" size={32} />
+                        <span><strong>{t("telegramDatabaseError")}</strong><small>{t("telegramDatabaseErrorDescription")}</small></span>
+                      </div>
+                      <button class="primary-button recovery-button" disabled={telegramBusy} onclick={resetTelegramDatabase}><RotateCcw size={14} />{t("repairConnection")}</button>
                     {:else}
                       <div class="telegram-loading"><RefreshCw class="spinning" size={15} />{t("connecting")}</div>
                     {/if}
-                    {#if telegramError}<p class="telegram-error">{telegramError}</p>{/if}
+                    {#if telegramError && telegramStatus.step !== "database_error"}<p class="telegram-error">{telegramError}</p>{/if}
                   </div>
-                  <div class="integration-card"><div class="integration-head"><span><FloodGlyph kind="connected" size={15} /><span><strong>{t("mcpServer")}</strong><small>{t("installedWithApp")}</small></span></span><span class="status-text">{t("installed")}</span></div><p>{t("mcpDescription")}</p><div class="code-row" title={mcpExecutable || "flood-mcp.exe"}><code>{fileName(mcpExecutable || "flood-mcp.exe")}</code><button class="icon-button" aria-label={t("copyConfiguration")} title={copied ? t("copied") : t("copyConfiguration")} onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div></div>
+                  <div class="integration-card mcp-integration-card">
+                    <div class="integration-head"><span><FloodGlyph kind={mcpCheckState === "error" ? "urgent" : "connected"} size={15} /><span><strong>{t("mcpServer")}</strong><small>{t("installedWithApp")}</small></span></span><span class:connected={mcpCheckState === "success"} class:error={mcpCheckState === "error"} class="status-text">{mcpCheckState === "checking" ? t("checking") : mcpCheckState === "success" ? t("mcpReady") : mcpCheckState === "error" ? t("needsAttention") : t("installed")}</span></div>
+                    <p>{t("mcpDescription")}</p>
+                    {#if storeDiagnostics}
+                      <div class="diagnostic-summary" aria-label={t("storeDiagnostics")}>
+                        <span><strong>{storeDiagnostics.project_count}</strong><small>{t("projects")}</small></span>
+                        <span><strong>{storeDiagnostics.open_task_count}</strong><small>{t("openTasks")}</small></span>
+                        <span><strong>{storeDiagnostics.pending_inbox_count}</strong><small>{t("inInbox")}</small></span>
+                      </div>
+                    {/if}
+                    <div class="code-row" title={mcpExecutable || "flood-mcp.exe"}><code>{fileName(mcpExecutable || "flood-mcp.exe")}</code><button class="icon-button" aria-label={t("copyConfiguration")} title={copied ? t("copied") : t("copyConfiguration")} onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div>
+                    <button class="mcp-check-button" disabled={mcpCheckState === "checking"} onclick={runMcpSelfCheck}><RefreshCw class={mcpCheckState === "checking" ? "spinning" : ""} size={14} />{t("runSelfCheck")}</button>
+                    {#if mcpSelfCheck}
+                      <div class:error={!mcpSelfCheck.passed} class="mcp-check-result" role="status">
+                        <strong>{mcpSelfCheck.passed ? t("allChecksPassed") : t("someChecksFailed")}</strong>
+                        <small>{t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms })}</small>
+                        {#if !mcpSelfCheck.passed}<ul>{#each mcpSelfCheck.checks.filter((check) => !check.passed) as check}<li>{check.name}{check.detail ? `: ${check.detail}` : ""}</li>{/each}</ul>{/if}
+                      </div>
+                    {/if}
+                  </div>
                 </section>
               {:else}
                 <section class="settings-section">

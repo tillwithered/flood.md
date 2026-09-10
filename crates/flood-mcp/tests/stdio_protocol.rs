@@ -97,6 +97,42 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         "MCP проект"
     );
 
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 4,
+            "method": "tools/call",
+            "params": {
+                "name": "diagnose_store",
+                "arguments": {}
+            }
+        }),
+    );
+    let diagnostics = receive(&mut stdout, 4);
+    assert_eq!(diagnostics["result"]["isError"], false);
+    assert_eq!(
+        diagnostics["result"]["structuredContent"]["project_count"],
+        1
+    );
+    assert_eq!(diagnostics["result"]["structuredContent"]["healthy"], true);
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 5,
+            "method": "tools/call",
+            "params": {
+                "name": "run_self_check",
+                "arguments": {}
+            }
+        }),
+    );
+    let self_check = receive(&mut stdout, 5);
+    assert_eq!(self_check["result"]["isError"], false);
+    assert_eq!(self_check["result"]["structuredContent"]["passed"], true);
+
     drop(stdin);
     assert!(child.wait().unwrap().success());
     let _ = std::fs::remove_dir_all(data_dir);

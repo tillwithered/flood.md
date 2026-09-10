@@ -1,7 +1,7 @@
 use flood_core::{
-    CreateTask, InboxCandidateStatus, MessageSnapshot, Project, SourceMedia, SourceMediaKind,
-    Store, Task, TaskPatch, TaskStatus, TaskSummary, TelegramInboxCandidate, Urgency,
-    default_data_dir,
+    CreateTask, InboxCandidateStatus, MessageSnapshot, Project, SelfCheckResult, SourceMedia,
+    SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch, TaskStatus, TaskSummary,
+    TelegramInboxCandidate, Urgency, default_data_dir, run_self_check as run_core_self_check,
 };
 use rmcp::{
     Json, ServiceExt, handler::server::wrapper::Parameters, schemars, tool, tool_router,
@@ -169,6 +169,32 @@ struct TelegramCandidateOutput {
 
 #[tool_router(server_handler)]
 impl FloodServer {
+    #[tool(
+        description = "Проверить доступность и целостность текущего локального Markdown-хранилища без изменения данных. Возвращает счётчики проектов, задач, корзины, Telegram-входящих и найденные проблемы",
+        annotations(
+            title = "Диагностика flood.md",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn diagnose_store(&self) -> Json<StoreDiagnostics> {
+        Json(self.store.diagnostics())
+    }
+
+    #[tool(
+        description = "Запустить изолированную самопроверку flood.md: создать временный проект и задачу, проверить конфликт версий, вложение, завершение, корзину, восстановление и повторное чтение. Пользовательские данные не изменяются",
+        annotations(
+            title = "Самопроверка flood.md",
+            read_only_hint = false,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn run_self_check(&self) -> Json<SelfCheckResult> {
+        Json(run_core_self_check())
+    }
+
     #[tool(
         description = "Получить список проектов",
         annotations(
@@ -653,6 +679,8 @@ mod tests {
         let tools = FloodServer::tool_router().list_all();
         assert!(tools.iter().all(|tool| tool.output_schema.is_some()));
         for name in [
+            "diagnose_store",
+            "run_self_check",
             "list_telegram_inbox",
             "get_telegram_candidate",
             "create_task_from_telegram_candidate",
@@ -692,6 +720,11 @@ mod tests {
                 .and_then(|value| value.destructive_hint),
             Some(true)
         );
+
+        let diagnostics = _server.diagnose_store().0;
+        assert!(diagnostics.healthy, "{:?}", diagnostics.issues);
+        let self_check = _server.run_self_check().0;
+        assert!(self_check.passed, "{:?}", self_check.checks);
     }
 
     #[test]
