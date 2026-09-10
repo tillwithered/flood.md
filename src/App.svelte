@@ -63,6 +63,7 @@
   type TelegramLinkedTask = { id: string; title: string; urgency: Urgency; status: "open" | "completed"; trashed: boolean };
   type TelegramMessage = { id: number; message_ids?: number[]; chat_id: number; text: string; author: string; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean; linked_task?: TelegramLinkedTask };
   type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; message_ids?: number[]; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; discovered_at: string; processed_at?: string; task_id?: string; linked_task?: TelegramLinkedTask };
+  type TelegramInboxPage = { candidates: TelegramInboxCandidate[]; total: number; next_cursor?: string; remaining: number };
   type TelegramTaskCreationResult = { task: TaskRecord; media_errors: string[] };
   type TelegramInboxSyncResult = { scanned_projects: number; added: number; failed_projects: number; errors: string[]; busy: boolean };
   type TelegramMediaSyncResult = { downloaded: number; failed: number; errors: string[]; busy: boolean };
@@ -161,6 +162,11 @@
   let telegramSearchTimer: number | undefined;
   let telegramInboxOpen = false;
   let telegramInbox: TelegramInboxCandidate[] = [];
+  let telegramInboxView: "pending" | "history" = "pending";
+  let telegramInboxTotal = 0;
+  let telegramInboxNextCursor = "";
+  let telegramInboxRemaining = 0;
+  let telegramInboxLoadingMore = false;
   let telegramInboxLoading = false;
   let telegramInboxError = "";
   let telegramInboxProcessingId = "";
@@ -2230,8 +2236,7 @@
       }
       applyTelegramSyncStatus(sync.status);
       if (includeInbox && telegramInboxOpen && !telegramTaskDraftCandidate) {
-        const projectId = currentChat.id === "all" ? null : currentChat.id;
-        telegramInbox = await invoke<TelegramInboxCandidate[]>("telegram_list_inbox", { projectId, includeProcessed: false });
+        await loadTelegramInboxPage();
       }
     } catch (error) {
       telegramSyncState = "error";
@@ -2431,6 +2436,7 @@
     telegramTriageMediaFailures = 0;
     telegramTriageNotice = "";
     telegramTriageNoticeWarning = false;
+    if (!wasOpen) telegramInboxView = "pending";
     if (!wasOpen) {
       await tick();
       telegramInboxDialog?.focus();
@@ -2438,16 +2444,65 @@
     try {
       const projectId = currentChat.id === "all" ? null : currentChat.id;
       if (refresh && projectId) {
-        telegramInbox = await invoke<TelegramInboxCandidate[]>("telegram_refresh_inbox", { projectId, limitPerChat: 80 });
+        applyTelegramInboxPage(await invoke<TelegramInboxPage>("telegram_refresh_inbox", { projectId, limitPerChat: 80 }));
       } else {
-        telegramInbox = await invoke<TelegramInboxCandidate[]>("telegram_list_inbox", { projectId, includeProcessed: false });
+        await loadTelegramInboxPage();
       }
-      const visibleIds = new Set(telegramInbox.map((candidate) => candidate.id));
-      telegramTaskDrafts = Object.fromEntries(Object.entries(telegramTaskDrafts).filter(([id]) => visibleIds.has(id)));
     } catch (error) {
       telegramInboxError = String(error);
     } finally {
       telegramInboxLoading = false;
+    }
+  }
+
+  function applyTelegramInboxPage(page: TelegramInboxPage, append = false) {
+    telegramInbox = append
+      ? [...telegramInbox, ...page.candidates.filter((candidate) => !telegramInbox.some((existing) => existing.id === candidate.id))]
+      : page.candidates;
+    telegramInboxTotal = page.total;
+    telegramInboxNextCursor = page.next_cursor ?? "";
+    telegramInboxRemaining = page.remaining;
+  }
+
+  async function loadTelegramInboxPage(append = false) {
+    if (!inTauri()) return;
+    const page = await invoke<TelegramInboxPage>("telegram_list_inbox_page", {
+      projectId: currentChat.id === "all" ? null : currentChat.id,
+      includePending: telegramInboxView === "pending",
+      includeProcessed: telegramInboxView === "history",
+      cursor: append ? telegramInboxNextCursor || null : null,
+      limit: 30
+    });
+    applyTelegramInboxPage(page, append);
+  }
+
+  async function setTelegramInboxView(view: "pending" | "history") {
+    if (view === telegramInboxView || telegramInboxLoading || telegramInboxProcessingId || telegramTaskDraftCandidate) return;
+    telegramInboxView = view;
+    telegramInboxLoading = true;
+    telegramInboxError = "";
+    telegramInboxSelection = [];
+    telegramDismissUndo = null;
+    window.clearTimeout(telegramDismissUndoTimer);
+    try {
+      await loadTelegramInboxPage();
+    } catch (error) {
+      telegramInboxError = String(error);
+    } finally {
+      telegramInboxLoading = false;
+    }
+  }
+
+  async function loadMoreTelegramInbox() {
+    if (!telegramInboxNextCursor || telegramInboxLoadingMore) return;
+    telegramInboxLoadingMore = true;
+    telegramInboxError = "";
+    try {
+      await loadTelegramInboxPage(true);
+    } catch (error) {
+      telegramInboxError = String(error);
+    } finally {
+      telegramInboxLoadingMore = false;
     }
   }
 
@@ -2600,6 +2655,7 @@
       const created = result.task;
       discardTelegramTaskDraft(candidate.id);
       telegramInbox = telegramInbox.filter((item) => item.id !== candidate.id);
+      telegramInboxTotal = Math.max(0, telegramInboxTotal - 1);
       await loadData(true);
       if (batchMode) {
         telegramTriageCreated += 1;
@@ -2628,6 +2684,7 @@
       }
       discardTelegramTaskDraft(candidate.id);
       telegramInbox = telegramInbox.filter((item) => item.id !== candidate.id);
+      telegramInboxTotal = Math.max(0, telegramInboxTotal - 1);
       telegramInboxSelection = telegramInboxSelection.filter((id) => id !== candidate.id);
       telegramDismissUndo = { ...candidate, status: "dismissed", processed_at: new Date().toISOString() };
       window.clearTimeout(telegramDismissUndoTimer);
@@ -2641,8 +2698,7 @@
     }
   }
 
-  async function undoDismissTelegramCandidate() {
-    const candidate = telegramDismissUndo;
+  async function restoreTelegramCandidate(candidate: TelegramInboxCandidate | null) {
     if (!candidate || telegramInboxProcessingId) return;
     telegramInboxProcessingId = candidate.id;
     telegramInboxError = "";
@@ -2650,15 +2706,27 @@
       const restored = import.meta.env.DEV && !inTauri() && candidate.id.startsWith("preview-")
         ? { ...candidate, status: "pending" as const, processed_at: undefined }
         : await invoke<TelegramInboxCandidate>("telegram_set_candidate_status", { candidateId: candidate.id, status: "pending" });
-      telegramInbox = [...telegramInbox.filter((item) => item.id !== restored.id), restored]
-        .sort((left, right) => new Date(right.sent_at).getTime() - new Date(left.sent_at).getTime());
-      telegramDismissUndo = null;
-      window.clearTimeout(telegramDismissUndoTimer);
+      if (telegramInboxView === "pending") {
+        telegramInbox = [...telegramInbox.filter((item) => item.id !== restored.id), restored]
+          .sort((left, right) => new Date(right.sent_at).getTime() - new Date(left.sent_at).getTime());
+        telegramInboxTotal += 1;
+      } else {
+        telegramInbox = telegramInbox.filter((item) => item.id !== restored.id);
+        telegramInboxTotal = Math.max(0, telegramInboxTotal - 1);
+      }
+      if (telegramDismissUndo?.id === candidate.id) {
+        telegramDismissUndo = null;
+        window.clearTimeout(telegramDismissUndoTimer);
+      }
     } catch (error) {
       telegramInboxError = String(error);
     } finally {
       telegramInboxProcessingId = "";
     }
+  }
+
+  function undoDismissTelegramCandidate() {
+    void restoreTelegramCandidate(telegramDismissUndo);
   }
 
   function telegramReasonLabel(reason: TelegramInboxCandidate["reason"]) {
@@ -2973,7 +3041,7 @@
     void tick().then(() => telegramInboxDialog?.focus());
     telegramInboxLoading = preview === "telegram-loading";
     telegramInboxError = preview === "telegram-error" ? t("telegramPreviewError") : "";
-    if (preview !== "telegram-inbox" && preview !== "telegram-undo") return;
+    if (preview !== "telegram-inbox" && preview !== "telegram-undo" && preview !== "telegram-history") return;
     telegramInbox = [
       {
         id: "preview-1", project_id: "preview", chat_id: -1001, chat_title: "Команда продукта", message_id: 101,
@@ -2992,9 +3060,23 @@
         author: "Олег", sent_at: "2026-09-10T16:58:00Z", reason: "manual", status: "pending", media: [], discovered_at: "2026-09-10T16:58:10Z"
       }
     ];
+    telegramInboxTotal = telegramInbox.length;
+    telegramInboxNextCursor = "";
+    telegramInboxRemaining = 0;
     if (preview === "telegram-undo") {
       telegramDismissUndo = { ...telegramInbox[0], status: "dismissed", processed_at: new Date().toISOString() };
       telegramInbox = telegramInbox.slice(1);
+      telegramInboxTotal = telegramInbox.length;
+    } else if (preview === "telegram-history") {
+      telegramInboxView = "history";
+      telegramInbox = [
+        { ...telegramInbox[0], status: "dismissed", processed_at: "2026-09-10T17:49:00Z" },
+        {
+          ...telegramInbox[1], status: "imported", processed_at: "2026-09-10T17:36:00Z", task_id: "preview-task",
+          linked_task: { id: "preview-task", title: "Сверить альбом с референсами", urgency: "important", status: "open", trashed: false }
+        }
+      ];
+      telegramInboxTotal = telegramInbox.length;
     }
   }
 
@@ -3772,7 +3854,7 @@
 {#if telegramInboxOpen}
   <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeTelegramInbox(); }}>
     <div class="telegram-import-panel telegram-inbox-panel" bind:this={telegramInboxDialog} role="dialog" aria-modal="true" aria-label={t("inbox")} tabindex="-1" onkeydown={trapModalFocus}>
-      <header><span>{#if telegramTaskDraftCandidate}<button class="icon-button" aria-label={t("back")} onclick={closeTelegramTaskDraft}><ChevronLeft size={16} /></button>{:else}<MessageSquareText size={17} />{/if}<span><strong>{telegramTaskDraftCandidate ? t("telegramTaskDraft") : t("inbox")}</strong><small>{telegramTaskDraftCandidate && telegramTriageTotal ? t("triageProgress", { current: telegramTriageTotal - telegramTriageQueue.length + 1, total: telegramTriageTotal }) : telegramTaskDraftCandidate ? t("telegramTaskDraftDescription") : t("inboxDescription")}</small></span></span><div>{#if !telegramTaskDraftCandidate}<button class="icon-button" title={t("scanMessages")} disabled={telegramInboxLoading || currentChat.id === "all"} onclick={() => openTelegramInbox(true)}><RefreshCw class={telegramInboxLoading ? "spinning" : ""} size={16} /></button>{/if}<button class="icon-button" aria-label={t("close")} onclick={closeTelegramInbox}><X size={16} /></button></div></header>
+      <header><span>{#if telegramTaskDraftCandidate}<button class="icon-button" aria-label={t("back")} onclick={closeTelegramTaskDraft}><ChevronLeft size={16} /></button>{:else}<MessageSquareText size={17} />{/if}<span><strong>{telegramTaskDraftCandidate ? t("telegramTaskDraft") : t("inbox")}</strong><small>{telegramTaskDraftCandidate && telegramTriageTotal ? t("triageProgress", { current: telegramTriageTotal - telegramTriageQueue.length + 1, total: telegramTriageTotal }) : telegramTaskDraftCandidate ? t("telegramTaskDraftDescription") : t("inboxDescription")}</small></span></span><div>{#if !telegramTaskDraftCandidate && telegramInboxView === "pending"}<button class="icon-button" title={t("scanMessages")} disabled={telegramInboxLoading || currentChat.id === "all"} onclick={() => openTelegramInbox(true)}><RefreshCw class={telegramInboxLoading ? "spinning" : ""} size={16} /></button>{/if}<button class="icon-button" aria-label={t("close")} onclick={closeTelegramInbox}><X size={16} /></button></div></header>
       {#if telegramTaskDraftCandidate}
         <form class="telegram-task-composer" onsubmit={(event) => { event.preventDefault(); createTaskFromCandidate(); }}>
           <div class="telegram-task-fields">
@@ -3786,23 +3868,28 @@
           <footer>{#if telegramTriageQueue.length}<button type="button" onclick={skipTelegramTriageCandidate} disabled={Boolean(telegramInboxProcessingId)}>{t("keepInInbox")}</button>{:else}<button type="button" onclick={closeTelegramTaskDraft} disabled={Boolean(telegramInboxProcessingId)}>{t("cancel")}</button>{/if}<button class="primary-button" type="submit" disabled={!telegramTaskDraftTitle.trim() || Boolean(telegramInboxProcessingId)}>{#if telegramInboxProcessingId}<RefreshCw class="spinning" size={14} />{:else}<Plus size={14} />{/if}{telegramTriageQueue.length > 1 ? t("createAndContinue") : t("createTask")}</button></footer>
         </form>
       {:else}<div class="telegram-inbox-body">
-        {#if telegramDismissUndo}<div class="telegram-dismiss-undo" role="status"><span><Check size={14} /><span><strong>{t("telegramMessageDismissed")}</strong><small>{t("telegramMessageDismissedDescription", { author: telegramDismissUndo.author })}</small></span></span><button disabled={Boolean(telegramInboxProcessingId)} onclick={undoDismissTelegramCandidate}><RotateCcw size={13} />{t("undo")}</button></div>{/if}
-        {#if telegramTriageNotice}<div class:warning={telegramTriageNoticeWarning} class="telegram-triage-notice" role="status">{#if telegramTriageNoticeWarning}<Paperclip size={14} />{:else}<CheckCircle2 size={14} />{/if}{telegramTriageNotice}</div>{/if}
-        {#if !telegramInboxLoading && !telegramInboxError && telegramInbox.length}<div class="telegram-inbox-batch"><button class:active={allTelegramInboxCandidatesSelected()} aria-pressed={allTelegramInboxCandidatesSelected()} onclick={toggleAllTelegramInboxCandidates}><span class="picker-check">{#if allTelegramInboxCandidatesSelected()}<Check size={12} />{/if}</span>{allTelegramInboxCandidatesSelected() ? t("clearSelection") : t("selectAllMessages")}</button><small>{t("batchTriageHint")}</small></div>{/if}
+        <div class="telegram-inbox-view-tabs" role="tablist" aria-label={t("telegramInboxViews")}>
+          <button class:active={telegramInboxView === "pending"} role="tab" aria-selected={telegramInboxView === "pending"} onclick={() => setTelegramInboxView("pending")}><span>{t("telegramInboxPending")}</span>{#if telegramInboxView === "pending"}<small>{telegramInboxTotal}</small>{/if}</button>
+          <button class:active={telegramInboxView === "history"} role="tab" aria-selected={telegramInboxView === "history"} onclick={() => setTelegramInboxView("history")}><span>{t("telegramInboxHistory")}</span>{#if telegramInboxView === "history"}<small>{telegramInboxTotal}</small>{/if}</button>
+        </div>
+        {#if telegramInboxView === "pending" && telegramDismissUndo}<div class="telegram-dismiss-undo" role="status"><span><Check size={14} /><span><strong>{t("telegramMessageDismissed")}</strong><small>{t("telegramMessageDismissedDescription", { author: telegramDismissUndo.author })}</small></span></span><button disabled={Boolean(telegramInboxProcessingId)} onclick={undoDismissTelegramCandidate}><RotateCcw size={13} />{t("undo")}</button></div>{/if}
+        {#if telegramInboxView === "pending" && telegramTriageNotice}<div class:warning={telegramTriageNoticeWarning} class="telegram-triage-notice" role="status">{#if telegramTriageNoticeWarning}<Paperclip size={14} />{:else}<CheckCircle2 size={14} />{/if}{telegramTriageNotice}</div>{/if}
+        {#if telegramInboxView === "pending" && !telegramInboxLoading && !telegramInboxError && telegramInbox.length}<div class="telegram-inbox-batch"><button class:active={allTelegramInboxCandidatesSelected()} aria-pressed={allTelegramInboxCandidatesSelected()} onclick={toggleAllTelegramInboxCandidates}><span class="picker-check">{#if allTelegramInboxCandidatesSelected()}<Check size={12} />{/if}</span>{allTelegramInboxCandidatesSelected() ? t("clearSelection") : t("selectAllMessages")}</button><small>{t("batchTriageHint")}</small></div>{/if}
         <div class:with-action-island={telegramInboxSelection.length > 0} class="telegram-message-list telegram-inbox-list">
           {#if telegramInboxLoading}<div class="telegram-list-skeleton" role="status"><span class="sr-only">{t("scanningMessages")}</span>{#each Array(6) as _}<div class="telegram-skeleton-row with-check" aria-hidden="true"><span></span><span><i></i><i></i></span><span></span></div>{/each}</div>
           {:else if telegramInboxError}<div class="telegram-import-state error"><span>{telegramInboxError}</span><button onclick={() => openTelegramInbox(false)}><RefreshCw size={13} />{t("retry")}</button></div>
           {:else}
             {#each telegramInbox as candidate (candidate.id)}
-              <article class:selected={telegramInboxSelection.includes(candidate.id)} class="inbox-candidate">
-                <button class:active={telegramInboxSelection.includes(candidate.id)} class="inbox-select" disabled={Boolean(candidate.linked_task)} aria-label={telegramInboxSelection.includes(candidate.id) ? t("removeFromSelection") : t("addToSelection")} aria-pressed={telegramInboxSelection.includes(candidate.id)} onclick={() => toggleTelegramInboxCandidate(candidate.id)}><span class="picker-check">{#if telegramInboxSelection.includes(candidate.id)}<Check size={12} />{/if}</span></button>
-                <div class="inbox-candidate-content"><div class="inbox-candidate-meta"><strong>{candidate.author}</strong><span title={candidate.chat_title}>{candidate.chat_title}</span><small>{telegramReasonLabel(candidate.reason)} · {fullDate(candidate.sent_at)}</small></div>{#if candidate.text}<p>{candidate.text}</p>{/if}{#if candidate.media?.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: candidate.media.length })}</small>{/if}</div>
-                <div class="inbox-candidate-actions">{#if candidate.linked_task}<button class="inbox-linked-task" disabled={candidate.linked_task.trashed} title={candidate.linked_task.title} onclick={() => openTelegramLinkedTask(candidate.linked_task!)}><FloodGlyph kind={candidate.linked_task.status === "completed" ? "completed" : candidate.linked_task.urgency} size={13} /><span>{candidate.linked_task.title}</span><small>{telegramLinkedTaskState(candidate.linked_task)}</small><ChevronRight size={13} /></button>{:else}<button disabled={Boolean(telegramInboxProcessingId)} onclick={() => dismissTelegramCandidate(candidate)}>{t("dismiss")}</button><button class="primary-button" disabled={Boolean(telegramInboxProcessingId)} aria-label={t("prepareTask")} title={t("prepareTask")} onclick={() => beginTaskFromCandidate(candidate)}><Plus size={14} />{t("prepareTaskShort")}</button>{/if}</div>
+              <article class:history={telegramInboxView === "history"} class:selected={telegramInboxSelection.includes(candidate.id)} class="inbox-candidate">
+                {#if telegramInboxView === "pending"}<button class:active={telegramInboxSelection.includes(candidate.id)} class="inbox-select" disabled={Boolean(candidate.linked_task)} aria-label={telegramInboxSelection.includes(candidate.id) ? t("removeFromSelection") : t("addToSelection")} aria-pressed={telegramInboxSelection.includes(candidate.id)} onclick={() => toggleTelegramInboxCandidate(candidate.id)}><span class="picker-check">{#if telegramInboxSelection.includes(candidate.id)}<Check size={12} />{/if}</span></button>{:else}<span class:imported={candidate.status === "imported"} class="inbox-history-state" title={candidate.status === "imported" ? t("telegramStatusImported") : t("telegramStatusDismissed")}>{#if candidate.status === "imported"}<Check size={14} />{:else}<RotateCcw size={14} />{/if}</span>{/if}
+                <div class="inbox-candidate-content"><div class="inbox-candidate-meta"><strong>{candidate.author}</strong><span title={candidate.chat_title}>{candidate.chat_title}</span><small>{telegramInboxView === "history" ? (candidate.status === "imported" ? t("telegramStatusImported") : t("telegramStatusDismissed")) : telegramReasonLabel(candidate.reason)} · {fullDate(candidate.processed_at ?? candidate.sent_at)}</small></div>{#if candidate.text}<p>{candidate.text}</p>{/if}{#if candidate.media?.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: candidate.media.length })}</small>{/if}</div>
+                <div class="inbox-candidate-actions">{#if candidate.linked_task}<button class="inbox-linked-task" disabled={candidate.linked_task.trashed} title={candidate.linked_task.title} onclick={() => openTelegramLinkedTask(candidate.linked_task!)}><FloodGlyph kind={candidate.linked_task.status === "completed" ? "completed" : candidate.linked_task.urgency} size={13} /><span>{candidate.linked_task.title}</span><small>{telegramLinkedTaskState(candidate.linked_task)}</small><ChevronRight size={13} /></button>{:else if telegramInboxView === "history" && candidate.status === "dismissed"}<button disabled={Boolean(telegramInboxProcessingId)} onclick={() => restoreTelegramCandidate(candidate)}><RotateCcw size={13} />{t("restoreToInbox")}</button>{:else if telegramInboxView === "history"}<span class="inbox-missing-task">{t("linkedTaskUnavailable")}</span>{:else}<button disabled={Boolean(telegramInboxProcessingId)} onclick={() => dismissTelegramCandidate(candidate)}>{t("dismiss")}</button><button class="primary-button" disabled={Boolean(telegramInboxProcessingId)} aria-label={t("prepareTask")} title={t("prepareTask")} onclick={() => beginTaskFromCandidate(candidate)}><Plus size={14} />{t("prepareTaskShort")}</button>{/if}</div>
               </article>
-            {:else}<div class="telegram-import-state">{t("inboxEmpty")}</div>{/each}
+            {:else}<div class="telegram-import-state">{telegramInboxView === "history" ? t("telegramHistoryEmpty") : t("inboxEmpty")}</div>{/each}
+            {#if telegramInboxRemaining > 0}<button class="telegram-load-more" disabled={telegramInboxLoadingMore} onclick={loadMoreTelegramInbox}>{#if telegramInboxLoadingMore}<RefreshCw class="spinning" size={13} />{/if}{t("showMoreMessages", { count: telegramInboxRemaining })}</button>{/if}
           {/if}
         </div>
-        {#if telegramInboxSelection.length}<div class="telegram-triage-island" aria-label={t("selectedMessages", { count: telegramInboxSelection.length })}><span><ListChecks size={15} />{t("selectedMessages", { count: telegramInboxSelection.length })}</span><button class="primary-button" onclick={beginSelectedTelegramTriage}><span>{t("reviewSelected")}</span><ArrowRight size={14} /></button></div>{/if}
+        {#if telegramInboxView === "pending" && telegramInboxSelection.length}<div class="telegram-triage-island" aria-label={t("selectedMessages", { count: telegramInboxSelection.length })}><span><ListChecks size={15} />{t("selectedMessages", { count: telegramInboxSelection.length })}</span><button class="primary-button" onclick={beginSelectedTelegramTriage}><span>{t("reviewSelected")}</span><ArrowRight size={14} /></button></div>{/if}
       </div>{/if}
     </div>
   </div>

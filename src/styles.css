@@ -919,6 +919,11 @@ button { color: inherit; }
 .telegram-media-note { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; color: var(--faint); font-size: var(--font-size-min); }
 .telegram-inbox-panel { width: min(660px, calc(100vw - 56px)); grid-template-rows: 64px minmax(0, auto); }
 .telegram-inbox-body { position: relative; display: flex; min-height: 0; flex-direction: column; overflow: hidden; }
+.telegram-inbox-view-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; margin: 9px 9px 0; padding: 3px; border-radius: 10px; background: var(--surface); }
+.telegram-inbox-view-tabs button { display: flex; min-height: 34px; align-items: center; justify-content: center; gap: 7px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: var(--font-size-min); cursor: pointer; transition: background-color 120ms ease, color 120ms ease, box-shadow 120ms ease; }
+.telegram-inbox-view-tabs button:hover { color: var(--ink); }
+.telegram-inbox-view-tabs button.active { background: var(--elevated); color: var(--ink); box-shadow: 0 1px 4px var(--shadow); }
+.telegram-inbox-view-tabs small { display: grid; min-width: 20px; height: 20px; place-items: center; padding: 0 5px; border-radius: 999px; background: var(--hover); color: var(--muted); font-size: var(--font-size-min); line-height: 1; }
 .telegram-dismiss-undo { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; margin: 9px 9px 0; padding: 8px 8px 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--elevated); box-shadow: 0 4px 16px var(--shadow); animation: reveal-list 150ms ease-out; }
 .telegram-dismiss-undo > span { display: flex; min-width: 0; align-items: center; gap: 8px; color: var(--success-ink); }
 .telegram-dismiss-undo > span > span { display: grid; min-width: 0; gap: 2px; }
@@ -944,12 +949,16 @@ button { color: inherit; }
 .inbox-select:hover { background: var(--hover); }
 .inbox-select:disabled { opacity: .35; cursor: default; }
 .inbox-select.active .picker-check { border-color: var(--ink); background: var(--ink); color: var(--on-ink); }
-.inbox-select:focus-visible, .telegram-inbox-batch > button:focus-visible, .telegram-triage-island button:focus-visible { outline: 2px solid color-mix(in srgb, var(--ink) 38%, transparent); outline-offset: 2px; }
+.inbox-history-state { display: grid; width: 26px; height: 26px; place-items: center; border-radius: 8px; background: var(--surface); color: var(--faint); }
+.inbox-history-state.imported { background: var(--success-surface); color: var(--success-ink); }
+.inbox-select:focus-visible, .telegram-inbox-view-tabs button:focus-visible, .telegram-inbox-batch > button:focus-visible, .telegram-triage-island button:focus-visible, .telegram-load-more:focus-visible { outline: 2px solid color-mix(in srgb, var(--ink) 38%, transparent); outline-offset: 2px; }
 .inbox-candidate-content { display: grid; min-width: 0; gap: 5px; }
 .inbox-candidate-meta { display: grid; min-width: 0; grid-template-columns: max-content minmax(0, 1fr) max-content; align-items: baseline; gap: 7px; }
 .inbox-candidate-meta strong { max-width: 150px; overflow: hidden; font-size: var(--font-size-min); font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .inbox-candidate-meta span { overflow: hidden; color: var(--muted); font-size: var(--font-size-min); text-overflow: ellipsis; white-space: nowrap; }
 .inbox-candidate-meta small { color: var(--faint); font-size: var(--font-size-min); white-space: nowrap; }
+.inbox-candidate.history .inbox-candidate-meta { grid-template-columns: max-content minmax(0, 1fr); row-gap: 2px; }
+.inbox-candidate.history .inbox-candidate-meta small { grid-column: 1 / -1; }
 .inbox-candidate-content > p { display: -webkit-box; margin: 0; overflow: hidden; color: var(--muted); font-size: var(--font-size-min); line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .inbox-candidate-content .telegram-media-note { margin-top: 0; }
 .inbox-candidate-actions { display: flex; flex: 0 0 auto; justify-content: flex-end; gap: 4px; }
@@ -959,6 +968,10 @@ button { color: inherit; }
 .inbox-candidate-actions .inbox-linked-task { display: grid; width: min(210px, 30vw); height: 34px; grid-template-columns: 15px minmax(0, 1fr) auto 14px; padding: 0 8px; color: var(--ink); text-align: left; }
 .inbox-linked-task span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .inbox-linked-task small { color: var(--muted); font-size: var(--font-size-min); }
+.inbox-missing-task { max-width: 130px; overflow: hidden; color: var(--faint); font-size: var(--font-size-min); text-overflow: ellipsis; white-space: nowrap; }
+.telegram-load-more { display: flex; width: 100%; min-height: 38px; align-items: center; justify-content: center; gap: 6px; margin-top: 5px; border: 0; border-radius: 9px; background: var(--surface); color: var(--muted); font: inherit; font-size: var(--font-size-min); cursor: pointer; }
+.telegram-load-more:hover { background: var(--hover); color: var(--ink); }
+.telegram-load-more:disabled { opacity: .6; cursor: default; }
 .telegram-triage-island { position: absolute; z-index: 3; bottom: 14px; left: 50%; display: flex; width: min(360px, calc(100% - 28px)); align-items: center; justify-content: space-between; gap: 14px; padding: 6px 6px 6px 13px; border: 1px solid color-mix(in srgb, var(--on-ink) 14%, transparent); border-radius: 13px; background: var(--ink); color: var(--on-ink); box-shadow: 0 12px 32px color-mix(in srgb, var(--ink) 24%, transparent); transform: translateX(-50%); animation: telegram-island-in 160ms ease-out both; }
 .telegram-triage-island > span { display: inline-flex; align-items: center; gap: 7px; font-size: var(--font-size-min); font-weight: 620; white-space: nowrap; }
 .telegram-triage-island > button { display: inline-flex; min-height: 34px; align-items: center; gap: 7px; padding: 0 10px; border: 0; border-radius: 9px; background: var(--on-ink); color: var(--ink); font: inherit; font-size: var(--font-size-min); font-weight: 620; cursor: pointer; }

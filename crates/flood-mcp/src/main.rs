@@ -926,48 +926,22 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<ListTelegramInboxArgs>,
     ) -> Result<Json<TelegramInboxOutput>, String> {
-        let all_candidates = self
-            .store
-            .list_telegram_inbox(args.project_id.as_deref(), true)
-            .map_err(store_error)?;
-        let total = all_candidates
-            .iter()
-            .filter(|candidate| {
-                args.include_processed || candidate.status == InboxCandidateStatus::Pending
-            })
-            .count();
-        let start = match args.cursor.as_deref() {
-            Some(cursor) => all_candidates
-                .iter()
-                .position(|candidate| candidate.id == cursor)
-                .map(|index| index + 1)
-                .ok_or_else(|| {
-                    "cursor не найден в текущей Telegram-очереди; начните заново".to_string()
-                })?,
-            None => 0,
-        };
         let limit = args.limit.unwrap_or(20).clamp(1, 25);
-        let candidates_after_cursor = all_candidates
-            .into_iter()
-            .skip(start)
-            .filter(|candidate| {
-                args.include_processed || candidate.status == InboxCandidateStatus::Pending
-            })
-            .collect::<Vec<_>>();
-        let remaining_before_page = candidates_after_cursor.len();
-        let page = candidates_after_cursor
-            .into_iter()
-            .take(limit)
-            .collect::<Vec<_>>();
-        let remaining = remaining_before_page.saturating_sub(page.len());
-        let next_cursor = (remaining > 0)
-            .then(|| page.last().map(|candidate| candidate.id.clone()))
-            .flatten();
+        let page = self
+            .store
+            .list_telegram_inbox_page(
+                args.project_id.as_deref(),
+                true,
+                args.include_processed,
+                args.cursor.as_deref(),
+                limit,
+            )
+            .map_err(store_error)?;
         Ok(Json(TelegramInboxOutput {
-            candidates: page,
-            total,
-            next_cursor,
-            remaining,
+            candidates: page.candidates,
+            total: page.total,
+            next_cursor: page.next_cursor,
+            remaining: page.remaining,
         }))
     }
 
@@ -984,36 +958,21 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<TelegramTriageBatchArgs>,
     ) -> Result<Json<TelegramTriageBatchOutput>, String> {
-        let candidates = self
-            .store
-            .list_telegram_inbox(args.project_id.as_deref(), true)
-            .map_err(store_error)?;
-        let start = match args.cursor.as_deref() {
-            Some(cursor) => candidates
-                .iter()
-                .position(|candidate| candidate.id == cursor)
-                .map(|index| index + 1)
-                .ok_or_else(|| {
-                    "cursor не найден в текущей очереди; начните разбор заново".to_string()
-                })?,
-            None => 0,
-        };
-        let pending = candidates
-            .into_iter()
-            .skip(start)
-            .filter(|candidate| candidate.status == InboxCandidateStatus::Pending)
-            .collect::<Vec<_>>();
         let limit = args.limit.unwrap_or(12).clamp(1, 25);
-        let end = limit.min(pending.len());
-        let remaining = pending.len().saturating_sub(end);
-        let page = pending[..end].to_vec();
-        let next_cursor = (remaining > 0)
-            .then(|| page.last().map(|candidate| candidate.id.clone()))
-            .flatten();
+        let page = self
+            .store
+            .list_telegram_inbox_page(
+                args.project_id.as_deref(),
+                true,
+                false,
+                args.cursor.as_deref(),
+                limit,
+            )
+            .map_err(store_error)?;
         Ok(Json(TelegramTriageBatchOutput {
-            candidates: page,
-            next_cursor,
-            remaining,
+            candidates: page.candidates,
+            next_cursor: page.next_cursor,
+            remaining: page.remaining,
         }))
     }
 

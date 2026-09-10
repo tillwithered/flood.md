@@ -81,6 +81,14 @@ pub struct AttachmentCleanupResult {
     pub removed_bytes: u64,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct TelegramInboxPage {
+    pub candidates: Vec<TelegramInboxCandidate>,
+    pub total: usize,
+    pub next_cursor: Option<String>,
+    pub remaining: usize,
+}
+
 struct AttachmentScan {
     report: AttachmentCleanupReport,
     orphaned: Vec<(PathBuf, u64)>,
@@ -412,6 +420,84 @@ impl Store {
         }
         candidates.sort_by_key(|candidate| Reverse(candidate.sent_at));
         Ok(candidates)
+    }
+
+    pub fn list_telegram_inbox_page(
+        &self,
+        project_id: Option<&str>,
+        include_pending: bool,
+        include_processed: bool,
+        cursor: Option<&str>,
+        limit: usize,
+    ) -> Result<TelegramInboxPage, StoreError> {
+        if let Some(project_id) = project_id {
+            validate_id(project_id)?;
+        }
+        if !include_pending && !include_processed {
+            return Err(StoreError::Validation(
+                "нужно выбрать входящие или обработанные сообщения".into(),
+            ));
+        }
+        if !(1..=100).contains(&limit) {
+            return Err(StoreError::Validation(
+                "размер порции Telegram должен быть от 1 до 100".into(),
+            ));
+        }
+        let _lock = self.lock_shared()?;
+        let mut candidates = self.read_telegram_inbox()?.candidates;
+        candidates.retain(|candidate| {
+            project_id.is_none_or(|project_id| candidate.project_id == project_id)
+        });
+        candidates.sort_by_key(|candidate| Reverse(candidate.sent_at));
+        let matches_view = |candidate: &TelegramInboxCandidate| {
+            if candidate.status == InboxCandidateStatus::Pending {
+                include_pending
+            } else {
+                include_processed
+            }
+        };
+        let total = candidates
+            .iter()
+            .filter(|candidate| matches_view(candidate))
+            .count();
+        let start = match cursor {
+            Some(cursor) => candidates
+                .iter()
+                .position(|candidate| candidate.id == cursor)
+                .map(|index| index + 1)
+                .ok_or_else(|| {
+                    StoreError::Validation(
+                        "курсор не найден в текущей Telegram-очереди; начните заново".into(),
+                    )
+                })?,
+            None => 0,
+        };
+        let candidates_after_cursor = candidates
+            .into_iter()
+            .skip(start)
+            .filter(matches_view)
+            .collect::<Vec<_>>();
+        let remaining_before_page = candidates_after_cursor.len();
+        let mut page = candidates_after_cursor
+            .into_iter()
+            .take(limit)
+            .collect::<Vec<_>>();
+        for candidate in &mut page {
+            candidate.linked_task = self
+                .find_task_by_telegram_source(candidate.chat_id, &candidate_message_ids(candidate))?
+                .as_ref()
+                .map(TelegramLinkedTask::from);
+        }
+        let remaining = remaining_before_page.saturating_sub(page.len());
+        let next_cursor = (remaining > 0)
+            .then(|| page.last().map(|candidate| candidate.id.clone()))
+            .flatten();
+        Ok(TelegramInboxPage {
+            candidates: page,
+            total,
+            next_cursor,
+            remaining,
+        })
     }
 
     pub fn telegram_sync_status(&self) -> Result<Option<TelegramSyncStatus>, StoreError> {
@@ -2516,6 +2602,84 @@ mod tests {
         assert_eq!(linked.status, crate::TaskStatus::Completed);
         assert_eq!(linked.urgency, crate::Urgency::Urgent);
         assert_eq!(linked.title, completed.description);
+    }
+
+    #[test]
+    fn telegram_inbox_pages_separate_pending_and_processed_items() {
+        let store = temp_store();
+        let project = store.create_project("История Telegram").unwrap();
+        let now = Utc::now();
+        let candidates = (0_i64..3)
+            .map(|index| TelegramInboxCandidate {
+                id: format!("telegram:{}:-100:{}", project.id, index + 1),
+                project_id: project.id.clone(),
+                chat_id: -100,
+                chat_title: "Рабочий чат".into(),
+                message_id: index + 1,
+                message_ids: vec![index + 1],
+                text: format!("Сообщение {index}"),
+                author: "Автор".into(),
+                sent_at: now - chrono::Duration::minutes(index),
+                url: None,
+                reason: InboxCandidateReason::Manual,
+                status: InboxCandidateStatus::Pending,
+                media: Vec::new(),
+                discovered_at: now,
+                processed_at: None,
+                task_id: None,
+                linked_task: None,
+            })
+            .collect::<Vec<_>>();
+        store
+            .upsert_telegram_candidates(candidates.clone())
+            .unwrap();
+        store
+            .set_telegram_candidate_status(&candidates[0].id, InboxCandidateStatus::Dismissed)
+            .unwrap();
+        store
+            .create_task_from_telegram_candidate(&candidates[1].id, None, Urgency::Normal)
+            .unwrap();
+
+        let first = store
+            .list_telegram_inbox_page(Some(&project.id), true, true, None, 2)
+            .unwrap();
+        assert_eq!(first.total, 3);
+        assert_eq!(first.candidates.len(), 2);
+        assert_eq!(first.remaining, 1);
+        let second = store
+            .list_telegram_inbox_page(
+                Some(&project.id),
+                true,
+                true,
+                first.next_cursor.as_deref(),
+                2,
+            )
+            .unwrap();
+        assert_eq!(second.candidates.len(), 1);
+        assert_eq!(second.remaining, 0);
+
+        let processed = store
+            .list_telegram_inbox_page(Some(&project.id), false, true, None, 20)
+            .unwrap();
+        assert_eq!(processed.total, 2);
+        assert!(
+            processed
+                .candidates
+                .iter()
+                .all(|candidate| candidate.status != InboxCandidateStatus::Pending)
+        );
+        assert!(
+            processed
+                .candidates
+                .iter()
+                .find(|candidate| candidate.status == InboxCandidateStatus::Imported)
+                .and_then(|candidate| candidate.linked_task.as_ref())
+                .is_some()
+        );
+        assert!(matches!(
+            store.list_telegram_inbox_page(None, false, false, None, 20),
+            Err(StoreError::Validation(_))
+        ));
     }
 
     #[test]

@@ -2,8 +2,8 @@ use chrono::Utc;
 use flood_core::{
     AttachmentCleanupReport, AttachmentCleanupResult, CreateTask, InboxCandidateStatus, Project,
     SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
-    TaskSummary, TelegramInboxCandidate, TelegramProjectLink, TelegramSyncHealth,
-    TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
+    TaskSummary, TelegramInboxCandidate, TelegramInboxPage, TelegramProjectLink,
+    TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
 };
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -655,16 +655,38 @@ fn telegram_list_inbox(
 }
 
 #[tauri::command]
+fn telegram_list_inbox_page(
+    project_id: Option<String>,
+    include_pending: bool,
+    include_processed: bool,
+    cursor: Option<String>,
+    limit: usize,
+    state: State<'_, AppState>,
+) -> Result<TelegramInboxPage, String> {
+    result(state.store.list_telegram_inbox_page(
+        project_id.as_deref(),
+        include_pending,
+        include_processed,
+        cursor.as_deref(),
+        limit,
+    ))
+}
+
+#[tauri::command]
 async fn telegram_refresh_inbox(
     project_id: String,
     limit_per_chat: i32,
     state: State<'_, AppState>,
-) -> Result<Vec<TelegramInboxCandidate>, String> {
+) -> Result<TelegramInboxPage, String> {
     let project = result(state.store.get_project(&project_id))?;
     let candidates =
         with_telegram_timeout(state.telegram.refresh_candidates(&project, limit_per_chat)).await?;
     result(state.store.upsert_telegram_candidates(candidates))?;
-    result(state.store.list_telegram_inbox(Some(&project_id), false))
+    result(
+        state
+            .store
+            .list_telegram_inbox_page(Some(&project_id), true, false, None, 30),
+    )
 }
 
 #[tauri::command]
@@ -1191,6 +1213,7 @@ pub fn run() {
             telegram_search_chats,
             telegram_list_messages,
             telegram_list_inbox,
+            telegram_list_inbox_page,
             telegram_refresh_inbox,
             telegram_refresh_all_inboxes,
             telegram_sync_status,
