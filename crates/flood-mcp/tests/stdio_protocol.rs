@@ -141,6 +141,18 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         assert_eq!(tool["annotations"]["readOnlyHint"], true);
         assert_eq!(tool["annotations"]["openWorldHint"], false);
     }
+    let request_image = tools
+        .iter()
+        .find(|tool| tool["name"] == "request_telegram_image")
+        .unwrap();
+    assert_eq!(request_image["annotations"]["readOnlyHint"], false);
+    assert_eq!(request_image["annotations"]["openWorldHint"], true);
+    let read_image = tools
+        .iter()
+        .find(|tool| tool["name"] == "read_telegram_image")
+        .unwrap();
+    assert_eq!(read_image["annotations"]["readOnlyHint"], true);
+    assert!(read_image["outputSchema"].is_object());
     let triage_preview = tools
         .iter()
         .find(|tool| tool["name"] == "preview_telegram_triage")

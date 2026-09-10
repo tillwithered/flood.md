@@ -1,14 +1,19 @@
+use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::{DateTime, Utc};
 use flood_core::{
     ActivityAction, ActivityEntityKind, ActivityPage, ActivitySource, AttachmentCleanupReport,
     CreateTask, InboxCandidateStatus, MessageSnapshot, Project, RecordActivity, SelfCheckItem,
     SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
     TaskStatus, TaskSummary, TelegramChatPage, TelegramContextMessage, TelegramInboxCandidate,
-    TelegramLinkedTask, TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, Urgency,
-    default_data_dir, run_self_check as run_core_self_check,
+    TelegramLinkedTask, TelegramMediaRequest, TelegramMediaRequestState, TelegramSyncHealth,
+    TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
+    run_self_check as run_core_self_check,
 };
 use rmcp::{
-    Json, ServiceExt, handler::server::wrapper::Parameters, schemars, tool, tool_router,
+    Json, ServiceExt,
+    handler::server::wrapper::Parameters,
+    model::{CallToolResult, ContentBlock},
+    schemars, tool, tool_router,
     transport::stdio,
 };
 use serde::{Deserialize, Serialize};
@@ -423,6 +428,65 @@ struct TelegramChatsOutput {
     chats: Vec<TelegramChatSummaryOutput>,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct RequestTelegramMediaArgs {
+    /// Идентификатор чата из read_telegram_chat или контекста кандидата.
+    chat_id: i64,
+    /// Необязательный идентификатор кандидата. Передавайте его, если изображение
+    /// найдено через get_telegram_candidate_context; для обычной ленты он не нужен.
+    candidate_id: Option<String>,
+    message_id: i64,
+    /// Нулевой индекс изображения внутри сообщения или альбома.
+    media_index: usize,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct TelegramMediaRequestIdArgs {
+    request_id: String,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramImageOutput {
+    request: TelegramMediaRequestOutput,
+    delivered_as_image: bool,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramMediaRequestOutput {
+    id: String,
+    candidate_id: Option<String>,
+    chat_id: i64,
+    message_id: i64,
+    media_index: usize,
+    file_name: String,
+    mime_type: String,
+    requested_at: DateTime<Utc>,
+    state: TelegramMediaRequestState,
+    completed_at: Option<DateTime<Utc>>,
+    error: Option<String>,
+    ready: bool,
+}
+
+impl From<TelegramMediaRequest> for TelegramMediaRequestOutput {
+    fn from(request: TelegramMediaRequest) -> Self {
+        let ready = request.state == TelegramMediaRequestState::Ready;
+        Self {
+            id: request.id,
+            candidate_id: request.candidate_id,
+            chat_id: request.chat_id,
+            message_id: request.message_id,
+            media_index: request.media_index,
+            file_name: request.file_name,
+            mime_type: request.mime_type,
+            requested_at: request.requested_at,
+            state: request.state,
+            completed_at: request.completed_at,
+            error: request.error,
+            ready,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TelegramTriageBatchOutput {
     candidates: Vec<TelegramCandidateSummary>,
@@ -750,6 +814,7 @@ impl FloodServer {
                 "confirmed_telegram_triage",
                 "telegram_conversation_context",
                 "telegram_chat_reader",
+                "telegram_image_content",
                 "telegram_sync_status",
                 "telegram_sync_request",
                 "store_diagnostics",
@@ -1028,6 +1093,96 @@ impl FloodServer {
             )
             .map(Json)
             .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Попросить запущенное desktop-приложение подготовить одно конкретное изображение Telegram. Передайте chat_id, message_id и нулевой media_index из read_telegram_chat. Если изображение найдено через get_telegram_candidate_context, также передайте candidate_id. Запрос идемпотентен; максимум 8 МБ. Затем проверьте get_telegram_media_request",
+        annotations(
+            title = "Подготовить изображение Telegram",
+            read_only_hint = false,
+            destructive_hint = false,
+            open_world_hint = true
+        )
+    )]
+    fn request_telegram_image(
+        &self,
+        Parameters(args): Parameters<RequestTelegramMediaArgs>,
+    ) -> Result<Json<TelegramMediaRequestOutput>, String> {
+        self.store
+            .request_telegram_media(
+                args.chat_id,
+                args.message_id,
+                args.media_index,
+                args.candidate_id.as_deref(),
+            )
+            .map(TelegramMediaRequestOutput::from)
+            .map(Json)
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Проверить состояние подготовки изображения Telegram: queued, ready или failed. Если queued держится дольше нескольких секунд, desktop-приложение должно быть запущено и Telegram подключён. При ready вызовите read_telegram_image",
+        annotations(
+            title = "Состояние изображения Telegram",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn get_telegram_media_request(
+        &self,
+        Parameters(args): Parameters<TelegramMediaRequestIdArgs>,
+    ) -> Result<Json<TelegramMediaRequestOutput>, String> {
+        self.store
+            .get_telegram_media_request(&args.request_id)
+            .map(TelegramMediaRequestOutput::from)
+            .map(Json)
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Вернуть подготовленное изображение Telegram настоящим MCP image-content, чтобы мультимодальная модель могла его рассмотреть. Инструмент работает только для ready-запроса request_telegram_image и не возвращает путь к локальному файлу",
+        output_schema = rmcp::handler::server::tool::schema_for_output::<TelegramImageOutput>(),
+        annotations(
+            title = "Посмотреть изображение Telegram",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn read_telegram_image(
+        &self,
+        Parameters(args): Parameters<TelegramMediaRequestIdArgs>,
+    ) -> Result<CallToolResult, String> {
+        let request = self
+            .store
+            .get_telegram_media_request(&args.request_id)
+            .map_err(store_error)?;
+        if request.state == TelegramMediaRequestState::Failed {
+            return Err(request
+                .error
+                .clone()
+                .unwrap_or_else(|| "Не удалось подготовить изображение Telegram".into()));
+        }
+        if request.state != TelegramMediaRequestState::Ready {
+            return Err("Изображение ещё готовится; проверьте get_telegram_media_request".into());
+        }
+        let bytes = self
+            .store
+            .read_telegram_media_request(&args.request_id)
+            .map_err(store_error)?;
+        let output = TelegramImageOutput {
+            request: TelegramMediaRequestOutput::from(request.clone()),
+            delivered_as_image: true,
+        };
+        let metadata = serde_json::to_string(&output).map_err(|error| error.to_string())?;
+        let mut result = CallToolResult::success(vec![
+            ContentBlock::text(metadata),
+            ContentBlock::image(STANDARD.encode(bytes), request.mime_type),
+        ]);
+        result.structured_content =
+            Some(serde_json::to_value(output).map_err(|error| error.to_string())?);
+        Ok(result)
     }
 
     #[tool(
@@ -2550,6 +2705,9 @@ fn run_binary_self_check() -> SelfCheckResult {
         "request_telegram_sync",
         "list_telegram_chats",
         "read_telegram_chat",
+        "request_telegram_image",
+        "get_telegram_media_request",
+        "read_telegram_image",
         "preview_telegram_triage",
         "apply_telegram_triage",
         "get_telegram_candidate_context",
@@ -2696,6 +2854,9 @@ mod tests {
             "request_telegram_sync",
             "list_telegram_chats",
             "read_telegram_chat",
+            "request_telegram_image",
+            "get_telegram_media_request",
+            "read_telegram_image",
             "list_telegram_inbox",
             "get_telegram_triage_batch",
             "preview_telegram_triage",
@@ -3011,16 +3172,30 @@ mod tests {
                 title: "Рабочий чат".into(),
                 synced_at: now,
                 messages: (1..=12)
-                    .map(|message_id| TelegramContextMessage {
-                        message_id,
-                        message_ids: vec![message_id],
-                        author: "Команда".into(),
-                        sent_at: now + chrono::Duration::seconds(message_id),
-                        text: format!("Сообщение {message_id}"),
-                        url: None,
-                        reply_to_message_id: None,
-                        is_target: false,
-                        media: Vec::new(),
+                    .map(|message_id| {
+                        let media = if message_id == 12 {
+                            vec![SourceMedia {
+                                kind: SourceMediaKind::Photo,
+                                file_name: "timeline.jpg".into(),
+                                provider_file_id: Some(120),
+                                mime_type: Some("image/jpeg".into()),
+                                size: Some(4),
+                                relative_path: None,
+                            }]
+                        } else {
+                            Vec::new()
+                        };
+                        TelegramContextMessage {
+                            message_id,
+                            message_ids: vec![message_id],
+                            author: "Команда".into(),
+                            sent_at: now + chrono::Duration::seconds(message_id),
+                            text: format!("Сообщение {message_id}"),
+                            url: None,
+                            reply_to_message_id: None,
+                            is_target: false,
+                            media,
+                        }
                     })
                     .collect(),
             })
@@ -3059,6 +3234,27 @@ mod tests {
             .0;
         assert_eq!(updates.messages.len(), 2);
         assert_eq!(updates.messages[0].message_id, 11);
+
+        let image_request = server
+            .request_telegram_image(Parameters(RequestTelegramMediaArgs {
+                chat_id: -10042,
+                candidate_id: None,
+                message_id: 12,
+                media_index: 0,
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(image_request.state, TelegramMediaRequestState::Queued);
+        assert_eq!(image_request.chat_id, -10042);
+        assert!(image_request.candidate_id.is_none());
+        assert_eq!(
+            server
+                .store
+                .telegram_media_request_source(&image_request.id)
+                .unwrap()
+                .provider_file_id,
+            Some(120)
+        );
     }
 
     #[test]
@@ -3472,6 +3668,35 @@ mod tests {
         assert!(!context.messages[0].is_target);
         assert_eq!(context.messages[1].message_id, 77);
         assert!(context.messages[1].is_target);
+        let image_request = server
+            .request_telegram_image(Parameters(RequestTelegramMediaArgs {
+                chat_id: -10042,
+                candidate_id: Some(candidate_id.clone()),
+                message_id: 77,
+                media_index: 0,
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(image_request.state, TelegramMediaRequestState::Queued);
+        server
+            .store
+            .complete_telegram_media_request(&image_request.id, b"fake-jpeg")
+            .unwrap();
+        let image_status = server
+            .get_telegram_media_request(Parameters(TelegramMediaRequestIdArgs {
+                request_id: image_request.id.clone(),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(image_status.state, TelegramMediaRequestState::Ready);
+        let image = server
+            .read_telegram_image(Parameters(TelegramMediaRequestIdArgs {
+                request_id: image_request.id,
+            }))
+            .unwrap();
+        assert_eq!(image.is_error, Some(false));
+        assert!(image.structured_content.is_some());
+        assert!(matches!(image.content.get(1), Some(ContentBlock::Image(_))));
         let keep_decisions = vec![TelegramTriageDecisionArgs {
             candidate_id: candidate_id.clone(),
             action: "keep".into(),

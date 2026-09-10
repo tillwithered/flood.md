@@ -2284,6 +2284,11 @@
     return telegramSyncRequest;
   }
 
+  async function processTelegramAgentMediaRequests() {
+    if (!inTauri() || telegramStatus.step !== "ready") return;
+    await invoke("telegram_process_agent_media_requests").catch(() => undefined);
+  }
+
   function telegramSyncIsStale(maxAgeMs = 60_000) {
     if (!telegramSyncSummary?.syncedAt) return true;
     const completedAt = new Date(telegramSyncSummary.syncedAt).getTime();
@@ -3273,6 +3278,7 @@
         if (telegramStatus.step === "ready") void syncTelegram();
       }, 120_000);
       telegramRequestTimer = window.setInterval(() => {
+        void processTelegramAgentMediaRequests();
         void refreshTelegramSyncRequest().then((request) => {
           if (request && telegramStatus.step === "ready") void syncTelegram();
         });
@@ -3280,10 +3286,13 @@
       unlisten = await listen<string[]>("data-changed", (event) => {
         const changedPaths = event.payload.map((path) => path.toLocaleLowerCase());
         const telegramSyncRequested = changedPaths.some((path) => path.includes("telegram-sync-request"));
+        const telegramMediaRequested = changedPaths.some((path) => path.endsWith("telegram-media-requests.json"));
         if (activeSection === "settings" && settingsSection === "mcp" && changedPaths.some((path) => path.endsWith("activity.json"))) void loadMcpActivity();
         if (telegramSyncRequested) {
           void refreshTelegramSyncRequest();
           if (telegramStatus.step === "ready") void syncTelegram();
+        } else if (telegramMediaRequested) {
+          void processTelegramAgentMediaRequests();
         } else if (telegramStatus.step === "ready" && changedPaths.some((path) => path.endsWith(".md"))) void syncTelegram(false);
         window.clearTimeout(refreshTimer);
         refreshTimer = window.setTimeout(() => {

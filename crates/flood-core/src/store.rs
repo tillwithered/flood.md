@@ -2,8 +2,8 @@ use crate::{
     ActivityAction, ActivityEntityKind, ActivityEvent, ActivitySource, CreateTask,
     InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind, Task,
     TaskPatch, TaskStatus, TaskSummary, TelegramChatSnapshot, TelegramContextMessage,
-    TelegramInboxCandidate, TelegramLinkedTask, TelegramProjectLink, TelegramSyncRequest,
-    TelegramSyncStatus, Urgency,
+    TelegramInboxCandidate, TelegramLinkedTask, TelegramMediaRequest, TelegramMediaRequestState,
+    TelegramProjectLink, TelegramSyncRequest, TelegramSyncStatus, Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
@@ -32,6 +32,8 @@ const MAX_INTEGRATION_STATE_BYTES: u64 = 64 * 1024;
 const MAX_ACTIVITY_BYTES: u64 = 512 * 1024;
 const MAX_ACTIVITY_EVENTS: usize = 500;
 const MAX_TELEGRAM_CHAT_MESSAGES: usize = 100;
+const MAX_TELEGRAM_MEDIA_REQUESTS: usize = 20;
+const MAX_AGENT_IMAGE_BYTES: u64 = 8 * 1024 * 1024;
 
 #[derive(Debug, Error)]
 pub enum StoreError {
@@ -167,6 +169,14 @@ struct TelegramChatsDocument {
     chats: Vec<TelegramChatSnapshot>,
 }
 
+#[derive(Default, Serialize, Deserialize)]
+struct TelegramMediaRequestsDocument {
+    #[serde(default = "telegram_media_requests_format_version")]
+    format_version: u8,
+    #[serde(default)]
+    requests: Vec<TelegramMediaRequest>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct TelegramChatPage {
     pub chat_id: i64,
@@ -192,6 +202,10 @@ fn inbox_format_version() -> u8 {
 }
 
 fn telegram_chats_format_version() -> u8 {
+    1
+}
+
+fn telegram_media_requests_format_version() -> u8 {
     1
 }
 
@@ -884,6 +898,225 @@ impl Store {
         })
     }
 
+    pub fn request_telegram_media(
+        &self,
+        chat_id: i64,
+        message_id: i64,
+        media_index: usize,
+        candidate_id: Option<&str>,
+    ) -> Result<TelegramMediaRequest, StoreError> {
+        let candidate_id = candidate_id
+            .map(|id| clean_required(id, "идентификатор Telegram-кандидата", 160))
+            .transpose()?;
+        let _lock = self.lock_exclusive()?;
+        let media = if let Some(candidate_id) = candidate_id.as_deref() {
+            let candidate = self
+                .read_telegram_inbox()?
+                .candidates
+                .into_iter()
+                .find(|candidate| candidate.id == candidate_id)
+                .ok_or_else(|| StoreError::NotFound(candidate_id.to_owned()))?;
+            if candidate.chat_id != chat_id {
+                return Err(StoreError::Validation(
+                    "Telegram-кандидат относится к другому чату".into(),
+                ));
+            }
+            candidate_context_media(&candidate, message_id, media_index)?
+        } else {
+            let chat = self
+                .read_telegram_chats()?
+                .chats
+                .into_iter()
+                .find(|chat| chat.chat_id == chat_id)
+                .ok_or_else(|| StoreError::NotFound(format!("Telegram-чат {chat_id}")))?;
+            chat_snapshot_media(&chat, message_id, media_index)?
+        };
+        if media.kind != SourceMediaKind::Photo {
+            return Err(StoreError::Validation(
+                "сейчас агенту можно передавать только изображения Telegram".into(),
+            ));
+        }
+        if media.size.is_some_and(|size| size > MAX_AGENT_IMAGE_BYTES) {
+            return Err(StoreError::Validation(
+                "изображение превышает допустимые для агента 8 МБ".into(),
+            ));
+        }
+        let mut document = self.read_telegram_media_requests()?;
+        if let Some(index) = document.requests.iter().position(|request| {
+            request.candidate_id == candidate_id
+                && request.chat_id == chat_id
+                && request.message_id == message_id
+                && request.media_index == media_index
+        }) {
+            if document.requests[index].state == TelegramMediaRequestState::Failed {
+                document.requests[index].state = TelegramMediaRequestState::Queued;
+                document.requests[index].completed_at = None;
+                document.requests[index].error = None;
+                let retried = document.requests[index].clone();
+                self.write_telegram_media_requests(&document)?;
+                return Ok(retried);
+            }
+            return Ok(document.requests[index].clone());
+        }
+        while document.requests.len() >= MAX_TELEGRAM_MEDIA_REQUESTS {
+            let Some(index) = document
+                .requests
+                .iter()
+                .position(|request| request.state != TelegramMediaRequestState::Queued)
+            else {
+                return Err(StoreError::Validation(
+                    "слишком много ожидающих запросов Telegram-медиа".into(),
+                ));
+            };
+            let removed = document.requests.remove(index);
+            self.remove_telegram_media_cache(&removed);
+        }
+        let request = TelegramMediaRequest {
+            id: Ulid::new().to_string(),
+            candidate_id,
+            chat_id,
+            message_id,
+            media_index,
+            file_name: media.file_name,
+            mime_type: media.mime_type.unwrap_or_else(|| "image/jpeg".into()),
+            requested_at: Utc::now(),
+            state: TelegramMediaRequestState::Queued,
+            completed_at: None,
+            relative_path: None,
+            error: None,
+        };
+        document.requests.push(request.clone());
+        self.write_telegram_media_requests(&document)?;
+        Ok(request)
+    }
+
+    pub fn pending_telegram_media_requests(
+        &self,
+        limit: usize,
+    ) -> Result<Vec<TelegramMediaRequest>, StoreError> {
+        let _lock = self.lock_shared()?;
+        Ok(self
+            .read_telegram_media_requests()?
+            .requests
+            .into_iter()
+            .filter(|request| request.state == TelegramMediaRequestState::Queued)
+            .take(limit.clamp(1, 10))
+            .collect())
+    }
+
+    pub fn get_telegram_media_request(&self, id: &str) -> Result<TelegramMediaRequest, StoreError> {
+        validate_id(id)?;
+        let _lock = self.lock_shared()?;
+        self.read_telegram_media_requests()?
+            .requests
+            .into_iter()
+            .find(|request| request.id == id)
+            .ok_or_else(|| StoreError::NotFound(id.to_owned()))
+    }
+
+    pub fn telegram_media_request_source(&self, id: &str) -> Result<SourceMedia, StoreError> {
+        validate_id(id)?;
+        let _lock = self.lock_shared()?;
+        let request = self
+            .read_telegram_media_requests()?
+            .requests
+            .into_iter()
+            .find(|request| request.id == id)
+            .ok_or_else(|| StoreError::NotFound(id.to_owned()))?;
+        if let Some(candidate_id) = request.candidate_id.as_deref() {
+            let candidate = self
+                .read_telegram_inbox()?
+                .candidates
+                .into_iter()
+                .find(|candidate| candidate.id == candidate_id)
+                .ok_or_else(|| StoreError::NotFound(candidate_id.to_owned()))?;
+            candidate_context_media(&candidate, request.message_id, request.media_index)
+        } else {
+            let chat = self
+                .read_telegram_chats()?
+                .chats
+                .into_iter()
+                .find(|chat| chat.chat_id == request.chat_id)
+                .ok_or_else(|| StoreError::NotFound(format!("Telegram-чат {}", request.chat_id)))?;
+            chat_snapshot_media(&chat, request.message_id, request.media_index)
+        }
+    }
+
+    pub fn complete_telegram_media_request(
+        &self,
+        id: &str,
+        bytes: &[u8],
+    ) -> Result<TelegramMediaRequest, StoreError> {
+        validate_id(id)?;
+        if bytes.is_empty() || bytes.len() as u64 > MAX_AGENT_IMAGE_BYTES {
+            return Err(StoreError::Validation(
+                "изображение должно иметь размер от 1 байта до 8 МБ".into(),
+            ));
+        }
+        let _lock = self.lock_exclusive()?;
+        let mut document = self.read_telegram_media_requests()?;
+        let request = document
+            .requests
+            .iter_mut()
+            .find(|request| request.id == id)
+            .ok_or_else(|| StoreError::NotFound(id.to_owned()))?;
+        let file_name = clean_file_name(&request.file_name)?;
+        let relative_path = PathBuf::from("integrations")
+            .join("telegram-media")
+            .join(id)
+            .join(file_name);
+        atomic_write_bytes(&self.root.join(&relative_path), bytes)?;
+        request.state = TelegramMediaRequestState::Ready;
+        request.completed_at = Some(Utc::now());
+        request.relative_path = Some(relative_path.to_string_lossy().replace('\\', "/"));
+        request.error = None;
+        let result = request.clone();
+        self.write_telegram_media_requests(&document)?;
+        Ok(result)
+    }
+
+    pub fn fail_telegram_media_request(
+        &self,
+        id: &str,
+        error: &str,
+    ) -> Result<TelegramMediaRequest, StoreError> {
+        validate_id(id)?;
+        let error = clean_required(error, "ошибка Telegram-медиа", 1_000)?;
+        let _lock = self.lock_exclusive()?;
+        let mut document = self.read_telegram_media_requests()?;
+        let request = document
+            .requests
+            .iter_mut()
+            .find(|request| request.id == id)
+            .ok_or_else(|| StoreError::NotFound(id.to_owned()))?;
+        request.state = TelegramMediaRequestState::Failed;
+        request.completed_at = Some(Utc::now());
+        request.relative_path = None;
+        request.error = Some(error);
+        let result = request.clone();
+        self.write_telegram_media_requests(&document)?;
+        Ok(result)
+    }
+
+    pub fn read_telegram_media_request(&self, id: &str) -> Result<Vec<u8>, StoreError> {
+        let request = self.get_telegram_media_request(id)?;
+        if request.state != TelegramMediaRequestState::Ready {
+            return Err(StoreError::Validation(
+                "изображение Telegram ещё не подготовлено".into(),
+            ));
+        }
+        let relative_path = request
+            .relative_path
+            .ok_or_else(|| StoreError::Validation("путь изображения не сохранён".into()))?;
+        let path = Path::new(&relative_path);
+        if path.is_absolute() || path.components().any(|part| part.as_os_str() == "..") {
+            return Err(StoreError::Validation(
+                "сохранён некорректный путь изображения".into(),
+            ));
+        }
+        read_limited_bytes(&self.root.join(path), MAX_AGENT_IMAGE_BYTES)
+    }
+
     pub fn get_telegram_candidate(
         &self,
         candidate_id: &str,
@@ -1523,7 +1756,12 @@ impl Store {
         let integrations = self.root.join("integrations");
         if integrations.exists() {
             collect_backup_files(&integrations, &mut files)?;
-            files.retain(|path| path != &self.telegram_sync_request_path());
+            let telegram_media_cache = integrations.join("telegram-media");
+            files.retain(|path| {
+                path != &self.telegram_sync_request_path()
+                    && path != &self.telegram_media_requests_path()
+                    && !path.starts_with(&telegram_media_cache)
+            });
         }
         let temporary = parent.join(format!(".flood-backup-{}.tmp", Ulid::new()));
         let result = (|| {
@@ -1919,6 +2157,12 @@ impl Store {
         self.root.join("integrations").join("telegram-chats.json")
     }
 
+    fn telegram_media_requests_path(&self) -> PathBuf {
+        self.root
+            .join("integrations")
+            .join("telegram-media-requests.json")
+    }
+
     fn read_telegram_chats(&self) -> Result<TelegramChatsDocument, StoreError> {
         let path = self.telegram_chats_path();
         if !path.exists() {
@@ -1946,6 +2190,58 @@ impl Store {
             ));
         }
         atomic_write_bytes(&self.telegram_chats_path(), &bytes)
+    }
+
+    fn read_telegram_media_requests(&self) -> Result<TelegramMediaRequestsDocument, StoreError> {
+        let path = self.telegram_media_requests_path();
+        if !path.exists() {
+            return Ok(TelegramMediaRequestsDocument {
+                format_version: telegram_media_requests_format_version(),
+                requests: Vec::new(),
+            });
+        }
+        let document: TelegramMediaRequestsDocument =
+            serde_json::from_slice(&read_limited_bytes(&path, MAX_INTEGRATION_STATE_BYTES)?)?;
+        if document.format_version != telegram_media_requests_format_version() {
+            return Err(StoreError::Validation(
+                "неподдерживаемая версия запросов Telegram-медиа".into(),
+            ));
+        }
+        Ok(document)
+    }
+
+    fn write_telegram_media_requests(
+        &self,
+        document: &TelegramMediaRequestsDocument,
+    ) -> Result<(), StoreError> {
+        let mut bytes = serde_json::to_vec_pretty(document)?;
+        bytes.push(b'\n');
+        if bytes.len() as u64 > MAX_INTEGRATION_STATE_BYTES {
+            return Err(StoreError::Validation(
+                "очередь Telegram-медиа превышает безопасный размер".into(),
+            ));
+        }
+        atomic_write_bytes(&self.telegram_media_requests_path(), &bytes)
+    }
+
+    fn remove_telegram_media_cache(&self, request: &TelegramMediaRequest) {
+        let Some(relative_path) = request.relative_path.as_deref() else {
+            return;
+        };
+        let path = Path::new(relative_path);
+        if path.is_absolute() || path.components().any(|part| part.as_os_str() == "..") {
+            return;
+        }
+        let absolute = self.root.join(path);
+        let expected_parent = self
+            .root
+            .join("integrations")
+            .join("telegram-media")
+            .join(&request.id);
+        if absolute.starts_with(&expected_parent) {
+            let _ = fs::remove_file(&absolute);
+            let _ = fs::remove_dir(&expected_parent);
+        }
     }
 
     fn activity_path(&self) -> PathBuf {
@@ -2618,8 +2914,12 @@ fn collect_backup_files(directory: &Path, output: &mut Vec<PathBuf>) -> Result<(
 }
 
 fn is_attachment_path(path: &Path) -> bool {
-    path.components()
-        .any(|part| part.as_os_str() == "attachments")
+    path.components().any(|part| {
+        matches!(
+            part.as_os_str().to_str(),
+            Some("attachments" | "telegram-media")
+        )
+    })
 }
 
 fn restore_entry_size_limit(path: &Path) -> u64 {
@@ -2898,6 +3198,47 @@ fn candidate_message_ids(candidate: &TelegramInboxCandidate) -> Vec<i64> {
     } else {
         candidate.message_ids.clone()
     }
+}
+
+fn candidate_context_media(
+    candidate: &TelegramInboxCandidate,
+    message_id: i64,
+    media_index: usize,
+) -> Result<SourceMedia, StoreError> {
+    if let Some(message) = candidate.context.iter().find(|message| {
+        message.message_id == message_id || message.message_ids.contains(&message_id)
+    }) {
+        return message.media.get(media_index).cloned().ok_or_else(|| {
+            StoreError::NotFound(format!("медиа {media_index} сообщения {message_id}"))
+        });
+    }
+    if candidate.message_id == message_id || candidate.message_ids.contains(&message_id) {
+        return candidate.media.get(media_index).cloned().ok_or_else(|| {
+            StoreError::NotFound(format!("медиа {media_index} сообщения {message_id}"))
+        });
+    }
+    Err(StoreError::NotFound(format!(
+        "сообщение {message_id} в контексте кандидата"
+    )))
+}
+
+fn chat_snapshot_media(
+    chat: &TelegramChatSnapshot,
+    message_id: i64,
+    media_index: usize,
+) -> Result<SourceMedia, StoreError> {
+    let message = chat
+        .messages
+        .iter()
+        .find(|message| {
+            message.message_id == message_id || message.message_ids.contains(&message_id)
+        })
+        .ok_or_else(|| StoreError::NotFound(format!("сообщение Telegram {message_id}")))?;
+    message
+        .media
+        .get(media_index)
+        .cloned()
+        .ok_or_else(|| StoreError::NotFound(format!("медиа {media_index} сообщения {message_id}")))
 }
 
 fn default_telegram_task_title(candidate: &TelegramInboxCandidate) -> String {
@@ -4076,5 +4417,76 @@ mod tests {
         assert_eq!(newer.messages.len(), 3);
         assert_eq!(newer.messages[0].message_id, 28);
         assert!(!newer.has_newer);
+    }
+
+    #[test]
+    fn telegram_image_request_is_idempotent_and_readable_when_prepared() {
+        let store = temp_store();
+        let project = store.create_project("Медиа агента").unwrap();
+        let now = Utc::now();
+        let candidate = TelegramInboxCandidate {
+            id: format!("telegram:{}:-10042:77", project.id),
+            project_id: project.id,
+            chat_id: -10042,
+            chat_title: "Рабочий чат".into(),
+            message_id: 77,
+            message_ids: vec![77],
+            text: "Посмотри скриншот".into(),
+            author: "Анна".into(),
+            sent_at: now,
+            url: None,
+            reason: InboxCandidateReason::Mention,
+            status: InboxCandidateStatus::Pending,
+            media: vec![SourceMedia {
+                kind: SourceMediaKind::Photo,
+                file_name: "screen.jpg".into(),
+                provider_file_id: Some(77),
+                mime_type: Some("image/jpeg".into()),
+                size: Some(4),
+                relative_path: None,
+            }],
+            context: Vec::new(),
+            discovered_at: now,
+            processed_at: None,
+            task_id: None,
+            linked_task: None,
+        };
+        store
+            .upsert_telegram_candidates(vec![candidate.clone()])
+            .unwrap();
+        let request = store
+            .request_telegram_media(-10042, 77, 0, Some(&candidate.id))
+            .unwrap();
+        let repeated = store
+            .request_telegram_media(-10042, 77, 0, Some(&candidate.id))
+            .unwrap();
+        assert_eq!(request.id, repeated.id);
+        assert_eq!(request.state, TelegramMediaRequestState::Queued);
+        assert_eq!(store.pending_telegram_media_requests(3).unwrap().len(), 1);
+        assert_eq!(
+            store
+                .telegram_media_request_source(&request.id)
+                .unwrap()
+                .provider_file_id,
+            Some(77)
+        );
+        store
+            .fail_telegram_media_request(&request.id, "временная ошибка")
+            .unwrap();
+        let retried = store
+            .request_telegram_media(-10042, 77, 0, Some(&candidate.id))
+            .unwrap();
+        assert_eq!(retried.id, request.id);
+        assert_eq!(retried.state, TelegramMediaRequestState::Queued);
+
+        let ready = store
+            .complete_telegram_media_request(&request.id, b"jpeg")
+            .unwrap();
+        assert_eq!(ready.state, TelegramMediaRequestState::Ready);
+        assert_eq!(
+            store.read_telegram_media_request(&request.id).unwrap(),
+            b"jpeg"
+        );
+        assert!(store.pending_telegram_media_requests(3).unwrap().is_empty());
     }
 }

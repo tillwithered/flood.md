@@ -1232,6 +1232,7 @@ name = "flood-mcp"
 version = "0.1.4"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "chrono",
  "flood-core",
  "hex",

@@ -10,6 +10,7 @@ license = "PolyForm-Noncommercial-1.0.0"
 [workspace.dependencies]
 anyhow = "1.0.100"
 atomic-write-file = "0.3.1"
+base64 = "0.22.1"
 chrono = { version = "0.4.42", features = ["serde"] }
 fs2 = "0.4.3"
 hex = "0.4.3"

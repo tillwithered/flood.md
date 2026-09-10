@@ -14,7 +14,7 @@ tdlib.workspace = true
 
 [dependencies]
 atomic-write-file.workspace = true
-base64 = "0.22"
+base64.workspace = true
 chrono.workspace = true
 flood-core = { path = "../crates/flood-core" }
 notify = "8.2.0"

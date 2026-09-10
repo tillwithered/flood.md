@@ -49,6 +49,13 @@ struct TelegramMediaSyncResult {
 }
 
 #[derive(Serialize)]
+struct TelegramAgentMediaSyncResult {
+    prepared: usize,
+    failed: usize,
+    busy: bool,
+}
+
+#[derive(Serialize)]
 struct TelegramInboxSyncResult {
     scanned_projects: usize,
     added: usize,
@@ -1100,6 +1107,69 @@ async fn telegram_sync_task_media(
     sync_task_media(&state).await
 }
 
+#[tauri::command]
+async fn telegram_process_agent_media_requests(
+    state: State<'_, AppState>,
+) -> Result<TelegramAgentMediaSyncResult, String> {
+    process_agent_media_requests(&state).await
+}
+
+async fn process_agent_media_requests(
+    state: &AppState,
+) -> Result<TelegramAgentMediaSyncResult, String> {
+    if state
+        .telegram_media_syncing
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        return Ok(TelegramAgentMediaSyncResult {
+            prepared: 0,
+            failed: 0,
+            busy: true,
+        });
+    }
+    let _guard = SyncGuard(&state.telegram_media_syncing);
+    let requests = result(state.store.pending_telegram_media_requests(3))?;
+    let mut prepared = 0;
+    let mut failed = 0;
+    for request in requests {
+        let outcome = async {
+            let media = result(state.store.telegram_media_request_source(&request.id))?;
+            let file_id = media
+                .provider_file_id
+                .ok_or_else(|| "У изображения нет идентификатора Telegram".to_string())?;
+            let downloaded = tokio::time::timeout(
+                TELEGRAM_MEDIA_SYNC_TIMEOUT,
+                state.telegram.download_file(file_id),
+            )
+            .await
+            .map_err(|_| "Telegram не завершил загрузку изображения за 60 секунд".to_string())??;
+            let bytes = fs::read(&downloaded).map_err(|error| error.to_string());
+            state.telegram.release_downloaded_file(file_id).await;
+            let bytes = bytes?;
+            result(
+                state
+                    .store
+                    .complete_telegram_media_request(&request.id, &bytes),
+            )?;
+            Ok::<(), String>(())
+        }
+        .await;
+        match outcome {
+            Ok(()) => prepared += 1,
+            Err(error) => {
+                failed += 1;
+                let _ = state.store.fail_telegram_media_request(&request.id, &error);
+            }
+        }
+    }
+    Ok(TelegramAgentMediaSyncResult {
+        prepared,
+        failed,
+        busy: false,
+    })
+}
+
 async fn sync_task_media(state: &AppState) -> Result<TelegramMediaSyncResult, String> {
     if state
         .telegram_media_syncing
@@ -1271,6 +1341,7 @@ pub fn run() {
             telegram_create_task_from_candidate,
             telegram_download_source_media,
             telegram_sync_task_media,
+            telegram_process_agent_media_requests,
             telegram_disconnect,
             telegram_reset_database
         ])
