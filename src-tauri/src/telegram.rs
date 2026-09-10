@@ -77,8 +77,7 @@ impl TelegramManager {
         });
         let database_key = stored
             .as_ref()
-            .map(|value| value.database_key.clone())
-            .filter(|value| valid_database_key(value))
+            .and_then(|value| normalize_database_key(&value.database_key))
             .unwrap_or_else(generate_database_key);
         let config = credentials
             .clone()
@@ -471,6 +470,16 @@ fn valid_database_key(value: &str) -> bool {
     STANDARD.decode(value).is_ok_and(|bytes| !bytes.is_empty())
 }
 
+fn normalize_database_key(value: &str) -> Option<String> {
+    if value.is_empty() {
+        None
+    } else if valid_database_key(value) {
+        Some(value.to_owned())
+    } else {
+        Some(STANDARD.encode(value.as_bytes()))
+    }
+}
+
 fn valid_api_hash(value: &str) -> bool {
     value.len() == 32 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
@@ -531,7 +540,9 @@ fn next_mask(state: &mut u64) -> u8 {
 
 #[cfg(test)]
 mod tests {
-    use super::{generate_database_key, valid_api_hash, valid_database_key};
+    use super::{
+        generate_database_key, normalize_database_key, valid_api_hash, valid_database_key,
+    };
     use base64::{Engine as _, engine::general_purpose::STANDARD};
 
     #[test]
@@ -542,8 +553,11 @@ mod tests {
     }
 
     #[test]
-    fn legacy_ulid_database_key_is_rejected() {
-        assert!(!valid_database_key(&ulid::Ulid::new().to_string()));
+    fn legacy_ulid_database_key_preserves_its_original_bytes() {
+        let legacy = ulid::Ulid::new().to_string();
+        let migrated = normalize_database_key(&legacy).unwrap();
+        assert!(valid_database_key(&migrated));
+        assert_eq!(STANDARD.decode(migrated).unwrap(), legacy.as_bytes());
     }
 
     #[test]
