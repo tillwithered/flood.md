@@ -121,6 +121,26 @@ pub enum InboxCandidateStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum TelegramSyncHealth {
+    Success,
+    Partial,
+    Error,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct TelegramSyncStatus {
+    pub completed_at: DateTime<Utc>,
+    pub health: TelegramSyncHealth,
+    pub scanned_projects: usize,
+    pub added_candidates: usize,
+    pub downloaded_media: usize,
+    pub failures: usize,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub errors: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct TelegramInboxCandidate {
     pub id: String,
     pub project_id: String,

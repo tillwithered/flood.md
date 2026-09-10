@@ -1,6 +1,6 @@
 use crate::{
     CreateTask, InboxCandidateStatus, Project, Task, TaskPatch, TaskStatus, TaskSummary,
-    TelegramInboxCandidate, TelegramLinkedTask, TelegramProjectLink, Urgency,
+    TelegramInboxCandidate, TelegramLinkedTask, TelegramProjectLink, TelegramSyncStatus, Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
@@ -387,6 +387,30 @@ impl Store {
         }
         candidates.sort_by_key(|candidate| Reverse(candidate.sent_at));
         Ok(candidates)
+    }
+
+    pub fn telegram_sync_status(&self) -> Result<Option<TelegramSyncStatus>, StoreError> {
+        let _lock = self.lock_shared()?;
+        let path = self.telegram_sync_status_path();
+        if !path.exists() {
+            return Ok(None);
+        }
+        Ok(Some(serde_json::from_slice(&fs::read(path)?)?))
+    }
+
+    pub fn record_telegram_sync_status(
+        &self,
+        status: &TelegramSyncStatus,
+    ) -> Result<(), StoreError> {
+        if status.errors.len() > 8 || status.errors.iter().any(|error| error.len() > 1_000) {
+            return Err(StoreError::Validation(
+                "некорректный отчёт синхронизации Telegram".into(),
+            ));
+        }
+        let _lock = self.lock_exclusive()?;
+        let mut bytes = serde_json::to_vec_pretty(status)?;
+        bytes.push(b'\n');
+        atomic_write_bytes(&self.telegram_sync_status_path(), &bytes)
     }
 
     pub fn get_telegram_candidate(
@@ -1204,6 +1228,10 @@ impl Store {
         self.root.join("integrations").join("telegram-inbox.json")
     }
 
+    fn telegram_sync_status_path(&self) -> PathBuf {
+        self.root.join("integrations").join("telegram-sync.json")
+    }
+
     fn read_telegram_inbox(&self) -> Result<TelegramInboxDocument, StoreError> {
         let path = self.telegram_inbox_path();
         if !path.exists() {
@@ -2014,6 +2042,37 @@ mod tests {
         assert_eq!(linked.status, crate::TaskStatus::Completed);
         assert_eq!(linked.urgency, crate::Urgency::Urgent);
         assert_eq!(linked.title, completed.description);
+    }
+
+    #[test]
+    fn telegram_sync_status_is_shared_and_bounded() {
+        let store = temp_store();
+        assert!(store.telegram_sync_status().unwrap().is_none());
+        let status = TelegramSyncStatus {
+            completed_at: Utc::now(),
+            health: crate::TelegramSyncHealth::Partial,
+            scanned_projects: 2,
+            added_candidates: 3,
+            downloaded_media: 1,
+            failures: 1,
+            errors: vec!["Один чат временно недоступен".into()],
+        };
+        store.record_telegram_sync_status(&status).unwrap();
+        assert_eq!(store.telegram_sync_status().unwrap(), Some(status));
+
+        let invalid = TelegramSyncStatus {
+            completed_at: Utc::now(),
+            health: crate::TelegramSyncHealth::Error,
+            scanned_projects: 0,
+            added_candidates: 0,
+            downloaded_media: 0,
+            failures: 9,
+            errors: (0..9).map(|index| format!("ошибка {index}")).collect(),
+        };
+        assert!(matches!(
+            store.record_telegram_sync_status(&invalid),
+            Err(StoreError::Validation(_))
+        ));
     }
 
     #[test]

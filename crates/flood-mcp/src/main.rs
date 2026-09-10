@@ -1,7 +1,8 @@
 use flood_core::{
     CreateTask, InboxCandidateStatus, MessageSnapshot, Project, SelfCheckResult, SourceMedia,
     SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch, TaskStatus, TaskSummary,
-    TelegramInboxCandidate, Urgency, default_data_dir, run_self_check as run_core_self_check,
+    TelegramInboxCandidate, TelegramSyncStatus, Urgency, default_data_dir,
+    run_self_check as run_core_self_check,
 };
 use rmcp::{
     Json, ServiceExt, handler::server::wrapper::Parameters, schemars, tool, tool_router,
@@ -189,6 +190,11 @@ struct TelegramInboxOutput {
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramSyncStatusOutput {
+    status: Option<TelegramSyncStatus>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TelegramCandidateOutput {
     candidate: TelegramInboxCandidate,
 }
@@ -249,6 +255,7 @@ impl FloodServer {
                 "tasks",
                 "telegram_inbox",
                 "bounded_telegram_triage",
+                "telegram_sync_status",
                 "store_diagnostics",
                 "isolated_self_check",
             ],
@@ -266,6 +273,22 @@ impl FloodServer {
     )]
     fn diagnose_store(&self) -> Json<StoreDiagnostics> {
         Json(self.store.diagnostics())
+    }
+
+    #[tool(
+        description = "Получить время и результат последней фоновой синхронизации Telegram из локального состояния. Перед разбором входящих проверьте completed_at и health: MCP не подключается к Telegram сам и не должен считать старую очередь актуальной",
+        annotations(
+            title = "Свежесть Telegram-входящих",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn get_telegram_sync_status(&self) -> Result<Json<TelegramSyncStatusOutput>, String> {
+        self.store
+            .telegram_sync_status()
+            .map(|status| Json(TelegramSyncStatusOutput { status }))
+            .map_err(store_error)
     }
 
     #[tool(
@@ -945,6 +968,7 @@ mod tests {
             "diagnose_store",
             "get_runtime_info",
             "run_self_check",
+            "get_telegram_sync_status",
             "list_telegram_inbox",
             "get_telegram_triage_batch",
             "apply_telegram_triage",
@@ -994,6 +1018,34 @@ mod tests {
         let runtime = _server.get_runtime_info().0;
         assert_eq!(runtime.version, env!("CARGO_PKG_VERSION"));
         assert!(!runtime.destructive_actions_enabled);
+    }
+
+    #[test]
+    fn telegram_sync_freshness_is_visible_to_agents() {
+        let server = server();
+        assert!(
+            server
+                .get_telegram_sync_status()
+                .unwrap()
+                .0
+                .status
+                .is_none()
+        );
+        let status = TelegramSyncStatus {
+            completed_at: chrono::Utc::now(),
+            health: flood_core::TelegramSyncHealth::Partial,
+            scanned_projects: 2,
+            added_candidates: 4,
+            downloaded_media: 1,
+            failures: 1,
+            errors: vec!["Один проект временно недоступен".into()],
+        };
+        server.store.record_telegram_sync_status(&status).unwrap();
+
+        assert_eq!(
+            server.get_telegram_sync_status().unwrap().0.status,
+            Some(status)
+        );
     }
 
     #[test]

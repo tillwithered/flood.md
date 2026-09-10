@@ -1,18 +1,21 @@
+use chrono::Utc;
 use flood_core::{
     CreateTask, InboxCandidateStatus, Project, SelfCheckResult, SourceMedia, SourceMediaKind,
     Store, StoreDiagnostics, Task, TaskPatch, TaskSummary, TelegramInboxCandidate,
-    TelegramProjectLink, Urgency, default_data_dir,
+    TelegramProjectLink, TelegramSyncHealth, TelegramSyncStatus, Urgency, default_data_dir,
 };
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::{
     fs,
+    future::Future,
     path::PathBuf,
     process::Command,
     sync::{
         Mutex,
         atomic::{AtomicBool, Ordering},
     },
+    time::Duration,
 };
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
@@ -24,6 +27,7 @@ struct AppState {
     store: Store,
     _watcher: Mutex<RecommendedWatcher>,
     telegram: TelegramManager,
+    telegram_inbox_syncing: AtomicBool,
     telegram_media_syncing: AtomicBool,
 }
 
@@ -37,6 +41,24 @@ struct TelegramTaskCreationResult {
 struct TelegramMediaSyncResult {
     downloaded: usize,
     failed: usize,
+    errors: Vec<String>,
+    busy: bool,
+}
+
+#[derive(Serialize)]
+struct TelegramInboxSyncResult {
+    scanned_projects: usize,
+    added: usize,
+    failed_projects: usize,
+    errors: Vec<String>,
+    busy: bool,
+}
+
+#[derive(Serialize)]
+struct TelegramSyncResult {
+    inbox: TelegramInboxSyncResult,
+    media: TelegramMediaSyncResult,
+    status: Option<TelegramSyncStatus>,
 }
 
 #[derive(Serialize)]
@@ -49,9 +71,20 @@ struct McpRuntimeInfo {
     source: &'static str,
 }
 
-struct MediaSyncGuard<'a>(&'a AtomicBool);
+struct SyncGuard<'a>(&'a AtomicBool);
 
-impl Drop for MediaSyncGuard<'_> {
+const TELEGRAM_PROJECT_SYNC_TIMEOUT: Duration = Duration::from_secs(20);
+const TELEGRAM_MEDIA_SYNC_TIMEOUT: Duration = Duration::from_secs(60);
+
+async fn with_telegram_timeout<T>(
+    future: impl Future<Output = Result<T, String>>,
+) -> Result<T, String> {
+    tokio::time::timeout(TELEGRAM_PROJECT_SYNC_TIMEOUT, future)
+        .await
+        .map_err(|_| "Telegram не ответил за 20 секунд".to_string())?
+}
+
+impl Drop for SyncGuard<'_> {
     fn drop(&mut self) {
         self.0.store(false, Ordering::Release);
     }
@@ -378,17 +411,17 @@ fn telegram_configure(
 
 #[tauri::command]
 async fn telegram_request_qr(state: State<'_, AppState>) -> Result<(), String> {
-    state.telegram.request_qr().await
+    with_telegram_timeout(state.telegram.request_qr()).await
 }
 
 #[tauri::command]
 async fn telegram_submit_phone(phone: String, state: State<'_, AppState>) -> Result<(), String> {
-    state.telegram.submit_phone(phone).await
+    with_telegram_timeout(state.telegram.submit_phone(phone)).await
 }
 
 #[tauri::command]
 async fn telegram_submit_code(code: String, state: State<'_, AppState>) -> Result<(), String> {
-    state.telegram.submit_code(code).await
+    with_telegram_timeout(state.telegram.submit_code(code)).await
 }
 
 #[tauri::command]
@@ -396,12 +429,12 @@ async fn telegram_submit_password(
     password: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    state.telegram.submit_password(password).await
+    with_telegram_timeout(state.telegram.submit_password(password)).await
 }
 
 #[tauri::command]
 async fn telegram_list_chats(state: State<'_, AppState>) -> Result<Vec<TelegramChat>, String> {
-    state.telegram.chats().await
+    with_telegram_timeout(state.telegram.chats()).await
 }
 
 #[tauri::command]
@@ -410,7 +443,7 @@ async fn telegram_search_chats(
     limit: i32,
     state: State<'_, AppState>,
 ) -> Result<Vec<TelegramChat>, String> {
-    state.telegram.search_chats(query, limit).await
+    with_telegram_timeout(state.telegram.search_chats(query, limit)).await
 }
 
 #[tauri::command]
@@ -420,7 +453,7 @@ async fn telegram_list_messages(
     project_id: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<TelegramMessage>, String> {
-    let mut messages = state.telegram.messages(chat_id, limit).await?;
+    let mut messages = with_telegram_timeout(state.telegram.messages(chat_id, limit)).await?;
     if let Some(project_id) = project_id {
         let message_groups = messages
             .iter()
@@ -458,40 +491,150 @@ async fn telegram_refresh_inbox(
     state: State<'_, AppState>,
 ) -> Result<Vec<TelegramInboxCandidate>, String> {
     let project = result(state.store.get_project(&project_id))?;
-    let candidates = state
-        .telegram
-        .refresh_candidates(&project, limit_per_chat)
-        .await?;
+    let candidates =
+        with_telegram_timeout(state.telegram.refresh_candidates(&project, limit_per_chat)).await?;
     result(state.store.upsert_telegram_candidates(candidates))?;
     result(state.store.list_telegram_inbox(Some(&project_id), false))
 }
 
 #[tauri::command]
-async fn telegram_refresh_all_inboxes(state: State<'_, AppState>) -> Result<usize, String> {
+async fn telegram_refresh_all_inboxes(
+    state: State<'_, AppState>,
+) -> Result<TelegramInboxSyncResult, String> {
+    refresh_all_inboxes(&state).await
+}
+
+#[tauri::command]
+fn telegram_sync_status(state: State<'_, AppState>) -> Result<Option<TelegramSyncStatus>, String> {
+    result(state.store.telegram_sync_status())
+}
+
+#[tauri::command]
+async fn telegram_sync(
+    include_inbox: bool,
+    state: State<'_, AppState>,
+) -> Result<TelegramSyncResult, String> {
+    let inbox_future = async {
+        if include_inbox {
+            refresh_all_inboxes(&state).await
+        } else {
+            Ok(TelegramInboxSyncResult {
+                scanned_projects: 0,
+                added: 0,
+                failed_projects: 0,
+                errors: Vec::new(),
+                busy: false,
+            })
+        }
+    };
+    let (inbox, media) = tokio::join!(inbox_future, sync_task_media(&state));
+    let inbox = inbox.unwrap_or_else(|error| TelegramInboxSyncResult {
+        scanned_projects: 0,
+        added: 0,
+        failed_projects: 1,
+        errors: vec![format!("Входящие: {error}")],
+        busy: false,
+    });
+    let media = media.unwrap_or_else(|error| TelegramMediaSyncResult {
+        downloaded: 0,
+        failed: 1,
+        errors: vec![format!("Медиа: {error}")],
+        busy: false,
+    });
+
+    if inbox.busy || media.busy {
+        return Ok(TelegramSyncResult {
+            inbox,
+            media,
+            status: result(state.store.telegram_sync_status())?,
+        });
+    }
+
+    let failures = inbox.failed_projects + media.failed;
+    let successful_work = inbox.scanned_projects + media.downloaded;
+    let health = if failures == 0 {
+        TelegramSyncHealth::Success
+    } else if successful_work > 0 {
+        TelegramSyncHealth::Partial
+    } else {
+        TelegramSyncHealth::Error
+    };
+    let mut errors = Vec::new();
+    for error in inbox.errors.iter().chain(&media.errors) {
+        push_sync_error(&mut errors, error.clone());
+    }
+    let status = TelegramSyncStatus {
+        completed_at: Utc::now(),
+        health,
+        scanned_projects: inbox.scanned_projects,
+        added_candidates: inbox.added,
+        downloaded_media: media.downloaded,
+        failures,
+        errors,
+    };
+    result(state.store.record_telegram_sync_status(&status))?;
+
+    Ok(TelegramSyncResult {
+        inbox,
+        media,
+        status: Some(status),
+    })
+}
+
+async fn refresh_all_inboxes(state: &AppState) -> Result<TelegramInboxSyncResult, String> {
+    if state
+        .telegram_inbox_syncing
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        return Ok(TelegramInboxSyncResult {
+            scanned_projects: 0,
+            added: 0,
+            failed_projects: 0,
+            errors: Vec::new(),
+            busy: true,
+        });
+    }
+    let _guard = SyncGuard(&state.telegram_inbox_syncing);
     let projects = result(state.store.list_projects())?;
     let mut added = 0;
-    let mut first_error = None;
     let mut scanned = 0;
+    let mut failed = 0;
+    let mut errors = Vec::new();
     for project in projects
         .into_iter()
         .filter(|project| !project.telegram_chats.is_empty())
     {
-        match state.telegram.refresh_candidates(&project, 40).await {
-            Ok(candidates) => {
+        match tokio::time::timeout(
+            TELEGRAM_PROJECT_SYNC_TIMEOUT,
+            state.telegram.refresh_candidates(&project, 40),
+        )
+        .await
+        {
+            Ok(Ok(candidates)) => {
                 scanned += 1;
                 added += result(state.store.upsert_telegram_candidates(candidates))?;
             }
-            Err(error) => {
-                first_error.get_or_insert(error);
+            Ok(Err(error)) => {
+                failed += 1;
+                push_sync_error(&mut errors, format!("{}: {error}", project.title));
+            }
+            Err(_) => {
+                failed += 1;
+                push_sync_error(
+                    &mut errors,
+                    format!("{}: Telegram не ответил за 20 секунд", project.title),
+                );
             }
         };
     }
-    if scanned == 0
-        && let Some(error) = first_error
-    {
-        return Err(error);
-    }
-    Ok(added)
+    Ok(TelegramInboxSyncResult {
+        scanned_projects: scanned,
+        added,
+        failed_projects: failed,
+        errors,
+        busy: false,
+    })
 }
 
 #[tauri::command]
@@ -508,17 +651,17 @@ async fn telegram_add_inbox_message(
         .iter()
         .find(|link| link.chat_id == chat_id)
         .ok_or_else(|| "Этот Telegram-чат не связан с проектом".to_string())?;
-    let candidate = state
-        .telegram
-        .manual_candidate(
+    let candidate = with_telegram_timeout(
+        state.telegram.manual_candidate(
             &project_id,
             link,
             &message_ids
                 .filter(|ids| !ids.is_empty())
                 .or_else(|| message_id.map(|id| vec![id]))
                 .ok_or_else(|| "Сообщение Telegram не выбрано".to_string())?,
-        )
-        .await?;
+        ),
+    )
+    .await?;
     result(
         state
             .store
@@ -647,7 +790,7 @@ async fn download_all_task_source_media(state: &AppState, mut task: Task) -> (Ta
         .unwrap_or_default();
     let mut media_errors = Vec::new();
     for index in 0..media_count {
-        match download_task_source_media(state, &task.id, index).await {
+        match download_task_source_media_with_timeout(state, &task.id, index).await {
             Ok(updated) => task = updated,
             Err(error) => media_errors.push(error),
         }
@@ -661,13 +804,53 @@ async fn telegram_download_source_media(
     media_index: usize,
     state: State<'_, AppState>,
 ) -> Result<Task, String> {
-    download_task_source_media(&state, &task_id, media_index).await
+    download_task_source_media_with_timeout(&state, &task_id, media_index).await
+}
+
+async fn download_task_source_media_with_timeout(
+    state: &AppState,
+    task_id: &str,
+    media_index: usize,
+) -> Result<Task, String> {
+    let provider_file_id = state
+        .store
+        .get_task(task_id)
+        .ok()
+        .and_then(|task| task.source)
+        .and_then(|source| {
+            source
+                .media
+                .get(media_index)
+                .and_then(|media| media.provider_file_id)
+        });
+    match tokio::time::timeout(
+        TELEGRAM_MEDIA_SYNC_TIMEOUT,
+        download_task_source_media(state, task_id, media_index),
+    )
+    .await
+    {
+        Ok(result) => result,
+        Err(_) => {
+            if let Some(file_id) = provider_file_id {
+                let _ = tokio::time::timeout(
+                    Duration::from_secs(5),
+                    state.telegram.release_downloaded_file(file_id),
+                )
+                .await;
+            }
+            Err("Telegram не завершил загрузку медиафайла за 60 секунд".into())
+        }
+    }
 }
 
 #[tauri::command]
 async fn telegram_sync_task_media(
     state: State<'_, AppState>,
 ) -> Result<TelegramMediaSyncResult, String> {
+    sync_task_media(&state).await
+}
+
+async fn sync_task_media(state: &AppState) -> Result<TelegramMediaSyncResult, String> {
     if state
         .telegram_media_syncing
         .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
@@ -676,14 +859,27 @@ async fn telegram_sync_task_media(
         return Ok(TelegramMediaSyncResult {
             downloaded: 0,
             failed: 0,
+            errors: Vec::new(),
+            busy: true,
         });
     }
-    let _guard = MediaSyncGuard(&state.telegram_media_syncing);
+    let _guard = SyncGuard(&state.telegram_media_syncing);
     let tasks = result(state.store.list_tasks(None, true))?;
     let mut downloaded = 0;
     let mut failed = 0;
+    let mut errors = Vec::new();
     for summary in tasks {
-        let task = result(state.store.get_task(&summary.id))?;
+        let task = match state.store.get_task(&summary.id) {
+            Ok(task) => task,
+            Err(error) => {
+                failed += 1;
+                push_sync_error(
+                    &mut errors,
+                    format!("{}: не удалось перечитать задачу: {error}", summary.id),
+                );
+                continue;
+            }
+        };
         let missing = task
             .source
             .as_ref()
@@ -698,23 +894,41 @@ async fn telegram_sync_task_media(
             })
             .unwrap_or_default();
         for index in missing {
-            match download_task_source_media(&state, &task.id, index).await {
+            match download_task_source_media_with_timeout(state, &task.id, index).await {
                 Ok(_) => downloaded += 1,
-                Err(_) => failed += 1,
+                Err(error) => {
+                    failed += 1;
+                    push_sync_error(
+                        &mut errors,
+                        format!("{} · файл {}: {error}", task.id, index + 1),
+                    );
+                }
             }
         }
     }
-    Ok(TelegramMediaSyncResult { downloaded, failed })
+    Ok(TelegramMediaSyncResult {
+        downloaded,
+        failed,
+        errors,
+        busy: false,
+    })
+}
+
+fn push_sync_error(errors: &mut Vec<String>, error: String) {
+    const MAX_SYNC_ERRORS: usize = 8;
+    if errors.len() < MAX_SYNC_ERRORS {
+        errors.push(error);
+    }
 }
 
 #[tauri::command]
 async fn telegram_disconnect(state: State<'_, AppState>) -> Result<(), String> {
-    state.telegram.disconnect().await
+    with_telegram_timeout(state.telegram.disconnect()).await
 }
 
 #[tauri::command]
 async fn telegram_reset_database(state: State<'_, AppState>) -> Result<(), String> {
-    state.telegram.reset_database().await
+    with_telegram_timeout(state.telegram.reset_database()).await
 }
 
 pub fn run() {
@@ -728,8 +942,13 @@ pub fn run() {
             let handle = app.handle().clone();
             let mut watcher =
                 notify::recommended_watcher(move |event: notify::Result<notify::Event>| {
-                    if event.is_ok() {
-                        let _ = handle.emit("data-changed", ());
+                    if let Ok(event) = event {
+                        let paths = event
+                            .paths
+                            .iter()
+                            .map(|path| path.to_string_lossy().into_owned())
+                            .collect::<Vec<_>>();
+                        let _ = handle.emit("data-changed", paths);
                     }
                 })?;
             watcher.watch(store.root(), RecursiveMode::Recursive)?;
@@ -741,6 +960,7 @@ pub fn run() {
                 store,
                 _watcher: Mutex::new(watcher),
                 telegram,
+                telegram_inbox_syncing: AtomicBool::new(false),
                 telegram_media_syncing: AtomicBool::new(false),
             });
             Ok(())
@@ -787,6 +1007,8 @@ pub fn run() {
             telegram_list_inbox,
             telegram_refresh_inbox,
             telegram_refresh_all_inboxes,
+            telegram_sync_status,
+            telegram_sync,
             telegram_add_inbox_message,
             telegram_set_candidate_status,
             telegram_create_task_from_candidate,
@@ -801,7 +1023,7 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::description_with_source_media;
+    use super::{description_with_source_media, push_sync_error};
     use flood_core::{SourceMedia, SourceMediaKind};
 
     #[test]
@@ -820,5 +1042,16 @@ mod tests {
             "Подготовить отчёт\n\n![album-one.jpg](attachments/album-one.jpg)"
         );
         assert!(description_with_source_media(&description, &photo).is_none());
+    }
+
+    #[test]
+    fn background_sync_error_details_are_bounded() {
+        let mut errors = Vec::new();
+        for index in 0..20 {
+            push_sync_error(&mut errors, format!("ошибка {index}"));
+        }
+        assert_eq!(errors.len(), 8);
+        assert_eq!(errors.first().map(String::as_str), Some("ошибка 0"));
+        assert_eq!(errors.last().map(String::as_str), Some("ошибка 7"));
     }
 }

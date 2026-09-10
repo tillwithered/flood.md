@@ -63,6 +63,12 @@
   type TelegramMessage = { id: number; message_ids?: number[]; chat_id: number; text: string; author: string; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean; linked_task?: TelegramLinkedTask };
   type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; message_ids?: number[]; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; discovered_at: string; processed_at?: string; task_id?: string; linked_task?: TelegramLinkedTask };
   type TelegramTaskCreationResult = { task: TaskRecord; media_errors: string[] };
+  type TelegramInboxSyncResult = { scanned_projects: number; added: number; failed_projects: number; errors: string[]; busy: boolean };
+  type TelegramMediaSyncResult = { downloaded: number; failed: number; errors: string[]; busy: boolean };
+  type TelegramSyncStatus = { completed_at: string; health: "success" | "partial" | "error"; scanned_projects: number; added_candidates: number; downloaded_media: number; failures: number; errors: string[] };
+  type TelegramSyncResult = { inbox: TelegramInboxSyncResult; media: TelegramMediaSyncResult; status?: TelegramSyncStatus };
+  type TelegramSyncState = "idle" | "syncing" | "success" | "partial" | "error";
+  type TelegramSyncSummary = { added: number; downloaded: number; failed: number; syncedAt: string };
   type StoreDiagnostics = { healthy: boolean; root: string; format_version: number; project_count: number; linked_chat_count: number; open_task_count: number; completed_task_count: number; trashed_task_count: number; pending_inbox_count: number; issues: string[] };
   type SelfCheckItem = { name: string; passed: boolean; detail?: string };
   type SelfCheckResult = { passed: boolean; duration_ms: number; checks: SelfCheckItem[] };
@@ -122,6 +128,9 @@
   let telegramPassword = "";
   let telegramBusy = false;
   let telegramError = "";
+  let telegramSyncState: TelegramSyncState = "idle";
+  let telegramSyncSummary: TelegramSyncSummary | null = null;
+  let telegramSyncErrors: string[] = [];
   let telegramQrDataUrl = "";
   let telegramChats: TelegramChat[] = [];
   let telegramImportOpen = false;
@@ -1968,12 +1977,16 @@
   }
 
   async function applyTelegramStatus(status: TelegramStatus) {
+    const becameReady = telegramStatus.step !== "ready" && status.step === "ready";
     telegramStatus = status;
     telegramError = status.error ?? "";
     telegramQrDataUrl = status.qr_link
       ? await QRCode.toDataURL(status.qr_link, { width: 184, margin: 1, color: { dark: "#111111", light: "#ffffff" } })
       : "";
-    if (status.step === "ready") telegramChats = await invoke<TelegramChat[]>("telegram_list_chats").catch(() => []);
+    if (status.step === "ready") {
+      telegramChats = await invoke<TelegramChat[]>("telegram_list_chats").catch(() => []);
+      if (becameReady) void syncTelegram();
+    }
   }
 
   function telegramStatusLabel() {
@@ -2011,6 +2024,9 @@
     void runTelegramAction(async () => {
       await invoke("telegram_disconnect");
       telegramChats = [];
+      telegramSyncState = "idle";
+      telegramSyncSummary = null;
+      telegramSyncErrors = [];
     });
   }
 
@@ -2018,6 +2034,55 @@
     void runTelegramAction(async () => {
       await invoke("telegram_reset_database");
     });
+  }
+
+  function telegramSyncLabel() {
+    if (telegramSyncState === "syncing") return t("telegramSyncing");
+    if (telegramSyncState === "error") return t("telegramSyncFailed");
+    if (telegramSyncState === "partial") return t("telegramSyncPartial");
+    if (telegramSyncSummary) {
+      return t("telegramSyncSummary", {
+        time: new Intl.DateTimeFormat(locale === "ru" ? "ru-RU" : "en-US", { hour: "2-digit", minute: "2-digit" }).format(new Date(telegramSyncSummary.syncedAt)),
+        added: telegramSyncSummary.added,
+        downloaded: telegramSyncSummary.downloaded
+      });
+    }
+    return t("telegramSyncAutomatic");
+  }
+
+  function applyTelegramSyncStatus(status: TelegramSyncStatus | null | undefined) {
+    if (!status) return;
+    telegramSyncState = status.health;
+    telegramSyncErrors = status.errors;
+    telegramSyncSummary = {
+      added: status.added_candidates,
+      downloaded: status.downloaded_media,
+      failed: status.failures,
+      syncedAt: status.completed_at
+    };
+  }
+
+  async function syncTelegram(includeInbox = true) {
+    if (!inTauri() || telegramStatus.step !== "ready" || telegramSyncState === "syncing") return;
+    const previousState = telegramSyncState;
+    telegramSyncState = "syncing";
+    telegramSyncErrors = [];
+    try {
+      const sync = await invoke<TelegramSyncResult>("telegram_sync", { includeInbox });
+      if (sync.inbox.busy || sync.media.busy) {
+        if (sync.status) applyTelegramSyncStatus(sync.status);
+        else telegramSyncState = previousState;
+        return;
+      }
+      applyTelegramSyncStatus(sync.status);
+      if (includeInbox && telegramInboxOpen && !telegramTaskDraftCandidate) {
+        const projectId = currentChat.id === "all" ? null : currentChat.id;
+        telegramInbox = await invoke<TelegramInboxCandidate[]>("telegram_list_inbox", { projectId, includeProcessed: false });
+      }
+    } catch (error) {
+      telegramSyncState = "error";
+      telegramSyncErrors = [String(error)];
+    }
   }
 
   async function runMcpSelfCheck() {
@@ -2574,6 +2639,7 @@
         mcpExecutable = mcpRuntime?.executable_path || await invoke<string>("mcp_executable_path");
         if (mcpRuntime && (!mcpRuntime.available || !mcpRuntime.compatible)) mcpCheckState = "error";
         storeDiagnostics = await invoke<StoreDiagnostics>("diagnose_store").catch(() => null);
+        applyTelegramSyncStatus(await invoke<TelegramSyncStatus | null>("telegram_sync_status").catch(() => null));
         await applyTelegramStatus(await invoke<TelegramStatus>("telegram_status"));
         unlistenTelegram = await listen<TelegramStatus>("telegram-status", (event) => void applyTelegramStatus(event.payload));
         unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
@@ -2585,17 +2651,13 @@
       await loadData(false);
       if (disposed || !inTauri()) return;
       if (telegramStatus.step === "ready") {
-        void invoke("telegram_refresh_all_inboxes").catch(() => undefined);
-        void invoke("telegram_sync_task_media").catch(() => undefined);
+        void syncTelegram();
       }
       telegramScanTimer = window.setInterval(() => {
-        if (telegramStatus.step === "ready") {
-          void invoke("telegram_refresh_all_inboxes").catch(() => undefined);
-          void invoke("telegram_sync_task_media").catch(() => undefined);
-        }
+        if (telegramStatus.step === "ready") void syncTelegram();
       }, 120_000);
-      unlisten = await listen("data-changed", () => {
-        if (telegramStatus.step === "ready") void invoke("telegram_sync_task_media").catch(() => undefined);
+      unlisten = await listen<string[]>("data-changed", (event) => {
+        if (telegramStatus.step === "ready" && event.payload.some((path) => path.toLocaleLowerCase().endsWith(".md"))) void syncTelegram(false);
         window.clearTimeout(refreshTimer);
         refreshTimer = window.setTimeout(() => {
           if (!draftTaskId && dataActionState !== "restoring" && saveState !== "saving" && markdown === lastSavedMarkdown) void loadData(true);
@@ -3052,7 +3114,7 @@
               <button class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => (settingsSection = "general")}><Settings size={16} />{t("general")}</button>
               <button class:active={settingsSection === "appearance"} aria-current={settingsSection === "appearance" ? "page" : undefined} onclick={() => (settingsSection = "appearance")}><Palette size={16} />{t("appearance")}</button>
               <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => (settingsSection = "data")}><Database size={16} />{t("data")}</button>
-              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => (settingsSection = "integrations")}><Plug size={16} />{t("integrations")} <span class:connected={telegramStatus.step === "ready"} class:error={["database_error", "error"].includes(telegramStatus.step)} class="integration-chip">{telegramStatus.step === "ready" ? "1" : "·"}</span></button>
+              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => (settingsSection = "integrations")}><Plug size={16} />{t("integrations")} <span class:connected={telegramStatus.step === "ready"} class:error={["database_error", "error"].includes(telegramStatus.step) || ["partial", "error"].includes(telegramSyncState)} class="integration-chip">{["database_error", "error"].includes(telegramStatus.step) || ["partial", "error"].includes(telegramSyncState) ? "!" : telegramStatus.step === "ready" ? "1" : "·"}</span></button>
               <button class:active={settingsSection === "mcp"} aria-current={settingsSection === "mcp" ? "page" : undefined} onclick={() => (settingsSection = "mcp")}><Bot size={16} />{t("mcpAndAi")} <span class:connected={mcpCheckState === "success"} class:error={mcpCheckState === "error"} class="integration-chip">{mcpCheckState === "success" ? "✓" : "·"}</span></button>
               <button class:active={settingsSection === "about"} aria-current={settingsSection === "about" ? "page" : undefined} onclick={() => (settingsSection = "about")}><Info size={16} />{t("about")}</button>
             </nav>
@@ -3113,6 +3175,7 @@
                       <form class="telegram-form inline" onsubmit={submitTelegramPassword}><label><span>{t("telegramPassword")}</span><input bind:value={telegramPassword} type="password" autocomplete="current-password" placeholder={telegramStatus.password_hint || ""} required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
                     {:else if telegramStatus.step === "ready"}
                       <p>{t("telegramReady", { count: telegramChats.length })}</p>
+                      <div class:warning={telegramSyncState === "partial"} class:error={telegramSyncState === "error"} class="telegram-sync-row" role="status" title={telegramSyncErrors.join("\n")}><span><RefreshCw class={telegramSyncState === "syncing" ? "spinning" : ""} size={14} /><span><strong>{t("telegramSynchronization")}</strong><small>{telegramSyncLabel()}</small>{#if telegramSyncErrors[0]}<small class="sync-error">{telegramSyncErrors[0]}{telegramSyncErrors.length > 1 ? ` · +${telegramSyncErrors.length - 1}` : ""}</small>{/if}</span></span><button disabled={telegramSyncState === "syncing"} onclick={() => syncTelegram()}>{t("syncNow")}</button></div>
                       <div class="telegram-project-links">
                         <strong>{t("projectConnections")}</strong>
                         {#each chats.slice(1) as project (project.id)}

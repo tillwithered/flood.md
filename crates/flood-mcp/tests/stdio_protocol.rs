@@ -108,6 +108,11 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .find(|tool| tool["name"] == "get_telegram_triage_batch")
         .unwrap();
     assert_eq!(triage_batch["annotations"]["readOnlyHint"], true);
+    let sync_status = tools
+        .iter()
+        .find(|tool| tool["name"] == "get_telegram_sync_status")
+        .unwrap();
+    assert_eq!(sync_status["annotations"]["readOnlyHint"], true);
 
     send(
         &mut stdin,
@@ -232,6 +237,25 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         json!([])
     );
     assert_eq!(triage["result"]["structuredContent"]["remaining"], 0);
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 9,
+            "method": "tools/call",
+            "params": {
+                "name": "get_telegram_sync_status",
+                "arguments": {}
+            }
+        }),
+    );
+    let sync_status = receive(&mut stdout, 9);
+    assert_eq!(sync_status["result"]["isError"], false);
+    assert_eq!(
+        sync_status["result"]["structuredContent"]["status"],
+        Value::Null
+    );
 
     drop(stdin);
     assert!(child.wait().unwrap().success());
