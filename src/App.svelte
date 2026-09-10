@@ -24,7 +24,7 @@
   type SourceMedia = { kind: "photo" | "video" | "document" | "audio" | "voice" | "animation" | "other"; file_name: string; provider_file_id?: number; mime_type?: string; size?: number; relative_path?: string };
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string; provider?: string; chat_id?: number; chat_title?: string; message_id?: number; media?: SourceMedia[] };
   type TelegramProjectLink = { chat_id: number; title: string; inbox_mode: TelegramInboxMode };
-  type ProjectRecord = { id: string; title: string; created_at: string; updated_at: string; telegram_chats: TelegramProjectLink[]; version: string };
+  type ProjectRecord = { id: string; title: string; created_at: string; updated_at: string; telegram_chats?: TelegramProjectLink[]; version: string };
   type TaskRecord = {
     id: string;
     project_id: string;
@@ -55,16 +55,17 @@
     trashedAt?: string;
     version: string;
   };
-  type ChatItem = ProjectRecord & { open: number };
+  type ChatItem = Omit<ProjectRecord, "telegram_chats"> & { telegram_chats: TelegramProjectLink[]; open: number };
   type MarkdownHint = { title: string; left: number; top: number };
   type TelegramStatus = { step: string; configured: boolean; managed_credentials: boolean; account_name?: string; account_username?: string; qr_link?: string; password_hint?: string; error?: string };
   type TelegramChat = { id: number; title: string };
   type TelegramMessage = { id: number; chat_id: number; text: string; author: string; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean };
-  type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media: SourceMedia[]; discovered_at: string; processed_at?: string; task_id?: string };
+  type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; discovered_at: string; processed_at?: string; task_id?: string };
 
   const markdownHints: Record<string, MessageKey> = {
     "#": "largeHeading"
   };
+  const telegramModes: TelegramInboxMode[] = ["manual", "mentions_and_replies", "all"];
 
   let tasks: TaskItem[] = [];
   let trashedTasks: TaskItem[] = [];
@@ -381,7 +382,7 @@
         invoke<TaskSummaryRecord[]>("list_trashed_tasks")
       ]);
       const openCount = summaries.filter((task) => task.status === "open").length;
-      const nextChats = [allChat(openCount), ...records.map((chat) => ({ ...chat, open: summaries.filter((task) => task.project_id === chat.id && task.status === "open").length }))];
+      const nextChats = [allChat(openCount), ...records.map((chat) => ({ ...chat, telegram_chats: chat.telegram_chats ?? [], open: summaries.filter((task) => task.project_id === chat.id && task.status === "open").length }))];
       chats = nextChats;
       tasks = summaries.map((task) => {
         const converted = toTaskItem(task, nextChats);
@@ -1102,6 +1103,7 @@
   }
 
   $: currentChat = chats.find((chat) => chat.id === selectedChatId) ?? allChat(0);
+  $: telegramConnectionsProject = chats.find((chat) => chat.id === telegramPickerProjectId && chat.id !== "all");
   $: normalizedQuery = query.trim().toLocaleLowerCase("ru");
   $: searchActive = normalizedQuery.length > 0;
   $: visibleTasks = tasks.filter((task) => !isLocalDraft(task) && (showCompleted || !task.completed));
@@ -1165,7 +1167,9 @@
 
   async function handleWindowKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
-      if (telegramImportOpen) closeTelegramImporter();
+      if (telegramConnectionsProject) closeTelegramConnections();
+      else if (telegramInboxOpen && !telegramInboxProcessingId) telegramInboxOpen = false;
+      else if (telegramImportOpen) closeTelegramImporter();
       else if (imageViewer) closeImageViewer();
       else if (newTaskMenuAnchor || urgencyMenuOpen || taskActionMenuOpen || sourceEditorOpen || datePickerOpen) {
         newTaskMenuAnchor = null;
@@ -1465,7 +1469,7 @@
     if (!title || currentChat.id === "all" || !inTauri()) return;
     try {
       const updated = await invoke<ProjectRecord>("update_project", { id: currentChat.id, title, expectedVersion: currentChat.version });
-      chats = chats.map((chat) => chat.id === updated.id ? { ...updated, open: openTaskCount(updated.id) } : chat);
+      chats = chats.map((chat) => chat.id === updated.id ? { ...updated, telegram_chats: updated.telegram_chats ?? [], open: openTaskCount(updated.id) } : chat);
       tasks = tasks.map((task) => task.chatId === updated.id ? { ...task, chat: updated.title } : task);
       trashedTasks = trashedTasks.map((task) => task.chatId === updated.id ? { ...task, chat: updated.title } : task);
       renameChatOpen = false;
@@ -1832,17 +1836,21 @@
     return t(mode === "manual" ? "telegramModeManual" : mode === "all" ? "telegramModeAll" : "telegramModeMentions");
   }
 
-  function nextTelegramMode(mode: TelegramInboxMode): TelegramInboxMode {
-    return mode === "mentions_and_replies" ? "all" : mode === "all" ? "manual" : "mentions_and_replies";
-  }
-
   function filteredTelegramChats(project: ChatItem) {
     const query = telegramPickerProjectId === project.id ? telegramChatSearch.trim().toLocaleLowerCase(locale) : "";
     return query ? telegramSearchResults : telegramChats;
   }
 
-  function toggleTelegramPicker(projectId: string) {
-    telegramPickerProjectId = telegramPickerProjectId === projectId ? "" : projectId;
+  function openTelegramConnections(projectId: string) {
+    telegramPickerProjectId = projectId;
+    telegramChatSearch = "";
+    telegramSearchResults = [];
+    telegramSearchLoading = false;
+  }
+
+  function closeTelegramConnections() {
+    window.clearTimeout(telegramSearchTimer);
+    telegramPickerProjectId = "";
     telegramChatSearch = "";
     telegramSearchResults = [];
     telegramSearchLoading = false;
@@ -1878,7 +1886,7 @@
         telegramChats: links,
         expectedVersion: project.version
       });
-      chats = chats.map((chat) => chat.id === updated.id ? { ...updated, open: chat.open } : chat);
+      chats = chats.map((chat) => chat.id === updated.id ? { ...updated, telegram_chats: updated.telegram_chats ?? [], open: chat.open } : chat);
       telegramError = "";
     } catch (error) {
       telegramError = String(error);
@@ -1893,8 +1901,9 @@
     await saveProjectTelegramLinks(project, links);
   }
 
-  async function cycleProjectTelegramMode(project: ChatItem, link: TelegramProjectLink) {
-    await saveProjectTelegramLinks(project, project.telegram_chats.map((item) => item.chat_id === link.chat_id ? { ...item, inbox_mode: nextTelegramMode(item.inbox_mode) } : item));
+  async function setProjectTelegramMode(project: ChatItem, link: TelegramProjectLink, mode: TelegramInboxMode) {
+    if (link.inbox_mode === mode) return;
+    await saveProjectTelegramLinks(project, project.telegram_chats.map((item) => item.chat_id === link.chat_id ? { ...item, inbox_mode: mode } : item));
   }
 
   async function loadTelegramImportChat(chatId: number) {
@@ -2198,11 +2207,6 @@
       if (!target?.closest(".task-actions-menu") && !target?.closest(".task-actions-trigger")) {
         taskActionMenuOpen = false;
         moveMenuOpen = false;
-      }
-      if (!target?.closest(".telegram-link-control")) {
-        telegramPickerProjectId = "";
-        telegramChatSearch = "";
-        telegramSearchResults = [];
       }
     };
     window.addEventListener("blur", flush);
@@ -2671,27 +2675,7 @@
                         {#each chats.slice(1) as project (project.id)}
                           <div class="telegram-project-link">
                             <span><Folder size={14} /><span title={project.title}>{project.title}</span></span>
-                            <div class="telegram-link-control">
-                              <button class="telegram-chat-picker-trigger" aria-expanded={telegramPickerProjectId === project.id} onclick={() => toggleTelegramPicker(project.id)}><span>{project.telegram_chats.length ? t("linkedChats", { count: project.telegram_chats.length }) : t("notLinked")}</span><ChevronDown size={14} /></button>
-                              {#if telegramPickerProjectId === project.id}
-                                <div class="telegram-chat-picker">
-                                  <label class="telegram-chat-search"><Search size={14} /><input value={telegramChatSearch} placeholder={t("searchChats")} oninput={(event) => searchTelegramChats(event.currentTarget.value)} />{#if telegramSearchLoading}<RefreshCw class="spinning" size={13} />{/if}</label>
-                                  <div class="telegram-chat-picker-list">
-                                    {#each filteredTelegramChats(project) as telegramChat (telegramChat.id)}
-                                      {@const linked = project.telegram_chats.some((link) => link.chat_id === telegramChat.id)}
-                                      <button class:active={linked} onclick={() => toggleProjectTelegramChat(project, telegramChat)}><span class="picker-check">{#if linked}<Check size={13} />{/if}</span><span title={telegramChat.title}>{telegramChat.title}</span></button>
-                                    {:else}<small>{t("nothingFound")}</small>{/each}
-                                  </div>
-                                </div>
-                              {/if}
-                            </div>
-                            {#if project.telegram_chats.length}
-                              <div class="telegram-linked-list">
-                                {#each project.telegram_chats as link (link.chat_id)}
-                                  <span><span title={link.title}>{link.title}</span><button title={t("changeTelegramMode")} onclick={() => cycleProjectTelegramMode(project, link)}>{telegramModeLabel(link.inbox_mode)}</button></span>
-                                {/each}
-                              </div>
-                            {/if}
+                            <div class="telegram-link-summary"><span>{project.telegram_chats.length ? t("linkedChats", { count: project.telegram_chats.length }) : t("notLinked")}</span><button onclick={() => openTelegramConnections(project.id)}>{t("configure")}</button></div>
                           </div>
                         {/each}
                       </div>
@@ -2718,6 +2702,42 @@
     {/if}
   </div>
 </main>
+
+{#if telegramConnectionsProject}
+  <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeTelegramConnections(); }}>
+    <div class="telegram-import-panel telegram-connections-panel" role="dialog" aria-modal="true" aria-label={t("telegramConnectionsTitle")}>
+      <header><span><Send size={17} /><span><strong>{t("telegramConnectionsTitle")}</strong><small title={telegramConnectionsProject.title}>{telegramConnectionsProject.title}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeTelegramConnections}><X size={16} /></button></header>
+      <div class="telegram-connections-body">
+        <p>{t("telegramConnectionsDescription")}</p>
+        <label class="telegram-chat-search telegram-connections-search"><Search size={15} /><input value={telegramChatSearch} placeholder={t("searchChats")} oninput={(event) => searchTelegramChats(event.currentTarget.value)} />{#if telegramSearchLoading}<RefreshCw class="spinning" size={14} />{/if}</label>
+
+        {#if telegramConnectionsProject.telegram_chats.length}
+          <section class="telegram-connections-section">
+            <h4>{t("linkedTelegramChats")}</h4>
+            <div class="telegram-selected-chats">
+              {#each telegramConnectionsProject.telegram_chats as link (link.chat_id)}
+                <article class="telegram-selected-chat">
+                  <div><Send size={14} /><strong title={link.title}>{link.title}</strong><button class="icon-button" aria-label={t("removeConnection")} title={t("removeConnection")} onclick={() => toggleProjectTelegramChat(telegramConnectionsProject, { id: link.chat_id, title: link.title })}><X size={14} /></button></div>
+                  <div class="telegram-mode-picker" aria-label={t("collectionMode")}>{#each telegramModes as mode}<button class:active={link.inbox_mode === mode} onclick={() => setProjectTelegramMode(telegramConnectionsProject, link, mode)}>{telegramModeLabel(mode)}</button>{/each}</div>
+                </article>
+              {/each}
+            </div>
+          </section>
+        {/if}
+
+        <section class="telegram-connections-section available">
+          <h4>{t("availableTelegramChats")}</h4>
+          <div class="telegram-connections-list">
+            {#each filteredTelegramChats(telegramConnectionsProject) as telegramChat (telegramChat.id)}
+              {@const linked = telegramConnectionsProject.telegram_chats.some((link) => link.chat_id === telegramChat.id)}
+              <button class:active={linked} onclick={() => toggleProjectTelegramChat(telegramConnectionsProject, telegramChat)}><span class="picker-check">{#if linked}<Check size={13} />{/if}</span><span title={telegramChat.title}>{telegramChat.title}</span><small>{linked ? t("linked") : t("add")}</small></button>
+            {:else}<div class="telegram-connections-empty">{t("nothingFound")}</div>{/each}
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+{/if}
 
 {#if telegramImportOpen}
   <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeTelegramImporter(); }}>
@@ -2750,7 +2770,7 @@
         {:else if telegramInboxError}<div class="telegram-import-state error">{telegramInboxError}</div>
         {:else}
           {#each telegramInbox as candidate (candidate.id)}
-            <article class="inbox-candidate"><div class="inbox-candidate-meta"><span>{candidate.chat_title}</span><small>{telegramReasonLabel(candidate.reason)} · {fullDate(candidate.sent_at)}</small></div><strong>{candidate.author}</strong>{#if candidate.text}<p>{candidate.text}</p>{/if}{#if candidate.media.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: candidate.media.length })}</small>{/if}<div class="inbox-candidate-actions"><button disabled={Boolean(telegramInboxProcessingId)} onclick={() => dismissTelegramCandidate(candidate)}>{t("dismiss")}</button><button class="primary-button" disabled={Boolean(telegramInboxProcessingId)} onclick={() => createTaskFromCandidate(candidate)}>{#if telegramInboxProcessingId === candidate.id}<RefreshCw class="spinning" size={14} />{:else}<Plus size={14} />{/if}{t("createTask")}</button></div></article>
+            <article class="inbox-candidate"><div class="inbox-candidate-meta"><span>{candidate.chat_title}</span><small>{telegramReasonLabel(candidate.reason)} · {fullDate(candidate.sent_at)}</small></div><strong>{candidate.author}</strong>{#if candidate.text}<p>{candidate.text}</p>{/if}{#if candidate.media?.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: candidate.media.length })}</small>{/if}<div class="inbox-candidate-actions"><button disabled={Boolean(telegramInboxProcessingId)} onclick={() => dismissTelegramCandidate(candidate)}>{t("dismiss")}</button><button class="primary-button" disabled={Boolean(telegramInboxProcessingId)} onclick={() => createTaskFromCandidate(candidate)}>{#if telegramInboxProcessingId === candidate.id}<RefreshCw class="spinning" size={14} />{:else}<Plus size={14} />{/if}{t("createTask")}</button></div></article>
           {:else}<div class="telegram-import-state">{t("inboxEmpty")}</div>{/each}
         {/if}
       </div>

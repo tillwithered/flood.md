@@ -251,6 +251,7 @@ impl TelegramManager {
         let client_id = self.client_id()?;
         let limit = limit.clamp(1, 100);
         let mut ids = Vec::new();
+        let normalized_query = query.to_lowercase();
         if let Ok(enums::Chats::Chats(chats)) =
             functions::search_chats(query.clone(), limit, client_id).await
         {
@@ -267,7 +268,9 @@ impl TelegramManager {
             if !seen.insert(id) {
                 continue;
             }
-            if let Ok(enums::Chat::Chat(chat)) = functions::get_chat(id, client_id).await {
+            if let Ok(enums::Chat::Chat(chat)) = functions::get_chat(id, client_id).await
+                && chat.title.to_lowercase().contains(&normalized_query)
+            {
                 result.push(TelegramChat {
                     id: chat.id,
                     title: chat.title,
