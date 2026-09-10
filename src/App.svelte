@@ -189,6 +189,10 @@
   let taskActionMenuOpen = false;
   let moveMenuOpen = false;
   let sourceEditorOpen = false;
+  let sourceViewerOpen = false;
+  let sourceViewerDialog: HTMLDivElement;
+  let sourceMediaPreviews: Record<number, string> = {};
+  let sourcePreviewObjectUrls: string[] = [];
   let sourceText = "";
   let sourceAuthor = "";
   let sourceUrl = "";
@@ -1350,6 +1354,7 @@
       else if (telegramInboxOpen && !telegramInboxProcessingId) closeTelegramInbox();
       else if (telegramImportOpen) closeTelegramImporter();
       else if (imageViewer) closeImageViewer();
+      else if (sourceViewerOpen) closeSourceViewer();
       else if (newTaskMenuAnchor || urgencyMenuOpen || taskActionMenuOpen || sourceEditorOpen || datePickerOpen) {
         newTaskMenuAnchor = null;
         urgencyMenuOpen = false;
@@ -1558,6 +1563,7 @@
     activeSection = "tasks";
     editorHint = null;
     sourceEditorOpen = false;
+    closeSourceViewer();
     taskActionMenuOpen = false;
     void tick().then(() => renderMarkdown(markdown));
   }
@@ -1615,6 +1621,7 @@
     selectionToolbar = null;
     taskActionMenuOpen = false;
     sourceEditorOpen = false;
+    closeSourceViewer();
     datePickerOpen = false;
   }
 
@@ -1926,6 +1933,46 @@
 
   function taskSourceMetaLabel(task: TaskItem) {
     return task.source?.provider === "telegram" ? t("fromTelegram") : taskSourceLabel(task);
+  }
+
+  function clearSourceMediaPreviews() {
+    for (const url of sourcePreviewObjectUrls) URL.revokeObjectURL(url);
+    sourcePreviewObjectUrls = [];
+    sourceMediaPreviews = {};
+  }
+
+  async function loadSourceMediaPreviews() {
+    clearSourceMediaPreviews();
+    const task = selectedTask;
+    if (!task?.source?.media?.length || !inTauri()) return;
+    const taskId = task.id;
+    await Promise.all(task.source.media.map(async (media, index) => {
+      if (!media.relative_path || (media.kind !== "photo" && !media.mime_type?.startsWith("image/"))) return;
+      try {
+        const bytes = await invoke<ArrayBuffer>("read_task_attachment", { id: taskId, relativePath: media.relative_path });
+        if (!sourceViewerOpen || selectedTaskId !== taskId) return;
+        const url = URL.createObjectURL(new Blob([bytes], { type: media.mime_type || attachmentMimeType(media.relative_path) }));
+        sourcePreviewObjectUrls.push(url);
+        sourceMediaPreviews = { ...sourceMediaPreviews, [index]: url };
+      } catch {
+        // Keep the file row available even if a local thumbnail cannot be read.
+      }
+    }));
+  }
+
+  async function openSourceViewer() {
+    if (!selectedTask?.source) return;
+    sourceViewerOpen = true;
+    sourceEditorOpen = false;
+    taskActionMenuOpen = false;
+    await tick();
+    sourceViewerDialog?.focus();
+    void loadSourceMediaPreviews();
+  }
+
+  function closeSourceViewer() {
+    sourceViewerOpen = false;
+    clearSourceMediaPreviews();
   }
 
   async function changeUrgency(urgency: Urgency) {
@@ -2431,6 +2478,7 @@
       let saved = await invoke<TaskRecord>("telegram_download_source_media", { taskId: selectedTask.id, mediaIndex: index });
       saved = await insertSourceMediaRecord(saved, index);
       await applyUpdatedTask(saved);
+      if (sourceViewerOpen) void loadSourceMediaPreviews();
     } catch (error) {
       saveError = String(error);
     } finally {
@@ -2736,6 +2784,7 @@
       document.removeEventListener("pointerdown", closeMenus);
       colorScheme.removeEventListener("change", updateSystemTheme);
       for (const url of attachmentObjectUrls) URL.revokeObjectURL(url);
+      clearSourceMediaPreviews();
       unlisten?.();
       unlistenClose?.();
       unlistenTelegram?.();
@@ -3002,17 +3051,11 @@
           {/if}
           <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label={t("taskEditor")} spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={() => { editorHint = null; clearAttachmentSelection(); void saveNow(); }}></div>
           {#if selectedTask.source}
-            <details class="source-snapshot">
-              <summary><FloodGlyph kind="info" size={15} /><span><strong>{selectedTask.source.chat_title || t("sourceMessage")}</strong><small>{selectedTask.source.author || t("notSpecified")}{selectedTask.source.sent_at ? ` · ${fullDate(selectedTask.source.sent_at)}` : ""}</small></span></summary>
-              {#if selectedTask.source.text}<p>{selectedTask.source.text}</p>{/if}
-              {#if selectedTask.source.media?.length}
-                <div class="source-media-list">
-                  {#each selectedTask.source.media as media, index}
-                    <div class="source-media-row"><Paperclip size={14} /><span><strong>{media.file_name}</strong><small>{t("telegramMedia")} · {media.size ? `${Math.max(1, Math.round(media.size / 1024))} КБ` : t("sizeUnknown")}</small></span><div class="source-media-actions">{#if media.relative_path}{#if sourceMediaInTask(media)}<span><Check size={12} />{t("inTask")}</span>{:else}<button disabled={downloadingSourceMedia >= 0} onclick={() => insertDownloadedSourceMedia(index)}><Plus size={13} />{t("addToTask")}</button>{/if}<button onclick={() => openSourceMedia(media)}>{t("open")}</button>{:else}<button disabled={downloadingSourceMedia >= 0} onclick={() => downloadTelegramSourceMedia(index)}>{#if downloadingSourceMedia === index}<RefreshCw class="spinning" size={13} />{:else}<Download size={13} />{/if}{t("addToTask")}</button>{/if}</div></div>
-                  {/each}
-                </div>
-              {/if}
-            </details>
+            <button class="source-snapshot" aria-haspopup="dialog" onclick={openSourceViewer}>
+              <FloodGlyph kind="info" size={18} />
+              <span><strong>{selectedTask.source.chat_title || t("sourceMessage")}</strong><small>{selectedTask.source.author || t("notSpecified")}{selectedTask.source.sent_at ? ` · ${fullDate(selectedTask.source.sent_at)}` : ""}</small></span>
+              <span class="source-snapshot-action">{selectedTask.source.media?.length ? t("mediaCount", { count: selectedTask.source.media.length }) : t("viewSource")}<ChevronRight size={14} /></span>
+            </button>
           {/if}
         </div>
       </section>
@@ -3264,8 +3307,11 @@
                       <span class:done={Boolean(storeDiagnostics?.healthy)}><i>{#if storeDiagnostics?.healthy}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("storeDiagnostics")}</strong><small>{storeDiagnostics ? t("storageSummary", { projects: storeDiagnostics.project_count, tasks: storeDiagnostics.open_task_count, inbox: storeDiagnostics.pending_inbox_count }) : t("notChecked")}</small></span></span>
                       <span class:done={Boolean(mcpSelfCheck?.passed)}><i>{#if mcpSelfCheck?.passed}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("isolatedSelfCheck")}</strong><small>{mcpSelfCheck ? t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms }) : t("selfCheckDescription")}</small></span></span>
                     </div>
-                    {#if mcpSelfCheck && !mcpSelfCheck.passed}
-                      <div class="mcp-check-result error" role="status"><strong>{t("someChecksFailed")}</strong><ul>{#each mcpSelfCheck.checks.filter((check) => !check.passed) as check}<li>{check.name}{check.detail ? `: ${check.detail}` : ""}</li>{/each}</ul></div>
+                    {#if mcpSelfCheck}
+                      <details class:error={!mcpSelfCheck.passed} class="mcp-check-result" open={!mcpSelfCheck.passed}>
+                        <summary><span>{#if mcpSelfCheck.passed}<CheckCircle2 size={14} />{:else}<X size={14} />{/if}<strong>{mcpSelfCheck.passed ? t("allChecksPassed") : t("someChecksFailed")}</strong></span><small>{t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms })}</small><ChevronDown size={14} /></summary>
+                        <ul>{#each mcpSelfCheck.checks as check}<li class:passed={check.passed}>{#if check.passed}<Check size={12} />{:else}<X size={12} />{/if}<span>{check.name}{check.detail ? `: ${check.detail}` : ""}</span></li>{/each}</ul>
+                      </details>
                     {/if}
                   </div>
 
@@ -3401,6 +3447,35 @@
         </div>
         {#if telegramInboxSelection.length}<div class="telegram-triage-island" aria-label={t("selectedMessages", { count: telegramInboxSelection.length })}><span><ListChecks size={15} />{t("selectedMessages", { count: telegramInboxSelection.length })}</span><button class="primary-button" onclick={beginSelectedTelegramTriage}><span>{t("reviewSelected")}</span><ArrowRight size={14} /></button></div>{/if}
       </div>{/if}
+    </div>
+  </div>
+{/if}
+
+{#if sourceViewerOpen && selectedTask?.source}
+  <div class="telegram-import-backdrop source-viewer-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeSourceViewer(); }}>
+    <div class="telegram-import-panel source-viewer-panel" bind:this={sourceViewerDialog} role="dialog" aria-modal="true" aria-label={t("taskSource")} tabindex="-1">
+      <header><span><FloodGlyph kind="info" size={22} /><span><strong>{t("taskSource")}</strong><small>{selectedTask.source.chat_title || t("sourceMessage")}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeSourceViewer}><X size={16} /></button></header>
+      <div class="source-viewer-body">
+        <section class="source-message-card">
+          <div class="source-message-meta"><span><strong>{selectedTask.source.author || t("notSpecified")}</strong><small>{selectedTask.source.provider === "telegram" ? "Telegram" : t("sourceMessage")}</small></span>{#if selectedTask.source.sent_at}<time datetime={selectedTask.source.sent_at}>{fullDate(selectedTask.source.sent_at)}</time>{/if}</div>
+          {#if selectedTask.source.text}<p>{selectedTask.source.text}</p>{:else}<p class="source-empty-text">{t("noSourceText")}</p>{/if}
+        </section>
+        {#if selectedTask.source.media?.length}
+          <section class="source-viewer-section">
+            <h4>{t("sourceFiles")} <span>{selectedTask.source.media.length}</span></h4>
+            <div class="source-media-list">
+              {#each selectedTask.source.media as media, index}
+                <div class:with-preview={Boolean(sourceMediaPreviews[index])} class="source-media-row">
+                  {#if sourceMediaPreviews[index]}<button class="source-media-preview" aria-label={`${t("open")} ${media.file_name}`} onclick={() => openSourceMedia(media)}><img src={sourceMediaPreviews[index]} alt={media.file_name} /></button>{:else}<span class="source-media-icon"><Paperclip size={15} /></span>{/if}
+                  <span><strong title={media.file_name}>{media.file_name}</strong><small>{t("telegramMedia")} · {media.size ? `${Math.max(1, Math.round(media.size / 1024))} КБ` : t("sizeUnknown")}</small></span>
+                  <div class="source-media-actions">{#if media.relative_path}{#if sourceMediaInTask(media)}<span><Check size={12} />{t("inTask")}</span>{:else}<button disabled={downloadingSourceMedia >= 0} onclick={() => insertDownloadedSourceMedia(index)}><Plus size={13} />{t("addToTask")}</button>{/if}<button onclick={() => openSourceMedia(media)}>{t("open")}</button>{:else}<button disabled={downloadingSourceMedia >= 0} onclick={() => downloadTelegramSourceMedia(index)}>{#if downloadingSourceMedia === index}<RefreshCw class="spinning" size={13} />{:else}<Download size={13} />{/if}{t("downloadAndAdd")}</button>{/if}</div>
+                </div>
+              {/each}
+            </div>
+          </section>
+        {/if}
+      </div>
+      {#if selectedTask.source.url}<footer class="source-viewer-footer"><button onclick={() => openUrl(selectedTask.source!.url!)}><ExternalLink size={14} />{t("openMessage")}</button></footer>{/if}
     </div>
   </div>
 {/if}

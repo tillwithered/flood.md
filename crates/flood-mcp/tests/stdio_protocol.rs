@@ -24,11 +24,15 @@ fn command_line_reports_version_and_runs_isolated_self_check() {
     assert!(self_check.status.success());
     let result: Value = serde_json::from_slice(&self_check.stdout).unwrap();
     assert_eq!(result["passed"], true);
+    let checks = result["checks"].as_array().unwrap();
+    assert!(checks.len() >= 9);
+    assert!(checks.iter().all(|check| check["passed"] == true));
     assert!(
-        result["checks"]
-            .as_array()
-            .is_some_and(|checks| !checks.is_empty())
+        checks
+            .iter()
+            .any(|check| check["name"] == "Входящие Telegram, источник и защита от дублей")
     );
+    assert_eq!(checks.last().unwrap()["name"], "Очистка временных данных");
 }
 
 fn send(stdin: &mut impl Write, message: Value) {

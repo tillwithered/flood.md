@@ -1,6 +1,7 @@
 use crate::{
-    CreateTask, InboxCandidateStatus, Project, Task, TaskPatch, TaskStatus, TaskSummary,
-    TelegramInboxCandidate, TelegramLinkedTask, TelegramProjectLink, TelegramSyncStatus, Urgency,
+    CreateTask, InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind,
+    Task, TaskPatch, TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramLinkedTask,
+    TelegramProjectLink, TelegramSyncStatus, Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
@@ -1304,15 +1305,12 @@ pub fn run_self_check() -> SelfCheckResult {
             detail: Some(error),
         });
     }
-    if let Err(error) = fs::remove_dir_all(&root)
-        && root.exists()
-    {
-        checks.push(SelfCheckItem {
-            name: "Очистка временных данных".into(),
-            passed: false,
-            detail: Some(error.to_string()),
-        });
-    }
+    let cleanup_error = fs::remove_dir_all(&root).err().filter(|_| root.exists());
+    checks.push(SelfCheckItem {
+        name: "Очистка временных данных".into(),
+        passed: cleanup_error.is_none(),
+        detail: cleanup_error.map(|error| error.to_string()),
+    });
     SelfCheckResult {
         passed: checks.iter().all(|check| check.passed),
         duration_ms: started.elapsed().as_millis(),
@@ -1345,16 +1343,50 @@ fn run_isolated_self_check(root: &Path, checks: &mut Vec<SelfCheckItem>) -> Resu
         detail: None,
     });
 
+    let projects = store.list_projects().map_err(|error| error.to_string())?;
+    let tasks = store
+        .list_tasks(Some(&project.id), false)
+        .map_err(|error| error.to_string())?;
+    let read_task = store
+        .get_task(&task.id)
+        .map_err(|error| error.to_string())?;
+    let reading_ok = projects.len() == 1
+        && projects[0].id == project.id
+        && tasks.len() == 1
+        && tasks[0].id == task.id
+        && read_task.description == task.description;
+    checks.push(SelfCheckItem {
+        name: "Списки проектов, задач и чтение карточки".into(),
+        passed: reading_ok,
+        detail: (!reading_ok)
+            .then(|| "Созданные данные не найдены через публичные операции чтения".into()),
+    });
+    if !reading_ok {
+        return Err("Проверка операций чтения не пройдена".into());
+    }
+
     let updated = store
         .update_task(
             &task.id,
             TaskPatch {
                 description: Some("Проверить полный цикл задачи и конфликт".into()),
+                urgency: Some(Urgency::Urgent),
                 ..TaskPatch::default()
             },
             &task.version,
         )
         .map_err(|error| error.to_string())?;
+    let update_ok = updated.description == "Проверить полный цикл задачи и конфликт"
+        && updated.urgency == Urgency::Urgent;
+    checks.push(SelfCheckItem {
+        name: "Изменение описания и срочности".into(),
+        passed: update_ok,
+        detail: (!update_ok).then(|| "Изменения задачи не сохранились".into()),
+    });
+    if !update_ok {
+        return Err("Проверка изменения задачи не пройдена".into());
+    }
+
     let conflict_detected = matches!(
         store.complete_task(&task.id, &task.version),
         Err(StoreError::Conflict)
@@ -1406,11 +1438,82 @@ fn run_isolated_self_check(root: &Path, checks: &mut Vec<SelfCheckItem>) -> Resu
         return Err("Проверка жизненного цикла задачи не пройдена".into());
     }
 
+    let now = Utc::now();
+    let candidate = TelegramInboxCandidate {
+        id: Ulid::new().to_string(),
+        project_id: project.id.clone(),
+        chat_id: -100_000_000_001,
+        chat_title: "Проверка Telegram".into(),
+        message_id: 42,
+        message_ids: vec![42, 43],
+        text: "@flood преврати это сообщение в задачу".into(),
+        author: "Self-check".into(),
+        sent_at: now,
+        url: Some("https://t.me/c/100000000001/42".into()),
+        reason: InboxCandidateReason::Mention,
+        status: InboxCandidateStatus::Pending,
+        media: vec![SourceMedia {
+            kind: SourceMediaKind::Photo,
+            file_name: "self-check.jpg".into(),
+            provider_file_id: Some(42),
+            mime_type: Some("image/jpeg".into()),
+            size: Some(1024),
+            relative_path: None,
+        }],
+        discovered_at: now,
+        processed_at: None,
+        task_id: None,
+        linked_task: None,
+    };
+    let candidate_id = candidate.id.clone();
+    let added = store
+        .upsert_telegram_candidates(vec![candidate])
+        .map_err(|error| error.to_string())?;
+    let pending = store
+        .list_telegram_inbox(Some(&project.id), false)
+        .map_err(|error| error.to_string())?;
+    let telegram_task = store
+        .create_task_from_telegram_candidate(
+            &candidate_id,
+            Some("Разобрать сообщение из Telegram"),
+            Urgency::Important,
+        )
+        .map_err(|error| error.to_string())?;
+    let repeated = store
+        .create_task_from_telegram_candidate(&candidate_id, None, Urgency::Normal)
+        .map_err(|error| error.to_string())?;
+    let imported = store
+        .get_telegram_candidate(&candidate_id)
+        .map_err(|error| error.to_string())?;
+    let telegram_ok = added == 1
+        && pending.len() == 1
+        && telegram_task.id == repeated.id
+        && telegram_task.source.as_ref().is_some_and(|source| {
+            source.provider.as_deref() == Some("telegram")
+                && source.message_ids == vec![42, 43]
+                && source.media.len() == 1
+        })
+        && imported.status == InboxCandidateStatus::Imported
+        && imported.task_id.as_deref() == Some(telegram_task.id.as_str())
+        && imported
+            .linked_task
+            .as_ref()
+            .is_some_and(|task| task.id == telegram_task.id);
+    checks.push(SelfCheckItem {
+        name: "Входящие Telegram, источник и защита от дублей".into(),
+        passed: telegram_ok,
+        detail: (!telegram_ok).then(|| "Кандидат Telegram не прошёл полный цикл импорта".into()),
+    });
+    if !telegram_ok {
+        return Err("Проверка входящих Telegram не пройдена".into());
+    }
+
     let diagnostics = store.diagnostics();
     checks.push(SelfCheckItem {
         name: "Диагностика Markdown-хранилища".into(),
         passed: diagnostics.healthy
             && diagnostics.project_count == 1
+            && diagnostics.open_task_count == 1
             && diagnostics.completed_task_count == 1,
         detail: (!diagnostics.healthy).then(|| diagnostics.issues.join("; ")),
     });
