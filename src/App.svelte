@@ -1304,6 +1304,11 @@
   async function openSettingsSection(section: SettingsSection) {
     await changeSection("settings");
     settingsSection = section;
+    if (section === "data" && !attachmentCleanupReport) void loadAttachmentCleanupReport();
+    if (section === "mcp") {
+      if (!attachmentCleanupReport) void loadAttachmentCleanupReport();
+      if (!mcpSelfCheck) void runMcpSelfCheck();
+    }
   }
 
   async function continueInitialSetup() {
@@ -2127,6 +2132,22 @@
     if (!mcpRuntime.compatible) return t("mcpVersionMismatch");
     if (mcpCheckState === "success") return t("mcpReady");
     return t("mcpAvailable");
+  }
+
+  function telegramAgentReady() {
+    if (!storeDiagnostics) return false;
+    if (storeDiagnostics.linked_chat_count === 0) return true;
+    return telegramStatus.step === "ready"
+      && telegramSyncState === "success"
+      && !telegramSyncRequest
+      && !telegramSyncIsStale(5 * 60_000);
+  }
+
+  function telegramAgentReadinessLabel() {
+    if (!storeDiagnostics) return t("notChecked");
+    if (storeDiagnostics.linked_chat_count === 0) return t("telegramNotRequired");
+    if (telegramAgentReady()) return t("telegramAgentReady");
+    return telegramSyncLabel();
   }
 
   async function applyTelegramStatus(status: TelegramStatus) {
@@ -3033,6 +3054,27 @@
     return "__TAURI_INTERNALS__" in window;
   }
 
+  function applySettingsDevPreview() {
+    if (!import.meta.env.DEV || inTauri()) return;
+    if (new URLSearchParams(window.location.search).get("preview") !== "mcp-readiness") return;
+    activeSection = "settings";
+    settingsSection = "mcp";
+    appVersion = "0.1.3";
+    mcpExecutable = "C:\\Program Files\\flood.md\\flood-mcp.exe";
+    mcpRuntime = { executable_path: mcpExecutable, available: true, version: "0.1.3", app_version: "0.1.3", compatible: true, source: "bundled" };
+    storeDiagnostics = { healthy: true, root: "preview", format_version: 1, project_count: 4, linked_chat_count: 2, open_task_count: 12, completed_task_count: 8, trashed_task_count: 1, pending_inbox_count: 5, issues: [] };
+    mcpSelfCheck = { passed: true, duration_ms: 34, checks: [
+      { name: "Изолированное хранилище", passed: true },
+      { name: "Создание, изменение и конфликты", passed: true },
+      { name: "Telegram-входящие и защита от дублей", passed: true },
+      { name: "MCP-контракты и аннотации безопасности", passed: true }
+    ] };
+    mcpCheckState = "success";
+    attachmentCleanupReport = { total_files: 42, total_bytes: 8_800_000, orphaned_files: 3, orphaned_bytes: 640_000 };
+    telegramStatus = { step: "ready", configured: true, managed_credentials: true, account_name: "Олег" };
+    telegramSyncState = "partial";
+  }
+
   function applyTelegramDevPreview() {
     if (!import.meta.env.DEV || inTauri()) return;
     const preview = new URLSearchParams(window.location.search).get("preview");
@@ -3103,6 +3145,7 @@
 
   onMount(() => {
     loadUiPreferences();
+    applySettingsDevPreview();
     applyTelegramDevPreview();
     const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
     const updateSystemTheme = () => { if (themePreference === "system") applyTheme(); };
@@ -3605,12 +3648,12 @@
           <header class="settings-header"><h2>{t("settings")}</h2><p>{t("settingsDescription")}</p></header>
           <div class="settings-layout">
             <nav class="settings-nav" aria-label={t("settingsSections")}>
-              <button class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => (settingsSection = "general")}><Settings size={16} />{t("general")}</button>
-              <button class:active={settingsSection === "appearance"} aria-current={settingsSection === "appearance" ? "page" : undefined} onclick={() => (settingsSection = "appearance")}><Palette size={16} />{t("appearance")}</button>
-              <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => { settingsSection = "data"; void loadAttachmentCleanupReport(); }}><Database size={16} />{t("data")}</button>
-              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => (settingsSection = "integrations")}><Plug size={16} />{t("integrations")} <span class:connected={telegramStatus.step === "ready"} class:error={["database_error", "error"].includes(telegramStatus.step) || ["partial", "error"].includes(telegramSyncState)} class="integration-chip">{["database_error", "error"].includes(telegramStatus.step) || ["partial", "error"].includes(telegramSyncState) ? "!" : telegramStatus.step === "ready" ? "1" : "·"}</span></button>
-              <button class:active={settingsSection === "mcp"} aria-current={settingsSection === "mcp" ? "page" : undefined} onclick={() => (settingsSection = "mcp")}><Bot size={16} />{t("mcpAndAi")} <span class:connected={mcpCheckState === "success"} class:error={mcpCheckState === "error"} class="integration-chip">{mcpCheckState === "success" ? "✓" : "·"}</span></button>
-              <button class:active={settingsSection === "about"} aria-current={settingsSection === "about" ? "page" : undefined} onclick={() => (settingsSection = "about")}><Info size={16} />{t("about")}</button>
+              <button class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => openSettingsSection("general")}><Settings size={16} />{t("general")}</button>
+              <button class:active={settingsSection === "appearance"} aria-current={settingsSection === "appearance" ? "page" : undefined} onclick={() => openSettingsSection("appearance")}><Palette size={16} />{t("appearance")}</button>
+              <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => openSettingsSection("data")}><Database size={16} />{t("data")}</button>
+              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => openSettingsSection("integrations")}><Plug size={16} />{t("integrations")} <span class:connected={telegramStatus.step === "ready"} class:error={["database_error", "error"].includes(telegramStatus.step) || ["partial", "error"].includes(telegramSyncState)} class="integration-chip">{["database_error", "error"].includes(telegramStatus.step) || ["partial", "error"].includes(telegramSyncState) ? "!" : telegramStatus.step === "ready" ? "1" : "·"}</span></button>
+              <button class:active={settingsSection === "mcp"} aria-current={settingsSection === "mcp" ? "page" : undefined} onclick={() => openSettingsSection("mcp")}><Bot size={16} />{t("mcpAndAi")} <span class:connected={mcpCheckState === "success"} class:error={mcpCheckState === "error"} class="integration-chip">{mcpCheckState === "success" ? "✓" : "·"}</span></button>
+              <button class:active={settingsSection === "about"} aria-current={settingsSection === "about" ? "page" : undefined} onclick={() => openSettingsSection("about")}><Info size={16} />{t("about")}</button>
             </nav>
             <div class="settings-content">
               {#if settingsSection === "general"}
@@ -3730,6 +3773,8 @@
                       <span class:done={Boolean(mcpRuntime?.compatible)}><i>{#if mcpRuntime?.compatible}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("versionCompatibility")}</strong><small>{mcpRuntime ? `${t("appVersionLabel")} ${mcpRuntime.app_version} · MCP ${mcpRuntime.version || "?"}` : t("notChecked")}</small></span></span>
                       <span class:done={Boolean(storeDiagnostics?.healthy)}><i>{#if storeDiagnostics?.healthy}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("storeDiagnostics")}</strong><small>{storeDiagnostics ? t("storageSummary", { projects: storeDiagnostics.project_count, tasks: storeDiagnostics.open_task_count, inbox: storeDiagnostics.pending_inbox_count }) : t("notChecked")}</small></span></span>
                       <span class:done={Boolean(mcpSelfCheck?.passed)}><i>{#if mcpSelfCheck?.passed}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("isolatedSelfCheck")}</strong><small>{mcpSelfCheck ? t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms }) : t("selfCheckDescription")}</small></span></span>
+                      <button class:attention={Boolean(attachmentCleanupReport?.orphaned_files)} class:done={attachmentCleanupReport?.orphaned_files === 0} onclick={() => openSettingsSection("data")}><i>{#if attachmentCleanupReport?.orphaned_files === 0}<Check size={12} />{:else if attachmentCleanupReport?.orphaned_files}<Paperclip size={11} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("unusedAttachments")}</strong><small>{#if attachmentCleanupReport}{attachmentCleanupReport.orphaned_files ? t("attachmentCleanupSummary", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) }) : t("attachmentsHealthy")}{:else}{t("notChecked")}{/if}</small></span><ChevronRight size={13} /></button>
+                      <button class:attention={Boolean(storeDiagnostics && storeDiagnostics.linked_chat_count > 0 && !telegramAgentReady())} class:done={telegramAgentReady()} onclick={() => openSettingsSection("integrations")}><i>{#if telegramAgentReady()}<Check size={12} />{:else if storeDiagnostics?.linked_chat_count}<Send size={11} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("telegramSynchronization")}</strong><small>{telegramAgentReadinessLabel()}</small></span><ChevronRight size={13} /></button>
                     </div>
                     {#if mcpSelfCheck}
                       <details class:error={!mcpSelfCheck.passed} class="mcp-check-result" open={!mcpSelfCheck.passed}>
