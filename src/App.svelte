@@ -82,6 +82,9 @@
   type McpClient = "codex" | "claude" | "cursor" | "manual";
   type McpRuntimeInfo = { executable_path: string; available: boolean; version?: string; app_version: string; compatible: boolean; source: "bundled" | "development" };
   type InstallationRuntimeInfo = { executable_path: string; directory_path: string; kind: "installed" | "development" | "portable"; parallel_installed_copy?: string };
+  type ActivityAction = "project_created" | "project_updated" | "project_deleted" | "task_created" | "task_updated" | "task_completed" | "task_moved" | "task_trashed" | "task_restored" | "task_deleted" | "trash_emptied" | "telegram_task_created" | "telegram_candidate_dismissed" | "telegram_candidate_restored" | "telegram_sync_requested";
+  type ActivityEvent = { id: string; occurred_at: string; source: "mcp"; action: ActivityAction; entity_kind: "workspace" | "project" | "task" | "telegram_candidate"; entity_id?: string; project_id?: string; reversible: boolean };
+  type ActivityPage = { events: ActivityEvent[]; total: number; next_cursor?: string; remaining: number };
   type CommandGroup = "actions" | "projects" | "tasks";
   type CommandItem = { id: string; group: CommandGroup; title: string; meta?: string; keywords: string; urgency?: Urgency; completed?: boolean };
 
@@ -134,6 +137,12 @@
   let storeDiagnostics: StoreDiagnostics | null = null;
   let mcpCheckState: McpCheckState = "idle";
   let mcpSelfCheck: SelfCheckResult | null = null;
+  let mcpActivity: ActivityEvent[] = [];
+  let mcpActivityTotal = 0;
+  let mcpActivityNextCursor = "";
+  let mcpActivityRemaining = 0;
+  let mcpActivityState: "idle" | "loading" | "error" = "idle";
+  let mcpActivityError = "";
   let telegramStatus: TelegramStatus = { step: "unconfigured", configured: false, managed_credentials: false };
   let telegramApiId = "";
   let telegramApiHash = "";
@@ -1308,6 +1317,7 @@
     if (section === "mcp") {
       if (!attachmentCleanupReport) void loadAttachmentCleanupReport();
       if (!mcpSelfCheck) void runMcpSelfCheck();
+      if (!mcpActivity.length && mcpActivityState === "idle") void loadMcpActivity();
     }
   }
 
@@ -2305,6 +2315,66 @@
     }
   }
 
+  const activityActionKeys: Record<ActivityAction, MessageKey> = {
+    project_created: "activityProjectCreated",
+    project_updated: "activityProjectUpdated",
+    project_deleted: "activityProjectDeleted",
+    task_created: "activityTaskCreated",
+    task_updated: "activityTaskUpdated",
+    task_completed: "activityTaskCompleted",
+    task_moved: "activityTaskMoved",
+    task_trashed: "activityTaskTrashed",
+    task_restored: "activityTaskRestored",
+    task_deleted: "activityTaskDeleted",
+    trash_emptied: "activityTrashEmptied",
+    telegram_task_created: "activityTelegramTaskCreated",
+    telegram_candidate_dismissed: "activityTelegramCandidateDismissed",
+    telegram_candidate_restored: "activityTelegramCandidateRestored",
+    telegram_sync_requested: "activityTelegramSyncRequested"
+  };
+
+  function activityEntityLabel(event: ActivityEvent) {
+    if (event.entity_kind === "project" && event.entity_id) {
+      return chats.find((project) => project.id === event.entity_id)?.title ?? `${t("activityProject")} · ${event.entity_id.slice(-6)}`;
+    }
+    if (event.entity_kind === "task" && event.entity_id) {
+      const task = [...tasks, ...trashedTasks].find((item) => item.id === event.entity_id);
+      return task?.title ?? `${t("activityTask")} · ${event.entity_id.slice(-6)}`;
+    }
+    if (event.entity_kind === "telegram_candidate") return t("telegramInboxItem");
+    return "flood.md";
+  }
+
+  function activityGlyph(event: ActivityEvent): "brand" | "info" | "connected" | "completed" | "urgent" {
+    if (["task_deleted", "project_deleted", "trash_emptied"].includes(event.action)) return "urgent";
+    if (event.action === "task_completed") return "completed";
+    if (event.action.startsWith("telegram_")) return "info";
+    if (["task_created", "project_created", "task_restored"].includes(event.action)) return "connected";
+    return "brand";
+  }
+
+  async function loadMcpActivity(append = false) {
+    if (!inTauri() || mcpActivityState === "loading") return;
+    mcpActivityState = "loading";
+    mcpActivityError = "";
+    try {
+      const page = await invoke<ActivityPage>("list_activity", {
+        cursor: append && mcpActivityNextCursor ? mcpActivityNextCursor : null,
+        limit: 20
+      });
+      mcpActivity = append
+        ? [...mcpActivity, ...page.events.filter((event) => !mcpActivity.some((current) => current.id === event.id))]
+        : page.events;
+      mcpActivityTotal = page.total;
+      mcpActivityNextCursor = page.next_cursor ?? "";
+      mcpActivityRemaining = page.remaining;
+      mcpActivityState = "idle";
+    } catch (error) {
+      mcpActivityState = "error";
+      mcpActivityError = String(error);
+    }
+  }
+
   function telegramModeLabel(mode: TelegramInboxMode) {
     return t(mode === "manual" ? "telegramModeManual" : mode === "all" ? "telegramModeAll" : "telegramModeMentions");
   }
@@ -3070,6 +3140,13 @@
       { name: "MCP-контракты и аннотации безопасности", passed: true }
     ] };
     mcpCheckState = "success";
+    mcpActivity = [
+      { id: "01JOURNAL03", occurred_at: "2026-09-11T00:04:00Z", source: "mcp", action: "telegram_task_created", entity_kind: "task", entity_id: "01PREVIEWTASK", project_id: "01PREVIEWPROJECT", reversible: true },
+      { id: "01JOURNAL02", occurred_at: "2026-09-11T00:03:00Z", source: "mcp", action: "task_completed", entity_kind: "task", entity_id: "01COMPLETEDTASK", project_id: "01PREVIEWPROJECT", reversible: true },
+      { id: "01JOURNAL01", occurred_at: "2026-09-11T00:02:00Z", source: "mcp", action: "telegram_sync_requested", entity_kind: "workspace", reversible: false }
+    ];
+    mcpActivityTotal = mcpActivity.length;
+    mcpActivityRemaining = 0;
     attachmentCleanupReport = { total_files: 42, total_bytes: 8_800_000, orphaned_files: 3, orphaned_bytes: 640_000 };
     telegramStatus = { step: "ready", configured: true, managed_credentials: true, account_name: "Олег" };
     telegramSyncState = "partial";
@@ -3192,6 +3269,7 @@
       unlisten = await listen<string[]>("data-changed", (event) => {
         const changedPaths = event.payload.map((path) => path.toLocaleLowerCase());
         const telegramSyncRequested = changedPaths.some((path) => path.includes("telegram-sync-request"));
+        if (activeSection === "settings" && settingsSection === "mcp" && changedPaths.some((path) => path.endsWith("activity.json"))) void loadMcpActivity();
         if (telegramSyncRequested) {
           void refreshTelegramSyncRequest();
           if (telegramStatus.step === "ready") void syncTelegram();
@@ -3781,6 +3859,29 @@
                         <summary><span>{#if mcpSelfCheck.passed}<CheckCircle2 size={14} />{:else}<X size={14} />{/if}<strong>{mcpSelfCheck.passed ? t("allChecksPassed") : t("someChecksFailed")}</strong></span><small>{t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms })}</small><ChevronDown size={14} /></summary>
                         <ul>{#each mcpSelfCheck.checks as check}<li class:passed={check.passed}>{#if check.passed}<Check size={12} />{:else}<X size={12} />{/if}<span>{check.name}{check.detail ? `: ${check.detail}` : ""}</span></li>{/each}</ul>
                       </details>
+                    {/if}
+                  </div>
+
+                  <div class="mcp-block mcp-activity">
+                    <div class="mcp-activity-head">
+                      <div class="mcp-block-title"><FloodGlyph kind="info" size={17} /><span><strong>{t("mcpActivity")}</strong><small>{t("mcpActivityDescription")}</small></span></div>
+                      <span><small>{t("mcpActivityCount", { count: mcpActivityTotal })}</small><button class="icon-button" aria-label={t("reload")} title={t("reload")} disabled={mcpActivityState === "loading"} onclick={() => loadMcpActivity()}><RefreshCw class={mcpActivityState === "loading" ? "spinning" : ""} size={14} /></button></span>
+                    </div>
+                    {#if mcpActivityState === "error"}
+                      <div class="mcp-activity-empty error" role="status"><FloodGlyph kind="urgent" size={18} /><span><strong>{t("mcpActivityFailed")}</strong><small>{mcpActivityError}</small></span></div>
+                    {:else if !mcpActivity.length}
+                      <div class="mcp-activity-empty"><FloodGlyph kind="brand" size={18} /><span><strong>{t("mcpActivityEmpty")}</strong><small>{t("mcpActivityDescription")}</small></span></div>
+                    {:else}
+                      <div class="mcp-activity-list">
+                        {#each mcpActivity as event (event.id)}
+                          <div class="mcp-activity-row">
+                            <FloodGlyph kind={activityGlyph(event)} size={16} />
+                            <span><strong>{t(activityActionKeys[event.action])}</strong><small title={event.entity_id}>{activityEntityLabel(event)}</small></span>
+                            <time datetime={event.occurred_at} title={fullDate(event.occurred_at)}>{relativeDate(event.occurred_at)}</time>
+                          </div>
+                        {/each}
+                      </div>
+                      {#if mcpActivityRemaining > 0}<button class="mcp-activity-more" disabled={mcpActivityState === "loading"} onclick={() => loadMcpActivity(true)}>{t("showMoreMessages", { count: mcpActivityRemaining })}</button>{/if}
                     {/if}
                   </div>
 

@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
 use flood_core::{
-    AttachmentCleanupReport, CreateTask, InboxCandidateStatus, MessageSnapshot, Project,
-    SelfCheckItem, SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task,
-    TaskPatch, TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramSyncHealth,
-    TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
-    run_self_check as run_core_self_check,
+    ActivityAction, ActivityEntityKind, ActivityPage, ActivitySource, AttachmentCleanupReport,
+    CreateTask, InboxCandidateStatus, MessageSnapshot, Project, RecordActivity, SelfCheckItem,
+    SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
+    TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramSyncHealth, TelegramSyncRequest,
+    TelegramSyncStatus, Urgency, default_data_dir, run_self_check as run_core_self_check,
 };
 use rmcp::{
     Json, ServiceExt, handler::server::wrapper::Parameters, schemars, tool, tool_router,
@@ -153,6 +153,12 @@ struct TelegramTriageBatchArgs {
     /// Идентификатор последнего кандидата из предыдущей порции.
     cursor: Option<String>,
     /// Размер порции от 1 до 25. По умолчанию 12.
+    limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ActivityArgs {
+    cursor: Option<String>,
     limit: Option<usize>,
 }
 
@@ -409,6 +415,7 @@ struct WorkspaceBriefOutput {
     diagnostics: StoreDiagnostics,
     attachment_storage: AttachmentCleanupReport,
     priority_tasks: TaskDigestOutput,
+    recent_activity: ActivityPage,
     telegram: TelegramSyncStatusOutput,
     suggested_tools: Vec<&'static str>,
 }
@@ -654,13 +661,14 @@ impl FloodServer {
                 "telegram_sync_request",
                 "store_diagnostics",
                 "attachment_storage_audit",
+                "bounded_activity_journal",
                 "isolated_self_check",
             ],
         })
     }
 
     #[tool(
-        description = "Получить единую ограниченную стартовую сводку flood.md для агента. Выполняет изолированный self-check MCP и возвращает readiness ready/attention/blocked, диагностику реального хранилища, аудит вложений, до 10 приоритетных задач, свежесть Telegram и следующие подходящие tools. Не возвращает полную базу или тексты Telegram-входящих. Используйте первым вызовом вместо серии широких списков",
+        description = "Получить единую ограниченную стартовую сводку flood.md для агента. Выполняет изолированный self-check MCP и возвращает readiness ready/attention/blocked, диагностику реального хранилища, аудит вложений, до 10 приоритетных задач, до 5 последних действий MCP, свежесть Telegram и следующие подходящие tools. Не возвращает полную базу, тексты задач в журнале или Telegram-входящие. Используйте первым вызовом вместо серии широких списков",
         annotations(
             title = "Рабочая сводка flood.md",
             read_only_hint = true,
@@ -684,6 +692,7 @@ impl FloodServer {
                 limit: Some(10),
             }))?
             .0;
+        let recent_activity = self.store.list_activity(None, 5).map_err(store_error)?;
         let telegram = self.get_telegram_sync_status()?.0;
         let self_check_result = run_binary_self_check();
         let self_check = SelfCheckSummary {
@@ -730,15 +739,19 @@ impl FloodServer {
         if !self_check.passed {
             suggested_tools.push("run_self_check");
         }
+        if recent_activity.remaining > 0 {
+            suggested_tools.push("list_recent_activity");
+        }
 
         Ok(Json(WorkspaceBriefOutput {
-            brief_version: 3,
+            brief_version: 4,
             runtime,
             readiness,
             self_check,
             diagnostics,
             attachment_storage,
             priority_tasks,
+            recent_activity,
             telegram,
             suggested_tools,
         }))
@@ -755,6 +768,28 @@ impl FloodServer {
     )]
     fn diagnose_store(&self) -> Json<StoreDiagnostics> {
         Json(self.store.diagnostics())
+    }
+
+    #[tool(
+        description = "Получить до 50 последних изменений, выполненных через MCP. Журнал содержит только тип операции, время и стабильные идентификаторы — без текстов задач, сообщений Telegram и секретов. Используйте cursor для следующей страницы",
+        annotations(
+            title = "Журнал действий MCP",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn list_recent_activity(
+        &self,
+        Parameters(args): Parameters<ActivityArgs>,
+    ) -> Result<Json<ActivityPage>, String> {
+        self.store
+            .list_activity(
+                args.cursor.as_deref(),
+                args.limit.unwrap_or(20).clamp(1, 50),
+            )
+            .map(Json)
+            .map_err(store_error)
     }
 
     #[tool(
@@ -798,16 +833,26 @@ impl FloodServer {
         )
     )]
     fn request_telegram_sync(&self) -> Result<Json<TelegramSyncRequestOutput>, String> {
-        self.store
-            .request_telegram_sync()
-            .map(|request| {
-                Json(TelegramSyncRequestOutput {
-                    request,
-                    queued: true,
-                    next_step: "Проверьте get_telegram_sync_status и следуйте next_action; старый запрос не нужно опрашивать непрерывно",
-                })
-            })
-            .map_err(store_error)
+        let already_pending = self
+            .store
+            .telegram_sync_request()
+            .map_err(store_error)?
+            .is_some();
+        let request = self.store.request_telegram_sync().map_err(store_error)?;
+        if !already_pending {
+            self.record_mcp_activity(
+                ActivityAction::TelegramSyncRequested,
+                ActivityEntityKind::Workspace,
+                None,
+                None,
+                false,
+            );
+        }
+        Ok(Json(TelegramSyncRequestOutput {
+            request,
+            queued: true,
+            next_step: "Проверьте get_telegram_sync_status и следуйте next_action; старый запрос не нужно опрашивать непрерывно",
+        }))
     }
 
     #[tool(
@@ -870,10 +915,18 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<CreateProjectArgs>,
     ) -> Result<Json<ProjectOutput>, String> {
-        self.store
+        let project = self
+            .store
             .create_project(&args.title)
-            .map(|project| Json(ProjectOutput { project }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::ProjectCreated,
+            ActivityEntityKind::Project,
+            Some(project.id.clone()),
+            Some(project.id.clone()),
+            true,
+        );
+        Ok(Json(ProjectOutput { project }))
     }
 
     #[tool(
@@ -884,10 +937,18 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<UpdateProjectArgs>,
     ) -> Result<Json<ProjectOutput>, String> {
-        self.store
+        let project = self
+            .store
             .update_project(&args.id, &args.title, &args.expected_version)
-            .map(|project| Json(ProjectOutput { project }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::ProjectUpdated,
+            ActivityEntityKind::Project,
+            Some(project.id.clone()),
+            Some(project.id.clone()),
+            false,
+        );
+        Ok(Json(ProjectOutput { project }))
     }
 
     #[tool(
@@ -905,8 +966,15 @@ impl FloodServer {
         self.ensure_destructive_allowed()?;
         self.store
             .delete_project(&args.id, &args.expected_version)
-            .map(|_| Json(MutationOutput { success: true }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::ProjectDeleted,
+            ActivityEntityKind::Project,
+            Some(args.id.clone()),
+            Some(args.id),
+            false,
+        );
+        Ok(Json(MutationOutput { success: true }))
     }
 
     #[tool(
@@ -1244,6 +1312,12 @@ impl FloodServer {
                     .into(),
             );
         }
+        let pending_before = plan
+            .items
+            .iter()
+            .filter(|item| item.candidate_status == Some(InboxCandidateStatus::Pending))
+            .map(|item| item.candidate_id.as_str())
+            .collect::<HashSet<_>>();
         let mut seen = HashSet::new();
         let mut output = ApplyTelegramTriageOutput {
             created: 0,
@@ -1306,8 +1380,35 @@ impl FloodServer {
             match result {
                 Ok(task) => {
                     match action.as_str() {
-                        "create_task" => output.created += 1,
-                        "dismiss" => output.dismissed += 1,
+                        "create_task" => {
+                            output.created += 1;
+                            if pending_before.contains(candidate_id.as_str())
+                                && let Some(task) = task.as_ref()
+                            {
+                                self.record_mcp_activity(
+                                    ActivityAction::TelegramTaskCreated,
+                                    ActivityEntityKind::Task,
+                                    Some(task.id.clone()),
+                                    Some(task.project_id.clone()),
+                                    true,
+                                );
+                            }
+                        }
+                        "dismiss" => {
+                            output.dismissed += 1;
+                            if pending_before.contains(candidate_id.as_str())
+                                && let Ok(candidate) =
+                                    self.store.get_telegram_candidate(&candidate_id)
+                            {
+                                self.record_mcp_activity(
+                                    ActivityAction::TelegramCandidateDismissed,
+                                    ActivityEntityKind::TelegramCandidate,
+                                    Some(candidate.id),
+                                    Some(candidate.project_id),
+                                    true,
+                                );
+                            }
+                        }
                         "keep" => output.kept += 1,
                         _ => {}
                     }
@@ -1365,15 +1466,31 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<CreateTaskFromCandidateArgs>,
     ) -> Result<Json<TaskOutput>, String> {
+        let was_pending = self
+            .store
+            .get_telegram_candidate(&args.candidate_id)
+            .map_err(store_error)?
+            .status
+            == InboxCandidateStatus::Pending;
         let description = task_description(args.title, args.notes, args.description)?;
-        self.store
+        let task = self
+            .store
             .create_task_from_telegram_candidate(
                 &args.candidate_id,
                 description.as_deref(),
                 parse_urgency(args.urgency.as_deref().unwrap_or("normal"))?,
             )
-            .map(|task| Json(TaskOutput { task }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        if was_pending {
+            self.record_mcp_activity(
+                ActivityAction::TelegramTaskCreated,
+                ActivityEntityKind::Task,
+                Some(task.id.clone()),
+                Some(task.project_id.clone()),
+                true,
+            );
+        }
+        Ok(Json(TaskOutput { task }))
     }
 
     #[tool(
@@ -1389,10 +1506,29 @@ impl FloodServer {
             "dismissed" => InboxCandidateStatus::Dismissed,
             _ => return Err("status должен быть pending или dismissed".into()),
         };
-        self.store
+        let previous_status = self
+            .store
+            .get_telegram_candidate(&args.candidate_id)
+            .map_err(store_error)?
+            .status;
+        let candidate = self
+            .store
             .set_telegram_candidate_status(&args.candidate_id, status)
-            .map(|candidate| Json(TelegramCandidateOutput { candidate }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        if candidate.status != previous_status {
+            self.record_mcp_activity(
+                if candidate.status == InboxCandidateStatus::Pending {
+                    ActivityAction::TelegramCandidateRestored
+                } else {
+                    ActivityAction::TelegramCandidateDismissed
+                },
+                ActivityEntityKind::TelegramCandidate,
+                Some(candidate.id.clone()),
+                Some(candidate.project_id.clone()),
+                true,
+            );
+        }
+        Ok(Json(TelegramCandidateOutput { candidate }))
     }
 
     #[tool(
@@ -1429,10 +1565,15 @@ impl FloodServer {
             urgency: parse_urgency(args.urgency.as_deref().unwrap_or("normal"))?,
             source: args.source.map(parse_snapshot).transpose()?,
         };
-        self.store
-            .create_task(input)
-            .map(|task| Json(TaskOutput { task }))
-            .map_err(store_error)
+        let task = self.store.create_task(input).map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::TaskCreated,
+            ActivityEntityKind::Task,
+            Some(task.id.clone()),
+            Some(task.project_id.clone()),
+            true,
+        );
+        Ok(Json(TaskOutput { task }))
     }
 
     #[tool(
@@ -1454,10 +1595,18 @@ impl FloodServer {
             status: args.status.as_deref().map(parse_status).transpose()?,
             source,
         };
-        self.store
+        let task = self
+            .store
             .update_task(&args.id, patch, &args.expected_version)
-            .map(|task| Json(TaskOutput { task }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::TaskUpdated,
+            ActivityEntityKind::Task,
+            Some(task.id.clone()),
+            Some(task.project_id.clone()),
+            false,
+        );
+        Ok(Json(TaskOutput { task }))
     }
 
     #[tool(
@@ -1468,10 +1617,18 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<VersionedArgs>,
     ) -> Result<Json<TaskOutput>, String> {
-        self.store
+        let task = self
+            .store
             .complete_task(&args.id, &args.expected_version)
-            .map(|task| Json(TaskOutput { task }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::TaskCompleted,
+            ActivityEntityKind::Task,
+            Some(task.id.clone()),
+            Some(task.project_id.clone()),
+            true,
+        );
+        Ok(Json(TaskOutput { task }))
     }
 
     #[tool(
@@ -1482,10 +1639,18 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<MoveTaskArgs>,
     ) -> Result<Json<TaskOutput>, String> {
-        self.store
+        let task = self
+            .store
             .move_task(&args.id, &args.project_id, &args.expected_version)
-            .map(|task| Json(TaskOutput { task }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::TaskMoved,
+            ActivityEntityKind::Task,
+            Some(task.id.clone()),
+            Some(task.project_id.clone()),
+            false,
+        );
+        Ok(Json(TaskOutput { task }))
     }
 
     #[tool(
@@ -1500,10 +1665,18 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<VersionedArgs>,
     ) -> Result<Json<TaskOutput>, String> {
-        self.store
+        let task = self
+            .store
             .trash_task(&args.id, &args.expected_version)
-            .map(|task| Json(TaskOutput { task }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::TaskTrashed,
+            ActivityEntityKind::Task,
+            Some(task.id.clone()),
+            Some(task.project_id.clone()),
+            true,
+        );
+        Ok(Json(TaskOutput { task }))
     }
 
     #[tool(
@@ -1518,10 +1691,18 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<VersionedArgs>,
     ) -> Result<Json<TaskOutput>, String> {
-        self.store
+        let task = self
+            .store
             .restore_task(&args.id, &args.expected_version)
-            .map(|task| Json(TaskOutput { task }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::TaskRestored,
+            ActivityEntityKind::Task,
+            Some(task.id.clone()),
+            Some(task.project_id.clone()),
+            true,
+        );
+        Ok(Json(TaskOutput { task }))
     }
 
     #[tool(
@@ -1539,8 +1720,15 @@ impl FloodServer {
         self.ensure_destructive_allowed()?;
         self.store
             .delete_trashed_task(&args.id, &args.expected_version)
-            .map(|_| Json(MutationOutput { success: true }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::TaskDeleted,
+            ActivityEntityKind::Task,
+            Some(args.id),
+            None,
+            false,
+        );
+        Ok(Json(MutationOutput { success: true }))
     }
 
     #[tool(
@@ -1553,14 +1741,41 @@ impl FloodServer {
     )]
     fn empty_trash(&self) -> Result<Json<DeleteCountOutput>, String> {
         self.ensure_destructive_allowed()?;
-        self.store
-            .empty_trash()
-            .map(|deleted| Json(DeleteCountOutput { deleted }))
-            .map_err(store_error)
+        let deleted = self.store.empty_trash().map_err(store_error)?;
+        if deleted > 0 {
+            self.record_mcp_activity(
+                ActivityAction::TrashEmptied,
+                ActivityEntityKind::Workspace,
+                None,
+                None,
+                false,
+            );
+        }
+        Ok(Json(DeleteCountOutput { deleted }))
     }
 }
 
 impl FloodServer {
+    fn record_mcp_activity(
+        &self,
+        action: ActivityAction,
+        entity_kind: ActivityEntityKind,
+        entity_id: Option<String>,
+        project_id: Option<String>,
+        reversible: bool,
+    ) {
+        if let Err(error) = self.store.record_activity(RecordActivity {
+            source: ActivitySource::Mcp,
+            action,
+            entity_kind,
+            entity_id,
+            project_id,
+            reversible,
+        }) {
+            eprintln!("flood-mcp: не удалось записать локальный журнал действий: {error}");
+        }
+    }
+
     fn build_telegram_triage_plan(
         &self,
         decisions: &[TelegramTriageDecisionArgs],
@@ -2032,6 +2247,7 @@ fn run_binary_self_check() -> SelfCheckResult {
         "get_workspace_brief",
         "diagnose_store",
         "inspect_attachment_storage",
+        "list_recent_activity",
         "list_projects",
         "list_tasks",
         "search_tasks",
@@ -2174,6 +2390,7 @@ mod tests {
             "inspect_attachment_storage",
             "get_runtime_info",
             "get_workspace_brief",
+            "list_recent_activity",
             "run_self_check",
             "search_tasks",
             "get_task_digest",
@@ -2248,7 +2465,7 @@ mod tests {
         assert_eq!(runtime.version, env!("CARGO_PKG_VERSION"));
         assert!(!runtime.destructive_actions_enabled);
         let brief = _server.get_workspace_brief().unwrap().0;
-        assert_eq!(brief.brief_version, 3);
+        assert_eq!(brief.brief_version, 4);
         assert_eq!(brief.readiness.level, "ready");
         assert!(brief.readiness.agent_ready);
         assert_eq!(brief.readiness.checks.len(), 4);
@@ -2259,6 +2476,7 @@ mod tests {
         assert_eq!(brief.attachment_storage.total_files, 0);
         assert_eq!(brief.attachment_storage.orphaned_files, 0);
         assert!(brief.priority_tasks.tasks.is_empty());
+        assert!(brief.recent_activity.events.is_empty());
         assert!(brief.suggested_tools.contains(&"create_project"));
         assert!(!brief.suggested_tools.contains(&"run_self_check"));
         assert_eq!(
@@ -2948,6 +3166,30 @@ mod tests {
             .0
             .task;
         assert_eq!(repeated.id, task.id);
+        let activity = server
+            .list_recent_activity(Parameters(ActivityArgs {
+                cursor: None,
+                limit: Some(20),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(activity.total, 5);
+        assert_eq!(
+            activity
+                .events
+                .iter()
+                .filter(|event| event.action == ActivityAction::TelegramTaskCreated)
+                .count(),
+            1
+        );
+        assert_eq!(
+            activity
+                .events
+                .iter()
+                .filter(|event| event.action == ActivityAction::TelegramCandidateDismissed)
+                .count(),
+            2
+        );
         assert!(
             server
                 .list_telegram_inbox(Parameters(ListTelegramInboxArgs {

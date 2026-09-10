@@ -1,6 +1,7 @@
 use crate::{
-    CreateTask, InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind,
-    Task, TaskPatch, TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramLinkedTask,
+    ActivityAction, ActivityEntityKind, ActivityEvent, ActivitySource, CreateTask,
+    InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind, Task,
+    TaskPatch, TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramLinkedTask,
     TelegramProjectLink, TelegramSyncRequest, TelegramSyncStatus, Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
@@ -27,6 +28,8 @@ const MAX_ATTACHMENT_BYTES: u64 = 25 * 1024 * 1024;
 const MAX_MARKDOWN_FILE_BYTES: u64 = 1024 * 1024;
 const MAX_TELEGRAM_INBOX_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_INTEGRATION_STATE_BYTES: u64 = 64 * 1024;
+const MAX_ACTIVITY_BYTES: u64 = 512 * 1024;
+const MAX_ACTIVITY_EVENTS: usize = 500;
 
 #[derive(Debug, Error)]
 pub enum StoreError {
@@ -89,6 +92,24 @@ pub struct TelegramInboxPage {
     pub remaining: usize,
 }
 
+#[derive(Clone, Debug)]
+pub struct RecordActivity {
+    pub source: ActivitySource,
+    pub action: ActivityAction,
+    pub entity_kind: ActivityEntityKind,
+    pub entity_id: Option<String>,
+    pub project_id: Option<String>,
+    pub reversible: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct ActivityPage {
+    pub events: Vec<ActivityEvent>,
+    pub total: usize,
+    pub next_cursor: Option<String>,
+    pub remaining: usize,
+}
+
 struct AttachmentScan {
     report: AttachmentCleanupReport,
     orphaned: Vec<(PathBuf, u64)>,
@@ -130,7 +151,19 @@ struct TelegramInboxDocument {
     candidates: Vec<TelegramInboxCandidate>,
 }
 
+#[derive(Default, Serialize, Deserialize)]
+struct ActivityDocument {
+    #[serde(default = "activity_format_version")]
+    format_version: u8,
+    #[serde(default)]
+    events: Vec<ActivityEvent>,
+}
+
 fn inbox_format_version() -> u8 {
+    1
+}
+
+fn activity_format_version() -> u8 {
     1
 }
 
@@ -196,6 +229,82 @@ impl Store {
         &self.root
     }
 
+    pub fn record_activity(&self, input: RecordActivity) -> Result<ActivityEvent, StoreError> {
+        validate_activity_reference(
+            &input.entity_kind,
+            input.entity_id.as_deref(),
+            input.project_id.as_deref(),
+        )?;
+        let _lock = self.lock_exclusive()?;
+        let mut document = self.read_activity()?;
+        let event = ActivityEvent {
+            id: Ulid::new().to_string(),
+            occurred_at: Utc::now(),
+            source: input.source,
+            action: input.action,
+            entity_kind: input.entity_kind,
+            entity_id: input.entity_id,
+            project_id: input.project_id,
+            reversible: input.reversible,
+        };
+        document.events.push(event.clone());
+        compact_activity(&mut document);
+        self.write_activity(&document)?;
+        Ok(event)
+    }
+
+    pub fn list_activity(
+        &self,
+        cursor: Option<&str>,
+        limit: usize,
+    ) -> Result<ActivityPage, StoreError> {
+        if !(1..=100).contains(&limit) {
+            return Err(StoreError::Validation(
+                "размер порции журнала должен быть от 1 до 100".into(),
+            ));
+        }
+        if let Some(cursor) = cursor {
+            validate_id(cursor)?;
+        }
+        let _lock = self.lock_shared()?;
+        let mut events = self.read_activity()?.events;
+        events.sort_by(|left, right| {
+            right
+                .occurred_at
+                .cmp(&left.occurred_at)
+                .then_with(|| right.id.cmp(&left.id))
+        });
+        let total = events.len();
+        let start = match cursor {
+            Some(cursor) => events
+                .iter()
+                .position(|event| event.id == cursor)
+                .map(|index| index + 1)
+                .ok_or_else(|| {
+                    StoreError::Validation(
+                        "курсор не найден в текущем журнале; начните заново".into(),
+                    )
+                })?,
+            None => 0,
+        };
+        let mut page = events
+            .into_iter()
+            .skip(start)
+            .take(limit)
+            .collect::<Vec<_>>();
+        let remaining = total.saturating_sub(start + page.len());
+        let next_cursor = (remaining > 0)
+            .then(|| page.last().map(|event| event.id.clone()))
+            .flatten();
+        page.shrink_to_fit();
+        Ok(ActivityPage {
+            events: page,
+            total,
+            next_cursor,
+            remaining,
+        })
+    }
+
     pub fn diagnostics(&self) -> StoreDiagnostics {
         let mut diagnostics = StoreDiagnostics {
             healthy: true,
@@ -248,6 +357,11 @@ impl Store {
             Err(error) => diagnostics
                 .issues
                 .push(format!("Не удалось прочитать входящие Telegram: {error}")),
+        }
+        if let Err(error) = self.list_activity(None, 1) {
+            diagnostics
+                .issues
+                .push(format!("Не удалось прочитать журнал действий: {error}"));
         }
         diagnostics.healthy = diagnostics.issues.is_empty();
         diagnostics
@@ -1558,6 +1672,52 @@ impl Store {
             .join("telegram-sync-request.json")
     }
 
+    fn activity_path(&self) -> PathBuf {
+        self.root.join("integrations").join("activity.json")
+    }
+
+    fn read_activity(&self) -> Result<ActivityDocument, StoreError> {
+        let path = self.activity_path();
+        if !path.exists() {
+            return Ok(ActivityDocument {
+                format_version: activity_format_version(),
+                events: Vec::new(),
+            });
+        }
+        let document: ActivityDocument =
+            serde_json::from_slice(&read_limited_bytes(&path, MAX_ACTIVITY_BYTES)?)?;
+        if document.format_version != activity_format_version() {
+            return Err(StoreError::Validation(
+                "неподдерживаемая версия журнала действий".into(),
+            ));
+        }
+        if document.events.len() > MAX_ACTIVITY_EVENTS {
+            return Err(StoreError::Validation(
+                "журнал действий превышает безопасный лимит".into(),
+            ));
+        }
+        for event in &document.events {
+            validate_id(&event.id)?;
+            validate_activity_reference(
+                &event.entity_kind,
+                event.entity_id.as_deref(),
+                event.project_id.as_deref(),
+            )?;
+        }
+        Ok(document)
+    }
+
+    fn write_activity(&self, document: &ActivityDocument) -> Result<(), StoreError> {
+        let mut bytes = serde_json::to_vec_pretty(document)?;
+        bytes.push(b'\n');
+        if bytes.len() as u64 > MAX_ACTIVITY_BYTES {
+            return Err(StoreError::Validation(
+                "журнал действий превышает безопасный размер".into(),
+            ));
+        }
+        atomic_write_bytes(&self.activity_path(), &bytes)
+    }
+
     fn read_telegram_inbox(&self) -> Result<TelegramInboxDocument, StoreError> {
         let path = self.telegram_inbox_path();
         if !path.exists() {
@@ -2055,10 +2215,10 @@ fn restore_entry_size_limit(path: &Path) -> u64 {
         return MAX_MARKDOWN_FILE_BYTES;
     }
     if path.starts_with("integrations") {
-        return if path.file_name().and_then(|value| value.to_str()) == Some("telegram-inbox.json") {
-            MAX_TELEGRAM_INBOX_BYTES
-        } else {
-            MAX_INTEGRATION_STATE_BYTES
+        return match path.file_name().and_then(|value| value.to_str()) {
+            Some("telegram-inbox.json") => MAX_TELEGRAM_INBOX_BYTES,
+            Some("activity.json") => MAX_ACTIVITY_BYTES,
+            _ => MAX_INTEGRATION_STATE_BYTES,
         };
     }
     MAX_MARKDOWN_FILE_BYTES
@@ -2156,6 +2316,27 @@ fn validate_id(id: &str) -> Result<(), StoreError> {
         .map(|_| ())
         .map_err(|_| StoreError::Validation("некорректный идентификатор".into()))
 }
+
+fn validate_activity_reference(
+    entity_kind: &ActivityEntityKind,
+    entity_id: Option<&str>,
+    project_id: Option<&str>,
+) -> Result<(), StoreError> {
+    if let Some(project_id) = project_id {
+        validate_id(project_id)?;
+    }
+    match (entity_kind, entity_id) {
+        (ActivityEntityKind::Workspace, None) => Ok(()),
+        (ActivityEntityKind::Project | ActivityEntityKind::Task, Some(id)) => validate_id(id),
+        (ActivityEntityKind::TelegramCandidate, Some(id)) => {
+            clean_required(id, "идентификатор Telegram-кандидата", 160).map(|_| ())
+        }
+        _ => Err(StoreError::Validation(
+            "тип объекта и entity_id события не согласованы".into(),
+        )),
+    }
+}
+
 fn clean_required(value: &str, field: &str, max: usize) -> Result<String, StoreError> {
     let value = value.trim();
     if value.is_empty() {
@@ -2301,6 +2482,13 @@ fn compact_telegram_inbox(document: &mut TelegramInboxDocument) {
     document.candidates.truncate(10_000);
 }
 
+fn compact_activity(document: &mut ActivityDocument) {
+    if document.events.len() > MAX_ACTIVITY_EVENTS {
+        let remove = document.events.len() - MAX_ACTIVITY_EVENTS;
+        document.events.drain(..remove);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2308,6 +2496,91 @@ mod tests {
     fn temp_store() -> Store {
         let root = env::temp_dir().join(format!("flood-test-{}", Ulid::new()));
         Store::new(root).unwrap()
+    }
+
+    #[test]
+    fn activity_journal_is_persistent_paginated_and_bounded() {
+        let store = temp_store();
+        let project = store.create_project("Журнал").unwrap();
+        let first = store
+            .record_activity(RecordActivity {
+                source: ActivitySource::Mcp,
+                action: ActivityAction::ProjectCreated,
+                entity_kind: ActivityEntityKind::Project,
+                entity_id: Some(project.id.clone()),
+                project_id: Some(project.id.clone()),
+                reversible: true,
+            })
+            .unwrap();
+        let second = store
+            .record_activity(RecordActivity {
+                source: ActivitySource::Mcp,
+                action: ActivityAction::TelegramSyncRequested,
+                entity_kind: ActivityEntityKind::Workspace,
+                entity_id: None,
+                project_id: None,
+                reversible: false,
+            })
+            .unwrap();
+        let third = store
+            .record_activity(RecordActivity {
+                source: ActivitySource::Mcp,
+                action: ActivityAction::TaskCreated,
+                entity_kind: ActivityEntityKind::Task,
+                entity_id: Some(Ulid::new().to_string()),
+                project_id: Some(project.id),
+                reversible: true,
+            })
+            .unwrap();
+
+        let page = store.list_activity(None, 2).unwrap();
+        assert_eq!(page.total, 3);
+        assert_eq!(page.events.len(), 2);
+        assert_eq!(page.remaining, 1);
+        let final_page = store.list_activity(page.next_cursor.as_deref(), 2).unwrap();
+        assert_eq!(final_page.events.len(), 1);
+        assert_eq!(final_page.remaining, 0);
+        let returned_ids = page
+            .events
+            .iter()
+            .chain(&final_page.events)
+            .map(|event| event.id.as_str())
+            .collect::<HashSet<_>>();
+        assert_eq!(
+            returned_ids,
+            HashSet::from([first.id.as_str(), second.id.as_str(), third.id.as_str()])
+        );
+
+        let reopened = Store::new(store.root()).unwrap();
+        assert_eq!(reopened.list_activity(None, 10).unwrap().total, 3);
+
+        let mut document = ActivityDocument {
+            format_version: activity_format_version(),
+            events: (0..MAX_ACTIVITY_EVENTS + 5)
+                .map(|_| ActivityEvent {
+                    id: Ulid::new().to_string(),
+                    occurred_at: Utc::now(),
+                    source: ActivitySource::Mcp,
+                    action: ActivityAction::TaskUpdated,
+                    entity_kind: ActivityEntityKind::Task,
+                    entity_id: Some(Ulid::new().to_string()),
+                    project_id: None,
+                    reversible: false,
+                })
+                .collect(),
+        };
+        let removed_ids = document.events[..5]
+            .iter()
+            .map(|event| event.id.clone())
+            .collect::<HashSet<_>>();
+        compact_activity(&mut document);
+        assert_eq!(document.events.len(), MAX_ACTIVITY_EVENTS);
+        assert!(
+            document
+                .events
+                .iter()
+                .all(|event| !removed_ids.contains(&event.id))
+        );
     }
 
     #[test]

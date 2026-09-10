@@ -162,6 +162,12 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert_eq!(workspace_brief["annotations"]["readOnlyHint"], true);
     assert_eq!(workspace_brief["annotations"]["openWorldHint"], false);
+    let recent_activity = tools
+        .iter()
+        .find(|tool| tool["name"] == "list_recent_activity")
+        .unwrap();
+    assert_eq!(recent_activity["annotations"]["readOnlyHint"], true);
+    assert_eq!(recent_activity["annotations"]["openWorldHint"], false);
     let attachment_audit = tools
         .iter()
         .find(|tool| tool["name"] == "inspect_attachment_storage")
@@ -444,7 +450,7 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     );
     let brief = receive(&mut stdout, 15);
     assert_eq!(brief["result"]["isError"], false);
-    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 3);
+    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 4);
     assert_eq!(
         brief["result"]["structuredContent"]["readiness"]["level"],
         "ready"
@@ -472,6 +478,10 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
             .unwrap()
             .len(),
         1
+    );
+    assert_eq!(
+        brief["result"]["structuredContent"]["recent_activity"]["total"],
+        3
     );
     assert_eq!(
         brief["result"]["structuredContent"]["telegram"]["pending_request"]["id"],
@@ -551,6 +561,33 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     );
     let unconfirmed_triage = receive(&mut stdout, 18);
     assert_eq!(unconfirmed_triage["result"]["isError"], true);
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 19,
+            "method": "tools/call",
+            "params": {
+                "name": "list_recent_activity",
+                "arguments": { "limit": 10 }
+            }
+        }),
+    );
+    let activity = receive(&mut stdout, 19);
+    assert_eq!(activity["result"]["isError"], false);
+    let events = activity["result"]["structuredContent"]["events"]
+        .as_array()
+        .unwrap();
+    assert_eq!(events.len(), 3);
+    assert_eq!(events[0]["action"], "telegram_sync_requested");
+    assert_eq!(events[1]["action"], "task_created");
+    assert_eq!(events[2]["action"], "project_created");
+    assert!(
+        !activity
+            .to_string()
+            .contains("Проверить полнотекстовый поиск MCP")
+    );
 
     drop(stdin);
     assert!(child.wait().unwrap().success());

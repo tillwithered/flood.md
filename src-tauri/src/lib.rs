@@ -1,9 +1,10 @@
 use chrono::Utc;
 use flood_core::{
-    AttachmentCleanupReport, AttachmentCleanupResult, CreateTask, InboxCandidateStatus, Project,
-    SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
-    TaskSummary, TelegramInboxCandidate, TelegramInboxPage, TelegramProjectLink,
-    TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
+    ActivityPage, AttachmentCleanupReport, AttachmentCleanupResult, CreateTask,
+    InboxCandidateStatus, Project, SelfCheckResult, SourceMedia, SourceMediaKind, Store,
+    StoreDiagnostics, Task, TaskPatch, TaskSummary, TelegramInboxCandidate, TelegramInboxPage,
+    TelegramProjectLink, TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, Urgency,
+    default_data_dir,
 };
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -544,6 +545,15 @@ fn mcp_runtime_info(app: tauri::AppHandle) -> Result<McpRuntimeInfo, String> {
 #[tauri::command]
 fn diagnose_store(state: State<'_, AppState>) -> StoreDiagnostics {
     state.store.diagnostics()
+}
+
+#[tauri::command]
+fn list_activity(
+    cursor: Option<String>,
+    limit: usize,
+    state: State<'_, AppState>,
+) -> Result<ActivityPage, String> {
+    result(state.store.list_activity(cursor.as_deref(), limit))
 }
 
 #[tauri::command]
@@ -1202,6 +1212,7 @@ pub fn run() {
             installation_runtime_info,
             open_application_directory,
             diagnose_store,
+            list_activity,
             run_mcp_self_check,
             telegram_status,
             telegram_configure,
