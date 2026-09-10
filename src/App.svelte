@@ -22,7 +22,8 @@
   type UpdateState = "idle" | "checking" | "available" | "current" | "downloading" | "error";
   type DataActionState = "idle" | "backing-up" | "restoring" | "success" | "error";
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string };
-  type ProjectRecord = { id: string; title: string; created_at: string; updated_at: string; version: string };
+  type TelegramProjectLink = { chat_id: number; title: string };
+  type ProjectRecord = { id: string; title: string; created_at: string; updated_at: string; telegram?: TelegramProjectLink; version: string };
   type TaskRecord = {
     id: string;
     project_id: string;
@@ -57,6 +58,7 @@
   type MarkdownHint = { title: string; left: number; top: number };
   type TelegramStatus = { step: string; configured: boolean; managed_credentials: boolean; account_name?: string; qr_link?: string; password_hint?: string; error?: string };
   type TelegramChat = { id: number; title: string };
+  type TelegramMessage = { id: number; chat_id: number; text: string; author: string; sent_at: number; url?: string };
 
   const markdownHints: Record<string, MessageKey> = {
     "#": "largeHeading"
@@ -103,6 +105,11 @@
   let telegramError = "";
   let telegramQrDataUrl = "";
   let telegramChats: TelegramChat[] = [];
+  let telegramImportOpen = false;
+  let telegramMessages: TelegramMessage[] = [];
+  let telegramMessagesLoading = false;
+  let telegramImportError = "";
+  let telegramImportingId = 0;
   let updateState: UpdateState = "idle";
   let updateMessage = "";
   let availableUpdate: Update | null = null;
@@ -1142,7 +1149,8 @@
 
   async function handleWindowKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
-      if (imageViewer) closeImageViewer();
+      if (telegramImportOpen) closeTelegramImporter();
+      else if (imageViewer) closeImageViewer();
       else if (newTaskMenuAnchor || urgencyMenuOpen || taskActionMenuOpen || sourceEditorOpen || datePickerOpen) {
         newTaskMenuAnchor = null;
         urgencyMenuOpen = false;
@@ -1804,6 +1812,70 @@
     });
   }
 
+  async function linkProjectTelegram(project: ChatItem, telegramChatId: string) {
+    const telegramChat = telegramChats.find((chat) => String(chat.id) === telegramChatId);
+    try {
+      await invoke<ProjectRecord>("set_project_telegram", {
+        id: project.id,
+        telegram: telegramChat ? { chat_id: telegramChat.id, title: telegramChat.title } : null,
+        expectedVersion: project.version
+      });
+      await loadData(true);
+    } catch (error) {
+      telegramError = String(error);
+    }
+  }
+
+  async function openTelegramImporter() {
+    if (!currentChat.telegram || telegramMessagesLoading) return;
+    telegramImportOpen = true;
+    telegramMessagesLoading = true;
+    telegramImportError = "";
+    telegramMessages = [];
+    try {
+      telegramMessages = await invoke<TelegramMessage[]>("telegram_list_messages", { chatId: currentChat.telegram.chat_id, limit: 40 });
+    } catch (error) {
+      telegramImportError = String(error);
+    } finally {
+      telegramMessagesLoading = false;
+    }
+  }
+
+  function closeTelegramImporter() {
+    if (telegramImportingId) return;
+    telegramImportOpen = false;
+    telegramMessages = [];
+    telegramImportError = "";
+  }
+
+  async function importTelegramMessage(message: TelegramMessage) {
+    if (telegramImportingId || currentChat.id === "all") return;
+    telegramImportingId = message.id;
+    telegramImportError = "";
+    try {
+      const created = await invoke<TaskRecord>("create_task", {
+        input: {
+          project_id: currentChat.id,
+          description: message.text,
+          urgency: "normal",
+          source: {
+            text: message.text,
+            author: message.author || undefined,
+            sent_at: new Date(message.sent_at * 1000).toISOString(),
+            url: message.url || undefined
+          }
+        }
+      });
+      telegramImportOpen = false;
+      await loadData(true);
+      await openTask(toTaskItem(created, chats));
+    } catch (error) {
+      telegramImportError = String(error);
+    } finally {
+      telegramImportingId = 0;
+    }
+  }
+
   async function openDataDirectory() {
     if (dataDirectory) await openPath(dataDirectory);
   }
@@ -2250,6 +2322,9 @@
               <p>{loading ? t("loadingTasks") : openTasksLabel(currentOpenTasks.length)}</p>
             </div>
             <div class="project-header-actions">
+              {#if currentChat.id !== "all" && currentChat.telegram}
+                <button class="project-add-button telegram-import-button" title={t("importFromTelegramChat", { chat: currentChat.telegram.title })} onclick={openTelegramImporter}><Send size={15} />{t("fromTelegram")}</button>
+              {/if}
               <button class="project-add-button" aria-expanded={newTaskMenuAnchor === "workspace"} onclick={() => requestNewTask("workspace")}><Plus size={16} />{t("newTask")}</button>
               {#if newTaskMenuAnchor === "workspace"}
                 <div class="new-task-menu workspace-new-task-menu">
@@ -2425,7 +2500,12 @@
                       <form class="telegram-form inline" onsubmit={submitTelegramPassword}><label><span>{t("telegramPassword")}</span><input bind:value={telegramPassword} type="password" autocomplete="current-password" placeholder={telegramStatus.password_hint || ""} required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
                     {:else if telegramStatus.step === "ready"}
                       <p>{t("telegramReady", { count: telegramChats.length })}</p>
-                      {#if telegramChats.length}<div class="telegram-chat-preview">{#each telegramChats.slice(0, 4) as chat (chat.id)}<span>{chat.title}</span>{/each}{#if telegramChats.length > 4}<small>+{telegramChats.length - 4}</small>{/if}</div>{/if}
+                      <div class="telegram-project-links">
+                        <strong>{t("projectConnections")}</strong>
+                        {#each chats.slice(1) as project (project.id)}
+                          <label><span><Folder size={14} /><span title={project.title}>{project.title}</span></span><select value={project.telegram ? String(project.telegram.chat_id) : ""} aria-label={t("telegramChatForProject", { project: project.title })} onchange={(event) => void linkProjectTelegram(project, event.currentTarget.value)}><option value="">{t("notLinked")}</option>{#each telegramChats as telegramChat (telegramChat.id)}<option value={String(telegramChat.id)}>{telegramChat.title}</option>{/each}</select></label>
+                        {/each}
+                      </div>
                       <button class="telegram-help danger" disabled={telegramBusy} onclick={disconnectTelegram}><LogOut size={13} />{t("disconnect")}</button>
                     {:else}
                       <div class="telegram-loading"><RefreshCw class="spinning" size={15} />{t("connecting")}</div>
@@ -2439,7 +2519,7 @@
                   <div class="settings-section-title"><h3>{t("about")}</h3><p>flood.md {appVersion}</p></div>
                   <div class="about-brand"><FloodGlyph kind="brand" size={42} /><span><strong>flood.md</strong><small>{t("localTasksNoNoise")}</small></span></div>
                   <div class="update-row"><span><strong>{t("updates")}</strong><small>{updateMessage || t("updateViaGithub")}</small>{#if updateState === "downloading"}<progress max="100" value={updateProgress}></progress>{/if}</span>{#if updateState === "available"}<button class="primary-small" onclick={installAvailableUpdate}><Download size={15} />{t("installVersion", { version: availableUpdate?.version ?? "" })}</button>{:else}<button onclick={checkForUpdates} disabled={updateState === "checking" || updateState === "downloading"}><span class:spinning={updateState === "checking"} class="update-icon"><RefreshCw size={15} /></span>{updateState === "checking" ? t("checking") : t("check")}</button>{/if}</div>
-                  <button class="settings-action" onclick={() => openUrl("https://github.com/tillwithered/flood")}><ExternalLink size={15} />{t("openGithub")}</button>
+                  <button class="settings-action" onclick={() => openUrl("https://github.com/tillwithered/flood.md")}><ExternalLink size={15} />{t("openGithub")}</button>
                 </section>
               {/if}
             </div>
@@ -2449,6 +2529,27 @@
     {/if}
   </div>
 </main>
+
+{#if telegramImportOpen}
+  <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeTelegramImporter(); }}>
+    <div class="telegram-import-panel" role="dialog" aria-modal="true" aria-label={t("telegramMessages")}>
+      <header><span><Send size={17} /><span><strong>{currentChat.telegram?.title || "Telegram"}</strong><small>{t("chooseMessageForTask")}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeTelegramImporter}><X size={16} /></button></header>
+      <div class="telegram-message-list">
+        {#if telegramMessagesLoading}
+          <div class="telegram-import-state"><RefreshCw class="spinning" size={16} />{t("loadingMessages")}</div>
+        {:else if telegramImportError}
+          <div class="telegram-import-state error">{telegramImportError}</div>
+        {:else}
+          {#each telegramMessages as message (message.id)}
+            <article class="telegram-message"><div><span><strong>{message.author || "Telegram"}</strong><small>{fullDate(new Date(message.sent_at * 1000).toISOString())}</small></span><p>{message.text}</p></div><button disabled={Boolean(telegramImportingId)} aria-label={t("createTaskFromMessage")} title={t("createTaskFromMessage")} onclick={() => importTelegramMessage(message)}>{#if telegramImportingId === message.id}<RefreshCw class="spinning" size={15} />{:else}<Plus size={16} />{/if}</button></article>
+          {:else}
+            <div class="telegram-import-state">{t("noTextMessages")}</div>
+          {/each}
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
 
 {#if imageViewer}
   <div class="image-viewer" bind:this={imageViewerDialog} role="dialog" aria-modal="true" aria-label={t("imageViewer", { image: imageViewer.alt })} tabindex="-1">

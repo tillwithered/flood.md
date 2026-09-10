@@ -46,6 +46,8 @@ struct ProjectDocument {
     title: String,
     created_at: chrono::DateTime<Utc>,
     updated_at: chrono::DateTime<Utc>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    telegram: Option<crate::TelegramProjectLink>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -198,6 +200,7 @@ impl Store {
             title,
             created_at: now,
             updated_at: now,
+            telegram: None,
             version: String::new(),
         };
         fs::create_dir_all(self.task_dir(&project.id))?;
@@ -218,6 +221,26 @@ impl Store {
             read_project(&self.project_path(id)).map_err(|error| map_missing(error, id))?;
         ensure_version(&project.version, expected_version)?;
         project.title = title;
+        project.updated_at = Utc::now();
+        self.write_project(&project)?;
+        read_project(&self.project_path(id))
+    }
+
+    pub fn set_project_telegram(
+        &self,
+        id: &str,
+        telegram: Option<crate::TelegramProjectLink>,
+        expected_version: &str,
+    ) -> Result<Project, StoreError> {
+        validate_id(id)?;
+        if let Some(link) = &telegram {
+            clean_required(&link.title, "название Telegram-чата", 240)?;
+        }
+        let _lock = self.lock_exclusive()?;
+        let mut project =
+            read_project(&self.project_path(id)).map_err(|error| map_missing(error, id))?;
+        ensure_version(&project.version, expected_version)?;
+        project.telegram = telegram;
         project.updated_at = Utc::now();
         self.write_project(&project)?;
         read_project(&self.project_path(id))
@@ -740,6 +763,7 @@ impl Store {
             title: project.title.clone(),
             created_at: project.created_at,
             updated_at: project.updated_at,
+            telegram: project.telegram.clone(),
         };
         let body = format!("# {}\n", project.title);
         atomic_write(&self.project_path(&project.id), &encode(&doc, &body)?)
@@ -811,6 +835,7 @@ fn read_project(path: &Path) -> Result<Project, StoreError> {
         title: doc.title,
         created_at: doc.created_at,
         updated_at: doc.updated_at,
+        telegram: doc.telegram,
         version,
     })
 }
@@ -1144,6 +1169,31 @@ mod tests {
             .clear_task_source(&restored.id, &restored.version)
             .unwrap();
         assert!(cleared.source.is_none());
+    }
+
+    #[test]
+    fn telegram_chat_link_round_trips_through_project_markdown() {
+        let store = temp_store();
+        let project = store.create_project("Поддержка").unwrap();
+        let linked = store
+            .set_project_telegram(
+                &project.id,
+                Some(crate::TelegramProjectLink {
+                    chat_id: -1001234567890,
+                    title: "Команда поддержки".into(),
+                }),
+                &project.version,
+            )
+            .unwrap();
+        assert_eq!(linked.telegram.as_ref().unwrap().chat_id, -1001234567890);
+        let content = fs::read_to_string(store.project_path(&project.id)).unwrap();
+        assert!(content.contains("telegram:"));
+        assert!(content.contains("chat_id: -1001234567890"));
+
+        let unlinked = store
+            .set_project_telegram(&linked.id, None, &linked.version)
+            .unwrap();
+        assert!(unlinked.telegram.is_none());
     }
 
     #[test]

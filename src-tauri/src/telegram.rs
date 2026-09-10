@@ -42,6 +42,16 @@ pub struct TelegramChat {
     pub title: String,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct TelegramMessage {
+    pub id: i64,
+    pub chat_id: i64,
+    pub text: String,
+    pub author: String,
+    pub sent_at: i32,
+    pub url: Option<String>,
+}
+
 struct TelegramInner {
     app: AppHandle,
     root: PathBuf,
@@ -199,6 +209,42 @@ impl TelegramManager {
         Ok(result)
     }
 
+    pub async fn messages(&self, chat_id: i64, limit: i32) -> Result<Vec<TelegramMessage>, String> {
+        if self.status().step != "ready" {
+            return Err("Сначала подключите Telegram".into());
+        }
+        let client_id = self.client_id()?;
+        let limit = limit.clamp(1, 50);
+        let enums::Messages::Messages(history) =
+            functions::get_chat_history(chat_id, 0, 0, limit, false, client_id)
+                .await
+                .map_err(td_error)?;
+        let mut result = Vec::new();
+        for message in history.messages.into_iter().flatten() {
+            let text = message_text(&message.content);
+            if text.trim().is_empty() {
+                continue;
+            }
+            let author = self.sender_name(&message.sender_id, client_id).await;
+            let url =
+                match functions::get_message_link(chat_id, message.id, 0, false, false, client_id)
+                    .await
+                {
+                    Ok(enums::MessageLink::MessageLink(link)) => Some(link.link),
+                    Err(_) => None,
+                };
+            result.push(TelegramMessage {
+                id: message.id,
+                chat_id,
+                text,
+                author,
+                sent_at: message.date,
+                url,
+            });
+        }
+        Ok(result)
+    }
+
     pub async fn disconnect(&self) -> Result<(), String> {
         let client_id = self.client_id()?;
         functions::log_out(client_id).await.map_err(td_error)?;
@@ -207,6 +253,27 @@ impl TelegramManager {
 
     fn config(&self) -> Option<TelegramConfig> {
         self.0.config.lock().expect("telegram config lock").clone()
+    }
+
+    async fn sender_name(&self, sender: &enums::MessageSender, client_id: i32) -> String {
+        match sender {
+            enums::MessageSender::User(sender) => {
+                match functions::get_user(sender.user_id, client_id).await {
+                    Ok(enums::User::User(user)) => {
+                        format!("{} {}", user.first_name, user.last_name)
+                            .trim()
+                            .to_owned()
+                    }
+                    Err(_) => "Telegram".into(),
+                }
+            }
+            enums::MessageSender::Chat(sender) => {
+                match functions::get_chat(sender.chat_id, client_id).await {
+                    Ok(enums::Chat::Chat(chat)) => chat.title,
+                    Err(_) => "Telegram".into(),
+                }
+            }
+        }
     }
 
     fn client_id(&self) -> Result<i32, String> {
@@ -392,6 +459,20 @@ fn write_config(root: &Path, config: &StoredTelegramConfig) -> Result<(), String
 
 fn td_error(error: tdlib::types::Error) -> String {
     error.message
+}
+
+fn message_text(content: &enums::MessageContent) -> String {
+    match content {
+        enums::MessageContent::MessageText(message) => message.text.text.clone(),
+        enums::MessageContent::MessageAnimation(message) => message.caption.text.clone(),
+        enums::MessageContent::MessageAudio(message) => message.caption.text.clone(),
+        enums::MessageContent::MessageDocument(message) => message.caption.text.clone(),
+        enums::MessageContent::MessagePaidMedia(message) => message.caption.text.clone(),
+        enums::MessageContent::MessagePhoto(message) => message.caption.text.clone(),
+        enums::MessageContent::MessageVideo(message) => message.caption.text.clone(),
+        enums::MessageContent::MessageVoiceNote(message) => message.caption.text.clone(),
+        _ => String::new(),
+    }
 }
 
 fn bundled_credentials() -> Option<(i32, String)> {

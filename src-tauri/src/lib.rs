@@ -4,7 +4,7 @@ use std::{path::PathBuf, sync::Mutex};
 use tauri::{Emitter, Manager, State};
 
 mod telegram;
-use telegram::{TelegramChat, TelegramManager, TelegramStatus};
+use telegram::{TelegramChat, TelegramManager, TelegramMessage, TelegramStatus};
 
 struct AppState {
     store: Store,
@@ -34,6 +34,20 @@ fn update_project(
     state: State<'_, AppState>,
 ) -> Result<Project, String> {
     result(state.store.update_project(&id, &title, &expected_version))
+}
+
+#[tauri::command]
+fn set_project_telegram(
+    id: String,
+    telegram: Option<flood_core::TelegramProjectLink>,
+    expected_version: String,
+    state: State<'_, AppState>,
+) -> Result<Project, String> {
+    result(
+        state
+            .store
+            .set_project_telegram(&id, telegram, &expected_version),
+    )
 }
 
 #[tauri::command]
@@ -252,6 +266,15 @@ async fn telegram_list_chats(state: State<'_, AppState>) -> Result<Vec<TelegramC
 }
 
 #[tauri::command]
+async fn telegram_list_messages(
+    chat_id: i64,
+    limit: i32,
+    state: State<'_, AppState>,
+) -> Result<Vec<TelegramMessage>, String> {
+    state.telegram.messages(chat_id, limit).await
+}
+
+#[tauri::command]
 async fn telegram_disconnect(state: State<'_, AppState>) -> Result<(), String> {
     state.telegram.disconnect().await
 }
@@ -288,6 +311,7 @@ pub fn run() {
             list_projects,
             create_project,
             update_project,
+            set_project_telegram,
             delete_project,
             list_tasks,
             get_task,
@@ -315,6 +339,7 @@ pub fn run() {
             telegram_submit_code,
             telegram_submit_password,
             telegram_list_chats,
+            telegram_list_messages,
             telegram_disconnect
         ])
         .run(tauri::generate_context!())

@@ -5,3 +5,21 @@ src-tauri/target/
 src-tauri/gen/
 *.log
 .DS_Store
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+*.session
+secrets.*
+
+# Local TDLib state (must never be committed)
+telegram-data/
+td.binlog*
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

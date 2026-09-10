@@ -21,6 +21,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: npm ci
       - run: npm run check
+      - name: Validate protected release credentials
+        shell: pwsh
+        env:
+          TG_API_ID: ${{ secrets.TG_API_ID }}
+          TG_API_HASH: ${{ secrets.TG_API_HASH }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TG_API_ID) -or [string]::IsNullOrWhiteSpace($env:TG_API_HASH) -or [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+            throw "Required release secrets are not configured"
+          }
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -31,7 +41,12 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "flood.md ${{ github.ref_name }}"
-          releaseBody: "Новая версия flood.md. Список изменений — в истории релиза."
+          releaseBody: |
+            ## flood.md 0.1.0
+
+            First public Windows release: local Markdown projects and tasks, Telegram integration through TDLib, message-to-task import, local MCP server, themes, attachments, backups, and safe conflict handling.
+
+            Первый публичный релиз для Windows: локальные Markdown-проекты и задачи, Telegram через TDLib, импорт сообщений в задачи, локальный MCP-сервер, темы, вложения, резервные копии и защита от конфликтов.
           releaseDraft: false
           releasePrerelease: false
           updaterJsonPreferNsis: true

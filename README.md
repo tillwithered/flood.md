@@ -1,74 +1,48 @@
+<p align="center"><img src="docs/assets/flood-mark.png" width="144" alt="flood.md logo" /></p>
+<h1 align="center">flood.md</h1>
+<p align="center"><strong>A calm, local task manager for work that starts in chats.</strong></p>
+<p align="center">Telegram messages become focused Markdown tasks — without bots, accounts, or cloud storage.</p>
+<p align="center"><a href="README.md">English</a> · <a href="README.ru.md">Русский</a></p>
 <p align="center">
-  <img src="docs/assets/flood-mark.png" width="180" alt="flood.md" />
+  <a href="https://github.com/tillwithered/flood.md/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/tillwithered/flood.md?style=flat-square"></a>
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-10%2B-111111?style=flat-square">
+  <img alt="Tauri 2" src="https://img.shields.io/badge/Tauri-2-111111?style=flat-square">
+  <img alt="Local first" src="https://img.shields.io/badge/data-local--first-111111?style=flat-square">
 </p>
 
-<h1 align="center">flood.md</h1>
+## Why flood.md
 
-<p align="center">Превращает рабочие чаты в понятный локальный список задач.</p>
+Tasks often begin as a message, then disappear inside a busy chat. flood.md turns that message into a durable task while keeping the original author, date, text, and link as context.
 
-> [!NOTE]
-> Проект находится в активной разработке. Текущая версия сохраняет прогресс первой итерации и пока не является готовым релизом.
+- **Local-first:** readable `.md` files are the source of truth.
+- **Telegram through TDLib:** connect a personal account directly, without a bot.
+- **Project connections:** bind each flood.md project to its Telegram chat.
+- **Message import:** choose a recent message and create a task in one action.
+- **Focused editor:** Markdown, formatting, links, images, and local attachments.
+- **Safe changes:** atomic writes, stable IDs, conflict detection, backups, and trash.
+- **Agent-ready:** the bundled local MCP server uses the same task files.
+- **Offline core:** projects and tasks remain usable without Telegram or a network.
 
-Локальное Windows-приложение для задач по проектам. Проект можно связать с рабочим чатом, а Markdown-файлы остаются единственным источником правды.
+## Install
 
-## Что уже работает
+Download the Windows installer from [the latest release](https://github.com/tillwithered/flood.md/releases/latest). Windows 10 or newer is recommended.
 
-- реестр проектов и связанные с ними задачи;
-- локальное хранение в читаемых Markdown-файлах;
-- создание, редактирование, приоритеты, завершение, перенос и корзина;
-- сохранение снимка исходного сообщения;
-- MCP-сервер для работы агентов с теми же задачами;
-- подключение личного Telegram-аккаунта через TDLib;
-- защита от незаметного перезаписывания внешних изменений.
+On first launch, open **Settings → Integrations → Telegram** and sign in with a QR code or phone number. The official build already contains application-level Telegram credentials; users do not need to create a Telegram application.
 
-## Разработка
+## Privacy and security
 
-```powershell
-npm install
-npm run tauri dev
-```
+- Task content and Telegram sessions stay on the user's device.
+- flood.md does not require an account or cloud backend.
+- Telegram application credentials are injected only during the official GitHub Actions build and are absent from source control.
+- The release binary contains an obfuscated application hash. Like every desktop credential, it cannot be made impossible to extract from a user-controlled machine.
+- User authorization sessions live in TDLib's encrypted local database, outside Markdown and backups.
+- Task content is never treated as an instruction to an agent or sent to external AI services automatically.
 
-Release-сборка:
+See [SECURITY.md](SECURITY.md) for vulnerability reporting and the trust model.
 
-```powershell
-npm run tauri build
-```
+## Data format
 
-## Telegram
-
-Официальная release-сборка получает параметры Telegram-приложения из переменных окружения `TG_API_ID` и `TG_API_HASH`. В GitHub их нужно добавить как Actions secrets с теми же именами; workflow передаст значения только во время сборки. Hash записывается в бинарник в обфусцированном виде и не сохраняется в пользовательский конфиг.
-
-Если переменные не заданы, flood.md работает в режиме самостоятельной сборки: API ID и API Hash можно ввести в разделе «Настройки → Интеграции». Получить собственные параметры можно на [my.telegram.org](https://my.telegram.org/apps).
-
-## MCP
-
-Соберите отдельный stdio-сервер:
-
-```powershell
-cargo build --release -p flood-mcp
-```
-
-Подключите `target/release/flood-mcp.exe` как локальный stdio MCP-сервер. Приложение и MCP по умолчанию используют `%APPDATA%\io.flood.desktop`; каталог можно переопределить переменной `FLOOD_DATA_DIR`.
-
-Обобщённый пример настройки MCP-клиента:
-
-```json
-{
-  "mcpServers": {
-    "flood": {
-      "command": "C:\\полный\\путь\\к\\flood-mcp.exe"
-    }
-  }
-}
-```
-
-Инструменты: `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project`, `list_tasks`, `list_trashed_tasks`, `get_task`, `create_task`, `update_task`, `complete_task`, `move_task`, `trash_task`, `restore_task`, `delete_trashed_task`, `empty_trash`.
-
-`update_task` умеет менять описание, срочность, состояние и снимок исходного сообщения. Передайте `clear_source: true`, чтобы удалить снимок. Интерфейс автоматически сохраняет изменения после короткой паузы, при уходе из редактора и перед закрытием окна.
-
-## Формат данных
-
-Каждый проект хранится в `projects/<project-id>/project.md`, каждая задача — в отдельном `projects/<project-id>/tasks/<task-id>.md`. Метаданные находятся в YAML front matter, описание задачи — в обычном Markdown-теле файла. Поле `version`, возвращаемое приложением и MCP, вычисляется из содержимого файла и обязательно для изменений: это защищает внешние ручные правки от незаметного перетирания. Старый каталог `chats` переносится автоматически при первом запуске новой версии.
+Projects live in `projects/<project-id>/project.md`; tasks live in `projects/<project-id>/tasks/<task-id>.md`. YAML front matter stores explicit metadata and the body remains ordinary Markdown:
 
 ```markdown
 ---
@@ -80,16 +54,41 @@ updated_at: 2026-09-08T20:18:15Z
 urgency: important
 status: open
 source:
-  text: Собери выводы клиентов к пятнице
-  author: Анна
-  url: https://example.com/message/42
+  text: Review the build before Friday
+  author: Anna
+  url: https://t.me/example/42
 ---
 
-Подготовить сводку по обратной связи
+Review the release build
 ```
 
-Допустимые значения `urgency`: `normal`, `important`, `urgent`. Допустимые значения `status`: `open`, `completed`. При перемещении в корзину добавляется `trashed_at`; файл и все его метаданные сохраняются до восстановления. Запись выполняется атомарно; общий lock-файл координирует десктопное приложение и MCP-сервер.
+The default Windows data directory is `%APPDATA%\io.flood.desktop`. Set `FLOOD_DATA_DIR` to use another location.
 
-## Лицензия
+## Local MCP server
 
-Исходный код доступен по лицензии [PolyForm Noncommercial 1.0.0](LICENSE.md). Личное и другое некоммерческое использование разрешено бесплатно. Коммерческое использование, включая продажу приложения или его использование с ожидаемой коммерческой выгодой, требует отдельного разрешения правообладателя.
+The installer includes `flood-mcp.exe`, a local stdio MCP server with project, task, source, state, move, trash, and permanent-delete operations. Copy its configuration from **Settings → Integrations**. Desktop and MCP operations share validation, locking, and conflict rules.
+
+## Development
+
+Requirements: Node.js 22, stable Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/).
+
+```powershell
+npm install
+npm run tauri dev
+```
+
+For independent builds, leave `TG_API_ID` and `TG_API_HASH` unset and enter your own credentials in the app. Official releases receive them from GitHub Actions Secrets during compilation.
+
+```powershell
+npm run check
+cargo test --workspace
+npm run tauri build
+```
+
+## Stack
+
+Tauri 2 · Rust · Svelte 5 · TypeScript · Vite · TDLib · MCP · Markdown
+
+## License
+
+Source is available under the [PolyForm Noncommercial 1.0.0](LICENSE.md) license. Personal and other noncommercial use is permitted; commercial use requires separate permission from the copyright holder.
