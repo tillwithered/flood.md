@@ -478,6 +478,31 @@ button { color: inherit; }
 
 .editor-hint { position: fixed; z-index: 40; min-height: 26px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; background: color-mix(in srgb, var(--elevated) 94%, transparent); color: var(--muted); font-size: 11px; font-weight: 500; line-height: 1.25; white-space: nowrap; box-shadow: 0 8px 24px var(--shadow); backdrop-filter: blur(12px); pointer-events: none; animation: popover-in 120ms cubic-bezier(.2,.8,.3,1); }
 .selection-toolbar { position: fixed; z-index: 70; display: grid; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--elevated); box-shadow: 0 9px 28px var(--shadow); animation: popover-in 120ms cubic-bezier(.2,.8,.3,1); }
+.command-shortcut { display: grid; height: 24px; flex: 0 0 auto; place-items: center; padding: 0 5px; border: 0; border-radius: 6px; background: var(--surface); color: var(--faint); cursor: pointer; }
+.command-shortcut:hover { background: var(--hover); color: var(--ink); }
+.command-shortcut kbd { font: 9px/1 "Cascadia Mono", Consolas, monospace; white-space: nowrap; }
+.command-palette-backdrop { position: fixed; z-index: 220; inset: 0; display: grid; align-items: start; justify-items: center; padding: min(12vh, 92px) 24px 24px; background: rgb(10 10 10 / 22%); backdrop-filter: blur(4px); animation: viewer-in 120ms ease-out; }
+.command-palette { display: grid; width: min(610px, calc(100vw - 48px)); max-height: min(620px, calc(100vh - 116px)); grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid var(--line); border-radius: 15px; background: var(--elevated); color: var(--ink); box-shadow: 0 24px 80px rgb(0 0 0 / 24%); animation: command-in 150ms cubic-bezier(.2,.8,.3,1); }
+.command-palette-search { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; min-height: 58px; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
+.command-palette-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 15px; }
+.command-palette-search input::placeholder { color: var(--faint); }
+.command-palette kbd { display: inline-grid; min-width: 22px; height: 20px; place-items: center; padding: 0 5px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--faint); font: 9px/1 "Cascadia Mono", Consolas, monospace; }
+.command-results { min-height: 100px; overflow-y: auto; overscroll-behavior: contain; padding: 7px; scrollbar-gutter: stable; }
+.command-group-label { display: block; padding: 9px 9px 5px; color: var(--faint); font-size: 10px; font-weight: 620; letter-spacing: .025em; text-transform: uppercase; }
+.command-results > button { display: grid; width: 100%; min-height: 43px; grid-template-columns: 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 5px 8px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; text-align: left; cursor: pointer; transition: background-color 100ms ease, color 100ms ease, transform 100ms ease; }
+.command-results > button:hover, .command-results > button.active { background: var(--selected); color: var(--ink); }
+.command-results > button:active { transform: scale(.995); }
+.command-results > button > i { display: grid; width: 26px; height: 26px; place-items: center; color: var(--muted); font-style: normal; }
+.command-results > button > span { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: 12px; }
+.command-results > button strong { overflow: hidden; font-size: 12px; font-weight: 610; text-overflow: ellipsis; white-space: nowrap; }
+.command-results > button small { flex: 0 0 auto; overflow: hidden; max-width: 190px; color: var(--faint); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.command-empty { display: grid; min-height: 170px; place-items: center; align-content: center; gap: 7px; color: var(--faint); text-align: center; }
+.command-empty strong { color: var(--muted); font-size: 12px; }
+.command-empty small { font-size: 10px; }
+.command-palette > footer { display: flex; min-height: 38px; align-items: center; gap: 14px; padding: 0 14px; border-top: 1px solid var(--line); color: var(--faint); font-size: 9px; }
+.command-palette > footer span { display: inline-flex; align-items: center; gap: 4px; }
+.command-palette > footer kbd { min-width: 18px; height: 17px; padding: 0 3px; font-size: 8px; }
+@keyframes command-in { from { opacity: 0; transform: translateY(-8px) scale(.985); } to { opacity: 1; transform: none; } }
 .selection-toolbar-actions { display: flex; height: 28px; align-items: center; gap: 2px; }
 .selection-toolbar button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
 .selection-toolbar button:hover { background: var(--hover); color: var(--ink); }
@@ -1033,6 +1058,9 @@ button { color: inherit; }
 
 @media (max-width: 700px) {
   .window-controls button { width: 38px; }
+  .command-palette-backdrop { padding: 58px 12px 12px; }
+  .command-palette { width: calc(100vw - 24px); max-height: calc(100vh - 70px); }
+  .command-palette > footer { display: none; }
   .project-page { width: min(720px, calc(100% - 40px)); padding-top: 48px; }
   .settings-page { width: calc(100% - 40px); padding-top: 36px; }
   .settings-layout { grid-template-columns: 1fr; gap: 26px; }

@@ -69,6 +69,8 @@
   type McpCheckState = "idle" | "checking" | "success" | "error";
   type McpClient = "codex" | "claude" | "cursor" | "manual";
   type McpRuntimeInfo = { executable_path: string; available: boolean; version?: string; app_version: string; compatible: boolean; source: "bundled" | "development" };
+  type CommandGroup = "actions" | "projects" | "tasks";
+  type CommandItem = { id: string; group: CommandGroup; title: string; meta?: string; keywords: string; urgency?: Urgency; completed?: boolean };
 
   const markdownHints: Record<string, MessageKey> = {
     "#": "largeHeading"
@@ -193,6 +195,10 @@
   let imageViewerZoom = 1;
   let imageViewerDialog: HTMLDivElement;
   let sidebarProjectHint: { label: string; left: number; top: number } | null = null;
+  let commandPaletteOpen = false;
+  let commandQuery = "";
+  let commandActiveIndex = 0;
+  let commandInput: HTMLInputElement;
 
   const uiPreferencesKey = "flood.ui.preferences";
 
@@ -1141,6 +1147,7 @@
     .sort((left, right) => ({ urgent: 0, important: 1, normal: 2 })[left.urgency] - ({ urgent: 0, important: 1, normal: 2 })[right.urgency]);
   $: currentOpenTasks = currentProjectTasks.filter((task) => !task.completed);
   $: currentCompletedTasks = currentProjectTasks.filter((task) => task.completed);
+  $: commandResults = buildCommandResults(commandQuery, tasks, chats, locale, telegramStatus.step);
 
   function tasksForChat(chat: ChatItem) {
     return tasks.filter((task) => !isLocalDraft(task) && task.chatId === chat.id && (showCompleted || !task.completed));
@@ -1162,6 +1169,122 @@
     sourceEditorOpen = false;
     datePickerOpen = false;
     taskActionMenuOpen = false;
+  }
+
+  function buildCommandResults(value: string, taskList: TaskItem[], projectList: ChatItem[], _locale: Locale, telegramStep: string): CommandItem[] {
+    const needle = value.trim().toLocaleLowerCase(locale);
+    const actions: CommandItem[] = [
+      { id: "action:new-task", group: "actions", title: t("newTask"), meta: "Ctrl+N", keywords: `${t("newTask")} создать добавить` },
+      { id: "action:inbox", group: "actions", title: t("openTelegramInbox"), meta: telegramStep === "ready" ? t("connected") : t("notConnected"), keywords: `${t("inbox")} telegram сообщения` },
+      { id: "action:all-tasks", group: "actions", title: t("allTasks"), meta: openTasksLabel(taskList.filter((task) => !task.completed && !isLocalDraft(task)).length), keywords: `${t("allTasks")} список` },
+      { id: "action:integrations", group: "actions", title: t("integrations"), meta: "Telegram", keywords: `${t("integrations")} telegram настройки` },
+      { id: "action:mcp", group: "actions", title: t("mcpAndAi"), meta: "MCP", keywords: `${t("mcpAndAi")} codex claude cursor агент` },
+      { id: "action:data", group: "actions", title: t("data"), meta: t("settings"), keywords: `${t("data")} markdown backup папка` }
+    ];
+    const projects = projectList.slice(1).map<CommandItem>((project) => ({
+      id: `project:${project.id}`,
+      group: "projects",
+      title: project.title,
+      meta: openTasksLabel(openTaskCount(project.id)),
+      keywords: `${project.title} проект`
+    }));
+    const taskItems = taskList
+      .filter((task) => !isLocalDraft(task))
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .map<CommandItem>((task) => ({
+        id: `task:${task.id}`,
+        group: "tasks",
+        title: task.title,
+        meta: task.chat,
+        keywords: `${task.title} ${task.markdown} ${task.chat} ${task.sourceAuthor || ""}`,
+        urgency: task.urgency,
+        completed: task.completed
+      }));
+    const matches = (item: CommandItem) => !needle || `${item.title} ${item.keywords}`.toLocaleLowerCase(locale).includes(needle);
+    if (needle) return [...actions, ...projects, ...taskItems].filter(matches).slice(0, 18);
+    return [...actions, ...projects.slice(0, 3), ...taskItems.slice(0, 5)];
+  }
+
+  async function openCommandPalette() {
+    commandPaletteOpen = true;
+    commandQuery = "";
+    commandActiveIndex = 0;
+    newTaskMenuAnchor = null;
+    urgencyMenuOpen = false;
+    taskActionMenuOpen = false;
+    moveMenuOpen = false;
+    datePickerOpen = false;
+    await tick();
+    commandInput?.focus();
+  }
+
+  function closeCommandPalette() {
+    commandPaletteOpen = false;
+    commandQuery = "";
+    commandActiveIndex = 0;
+  }
+
+  function updateCommandQuery(value: string) {
+    commandQuery = value;
+    commandActiveIndex = 0;
+  }
+
+  async function openSettingsSection(section: SettingsSection) {
+    await changeSection("settings");
+    settingsSection = section;
+  }
+
+  async function executeCommand(item: CommandItem | undefined) {
+    if (!item) return;
+    closeCommandPalette();
+    if (item.id === "action:new-task") {
+      if (currentChat.id !== "all") await createDraft(currentChat);
+      else if (chats.length > 1) requestNewTask("workspace");
+      else createChatOpen = true;
+      return;
+    }
+    if (item.id === "action:inbox") {
+      if (telegramStatus.step === "ready") await openTelegramInbox(false);
+      else await openSettingsSection("integrations");
+      return;
+    }
+    if (item.id === "action:all-tasks") {
+      if (chats[0]) await selectChat(chats[0]);
+      return;
+    }
+    if (item.id === "action:integrations") return openSettingsSection("integrations");
+    if (item.id === "action:mcp") return openSettingsSection("mcp");
+    if (item.id === "action:data") return openSettingsSection("data");
+    if (item.id.startsWith("project:")) {
+      const project = chats.find((chat) => chat.id === item.id.slice(8));
+      if (project) await selectChat(project);
+      return;
+    }
+    if (item.id.startsWith("task:")) {
+      const task = tasks.find((candidate) => candidate.id === item.id.slice(5));
+      if (task) await openTask(task);
+    }
+  }
+
+  function handleCommandKeydown(event: KeyboardEvent) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      commandActiveIndex = commandResults.length ? (commandActiveIndex + 1) % commandResults.length : 0;
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      commandActiveIndex = commandResults.length ? (commandActiveIndex - 1 + commandResults.length) % commandResults.length : 0;
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      void executeCommand(commandResults[commandActiveIndex]);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeCommandPalette();
+    }
+  }
+
+  function commandGroupLabel(group: CommandGroup) {
+    return t(group === "actions" ? "quickActions" : group === "projects" ? "projectResults" : "taskResults");
   }
 
   function toggleChat(chatId: string) {
@@ -1191,7 +1314,8 @@
 
   async function handleWindowKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
-      if (telegramConnectionsProject) closeTelegramConnections();
+      if (commandPaletteOpen) closeCommandPalette();
+      else if (telegramConnectionsProject) closeTelegramConnections();
       else if (telegramInboxOpen && !telegramInboxProcessingId) telegramInboxOpen = false;
       else if (telegramImportOpen) closeTelegramImporter();
       else if (imageViewer) closeImageViewer();
@@ -1208,12 +1332,11 @@
     }
     if (event.ctrlKey && event.key.toLocaleLowerCase() === "k") {
       event.preventDefault();
-      setSidebarCollapsed(false);
-      await tick();
-      searchInput?.focus();
-      searchInput?.select();
+      if (commandPaletteOpen) closeCommandPalette();
+      else await openCommandPalette();
       return;
     }
+    if (commandPaletteOpen) return;
     if (event.ctrlKey && event.key.toLocaleLowerCase() === "n") {
       event.preventDefault();
       requestNewTask(workspaceView === "project" ? "workspace" : "sidebar");
@@ -2447,6 +2570,40 @@
   </div>
 {/if}
 
+{#if commandPaletteOpen}
+  <div class="command-palette-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeCommandPalette(); }}>
+    <div class="command-palette" role="dialog" aria-modal="true" aria-label={t("commandPalette")}>
+      <header class="command-palette-search">
+        <Search size={18} aria-hidden="true" />
+        <input bind:this={commandInput} value={commandQuery} aria-label={t("commandSearch")} aria-controls="command-results" aria-activedescendant={commandResults[commandActiveIndex] ? `command-${commandResults[commandActiveIndex].id.replaceAll(":", "-")}` : undefined} placeholder={t("commandSearchPlaceholder")} oninput={(event) => updateCommandQuery(event.currentTarget.value)} onkeydown={handleCommandKeydown} />
+        <kbd>Esc</kbd>
+      </header>
+      <div id="command-results" class="command-results" role="listbox" aria-label={t("commandResults")}>
+        {#each commandResults as item, index (item.id)}
+          {#if index === 0 || commandResults[index - 1].group !== item.group}<small class="command-group-label">{commandGroupLabel(item.group)}</small>{/if}
+          <button id={`command-${item.id.replaceAll(":", "-")}`} class:active={commandActiveIndex === index} role="option" aria-selected={commandActiveIndex === index} onmouseenter={() => (commandActiveIndex = index)} onclick={() => executeCommand(item)}>
+            <i>
+              {#if item.group === "tasks"}<FloodGlyph kind={item.completed ? "completed" : item.urgency || "normal"} size={15} />
+              {:else if item.group === "projects"}<Folder size={16} />
+              {:else if item.id === "action:new-task"}<Plus size={16} />
+              {:else if item.id === "action:inbox"}<MessageSquareText size={16} />
+              {:else if item.id === "action:all-tasks"}<ListTodo size={16} />
+              {:else if item.id === "action:integrations"}<Plug size={16} />
+              {:else if item.id === "action:mcp"}<Bot size={16} />
+              {:else}<Database size={16} />{/if}
+            </i>
+            <span><strong>{item.title}</strong>{#if item.meta}<small>{item.meta}</small>{/if}</span>
+            {#if commandActiveIndex === index}<kbd>↵</kbd>{/if}
+          </button>
+        {:else}
+          <div class="command-empty"><Search size={20} /><strong>{t("nothingFound")}</strong><small>{t("commandEmptyDescription")}</small></div>
+        {/each}
+      </div>
+      <footer><span><kbd>↑</kbd><kbd>↓</kbd>{t("navigate")}</span><span><kbd>↵</kbd>{t("open")}</span><span><kbd>Esc</kbd>{t("close")}</span></footer>
+    </div>
+  </div>
+{/if}
+
 <main class:sidebar-collapsed={sidebarCollapsed} class="app-shell">
   <header class="window-bar" data-tauri-drag-region="deep">
     <div class="sidebar-titlebar" data-tauri-drag-region="deep">
@@ -2550,7 +2707,7 @@
         {#if sidebarCollapsed}
           <button class="sidebar-icon" aria-label={t("search")} onclick={() => setSidebarCollapsed(false)}><Search size={17} /></button>
         {:else}
-          <div class="search-field"><Search size={15} aria-hidden="true" /><input bind:this={searchInput} bind:value={query} aria-label={t("searchTasks")} placeholder={t("search")} />{#if searchActive}<button class="search-clear" aria-label={t("clearSearch")} title={t("clearSearch")} onclick={() => (query = "")}><X size={14} /></button>{/if}</div>
+          <div class="search-field"><Search size={15} aria-hidden="true" /><input bind:this={searchInput} bind:value={query} aria-label={t("searchTasks")} placeholder={t("search")} />{#if searchActive}<button class="search-clear" aria-label={t("clearSearch")} title={t("clearSearch")} onclick={() => (query = "")}><X size={14} /></button>{:else}<button class="command-shortcut" aria-label={t("openCommandPalette")} title={t("openCommandPalette")} onclick={openCommandPalette}><kbd>Ctrl K</kbd></button>{/if}</div>
         {/if}
       </div>
 
