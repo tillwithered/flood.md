@@ -139,6 +139,16 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert_eq!(workspace_brief["annotations"]["readOnlyHint"], true);
     assert_eq!(workspace_brief["annotations"]["openWorldHint"], false);
+    let list_tasks = tools
+        .iter()
+        .find(|tool| tool["name"] == "list_tasks")
+        .unwrap();
+    assert!(list_tasks["inputSchema"]["properties"]["limit"].is_object());
+    let list_inbox = tools
+        .iter()
+        .find(|tool| tool["name"] == "list_telegram_inbox")
+        .unwrap();
+    assert!(list_inbox["inputSchema"]["properties"]["cursor"].is_object());
 
     send(
         &mut stdin,
@@ -412,6 +422,27 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         brief["result"]["structuredContent"]["telegram"]["pending_request"]["id"],
         requested_id
     );
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 16,
+            "method": "tools/call",
+            "params": {
+                "name": "list_tasks",
+                "arguments": { "limit": 1 }
+            }
+        }),
+    );
+    let listed_tasks = receive(&mut stdout, 16);
+    assert_eq!(listed_tasks["result"]["isError"], false);
+    assert_eq!(listed_tasks["result"]["structuredContent"]["total"], 1);
+    assert_eq!(
+        listed_tasks["result"]["structuredContent"]["tasks"][0]["id"],
+        created_task["result"]["structuredContent"]["task"]["id"]
+    );
+    assert_eq!(listed_tasks["result"]["structuredContent"]["remaining"], 0);
 
     drop(stdin);
     assert!(child.wait().unwrap().success());

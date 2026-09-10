@@ -27,6 +27,10 @@ struct ListTasksArgs {
     project_id: Option<String>,
     #[serde(default)]
     include_completed: bool,
+    /// Идентификатор последней задачи из предыдущей порции.
+    cursor: Option<String>,
+    /// Размер порции от 1 до 50. По умолчанию 25.
+    limit: Option<usize>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -130,6 +134,10 @@ struct ListTelegramInboxArgs {
     project_id: Option<String>,
     #[serde(default)]
     include_processed: bool,
+    /// Идентификатор последнего сообщения из предыдущей порции.
+    cursor: Option<String>,
+    /// Размер порции от 1 до 25. По умолчанию 20.
+    limit: Option<usize>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -192,6 +200,14 @@ struct ProjectOutput {
 #[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TasksOutput {
     tasks: Vec<TaskSummary>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct PagedTasksOutput {
+    tasks: Vec<TaskSummary>,
+    total: usize,
+    next_cursor: Option<String>,
+    remaining: usize,
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
@@ -268,6 +284,9 @@ struct DeleteCountOutput {
 #[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TelegramInboxOutput {
     candidates: Vec<TelegramInboxCandidate>,
+    total: usize,
+    next_cursor: Option<String>,
+    remaining: usize,
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
@@ -352,10 +371,12 @@ impl FloodServer {
             capabilities: vec![
                 "projects",
                 "tasks",
+                "bounded_task_lists",
                 "bounded_task_search",
                 "bounded_task_digest",
                 "bounded_workspace_brief",
                 "telegram_inbox",
+                "bounded_telegram_lists",
                 "bounded_telegram_triage",
                 "telegram_sync_status",
                 "telegram_sync_request",
@@ -571,7 +592,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Получить задачи одного проекта или всех проектов",
+        description = "Получить ограниченную порцию задач одного проекта или всех проектов. Возвращает не более 50 карточек, total, next_cursor и remaining. Для краткого обзора нагрузки предпочтительнее get_task_digest",
         annotations(
             title = "Список задач",
             read_only_hint = true,
@@ -582,11 +603,39 @@ impl FloodServer {
     fn list_tasks(
         &self,
         Parameters(args): Parameters<ListTasksArgs>,
-    ) -> Result<Json<TasksOutput>, String> {
-        self.store
+    ) -> Result<Json<PagedTasksOutput>, String> {
+        let tasks = self
+            .store
             .list_tasks(args.project_id.as_deref(), args.include_completed)
-            .map(|tasks| Json(TasksOutput { tasks }))
-            .map_err(store_error)
+            .map_err(store_error)?;
+        let total = tasks.len();
+        let start = match args.cursor.as_deref() {
+            Some(cursor) => tasks
+                .iter()
+                .position(|task| task.id == cursor)
+                .map(|index| index + 1)
+                .ok_or_else(|| {
+                    "cursor не найден в текущем списке задач; начните заново".to_string()
+                })?,
+            None => 0,
+        };
+        let limit = args.limit.unwrap_or(25).clamp(1, 50);
+        let remaining_before_page = total.saturating_sub(start);
+        let page = tasks
+            .into_iter()
+            .skip(start)
+            .take(limit)
+            .collect::<Vec<_>>();
+        let remaining = remaining_before_page.saturating_sub(page.len());
+        let next_cursor = (remaining > 0)
+            .then(|| page.last().map(|task| task.id.clone()))
+            .flatten();
+        Ok(Json(PagedTasksOutput {
+            tasks: page,
+            total,
+            next_cursor,
+            remaining,
+        }))
     }
 
     #[tool(
@@ -767,7 +816,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Получить локальную очередь Telegram-кандидатов. По умолчанию возвращаются только необработанные сообщения; include_processed=true также возвращает обработанные сообщения со linked_task, где видны название, срочность и текущее состояние задачи",
+        description = "Получить ограниченную порцию локальной очереди Telegram-кандидатов. По умолчанию возвращаются только необработанные сообщения; include_processed=true также включает обработанные сообщения со linked_task. Ответ содержит не более 25 кандидатов, total, next_cursor и remaining. Для последовательного разбора предпочтительнее get_telegram_triage_batch",
         annotations(
             title = "Входящие из Telegram",
             read_only_hint = true,
@@ -779,10 +828,49 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<ListTelegramInboxArgs>,
     ) -> Result<Json<TelegramInboxOutput>, String> {
-        self.store
-            .list_telegram_inbox(args.project_id.as_deref(), args.include_processed)
-            .map(|candidates| Json(TelegramInboxOutput { candidates }))
-            .map_err(store_error)
+        let all_candidates = self
+            .store
+            .list_telegram_inbox(args.project_id.as_deref(), true)
+            .map_err(store_error)?;
+        let total = all_candidates
+            .iter()
+            .filter(|candidate| {
+                args.include_processed || candidate.status == InboxCandidateStatus::Pending
+            })
+            .count();
+        let start = match args.cursor.as_deref() {
+            Some(cursor) => all_candidates
+                .iter()
+                .position(|candidate| candidate.id == cursor)
+                .map(|index| index + 1)
+                .ok_or_else(|| {
+                    "cursor не найден в текущей Telegram-очереди; начните заново".to_string()
+                })?,
+            None => 0,
+        };
+        let limit = args.limit.unwrap_or(20).clamp(1, 25);
+        let candidates_after_cursor = all_candidates
+            .into_iter()
+            .skip(start)
+            .filter(|candidate| {
+                args.include_processed || candidate.status == InboxCandidateStatus::Pending
+            })
+            .collect::<Vec<_>>();
+        let remaining_before_page = candidates_after_cursor.len();
+        let page = candidates_after_cursor
+            .into_iter()
+            .take(limit)
+            .collect::<Vec<_>>();
+        let remaining = remaining_before_page.saturating_sub(page.len());
+        let next_cursor = (remaining > 0)
+            .then(|| page.last().map(|candidate| candidate.id.clone()))
+            .flatten();
+        Ok(Json(TelegramInboxOutput {
+            candidates: page,
+            total,
+            next_cursor,
+            remaining,
+        }))
     }
 
     #[tool(
@@ -1609,18 +1697,58 @@ mod tests {
             .project;
         let task = server
             .create_task(Parameters(CreateTaskArgs {
-                project_id: project.id,
+                project_id: project.id.clone(),
                 description: "Проверить MCP".into(),
                 urgency: Some("important".into()),
                 source: None,
             }))
             .unwrap();
+        let task_id = task.0.task.id.clone();
         let result = task.into_call_tool_result().unwrap();
         let rmcp::model::CallToolResponse::Complete(result) = result else {
             panic!("ожидался завершённый результат");
         };
         assert!(result.structured_content.is_some());
         assert_eq!(result.is_error, Some(false));
+        let second_task_id = server
+            .create_task(Parameters(CreateTaskArgs {
+                project_id: project.id,
+                description: "Проверить пагинацию".into(),
+                urgency: None,
+                source: None,
+            }))
+            .unwrap()
+            .0
+            .task
+            .id;
+        let listed = server
+            .list_tasks(Parameters(ListTasksArgs {
+                project_id: None,
+                include_completed: false,
+                cursor: None,
+                limit: Some(1),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(listed.total, 2);
+        assert_eq!(listed.tasks.len(), 1);
+        assert_eq!(listed.remaining, 1);
+        assert!(listed.next_cursor.is_some());
+        let second_page = server
+            .list_tasks(Parameters(ListTasksArgs {
+                project_id: None,
+                include_completed: false,
+                cursor: listed.next_cursor,
+                limit: Some(1),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(second_page.tasks.len(), 1);
+        assert_eq!(second_page.remaining, 0);
+        assert!(second_page.next_cursor.is_none());
+        let returned_ids = [listed.tasks[0].id.clone(), second_page.tasks[0].id.clone()];
+        assert!(returned_ids.contains(&task_id));
+        assert!(returned_ids.contains(&second_task_id));
     }
 
     #[test]
@@ -1821,10 +1949,28 @@ mod tests {
             .list_telegram_inbox(Parameters(ListTelegramInboxArgs {
                 project_id: Some(project.id.clone()),
                 include_processed: false,
+                cursor: None,
+                limit: Some(1),
             }))
             .unwrap()
             .0;
-        assert_eq!(listed.candidates.len(), 2);
+        assert_eq!(listed.candidates.len(), 1);
+        assert_eq!(listed.total, 2);
+        assert_eq!(listed.remaining, 1);
+        assert_eq!(listed.next_cursor.as_deref(), Some(candidate_id.as_str()));
+        let second_page = server
+            .list_telegram_inbox(Parameters(ListTelegramInboxArgs {
+                project_id: Some(project.id.clone()),
+                include_processed: false,
+                cursor: listed.next_cursor,
+                limit: Some(1),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(second_page.candidates.len(), 1);
+        assert_eq!(second_page.candidates[0].id, older_candidate_id);
+        assert_eq!(second_page.remaining, 0);
+        assert!(second_page.next_cursor.is_none());
 
         let batch = server
             .get_telegram_triage_batch(Parameters(TelegramTriageBatchArgs {
@@ -1956,6 +2102,8 @@ mod tests {
             .list_telegram_inbox(Parameters(ListTelegramInboxArgs {
                 project_id: Some(project.id.clone()),
                 include_processed: true,
+                cursor: None,
+                limit: None,
             }))
             .unwrap()
             .0
@@ -1983,6 +2131,8 @@ mod tests {
                 .list_telegram_inbox(Parameters(ListTelegramInboxArgs {
                     project_id: Some(project.id),
                     include_processed: false,
+                    cursor: None,
+                    limit: None,
                 }))
                 .unwrap()
                 .0
