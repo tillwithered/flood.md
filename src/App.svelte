@@ -198,6 +198,8 @@
   let sourceEditorOpen = false;
   let sourceViewerOpen = false;
   let sourceViewerDialog: HTMLDivElement;
+  let telegramInboxDialog: HTMLDivElement;
+  let telegramInboxReturnFocus: HTMLElement | null = null;
   let sourceMediaPreviews: Record<number, string> = {};
   let sourcePreviewObjectUrls: string[] = [];
   let sourceText = "";
@@ -1335,6 +1337,28 @@
     }
   }
 
+  function trapModalFocus(event: KeyboardEvent) {
+    if (event.key !== "Tab") return;
+    const dialog = event.currentTarget as HTMLElement;
+    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), input:not(:disabled), textarea:not(:disabled), [href], [tabindex]:not([tabindex="-1"])'
+    )).filter((element) => element.offsetParent !== null);
+    if (!focusable.length) {
+      event.preventDefault();
+      dialog.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   function commandGroupLabel(group: CommandGroup) {
     return t(group === "actions" ? "quickActions" : group === "projects" ? "projectResults" : "taskResults");
   }
@@ -2331,6 +2355,8 @@
   }
 
   async function openTelegramInbox(refresh = false) {
+    const wasOpen = telegramInboxOpen;
+    if (!wasOpen) telegramInboxReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     telegramInboxOpen = true;
     telegramInboxLoading = true;
     telegramInboxError = "";
@@ -2339,6 +2365,10 @@
     telegramTriageTotal = 0;
     telegramTriageCreated = 0;
     telegramTriageNotice = "";
+    if (!wasOpen) {
+      await tick();
+      telegramInboxDialog?.focus();
+    }
     try {
       const projectId = currentChat.id === "all" ? null : currentChat.id;
       if (refresh && projectId) {
@@ -2387,6 +2417,8 @@
 
   function closeTelegramInbox() {
     if (telegramInboxProcessingId) return;
+    const returnFocus = telegramInboxReturnFocus;
+    telegramInboxReturnFocus = null;
     telegramTaskDraftCandidate = null;
     telegramInboxOpen = false;
     telegramInboxSelection = [];
@@ -2394,6 +2426,9 @@
     telegramTriageTotal = 0;
     telegramTriageCreated = 0;
     telegramTriageNotice = "";
+    void tick().then(() => {
+      if (returnFocus?.isConnected) returnFocus.focus();
+    });
   }
 
   function toggleTelegramInboxCandidate(candidateId: string) {
@@ -2755,6 +2790,7 @@
     const preview = new URLSearchParams(window.location.search).get("preview");
     if (!preview?.startsWith("telegram-")) return;
     telegramInboxOpen = true;
+    void tick().then(() => telegramInboxDialog?.focus());
     telegramInboxLoading = preview === "telegram-loading";
     telegramInboxError = preview === "telegram-error" ? t("telegramPreviewError") : "";
     if (preview !== "telegram-inbox") return;
@@ -3534,7 +3570,7 @@
 
 {#if telegramInboxOpen}
   <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeTelegramInbox(); }}>
-    <div class="telegram-import-panel telegram-inbox-panel" role="dialog" aria-modal="true" aria-label={t("inbox")}>
+    <div class="telegram-import-panel telegram-inbox-panel" bind:this={telegramInboxDialog} role="dialog" aria-modal="true" aria-label={t("inbox")} tabindex="-1" onkeydown={trapModalFocus}>
       <header><span>{#if telegramTaskDraftCandidate}<button class="icon-button" aria-label={t("back")} onclick={closeTelegramTaskDraft}><ChevronLeft size={16} /></button>{:else}<MessageSquareText size={17} />{/if}<span><strong>{telegramTaskDraftCandidate ? t("telegramTaskDraft") : t("inbox")}</strong><small>{telegramTaskDraftCandidate && telegramTriageTotal ? t("triageProgress", { current: telegramTriageTotal - telegramTriageQueue.length + 1, total: telegramTriageTotal }) : telegramTaskDraftCandidate ? t("telegramTaskDraftDescription") : t("inboxDescription")}</small></span></span><div>{#if !telegramTaskDraftCandidate}<button class="icon-button" title={t("scanMessages")} disabled={telegramInboxLoading || currentChat.id === "all"} onclick={() => openTelegramInbox(true)}><RefreshCw class={telegramInboxLoading ? "spinning" : ""} size={16} /></button>{/if}<button class="icon-button" aria-label={t("close")} onclick={closeTelegramInbox}><X size={16} /></button></div></header>
       {#if telegramTaskDraftCandidate}
         <form class="telegram-task-composer" onsubmit={(event) => { event.preventDefault(); createTaskFromCandidate(); }}>
