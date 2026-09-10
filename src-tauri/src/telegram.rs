@@ -1,3 +1,4 @@
+use atomic_write_file::AtomicWriteFile;
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::{DateTime, Utc};
 use flood_core::{
@@ -8,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     fs,
+    io::Write,
     path::{Path, PathBuf},
     sync::{
         Arc, Mutex,
@@ -26,7 +28,7 @@ struct TelegramConfig {
     database_key: String,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 struct StoredTelegramConfig {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     api_id: Option<i32>,
@@ -771,6 +773,10 @@ fn config_path(root: &Path) -> PathBuf {
     root.join("config.json")
 }
 
+fn config_backup_path(root: &Path) -> PathBuf {
+    root.join("config.backup.json")
+}
+
 fn generate_database_key() -> String {
     let first = ulid::Ulid::new().to_bytes();
     let second = ulid::Ulid::new().to_bytes();
@@ -800,20 +806,46 @@ fn valid_api_hash(value: &str) -> bool {
 }
 
 fn read_config(root: &Path) -> Result<StoredTelegramConfig, String> {
-    let bytes = fs::read(config_path(root)).map_err(|error| error.to_string())?;
-    serde_json::from_slice(&bytes).map_err(|error| error.to_string())
+    let primary_path = config_path(root);
+    match read_config_file(&primary_path) {
+        Ok((config, _)) => Ok(config),
+        Err(primary_error) => {
+            let backup_path = config_backup_path(root);
+            let (config, bytes) = read_config_file(&backup_path).map_err(|backup_error| {
+                format!(
+                    "Не удалось прочитать конфигурацию Telegram ({primary_error}); резервная копия также недоступна ({backup_error})"
+                )
+            })?;
+            // Restore the primary copy best-effort. The valid in-memory key is
+            // still used even if the disk repair cannot be completed now.
+            let _ = atomic_write_config_file(&primary_path, &bytes);
+            Ok(config)
+        }
+    }
 }
 
 fn write_config(root: &Path, config: &StoredTelegramConfig) -> Result<(), String> {
     fs::create_dir_all(root).map_err(|error| error.to_string())?;
-    let path = config_path(root);
-    let temporary = root.join("config.json.tmp");
     let bytes = serde_json::to_vec(config).map_err(|error| error.to_string())?;
-    fs::write(&temporary, bytes).map_err(|error| error.to_string())?;
-    if path.exists() {
-        fs::remove_file(&path).map_err(|error| error.to_string())?;
-    }
-    fs::rename(temporary, path).map_err(|error| error.to_string())
+    // Write the recovery copy first. If the process is interrupted before the
+    // primary commit, the old primary remains valid; otherwise both copies use
+    // the same database key.
+    atomic_write_config_file(&config_backup_path(root), &bytes)?;
+    atomic_write_config_file(&config_path(root), &bytes)
+}
+
+fn read_config_file(path: &Path) -> Result<(StoredTelegramConfig, Vec<u8>), String> {
+    let bytes = fs::read(path).map_err(|error| error.to_string())?;
+    let config = serde_json::from_slice(&bytes).map_err(|error| error.to_string())?;
+    Ok((config, bytes))
+}
+
+fn atomic_write_config_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let mut file = AtomicWriteFile::options()
+        .open(path)
+        .map_err(|error| error.to_string())?;
+    file.write_all(bytes).map_err(|error| error.to_string())?;
+    file.commit().map_err(|error| error.to_string())
 }
 
 fn td_error(error: tdlib::types::Error) -> String {
@@ -1014,10 +1046,12 @@ fn next_mask(state: &mut u64) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::{
-        contains_username_mention, generate_database_key, group_by_album, message_media,
-        normalize_database_key, valid_api_hash, valid_database_key,
+        StoredTelegramConfig, config_backup_path, config_path, contains_username_mention,
+        generate_database_key, group_by_album, message_media, normalize_database_key, read_config,
+        valid_api_hash, valid_database_key, write_config,
     };
     use base64::{Engine as _, engine::general_purpose::STANDARD};
+    use std::{env, fs};
 
     #[test]
     fn generated_database_key_is_valid_32_byte_base64() {
@@ -1031,6 +1065,25 @@ mod tests {
         let legacy = ulid::Ulid::new().to_string();
         let migrated = normalize_database_key(&legacy).unwrap();
         assert_eq!(migrated, legacy);
+    }
+
+    #[test]
+    fn telegram_config_is_atomic_and_recovers_from_backup() {
+        let root = env::temp_dir().join(format!("flood-telegram-config-{}", ulid::Ulid::new()));
+        let config = StoredTelegramConfig {
+            api_id: Some(123_456),
+            api_hash: Some("0123456789abcdef0123456789abcdef".into()),
+            database_key: generate_database_key(),
+        };
+        write_config(&root, &config).unwrap();
+        assert!(config_backup_path(&root).is_file());
+        assert_eq!(read_config(&root).unwrap(), config);
+
+        fs::write(config_path(&root), b"{truncated").unwrap();
+        assert_eq!(read_config(&root).unwrap(), config);
+        assert_eq!(read_config(&root).unwrap(), config);
+
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

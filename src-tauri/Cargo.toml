@@ -13,6 +13,7 @@ tauri-build = { version = "2.5.3", features = [] }
 tdlib.workspace = true
 
 [dependencies]
+atomic-write-file.workspace = true
 base64 = "0.22"
 chrono.workspace = true
 flood-core = { path = "../crates/flood-core" }

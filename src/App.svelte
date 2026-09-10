@@ -3283,6 +3283,7 @@
                           </div>
                         {/each}
                       </div>
+                      <div class="telegram-local-note"><ShieldCheck size={14} /><span><strong>{t("telegramLocalSession")}</strong><small>{t("telegramLocalSessionDescription")}</small></span></div>
                       <button class="telegram-help danger" disabled={telegramBusy} onclick={disconnectTelegram}><LogOut size={13} />{t("disconnect")}</button>
                     {:else if telegramStatus.step === "database_error"}
                       <div class="integration-recovery" role="alert">
