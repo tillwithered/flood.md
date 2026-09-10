@@ -68,6 +68,9 @@ struct TaskDigestArgs {
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct CreateProjectArgs {
     title: String,
+    /// Стабильный уникальный идентификатор запроса (рекомендуется UUID). Повторно
+    /// используйте его только для безопасного повтора того же создания.
+    request_id: String,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -109,6 +112,9 @@ struct CreateTaskArgs {
     description: String,
     urgency: Option<String>,
     source: Option<SnapshotArgs>,
+    /// Стабильный уникальный идентификатор запроса (рекомендуется UUID). Повторно
+    /// используйте его только для безопасного повтора того же создания.
+    request_id: String,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -218,6 +224,13 @@ struct ProjectOutput {
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
+struct CreateProjectOutput {
+    project: Project,
+    created: bool,
+    request_id: String,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TasksOutput {
     tasks: Vec<TaskSummary>,
 }
@@ -289,6 +302,13 @@ struct TaskDigestOutput {
 #[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TaskOutput {
     task: Task,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct CreateTaskOutput {
+    task: Task,
+    created: bool,
+    request_id: String,
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
@@ -662,13 +682,14 @@ impl FloodServer {
                 "store_diagnostics",
                 "attachment_storage_audit",
                 "bounded_activity_journal",
+                "idempotent_creates",
                 "isolated_self_check",
             ],
         })
     }
 
     #[tool(
-        description = "Получить единую ограниченную стартовую сводку flood.md для агента. Выполняет изолированный self-check MCP и возвращает readiness ready/attention/blocked, диагностику реального хранилища, аудит вложений, до 10 приоритетных задач, до 5 последних действий MCP, свежесть Telegram и следующие подходящие tools. Не возвращает полную базу, тексты задач в журнале или Telegram-входящие. Используйте первым вызовом вместо серии широких списков",
+        description = "Получить единую ограниченную стартовую сводку flood.md для агента. Выполняет изолированный self-check MCP и возвращает readiness ready/attention/blocked, диагностику реального хранилища, аудит вложений, до 10 приоритетных задач, до 5 последних действий MCP, свежесть Telegram и следующие подходящие tools. Создание проектов и задач защищено обязательным request_id от дублей при повторе. Не возвращает полную базу, тексты задач в журнале или Telegram-входящие. Используйте первым вызовом вместо серии широких списков",
         annotations(
             title = "Рабочая сводка flood.md",
             read_only_hint = true,
@@ -744,7 +765,7 @@ impl FloodServer {
         }
 
         Ok(Json(WorkspaceBriefOutput {
-            brief_version: 4,
+            brief_version: 5,
             runtime,
             readiness,
             self_check,
@@ -904,7 +925,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Создать проект для задач",
+        description = "Создать проект для задач. request_id обязателен: передайте новый стабильный UUID и повторяйте его только при повторе того же запроса после неопределённого результата",
         annotations(
             title = "Создать проект",
             destructive_hint = false,
@@ -914,19 +935,25 @@ impl FloodServer {
     fn create_project(
         &self,
         Parameters(args): Parameters<CreateProjectArgs>,
-    ) -> Result<Json<ProjectOutput>, String> {
-        let project = self
+    ) -> Result<Json<CreateProjectOutput>, String> {
+        let outcome = self
             .store
-            .create_project(&args.title)
+            .create_project_idempotent(&args.title, &args.request_id)
             .map_err(store_error)?;
-        self.record_mcp_activity(
-            ActivityAction::ProjectCreated,
-            ActivityEntityKind::Project,
-            Some(project.id.clone()),
-            Some(project.id.clone()),
-            true,
-        );
-        Ok(Json(ProjectOutput { project }))
+        if outcome.created {
+            self.record_mcp_activity(
+                ActivityAction::ProjectCreated,
+                ActivityEntityKind::Project,
+                Some(outcome.value.id.clone()),
+                Some(outcome.value.id.clone()),
+                true,
+            );
+        }
+        Ok(Json(CreateProjectOutput {
+            project: outcome.value,
+            created: outcome.created,
+            request_id: args.request_id,
+        }))
     }
 
     #[tool(
@@ -1548,7 +1575,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Создать открытую задачу. urgency: normal, important или urgent",
+        description = "Создать открытую задачу. urgency: normal, important или urgent. request_id обязателен: передайте новый стабильный UUID и повторяйте его только при повторе того же запроса после неопределённого результата",
         annotations(
             title = "Создать задачу",
             destructive_hint = false,
@@ -1558,22 +1585,31 @@ impl FloodServer {
     fn create_task(
         &self,
         Parameters(args): Parameters<CreateTaskArgs>,
-    ) -> Result<Json<TaskOutput>, String> {
+    ) -> Result<Json<CreateTaskOutput>, String> {
         let input = CreateTask {
             project_id: args.project_id,
             description: args.description,
             urgency: parse_urgency(args.urgency.as_deref().unwrap_or("normal"))?,
             source: args.source.map(parse_snapshot).transpose()?,
         };
-        let task = self.store.create_task(input).map_err(store_error)?;
-        self.record_mcp_activity(
-            ActivityAction::TaskCreated,
-            ActivityEntityKind::Task,
-            Some(task.id.clone()),
-            Some(task.project_id.clone()),
-            true,
-        );
-        Ok(Json(TaskOutput { task }))
+        let outcome = self
+            .store
+            .create_task_idempotent(input, &args.request_id)
+            .map_err(store_error)?;
+        if outcome.created {
+            self.record_mcp_activity(
+                ActivityAction::TaskCreated,
+                ActivityEntityKind::Task,
+                Some(outcome.value.id.clone()),
+                Some(outcome.value.project_id.clone()),
+                true,
+            );
+        }
+        Ok(Json(CreateTaskOutput {
+            task: outcome.value,
+            created: outcome.created,
+            request_id: args.request_id,
+        }))
     }
 
     #[tool(
@@ -2465,7 +2501,7 @@ mod tests {
         assert_eq!(runtime.version, env!("CARGO_PKG_VERSION"));
         assert!(!runtime.destructive_actions_enabled);
         let brief = _server.get_workspace_brief().unwrap().0;
-        assert_eq!(brief.brief_version, 4);
+        assert_eq!(brief.brief_version, 5);
         assert_eq!(brief.readiness.level, "ready");
         assert!(brief.readiness.agent_ready);
         assert_eq!(brief.readiness.checks.len(), 4);
@@ -2568,6 +2604,7 @@ mod tests {
         let project = server
             .create_project(Parameters(CreateProjectArgs {
                 title: "Защищённый проект".into(),
+                request_id: "test-protected-project".into(),
             }))
             .unwrap()
             .0
@@ -2589,6 +2626,7 @@ mod tests {
         let project = server
             .create_project(Parameters(CreateProjectArgs {
                 title: "Удаляемый проект".into(),
+                request_id: "test-deletable-project".into(),
             }))
             .unwrap()
             .0
@@ -2611,6 +2649,7 @@ mod tests {
         let project = server
             .create_project(Parameters(CreateProjectArgs {
                 title: "Работа".into(),
+                request_id: "test-project-task-flow".into(),
             }))
             .unwrap()
             .0
@@ -2621,6 +2660,7 @@ mod tests {
                 description: "Проверить MCP".into(),
                 urgency: Some("important".into()),
                 source: None,
+                request_id: "test-task-structured".into(),
             }))
             .unwrap();
         let task_id = task.0.task.id.clone();
@@ -2636,6 +2676,7 @@ mod tests {
                 description: "Проверить пагинацию".into(),
                 urgency: None,
                 source: None,
+                request_id: "test-task-pagination".into(),
             }))
             .unwrap()
             .0
@@ -2672,11 +2713,61 @@ mod tests {
     }
 
     #[test]
+    fn repeated_create_requests_return_the_original_entity_without_duplicate_activity() {
+        let server = server();
+        let first_project = server
+            .create_project(Parameters(CreateProjectArgs {
+                title: "Надёжный проект".into(),
+                request_id: "retry-safe-project".into(),
+            }))
+            .unwrap()
+            .0;
+        let repeated_project = server
+            .create_project(Parameters(CreateProjectArgs {
+                title: "Надёжный проект".into(),
+                request_id: "retry-safe-project".into(),
+            }))
+            .unwrap()
+            .0;
+        assert!(first_project.created);
+        assert!(!repeated_project.created);
+        assert_eq!(first_project.project.id, repeated_project.project.id);
+
+        let first_task = server
+            .create_task(Parameters(CreateTaskArgs {
+                project_id: first_project.project.id.clone(),
+                description: "Создать один раз".into(),
+                urgency: None,
+                source: None,
+                request_id: "retry-safe-task".into(),
+            }))
+            .unwrap()
+            .0;
+        let repeated_task = server
+            .create_task(Parameters(CreateTaskArgs {
+                project_id: first_project.project.id,
+                description: "Создать один раз".into(),
+                urgency: None,
+                source: None,
+                request_id: "retry-safe-task".into(),
+            }))
+            .unwrap()
+            .0;
+        assert!(first_task.created);
+        assert!(!repeated_task.created);
+        assert_eq!(first_task.task.id, repeated_task.task.id);
+        assert_eq!(server.store.list_projects().unwrap().len(), 1);
+        assert_eq!(server.store.list_tasks(None, false).unwrap().len(), 1);
+        assert_eq!(server.store.list_activity(None, 10).unwrap().total, 2);
+    }
+
+    #[test]
     fn task_search_is_ranked_bounded_and_includes_telegram_source() {
         let server = server();
         let project = server
             .create_project(Parameters(CreateProjectArgs {
                 title: "Финансы".into(),
+                request_id: "test-project-search".into(),
             }))
             .unwrap()
             .0
@@ -2698,6 +2789,7 @@ mod tests {
                     message_ids: vec![42],
                     media: Vec::new(),
                 }),
+                request_id: "test-task-source-search".into(),
             }))
             .unwrap()
             .0
@@ -2708,6 +2800,7 @@ mod tests {
                 description: "Сверить квартальный отчёт".into(),
                 urgency: None,
                 source: None,
+                request_id: "test-task-report-search".into(),
             }))
             .unwrap();
 
@@ -2759,6 +2852,7 @@ mod tests {
         let project = server
             .create_project(Parameters(CreateProjectArgs {
                 title: "Релиз".into(),
+                request_id: "test-project-digest".into(),
             }))
             .unwrap()
             .0
@@ -2774,6 +2868,7 @@ mod tests {
                     description: description.into(),
                     urgency: Some(urgency.into()),
                     source: None,
+                    request_id: format!("test-task-digest-{urgency}"),
                 }))
                 .unwrap();
         }
@@ -2901,6 +2996,7 @@ mod tests {
         let project = server
             .create_project(Parameters(CreateProjectArgs {
                 title: "Telegram проект".into(),
+                request_id: "test-project-telegram-inbox".into(),
             }))
             .unwrap()
             .0

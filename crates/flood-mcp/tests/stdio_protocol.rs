@@ -38,6 +38,7 @@ fn command_line_reports_version_and_runs_isolated_self_check() {
         "Реестр MCP-инструментов",
         "Структурированные ответы MCP",
         "Аннотации безопасности MCP",
+        "Идемпотентное создание через MCP",
     ] {
         assert!(checks.iter().any(|check| check["name"] == name));
     }
@@ -115,6 +116,15 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert!(list_projects["outputSchema"].is_object());
     assert_eq!(list_projects["annotations"]["readOnlyHint"], true);
+    for name in ["create_project", "create_task"] {
+        let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
+        assert!(tool["inputSchema"]["properties"]["request_id"].is_object());
+        assert!(
+            tool["inputSchema"]["required"]
+                .as_array()
+                .is_some_and(|fields| fields.iter().any(|field| field == "request_id"))
+        );
+    }
     let triage_batch = tools
         .iter()
         .find(|tool| tool["name"] == "get_telegram_triage_batch")
@@ -193,7 +203,10 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
             "method": "tools/call",
             "params": {
                 "name": "create_project",
-                "arguments": { "title": "MCP проект" }
+                "arguments": {
+                    "title": "MCP проект",
+                    "request_id": "stdio-create-project-1"
+                }
             }
         }),
     );
@@ -202,6 +215,31 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     assert_eq!(
         created["result"]["structuredContent"]["project"]["title"],
         "MCP проект"
+    );
+    assert_eq!(created["result"]["structuredContent"]["created"], true);
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 101,
+            "method": "tools/call",
+            "params": {
+                "name": "create_project",
+                "arguments": {
+                    "title": "MCP проект",
+                    "request_id": "stdio-create-project-1"
+                }
+            }
+        }),
+    );
+    let repeated_project = receive(&mut stdout, 101);
+    assert_eq!(
+        repeated_project["result"]["structuredContent"]["created"],
+        false
+    );
+    assert_eq!(
+        repeated_project["result"]["structuredContent"]["project"]["id"],
+        created["result"]["structuredContent"]["project"]["id"]
     );
 
     send(
@@ -339,13 +377,41 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
                 "arguments": {
                     "project_id": created["result"]["structuredContent"]["project"]["id"],
                     "description": "Проверить полнотекстовый поиск MCP",
-                    "urgency": "important"
+                    "urgency": "important",
+                    "request_id": "stdio-create-task-1"
                 }
             }
         }),
     );
     let created_task = receive(&mut stdout, 10);
     assert_eq!(created_task["result"]["isError"], false);
+    assert_eq!(created_task["result"]["structuredContent"]["created"], true);
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 102,
+            "method": "tools/call",
+            "params": {
+                "name": "create_task",
+                "arguments": {
+                    "project_id": created["result"]["structuredContent"]["project"]["id"],
+                    "description": "Проверить полнотекстовый поиск MCP",
+                    "urgency": "important",
+                    "request_id": "stdio-create-task-1"
+                }
+            }
+        }),
+    );
+    let repeated_task = receive(&mut stdout, 102);
+    assert_eq!(
+        repeated_task["result"]["structuredContent"]["created"],
+        false
+    );
+    assert_eq!(
+        repeated_task["result"]["structuredContent"]["task"]["id"],
+        created_task["result"]["structuredContent"]["task"]["id"]
+    );
 
     send(
         &mut stdin,
@@ -450,7 +516,7 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     );
     let brief = receive(&mut stdout, 15);
     assert_eq!(brief["result"]["isError"], false);
-    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 4);
+    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 5);
     assert_eq!(
         brief["result"]["structuredContent"]["readiness"]["level"],
         "ready"

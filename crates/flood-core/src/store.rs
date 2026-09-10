@@ -110,6 +110,12 @@ pub struct ActivityPage {
     pub remaining: usize,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CreateOutcome<T> {
+    pub value: T,
+    pub created: bool,
+}
+
 struct AttachmentScan {
     report: AttachmentCleanupReport,
     orphaned: Vec<(PathBuf, u64)>,
@@ -448,7 +454,39 @@ impl Store {
     pub fn create_project(&self, title: &str) -> Result<Project, StoreError> {
         let title = clean_required(title, "название проекта", 120)?;
         let _lock = self.lock_exclusive()?;
-        let id = Ulid::new().to_string();
+        self.create_project_locked(Ulid::new().to_string(), title)
+    }
+
+    pub fn create_project_idempotent(
+        &self,
+        title: &str,
+        request_id: &str,
+    ) -> Result<CreateOutcome<Project>, StoreError> {
+        let title = clean_required(title, "название проекта", 120)?;
+        let request_id = clean_required(request_id, "request_id", 200)?;
+        let id = deterministic_id("project", &request_id);
+        let _lock = self.lock_exclusive()?;
+        let path = self.project_path(&id);
+        if path.is_file() {
+            let value = read_project(&path)?;
+            if value.title != title {
+                return Err(StoreError::Validation(
+                    "request_id уже использован для другого проекта".into(),
+                ));
+            }
+            return Ok(CreateOutcome {
+                value,
+                created: false,
+            });
+        }
+        self.create_project_locked(id, title)
+            .map(|value| CreateOutcome {
+                value,
+                created: true,
+            })
+    }
+
+    fn create_project_locked(&self, id: String, title: String) -> Result<Project, StoreError> {
         let now = Utc::now();
         let project = Project {
             id,
@@ -996,12 +1034,58 @@ impl Store {
         let description = clean_required(&input.description, "описание задачи", 20_000)?;
         validate_source(&input.source)?;
         let _lock = self.lock_exclusive()?;
+        self.create_task_locked(input, description, Ulid::new().to_string())
+    }
+
+    pub fn create_task_idempotent(
+        &self,
+        input: CreateTask,
+        request_id: &str,
+    ) -> Result<CreateOutcome<Task>, StoreError> {
+        validate_id(&input.project_id)?;
+        let description = clean_required(&input.description, "описание задачи", 20_000)?;
+        validate_source(&input.source)?;
+        let request_id = clean_required(request_id, "request_id", 200)?;
+        let id = deterministic_id("task", &request_id);
+        let _lock = self.lock_exclusive()?;
+        match self.find_task(&id) {
+            Ok(value) => {
+                if value.project_id != input.project_id
+                    || value.description != description
+                    || value.urgency != input.urgency
+                    || value.source != input.source
+                {
+                    return Err(StoreError::Validation(
+                        "request_id уже использован для другой задачи".into(),
+                    ));
+                }
+                return Ok(CreateOutcome {
+                    value,
+                    created: false,
+                });
+            }
+            Err(StoreError::NotFound(_)) => {}
+            Err(error) => return Err(error),
+        }
+        self.create_task_locked(input, description, id)
+            .map(|value| CreateOutcome {
+                value,
+                created: true,
+            })
+    }
+
+    fn create_task_locked(
+        &self,
+        input: CreateTask,
+        description: String,
+        id: String,
+    ) -> Result<Task, StoreError> {
         if !self.project_path(&input.project_id).exists() {
             return Err(StoreError::NotFound(input.project_id));
         }
         let now = Utc::now();
         let task = Task {
-            id: Ulid::new().to_string(),
+            id,
             project_id: input.project_id,
             description,
             created_at: now,
@@ -1965,6 +2049,57 @@ fn run_isolated_self_check(root: &Path, checks: &mut Vec<SelfCheckItem>) -> Resu
         return Err("Проверка жизненного цикла задачи не пройдена".into());
     }
 
+    let retry_project = store
+        .create_project_idempotent("Повторяемое создание", "self-check-project-request")
+        .map_err(|error| error.to_string())?;
+    let repeated_project = store
+        .create_project_idempotent("Повторяемое создание", "self-check-project-request")
+        .map_err(|error| error.to_string())?;
+    let retry_task = store
+        .create_task_idempotent(
+            CreateTask {
+                project_id: retry_project.value.id.clone(),
+                description: "Не создавать дубль".into(),
+                urgency: Urgency::Normal,
+                source: None,
+            },
+            "self-check-task-request",
+        )
+        .map_err(|error| error.to_string())?;
+    let repeated_task = store
+        .create_task_idempotent(
+            CreateTask {
+                project_id: retry_project.value.id.clone(),
+                description: "Не создавать дубль".into(),
+                urgency: Urgency::Normal,
+                source: None,
+            },
+            "self-check-task-request",
+        )
+        .map_err(|error| error.to_string())?;
+    let idempotent_ok = retry_project.created
+        && !repeated_project.created
+        && retry_project.value.id == repeated_project.value.id
+        && retry_task.created
+        && !repeated_task.created
+        && retry_task.value.id == repeated_task.value.id
+        && store
+            .list_tasks(Some(&retry_project.value.id), false)
+            .map_err(|error| error.to_string())?
+            .len()
+            == 1;
+    checks.push(SelfCheckItem {
+        name: "Идемпотентное создание через MCP".into(),
+        passed: idempotent_ok,
+        detail: (!idempotent_ok).then(|| "Повтор запроса создал дубликат".into()),
+    });
+    if !idempotent_ok {
+        return Err("Проверка идемпотентного создания не пройдена".into());
+    }
+    store
+        .delete_project(&retry_project.value.id, &retry_project.value.version)
+        .map_err(|error| error.to_string())?;
+
     let now = Utc::now();
     let candidate = TelegramInboxCandidate {
         id: Ulid::new().to_string(),
@@ -2319,6 +2454,18 @@ fn task_attachment_dir(task_path: &Path) -> PathBuf {
 
 fn digest(content: &[u8]) -> String {
     hex::encode(Sha256::digest(content))
+}
+
+fn deterministic_id(namespace: &str, request_id: &str) -> String {
+    let mut digest = Sha256::new();
+    digest.update(b"flood.idempotent-create.v1\0");
+    digest.update(namespace.as_bytes());
+    digest.update(b"\0");
+    digest.update(request_id.as_bytes());
+    let bytes = digest.finalize();
+    let mut value = [0_u8; 16];
+    value.copy_from_slice(&bytes[..16]);
+    Ulid::from(u128::from_be_bytes(value)).to_string()
 }
 fn ensure_version(actual: &str, expected: &str) -> Result<(), StoreError> {
     if actual == expected {
