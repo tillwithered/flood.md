@@ -1087,6 +1087,7 @@ impl Store {
                 return Err(StoreError::Backup("в архиве слишком много файлов".into()));
             }
             let mut total_size = 0_u64;
+            let mut extracted_size = 0_u64;
             let mut has_projects = false;
             for index in 0..archive.len() {
                 let mut entry = archive
@@ -1134,16 +1135,41 @@ impl Store {
                 {
                     migrated_relative.set_file_name("project.md");
                 }
-                let output = restore_root.join(migrated_relative);
+                let output = restore_root.join(&migrated_relative);
                 if entry.is_dir() {
                     fs::create_dir_all(output)?;
                     continue;
+                }
+                let entry_limit = restore_entry_size_limit(&migrated_relative);
+                if entry.size() > entry_limit {
+                    return Err(StoreError::Backup(format!(
+                        "файл {} превышает безопасный предел {entry_limit} байт",
+                        migrated_relative.display()
+                    )));
+                }
+                if is_attachment_path(&migrated_relative) && entry.size() == 0 {
+                    return Err(StoreError::Backup(format!(
+                        "архив содержит пустое вложение {}",
+                        migrated_relative.display()
+                    )));
                 }
                 if let Some(parent) = output.parent() {
                     fs::create_dir_all(parent)?;
                 }
                 let mut target = File::create(output)?;
-                std::io::copy(&mut entry, &mut target)?;
+                let copied = std::io::copy(&mut (&mut entry).take(entry_limit + 1), &mut target)?;
+                if copied > entry_limit {
+                    return Err(StoreError::Backup(format!(
+                        "файл {} превысил безопасный предел при распаковке",
+                        migrated_relative.display()
+                    )));
+                }
+                extracted_size = extracted_size.saturating_add(copied);
+                if extracted_size > 1024 * 1024 * 1024 {
+                    return Err(StoreError::Backup(
+                        "распакованные данные превышают 1 ГБ".into(),
+                    ));
+                }
                 target.sync_all()?;
             }
             if !has_projects || !restore_root.join("projects").is_dir() {
@@ -1786,6 +1812,28 @@ fn collect_backup_files(directory: &Path, output: &mut Vec<PathBuf>) -> Result<(
     }
     output.sort();
     Ok(())
+}
+
+fn is_attachment_path(path: &Path) -> bool {
+    path.components()
+        .any(|part| part.as_os_str() == "attachments")
+}
+
+fn restore_entry_size_limit(path: &Path) -> u64 {
+    if is_attachment_path(path) {
+        return MAX_ATTACHMENT_BYTES;
+    }
+    if path.extension().and_then(|value| value.to_str()) == Some("md") {
+        return MAX_MARKDOWN_FILE_BYTES;
+    }
+    if path.starts_with("integrations") {
+        return if path.file_name().and_then(|value| value.to_str()) == Some("telegram-inbox.json") {
+            MAX_TELEGRAM_INBOX_BYTES
+        } else {
+            MAX_INTEGRATION_STATE_BYTES
+        };
+    }
+    MAX_MARKDOWN_FILE_BYTES
 }
 
 fn clean_file_name(value: &str) -> Result<String, StoreError> {
@@ -2607,6 +2655,37 @@ mod tests {
             store.list_telegram_inbox(None, false),
             Err(StoreError::InvalidFile { .. })
         ));
+    }
+
+    #[test]
+    fn restore_rejects_oversized_entries_before_installing_backup() {
+        let store = temp_store();
+        assert_eq!(
+            restore_entry_size_limit(Path::new(
+                "projects/01M23H3GZCFYH03AS42M4ZSZFB/tasks/attachments/01M23H3NY62JB10E9PBXMK9JCP/file.bin"
+            )),
+            MAX_ATTACHMENT_BYTES
+        );
+        let archive_path =
+            env::temp_dir().join(format!("flood-oversized-backup-test-{}.zip", Ulid::new()));
+        let mut archive = ZipWriter::new(File::create(&archive_path).unwrap());
+        archive
+            .start_file(
+                "projects/01M23H3GZCFYH03AS42M4ZSZFB/project.md",
+                SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated),
+            )
+            .unwrap();
+        archive
+            .write_all(&vec![b'x'; MAX_MARKDOWN_FILE_BYTES as usize + 1])
+            .unwrap();
+        archive.finish().unwrap();
+
+        let error = store.restore_backup(&archive_path).unwrap_err();
+        assert!(
+            matches!(error, StoreError::Backup(ref message) if message.contains("превышает безопасный предел"))
+        );
+        assert!(store.list_projects().unwrap().is_empty());
+        let _ = fs::remove_file(archive_path);
     }
 
     #[test]
