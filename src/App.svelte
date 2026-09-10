@@ -171,6 +171,8 @@
   let telegramTriageMediaFailures = 0;
   let telegramTriageNotice = "";
   let telegramTriageNoticeWarning = false;
+  let telegramDismissUndo: TelegramInboxCandidate | null = null;
+  let telegramDismissUndoTimer: number | undefined;
   let telegramTaskDraftCandidate: TelegramInboxCandidate | null = null;
   let telegramTaskDraftTitle = "";
   let telegramTaskDraftNotes = "";
@@ -2526,6 +2528,8 @@
     telegramTriageMediaFailures = 0;
     telegramTriageNotice = "";
     telegramTriageNoticeWarning = false;
+    telegramDismissUndo = null;
+    window.clearTimeout(telegramDismissUndoTimer);
     telegramTaskDraftRestored = false;
     restoreModalFocus(returnFocus);
   }
@@ -2619,10 +2623,37 @@
     if (telegramInboxProcessingId) return;
     telegramInboxProcessingId = candidate.id;
     try {
-      await invoke("telegram_set_candidate_status", { candidateId: candidate.id, status: "dismissed" });
+      if (!(import.meta.env.DEV && !inTauri() && candidate.id.startsWith("preview-"))) {
+        await invoke("telegram_set_candidate_status", { candidateId: candidate.id, status: "dismissed" });
+      }
       discardTelegramTaskDraft(candidate.id);
       telegramInbox = telegramInbox.filter((item) => item.id !== candidate.id);
       telegramInboxSelection = telegramInboxSelection.filter((id) => id !== candidate.id);
+      telegramDismissUndo = { ...candidate, status: "dismissed", processed_at: new Date().toISOString() };
+      window.clearTimeout(telegramDismissUndoTimer);
+      telegramDismissUndoTimer = window.setTimeout(() => {
+        telegramDismissUndo = null;
+      }, 8_000);
+    } catch (error) {
+      telegramInboxError = String(error);
+    } finally {
+      telegramInboxProcessingId = "";
+    }
+  }
+
+  async function undoDismissTelegramCandidate() {
+    const candidate = telegramDismissUndo;
+    if (!candidate || telegramInboxProcessingId) return;
+    telegramInboxProcessingId = candidate.id;
+    telegramInboxError = "";
+    try {
+      const restored = import.meta.env.DEV && !inTauri() && candidate.id.startsWith("preview-")
+        ? { ...candidate, status: "pending" as const, processed_at: undefined }
+        : await invoke<TelegramInboxCandidate>("telegram_set_candidate_status", { candidateId: candidate.id, status: "pending" });
+      telegramInbox = [...telegramInbox.filter((item) => item.id !== restored.id), restored]
+        .sort((left, right) => new Date(right.sent_at).getTime() - new Date(left.sent_at).getTime());
+      telegramDismissUndo = null;
+      window.clearTimeout(telegramDismissUndoTimer);
     } catch (error) {
       telegramInboxError = String(error);
     } finally {
@@ -2942,7 +2973,7 @@
     void tick().then(() => telegramInboxDialog?.focus());
     telegramInboxLoading = preview === "telegram-loading";
     telegramInboxError = preview === "telegram-error" ? t("telegramPreviewError") : "";
-    if (preview !== "telegram-inbox") return;
+    if (preview !== "telegram-inbox" && preview !== "telegram-undo") return;
     telegramInbox = [
       {
         id: "preview-1", project_id: "preview", chat_id: -1001, chat_title: "Команда продукта", message_id: 101,
@@ -2961,6 +2992,10 @@
         author: "Олег", sent_at: "2026-09-10T16:58:00Z", reason: "manual", status: "pending", media: [], discovered_at: "2026-09-10T16:58:10Z"
       }
     ];
+    if (preview === "telegram-undo") {
+      telegramDismissUndo = { ...telegramInbox[0], status: "dismissed", processed_at: new Date().toISOString() };
+      telegramInbox = telegramInbox.slice(1);
+    }
   }
 
   function minimizeWindow() {
@@ -3066,6 +3101,7 @@
       window.clearInterval(telegramScanTimer);
       window.clearInterval(telegramRequestTimer);
       window.clearTimeout(telegramSearchTimer);
+      window.clearTimeout(telegramDismissUndoTimer);
       window.removeEventListener("blur", flush);
       document.removeEventListener("pointerdown", closeMenus);
       colorScheme.removeEventListener("change", updateSystemTheme);
@@ -3750,6 +3786,7 @@
           <footer>{#if telegramTriageQueue.length}<button type="button" onclick={skipTelegramTriageCandidate} disabled={Boolean(telegramInboxProcessingId)}>{t("keepInInbox")}</button>{:else}<button type="button" onclick={closeTelegramTaskDraft} disabled={Boolean(telegramInboxProcessingId)}>{t("cancel")}</button>{/if}<button class="primary-button" type="submit" disabled={!telegramTaskDraftTitle.trim() || Boolean(telegramInboxProcessingId)}>{#if telegramInboxProcessingId}<RefreshCw class="spinning" size={14} />{:else}<Plus size={14} />{/if}{telegramTriageQueue.length > 1 ? t("createAndContinue") : t("createTask")}</button></footer>
         </form>
       {:else}<div class="telegram-inbox-body">
+        {#if telegramDismissUndo}<div class="telegram-dismiss-undo" role="status"><span><Check size={14} /><span><strong>{t("telegramMessageDismissed")}</strong><small>{t("telegramMessageDismissedDescription", { author: telegramDismissUndo.author })}</small></span></span><button disabled={Boolean(telegramInboxProcessingId)} onclick={undoDismissTelegramCandidate}><RotateCcw size={13} />{t("undo")}</button></div>{/if}
         {#if telegramTriageNotice}<div class:warning={telegramTriageNoticeWarning} class="telegram-triage-notice" role="status">{#if telegramTriageNoticeWarning}<Paperclip size={14} />{:else}<CheckCircle2 size={14} />{/if}{telegramTriageNotice}</div>{/if}
         {#if !telegramInboxLoading && !telegramInboxError && telegramInbox.length}<div class="telegram-inbox-batch"><button class:active={allTelegramInboxCandidatesSelected()} aria-pressed={allTelegramInboxCandidatesSelected()} onclick={toggleAllTelegramInboxCandidates}><span class="picker-check">{#if allTelegramInboxCandidatesSelected()}<Check size={12} />{/if}</span>{allTelegramInboxCandidatesSelected() ? t("clearSelection") : t("selectAllMessages")}</button><small>{t("batchTriageHint")}</small></div>{/if}
         <div class:with-action-island={telegramInboxSelection.length > 0} class="telegram-message-list telegram-inbox-list">

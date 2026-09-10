@@ -2440,6 +2440,18 @@ mod tests {
         );
         assert_eq!(store.list_telegram_inbox(None, false).unwrap().len(), 1);
 
+        let dismissed = store
+            .set_telegram_candidate_status(&candidate.id, InboxCandidateStatus::Dismissed)
+            .unwrap();
+        assert_eq!(dismissed.status, InboxCandidateStatus::Dismissed);
+        assert!(store.list_telegram_inbox(None, false).unwrap().is_empty());
+        let restored = store
+            .set_telegram_candidate_status(&candidate.id, InboxCandidateStatus::Pending)
+            .unwrap();
+        assert_eq!(restored.status, InboxCandidateStatus::Pending);
+        assert!(restored.processed_at.is_none());
+        assert_eq!(store.list_telegram_inbox(None, false).unwrap().len(), 1);
+
         let task = store
             .create_task_from_telegram_candidate(
                 &candidate.id,
