@@ -198,6 +198,11 @@
   let sourceEditorOpen = false;
   let sourceViewerOpen = false;
   let sourceViewerDialog: HTMLDivElement;
+  let sourceViewerReturnFocus: HTMLElement | null = null;
+  let telegramConnectionsDialog: HTMLDivElement;
+  let telegramConnectionsReturnFocus: HTMLElement | null = null;
+  let telegramImportDialog: HTMLDivElement;
+  let telegramImportReturnFocus: HTMLElement | null = null;
   let telegramInboxDialog: HTMLDivElement;
   let telegramInboxReturnFocus: HTMLElement | null = null;
   let sourceMediaPreviews: Record<number, string> = {};
@@ -222,8 +227,10 @@
   let imageViewer: { src: string; alt: string } | null = null;
   let imageViewerZoom = 1;
   let imageViewerDialog: HTMLDivElement;
+  let imageViewerReturnFocus: HTMLElement | null = null;
   let sidebarProjectHint: { label: string; left: number; top: number } | null = null;
   let commandPaletteOpen = false;
+  let commandPaletteReturnFocus: HTMLElement | null = null;
   let commandQuery = "";
   let commandActiveIndex = 0;
   let commandInput: HTMLInputElement;
@@ -1247,6 +1254,7 @@
   }
 
   async function openCommandPalette() {
+    if (!commandPaletteOpen) commandPaletteReturnFocus = focusedElement();
     commandPaletteOpen = true;
     commandQuery = "";
     commandActiveIndex = 0;
@@ -1260,9 +1268,12 @@
   }
 
   function closeCommandPalette() {
+    const returnFocus = commandPaletteReturnFocus;
+    commandPaletteReturnFocus = null;
     commandPaletteOpen = false;
     commandQuery = "";
     commandActiveIndex = 0;
+    restoreModalFocus(returnFocus);
   }
 
   function updateCommandQuery(value: string) {
@@ -1359,6 +1370,16 @@
     }
   }
 
+  function focusedElement() {
+    return document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }
+
+  function restoreModalFocus(element: HTMLElement | null) {
+    void tick().then(() => {
+      if (element?.isConnected) element.focus();
+    });
+  }
+
   function commandGroupLabel(group: CommandGroup) {
     return t(group === "actions" ? "quickActions" : group === "projects" ? "projectResults" : "taskResults");
   }
@@ -1373,6 +1394,7 @@
   async function openImageViewer(card: HTMLElement) {
     const image = card.querySelector("img");
     if (!image?.src) return;
+    if (!imageViewer) imageViewerReturnFocus = focusedElement();
     imageViewer = { src: image.src, alt: image.alt || t("image") };
     imageViewerZoom = 1;
     await tick();
@@ -1380,8 +1402,11 @@
   }
 
   function closeImageViewer() {
+    const returnFocus = imageViewerReturnFocus;
+    imageViewerReturnFocus = null;
     imageViewer = null;
     imageViewerZoom = 1;
+    restoreModalFocus(returnFocus);
   }
 
   function changeImageZoom(step: number) {
@@ -2003,6 +2028,7 @@
 
   async function openSourceViewer() {
     if (!selectedTask?.source) return;
+    if (!sourceViewerOpen) sourceViewerReturnFocus = focusedElement();
     sourceViewerOpen = true;
     sourceEditorOpen = false;
     taskActionMenuOpen = false;
@@ -2012,8 +2038,11 @@
   }
 
   function closeSourceViewer() {
+    const returnFocus = sourceViewerReturnFocus;
+    sourceViewerReturnFocus = null;
     sourceViewerOpen = false;
     clearSourceMediaPreviews();
+    restoreModalFocus(returnFocus);
   }
 
   async function changeUrgency(urgency: Urgency) {
@@ -2235,18 +2264,23 @@
   }
 
   function openTelegramConnections(projectId: string) {
+    if (!telegramPickerProjectId) telegramConnectionsReturnFocus = focusedElement();
     telegramPickerProjectId = projectId;
     telegramChatSearch = "";
     telegramSearchResults = [];
     telegramSearchLoading = false;
+    void tick().then(() => telegramConnectionsDialog?.focus());
   }
 
   function closeTelegramConnections() {
+    const returnFocus = telegramConnectionsReturnFocus;
+    telegramConnectionsReturnFocus = null;
     window.clearTimeout(telegramSearchTimer);
     telegramPickerProjectId = "";
     telegramChatSearch = "";
     telegramSearchResults = [];
     telegramSearchLoading = false;
+    restoreModalFocus(returnFocus);
   }
 
   function searchTelegramChats(value: string) {
@@ -2323,17 +2357,27 @@
   async function openTelegramImporter() {
     const first = currentChat.telegram_chats[0];
     if (!first || telegramMessagesLoading) return;
+    if (!telegramImportOpen) telegramImportReturnFocus = focusedElement();
     telegramImportOpen = true;
-    const pending = await invoke<TelegramInboxCandidate[]>("telegram_list_inbox", { projectId: currentChat.id, includeProcessed: false });
-    telegramQueuedMessageIds = pending.flatMap((candidate) => candidate.message_ids?.length ? candidate.message_ids : [candidate.message_id]);
-    await loadTelegramImportChat(first.chat_id);
+    await tick();
+    telegramImportDialog?.focus();
+    try {
+      const pending = await invoke<TelegramInboxCandidate[]>("telegram_list_inbox", { projectId: currentChat.id, includeProcessed: false });
+      telegramQueuedMessageIds = pending.flatMap((candidate) => candidate.message_ids?.length ? candidate.message_ids : [candidate.message_id]);
+      await loadTelegramImportChat(first.chat_id);
+    } catch (error) {
+      telegramImportError = String(error);
+    }
   }
 
   function closeTelegramImporter() {
     if (telegramImportingId) return;
+    const returnFocus = telegramImportReturnFocus;
+    telegramImportReturnFocus = null;
     telegramImportOpen = false;
     telegramMessages = [];
     telegramImportError = "";
+    restoreModalFocus(returnFocus);
   }
 
   async function importTelegramMessage(message: TelegramMessage) {
@@ -2356,7 +2400,7 @@
 
   async function openTelegramInbox(refresh = false) {
     const wasOpen = telegramInboxOpen;
-    if (!wasOpen) telegramInboxReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!wasOpen) telegramInboxReturnFocus = focusedElement();
     telegramInboxOpen = true;
     telegramInboxLoading = true;
     telegramInboxError = "";
@@ -2426,9 +2470,7 @@
     telegramTriageTotal = 0;
     telegramTriageCreated = 0;
     telegramTriageNotice = "";
-    void tick().then(() => {
-      if (returnFocus?.isConnected) returnFocus.focus();
-    });
+    restoreModalFocus(returnFocus);
   }
 
   function toggleTelegramInboxCandidate(candidateId: string) {
@@ -2534,8 +2576,8 @@
     if (task.trashed) return;
     try {
       const record = await invoke<TaskRecord>("get_task", { id: task.id });
-      telegramImportOpen = false;
-      telegramInboxOpen = false;
+      if (telegramImportOpen) closeTelegramImporter();
+      if (telegramInboxOpen) closeTelegramInbox();
       await openTask(toTaskItem(record, chats));
     } catch (error) {
       telegramImportError = String(error);
@@ -2611,6 +2653,7 @@
         const bytes = await invoke<ArrayBuffer>("read_task_attachment", { id: selectedTask.id, relativePath: media.relative_path });
         const url = URL.createObjectURL(new Blob([bytes], { type: media.mime_type || attachmentMimeType(media.relative_path) }));
         attachmentObjectUrls.push(url);
+        if (!imageViewer) imageViewerReturnFocus = focusedElement();
         imageViewer = { src: url, alt: media.file_name || t("image") };
         imageViewerZoom = 1;
         await tick();
@@ -2960,7 +3003,7 @@
 
 {#if commandPaletteOpen}
   <div class="command-palette-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeCommandPalette(); }}>
-    <div class="command-palette" role="dialog" aria-modal="true" aria-label={t("commandPalette")}>
+    <div class="command-palette" role="dialog" aria-modal="true" aria-label={t("commandPalette")} tabindex="-1" onkeydown={trapModalFocus}>
       <header class="command-palette-search">
         <Search size={18} aria-hidden="true" />
         <input bind:this={commandInput} value={commandQuery} aria-label={t("commandSearch")} aria-controls="command-results" aria-activedescendant={commandResults[commandActiveIndex] ? `command-${commandResults[commandActiveIndex].id.replaceAll(":", "-")}` : undefined} placeholder={t("commandSearchPlaceholder")} oninput={(event) => updateCommandQuery(event.currentTarget.value)} onkeydown={handleCommandKeydown} />
@@ -3512,7 +3555,7 @@
 
 {#if telegramConnectionsProject}
   <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeTelegramConnections(); }}>
-    <div class="telegram-import-panel telegram-connections-panel" role="dialog" aria-modal="true" aria-label={t("telegramConnectionsTitle")}>
+    <div class="telegram-import-panel telegram-connections-panel" bind:this={telegramConnectionsDialog} role="dialog" aria-modal="true" aria-label={t("telegramConnectionsTitle")} tabindex="-1" onkeydown={trapModalFocus}>
       <header><span><Send size={17} /><span><strong>{t("telegramConnectionsTitle")}</strong><small title={telegramConnectionsProject.title}>{telegramConnectionsProject.title}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeTelegramConnections}><X size={16} /></button></header>
       <div class="telegram-connections-body">
         <p>{t("telegramConnectionsDescription")}</p>
@@ -3548,7 +3591,7 @@
 
 {#if telegramImportOpen}
   <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeTelegramImporter(); }}>
-    <div class="telegram-import-panel" role="dialog" aria-modal="true" aria-label={t("telegramMessages")}>
+    <div class="telegram-import-panel" bind:this={telegramImportDialog} role="dialog" aria-modal="true" aria-label={t("telegramMessages")} tabindex="-1" onkeydown={trapModalFocus}>
       <header><span><Send size={17} /><span><strong>Telegram</strong><small>{t("chooseMessageForInbox")}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeTelegramImporter}><X size={16} /></button></header>
       {#if currentChat.telegram_chats.length > 1}<div class="telegram-import-tabs">{#each currentChat.telegram_chats as link (link.chat_id)}<button class:active={telegramImportChatId === link.chat_id} onclick={() => loadTelegramImportChat(link.chat_id)}>{link.title}</button>{/each}</div>{/if}
       <div class="telegram-message-list">
@@ -3607,7 +3650,7 @@
 
 {#if sourceViewerOpen && selectedTask?.source}
   <div class="telegram-import-backdrop source-viewer-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeSourceViewer(); }}>
-    <div class="telegram-import-panel source-viewer-panel" bind:this={sourceViewerDialog} role="dialog" aria-modal="true" aria-label={t("taskSource")} tabindex="-1">
+    <div class="telegram-import-panel source-viewer-panel" bind:this={sourceViewerDialog} role="dialog" aria-modal="true" aria-label={t("taskSource")} tabindex="-1" onkeydown={trapModalFocus}>
       <header><span><FloodGlyph kind="info" size={22} /><span><strong>{t("taskSource")}</strong><small>{selectedTask.source.chat_title || t("sourceMessage")}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeSourceViewer}><X size={16} /></button></header>
       <div class="source-viewer-body">
         <section class="source-message-card">
@@ -3635,7 +3678,7 @@
 {/if}
 
 {#if imageViewer}
-  <div class="image-viewer" bind:this={imageViewerDialog} role="dialog" aria-modal="true" aria-label={t("imageViewer", { image: imageViewer.alt })} tabindex="-1">
+  <div class="image-viewer" bind:this={imageViewerDialog} role="dialog" aria-modal="true" aria-label={t("imageViewer", { image: imageViewer.alt })} tabindex="-1" onkeydown={trapModalFocus}>
     <div class="image-viewer-stage" onwheel={(event) => { event.preventDefault(); changeImageZoom(event.deltaY < 0 ? .2 : -.2); }}>
       <img src={imageViewer.src} alt={imageViewer.alt} draggable="false" style:zoom={imageViewerZoom} />
     </div>
