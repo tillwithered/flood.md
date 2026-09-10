@@ -644,11 +644,11 @@ button { color: inherit; }
 .code-row code { min-width: 0; flex: 1; overflow: hidden; color: #555552; font-family: "Cascadia Mono", Consolas, monospace; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
 .settings-workspace { overflow: auto; align-items: flex-start; scrollbar-gutter: stable; }
-.settings-page { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 48px 0 72px; }
+.settings-page { width: min(1320px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 72px; }
 .settings-header { margin-bottom: 34px; }
 .settings-header h2 { margin: 0 0 6px; font-size: 29px; font-weight: 680; letter-spacing: -0.045em; }
 .settings-header p, .settings-section-title p { margin: 0; color: var(--muted); font-size: 13px; }
-.settings-layout { display: grid; grid-template-columns: 164px minmax(0, 1fr); gap: clamp(24px, 3.4vw, 48px); align-items: start; }
+.settings-layout { display: grid; grid-template-columns: 164px minmax(0, 1fr); gap: clamp(24px, 2.8vw, 44px); align-items: start; }
 .settings-nav { display: grid; gap: 3px; position: sticky; top: 20px; }
 .settings-nav button { display: flex; width: 100%; min-height: 36px; align-items: center; gap: 9px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 13px; text-align: left; cursor: pointer; }
 .settings-nav button:hover, .settings-nav button.active { background: var(--hover); color: var(--ink); }
