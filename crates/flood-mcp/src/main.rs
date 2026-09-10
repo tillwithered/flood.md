@@ -1,9 +1,9 @@
 use chrono::{DateTime, Utc};
 use flood_core::{
     AttachmentCleanupReport, CreateTask, InboxCandidateStatus, MessageSnapshot, Project,
-    SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
-    TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramSyncRequest, TelegramSyncStatus,
-    Urgency, default_data_dir, run_self_check as run_core_self_check,
+    SelfCheckItem, SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task,
+    TaskPatch, TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramSyncRequest,
+    TelegramSyncStatus, Urgency, default_data_dir, run_self_check as run_core_self_check,
 };
 use rmcp::{
     Json, ServiceExt, handler::server::wrapper::Parameters, schemars, tool, tool_router,
@@ -11,6 +11,7 @@ use rmcp::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::time::Instant;
 
 const TELEGRAM_SYNC_FRESH_SECONDS: u64 = 5 * 60;
 const TELEGRAM_REQUEST_WAIT_SECONDS: u64 = 2 * 60;
@@ -1591,6 +1592,67 @@ fn store_error(error: impl std::fmt::Display) -> String {
     error.to_string()
 }
 
+fn run_binary_self_check() -> SelfCheckResult {
+    let started = Instant::now();
+    let mut result = run_core_self_check();
+    let tools = FloodServer::tool_router().list_all();
+    let required_tools = [
+        "get_workspace_brief",
+        "diagnose_store",
+        "inspect_attachment_storage",
+        "list_projects",
+        "list_tasks",
+        "search_tasks",
+        "get_task_digest",
+        "get_telegram_sync_status",
+        "request_telegram_sync",
+        "run_self_check",
+    ];
+    let missing_tools = required_tools
+        .iter()
+        .filter(|name| !tools.iter().any(|tool| tool.name == **name))
+        .copied()
+        .collect::<Vec<_>>();
+    result.checks.push(SelfCheckItem {
+        name: "Реестр MCP-инструментов".into(),
+        passed: missing_tools.is_empty(),
+        detail: (!missing_tools.is_empty())
+            .then(|| format!("Не найдены: {}", missing_tools.join(", "))),
+    });
+
+    let missing_output_schemas = tools
+        .iter()
+        .filter(|tool| tool.output_schema.is_none())
+        .map(|tool| tool.name.as_ref())
+        .collect::<Vec<_>>();
+    result.checks.push(SelfCheckItem {
+        name: "Структурированные ответы MCP".into(),
+        passed: missing_output_schemas.is_empty(),
+        detail: (!missing_output_schemas.is_empty())
+            .then(|| format!("Нет output schema: {}", missing_output_schemas.join(", "))),
+    });
+
+    let unsafe_destructive = tools.iter().filter(|tool| {
+        matches!(
+            tool.name.as_ref(),
+            "delete_project" | "delete_trashed_task" | "empty_trash"
+        ) && tool
+            .annotations
+            .as_ref()
+            .and_then(|annotations| annotations.destructive_hint)
+            != Some(true)
+    });
+    let safety_ok = unsafe_destructive.count() == 0;
+    result.checks.push(SelfCheckItem {
+        name: "Аннотации безопасности MCP".into(),
+        passed: safety_ok,
+        detail: (!safety_ok).then(|| "Необратимый инструмент не помечен как destructive".into()),
+    });
+    result.passed = result.passed && result.checks.iter().all(|check| check.passed);
+    result.duration_ms = started.elapsed().as_millis();
+    result
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     match std::env::args().nth(1).as_deref() {
@@ -1599,7 +1661,7 @@ async fn main() -> anyhow::Result<()> {
             return Ok(());
         }
         Some("--self-check") => {
-            println!("{}", serde_json::to_string(&run_core_self_check())?);
+            println!("{}", serde_json::to_string(&run_binary_self_check())?);
             return Ok(());
         }
         Some(argument) => anyhow::bail!("неизвестный аргумент: {argument}"),
@@ -1628,6 +1690,25 @@ mod tests {
             store: Store::new(std::env::temp_dir().join(format!("flood-mcp-test-{}", Ulid::new())))
                 .unwrap(),
             allow_destructive: false,
+        }
+    }
+
+    #[test]
+    fn binary_self_check_covers_the_mcp_surface() {
+        let result = run_binary_self_check();
+        assert!(result.passed, "{:?}", result.checks);
+        for name in [
+            "Реестр MCP-инструментов",
+            "Структурированные ответы MCP",
+            "Аннотации безопасности MCP",
+        ] {
+            assert!(
+                result
+                    .checks
+                    .iter()
+                    .any(|check| check.name == name && check.passed),
+                "нет проверки {name}"
+            );
         }
     }
 

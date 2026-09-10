@@ -10,13 +10,14 @@ use serde::Serialize;
 use std::{
     fs,
     future::Future,
-    path::PathBuf,
-    process::Command,
+    path::{Path, PathBuf},
+    process::{Command, Output, Stdio},
     sync::{
         Mutex,
         atomic::{AtomicBool, Ordering},
     },
-    time::Duration,
+    thread,
+    time::{Duration, Instant},
 };
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_opener::OpenerExt;
@@ -84,6 +85,58 @@ struct SyncGuard<'a>(&'a AtomicBool);
 
 const TELEGRAM_PROJECT_SYNC_TIMEOUT: Duration = Duration::from_secs(20);
 const TELEGRAM_MEDIA_SYNC_TIMEOUT: Duration = Duration::from_secs(60);
+const MCP_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
+const MCP_SELF_CHECK_TIMEOUT: Duration = Duration::from_secs(20);
+const MCP_VERSION_OUTPUT_LIMIT: usize = 256;
+const MCP_SELF_CHECK_OUTPUT_LIMIT: usize = 256 * 1024;
+
+fn run_mcp_command(
+    executable: &Path,
+    argument: &str,
+    timeout: Duration,
+    output_limit: usize,
+) -> Result<Output, String> {
+    let mut command = Command::new(executable);
+    command
+        .arg(argument)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x0800_0000);
+    }
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("не удалось запустить MCP-сервер: {error}"))?;
+    let started = Instant::now();
+    loop {
+        match child
+            .try_wait()
+            .map_err(|error| format!("не удалось проверить MCP-сервер: {error}"))?
+        {
+            Some(_) => {
+                let output = child
+                    .wait_with_output()
+                    .map_err(|error| format!("не удалось прочитать ответ MCP-сервера: {error}"))?;
+                if output.stdout.len() > output_limit || output.stderr.len() > output_limit {
+                    return Err("MCP-сервер вернул слишком большой ответ".into());
+                }
+                return Ok(output);
+            }
+            None if started.elapsed() >= timeout => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(format!(
+                    "MCP-сервер не ответил за {} с и был остановлен",
+                    timeout.as_secs()
+                ));
+            }
+            None => thread::sleep(Duration::from_millis(20)),
+        }
+    }
+}
 
 async fn with_telegram_timeout<T>(
     future: impl Future<Output = Result<T, String>>,
@@ -460,14 +513,17 @@ fn mcp_runtime_info(app: tauri::AppHandle) -> Result<McpRuntimeInfo, String> {
     let available = executable.is_file();
     let version = available
         .then(|| {
-            Command::new(&executable)
-                .arg("--version")
-                .output()
-                .ok()
-                .filter(|output| output.status.success())
-                .and_then(|output| String::from_utf8(output.stdout).ok())
-                .map(|value| value.trim().to_owned())
-                .filter(|value| !value.is_empty())
+            run_mcp_command(
+                &executable,
+                "--version",
+                MCP_VERSION_TIMEOUT,
+                MCP_VERSION_OUTPUT_LIMIT,
+            )
+            .ok()
+            .filter(|output| output.status.success())
+            .and_then(|output| String::from_utf8(output.stdout).ok())
+            .map(|value| value.trim().to_owned())
+            .filter(|value| !value.is_empty())
         })
         .flatten();
     let app_version = app.package_info().version.to_string();
@@ -496,10 +552,12 @@ fn run_mcp_self_check(app: tauri::AppHandle) -> Result<SelfCheckResult, String> 
     if !executable.is_file() {
         return Err("MCP-сервер не найден в установленной сборке".into());
     }
-    let output = Command::new(&executable)
-        .arg("--self-check")
-        .output()
-        .map_err(|error| format!("не удалось запустить MCP-сервер: {error}"))?;
+    let output = run_mcp_command(
+        &executable,
+        "--self-check",
+        MCP_SELF_CHECK_TIMEOUT,
+        MCP_SELF_CHECK_OUTPUT_LIMIT,
+    )?;
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).trim().to_owned());
     }
