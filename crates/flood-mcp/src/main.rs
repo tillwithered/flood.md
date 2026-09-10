@@ -692,4 +692,124 @@ mod tests {
         assert!(result.structured_content.is_some());
         assert_eq!(result.is_error, Some(false));
     }
+
+    #[test]
+    fn telegram_candidate_tools_cover_the_full_inbox_flow() {
+        let server = server();
+        let project = server
+            .create_project(Parameters(CreateProjectArgs {
+                title: "Telegram проект".into(),
+            }))
+            .unwrap()
+            .0
+            .project;
+        let candidate_id = format!("telegram:{}:-10042:77", project.id);
+        let candidate: TelegramInboxCandidate = serde_json::from_value(serde_json::json!({
+            "id": candidate_id,
+            "project_id": project.id,
+            "chat_id": -10042,
+            "chat_title": "Рабочий чат",
+            "message_id": 77,
+            "text": "Подготовить итог встречи",
+            "author": "Коллега",
+            "sent_at": "2026-09-10T10:00:00Z",
+            "url": "https://t.me/c/42/77",
+            "reason": "mention",
+            "status": "pending",
+            "media": [{
+                "kind": "photo",
+                "file_name": "photo-77.jpg",
+                "provider_file_id": 701,
+                "mime_type": "image/jpeg",
+                "size": 2048
+            }],
+            "discovered_at": "2026-09-10T10:01:00Z"
+        }))
+        .unwrap();
+        server
+            .store
+            .upsert_telegram_candidates(vec![candidate])
+            .unwrap();
+
+        let listed = server
+            .list_telegram_inbox(Parameters(ListTelegramInboxArgs {
+                project_id: Some(project.id.clone()),
+                include_processed: false,
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(listed.candidates.len(), 1);
+
+        let read = server
+            .get_telegram_candidate(Parameters(CandidateIdArgs {
+                candidate_id: candidate_id.clone(),
+            }))
+            .unwrap()
+            .0
+            .candidate;
+        assert_eq!(read.media.len(), 1);
+        assert_eq!(read.media[0].provider_file_id, Some(701));
+
+        let dismissed = server
+            .set_telegram_candidate_status(Parameters(SetCandidateStatusArgs {
+                candidate_id: candidate_id.clone(),
+                status: "dismissed".into(),
+            }))
+            .unwrap()
+            .0
+            .candidate;
+        assert_eq!(dismissed.status, InboxCandidateStatus::Dismissed);
+        assert!(
+            server
+                .create_task_from_telegram_candidate(Parameters(CreateTaskFromCandidateArgs {
+                    candidate_id: candidate_id.clone(),
+                    description: None,
+                    urgency: None,
+                }))
+                .is_err()
+        );
+
+        server
+            .set_telegram_candidate_status(Parameters(SetCandidateStatusArgs {
+                candidate_id: candidate_id.clone(),
+                status: "pending".into(),
+            }))
+            .unwrap();
+        let task = server
+            .create_task_from_telegram_candidate(Parameters(CreateTaskFromCandidateArgs {
+                candidate_id: candidate_id.clone(),
+                description: None,
+                urgency: Some("important".into()),
+            }))
+            .unwrap()
+            .0
+            .task;
+        assert_eq!(task.description, "Подготовить итог встречи");
+        assert_eq!(task.urgency, Urgency::Important);
+        let source = task.source.as_ref().unwrap();
+        assert_eq!(source.chat_id, Some(-10042));
+        assert_eq!(source.media.len(), 1);
+
+        let repeated = server
+            .create_task_from_telegram_candidate(Parameters(CreateTaskFromCandidateArgs {
+                candidate_id,
+                description: Some("Не создавать дубль".into()),
+                urgency: Some("urgent".into()),
+            }))
+            .unwrap()
+            .0
+            .task;
+        assert_eq!(repeated.id, task.id);
+        assert!(
+            server
+                .list_telegram_inbox(Parameters(ListTelegramInboxArgs {
+                    project_id: Some(project.id),
+                    include_processed: false,
+                }))
+                .unwrap()
+                .0
+                .candidates
+                .is_empty()
+        );
+    }
 }

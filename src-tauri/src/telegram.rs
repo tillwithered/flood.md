@@ -362,6 +362,10 @@ impl TelegramManager {
                     continue;
                 }
                 let text = message_text(&message.content);
+                let media = message_media(&message.content, message.id);
+                if text.trim().is_empty() && media.is_empty() {
+                    continue;
+                }
                 let username_mention = self
                     .status()
                     .account_username
@@ -378,8 +382,15 @@ impl TelegramManager {
                 };
                 if let Some(reason) = reason {
                     candidates.push(
-                        self.candidate_from_message(&project.id, link, message, reason)
-                            .await?,
+                        self.candidate_from_message_with_content(
+                            &project.id,
+                            link,
+                            message,
+                            reason,
+                            text,
+                            media,
+                        )
+                        .await?,
                     );
                 }
             }
@@ -411,12 +422,25 @@ impl TelegramManager {
         message: tdlib::types::Message,
         reason: InboxCandidateReason,
     ) -> Result<TelegramInboxCandidate, String> {
-        let client_id = self.client_id()?;
         let text = message_text(&message.content);
         let media = message_media(&message.content, message.id);
         if text.trim().is_empty() && media.is_empty() {
             return Err("В сообщении нет текста или поддерживаемого медиа".into());
         }
+        self.candidate_from_message_with_content(project_id, link, message, reason, text, media)
+            .await
+    }
+
+    async fn candidate_from_message_with_content(
+        &self,
+        project_id: &str,
+        link: &TelegramProjectLink,
+        message: tdlib::types::Message,
+        reason: InboxCandidateReason,
+        text: String,
+        media: Vec<flood_core::SourceMedia>,
+    ) -> Result<TelegramInboxCandidate, String> {
+        let client_id = self.client_id()?;
         let author = self.sender_name(&message.sender_id, client_id).await;
         let url =
             match functions::get_message_link(link.chat_id, message.id, 0, false, false, client_id)

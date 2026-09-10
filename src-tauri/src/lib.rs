@@ -417,8 +417,17 @@ async fn telegram_download_source_media(
         .provider_file_id
         .ok_or_else(|| "У медиафайла нет идентификатора Telegram".to_string())?;
     let downloaded = state.telegram.download_file(file_id).await?;
-    let bytes = fs::read(downloaded).map_err(|error| error.to_string())?;
+    let bytes = (|| {
+        let actual_size = fs::metadata(&downloaded)
+            .map_err(|error| error.to_string())?
+            .len();
+        if actual_size > 25 * 1024 * 1024 {
+            return Err("Медиафайл больше допустимых 25 МБ".into());
+        }
+        fs::read(&downloaded).map_err(|error| error.to_string())
+    })();
     state.telegram.release_downloaded_file(file_id).await;
+    let bytes = bytes?;
     let relative_path = result(state.store.save_task_attachment(
         &task_id,
         &media.file_name,
