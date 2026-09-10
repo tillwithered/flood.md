@@ -428,7 +428,24 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     );
     let brief = receive(&mut stdout, 15);
     assert_eq!(brief["result"]["isError"], false);
-    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 2);
+    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 3);
+    assert_eq!(
+        brief["result"]["structuredContent"]["readiness"]["level"],
+        "ready"
+    );
+    assert_eq!(
+        brief["result"]["structuredContent"]["readiness"]["agent_ready"],
+        true
+    );
+    assert_eq!(
+        brief["result"]["structuredContent"]["self_check"]["passed"],
+        true
+    );
+    assert!(
+        brief["result"]["structuredContent"]["self_check"]["total_checks"]
+            .as_u64()
+            .is_some_and(|count| count >= 12)
+    );
     assert_eq!(
         brief["result"]["structuredContent"]["attachment_storage"]["orphaned_files"],
         0

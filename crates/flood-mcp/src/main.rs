@@ -2,8 +2,9 @@ use chrono::{DateTime, Utc};
 use flood_core::{
     AttachmentCleanupReport, CreateTask, InboxCandidateStatus, MessageSnapshot, Project,
     SelfCheckItem, SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task,
-    TaskPatch, TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramSyncRequest,
-    TelegramSyncStatus, Urgency, default_data_dir, run_self_check as run_core_self_check,
+    TaskPatch, TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramSyncHealth,
+    TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
+    run_self_check as run_core_self_check,
 };
 use rmcp::{
     Json, ServiceExt, handler::server::wrapper::Parameters, schemars, tool, tool_router,
@@ -356,11 +357,36 @@ struct RuntimeInfoOutput {
 struct WorkspaceBriefOutput {
     brief_version: u8,
     runtime: RuntimeInfoOutput,
+    readiness: WorkspaceReadinessOutput,
+    self_check: SelfCheckSummary,
     diagnostics: StoreDiagnostics,
     attachment_storage: AttachmentCleanupReport,
     priority_tasks: TaskDigestOutput,
     telegram: TelegramSyncStatusOutput,
     suggested_tools: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct SelfCheckSummary {
+    passed: bool,
+    duration_ms: u128,
+    total_checks: usize,
+    failed_checks: usize,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct WorkspaceOperationalCheck {
+    id: &'static str,
+    status: &'static str,
+    summary: String,
+    action_tool: Option<&'static str>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct WorkspaceReadinessOutput {
+    level: &'static str,
+    agent_ready: bool,
+    checks: Vec<WorkspaceOperationalCheck>,
 }
 
 fn elapsed_seconds(timestamp: &DateTime<Utc>) -> u64 {
@@ -424,6 +450,130 @@ fn telegram_sync_output(
     }
 }
 
+fn workspace_readiness(
+    diagnostics: &StoreDiagnostics,
+    attachment_storage: &AttachmentCleanupReport,
+    telegram: &TelegramSyncStatusOutput,
+    self_check: &SelfCheckResult,
+) -> WorkspaceReadinessOutput {
+    let mut checks = vec![WorkspaceOperationalCheck {
+        id: "store",
+        status: if diagnostics.healthy {
+            "passed"
+        } else {
+            "failed"
+        },
+        summary: if diagnostics.healthy {
+            format!(
+                "Хранилище доступно: проектов {}, открытых задач {}",
+                diagnostics.project_count, diagnostics.open_task_count
+            )
+        } else {
+            format!(
+                "Хранилище требует внимания: {}",
+                diagnostics.issues.join("; ")
+            )
+        },
+        action_tool: (!diagnostics.healthy).then_some("diagnose_store"),
+    }];
+    checks.push(WorkspaceOperationalCheck {
+        id: "mcp_surface",
+        status: if self_check.passed {
+            "passed"
+        } else {
+            "failed"
+        },
+        summary: if self_check.passed {
+            format!(
+                "Изолированный цикл и MCP-контракты пройдены: {} проверок за {} мс",
+                self_check.checks.len(),
+                self_check.duration_ms
+            )
+        } else {
+            format!(
+                "Не пройдено MCP-проверок: {}",
+                self_check
+                    .checks
+                    .iter()
+                    .filter(|check| !check.passed)
+                    .count()
+            )
+        },
+        action_tool: (!self_check.passed).then_some("run_self_check"),
+    });
+    checks.push(WorkspaceOperationalCheck {
+        id: "attachments",
+        status: if attachment_storage.orphaned_files == 0 {
+            "passed"
+        } else {
+            "attention"
+        },
+        summary: if attachment_storage.orphaned_files == 0 {
+            format!(
+                "Вложения учтены: файлов {}, потерянных ссылок нет",
+                attachment_storage.total_files
+            )
+        } else {
+            format!(
+                "Найдены неиспользуемые вложения: {} ({} байт)",
+                attachment_storage.orphaned_files, attachment_storage.orphaned_bytes
+            )
+        },
+        action_tool: (attachment_storage.orphaned_files > 0)
+            .then_some("inspect_attachment_storage"),
+    });
+
+    let telegram_check = if diagnostics.linked_chat_count == 0 {
+        WorkspaceOperationalCheck {
+            id: "telegram",
+            status: "passed",
+            summary: "Telegram-чаты не связаны; интеграция не требуется для локальных задач".into(),
+            action_tool: None,
+        }
+    } else if telegram.fresh
+        && telegram
+            .status
+            .as_ref()
+            .is_some_and(|status| status.health == TelegramSyncHealth::Success)
+    {
+        WorkspaceOperationalCheck {
+            id: "telegram",
+            status: "passed",
+            summary: "Telegram-входящие синхронизированы и готовы к разбору".into(),
+            action_tool: (diagnostics.pending_inbox_count > 0)
+                .then_some("get_telegram_triage_batch"),
+        }
+    } else {
+        WorkspaceOperationalCheck {
+            id: "telegram",
+            status: "attention",
+            summary: telegram.next_action.into(),
+            action_tool: if telegram.phase == "queued" {
+                Some("get_telegram_sync_status")
+            } else if telegram.pending_request.is_none() {
+                Some("request_telegram_sync")
+            } else {
+                None
+            },
+        }
+    };
+    checks.push(telegram_check);
+
+    let agent_ready = checks.iter().all(|check| check.status != "failed");
+    let level = if !agent_ready {
+        "blocked"
+    } else if checks.iter().any(|check| check.status == "attention") {
+        "attention"
+    } else {
+        "ready"
+    };
+    WorkspaceReadinessOutput {
+        level,
+        agent_ready,
+        checks,
+    }
+}
+
 #[tool_router(server_handler)]
 impl FloodServer {
     #[tool(
@@ -448,6 +598,7 @@ impl FloodServer {
                 "bounded_task_search",
                 "bounded_task_digest",
                 "bounded_workspace_brief",
+                "workspace_operational_check",
                 "telegram_inbox",
                 "bounded_telegram_lists",
                 "bounded_telegram_triage",
@@ -461,7 +612,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Получить единую ограниченную стартовую сводку flood.md для агента: runtime, диагностику и аудит вложений, до 10 приоритетных открытых задач, состояние синхронизации Telegram и следующие подходящие MCP tools. Не возвращает полную базу или тексты Telegram-входящих. Используйте первым вызовом вместо серии широких списков",
+        description = "Получить единую ограниченную стартовую сводку flood.md для агента. Выполняет изолированный self-check MCP и возвращает readiness ready/attention/blocked, диагностику реального хранилища, аудит вложений, до 10 приоритетных задач, свежесть Telegram и следующие подходящие tools. Не возвращает полную базу или тексты Telegram-входящих. Используйте первым вызовом вместо серии широких списков",
         annotations(
             title = "Рабочая сводка flood.md",
             read_only_hint = true,
@@ -486,6 +637,23 @@ impl FloodServer {
             }))?
             .0;
         let telegram = self.get_telegram_sync_status()?.0;
+        let self_check_result = run_binary_self_check();
+        let self_check = SelfCheckSummary {
+            passed: self_check_result.passed,
+            duration_ms: self_check_result.duration_ms,
+            total_checks: self_check_result.checks.len(),
+            failed_checks: self_check_result
+                .checks
+                .iter()
+                .filter(|check| !check.passed)
+                .count(),
+        };
+        let readiness = workspace_readiness(
+            &diagnostics,
+            &attachment_storage,
+            &telegram,
+            &self_check_result,
+        );
         let mut suggested_tools = Vec::new();
         if !diagnostics.healthy {
             suggested_tools.push("diagnose_store");
@@ -511,11 +679,15 @@ impl FloodServer {
         } else {
             suggested_tools.push("create_task");
         }
-        suggested_tools.push("run_self_check");
+        if !self_check.passed {
+            suggested_tools.push("run_self_check");
+        }
 
         Ok(Json(WorkspaceBriefOutput {
-            brief_version: 2,
+            brief_version: 3,
             runtime,
+            readiness,
+            self_check,
             diagnostics,
             attachment_storage,
             priority_tasks,
@@ -1736,17 +1908,54 @@ mod tests {
         assert_eq!(runtime.version, env!("CARGO_PKG_VERSION"));
         assert!(!runtime.destructive_actions_enabled);
         let brief = _server.get_workspace_brief().unwrap().0;
-        assert_eq!(brief.brief_version, 2);
+        assert_eq!(brief.brief_version, 3);
+        assert_eq!(brief.readiness.level, "ready");
+        assert!(brief.readiness.agent_ready);
+        assert_eq!(brief.readiness.checks.len(), 4);
+        assert!(brief.self_check.passed);
+        assert!(brief.self_check.total_checks >= 12);
+        assert_eq!(brief.self_check.failed_checks, 0);
         assert!(brief.diagnostics.healthy);
         assert_eq!(brief.attachment_storage.total_files, 0);
         assert_eq!(brief.attachment_storage.orphaned_files, 0);
         assert!(brief.priority_tasks.tasks.is_empty());
         assert!(brief.suggested_tools.contains(&"create_project"));
-        assert!(brief.suggested_tools.contains(&"run_self_check"));
+        assert!(!brief.suggested_tools.contains(&"run_self_check"));
         assert_eq!(
             _server.inspect_attachment_storage().unwrap().0,
             brief.attachment_storage
         );
+    }
+
+    #[test]
+    fn workspace_brief_marks_stale_linked_telegram_as_attention() {
+        let server = server();
+        let project = server.store.create_project("Проект с Telegram").unwrap();
+        server
+            .store
+            .set_project_telegram_chats(
+                &project.id,
+                vec![flood_core::TelegramProjectLink {
+                    chat_id: -100_000_000_001,
+                    title: "Рабочий чат".into(),
+                    inbox_mode: flood_core::TelegramInboxMode::MentionsAndReplies,
+                }],
+                &project.version,
+            )
+            .unwrap();
+
+        let brief = server.get_workspace_brief().unwrap().0;
+        assert_eq!(brief.readiness.level, "attention");
+        assert!(brief.readiness.agent_ready);
+        let telegram = brief
+            .readiness
+            .checks
+            .iter()
+            .find(|check| check.id == "telegram")
+            .unwrap();
+        assert_eq!(telegram.status, "attention");
+        assert_eq!(telegram.action_tool, Some("request_telegram_sync"));
+        assert!(brief.suggested_tools.contains(&"request_telegram_sync"));
     }
 
     #[test]
