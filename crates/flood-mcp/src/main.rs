@@ -322,6 +322,16 @@ struct RuntimeInfoOutput {
     capabilities: Vec<&'static str>,
 }
 
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct WorkspaceBriefOutput {
+    brief_version: u8,
+    runtime: RuntimeInfoOutput,
+    diagnostics: StoreDiagnostics,
+    priority_tasks: TaskDigestOutput,
+    telegram: TelegramSyncStatusOutput,
+    suggested_tools: Vec<&'static str>,
+}
+
 #[tool_router(server_handler)]
 impl FloodServer {
     #[tool(
@@ -344,6 +354,7 @@ impl FloodServer {
                 "tasks",
                 "bounded_task_search",
                 "bounded_task_digest",
+                "bounded_workspace_brief",
                 "telegram_inbox",
                 "bounded_telegram_triage",
                 "telegram_sync_status",
@@ -352,6 +363,59 @@ impl FloodServer {
                 "isolated_self_check",
             ],
         })
+    }
+
+    #[tool(
+        description = "Получить единую ограниченную стартовую сводку flood.md для агента: runtime, диагностику хранилища, до 10 приоритетных открытых задач, состояние синхронизации Telegram и следующие подходящие MCP tools. Не возвращает полную базу или тексты Telegram-входящих. Используйте первым вызовом вместо серии широких списков",
+        annotations(
+            title = "Рабочая сводка flood.md",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn get_workspace_brief(&self) -> Result<Json<WorkspaceBriefOutput>, String> {
+        let runtime = self.get_runtime_info().0;
+        let diagnostics = self.store.diagnostics();
+        let priority_tasks = self
+            .get_task_digest(Parameters(TaskDigestArgs {
+                project_id: None,
+                include_completed: false,
+                urgencies: Vec::new(),
+                cursor: None,
+                limit: Some(10),
+            }))?
+            .0;
+        let telegram = self.get_telegram_sync_status()?.0;
+        let mut suggested_tools = Vec::new();
+        if !diagnostics.healthy {
+            suggested_tools.push("diagnose_store");
+        }
+        if telegram.pending_request.is_some() {
+            suggested_tools.push("get_telegram_sync_status");
+        } else if diagnostics.linked_chat_count > 0 {
+            suggested_tools.push("request_telegram_sync");
+        }
+        if diagnostics.pending_inbox_count > 0 {
+            suggested_tools.push("get_telegram_triage_batch");
+        }
+        if !priority_tasks.tasks.is_empty() {
+            suggested_tools.push("get_task");
+        } else if diagnostics.project_count == 0 {
+            suggested_tools.push("create_project");
+        } else {
+            suggested_tools.push("create_task");
+        }
+        suggested_tools.push("run_self_check");
+
+        Ok(Json(WorkspaceBriefOutput {
+            brief_version: 1,
+            runtime,
+            diagnostics,
+            priority_tasks,
+            telegram,
+            suggested_tools,
+        }))
     }
 
     #[tool(
@@ -1390,6 +1454,7 @@ mod tests {
         for name in [
             "diagnose_store",
             "get_runtime_info",
+            "get_workspace_brief",
             "run_self_check",
             "search_tasks",
             "get_task_digest",
@@ -1444,6 +1509,12 @@ mod tests {
         let runtime = _server.get_runtime_info().0;
         assert_eq!(runtime.version, env!("CARGO_PKG_VERSION"));
         assert!(!runtime.destructive_actions_enabled);
+        let brief = _server.get_workspace_brief().unwrap().0;
+        assert_eq!(brief.brief_version, 1);
+        assert!(brief.diagnostics.healthy);
+        assert!(brief.priority_tasks.tasks.is_empty());
+        assert!(brief.suggested_tools.contains(&"create_project"));
+        assert!(brief.suggested_tools.contains(&"run_self_check"));
     }
 
     #[test]

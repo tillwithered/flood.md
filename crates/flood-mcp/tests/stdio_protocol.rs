@@ -133,6 +133,12 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .find(|tool| tool["name"] == "get_task_digest")
         .unwrap();
     assert_eq!(task_digest["annotations"]["readOnlyHint"], true);
+    let workspace_brief = tools
+        .iter()
+        .find(|tool| tool["name"] == "get_workspace_brief")
+        .unwrap();
+    assert_eq!(workspace_brief["annotations"]["readOnlyHint"], true);
+    assert_eq!(workspace_brief["annotations"]["openWorldHint"], false);
 
     send(
         &mut stdin,
@@ -377,6 +383,33 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     let queued_sync = receive(&mut stdout, 14);
     assert_eq!(
         queued_sync["result"]["structuredContent"]["pending_request"]["id"],
+        requested_id
+    );
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 15,
+            "method": "tools/call",
+            "params": {
+                "name": "get_workspace_brief",
+                "arguments": {}
+            }
+        }),
+    );
+    let brief = receive(&mut stdout, 15);
+    assert_eq!(brief["result"]["isError"], false);
+    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 1);
+    assert_eq!(
+        brief["result"]["structuredContent"]["priority_tasks"]["tasks"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        brief["result"]["structuredContent"]["telegram"]["pending_request"]["id"],
         requested_id
     );
 
