@@ -755,6 +755,15 @@ button { color: inherit; }
 .mcp-code pre { min-width: 0; margin: 0; overflow: auto; color: var(--muted); font: 10px/1.5 "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; scrollbar-width: thin; }
 .mcp-code .icon-button { align-self: start; }
 .mcp-hint { margin: -4px 0 0; color: var(--faint); font-size: 10px; line-height: 1.45; }
+.mcp-examples { gap: 11px; }
+.mcp-example-list { display: grid; gap: 4px; }
+.mcp-example-list > button { display: grid; min-width: 0; min-height: 44px; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 8px; border: 0; border-radius: 9px; background: var(--surface); color: var(--muted); font: inherit; text-align: left; cursor: pointer; transition: background-color 120ms ease, color 120ms ease, transform 120ms ease; }
+.mcp-example-list > button:hover { background: var(--hover); color: var(--ink); }
+.mcp-example-list > button:active { transform: scale(.995); }
+.mcp-example-list > button:focus-visible { outline: 2px solid color-mix(in srgb, var(--ink) 32%, transparent); outline-offset: 2px; }
+.mcp-example-list > button > svg { color: var(--faint); }
+.mcp-example-list > button > span { display: -webkit-box; overflow: hidden; font-size: 10px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.mcp-example-list > button > small { color: var(--faint); font-size: 9px; white-space: nowrap; }
 .mcp-safety { gap: 12px; }
 .mcp-capability-list { display: grid; gap: 7px; }
 .mcp-capability-list > span { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 11px; line-height: 1.4; }
