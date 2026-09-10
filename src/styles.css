@@ -770,6 +770,8 @@ button { color: inherit; }
 .telegram-link-summary > button { height: 30px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: var(--font-size-min); font-weight: 580; cursor: pointer; }
 .telegram-link-summary > button:hover { background: var(--hover); }
 .telegram-local-note { display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: start; gap: 8px; padding: 10px 11px; border: 1px solid color-mix(in srgb, var(--success-ink) 16%, var(--line)); border-radius: 10px; background: var(--success-surface); color: var(--success-ink); }
+.telegram-sync-request-note { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: start; gap: 8px; margin-top: 12px; padding: 10px 11px; border: 1px solid color-mix(in srgb, #ff8a61 22%, var(--line)); border-radius: 10px; background: color-mix(in srgb, #ffb067 9%, var(--elevated)); }
+.telegram-sync-request-note > span { display: grid; gap: 3px; }
 .telegram-local-note > svg { margin-top: 1px; }
 .telegram-local-note > span { display: grid; gap: 2px; }
 .telegram-local-note strong { font-size: var(--font-size-min); font-weight: 620; }

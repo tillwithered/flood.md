@@ -1,7 +1,7 @@
 use flood_core::{
     CreateTask, InboxCandidateStatus, MessageSnapshot, Project, SelfCheckResult, SourceMedia,
     SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch, TaskStatus, TaskSummary,
-    TelegramInboxCandidate, TelegramSyncStatus, Urgency, default_data_dir,
+    TelegramInboxCandidate, TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
     run_self_check as run_core_self_check,
 };
 use rmcp::{
@@ -276,6 +276,13 @@ struct TelegramSyncStatusOutput {
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramSyncRequestOutput {
+    request: TelegramSyncRequest,
+    queued: bool,
+    next_step: &'static str,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TelegramCandidateOutput {
     candidate: TelegramInboxCandidate,
 }
@@ -339,6 +346,7 @@ impl FloodServer {
                 "telegram_inbox",
                 "bounded_telegram_triage",
                 "telegram_sync_status",
+                "telegram_sync_request",
                 "store_diagnostics",
                 "isolated_self_check",
             ],
@@ -371,6 +379,28 @@ impl FloodServer {
         self.store
             .telegram_sync_status()
             .map(|status| Json(TelegramSyncStatusOutput { status }))
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Попросить запущенное desktop-приложение обновить локальные Telegram-входящие и медиа через TDLib. Команда не читает чаты сама и не передаёт их содержимое через служебный файл. Возвращает request id и время; затем проверяйте get_telegram_sync_status, пока completed_at не станет новее requested_at. Если приложение закрыто, запрос сохранится до следующего запуска",
+        annotations(
+            title = "Запросить синхронизацию Telegram",
+            read_only_hint = false,
+            destructive_hint = false,
+            open_world_hint = true
+        )
+    )]
+    fn request_telegram_sync(&self) -> Result<Json<TelegramSyncRequestOutput>, String> {
+        self.store
+            .request_telegram_sync()
+            .map(|request| {
+                Json(TelegramSyncRequestOutput {
+                    request,
+                    queued: true,
+                    next_step: "Проверьте get_telegram_sync_status; completed_at должен быть не раньше requested_at",
+                })
+            })
             .map_err(store_error)
     }
 
@@ -1361,6 +1391,7 @@ mod tests {
             "search_tasks",
             "get_task_digest",
             "get_telegram_sync_status",
+            "request_telegram_sync",
             "list_telegram_inbox",
             "get_telegram_triage_batch",
             "apply_telegram_triage",
@@ -1437,6 +1468,12 @@ mod tests {
         assert_eq!(
             server.get_telegram_sync_status().unwrap().0.status,
             Some(status)
+        );
+        let requested = server.request_telegram_sync().unwrap().0;
+        assert!(requested.queued);
+        assert_eq!(
+            server.store.telegram_sync_request().unwrap().unwrap(),
+            requested.request
         );
     }
 

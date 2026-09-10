@@ -117,6 +117,12 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .find(|tool| tool["name"] == "get_telegram_sync_status")
         .unwrap();
     assert_eq!(sync_status["annotations"]["readOnlyHint"], true);
+    let request_sync = tools
+        .iter()
+        .find(|tool| tool["name"] == "request_telegram_sync")
+        .unwrap();
+    assert_eq!(request_sync["annotations"]["destructiveHint"], false);
+    assert_eq!(request_sync["annotations"]["openWorldHint"], true);
     let search_tasks = tools
         .iter()
         .find(|tool| tool["name"] == "search_tasks")
@@ -328,6 +334,30 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     assert_eq!(
         digest["result"]["structuredContent"]["tasks"][0]["id"],
         created_task["result"]["structuredContent"]["task"]["id"]
+    );
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 13,
+            "method": "tools/call",
+            "params": {
+                "name": "request_telegram_sync",
+                "arguments": {}
+            }
+        }),
+    );
+    let requested_sync = receive(&mut stdout, 13);
+    assert_eq!(requested_sync["result"]["isError"], false);
+    assert_eq!(
+        requested_sync["result"]["structuredContent"]["queued"],
+        true
+    );
+    assert!(
+        requested_sync["result"]["structuredContent"]["request"]["id"]
+            .as_str()
+            .is_some_and(|id| !id.is_empty())
     );
 
     drop(stdin);

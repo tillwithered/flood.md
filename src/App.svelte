@@ -66,6 +66,7 @@
   type TelegramInboxSyncResult = { scanned_projects: number; added: number; failed_projects: number; errors: string[]; busy: boolean };
   type TelegramMediaSyncResult = { downloaded: number; failed: number; errors: string[]; busy: boolean };
   type TelegramSyncStatus = { completed_at: string; health: "success" | "partial" | "error"; scanned_projects: number; added_candidates: number; downloaded_media: number; failures: number; errors: string[] };
+  type TelegramSyncRequest = { id: string; requested_at: string };
   type TelegramSyncResult = { inbox: TelegramInboxSyncResult; media: TelegramMediaSyncResult; status?: TelegramSyncStatus };
   type TelegramSyncState = "idle" | "syncing" | "success" | "partial" | "error";
   type TelegramSyncSummary = { added: number; downloaded: number; failed: number; syncedAt: string };
@@ -134,6 +135,7 @@
   let telegramError = "";
   let telegramSyncState: TelegramSyncState = "idle";
   let telegramSyncSummary: TelegramSyncSummary | null = null;
+  let telegramSyncRequest: TelegramSyncRequest | null = null;
   let telegramSyncErrors: string[] = [];
   let telegramQrDataUrl = "";
   let telegramChats: TelegramChat[] = [];
@@ -166,6 +168,7 @@
   let telegramTaskTitleInput: HTMLInputElement;
   let downloadingSourceMedia = -1;
   let telegramScanTimer: number | undefined;
+  let telegramRequestTimer: number | undefined;
   let updateState: UpdateState = "idle";
   let updateMessage = "";
   let availableUpdate: Update | null = null;
@@ -2115,6 +2118,7 @@
 
   function telegramSyncLabel() {
     if (telegramSyncState === "syncing") return t("telegramSyncing");
+    if (telegramSyncRequest) return t("telegramSyncRequested");
     if (telegramSyncState === "error") return t("telegramSyncFailed");
     if (telegramSyncState === "partial") return t("telegramSyncPartial");
     if (telegramSyncSummary) {
@@ -2159,7 +2163,14 @@
     } catch (error) {
       telegramSyncState = "error";
       telegramSyncErrors = [String(error)];
+    } finally {
+      telegramSyncRequest = await invoke<TelegramSyncRequest | null>("telegram_pending_sync_request").catch(() => telegramSyncRequest);
     }
+  }
+
+  async function refreshTelegramSyncRequest() {
+    telegramSyncRequest = await invoke<TelegramSyncRequest | null>("telegram_pending_sync_request").catch(() => telegramSyncRequest);
+    return telegramSyncRequest;
   }
 
   function telegramSyncIsStale(maxAgeMs = 60_000) {
@@ -2811,6 +2822,7 @@
         if (mcpRuntime && (!mcpRuntime.available || !mcpRuntime.compatible)) mcpCheckState = "error";
         storeDiagnostics = await invoke<StoreDiagnostics>("diagnose_store").catch(() => null);
         applyTelegramSyncStatus(await invoke<TelegramSyncStatus | null>("telegram_sync_status").catch(() => null));
+        await refreshTelegramSyncRequest();
         await applyTelegramStatus(await invoke<TelegramStatus>("telegram_status"));
         unlistenTelegram = await listen<TelegramStatus>("telegram-status", (event) => void applyTelegramStatus(event.payload));
         unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
@@ -2827,8 +2839,18 @@
       telegramScanTimer = window.setInterval(() => {
         if (telegramStatus.step === "ready") void syncTelegram();
       }, 120_000);
+      telegramRequestTimer = window.setInterval(() => {
+        void refreshTelegramSyncRequest().then((request) => {
+          if (request && telegramStatus.step === "ready") void syncTelegram();
+        });
+      }, 3_000);
       unlisten = await listen<string[]>("data-changed", (event) => {
-        if (telegramStatus.step === "ready" && event.payload.some((path) => path.toLocaleLowerCase().endsWith(".md"))) void syncTelegram(false);
+        const changedPaths = event.payload.map((path) => path.toLocaleLowerCase());
+        const telegramSyncRequested = changedPaths.some((path) => path.includes("telegram-sync-request"));
+        if (telegramSyncRequested) {
+          void refreshTelegramSyncRequest();
+          if (telegramStatus.step === "ready") void syncTelegram();
+        } else if (telegramStatus.step === "ready" && changedPaths.some((path) => path.endsWith(".md"))) void syncTelegram(false);
         window.clearTimeout(refreshTimer);
         refreshTimer = window.setTimeout(() => {
           if (!draftTaskId && dataActionState !== "restoring" && saveState !== "saving" && markdown === lastSavedMarkdown) void loadData(true);
@@ -2857,6 +2879,7 @@
       window.clearTimeout(saveTimer);
       window.clearTimeout(refreshTimer);
       window.clearInterval(telegramScanTimer);
+      window.clearInterval(telegramRequestTimer);
       window.clearTimeout(telegramSearchTimer);
       window.removeEventListener("blur", flush);
       document.removeEventListener("pointerdown", closeMenus);
@@ -3332,6 +3355,7 @@
                   <div class="settings-section-title"><h3>{t("integrations")}</h3><p>{t("integrationsDescription")}</p></div>
                   <div class="integration-card telegram-card">
                     <div class="integration-head"><span><FloodGlyph kind={["database_error", "error"].includes(telegramStatus.step) ? "urgent" : telegramStatus.step === "ready" ? "connected" : "brand"} size={18} motion={telegramStatus.step === "ready" ? "pop" : "none"} /><span><strong>Telegram</strong><small>{telegramStatus.account_name || t("tdlibClient")}</small></span></span><span class:connected={telegramStatus.step === "ready"} class="status-text">{telegramStatusLabel()}</span></div>
+                    {#if telegramSyncRequest && telegramStatus.step !== "ready"}<div class="telegram-sync-request-note"><FloodGlyph kind="important" size={16} /><span><strong>{t("telegramSyncWaiting")}</strong><small>{t("telegramSyncWaitingDescription")}</small></span></div>{/if}
                     {#if telegramStatus.step === "unconfigured"}
                       <p>{t("telegramDescription")}</p>
                       <form class="telegram-form credentials" onsubmit={configureTelegram}>

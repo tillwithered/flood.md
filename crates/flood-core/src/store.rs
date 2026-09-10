@@ -1,7 +1,7 @@
 use crate::{
     CreateTask, InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind,
     Task, TaskPatch, TaskStatus, TaskSummary, TelegramInboxCandidate, TelegramLinkedTask,
-    TelegramProjectLink, TelegramSyncStatus, Urgency,
+    TelegramProjectLink, TelegramSyncRequest, TelegramSyncStatus, Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
@@ -413,6 +413,42 @@ impl Store {
         let mut bytes = serde_json::to_vec_pretty(status)?;
         bytes.push(b'\n');
         atomic_write_bytes(&self.telegram_sync_status_path(), &bytes)
+    }
+
+    pub fn request_telegram_sync(&self) -> Result<TelegramSyncRequest, StoreError> {
+        let _lock = self.lock_exclusive()?;
+        let request = TelegramSyncRequest {
+            id: Ulid::new().to_string(),
+            requested_at: Utc::now(),
+        };
+        let mut bytes = serde_json::to_vec_pretty(&request)?;
+        bytes.push(b'\n');
+        atomic_write_bytes(&self.telegram_sync_request_path(), &bytes)?;
+        Ok(request)
+    }
+
+    pub fn telegram_sync_request(&self) -> Result<Option<TelegramSyncRequest>, StoreError> {
+        let _lock = self.lock_shared()?;
+        let path = self.telegram_sync_request_path();
+        if !path.exists() {
+            return Ok(None);
+        }
+        Ok(Some(serde_json::from_slice(&fs::read(path)?)?))
+    }
+
+    pub fn acknowledge_telegram_sync_request(&self, id: &str) -> Result<bool, StoreError> {
+        validate_id(id)?;
+        let _lock = self.lock_exclusive()?;
+        let path = self.telegram_sync_request_path();
+        if !path.exists() {
+            return Ok(false);
+        }
+        let request: TelegramSyncRequest = serde_json::from_slice(&fs::read(&path)?)?;
+        if request.id != id {
+            return Ok(false);
+        }
+        fs::remove_file(path)?;
+        Ok(true)
     }
 
     pub fn get_telegram_candidate(
@@ -970,6 +1006,7 @@ impl Store {
         let integrations = self.root.join("integrations");
         if integrations.exists() {
             collect_backup_files(&integrations, &mut files)?;
+            files.retain(|path| path != &self.telegram_sync_request_path());
         }
         let temporary = parent.join(format!(".flood-backup-{}.tmp", Ulid::new()));
         let result = (|| {
@@ -1246,6 +1283,12 @@ impl Store {
 
     fn telegram_sync_status_path(&self) -> PathBuf {
         self.root.join("integrations").join("telegram-sync.json")
+    }
+
+    fn telegram_sync_request_path(&self) -> PathBuf {
+        self.root
+            .join("integrations")
+            .join("telegram-sync-request.json")
     }
 
     fn read_telegram_inbox(&self) -> Result<TelegramInboxDocument, StoreError> {
@@ -1538,6 +1581,31 @@ fn run_isolated_self_check(root: &Path, checks: &mut Vec<SelfCheckItem>) -> Resu
     });
     if !telegram_ok {
         return Err("Проверка входящих Telegram не пройдена".into());
+    }
+
+    let sync_request = store
+        .request_telegram_sync()
+        .map_err(|error| error.to_string())?;
+    let sync_request_ok = store
+        .telegram_sync_request()
+        .map_err(|error| error.to_string())?
+        .as_ref()
+        == Some(&sync_request)
+        && store
+            .acknowledge_telegram_sync_request(&sync_request.id)
+            .map_err(|error| error.to_string())?
+        && store
+            .telegram_sync_request()
+            .map_err(|error| error.to_string())?
+            .is_none();
+    checks.push(SelfCheckItem {
+        name: "Запрос синхронизации Telegram между MCP и приложением".into(),
+        passed: sync_request_ok,
+        detail: (!sync_request_ok)
+            .then(|| "Запрос не сохранился или не подтвердился по идентификатору".into()),
+    });
+    if !sync_request_ok {
+        return Err("Проверка запроса синхронизации Telegram не пройдена".into());
     }
 
     let diagnostics = store.diagnostics();
@@ -2211,6 +2279,32 @@ mod tests {
     }
 
     #[test]
+    fn telegram_sync_request_is_durable_and_acknowledged_by_id() {
+        let store = temp_store();
+        assert!(store.telegram_sync_request().unwrap().is_none());
+        let request = store.request_telegram_sync().unwrap();
+        assert_eq!(
+            store.telegram_sync_request().unwrap().as_ref(),
+            Some(&request)
+        );
+        assert!(
+            !store
+                .acknowledge_telegram_sync_request(&Ulid::new().to_string())
+                .unwrap()
+        );
+        assert_eq!(
+            store.telegram_sync_request().unwrap().as_ref(),
+            Some(&request)
+        );
+        assert!(
+            store
+                .acknowledge_telegram_sync_request(&request.id)
+                .unwrap()
+        );
+        assert!(store.telegram_sync_request().unwrap().is_none());
+    }
+
+    #[test]
     fn media_only_telegram_candidate_gets_a_readable_task_title() {
         let store = temp_store();
         let project = store.create_project("Медиа").unwrap();
@@ -2444,8 +2538,14 @@ mod tests {
         store
             .upsert_telegram_candidates(vec![candidate.clone()])
             .unwrap();
+        let transient_sync_request = store.request_telegram_sync().unwrap();
         let archive = env::temp_dir().join(format!("flood-backup-test-{}.zip", Ulid::new()));
         store.create_backup(&archive).unwrap();
+        assert!(
+            store
+                .acknowledge_telegram_sync_request(&transient_sync_request.id)
+                .unwrap()
+        );
 
         let changed = store
             .update_task(
@@ -2472,6 +2572,7 @@ mod tests {
             b"backup-image"
         );
         assert_eq!(store.list_telegram_inbox(None, false).unwrap().len(), 1);
+        assert!(store.telegram_sync_request().unwrap().is_none());
         let _ = fs::remove_file(archive);
     }
 }

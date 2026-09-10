@@ -141,6 +141,12 @@ pub struct TelegramSyncStatus {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct TelegramSyncRequest {
+    pub id: String,
+    pub requested_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct TelegramInboxCandidate {
     pub id: String,
     pub project_id: String,

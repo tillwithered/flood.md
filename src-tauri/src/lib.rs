@@ -2,7 +2,8 @@ use chrono::Utc;
 use flood_core::{
     CreateTask, InboxCandidateStatus, Project, SelfCheckResult, SourceMedia, SourceMediaKind,
     Store, StoreDiagnostics, Task, TaskPatch, TaskSummary, TelegramInboxCandidate,
-    TelegramProjectLink, TelegramSyncHealth, TelegramSyncStatus, Urgency, default_data_dir,
+    TelegramProjectLink, TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, Urgency,
+    default_data_dir,
 };
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -607,10 +608,18 @@ fn telegram_sync_status(state: State<'_, AppState>) -> Result<Option<TelegramSyn
 }
 
 #[tauri::command]
+fn telegram_pending_sync_request(
+    state: State<'_, AppState>,
+) -> Result<Option<TelegramSyncRequest>, String> {
+    result(state.store.telegram_sync_request())
+}
+
+#[tauri::command]
 async fn telegram_sync(
     include_inbox: bool,
     state: State<'_, AppState>,
 ) -> Result<TelegramSyncResult, String> {
+    let pending_request = result(state.store.telegram_sync_request())?;
     let inbox_future = async {
         if include_inbox {
             refresh_all_inboxes(&state).await
@@ -670,6 +679,9 @@ async fn telegram_sync(
         errors,
     };
     result(state.store.record_telegram_sync_status(&status))?;
+    if let Some(request) = pending_request {
+        result(state.store.acknowledge_telegram_sync_request(&request.id))?;
+    }
 
     Ok(TelegramSyncResult {
         inbox,
@@ -1107,6 +1119,7 @@ pub fn run() {
             telegram_refresh_inbox,
             telegram_refresh_all_inboxes,
             telegram_sync_status,
+            telegram_pending_sync_request,
             telegram_sync,
             telegram_add_inbox_message,
             telegram_set_candidate_status,
