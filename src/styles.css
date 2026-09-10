@@ -817,8 +817,24 @@ button { color: inherit; }
 .telegram-task-link small { color: var(--muted); font-size: 9px; }
 .telegram-media-note { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; color: var(--faint); font-size: 10px; }
 .telegram-inbox-panel { width: min(660px, calc(100vw - 56px)); height: min(620px, calc(100vh - 72px)); grid-template-rows: 64px minmax(0, 1fr); }
+.telegram-inbox-body { position: relative; display: grid; min-height: 0; grid-template-rows: auto auto minmax(0, 1fr); overflow: hidden; }
+.telegram-triage-notice { display: flex; align-items: center; gap: 7px; margin: 9px 9px 0; padding: 9px 11px; border: 1px solid color-mix(in srgb, var(--success-ink) 18%, var(--line)); border-radius: 9px; background: var(--success-surface); color: var(--success-ink); font-size: 11px; }
+.telegram-inbox-batch { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px 3px; }
+.telegram-inbox-batch > button { display: inline-flex; flex: 0 0 auto; min-height: 30px; align-items: center; gap: 7px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 10px; cursor: pointer; }
+.telegram-inbox-batch > button:hover { background: var(--hover); color: var(--ink); }
+.telegram-inbox-batch > button.active .picker-check { border-color: var(--ink); background: var(--ink); color: var(--on-ink); }
+.telegram-inbox-batch > small { overflow: hidden; color: var(--faint); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .telegram-inbox-list { display: grid; gap: 6px; padding: 9px; }
-.inbox-candidate { display: grid; gap: 7px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--elevated); }
+.telegram-inbox-list.with-action-island { padding-bottom: 76px; }
+.inbox-candidate { display: grid; gap: 7px; padding: 11px; border: 1px solid var(--line); border-radius: 11px; background: var(--elevated); transition: border-color 140ms ease, background 140ms ease, transform 140ms ease; }
+.inbox-candidate:hover { border-color: color-mix(in srgb, var(--ink) 14%, var(--line)); }
+.inbox-candidate.selected { border-color: color-mix(in srgb, var(--ink) 28%, var(--line)); background: color-mix(in srgb, var(--surface) 74%, var(--elevated)); transform: translateY(-1px); }
+.inbox-candidate-head { display: grid; min-width: 0; grid-template-columns: 26px minmax(0, 1fr); align-items: center; gap: 6px; }
+.inbox-select { display: grid; width: 26px; height: 26px; place-items: center; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--on-ink); cursor: pointer; }
+.inbox-select:hover { background: var(--hover); }
+.inbox-select:disabled { opacity: .35; cursor: default; }
+.inbox-select.active .picker-check { border-color: var(--ink); background: var(--ink); color: var(--on-ink); }
+.inbox-select:focus-visible, .telegram-inbox-batch > button:focus-visible, .telegram-triage-island button:focus-visible { outline: 2px solid color-mix(in srgb, var(--ink) 38%, transparent); outline-offset: 2px; }
 .inbox-candidate-meta { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; }
 .inbox-candidate-meta span { overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .inbox-candidate-meta small { flex: 0 0 auto; color: var(--faint); font-size: 10px; }
@@ -830,6 +846,10 @@ button { color: inherit; }
 .inbox-candidate-actions .inbox-linked-task { display: grid; width: 100%; height: 34px; grid-template-columns: 15px minmax(0, 1fr) auto 14px; padding: 0 8px; color: var(--ink); text-align: left; }
 .inbox-linked-task span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .inbox-linked-task small { color: var(--muted); font-size: 9px; }
+.telegram-triage-island { position: absolute; z-index: 3; bottom: 14px; left: 50%; display: flex; width: min(360px, calc(100% - 28px)); align-items: center; justify-content: space-between; gap: 14px; padding: 6px 6px 6px 13px; border: 1px solid color-mix(in srgb, var(--on-ink) 14%, transparent); border-radius: 13px; background: var(--ink); color: var(--on-ink); box-shadow: 0 12px 32px color-mix(in srgb, var(--ink) 24%, transparent); transform: translateX(-50%); animation: telegram-island-in 160ms ease-out both; }
+.telegram-triage-island > span { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 620; white-space: nowrap; }
+.telegram-triage-island > button { display: inline-flex; min-height: 34px; align-items: center; gap: 7px; padding: 0 10px; border: 0; border-radius: 9px; background: var(--on-ink); color: var(--ink); font: inherit; font-size: 11px; font-weight: 620; cursor: pointer; }
+@keyframes telegram-island-in { from { opacity: 0; transform: translate(-50%, 8px) scale(.98); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
 .telegram-task-composer { display: grid; min-height: 0; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; }
 .telegram-task-fields { display: grid; align-content: start; gap: 15px; padding: 18px 18px 0; overflow-y: auto; }
 .telegram-task-fields label { display: grid; gap: 7px; }
@@ -1073,6 +1093,7 @@ button { color: inherit; }
   .telegram-import-panel, .telegram-connections-panel, .telegram-inbox-panel { width: calc(100vw - 32px); max-height: calc(100vh - 32px); }
   .telegram-connections-panel { height: calc(100vh - 32px); }
   .telegram-inbox-panel { height: calc(100vh - 32px); }
+  .telegram-inbox-batch > small { display: none; }
   .telegram-mode-picker { grid-template-columns: 1fr; }
   .telegram-message > .telegram-task-link { width: min(190px, 42vw); }
 }

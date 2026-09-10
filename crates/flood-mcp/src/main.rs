@@ -8,6 +8,7 @@ use rmcp::{
     transport::stdio,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 #[derive(Clone)]
 struct FloodServer {
@@ -106,6 +107,15 @@ struct ListTelegramInboxArgs {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct TelegramTriageBatchArgs {
+    project_id: Option<String>,
+    /// Идентификатор последнего кандидата из предыдущей порции.
+    cursor: Option<String>,
+    /// Размер порции от 1 до 25. По умолчанию 12.
+    limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct CandidateIdArgs {
     candidate_id: String,
 }
@@ -126,6 +136,21 @@ struct CreateTaskFromCandidateArgs {
 struct SetCandidateStatusArgs {
     candidate_id: String,
     status: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct TelegramTriageDecisionArgs {
+    candidate_id: String,
+    /// create_task, dismiss или keep.
+    action: String,
+    title: Option<String>,
+    notes: Option<String>,
+    urgency: Option<String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ApplyTelegramTriageArgs {
+    decisions: Vec<TelegramTriageDecisionArgs>,
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
@@ -169,6 +194,31 @@ struct TelegramCandidateOutput {
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramTriageBatchOutput {
+    candidates: Vec<TelegramInboxCandidate>,
+    next_cursor: Option<String>,
+    remaining: usize,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct TelegramTriageDecisionOutput {
+    candidate_id: String,
+    action: String,
+    success: bool,
+    task: Option<Task>,
+    error: Option<String>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct ApplyTelegramTriageOutput {
+    created: usize,
+    dismissed: usize,
+    kept: usize,
+    failed: usize,
+    results: Vec<TelegramTriageDecisionOutput>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
 struct RuntimeInfoOutput {
     name: &'static str,
     version: &'static str,
@@ -198,6 +248,7 @@ impl FloodServer {
                 "projects",
                 "tasks",
                 "telegram_inbox",
+                "bounded_telegram_triage",
                 "store_diagnostics",
                 "isolated_self_check",
             ],
@@ -371,6 +422,145 @@ impl FloodServer {
     }
 
     #[tool(
+        description = "Получить следующую ограниченную порцию необработанных Telegram-сообщений для агентного разбора. Возвращает не более 25 кандидатов, медиа только как метаданные, next_cursor для продолжения и число оставшихся. Используйте этот инструмент вместо загрузки всей очереди",
+        annotations(
+            title = "Порция Telegram-входящих",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn get_telegram_triage_batch(
+        &self,
+        Parameters(args): Parameters<TelegramTriageBatchArgs>,
+    ) -> Result<Json<TelegramTriageBatchOutput>, String> {
+        let candidates = self
+            .store
+            .list_telegram_inbox(args.project_id.as_deref(), true)
+            .map_err(store_error)?;
+        let start = match args.cursor.as_deref() {
+            Some(cursor) => candidates
+                .iter()
+                .position(|candidate| candidate.id == cursor)
+                .map(|index| index + 1)
+                .ok_or_else(|| {
+                    "cursor не найден в текущей очереди; начните разбор заново".to_string()
+                })?,
+            None => 0,
+        };
+        let pending = candidates
+            .into_iter()
+            .skip(start)
+            .filter(|candidate| candidate.status == InboxCandidateStatus::Pending)
+            .collect::<Vec<_>>();
+        let limit = args.limit.unwrap_or(12).clamp(1, 25);
+        let end = limit.min(pending.len());
+        let remaining = pending.len().saturating_sub(end);
+        let page = pending[..end].to_vec();
+        let next_cursor = (remaining > 0)
+            .then(|| page.last().map(|candidate| candidate.id.clone()))
+            .flatten();
+        Ok(Json(TelegramTriageBatchOutput {
+            candidates: page,
+            next_cursor,
+            remaining,
+        }))
+    }
+
+    #[tool(
+        description = "Применить до 25 решений по Telegram-входящим одной порцией. Для каждого кандидата action: create_task (нужен короткий title, notes необязательны), dismiss или keep. Результат возвращается отдельно для каждого решения; повторное создание задачи идемпотентно",
+        annotations(
+            title = "Применить разбор Telegram",
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn apply_telegram_triage(
+        &self,
+        Parameters(args): Parameters<ApplyTelegramTriageArgs>,
+    ) -> Result<Json<ApplyTelegramTriageOutput>, String> {
+        if args.decisions.is_empty() || args.decisions.len() > 25 {
+            return Err("передайте от 1 до 25 решений".into());
+        }
+        let mut seen = HashSet::new();
+        let mut output = ApplyTelegramTriageOutput {
+            created: 0,
+            dismissed: 0,
+            kept: 0,
+            failed: 0,
+            results: Vec::with_capacity(args.decisions.len()),
+        };
+        for decision in args.decisions {
+            let candidate_id = decision.candidate_id.clone();
+            let action = decision.action.clone();
+            let result = if !seen.insert(candidate_id.clone()) {
+                Err("один кандидат нельзя обработать дважды в одной порции".to_string())
+            } else {
+                match action.as_str() {
+                    "create_task" => match decision.title {
+                        Some(title) => task_description(Some(title), decision.notes, None)
+                            .and_then(|description| {
+                                self.store
+                                    .create_task_from_telegram_candidate(
+                                        &candidate_id,
+                                        description.as_deref(),
+                                        parse_urgency(
+                                            decision.urgency.as_deref().unwrap_or("normal"),
+                                        )?,
+                                    )
+                                    .map_err(store_error)
+                            })
+                            .map(Some),
+                        None => Err("title обязателен для action=create_task".into()),
+                    },
+                    "dismiss" => self
+                        .store
+                        .set_telegram_candidate_status(
+                            &candidate_id,
+                            InboxCandidateStatus::Dismissed,
+                        )
+                        .map(|_| None)
+                        .map_err(store_error),
+                    "keep" => self
+                        .store
+                        .get_telegram_candidate(&candidate_id)
+                        .map(|_| None)
+                        .map_err(store_error),
+                    _ => Err("action должен быть create_task, dismiss или keep".into()),
+                }
+            };
+            match result {
+                Ok(task) => {
+                    match action.as_str() {
+                        "create_task" => output.created += 1,
+                        "dismiss" => output.dismissed += 1,
+                        "keep" => output.kept += 1,
+                        _ => {}
+                    }
+                    output.results.push(TelegramTriageDecisionOutput {
+                        candidate_id,
+                        action,
+                        success: true,
+                        task,
+                        error: None,
+                    });
+                }
+                Err(error) => {
+                    output.failed += 1;
+                    output.results.push(TelegramTriageDecisionOutput {
+                        candidate_id,
+                        action,
+                        success: false,
+                        task: None,
+                        error: Some(error),
+                    });
+                }
+            }
+        }
+        Ok(Json(output))
+    }
+
+    #[tool(
         description = "Прочитать один Telegram-кандидат с локальным снимком текста, метаданными, списком медиа и linked_task. linked_task показывает, какая задача уже создана по сообщению, её срочность и состояние",
         annotations(
             title = "Прочитать Telegram-кандидат",
@@ -401,25 +591,7 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<CreateTaskFromCandidateArgs>,
     ) -> Result<Json<TaskOutput>, String> {
-        let description = match (args.description, args.title, args.notes) {
-            (Some(description), _, _) => Some(description),
-            (None, Some(title), notes) => {
-                let title = title.trim();
-                if title.is_empty() {
-                    return Err("title не может быть пустым".into());
-                }
-                Some(
-                    match notes
-                        .map(|notes| notes.trim().to_owned())
-                        .filter(|notes| !notes.is_empty())
-                    {
-                        Some(notes) => format!("{title}\n\n{notes}"),
-                        None => title.to_owned(),
-                    },
-                )
-            }
-            (None, None, _) => None,
-        };
+        let description = task_description(args.title, args.notes, args.description)?;
         self.store
             .create_task_from_telegram_candidate(
                 &args.candidate_id,
@@ -641,6 +813,32 @@ fn parse_status(value: &str) -> Result<TaskStatus, String> {
     }
 }
 
+fn task_description(
+    title: Option<String>,
+    notes: Option<String>,
+    description: Option<String>,
+) -> Result<Option<String>, String> {
+    match (description, title, notes) {
+        (Some(description), _, _) => Ok(Some(description)),
+        (None, Some(title), notes) => {
+            let title = title.trim();
+            if title.is_empty() {
+                return Err("title не может быть пустым".into());
+            }
+            Ok(Some(
+                match notes
+                    .map(|notes| notes.trim().to_owned())
+                    .filter(|notes| !notes.is_empty())
+                {
+                    Some(notes) => format!("{title}\n\n{notes}"),
+                    None => title.to_owned(),
+                },
+            ))
+        }
+        (None, None, _) => Ok(None),
+    }
+}
+
 fn parse_snapshot(value: SnapshotArgs) -> Result<MessageSnapshot, String> {
     let sent_at = value
         .sent_at
@@ -748,6 +946,8 @@ mod tests {
             "get_runtime_info",
             "run_self_check",
             "list_telegram_inbox",
+            "get_telegram_triage_batch",
+            "apply_telegram_triage",
             "get_telegram_candidate",
             "create_task_from_telegram_candidate",
             "set_telegram_candidate_status",
@@ -898,9 +1098,25 @@ mod tests {
             "discovered_at": "2026-09-10T10:01:00Z"
         }))
         .unwrap();
+        let older_candidate_id = format!("telegram:{}:-10042:76", project.id);
+        let older_candidate: TelegramInboxCandidate = serde_json::from_value(serde_json::json!({
+            "id": older_candidate_id,
+            "project_id": project.id,
+            "chat_id": -10042,
+            "chat_title": "Рабочий чат",
+            "message_id": 76,
+            "text": "Проверить предыдущий вопрос",
+            "author": "Коллега",
+            "sent_at": "2026-09-10T09:00:00Z",
+            "reason": "reply",
+            "status": "pending",
+            "media": [],
+            "discovered_at": "2026-09-10T09:01:00Z"
+        }))
+        .unwrap();
         server
             .store
-            .upsert_telegram_candidates(vec![candidate])
+            .upsert_telegram_candidates(vec![candidate, older_candidate])
             .unwrap();
 
         let listed = server
@@ -910,7 +1126,34 @@ mod tests {
             }))
             .unwrap()
             .0;
-        assert_eq!(listed.candidates.len(), 1);
+        assert_eq!(listed.candidates.len(), 2);
+
+        let batch = server
+            .get_telegram_triage_batch(Parameters(TelegramTriageBatchArgs {
+                project_id: Some(project.id.clone()),
+                cursor: None,
+                limit: Some(1),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(batch.candidates.len(), 1);
+        assert_eq!(batch.candidates[0].id, candidate_id);
+        assert_eq!(batch.remaining, 1);
+        assert_eq!(batch.next_cursor.as_deref(), Some(candidate_id.as_str()));
+        let kept = server
+            .apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
+                decisions: vec![TelegramTriageDecisionArgs {
+                    candidate_id: candidate_id.clone(),
+                    action: "keep".into(),
+                    title: None,
+                    notes: None,
+                    urgency: None,
+                }],
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(kept.kept, 1);
+        assert_eq!(kept.failed, 0);
 
         let read = server
             .get_telegram_candidate(Parameters(CandidateIdArgs {
@@ -931,6 +1174,31 @@ mod tests {
             .0
             .candidate;
         assert_eq!(dismissed.status, InboxCandidateStatus::Dismissed);
+        let continued = server
+            .get_telegram_triage_batch(Parameters(TelegramTriageBatchArgs {
+                project_id: Some(project.id.clone()),
+                cursor: batch.next_cursor,
+                limit: Some(1),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(continued.candidates.len(), 1);
+        assert_eq!(continued.candidates[0].id, older_candidate_id);
+        assert_eq!(continued.remaining, 0);
+        let dismissed_batch = server
+            .apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
+                decisions: vec![TelegramTriageDecisionArgs {
+                    candidate_id: older_candidate_id,
+                    action: "dismiss".into(),
+                    title: None,
+                    notes: None,
+                    urgency: None,
+                }],
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(dismissed_batch.dismissed, 1);
+        assert_eq!(dismissed_batch.failed, 0);
         assert!(
             server
                 .create_task_from_telegram_candidate(Parameters(CreateTaskFromCandidateArgs {
@@ -949,17 +1217,35 @@ mod tests {
                 status: "pending".into(),
             }))
             .unwrap();
-        let task = server
-            .create_task_from_telegram_candidate(Parameters(CreateTaskFromCandidateArgs {
-                candidate_id: candidate_id.clone(),
-                description: None,
-                title: Some("Подготовить итог встречи".into()),
-                notes: Some("Сверить решения и ответственных".into()),
-                urgency: Some("important".into()),
+        let missing_title = server
+            .apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
+                decisions: vec![TelegramTriageDecisionArgs {
+                    candidate_id: candidate_id.clone(),
+                    action: "create_task".into(),
+                    title: None,
+                    notes: None,
+                    urgency: None,
+                }],
             }))
             .unwrap()
-            .0
-            .task;
+            .0;
+        assert_eq!(missing_title.created, 0);
+        assert_eq!(missing_title.failed, 1);
+        let applied = server
+            .apply_telegram_triage(Parameters(ApplyTelegramTriageArgs {
+                decisions: vec![TelegramTriageDecisionArgs {
+                    candidate_id: candidate_id.clone(),
+                    action: "create_task".into(),
+                    title: Some("Подготовить итог встречи".into()),
+                    notes: Some("Сверить решения и ответственных".into()),
+                    urgency: Some("important".into()),
+                }],
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(applied.created, 1);
+        assert_eq!(applied.failed, 0);
+        let task = applied.results[0].task.clone().unwrap();
         assert_eq!(
             task.description,
             "Подготовить итог встречи\n\nСверить решения и ответственных"

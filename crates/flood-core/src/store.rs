@@ -467,6 +467,16 @@ impl Store {
             .iter_mut()
             .find(|candidate| candidate.id == candidate_id)
             .ok_or_else(|| StoreError::NotFound(candidate_id.to_owned()))?;
+        if candidate.status == InboxCandidateStatus::Imported
+            && status != InboxCandidateStatus::Imported
+        {
+            return Err(StoreError::Validation(
+                "импортированный Telegram-кандидат нельзя вернуть или отклонить; связанная задача уже существует".into(),
+            ));
+        }
+        if candidate.status == status {
+            return Ok(candidate.clone());
+        }
         candidate.status = status;
         candidate.processed_at = (candidate.status != InboxCandidateStatus::Pending).then(Utc::now);
         if candidate.status != InboxCandidateStatus::Imported {
@@ -1955,6 +1965,10 @@ mod tests {
             .create_task_from_telegram_candidate(&candidate.id, None, crate::Urgency::Normal)
             .unwrap();
         assert_eq!(repeated.id, task.id);
+        assert!(matches!(
+            store.set_telegram_candidate_status(&candidate.id, InboxCandidateStatus::Dismissed),
+            Err(StoreError::Validation(_))
+        ));
 
         let archive = store.create_project("Архив").unwrap();
         let moved = store

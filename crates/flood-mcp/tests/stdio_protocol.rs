@@ -103,6 +103,11 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert!(list_projects["outputSchema"].is_object());
     assert_eq!(list_projects["annotations"]["readOnlyHint"], true);
+    let triage_batch = tools
+        .iter()
+        .find(|tool| tool["name"] == "get_telegram_triage_batch")
+        .unwrap();
+    assert_eq!(triage_batch["annotations"]["readOnlyHint"], true);
 
     send(
         &mut stdin,
@@ -204,6 +209,29 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
             .as_str()
             .is_some_and(|text| text.contains("Необратимые MCP-действия отключены"))
     );
+
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": 8,
+            "method": "tools/call",
+            "params": {
+                "name": "get_telegram_triage_batch",
+                "arguments": {
+                    "project_id": created["result"]["structuredContent"]["project"]["id"],
+                    "limit": 12
+                }
+            }
+        }),
+    );
+    let triage = receive(&mut stdout, 8);
+    assert_eq!(triage["result"]["isError"], false);
+    assert_eq!(
+        triage["result"]["structuredContent"]["candidates"],
+        json!([])
+    );
+    assert_eq!(triage["result"]["structuredContent"]["remaining"], 0);
 
     drop(stdin);
     assert!(child.wait().unwrap().success());
