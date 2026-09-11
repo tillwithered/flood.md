@@ -1,111 +1,112 @@
-<p align="center"><img src="docs/assets/flood-mark.png" width="144" alt="flood.md logo" /></p>
+<p align="center"><img src="docs/assets/flood-mark.png" width="128" alt="flood.md logo" /></p>
 <h1 align="center">flood.md</h1>
-<p align="center"><strong>A calm, local task manager for work that starts in chats.</strong></p>
-<p align="center">Telegram messages become focused Markdown tasks — without bots, accounts, or cloud storage.</p>
+<p align="center"><strong>A local task manager for work that starts in chats.</strong></p>
+<p align="center">Turn Telegram discussions into focused Markdown tasks, then give your AI agent the context it needs to help finish them.</p>
 <p align="center"><a href="README.md">English</a> · <a href="README.ru.md">Русский</a></p>
 <p align="center">
   <a href="https://github.com/tillwithered/flood.md/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/tillwithered/flood.md?style=flat-square"></a>
   <img alt="Windows" src="https://img.shields.io/badge/Windows-10%2B-111111?style=flat-square">
-  <img alt="Tauri 2" src="https://img.shields.io/badge/Tauri-2-111111?style=flat-square">
   <img alt="Local first" src="https://img.shields.io/badge/data-local--first-111111?style=flat-square">
+  <img alt="MCP" src="https://img.shields.io/badge/MCP-ready-111111?style=flat-square">
 </p>
+
+<p align="center"><strong><a href="https://github.com/tillwithered/flood.md/releases/latest">Download for Windows</a></strong> · <a href="#quick-start">Quick start</a> · <a href="docs/mcp.md">MCP guide</a></p>
+
+> **Stable release: 0.1.6.** The current priority is reliability and bug fixes. New features do not have a fixed release schedule.
+
+![Telegram inbox in flood.md](docs/assets/flood-telegram-inbox.png)
+
+## From chat to task
+
+A request rarely arrives as a clean ticket. It appears between replies, screenshots, links, and half-finished discussion. flood.md lets an agent inspect a small, relevant part of that conversation instead of loading the entire chat.
+
+1. Link a Telegram chat to a flood.md project.
+2. Add project context: Markdown notes, local folders, a read-only GitHub repository, Figma links, or documentation.
+3. Ask an MCP-capable agent to review new messages, open nearby replies and screenshots when needed, and create concise prioritized tasks.
+4. Later, ask the agent to open a task's work context and help complete it.
+
+Example prompt:
+
+> In the “zakup.io” project, check whether Telegram is fresh. Find clear requests from Dima, open nearby messages, screenshots, and permitted GitHub repositories when needed, then create tasks and assign urgency. Do not duplicate existing work.
+
+### Keep the useful discussion
+
+The task composer keeps the selected message together with the relevant conversation window, author, time, link, and media.
+
+![Create a task from Telegram context](docs/assets/flood-telegram-task.png)
+
+### Give the agent project context
+
+Project instructions and sources are explicit. Access is granted per source; adding a link does not silently grant the agent permission to read it.
+
+![Project context and sources](docs/assets/flood-project-context.png)
+
+## What is included
+
+- **Local Markdown tasks:** readable files remain the source of truth.
+- **Telegram through TDLib:** connect a personal account directly, without a bot.
+- **A reviewable inbox:** collect mentions, replies, selected messages, or all new messages from chosen chats.
+- **Conversation and media context:** preserve discussion windows and Telegram albums; request screenshots only when needed.
+- **Read-only GitHub App:** choose repositories and link them to projects without personal access tokens or write permissions.
+- **Project context:** Markdown notes, local folders, repositories, Figma files, documentation, and websites.
+- **Bundled local MCP server:** manage projects and tasks, triage Telegram, inspect permitted context, and retrieve task work context.
+- **Safe storage:** atomic writes, stable IDs, conflict detection, backups, recoverable trash, and duplicate-safe agent operations.
+- **Offline core:** projects and tasks keep working without Telegram or a network.
+
+## MCP and AI
+
+The installer includes <code>flood-mcp.exe</code>, a local stdio MCP server for Codex, Claude Desktop, Cursor, and other clients that can launch a local command. The app provides ready-to-copy configurations and a self-check in **Settings → MCP and AI**.
+
+![MCP readiness and activity](docs/assets/flood-mcp-readiness.png)
+
+The agent can read bounded Telegram updates, inspect a selected conversation or image, search permitted project sources, preview a task plan, and apply it without creating duplicates. It can also retrieve an existing task together with project and source context before helping with implementation.
+
+A regular cloud ChatGPT conversation cannot launch a local executable; it requires a remotely reachable HTTPS MCP server. flood.md intentionally does not ship that cloud bridge in this local-first release.
+
+Read the [MCP setup, workflows, tool map, and safety model](docs/mcp.md).
+
+## Quick start
+
+1. Download the installer from the [latest release](https://github.com/tillwithered/flood.md/releases/latest). Windows 10 or newer is recommended.
+2. Create a project and open **Settings → Integrations**.
+3. Connect Telegram by QR code or phone number, then link only the chats you need.
+4. Optionally connect the read-only GitHub App and add repositories to the project.
+5. Open **Settings → MCP and AI**, choose your client, copy the configuration, and restart that client.
 
 See [what changed in 0.1.6](CHANGELOG.md).
 
-## Why flood.md
-
-Tasks often begin as a message, then disappear inside a busy chat. flood.md turns that message into a durable task while keeping the original author, date, text, and link as context.
-
-- **Local-first:** readable `.md` files are the source of truth.
-- **Telegram through TDLib:** connect a personal account directly, without a bot.
-- **GitHub App connector:** authorize through GitHub, choose repositories, and link them to projects without personal access tokens or write permissions.
-- **Project connections:** bind a project to one or several Telegram chats and choose a collection mode for each one.
-- **Telegram inbox:** review mentions, replies, all new messages from selected chats, or messages added manually; shape a concise task title, notes, and urgency before creating it. Telegram albums stay grouped and their media is downloaded into the task automatically. Background inbox and media synchronization is serialized, observable in Settings, and reports partial failures instead of silently dropping them.
-- **Source and media:** tasks preserve the original chat, author, date, message link, and media metadata; files are downloaded only on demand.
-- **Focused editor:** Markdown, formatting, links, images, and local attachments.
-- **Safe changes:** atomic writes, stable IDs, conflict detection, backups, and trash.
-- **Agent-ready:** the bundled local MCP server uses the same task files.
-- **Controlled AI triage:** agents receive bounded inbox batches, preview a plan, and must present a confirmation token before applying it.
-- **Operational visibility:** Settings show storage health, Telegram synchronization, MCP readiness, attachment cleanup, and a bounded audit trail without task text.
-- **Offline core:** projects and tasks remain usable without Telegram or a network.
-
-## Install
-
-Download the Windows installer from [the latest release](https://github.com/tillwithered/flood.md/releases/latest). Windows 10 or newer is recommended.
-
-On first launch, open **Settings → Integrations**. Telegram signs in with a QR code or phone number. GitHub signs in through the official GitHub App, then lets you choose repository access and link repositories to flood.md projects.
-
 ## Privacy and security
 
-- Task content and Telegram sessions stay on the user's device.
+- Tasks, attachments, and Telegram sessions stay on the user's device.
 - flood.md does not require an account or cloud backend.
-- Telegram application credentials are injected only during the official GitHub Actions build and are absent from source control.
-- The release binary contains an obfuscated application hash. Like every desktop credential, it cannot be made impossible to extract from a user-controlled machine.
-- User authorization sessions live in TDLib's encrypted local database, outside Markdown and backups.
-- GitHub user and refresh tokens live in the operating system credential store. Markdown and backups contain only selected repository URLs and public metadata.
-- GitHub access is read-only and limited by both the GitHub App installation and the repositories explicitly linked to flood.md projects.
-- Task content is never treated as an instruction to an agent or sent to external AI services automatically.
+- Telegram authorization is stored in TDLib's encrypted local database, outside Markdown and backups.
+- GitHub tokens live in the operating system credential store; access is read-only and limited by both the App installation and the repositories linked to a project.
+- New or retargeted project sources start with agent access disabled.
+- Chat messages, task text, and repository files are untrusted data, not instructions or authority to perform external actions.
+- Irreversible MCP deletion is disabled by default.
 
-See [SECURITY.md](SECURITY.md) for vulnerability reporting and the trust model.
+See [SECURITY.md](SECURITY.md) for the trust model and vulnerability reporting.
 
-## Data format
+## Local data
 
-Projects live in `projects/<project-id>/project.md`; tasks live in `projects/<project-id>/tasks/<task-id>.md`. YAML front matter stores explicit metadata and the body remains ordinary Markdown. A project can also reference up to 20 structured context resources—repositories, local directories, Figma files, documentation, websites, or other locations. These entries store paths and public addresses, never tokens or passwords. Agent access is granted by the user per resource; a new or retargeted resource is always closed. Task files remain similarly readable:
-
-```markdown
----
-format_version: 1
-id: 01M21AQN9P0XMQBS39VNP0FK13
-project_id: 01M21AQMP5ZW06S6DXVAX8P1MF
-created_at: 2026-09-08T20:18:14Z
-updated_at: 2026-09-08T20:18:15Z
-urgency: important
-status: open
-source:
-  text: Review the build before Friday
-  author: Anna
-  url: https://t.me/example/42
----
-
-Review the release build
-```
-
-The default Windows data directory is `%APPDATA%\io.flood.desktop`. Set `FLOOD_DATA_DIR` to use another location.
-
-## Local MCP server
-
-The installer includes `flood-mcp.exe`, a local stdio MCP server with project, task, source, state, move, and recoverable trash operations. Irreversible deletion is disabled by default; it can only be enabled for an explicitly launched server with `FLOOD_MCP_ALLOW_DESTRUCTIVE=1`. The server can also list and read Telegram inbox candidates, dismiss or restore them, and create an idempotent task with a concise title, optional notes, urgency, and its source snapshot. Processed candidates expose the linked task's title, urgency, and live completion state so an MCP client can distinguish pending work from work already done.
-
-For agent-assisted triage, `get_telegram_sync_status` reports when the desktop app last synchronized Telegram and whether that run succeeded, partially failed, or failed, so an agent can refuse to treat a stale local queue as current. `list_telegram_chats` and `read_telegram_chat` let the agent open a linked chat, read its latest locally cached messages, page backward, or request only messages newer than a remembered message ID. `read_project_telegram_updates` provides the more human starting point: one chronological “what is new in this project?” view across its linked chats, fairly bounded to 25 chats and 50 messages. For a selected message, `read_telegram_message_context` opens up to 10 neighboring messages on either side (3 + 3 by default) and adds its direct reply parent when that message remains in the local cache. Telegram albums count as one conversational step, while media remains available for an explicit image request. The project view reports a per-chat acknowledgement boundary but never advances it itself. Telegram content is explicitly marked as untrusted project data: it can inform task extraction, but cannot grant the agent authority to execute instructions or perform external actions. For a single-chat loop, `read_telegram_updates` starts with a recent bounded window and later returns only messages beyond flood.md's local agent checkpoint; `acknowledge_telegram_updates` advances that checkpoint after the model actually processes a batch without sending a Telegram read receipt. The cache keeps a rolling window of 100 messages per chat and each MCP response is limited to 50, avoiding a full-history dump. `get_telegram_triage_batch` returns a compact page of pending candidates; for a selected candidate, `get_telegram_candidate_context` returns its saved conversation window with an available direct reply parent, album grouping, authors, timestamps, links, and media metadata. The agent can also use `create_task_from_telegram_discussion` to turn any selected target message plus up to 20 relevant surrounding messages into one idempotent task, even when the discussion never entered the automated inbox. For a project-wide review, `preview_project_telegram_tasks` validates up to 12 proposed tasks, their selected discussion windows, media, overlap, and duplicate state. An explicit instruction in the current request, such as “find the requests and add them to the project,” already authorizes applying that verified plan in the same turn; a read-only “show me what you found” request stops at preview. Changed source messages or project context invalidate the token before any write, while stable request IDs make uncertain retries idempotent. The resulting Markdown task preserves the ordered conversation and gathers all selected media for local download. A multimodal agent can request one specific screenshot from either the ordinary chat timeline or a candidate through `request_telegram_image`, wait for the authorized desktop TDLib client to prepare it, and receive actual MCP image content from `read_telegram_image`. Images are limited to 8 MB, the cache is capped at 20 requests and excluded from backups, and local file paths are not exposed. The same timeline is visible in the desktop review flow and remains attached to the resulting Markdown task. A triage plan must pass through `preview_telegram_triage`; only the returned token can authorize that exact, still-current plan in `apply_telegram_triage`. Every candidate receives an independent result, and retries remain observable and idempotent. The desktop inbox mirrors this review model with multi-select, preserved drafts, undo for dismissals, bounded history, and a sequential task composer.
-
-`get_workspace_brief` provides a bounded start-of-session view with storage readiness, priority work, Telegram freshness, recent metadata-only activity, and suggested next tools. A project's **Context** action edits free-form Markdown and structured working-material references, grants agent access per resource, and saves everything atomically. MCP uses `update_project_context` and `set_project_resources`, but cannot grant itself access. `get_project_brief` combines that Markdown, each resource's permission state and access hint, a bounded open-task digest, linked Telegram chat checkpoints, and sync freshness. For an explicitly allowed local repository or directory, `list_project_resource_files` returns a bounded tree and `read_project_resource_file` reads one selected UTF-8 file. Both calls remain inside the configured root, skip generated directories and likely secret files, and mark file content as untrusted project data. Figma and web resources remain references for an external connector. This is the local place for project purpose, repository paths, design links, constraints, and conventions—never secrets. `get_runtime_info` reports the running server version, data folder, capabilities, and safety mode. `diagnose_store` reports local storage health without changing data, while `run_self_check` exercises the full task lifecycle in an isolated temporary store. The desktop app runs the same check through the actual bundled executable in **Settings → MCP & AI**, where ready-to-copy Codex, Claude, Cursor, and manual configurations are available. Project and task creation require a stable `request_id`, preventing duplicates after timeouts or uncertain retries. When MCP creates a task, the running desktop app downloads its Telegram media immediately; otherwise it resumes that work on the next launch. Desktop and MCP operations share validation, locking, conflict rules, and an audit trail that intentionally excludes task and message text.
-
-`search_project_resource` complements the local reader with bounded, case-insensitive line search, so an agent can locate relevant code before requesting a specific file instead of loading the whole repository. For a linked GitHub source, `get_github_repository_context` returns bounded repository metadata, README, open issues, and pull requests; `list_github_repository_files`, `search_github_repository`, and `read_github_repository_file` provide explicit read-only access without cloning or exposing credentials.
-
-For inbox processing, `get_project_triage_context` combines the bounded project brief, existing open tasks, and the chronological unread Telegram feed without advancing any checkpoint. The agent can inspect a selected message or screenshot, search an allowed repository, and then submit an exact batch to `preview_project_telegram_tasks`; no extra round trip is needed when the current request already explicitly authorizes creation.
-
-For an existing task, `get_task_work_context` is the preferred entry point. It returns the Markdown task, a bounded project context, per-resource permissions, and a centered Telegram conversation from the current local cache. If the message has already left the rolling cache, the snapshot stored with the task is returned instead. Media remains explicit and on demand.
-
-The local stdio server works directly with desktop MCP clients that can launch a local command, including Codex, Claude Desktop, and Cursor. A regular cloud ChatGPT conversation cannot start the local `.exe`; OpenAI's MCP interface expects a remotely reachable HTTPS MCP server. flood.md deliberately does not ship that network bridge in its local-first release, so Telegram messages and tasks are not routed through a hosted backend.
-
-For packaging and diagnostics, `flood-mcp.exe --version` prints the server version and `flood-mcp.exe --self-check` prints the isolated check result as JSON without starting the stdio transport.
+Projects live in <code>projects/&lt;project-id&gt;/project.md</code>; tasks live in <code>projects/&lt;project-id&gt;/tasks/&lt;task-id&gt;.md</code>. YAML front matter stores explicit metadata while the body remains ordinary Markdown. The default Windows data directory is <code>%APPDATA%\io.flood.desktop</code>; set <code>FLOOD_DATA_DIR</code> to use another location.
 
 ## Development
 
 Requirements: Node.js 22, stable Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/).
 
-```powershell
+~~~powershell
 npm install
 npm run tauri dev
-```
+~~~
 
-For independent builds, leave `TG_API_ID` and `TG_API_HASH` unset and enter your own credentials in the app. To bundle a GitHub App, set `FLOOD_GITHUB_CLIENT_ID` and `FLOOD_GITHUB_APP_SLUG`; local builds without them show fields for a developer-owned GitHub App. Enable Device Flow and grant only Metadata, Contents, Issues, and Pull requests read permissions. Official releases receive Telegram credentials from GitHub Actions Secrets and the public GitHub App values from Actions Variables.
+Official releases receive protected Telegram and updater credentials through GitHub Actions. Independent builds can leave <code>TG_API_ID</code> and <code>TG_API_HASH</code> unset and enter developer-owned values in the app.
 
-```powershell
+~~~powershell
 npm run check
 cargo test --workspace
 npm run tauri build
-```
+~~~
 
 ## Stack
 
