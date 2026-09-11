@@ -140,6 +140,7 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         "list_telegram_chats",
         "read_telegram_chat",
         "read_telegram_updates",
+        "read_project_telegram_updates",
     ] {
         let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
         assert_eq!(tool["annotations"]["readOnlyHint"], true);

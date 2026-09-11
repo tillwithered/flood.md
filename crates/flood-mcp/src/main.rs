@@ -457,6 +457,13 @@ struct ReadTelegramUpdatesArgs {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ReadProjectTelegramUpdatesArgs {
+    project_id: String,
+    /// Желаемый лимит на чат: от 1 до 20. Общая лента всё равно ограничена 50 сообщениями.
+    per_chat_limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct AcknowledgeTelegramUpdatesArgs {
     chat_id: i64,
     /// ID последнего сообщения, которое агент действительно обработал.
@@ -480,6 +487,42 @@ struct TelegramChatSummaryOutput {
 #[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TelegramChatsOutput {
     chats: Vec<TelegramChatSummaryOutput>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct ProjectTelegramUpdateMessage {
+    chat_id: i64,
+    chat_title: String,
+    message: TelegramContextMessage,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct ProjectTelegramChatState {
+    chat_id: i64,
+    title: String,
+    checkpoint_message_id: Option<i64>,
+    latest_available_message_id: Option<i64>,
+    returned: usize,
+    remaining: usize,
+    initial_window: bool,
+    initial_window_truncated: bool,
+    checkpoint_before_cache: bool,
+    acknowledge_through_message_id: Option<i64>,
+    error: Option<String>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct ProjectTelegramUpdatesOutput {
+    project_id: String,
+    project_title: String,
+    timeline: Vec<ProjectTelegramUpdateMessage>,
+    chats: Vec<ProjectTelegramChatState>,
+    linked_chat_count: usize,
+    scanned_chat_count: usize,
+    chats_truncated: bool,
+    total_remaining: usize,
+    fresh: bool,
+    suggested_tools: Vec<&'static str>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -870,6 +913,7 @@ impl FloodServer {
                 "telegram_conversation_context",
                 "telegram_discussion_tasks",
                 "telegram_chat_reader",
+                "project_telegram_updates",
                 "telegram_read_checkpoint",
                 "telegram_image_content",
                 "telegram_sync_status",
@@ -1191,6 +1235,142 @@ impl FloodServer {
     }
 
     #[tool(
+        description = "Открыть новое во всех связанных Telegram-чатах проекта как единую хронологическую ленту — аналог человеческого обзора проекта. Читает не более 25 чатов и 50 сообщений суммарно, справедливо распределяя лимит между чатами. Возвращает состояние каждого чата и acknowledge_through_message_id, но сам не двигает локальные закладки и не отправляет Telegram read-receipt. После реальной обработки подтвердите каждый прочитанный чат через acknowledge_telegram_updates. Для соседнего контекста используйте read_telegram_chat, для изображений — request_telegram_image",
+        annotations(
+            title = "Новое в Telegram проекта",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn read_project_telegram_updates(
+        &self,
+        Parameters(args): Parameters<ReadProjectTelegramUpdatesArgs>,
+    ) -> Result<Json<ProjectTelegramUpdatesOutput>, String> {
+        const MAX_CHATS: usize = 25;
+        const MAX_MESSAGES: usize = 50;
+        let project = self
+            .store
+            .get_project(&args.project_id)
+            .map_err(store_error)?;
+        let linked_chat_count = project.telegram_chats.len();
+        let links = project
+            .telegram_chats
+            .iter()
+            .take(MAX_CHATS)
+            .collect::<Vec<_>>();
+        let scanned_chat_count = links.len();
+        let requested_per_chat = args.per_chat_limit.unwrap_or(10).clamp(1, 20);
+        let fair_share = MAX_MESSAGES
+            .checked_div(scanned_chat_count)
+            .unwrap_or(MAX_MESSAGES)
+            .max(1);
+        let fair_per_chat = requested_per_chat.min(fair_share);
+        let mut timeline = Vec::new();
+        let mut chats = Vec::new();
+        let mut total_remaining = 0usize;
+        let mut unavailable_chat_count = 0usize;
+        for link in links {
+            let page = match self
+                .store
+                .read_telegram_updates(link.chat_id, fair_per_chat)
+            {
+                Ok(page) => page,
+                Err(error) => {
+                    unavailable_chat_count += 1;
+                    chats.push(ProjectTelegramChatState {
+                        chat_id: link.chat_id,
+                        title: link.title.clone(),
+                        checkpoint_message_id: None,
+                        latest_available_message_id: None,
+                        returned: 0,
+                        remaining: 0,
+                        initial_window: true,
+                        initial_window_truncated: false,
+                        checkpoint_before_cache: false,
+                        acknowledge_through_message_id: None,
+                        error: Some(error.to_string()),
+                    });
+                    continue;
+                }
+            };
+            let TelegramUpdatesPage {
+                chat_id,
+                title,
+                synced_at: _,
+                checkpoint_message_id,
+                messages,
+                latest_available_message_id,
+                remaining,
+                initial_window,
+                initial_window_truncated,
+                checkpoint_before_cache,
+            } = page;
+            let acknowledge_through_message_id = messages.last().map(|message| message.message_id);
+            let returned = messages.len();
+            total_remaining = total_remaining.saturating_add(remaining);
+            timeline.extend(
+                messages
+                    .into_iter()
+                    .map(|message| ProjectTelegramUpdateMessage {
+                        chat_id,
+                        chat_title: title.clone(),
+                        message,
+                    }),
+            );
+            chats.push(ProjectTelegramChatState {
+                chat_id,
+                title,
+                checkpoint_message_id,
+                latest_available_message_id,
+                returned,
+                remaining,
+                initial_window,
+                initial_window_truncated,
+                checkpoint_before_cache,
+                acknowledge_through_message_id,
+                error: None,
+            });
+        }
+        timeline.sort_by(|left, right| {
+            left.message
+                .sent_at
+                .cmp(&right.message.sent_at)
+                .then_with(|| left.chat_id.cmp(&right.chat_id))
+                .then_with(|| left.message.message_id.cmp(&right.message.message_id))
+        });
+        let telegram = self.get_telegram_sync_status()?.0;
+        let mut suggested_tools = Vec::new();
+        if (!telegram.fresh || unavailable_chat_count > 0)
+            && telegram.pending_request.is_none()
+            && linked_chat_count > 0
+        {
+            suggested_tools.push("request_telegram_sync");
+        }
+        if timeline.iter().any(|entry| !entry.message.media.is_empty()) {
+            suggested_tools.push("request_telegram_image");
+        }
+        if !timeline.is_empty() {
+            suggested_tools.push("read_telegram_chat");
+            suggested_tools.push("create_task_from_telegram_discussion");
+            suggested_tools.push("acknowledge_telegram_updates");
+        }
+
+        Ok(Json(ProjectTelegramUpdatesOutput {
+            project_id: project.id,
+            project_title: project.title,
+            timeline,
+            chats,
+            linked_chat_count,
+            scanned_chat_count,
+            chats_truncated: linked_chat_count > scanned_chat_count,
+            total_remaining,
+            fresh: telegram.fresh,
+            suggested_tools,
+        }))
+    }
+
+    #[tool(
         description = "Сохранить локальную закладку flood.md после того, как агент действительно обработал сообщения до указанного ID. Закладка двигается только вперёд и не отправляет Telegram read-receipt. Не подтверждайте сообщения, которые модель не прочитала",
         annotations(
             title = "Подтвердить прочитанное агентом",
@@ -1348,7 +1528,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Получить единый ограниченный бриф конкретного проекта для начала работы агента: Markdown-контекст из project.md (до 20 000 символов), компактный приоритетный список открытых задач, связанные локальные Telegram-чаты с закладками чтения и свежесть синхронизации. Не читает сообщения и изображения автоматически: после выбора чата используйте read_telegram_updates/read_telegram_chat и request_telegram_image. Используйте вместо отдельных get_project, get_task_digest и list_telegram_chats",
+        description = "Получить единый ограниченный бриф конкретного проекта для начала работы агента: Markdown-контекст из project.md (до 20 000 символов), компактный приоритетный список открытых задач, связанные локальные Telegram-чаты с закладками чтения и свежесть синхронизации. Не читает сообщения и изображения автоматически: новое по всему проекту читает read_project_telegram_updates, произвольную историю — read_telegram_chat, изображения — request_telegram_image. Используйте вместо отдельных get_project, get_task_digest и list_telegram_chats",
         annotations(
             title = "Бриф проекта",
             read_only_hint = true,
@@ -1393,7 +1573,7 @@ impl FloodServer {
             .iter()
             .any(|chat| chat.agent_unprocessed_count.unwrap_or(chat.message_count) > 0)
         {
-            suggested_tools.push("read_telegram_updates");
+            suggested_tools.push("read_project_telegram_updates");
         }
         if !open_tasks.tasks.is_empty() {
             suggested_tools.push("get_task");
@@ -2939,6 +3119,7 @@ fn run_binary_self_check() -> SelfCheckResult {
         "list_telegram_chats",
         "read_telegram_chat",
         "read_telegram_updates",
+        "read_project_telegram_updates",
         "acknowledge_telegram_updates",
         "request_telegram_image",
         "get_telegram_media_request",
@@ -3092,6 +3273,7 @@ mod tests {
             "list_telegram_chats",
             "read_telegram_chat",
             "read_telegram_updates",
+            "read_project_telegram_updates",
             "acknowledge_telegram_updates",
             "request_telegram_image",
             "get_telegram_media_request",
@@ -3525,6 +3707,33 @@ mod tests {
         assert_eq!(updates.messages.len(), 2);
         assert_eq!(updates.messages[0].message_id, 11);
 
+        let project_updates = server
+            .read_project_telegram_updates(Parameters(ReadProjectTelegramUpdatesArgs {
+                project_id: project.id.clone(),
+                per_chat_limit: Some(3),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(project_updates.linked_chat_count, 1);
+        assert_eq!(project_updates.scanned_chat_count, 1);
+        assert!(!project_updates.chats_truncated);
+        assert_eq!(project_updates.timeline.len(), 3);
+        assert_eq!(project_updates.timeline[0].message.message_id, 10);
+        assert_eq!(
+            project_updates.chats[0].acknowledge_through_message_id,
+            Some(12)
+        );
+        assert!(
+            project_updates
+                .suggested_tools
+                .contains(&"request_telegram_image")
+        );
+        assert!(
+            project_updates
+                .suggested_tools
+                .contains(&"acknowledge_telegram_updates")
+        );
+
         let first_agent_read = server
             .read_telegram_updates(Parameters(ReadTelegramUpdatesArgs {
                 chat_id: -10042,
@@ -3619,6 +3828,86 @@ mod tests {
             .0;
         assert!(!repeated.created);
         assert_eq!(repeated.task.id, task.task.id);
+    }
+
+    #[test]
+    fn project_telegram_updates_merge_linked_chats_without_acknowledging() {
+        let server = server();
+        let project = server.store.create_project("Обзор проекта").unwrap();
+        let project = server
+            .store
+            .set_project_telegram_chats(
+                &project.id,
+                vec![
+                    flood_core::TelegramProjectLink {
+                        chat_id: -1001,
+                        title: "Разработка".into(),
+                        inbox_mode: flood_core::TelegramInboxMode::MentionsAndReplies,
+                    },
+                    flood_core::TelegramProjectLink {
+                        chat_id: -1002,
+                        title: "Дизайн".into(),
+                        inbox_mode: flood_core::TelegramInboxMode::All,
+                    },
+                ],
+                &project.version,
+            )
+            .unwrap();
+        let now = Utc::now();
+        for (chat_id, title, offsets) in [
+            (-1001, "Разработка", vec![1_i64, 3, 5]),
+            (-1002, "Дизайн", vec![2_i64, 4, 6]),
+        ] {
+            server
+                .store
+                .upsert_telegram_chat_snapshot(flood_core::TelegramChatSnapshot {
+                    chat_id,
+                    title: title.into(),
+                    synced_at: now,
+                    messages: offsets
+                        .into_iter()
+                        .map(|offset| TelegramContextMessage {
+                            message_id: offset,
+                            message_ids: vec![offset],
+                            author: title.into(),
+                            sent_at: now + chrono::Duration::seconds(offset),
+                            text: format!("{title}: {offset}"),
+                            url: None,
+                            reply_to_message_id: None,
+                            is_target: false,
+                            media: Vec::new(),
+                        })
+                        .collect(),
+                })
+                .unwrap();
+        }
+
+        let updates = server
+            .read_project_telegram_updates(Parameters(ReadProjectTelegramUpdatesArgs {
+                project_id: project.id,
+                per_chat_limit: Some(2),
+            }))
+            .unwrap()
+            .0;
+
+        assert_eq!(updates.timeline.len(), 4);
+        assert_eq!(
+            updates
+                .timeline
+                .iter()
+                .map(|entry| (entry.chat_id, entry.message.message_id))
+                .collect::<Vec<_>>(),
+            vec![(-1001, 3), (-1002, 4), (-1001, 5), (-1002, 6)]
+        );
+        assert_eq!(updates.chats.len(), 2);
+        assert!(updates.chats.iter().all(|chat| chat.returned == 2));
+        assert!(
+            server
+                .store
+                .list_telegram_agent_checkpoints()
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
