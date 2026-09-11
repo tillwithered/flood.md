@@ -1441,26 +1441,41 @@ impl Store {
         read_task(&self.task_path(&task.project_id, &task.id))
     }
 
-    pub fn create_task_from_telegram_messages_idempotent(
+    pub fn telegram_discussion_snapshot(
         &self,
-        input: CreateTelegramDiscussionTask,
-        request_id: &str,
-    ) -> Result<CreateOutcome<Task>, StoreError> {
-        validate_id(&input.project_id)?;
-        let description = clean_required(&input.description, "описание задачи", 20_000)?;
-        let request_id = clean_required(request_id, "request_id", 200)?;
-        if input.context_message_ids.len() > 20 {
+        project_id: &str,
+        chat_id: i64,
+        target_message_id: i64,
+        context_message_ids: &[i64],
+    ) -> Result<MessageSnapshot, StoreError> {
+        validate_id(project_id)?;
+        if context_message_ids.len() > 20 {
             return Err(StoreError::Validation(
                 "контекст задачи может содержать не более 20 сообщений".into(),
             ));
         }
-        let _lock = self.lock_exclusive()?;
-        let project = read_project(&self.project_path(&input.project_id))
-            .map_err(|error| map_missing(error, &input.project_id))?;
+        let _lock = self.lock_shared()?;
+        self.telegram_discussion_snapshot_locked(
+            project_id,
+            chat_id,
+            target_message_id,
+            context_message_ids,
+        )
+    }
+
+    fn telegram_discussion_snapshot_locked(
+        &self,
+        project_id: &str,
+        chat_id: i64,
+        target_message_id: i64,
+        context_message_ids: &[i64],
+    ) -> Result<MessageSnapshot, StoreError> {
+        let project = read_project(&self.project_path(project_id))
+            .map_err(|error| map_missing(error, project_id))?;
         if !project
             .telegram_chats
             .iter()
-            .any(|link| link.chat_id == input.chat_id)
+            .any(|link| link.chat_id == chat_id)
         {
             return Err(StoreError::Validation(
                 "Telegram-чат не связан с выбранным проектом".into(),
@@ -1470,25 +1485,20 @@ impl Store {
             .read_telegram_chats()?
             .chats
             .into_iter()
-            .find(|chat| chat.chat_id == input.chat_id)
-            .ok_or_else(|| StoreError::NotFound(format!("Telegram-чат {}", input.chat_id)))?;
+            .find(|chat| chat.chat_id == chat_id)
+            .ok_or_else(|| StoreError::NotFound(format!("Telegram-чат {chat_id}")))?;
         let target = chat
             .messages
             .iter()
-            .find(|message| telegram_message_contains_id(message, input.target_message_id))
+            .find(|message| telegram_message_contains_id(message, target_message_id))
             .cloned()
             .ok_or_else(|| {
                 StoreError::NotFound(format!(
-                    "исходное сообщение Telegram {} в локальной ленте",
-                    input.target_message_id
+                    "исходное сообщение Telegram {target_message_id} в локальной ленте"
                 ))
             })?;
-        let mut requested_ids = input
-            .context_message_ids
-            .iter()
-            .copied()
-            .collect::<HashSet<_>>();
-        requested_ids.insert(input.target_message_id);
+        let mut requested_ids = context_message_ids.iter().copied().collect::<HashSet<_>>();
+        requested_ids.insert(target_message_id);
         for message_id in &requested_ids {
             if !chat
                 .messages
@@ -1517,7 +1527,7 @@ impl Store {
             ));
         }
         for message in &mut context {
-            message.is_target = telegram_message_contains_id(message, input.target_message_id);
+            message.is_target = telegram_message_contains_id(message, target_message_id);
         }
         let mut media = Vec::new();
         for item in &context {
@@ -1545,12 +1555,12 @@ impl Store {
         episode_message_ids.sort_unstable();
         episode_message_ids.dedup();
         let source = MessageSnapshot {
-            text: target.text.clone(),
-            author: Some(target.author.clone()),
+            text: target.text,
+            author: Some(target.author),
             sent_at: Some(target.sent_at),
-            url: target.url.clone(),
+            url: target.url,
             provider: Some("telegram".into()),
-            chat_id: Some(input.chat_id),
+            chat_id: Some(chat_id),
             chat_title: Some(chat.title),
             message_id: Some(target.message_id),
             message_ids: episode_message_ids,
@@ -1558,6 +1568,29 @@ impl Store {
             context,
         };
         validate_source(&Some(source.clone()))?;
+        Ok(source)
+    }
+
+    pub fn create_task_from_telegram_messages_idempotent(
+        &self,
+        input: CreateTelegramDiscussionTask,
+        request_id: &str,
+    ) -> Result<CreateOutcome<Task>, StoreError> {
+        validate_id(&input.project_id)?;
+        let description = clean_required(&input.description, "описание задачи", 20_000)?;
+        let request_id = clean_required(request_id, "request_id", 200)?;
+        if input.context_message_ids.len() > 20 {
+            return Err(StoreError::Validation(
+                "контекст задачи может содержать не более 20 сообщений".into(),
+            ));
+        }
+        let _lock = self.lock_exclusive()?;
+        let source = self.telegram_discussion_snapshot_locked(
+            &input.project_id,
+            input.chat_id,
+            input.target_message_id,
+            &input.context_message_ids,
+        )?;
         let id = deterministic_id("task", &request_id);
         match self.find_task(&id) {
             Ok(task) => {

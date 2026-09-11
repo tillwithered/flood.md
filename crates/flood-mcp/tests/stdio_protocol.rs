@@ -158,6 +158,17 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert_eq!(discussion_task["annotations"]["readOnlyHint"], false);
     assert_eq!(discussion_task["annotations"]["destructiveHint"], false);
+    let project_task_preview = tools
+        .iter()
+        .find(|tool| tool["name"] == "preview_project_telegram_tasks")
+        .unwrap();
+    assert_eq!(project_task_preview["annotations"]["readOnlyHint"], true);
+    let project_task_apply = tools
+        .iter()
+        .find(|tool| tool["name"] == "apply_project_telegram_tasks")
+        .unwrap();
+    assert_eq!(project_task_apply["annotations"]["readOnlyHint"], false);
+    assert!(project_task_apply["inputSchema"]["properties"]["confirmation_token"].is_object());
     let request_image = tools
         .iter()
         .find(|tool| tool["name"] == "request_telegram_image")
