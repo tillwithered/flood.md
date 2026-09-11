@@ -931,6 +931,16 @@ button { color: inherit; }
 .project-resource-fields .resource-notes { grid-column: 1 / -1; }
 .project-resource-fields input { width: 100%; height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; outline: 0; background: var(--surface); color: var(--ink); font: inherit; font-size: 12px; }
 .project-resource-fields input:focus { border-color: color-mix(in srgb, var(--ink) 38%, var(--line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 6%, transparent); }
+.project-resource-access { display: grid; width: 100%; grid-template-columns: 18px minmax(0, 1fr) 32px; align-items: center; gap: 9px; padding: 8px 9px; border: 0; border-radius: 8px; outline: 0; background: var(--surface); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.project-resource-access:hover { background: var(--hover); }
+.project-resource-access:focus-visible { box-shadow: 0 0 0 2px var(--ink); }
+.project-resource-access > span:nth-child(2) { display: grid; min-width: 0; gap: 2px; }
+.project-resource-access strong { font-size: var(--font-size-min); font-weight: 650; }
+.project-resource-access small { overflow: hidden; color: var(--muted); font-size: var(--font-size-min); text-overflow: ellipsis; white-space: nowrap; }
+.project-resource-switch { position: relative; width: 32px; height: 18px; border-radius: 999px; background: var(--line); transition: background 140ms ease; }
+.project-resource-switch i { position: absolute; top: 3px; left: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--elevated); box-shadow: 0 1px 2px var(--shadow); transition: transform 140ms ease; }
+.project-resource-access.active .project-resource-switch { background: var(--ink); }
+.project-resource-access.active .project-resource-switch i { transform: translateX(14px); }
 .project-context-editor { display: grid; gap: 8px; }
 .project-context-editor > span { font-size: 12px; font-weight: 650; }
 .project-context-editor textarea { width: 100%; min-height: 320px; resize: vertical; padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; outline: none; background: var(--surface); color: var(--ink); font: 13px/1.55 "Cascadia Mono", Consolas, monospace; }

@@ -106,8 +106,17 @@ struct UpdateProjectContextArgs {
 struct SetProjectResourcesArgs {
     id: String,
     /// Полный новый список источников контекста. Не более 20; id каждого источника — стабильный slug.
-    resources: Vec<ProjectResource>,
+    resources: Vec<ProjectResourceReferenceArgs>,
     expected_version: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ProjectResourceReferenceArgs {
+    id: String,
+    kind: ProjectResourceKind,
+    label: String,
+    location: String,
+    notes: Option<String>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -319,6 +328,7 @@ struct ProjectBriefOutput {
 struct ProjectResourceAccessOutput {
     resource_id: String,
     access_method: &'static str,
+    access_granted: bool,
     requires_explicit_access: bool,
     next_step: &'static str,
 }
@@ -1715,28 +1725,39 @@ impl FloodServer {
             .resources
             .iter()
             .map(|resource| {
-                let (access_method, next_step) = match resource.kind {
-                    ProjectResourceKind::Repository | ProjectResourceKind::Directory => (
-                        "local_filesystem",
-                        "Откройте путь файловыми или кодовыми инструментами MCP-клиента после разрешения пользователя",
-                    ),
-                    ProjectResourceKind::Figma => (
-                        "figma_connector",
-                        "Откройте адрес настроенным Figma-коннектором после разрешения пользователя",
-                    ),
-                    ProjectResourceKind::Documentation | ProjectResourceKind::Website => (
-                        "browser_or_connector",
-                        "Откройте адрес браузером или подходящим коннектором после разрешения пользователя",
-                    ),
-                    ProjectResourceKind::Other => (
-                        "client_connector",
-                        "Выберите подходящий инструмент MCP-клиента и запросите доступ при необходимости",
-                    ),
+                let access_method = match resource.kind {
+                    ProjectResourceKind::Repository | ProjectResourceKind::Directory => {
+                        "local_filesystem"
+                    }
+                    ProjectResourceKind::Figma => "figma_connector",
+                    ProjectResourceKind::Documentation | ProjectResourceKind::Website => {
+                        "browser_or_connector"
+                    }
+                    ProjectResourceKind::Other => "client_connector",
+                };
+                let next_step = if resource.agent_access {
+                    match resource.kind {
+                        ProjectResourceKind::Repository | ProjectResourceKind::Directory => {
+                            "Источник разрешён пользователем; откройте путь доступным файловым или кодовым инструментом"
+                        }
+                        ProjectResourceKind::Figma => {
+                            "Источник разрешён пользователем; откройте адрес настроенным Figma-коннектором"
+                        }
+                        ProjectResourceKind::Documentation | ProjectResourceKind::Website => {
+                            "Источник разрешён пользователем; откройте адрес браузером или подходящим коннектором"
+                        }
+                        ProjectResourceKind::Other => {
+                            "Источник разрешён пользователем; выберите подходящий инструмент MCP-клиента"
+                        }
+                    }
+                } else {
+                    "Доступ не разрешён: попросите пользователя включить его в окне «Контекст проекта»"
                 };
                 ProjectResourceAccessOutput {
                     resource_id: resource.id.clone(),
                     access_method,
-                    requires_explicit_access: true,
+                    access_granted: resource.agent_access,
+                    requires_explicit_access: !resource.agent_access,
                     next_step,
                 }
             })
@@ -1779,7 +1800,7 @@ impl FloodServer {
         suggested_tools.push("create_task_from_telegram_discussion");
 
         Ok(Json(ProjectBriefOutput {
-            brief_version: 2,
+            brief_version: 3,
             project,
             context_truncated,
             resources_are_references_only: true,
@@ -1872,7 +1893,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Заменить полный список структурированных источников контекста проекта в project.md. Поддерживаются repository, directory, figma, documentation, website и other. Каждый источник имеет стабильный id-slug, понятное название, локальный путь или публичный адрес и необязательную заметку. Здесь нельзя хранить токены, пароли и приватные ключи. Инструмент только сохраняет ссылки и ничего не открывает и не отправляет наружу; expected_version возьмите из свежего get_project",
+        description = "Заменить полный список структурированных источников контекста проекта в project.md. Поддерживаются repository, directory, figma, documentation, website и other. Каждый источник имеет стабильный id-slug, понятное название, локальный путь или публичный адрес и необязательную заметку. Здесь нельзя хранить токены, пароли и приватные ключи. Инструмент сохраняет ссылки, но не может выдать себе доступ: разрешение сохраняется только при неизменных id, kind и location; новый или перенаправленный источник создаётся закрытым. expected_version возьмите из свежего get_project",
         annotations(
             title = "Обновить источники проекта",
             read_only_hint = false,
@@ -1884,9 +1905,30 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<SetProjectResourcesArgs>,
     ) -> Result<Json<ProjectOutput>, String> {
+        let current = self.store.get_project(&args.id).map_err(store_error)?;
+        let resources = args
+            .resources
+            .into_iter()
+            .map(|resource| ProjectResource {
+                agent_access: current
+                    .resources
+                    .iter()
+                    .find(|existing| {
+                        existing.id == resource.id
+                            && existing.kind == resource.kind
+                            && existing.location.trim() == resource.location.trim()
+                    })
+                    .is_some_and(|existing| existing.agent_access),
+                id: resource.id,
+                kind: resource.kind,
+                label: resource.label,
+                location: resource.location,
+                notes: resource.notes,
+            })
+            .collect();
         let project = self
             .store
-            .set_project_resources(&args.id, args.resources, &args.expected_version)
+            .set_project_resources(&args.id, resources, &args.expected_version)
             .map_err(store_error)?;
         self.record_mcp_activity(
             ActivityAction::ProjectUpdated,
@@ -4138,17 +4180,32 @@ mod tests {
             .0
             .project;
         let project = server
+            .store
+            .set_project_resources(
+                &project.id,
+                vec![ProjectResource {
+                    id: "main-repository".into(),
+                    kind: ProjectResourceKind::Repository,
+                    label: "Основной репозиторий".into(),
+                    location: "C:/work/app".into(),
+                    notes: None,
+                    agent_access: true,
+                }],
+                &project.version,
+            )
+            .unwrap();
+        let project = server
             .set_project_resources(Parameters(SetProjectResourcesArgs {
                 id: project.id,
                 resources: vec![
-                    ProjectResource {
+                    ProjectResourceReferenceArgs {
                         id: "main-repository".into(),
                         kind: ProjectResourceKind::Repository,
                         label: "Основной репозиторий".into(),
                         location: "C:/work/app".into(),
                         notes: Some("Использовать текущую рабочую копию".into()),
                     },
-                    ProjectResource {
+                    ProjectResourceReferenceArgs {
                         id: "design".into(),
                         kind: ProjectResourceKind::Figma,
                         label: "Макеты".into(),
@@ -4179,19 +4236,17 @@ mod tests {
             .unwrap()
             .0;
 
-        assert_eq!(brief.brief_version, 2);
+        assert_eq!(brief.brief_version, 3);
         assert!(brief.project.context.contains("C:/work/app"));
         assert_eq!(brief.project.resources.len(), 2);
         assert!(brief.resources_are_references_only);
         assert_eq!(brief.resource_access.len(), 2);
         assert_eq!(brief.resource_access[0].access_method, "local_filesystem");
         assert_eq!(brief.resource_access[1].access_method, "figma_connector");
-        assert!(
-            brief
-                .resource_access
-                .iter()
-                .all(|resource| resource.requires_explicit_access)
-        );
+        assert!(brief.resource_access[0].access_granted);
+        assert!(!brief.resource_access[0].requires_explicit_access);
+        assert!(!brief.resource_access[1].access_granted);
+        assert!(brief.resource_access[1].requires_explicit_access);
         assert!(!brief.context_truncated);
         assert_eq!(brief.open_tasks.tasks.len(), 1);
         assert_eq!(brief.open_tasks.tasks[0].title, "Проверить сборку");
@@ -4199,6 +4254,61 @@ mod tests {
         assert!(!brief.suggested_tools.contains(&"update_project_context"));
         assert!(!brief.suggested_tools.contains(&"set_project_resources"));
         assert!(brief.suggested_tools.contains(&"get_task"));
+    }
+
+    #[test]
+    fn mcp_cannot_grant_or_retarget_project_resource_access() {
+        let server = server();
+        let project = server.store.create_project("Разрешения ресурсов").unwrap();
+        let project = server
+            .store
+            .set_project_resources(
+                &project.id,
+                vec![ProjectResource {
+                    id: "repository".into(),
+                    kind: ProjectResourceKind::Repository,
+                    label: "Репозиторий".into(),
+                    location: "C:/work/original".into(),
+                    notes: None,
+                    agent_access: true,
+                }],
+                &project.version,
+            )
+            .unwrap();
+
+        let preserved = server
+            .set_project_resources(Parameters(SetProjectResourcesArgs {
+                id: project.id.clone(),
+                resources: vec![ProjectResourceReferenceArgs {
+                    id: "repository".into(),
+                    kind: ProjectResourceKind::Repository,
+                    label: "Переименованный репозиторий".into(),
+                    location: "C:/work/original".into(),
+                    notes: None,
+                }],
+                expected_version: project.version,
+            }))
+            .unwrap()
+            .0
+            .project;
+        assert!(preserved.resources[0].agent_access);
+
+        let retargeted = server
+            .set_project_resources(Parameters(SetProjectResourcesArgs {
+                id: preserved.id,
+                resources: vec![ProjectResourceReferenceArgs {
+                    id: "repository".into(),
+                    kind: ProjectResourceKind::Repository,
+                    label: "Другой репозиторий".into(),
+                    location: "C:/work/other".into(),
+                    notes: None,
+                }],
+                expected_version: preserved.version,
+            }))
+            .unwrap()
+            .0
+            .project;
+        assert!(!retargeted.resources[0].agent_access);
     }
 
     #[test]

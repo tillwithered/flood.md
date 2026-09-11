@@ -23,7 +23,7 @@
   type AttachmentCleanupState = "idle" | "checking" | "cleaning" | "success" | "error";
   type TelegramInboxMode = "manual" | "mentions_and_replies" | "all";
   type ProjectResourceKind = "repository" | "directory" | "figma" | "documentation" | "website" | "other";
-  type ProjectResource = { id: string; kind: ProjectResourceKind; label: string; location: string; notes?: string };
+  type ProjectResource = { id: string; kind: ProjectResourceKind; label: string; location: string; notes?: string; agent_access: boolean };
   type SourceMedia = { kind: "photo" | "video" | "document" | "audio" | "voice" | "animation" | "other"; file_name: string; provider_file_id?: number; mime_type?: string; size?: number; relative_path?: string };
   type TelegramContextMessage = { message_id: number; message_ids?: number[]; author: string; sent_at: string; text: string; url?: string; reply_to_message_id?: number; is_target: boolean; media?: SourceMedia[] };
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string; provider?: string; chat_id?: number; chat_title?: string; message_id?: number; message_ids?: number[]; media?: SourceMedia[]; context?: TelegramContextMessage[] };
@@ -1878,7 +1878,7 @@
     while (projectContextResources.some((resource) => resource.id === id)) id = `${stem}-${suffix++}`;
     projectContextResources = [
       ...projectContextResources,
-      { id, kind, label: projectResourceKindLabel(kind), location: "" }
+      { id, kind, label: projectResourceKindLabel(kind), location: "", agent_access: false }
     ];
     projectResourceAddOpen = false;
     projectContextError = "";
@@ -3352,8 +3352,8 @@
       title: "Рабочее приложение flood.md",
       context: "## Цель\n\nСобирать понятные задачи из рабочих обсуждений без потери исходного контекста.\n\n## Репозитории\n\n`C:/work/flood.md`\n\n## Макеты\n\nОсновной файл интерфейса в Figma.",
       resources: [
-        { id: "main-repository", kind: "repository", label: "Основной репозиторий", location: "C:/work/flood.md", notes: "Рабочая копия desktop-приложения" },
-        { id: "interface-design", kind: "figma", label: "Макеты интерфейса", location: "https://figma.com/design/example" }
+        { id: "main-repository", kind: "repository", label: "Основной репозиторий", location: "C:/work/flood.md", notes: "Рабочая копия desktop-приложения", agent_access: true },
+        { id: "interface-design", kind: "figma", label: "Макеты интерфейса", location: "https://figma.com/design/example", agent_access: false }
       ],
       created_at: now,
       updated_at: now,
@@ -4162,6 +4162,11 @@
                       <label class="resource-location"><span>{t("resourceLocation")}</span><input value={resource.location} maxlength="2048" placeholder={t("resourceLocationPlaceholder")} spellcheck="false" oninput={(event) => updateProjectResource(resource.id, { location: event.currentTarget.value })} /></label>
                       <label class="resource-notes"><span>{t("resourceNotes")}</span><input value={resource.notes ?? ""} maxlength="4000" placeholder={t("resourceNotesPlaceholder")} oninput={(event) => updateProjectResource(resource.id, { notes: event.currentTarget.value || undefined })} /></label>
                     </div>
+                    <button class:active={resource.agent_access} class="project-resource-access" type="button" role="switch" aria-checked={resource.agent_access} onclick={() => updateProjectResource(resource.id, { agent_access: !resource.agent_access })}>
+                      <FloodGlyph kind={resource.agent_access ? "connected" : "info"} size={18} />
+                      <span><strong>{t("agentResourceAccess")}</strong><small>{resource.agent_access ? t("agentResourceAccessOn") : t("agentResourceAccessOff")}</small></span>
+                      <span class="project-resource-switch" aria-hidden="true"><i></i></span>
+                    </button>
                   </article>
                 {/each}
               </div>

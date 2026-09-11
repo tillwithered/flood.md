@@ -170,6 +170,11 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert_eq!(project_resources["annotations"]["readOnlyHint"], false);
     assert!(project_resources["inputSchema"]["properties"]["resources"].is_object());
+    assert!(
+        !project_resources["inputSchema"]
+            .to_string()
+            .contains("agent_access")
+    );
     let project_task_preview = tools
         .iter()
         .find(|tool| tool["name"] == "preview_project_telegram_tasks")

@@ -5015,6 +5015,7 @@ mod tests {
                         label: "Основной репозиторий".into(),
                         location: " C:/work/client ".into(),
                         notes: Some(" Рабочая копия для разработки ".into()),
+                        agent_access: true,
                     },
                     crate::ProjectResource {
                         id: "product-layouts".into(),
@@ -5022,6 +5023,7 @@ mod tests {
                         label: "Макеты".into(),
                         location: "https://figma.com/file/example".into(),
                         notes: None,
+                        agent_access: false,
                     },
                 ],
                 &project.version,
@@ -5045,6 +5047,7 @@ mod tests {
         assert!(markdown.contains("resources:"));
         assert!(markdown.contains("kind: repository"));
         assert!(markdown.contains("kind: figma"));
+        assert!(markdown.contains("agent_access: true"));
         assert!(
             store
                 .set_project_resources(
@@ -5055,6 +5058,7 @@ mod tests {
                         label: "Некорректный".into(),
                         location: "value".into(),
                         notes: None,
+                        agent_access: false,
                     }],
                     &renamed.version,
                 )

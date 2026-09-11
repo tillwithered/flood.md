@@ -37,6 +37,9 @@ pub struct ProjectResource {
     pub location: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notes: Option<String>,
+    /// Пользователь явно разрешил подключённому агенту читать этот источник.
+    #[serde(default)]
+    pub agent_access: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
