@@ -141,6 +141,8 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         "read_telegram_chat",
         "read_telegram_updates",
         "read_project_telegram_updates",
+        "list_project_resource_files",
+        "read_project_resource_file",
     ] {
         let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
         assert_eq!(tool["annotations"]["readOnlyHint"], true);
@@ -175,6 +177,18 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
             .to_string()
             .contains("agent_access")
     );
+    let list_resource_files = tools
+        .iter()
+        .find(|tool| tool["name"] == "list_project_resource_files")
+        .unwrap();
+    assert_eq!(list_resource_files["annotations"]["readOnlyHint"], true);
+    assert_eq!(list_resource_files["annotations"]["openWorldHint"], false);
+    let read_resource_file = tools
+        .iter()
+        .find(|tool| tool["name"] == "read_project_resource_file")
+        .unwrap();
+    assert_eq!(read_resource_file["annotations"]["readOnlyHint"], true);
+    assert!(read_resource_file["inputSchema"]["properties"]["path"].is_object());
     let project_task_preview = tools
         .iter()
         .find(|tool| tool["name"] == "preview_project_telegram_tasks")
