@@ -209,6 +209,23 @@ pub struct TelegramChatPage {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct TelegramMessageContextPage {
+    pub chat_id: i64,
+    pub title: String,
+    pub synced_at: chrono::DateTime<Utc>,
+    pub requested_message_id: i64,
+    pub target_message_id: i64,
+    pub target_index: usize,
+    pub messages: Vec<crate::TelegramContextMessage>,
+    pub returned_before: usize,
+    pub returned_after: usize,
+    pub reply_parent_added: bool,
+    pub media_count: usize,
+    pub has_older: bool,
+    pub has_newer: bool,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct TelegramUpdatesPage {
     pub chat_id: i64,
     pub title: String,
@@ -932,6 +949,74 @@ impl Store {
             messages: selected,
             oldest_message_id,
             newest_message_id,
+        })
+    }
+
+    pub fn read_telegram_message_context(
+        &self,
+        chat_id: i64,
+        message_id: i64,
+        before: usize,
+        after: usize,
+    ) -> Result<TelegramMessageContextPage, StoreError> {
+        let before = before.min(10);
+        let after = after.min(10);
+        let _lock = self.lock_shared()?;
+        let chat = self
+            .read_telegram_chats()?
+            .chats
+            .into_iter()
+            .find(|chat| chat.chat_id == chat_id)
+            .ok_or_else(|| StoreError::NotFound(format!("Telegram-чат {chat_id}")))?;
+        let target_index = chat
+            .messages
+            .iter()
+            .position(|message| telegram_message_contains_id(message, message_id))
+            .ok_or_else(|| {
+                StoreError::NotFound(format!("сообщение Telegram {message_id} в локальной ленте"))
+            })?;
+        let start = target_index.saturating_sub(before);
+        let end = (target_index + after + 1).min(chat.messages.len());
+        let target = chat.messages[target_index].clone();
+        let mut messages = chat.messages[start..end].to_vec();
+        let mut reply_parent_added = false;
+        if let Some(reply_to_message_id) = target.reply_to_message_id {
+            let parent_is_selected = messages
+                .iter()
+                .any(|message| telegram_message_contains_id(message, reply_to_message_id));
+            if !parent_is_selected
+                && let Some(parent) = chat
+                    .messages
+                    .iter()
+                    .find(|message| telegram_message_contains_id(message, reply_to_message_id))
+            {
+                messages.push(parent.clone());
+                reply_parent_added = true;
+            }
+        }
+        for message in &mut messages {
+            message.is_target = telegram_message_contains_id(message, message_id);
+        }
+        messages.sort_by_key(|message| (message.sent_at, message.message_id));
+        let resolved_target_index = messages
+            .iter()
+            .position(|message| message.is_target)
+            .ok_or_else(|| StoreError::NotFound(format!("сообщение Telegram {message_id}")))?;
+        let media_count = messages.iter().map(|message| message.media.len()).sum();
+        Ok(TelegramMessageContextPage {
+            chat_id,
+            title: chat.title,
+            synced_at: chat.synced_at,
+            requested_message_id: message_id,
+            target_message_id: target.message_id,
+            target_index: resolved_target_index,
+            returned_before: target_index - start,
+            returned_after: end - target_index - 1,
+            reply_parent_added,
+            media_count,
+            has_older: start > 0,
+            has_newer: end < chat.messages.len(),
+            messages,
         })
     }
 
@@ -4834,7 +4919,7 @@ mod tests {
                 sent_at: now + chrono::Duration::seconds(message_id),
                 text: format!("Сообщение {message_id}"),
                 url: None,
-                reply_to_message_id: None,
+                reply_to_message_id: (message_id == 25).then_some(2),
                 is_target: false,
                 media: Vec::new(),
             })
@@ -4866,6 +4951,19 @@ mod tests {
         assert_eq!(newer.messages.len(), 3);
         assert_eq!(newer.messages[0].message_id, 28);
         assert!(!newer.has_newer);
+
+        let context = store
+            .read_telegram_message_context(-10042, 25, 3, 3)
+            .unwrap();
+        assert_eq!(context.returned_before, 3);
+        assert_eq!(context.returned_after, 3);
+        assert!(context.reply_parent_added);
+        assert_eq!(context.messages.len(), 8);
+        assert_eq!(context.messages[context.target_index].message_id, 25);
+        assert!(context.messages[context.target_index].is_target);
+        assert_eq!(context.messages[0].message_id, 2);
+        assert!(context.has_older);
+        assert!(context.has_newer);
 
         let initial_updates = store.read_telegram_updates(-10042, 5).unwrap();
         assert!(initial_updates.initial_window);

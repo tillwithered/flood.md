@@ -158,6 +158,12 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert_eq!(discussion_task["annotations"]["readOnlyHint"], false);
     assert_eq!(discussion_task["annotations"]["destructiveHint"], false);
+    let message_context = tools
+        .iter()
+        .find(|tool| tool["name"] == "read_telegram_message_context")
+        .unwrap();
+    assert_eq!(message_context["annotations"]["readOnlyHint"], true);
+    assert!(message_context["inputSchema"]["properties"]["message_id"].is_object());
     let project_task_preview = tools
         .iter()
         .find(|tool| tool["name"] == "preview_project_telegram_tasks")
