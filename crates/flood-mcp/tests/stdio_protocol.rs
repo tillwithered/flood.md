@@ -141,6 +141,7 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         "read_telegram_chat",
         "read_telegram_updates",
         "read_project_telegram_updates",
+        "get_project_triage_context",
         "list_project_resource_files",
         "read_project_resource_file",
         "search_project_resource",
@@ -205,6 +206,15 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     assert_eq!(task_work_context["annotations"]["readOnlyHint"], true);
     assert_eq!(task_work_context["annotations"]["openWorldHint"], false);
     assert!(task_work_context["inputSchema"]["properties"]["id"].is_object());
+    let project_triage_context = tools
+        .iter()
+        .find(|tool| tool["name"] == "get_project_triage_context")
+        .unwrap();
+    assert_eq!(project_triage_context["annotations"]["readOnlyHint"], true);
+    assert_eq!(
+        project_triage_context["annotations"]["openWorldHint"],
+        false
+    );
     let project_task_preview = tools
         .iter()
         .find(|tool| tool["name"] == "preview_project_telegram_tasks")
