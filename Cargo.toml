@@ -25,5 +25,5 @@ sha2 = "0.10.9"
 thiserror = "2.0.17"
 tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread", "time"] }
 tdlib = { package = "tdlib-rs", version = "1.4.0", features = ["download-tdlib", "static"] }
-ulid = { version = "1.2.1", features = ["serde"] }
+ulid = { version = "3.0.0", features = ["serde"] }
 zip = { version = "4.6.1", default-features = false, features = ["deflate"] }
