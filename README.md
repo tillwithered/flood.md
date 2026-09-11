@@ -14,7 +14,7 @@
 
 > **Stable release: 0.1.6.** The current priority is reliability and bug fixes. New features do not have a fixed release schedule.
 
-![Telegram inbox in flood.md](docs/assets/flood-telegram-inbox.png)
+![Telegram inbox in flood.md](docs/assets/flood-telegram-inbox-en.png)
 
 ## From chat to task
 
@@ -33,13 +33,13 @@ Example prompt:
 
 The task composer keeps the selected message together with the relevant conversation window, author, time, link, and media.
 
-![Create a task from Telegram context](docs/assets/flood-telegram-task.png)
+![Create a task from Telegram context](docs/assets/flood-telegram-task-en.png)
 
 ### Give the agent project context
 
 Project instructions and sources are explicit. Access is granted per source; adding a link does not silently grant the agent permission to read it.
 
-![Project context and sources](docs/assets/flood-project-context.png)
+![Project context and sources](docs/assets/flood-project-context-en.png)
 
 ## What is included
 
@@ -57,7 +57,7 @@ Project instructions and sources are explicit. Access is granted per source; add
 
 The installer includes <code>flood-mcp.exe</code>, a local stdio MCP server for Codex, Claude Desktop, Cursor, and other clients that can launch a local command. The app provides ready-to-copy configurations and a self-check in **Settings → MCP and AI**.
 
-![MCP readiness and activity](docs/assets/flood-mcp-readiness.png)
+![MCP readiness and activity](docs/assets/flood-mcp-readiness-en.png)
 
 The agent can read bounded Telegram updates, inspect a selected conversation or image, search permitted project sources, preview a task plan, and apply it without creating duplicates. It can also retrieve an existing task together with project and source context before helping with implementation.
 

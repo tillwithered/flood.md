@@ -3599,6 +3599,20 @@
     return "__TAURI_INTERNALS__" in window;
   }
 
+  function applyDevPreviewPreferences() {
+    if (!import.meta.env.DEV || inTauri()) return;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("preview")) return;
+    const previewLocale = params.get("locale");
+    const previewTheme = params.get("theme");
+    if (previewLocale === "ru" || previewLocale === "en") locale = previewLocale;
+    if (previewTheme === "light" || previewTheme === "dark") themePreference = previewTheme;
+    document.documentElement.lang = locale;
+    t = translator(locale);
+    chats = chats.map((chat) => chat.id === "all" ? { ...chat, title: t("allTasks") } : chat);
+    applyTheme();
+  }
+
   function applySettingsDevPreview() {
     if (!import.meta.env.DEV || inTauri()) return;
     if (new URLSearchParams(window.location.search).get("preview") !== "mcp-readiness") return;
@@ -3608,12 +3622,17 @@
     mcpExecutable = "C:\\Program Files\\flood.md\\flood-mcp.exe";
     mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.1.6", app_version: "0.1.6", compatible: true, source: "bundled" };
     storeDiagnostics = { healthy: true, root: "preview", format_version: 1, project_count: 4, linked_chat_count: 2, open_task_count: 12, completed_task_count: 8, trashed_task_count: 1, pending_inbox_count: 5, issues: [] };
-    mcpSelfCheck = { passed: true, duration_ms: 34, checks: [
-      { name: "Изолированное хранилище", passed: true },
-      { name: "Создание, изменение и конфликты", passed: true },
-      { name: "Telegram-входящие и защита от дублей", passed: true },
-      { name: "MCP-контракты и аннотации безопасности", passed: true }
-    ] };
+    mcpSelfCheck = { passed: true, duration_ms: 34, checks: (locale === "en" ? [
+      "Isolated storage",
+      "Creation, updates, and conflicts",
+      "Telegram inbox and duplicate protection",
+      "MCP contracts and safety annotations"
+    ] : [
+      "Изолированное хранилище",
+      "Создание, изменение и конфликты",
+      "Telegram-входящие и защита от дублей",
+      "MCP-контракты и аннотации безопасности"
+    ]).map((name) => ({ name, passed: true })) };
     mcpCheckState = "success";
     mcpActivity = [
       { id: "01JOURNAL03", occurred_at: "2026-09-11T00:04:00Z", source: "mcp", action: "telegram_task_created", entity_kind: "task", entity_id: "01PREVIEWTASK", project_id: "01PREVIEWPROJECT", reversible: true },
@@ -3623,7 +3642,7 @@
     mcpActivityTotal = mcpActivity.length;
     mcpActivityRemaining = 0;
     attachmentCleanupReport = { total_files: 42, total_bytes: 8_800_000, orphaned_files: 3, orphaned_bytes: 640_000 };
-    telegramStatus = { step: "ready", configured: true, managed_credentials: true, account_name: "Олег" };
+    telegramStatus = { step: "ready", configured: true, managed_credentials: true, account_name: locale === "en" ? "Alex" : "Олег" };
     telegramSyncState = "partial";
   }
 
@@ -3661,29 +3680,31 @@
     telegramInboxLoading = preview === "telegram-loading";
     telegramInboxError = preview === "telegram-error" ? t("telegramPreviewError") : "";
     if (preview !== "telegram-inbox" && preview !== "telegram-context" && preview !== "telegram-undo" && preview !== "telegram-history") return;
+    const english = locale === "en";
+    const productChat = english ? "Product team" : "Команда продукта";
     telegramInbox = [
       {
-        id: "preview-1", project_id: "preview", chat_id: -1001, chat_title: "Команда продукта", message_id: 101,
-        text: "@tillwithered собери, пожалуйста, итоговые правки по экрану интеграций и проверь пустые состояния.",
-        author: "Анна", sent_at: "2026-09-10T17:42:00Z", reason: "mention", status: "pending", media: [],
+        id: "preview-1", project_id: "preview", chat_id: -1001, chat_title: productChat, message_id: 101,
+        text: english ? "@tillwithered please wrap up the integration screen changes and check the empty states." : "@tillwithered собери, пожалуйста, итоговые правки по экрану интеграций и проверь пустые состояния.",
+        author: english ? "Anna" : "Анна", sent_at: "2026-09-10T17:42:00Z", reason: "mention", status: "pending", media: [],
         context: [
-          { message_id: 98, author: "Илья", sent_at: "2026-09-10T17:37:00Z", text: "На узком окне список чатов снова упирается в край.", is_target: false, media: [] },
-          { message_id: 99, author: "Олег", sent_at: "2026-09-10T17:39:00Z", text: "Да, и пустое состояние выглядит слишком системно.", is_target: false, media: [{ kind: "photo", file_name: "integrations-empty.png" }] },
-          { message_id: 101, author: "Анна", sent_at: "2026-09-10T17:42:00Z", text: "@tillwithered собери, пожалуйста, итоговые правки по экрану интеграций и проверь пустые состояния.", reply_to_message_id: 99, is_target: true, media: [] },
-          { message_id: 102, author: "Илья", sent_at: "2026-09-10T17:43:00Z", text: "И проверь тёмную тему после изменений.", is_target: false, media: [] }
+          { message_id: 98, author: english ? "Ilya" : "Илья", sent_at: "2026-09-10T17:37:00Z", text: english ? "The chat list still touches the edge in a narrow window." : "На узком окне список чатов снова упирается в край.", is_target: false, media: [] },
+          { message_id: 99, author: english ? "Oleg" : "Олег", sent_at: "2026-09-10T17:39:00Z", text: english ? "Yes, and the empty state still feels too system-like." : "Да, и пустое состояние выглядит слишком системно.", is_target: false, media: [{ kind: "photo", file_name: "integrations-empty.png" }] },
+          { message_id: 101, author: english ? "Anna" : "Анна", sent_at: "2026-09-10T17:42:00Z", text: english ? "@tillwithered please wrap up the integration screen changes and check the empty states." : "@tillwithered собери, пожалуйста, итоговые правки по экрану интеграций и проверь пустые состояния.", reply_to_message_id: 99, is_target: true, media: [] },
+          { message_id: 102, author: english ? "Ilya" : "Илья", sent_at: "2026-09-10T17:43:00Z", text: english ? "And check the dark theme after the changes." : "И проверь тёмную тему после изменений.", is_target: false, media: [] }
         ],
         discovered_at: "2026-09-10T17:42:10Z"
       },
       {
-        id: "preview-2", project_id: "preview", chat_id: -1001, chat_title: "Команда продукта", message_id: 102,
-        text: "Нужно сверить альбом с референсами и выбрать изображения для первой версии.",
-        author: "Илья", sent_at: "2026-09-10T17:31:00Z", reason: "reply", status: "pending",
+        id: "preview-2", project_id: "preview", chat_id: -1001, chat_title: productChat, message_id: 102,
+        text: english ? "Compare the album with the references and select images for the first release." : "Нужно сверить альбом с референсами и выбрать изображения для первой версии.",
+        author: english ? "Ilya" : "Илья", sent_at: "2026-09-10T17:31:00Z", reason: "reply", status: "pending",
         media: [{ kind: "photo", file_name: "reference-1.jpg" }, { kind: "photo", file_name: "reference-2.jpg" }], discovered_at: "2026-09-10T17:31:10Z"
       },
       {
-        id: "preview-3", project_id: "preview", chat_id: -1002, chat_title: "Личное", message_id: 103,
-        text: "Зафиксировать результаты созвона и разнести следующие действия по проектам.",
-        author: "Олег", sent_at: "2026-09-10T16:58:00Z", reason: "manual", status: "pending", media: [], discovered_at: "2026-09-10T16:58:10Z"
+        id: "preview-3", project_id: "preview", chat_id: -1002, chat_title: english ? "Direct messages" : "Личное", message_id: 103,
+        text: english ? "Capture the call results and assign the next actions to projects." : "Зафиксировать результаты созвона и разнести следующие действия по проектам.",
+        author: english ? "Oleg" : "Олег", sent_at: "2026-09-10T16:58:00Z", reason: "manual", status: "pending", media: [], discovered_at: "2026-09-10T16:58:10Z"
       }
     ];
     telegramInboxTotal = telegramInbox.length;
@@ -3701,7 +3722,7 @@
         { ...telegramInbox[0], status: "dismissed", processed_at: "2026-09-10T17:49:00Z" },
         {
           ...telegramInbox[1], status: "imported", processed_at: "2026-09-10T17:36:00Z", task_id: "preview-task",
-          linked_task: { id: "preview-task", title: "Сверить альбом с референсами", urgency: "important", status: "open", trashed: false }
+          linked_task: { id: "preview-task", title: english ? "Compare the album with references" : "Сверить альбом с референсами", urgency: "important", status: "open", trashed: false }
         }
       ];
       telegramInboxTotal = telegramInbox.length;
@@ -3712,17 +3733,18 @@
     if (!import.meta.env.DEV || inTauri()) return;
     if (new URLSearchParams(window.location.search).get("preview") !== "project-context") return;
     const now = new Date().toISOString();
+    const english = locale === "en";
     const project: ChatItem = {
       id: "preview-project",
-      title: "Рабочее приложение flood.md",
-      context: "## Цель\n\nСобирать понятные задачи из рабочих обсуждений без потери исходного контекста.\n\n## Репозитории\n\n`C:/work/flood.md`\n\n## Макеты\n\nОсновной файл интерфейса в Figma.",
+      title: english ? "flood.md desktop app" : "Рабочее приложение flood.md",
+      context: english ? "## Goal\n\nTurn work discussions into clear tasks without losing source context.\n\n## Repositories\n\n`C:/work/flood.md`\n\n## Designs\n\nThe primary interface file is in Figma." : "## Цель\n\nСобирать понятные задачи из рабочих обсуждений без потери исходного контекста.\n\n## Репозитории\n\n`C:/work/flood.md`\n\n## Макеты\n\nОсновной файл интерфейса в Figma.",
       resources: [
-        { id: "main-repository", kind: "repository", label: "Основной репозиторий", location: "C:/work/flood.md", notes: "Рабочая копия desktop-приложения", agent_access: true },
-        { id: "interface-design", kind: "figma", label: "Макеты интерфейса", location: "https://figma.com/design/example", agent_access: false }
+        { id: "main-repository", kind: "repository", label: english ? "Main repository" : "Основной репозиторий", location: "C:/work/flood.md", notes: english ? "Desktop application working copy" : "Рабочая копия desktop-приложения", agent_access: true },
+        { id: "interface-design", kind: "figma", label: english ? "Interface designs" : "Макеты интерфейса", location: "https://figma.com/design/example", agent_access: false }
       ],
       created_at: now,
       updated_at: now,
-      telegram_chats: [{ chat_id: -1001, title: "Команда продукта", inbox_mode: "mentions_and_replies" }],
+      telegram_chats: [{ chat_id: -1001, title: english ? "Product team" : "Команда продукта", inbox_mode: "mentions_and_replies" }],
       version: "preview-version",
       open: 4
     };
@@ -3805,6 +3827,7 @@
 
   onMount(() => {
     loadUiPreferences();
+    applyDevPreviewPreferences();
     applySettingsDevPreview();
     applyTelegramDevPreview();
     applyProjectContextDevPreview();
