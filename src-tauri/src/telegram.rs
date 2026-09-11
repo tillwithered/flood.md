@@ -77,6 +77,14 @@ pub struct TelegramRefreshData {
     pub chats: Vec<TelegramChatSnapshot>,
 }
 
+struct TelegramCandidateContent {
+    messages: Vec<tdlib::types::Message>,
+    reason: InboxCandidateReason,
+    text: String,
+    media: Vec<SourceMedia>,
+    context: Vec<TelegramContextMessage>,
+}
+
 struct TelegramInner {
     app: AppHandle,
     root: PathBuf,
@@ -462,7 +470,7 @@ impl TelegramManager {
                 {
                     continue;
                 }
-                let (text, media) = combined_message_content(&group);
+                let (text, media) = combined_message_content(group);
                 if text.trim().is_empty() && media.is_empty() {
                     continue;
                 }
@@ -475,7 +483,7 @@ impl TelegramManager {
                     || username_mention
                 {
                     Some(InboxCandidateReason::Mention)
-                } else if any_reply_is_to_me(&group, client_id).await {
+                } else if any_reply_is_to_me(group, client_id).await {
                     Some(InboxCandidateReason::Reply)
                 } else if link.inbox_mode == TelegramInboxMode::All {
                     Some(InboxCandidateReason::LinkedChat)
@@ -512,11 +520,13 @@ impl TelegramManager {
                         self.candidate_from_messages_with_content(
                             &project.id,
                             link,
-                            group.clone(),
-                            reason,
-                            text,
-                            media,
-                            context,
+                            TelegramCandidateContent {
+                                messages: group.clone(),
+                                reason,
+                                text,
+                                media,
+                                context,
+                            },
                         )
                         .await?,
                     );
@@ -559,7 +569,15 @@ impl TelegramManager {
             return Err("В сообщении нет текста или поддерживаемого медиа".into());
         }
         self.candidate_from_messages_with_content(
-            project_id, link, messages, reason, text, media, context,
+            project_id,
+            link,
+            TelegramCandidateContent {
+                messages,
+                reason,
+                text,
+                media,
+                context,
+            },
         )
         .await
     }
@@ -568,12 +586,15 @@ impl TelegramManager {
         &self,
         project_id: &str,
         link: &TelegramProjectLink,
-        messages: Vec<tdlib::types::Message>,
-        reason: InboxCandidateReason,
-        text: String,
-        media: Vec<flood_core::SourceMedia>,
-        context: Vec<TelegramContextMessage>,
+        content: TelegramCandidateContent,
     ) -> Result<TelegramInboxCandidate, String> {
+        let TelegramCandidateContent {
+            messages,
+            reason,
+            text,
+            media,
+            context,
+        } = content;
         let client_id = self.client_id()?;
         let message = representative_message(&messages);
         let author = self.sender_name(&message.sender_id, client_id).await;

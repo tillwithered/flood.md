@@ -276,6 +276,20 @@ fn update_project(
 }
 
 #[tauri::command]
+fn update_project_context(
+    id: String,
+    context: String,
+    expected_version: String,
+    state: State<'_, AppState>,
+) -> Result<Project, String> {
+    result(
+        state
+            .store
+            .update_project_context(&id, &context, &expected_version),
+    )
+}
+
+#[tauri::command]
 fn set_project_telegram_chats(
     id: String,
     telegram_chats: Vec<TelegramProjectLink>,
@@ -1289,6 +1303,7 @@ pub fn run() {
             list_projects,
             create_project,
             update_project,
+            update_project_context,
             set_project_telegram_chats,
             delete_project,
             list_tasks,

@@ -37,6 +37,13 @@ struct IdArgs {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ProjectBriefArgs {
+    id: String,
+    /// Максимум открытых задач в сводке: от 1 до 20. По умолчанию 10.
+    task_limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 struct ListTasksArgs {
     project_id: Option<String>,
     #[serde(default)]
@@ -254,6 +261,17 @@ struct ProjectsOutput {
 #[derive(Debug, Serialize, schemars::JsonSchema)]
 struct ProjectOutput {
     project: Project,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct ProjectBriefOutput {
+    brief_version: u8,
+    project: Project,
+    context_truncated: bool,
+    open_tasks: TaskDigestOutput,
+    telegram_chats: Vec<TelegramChatSummaryOutput>,
+    telegram: TelegramSyncStatusOutput,
+    suggested_tools: Vec<&'static str>,
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
@@ -838,6 +856,7 @@ impl FloodServer {
             capabilities: vec![
                 "projects",
                 "project_context",
+                "bounded_project_brief",
                 "tasks",
                 "bounded_task_lists",
                 "bounded_task_search",
@@ -1326,6 +1345,70 @@ impl FloodServer {
             .get_project(&args.id)
             .map(|project| Json(ProjectOutput { project }))
             .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Получить единый ограниченный бриф конкретного проекта для начала работы агента: Markdown-контекст из project.md (до 20 000 символов), компактный приоритетный список открытых задач, связанные локальные Telegram-чаты с закладками чтения и свежесть синхронизации. Не читает сообщения и изображения автоматически: после выбора чата используйте read_telegram_updates/read_telegram_chat и request_telegram_image. Используйте вместо отдельных get_project, get_task_digest и list_telegram_chats",
+        annotations(
+            title = "Бриф проекта",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn get_project_brief(
+        &self,
+        Parameters(args): Parameters<ProjectBriefArgs>,
+    ) -> Result<Json<ProjectBriefOutput>, String> {
+        const MAX_CONTEXT_CHARS: usize = 20_000;
+        let mut project = self.store.get_project(&args.id).map_err(store_error)?;
+        let context_truncated = project.context.chars().count() > MAX_CONTEXT_CHARS;
+        if context_truncated {
+            project.context = truncate_preserving_layout(&project.context, MAX_CONTEXT_CHARS);
+        }
+        let open_tasks = self
+            .get_task_digest(Parameters(TaskDigestArgs {
+                project_id: Some(args.id.clone()),
+                include_completed: false,
+                urgencies: Vec::new(),
+                cursor: None,
+                limit: Some(args.task_limit.unwrap_or(10).clamp(1, 20)),
+            }))?
+            .0;
+        let telegram_chats = self
+            .list_telegram_chats(Parameters(ListTelegramChatsArgs {
+                project_id: Some(args.id),
+            }))?
+            .0
+            .chats;
+        let telegram = self.get_telegram_sync_status()?.0;
+        let mut suggested_tools = Vec::new();
+        if project.context.trim().is_empty() {
+            suggested_tools.push("update_project_context");
+        }
+        if !telegram_chats.is_empty() && !telegram.fresh && telegram.pending_request.is_none() {
+            suggested_tools.push("request_telegram_sync");
+        }
+        if telegram_chats
+            .iter()
+            .any(|chat| chat.agent_unprocessed_count.unwrap_or(chat.message_count) > 0)
+        {
+            suggested_tools.push("read_telegram_updates");
+        }
+        if !open_tasks.tasks.is_empty() {
+            suggested_tools.push("get_task");
+        }
+        suggested_tools.push("create_task_from_telegram_discussion");
+
+        Ok(Json(ProjectBriefOutput {
+            brief_version: 1,
+            project,
+            context_truncated,
+            open_tasks,
+            telegram_chats,
+            telegram,
+            suggested_tools,
+        }))
     }
 
     #[tool(
@@ -2769,6 +2852,15 @@ fn compact_search_text(value: &str, max_chars: usize) -> String {
     compact
 }
 
+fn truncate_preserving_layout(value: &str, max_chars: usize) -> String {
+    if value.chars().count() <= max_chars {
+        return value.to_owned();
+    }
+    let mut compact = value.chars().take(max_chars).collect::<String>();
+    compact.push_str("\n\n…");
+    compact
+}
+
 fn parse_snapshot(value: SnapshotArgs) -> Result<MessageSnapshot, String> {
     let sent_at = value
         .sent_at
@@ -2837,6 +2929,7 @@ fn run_binary_self_check() -> SelfCheckResult {
         "inspect_attachment_storage",
         "list_recent_activity",
         "list_projects",
+        "get_project_brief",
         "update_project_context",
         "list_tasks",
         "search_tasks",
@@ -2988,6 +3081,7 @@ mod tests {
             "inspect_attachment_storage",
             "get_runtime_info",
             "get_workspace_brief",
+            "get_project_brief",
             "list_recent_activity",
             "run_self_check",
             "update_project_context",
@@ -3292,6 +3386,54 @@ mod tests {
         let returned_ids = [listed.tasks[0].id.clone(), second_page.tasks[0].id.clone()];
         assert!(returned_ids.contains(&task_id));
         assert!(returned_ids.contains(&second_task_id));
+    }
+
+    #[test]
+    fn project_brief_combines_context_tasks_and_telegram_state() {
+        let server = server();
+        let project = server
+            .create_project(Parameters(CreateProjectArgs {
+                title: "Контекстный проект".into(),
+                request_id: "test-project-brief-project".into(),
+            }))
+            .unwrap()
+            .0
+            .project;
+        let project = server
+            .update_project_context(Parameters(UpdateProjectContextArgs {
+                id: project.id,
+                context: "## Цель\n\nПодготовить релиз\n\n## Репозиторий\n\n`C:/work/app`".into(),
+                expected_version: project.version,
+            }))
+            .unwrap()
+            .0
+            .project;
+        server
+            .create_task(Parameters(CreateTaskArgs {
+                project_id: project.id.clone(),
+                description: "# Проверить сборку\n\nПрогнать локальные тесты".into(),
+                urgency: Some("important".into()),
+                source: None,
+                request_id: "test-project-brief-task".into(),
+            }))
+            .unwrap();
+
+        let brief = server
+            .get_project_brief(Parameters(ProjectBriefArgs {
+                id: project.id,
+                task_limit: Some(5),
+            }))
+            .unwrap()
+            .0;
+
+        assert_eq!(brief.brief_version, 1);
+        assert!(brief.project.context.contains("C:/work/app"));
+        assert!(!brief.context_truncated);
+        assert_eq!(brief.open_tasks.tasks.len(), 1);
+        assert_eq!(brief.open_tasks.tasks[0].title, "Проверить сборку");
+        assert!(brief.telegram_chats.is_empty());
+        assert!(!brief.suggested_tools.contains(&"update_project_context"));
+        assert!(brief.suggested_tools.contains(&"get_task"));
     }
 
     #[test]

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowRight, Bold, Bot, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Database, Download, ExternalLink, Folder, FolderOpen, FolderPlus, Heading1, Info, Languages, Link, ListChecks, ListTodo, LogOut, Maximize2, MessageSquareText, Minus, MoreHorizontal, Palette, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, QrCode, RefreshCw, RotateCcw, Search, Send, Settings, ShieldCheck, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
+  import { ArrowRight, Bold, Bot, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Database, Download, ExternalLink, FileText, Folder, FolderOpen, FolderPlus, Heading1, Info, Languages, Link, ListChecks, ListTodo, LogOut, Maximize2, MessageSquareText, Minus, MoreHorizontal, Palette, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, QrCode, RefreshCw, RotateCcw, Search, Send, Settings, ShieldCheck, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { getVersion } from "@tauri-apps/api/app";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -235,6 +235,16 @@
   let telegramImportReturnFocus: HTMLElement | null = null;
   let telegramInboxDialog: HTMLDivElement;
   let telegramInboxReturnFocus: HTMLElement | null = null;
+  let projectContextOpen = false;
+  let projectContextProjectId = "";
+  let projectContextProjectTitle = "";
+  let projectContextVersion = "";
+  let projectContextDraft = "";
+  let projectContextError = "";
+  let projectContextSaving = false;
+  let projectContextDialog: HTMLDivElement;
+  let projectContextTextarea: HTMLTextAreaElement;
+  let projectContextReturnFocus: HTMLElement | null = null;
   let sourceMediaPreviews: Record<number, string> = {};
   let sourcePreviewObjectUrls: string[] = [];
   let sourceText = "";
@@ -1452,6 +1462,7 @@
   async function handleWindowKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
       if (commandPaletteOpen) closeCommandPalette();
+      else if (projectContextOpen && !projectContextSaving) closeProjectContext();
       else if (telegramConnectionsProject) closeTelegramConnections();
       else if (telegramInboxOpen && !telegramInboxProcessingId) closeTelegramInbox();
       else if (telegramImportOpen) closeTelegramImporter();
@@ -1762,6 +1773,68 @@
       renameChatOpen = false;
     } catch (error) {
       formError = String(error);
+    }
+  }
+
+  async function openProjectContext() {
+    if (currentChat.id === "all") return;
+    projectContextReturnFocus = focusedElement();
+    projectContextProjectId = currentChat.id;
+    projectContextProjectTitle = currentChat.title;
+    projectContextVersion = currentChat.version;
+    projectContextDraft = currentChat.context ?? "";
+    projectContextError = "";
+    projectContextOpen = true;
+    await tick();
+    projectContextTextarea?.focus();
+  }
+
+  function closeProjectContext() {
+    if (projectContextSaving) return;
+    const returnFocus = projectContextReturnFocus;
+    projectContextReturnFocus = null;
+    projectContextOpen = false;
+    projectContextProjectId = "";
+    projectContextProjectTitle = "";
+    projectContextVersion = "";
+    projectContextDraft = "";
+    projectContextError = "";
+    restoreModalFocus(returnFocus);
+  }
+
+  async function reloadProjectContext() {
+    if (!projectContextProjectId) return;
+    await loadData(true);
+    const project = chats.find((item) => item.id === projectContextProjectId);
+    if (!project) return;
+    projectContextProjectTitle = project.title;
+    projectContextVersion = project.version;
+    projectContextDraft = project.context ?? "";
+    projectContextError = "";
+    await tick();
+    projectContextTextarea?.focus();
+  }
+
+  async function saveProjectContext(event: SubmitEvent) {
+    event.preventDefault();
+    if (!projectContextProjectId || !inTauri() || projectContextSaving) return;
+    projectContextSaving = true;
+    projectContextError = "";
+    try {
+      const updated = await invoke<ProjectRecord>("update_project_context", {
+        id: projectContextProjectId,
+        context: projectContextDraft,
+        expectedVersion: projectContextVersion
+      });
+      chats = chats.map((chat) => chat.id === updated.id
+        ? { ...updated, telegram_chats: updated.telegram_chats ?? [], open: chat.open }
+        : chat);
+      projectContextSaving = false;
+      closeProjectContext();
+    } catch (error) {
+      projectContextError = String(error);
+    } finally {
+      projectContextSaving = false;
     }
   }
 
@@ -3215,6 +3288,31 @@
     }
   }
 
+  function applyProjectContextDevPreview() {
+    if (!import.meta.env.DEV || inTauri()) return;
+    if (new URLSearchParams(window.location.search).get("preview") !== "project-context") return;
+    const now = new Date().toISOString();
+    const project: ChatItem = {
+      id: "preview-project",
+      title: "Рабочее приложение flood.md",
+      context: "## Цель\n\nСобирать понятные задачи из рабочих обсуждений без потери исходного контекста.\n\n## Репозитории\n\n`C:/work/flood.md`\n\n## Макеты\n\nОсновной файл интерфейса в Figma.",
+      created_at: now,
+      updated_at: now,
+      telegram_chats: [{ chat_id: -1001, title: "Команда продукта", inbox_mode: "mentions_and_replies" }],
+      version: "preview-version",
+      open: 4
+    };
+    chats = [allChat(4), project];
+    selectedChatId = project.id;
+    loading = false;
+    projectContextProjectId = project.id;
+    projectContextProjectTitle = project.title;
+    projectContextVersion = project.version;
+    projectContextDraft = project.context ?? "";
+    projectContextOpen = true;
+    void tick().then(() => projectContextTextarea?.focus());
+  }
+
   function minimizeWindow() {
     if (inTauri()) void getCurrentWindow().minimize();
   }
@@ -3240,6 +3338,7 @@
     loadUiPreferences();
     applySettingsDevPreview();
     applyTelegramDevPreview();
+    applyProjectContextDevPreview();
     const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
     const updateSystemTheme = () => { if (themePreference === "system") applyTheme(); };
     colorScheme.addEventListener("change", updateSystemTheme);
@@ -3634,6 +3733,9 @@
                 <button class="project-add-button inbox-button" onclick={() => openTelegramInbox(false)}><MessageSquareText size={15} />{t("inbox")}</button>
                 <button class="project-add-button telegram-import-button" title={t("importFromTelegramChat", { chat: currentChat.telegram_chats[0].title })} onclick={openTelegramImporter}><Send size={15} />{t("fromTelegram")}</button>
               {/if}
+              {#if currentChat.id !== "all"}
+                <button class="project-add-button" onclick={openProjectContext}><FileText size={15} />{t("projectContext")}</button>
+              {/if}
               <button class="project-add-button" aria-expanded={newTaskMenuAnchor === "workspace"} onclick={() => requestNewTask("workspace")}><Plus size={16} />{t("newTask")}</button>
               {#if newTaskMenuAnchor === "workspace"}
                 <div class="new-task-menu workspace-new-task-menu">
@@ -3959,6 +4061,34 @@
     {/if}
   </div>
 </main>
+
+{#if projectContextOpen}
+  <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeProjectContext(); }}>
+    <div class="telegram-import-panel project-context-panel" bind:this={projectContextDialog} role="dialog" aria-modal="true" aria-label={t("projectContext")} tabindex="-1" onkeydown={trapModalFocus}>
+      <form class="project-context-form" onsubmit={saveProjectContext}>
+        <header>
+          <span><FloodGlyph kind="info" size={22} /><span><strong>{t("projectContext")}</strong><small title={projectContextProjectTitle}>{projectContextProjectTitle}</small></span></span>
+          <button class="icon-button" type="button" aria-label={t("close")} disabled={projectContextSaving} onclick={closeProjectContext}><X size={16} /></button>
+        </header>
+        <div class="project-context-body">
+          <p>{t("projectContextDescription")}</p>
+          <label class="project-context-editor">
+            <span>{t("projectContextMarkdown")}</span>
+            <textarea bind:this={projectContextTextarea} bind:value={projectContextDraft} maxlength="200000" spellcheck="true" placeholder={t("projectContextPlaceholder")}></textarea>
+          </label>
+          <div class="project-context-hints" aria-label={t("projectContextHints")}>
+            <span>## {t("projectContextGoal")}</span><span>## {t("projectContextRepositories")}</span><span>## {t("projectContextDesign")}</span><span>## {t("projectContextConstraints")}</span>
+          </div>
+          <small class="project-context-privacy">{t("projectContextPrivacy")}</small>
+          {#if projectContextError}
+            <div class="project-context-error" role="alert"><span>{projectContextError}</span><button type="button" onclick={reloadProjectContext}>{t("reload")}</button></div>
+          {/if}
+        </div>
+        <footer><button type="button" disabled={projectContextSaving} onclick={closeProjectContext}>{t("cancel")}</button><button class="primary-button" type="submit" disabled={projectContextSaving}>{#if projectContextSaving}<RefreshCw class="spinning" size={14} />{/if}{projectContextSaving ? t("saving") : t("save")}</button></footer>
+      </form>
+    </div>
+  </div>
+{/if}
 
 {#if telegramConnectionsProject}
   <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeTelegramConnections(); }}>

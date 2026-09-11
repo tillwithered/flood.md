@@ -211,6 +211,13 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert_eq!(workspace_brief["annotations"]["readOnlyHint"], true);
     assert_eq!(workspace_brief["annotations"]["openWorldHint"], false);
+    let project_brief = tools
+        .iter()
+        .find(|tool| tool["name"] == "get_project_brief")
+        .unwrap();
+    assert_eq!(project_brief["annotations"]["readOnlyHint"], true);
+    assert_eq!(project_brief["annotations"]["openWorldHint"], false);
+    assert!(project_brief["inputSchema"]["properties"]["task_limit"].is_object());
     let recent_activity = tools
         .iter()
         .find(|tool| tool["name"] == "list_recent_activity")
