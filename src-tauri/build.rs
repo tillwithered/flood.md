@@ -5,6 +5,8 @@ use std::{
 };
 
 fn main() {
+    // Re-embed the latest Vite bundle in local desktop builds without requiring cargo clean.
+    println!("cargo:rerun-if-changed=../dist");
     println!("cargo:rerun-if-env-changed=TG_API_ID");
     println!("cargo:rerun-if-env-changed=TG_API_HASH");
     generate_telegram_credentials();

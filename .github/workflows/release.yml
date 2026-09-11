@@ -26,9 +26,11 @@ jobs:
         env:
           TG_API_ID: ${{ secrets.TG_API_ID }}
           TG_API_HASH: ${{ secrets.TG_API_HASH }}
+          FLOOD_GITHUB_CLIENT_ID: ${{ vars.FLOOD_GITHUB_CLIENT_ID }}
+          FLOOD_GITHUB_APP_SLUG: ${{ vars.FLOOD_GITHUB_APP_SLUG }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:TG_API_ID) -or [string]::IsNullOrWhiteSpace($env:TG_API_HASH) -or [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+          if ([string]::IsNullOrWhiteSpace($env:TG_API_ID) -or [string]::IsNullOrWhiteSpace($env:TG_API_HASH) -or [string]::IsNullOrWhiteSpace($env:FLOOD_GITHUB_CLIENT_ID) -or [string]::IsNullOrWhiteSpace($env:FLOOD_GITHUB_APP_SLUG) -or [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
             throw "Required release secrets are not configured"
           }
       - uses: tauri-apps/tauri-action@v1
@@ -38,22 +40,25 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           TG_API_ID: ${{ secrets.TG_API_ID }}
           TG_API_HASH: ${{ secrets.TG_API_HASH }}
+          FLOOD_GITHUB_CLIENT_ID: ${{ vars.FLOOD_GITHUB_CLIENT_ID }}
+          FLOOD_GITHUB_APP_SLUG: ${{ vars.FLOOD_GITHUB_APP_SLUG }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "flood.md ${{ github.ref_name }}"
           releaseBody: |
             ## flood.md ${{ github.ref_name }}
 
-            A major local-first workflow update: Telegram inbox triage, media-aware task sources, bounded and confirmable MCP workflows, operational diagnostics, safer storage, and a more spacious settings experience.
+            The first stable flood.md release: a local-first task workspace where an MCP agent can review bounded Telegram discussions, inspect attached images and permitted project context, and create concise prioritized tasks.
 
-            Большое обновление локального рабочего процесса: разбор входящих Telegram и медиа, ограниченные и подтверждаемые MCP-сценарии, диагностика, усиленная сохранность данных и более просторные настройки.
+            Первая стабильная версия flood.md: локальный задачник, в котором MCP-агент может разобрать ограниченный контекст Telegram, посмотреть приложенные изображения и разрешённый контекст проекта, а затем создать компактные задачи с приоритетами.
 
             ### Highlights
 
-            - Bounded Telegram inbox with search, albums, media, drafts, undo, multi-select, and history.
-            - MCP workspace brief, search, priority digest, confirmed Telegram triage, readiness checks, and metadata-only activity history.
-            - Retry-safe project and task creation with mandatory idempotency keys.
-            - Expanded Settings, enforced 12 px minimum text, improved installation/update diagnostics, and hardened local storage.
+            - Local Markdown tasks with conflict-safe editing, attachments, urgency, completion, trash, backup, and recovery.
+            - Telegram through TDLib: linked chats, mentions and replies, albums, media, human-sized context windows, inbox triage, and duplicate-safe task creation.
+            - Read-only GitHub App connector with repository selection and bounded MCP access to files, search, README, issues, and pull requests.
+            - MCP workflows for project/task management, project-aware Telegram triage, image inspection, task execution context, confirmation-safe writes, and diagnostics.
+            - Refined light/dark desktop UI, 720 px reading zones, accessible 12 px minimum text, and clear source/media views.
 
             Full details: [CHANGELOG.md](https://github.com/tillwithered/flood.md/blob/${{ github.ref_name }}/CHANGELOG.md).
           releaseDraft: false

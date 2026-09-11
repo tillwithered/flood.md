@@ -6,6 +6,10 @@ use flood_core::{
     TelegramInboxPage, TelegramProjectLink, TelegramSyncHealth, TelegramSyncRequest,
     TelegramSyncStatus, Urgency, default_data_dir,
 };
+use flood_github::{
+    GitHubAuthorizationResult, GitHubConnector, GitHubDeviceCode, GitHubRepositoryCatalog,
+    GitHubStatus,
+};
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::{
@@ -32,6 +36,8 @@ struct AppState {
     telegram: TelegramManager,
     telegram_inbox_syncing: AtomicBool,
     telegram_media_syncing: AtomicBool,
+    github: GitHubConnector,
+    github_flow: Mutex<Option<GitHubDeviceCode>>,
 }
 
 #[derive(Serialize)]
@@ -154,6 +160,15 @@ async fn with_telegram_timeout<T>(
     tokio::time::timeout(TELEGRAM_PROJECT_SYNC_TIMEOUT, future)
         .await
         .map_err(|_| "Telegram не ответил за 20 секунд".to_string())?
+}
+
+async fn github_blocking<T: Send + 'static>(
+    operation: impl FnOnce() -> flood_github::Result<T> + Send + 'static,
+) -> Result<T, String> {
+    tauri::async_runtime::spawn_blocking(operation)
+        .await
+        .map_err(|error| format!("GitHub-коннектор не ответил: {error}"))?
+        .map_err(|error| error.to_string())
 }
 
 impl Drop for SyncGuard<'_> {
@@ -656,6 +671,94 @@ fn run_mcp_self_check(app: tauri::AppHandle) -> Result<SelfCheckResult, String> 
 }
 
 #[tauri::command]
+fn github_status(state: State<'_, AppState>) -> GitHubStatus {
+    state.github.status()
+}
+
+#[tauri::command]
+fn github_configure(
+    client_id: String,
+    app_slug: String,
+    state: State<'_, AppState>,
+) -> Result<GitHubStatus, String> {
+    state
+        .github
+        .configure(&client_id, &app_slug)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+async fn github_begin_authorization(
+    state: State<'_, AppState>,
+) -> Result<GitHubDeviceCode, String> {
+    let connector = state.github.clone();
+    let flow = github_blocking(move || connector.begin_authorization()).await?;
+    *state
+        .github_flow
+        .lock()
+        .map_err(|_| "GitHub-авторизация занята")? = Some(flow.clone());
+    Ok(flow)
+}
+
+#[tauri::command]
+async fn github_poll_authorization(
+    state: State<'_, AppState>,
+) -> Result<GitHubAuthorizationResult, String> {
+    let flow = state
+        .github_flow
+        .lock()
+        .map_err(|_| "GitHub-авторизация занята")?
+        .clone()
+        .ok_or_else(|| "Сначала начните вход в GitHub".to_string())?;
+    if flow.expires_at <= Utc::now() {
+        *state
+            .github_flow
+            .lock()
+            .map_err(|_| "GitHub-авторизация занята")? = None;
+        return Err("Код GitHub истёк; начните вход заново".into());
+    }
+    let connector = state.github.clone();
+    let device_code = flow.device_code;
+    let result = github_blocking(move || connector.poll_authorization(&device_code)).await?;
+    if matches!(result, GitHubAuthorizationResult::Authorized { .. }) {
+        *state
+            .github_flow
+            .lock()
+            .map_err(|_| "GitHub-авторизация занята")? = None;
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+async fn github_list_repositories(
+    state: State<'_, AppState>,
+) -> Result<GitHubRepositoryCatalog, String> {
+    let connector = state.github.clone();
+    github_blocking(move || connector.repositories()).await
+}
+
+#[tauri::command]
+fn github_installation_url(state: State<'_, AppState>) -> Result<String, String> {
+    state
+        .github
+        .installation_url()
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn github_disconnect(state: State<'_, AppState>) -> Result<GitHubStatus, String> {
+    state
+        .github
+        .disconnect()
+        .map_err(|error| error.to_string())?;
+    *state
+        .github_flow
+        .lock()
+        .map_err(|_| "GitHub-авторизация занята")? = None;
+    Ok(state.github.status())
+}
+
+#[tauri::command]
 fn telegram_status(state: State<'_, AppState>) -> TelegramStatus {
     state.telegram.status()
 }
@@ -695,6 +798,14 @@ async fn telegram_submit_password(
 #[tauri::command]
 async fn telegram_list_chats(state: State<'_, AppState>) -> Result<Vec<TelegramChat>, String> {
     with_telegram_timeout(state.telegram.chats()).await
+}
+
+#[tauri::command]
+async fn telegram_chat_avatar(
+    file_id: i32,
+    state: State<'_, AppState>,
+) -> Result<Option<String>, String> {
+    with_telegram_timeout(state.telegram.chat_avatar_data_url(file_id)).await
 }
 
 #[tauri::command]
@@ -1319,12 +1430,15 @@ pub fn run() {
                 .map(PathBuf::from)
                 .unwrap_or(app.path().app_local_data_dir()?.join("telegram"));
             let telegram = TelegramManager::new(app.handle().clone(), telegram_root);
+            let github = GitHubConnector::new(store.root())?;
             app.manage(AppState {
                 store,
                 _watcher: Mutex::new(watcher),
                 telegram,
                 telegram_inbox_syncing: AtomicBool::new(false),
                 telegram_media_syncing: AtomicBool::new(false),
+                github,
+                github_flow: Mutex::new(None),
             });
             Ok(())
         })
@@ -1366,6 +1480,13 @@ pub fn run() {
             diagnose_store,
             list_activity,
             run_mcp_self_check,
+            github_status,
+            github_configure,
+            github_begin_authorization,
+            github_poll_authorization,
+            github_list_repositories,
+            github_installation_url,
+            github_disconnect,
             telegram_status,
             telegram_configure,
             telegram_request_qr,
@@ -1373,6 +1494,7 @@ pub fn run() {
             telegram_submit_code,
             telegram_submit_password,
             telegram_list_chats,
+            telegram_chat_avatar,
             telegram_search_chats,
             telegram_list_messages,
             telegram_list_inbox,

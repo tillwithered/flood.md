@@ -109,7 +109,24 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         }),
     );
     let listed = receive(&mut stdout, 2);
-    let tools = listed["result"]["tools"].as_array().unwrap();
+    let mut tools = listed["result"]["tools"].as_array().unwrap().clone();
+    let mut next_cursor = listed["result"]["nextCursor"].as_str().map(str::to_owned);
+    let mut page_id = 200;
+    while let Some(cursor) = next_cursor {
+        send(
+            &mut stdin,
+            json!({
+                "jsonrpc": "2.0",
+                "id": page_id,
+                "method": "tools/list",
+                "params": { "cursor": cursor }
+            }),
+        );
+        let page = receive(&mut stdout, page_id);
+        tools.extend(page["result"]["tools"].as_array().unwrap().iter().cloned());
+        next_cursor = page["result"]["nextCursor"].as_str().map(str::to_owned);
+        page_id += 1;
+    }
     let list_projects = tools
         .iter()
         .find(|tool| tool["name"] == "list_projects")
@@ -199,6 +216,30 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     assert_eq!(search_resource["annotations"]["readOnlyHint"], true);
     assert_eq!(search_resource["annotations"]["openWorldHint"], false);
     assert!(search_resource["inputSchema"]["properties"]["query"].is_object());
+    for name in [
+        "list_github_repository_files",
+        "read_github_repository_file",
+        "search_github_repository",
+        "get_github_repository_context",
+    ] {
+        let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
+        assert_eq!(tool["annotations"]["readOnlyHint"], true);
+        assert_eq!(tool["annotations"]["destructiveHint"], false);
+        assert_eq!(tool["annotations"]["openWorldHint"], true);
+        assert!(tool["outputSchema"].is_object());
+        assert!(tool["inputSchema"]["properties"]["project_id"].is_object());
+        assert!(tool["inputSchema"]["properties"]["resource_id"].is_object());
+    }
+    let read_github_file = tools
+        .iter()
+        .find(|tool| tool["name"] == "read_github_repository_file")
+        .unwrap();
+    assert!(read_github_file["inputSchema"]["properties"]["path"].is_object());
+    let search_github = tools
+        .iter()
+        .find(|tool| tool["name"] == "search_github_repository")
+        .unwrap();
+    assert!(search_github["inputSchema"]["properties"]["query"].is_object());
     let task_work_context = tools
         .iter()
         .find(|tool| tool["name"] == "get_task_work_context")
@@ -851,6 +892,10 @@ fn stdio_telegram_triage_requires_and_applies_the_previewed_plan() {
     assert_eq!(
         preview["result"]["structuredContent"]["requires_confirmation"],
         true
+    );
+    assert_eq!(
+        preview["result"]["structuredContent"]["creation_policy"],
+        "apply_in_same_turn_only_when_current_user_request_explicitly_asks_to_create"
     );
     assert_eq!(
         preview["result"]["structuredContent"]["items"][0]["author"],

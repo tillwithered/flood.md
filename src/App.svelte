@@ -10,6 +10,10 @@
   import { onMount, tick } from "svelte";
   import QRCode from "qrcode";
   import FloodGlyph from "./components/FloodGlyph.svelte";
+  import IntegrationCard from "./components/IntegrationCard.svelte";
+  import IntegrationModal from "./components/IntegrationModal.svelte";
+  import MarkdownInline from "./components/MarkdownInline.svelte";
+  import TelegramChatIdentity from "./components/TelegramChatIdentity.svelte";
   import { translate, type Locale, type MessageKey } from "./i18n";
 
   type Section = "tasks" | "trash" | "settings";
@@ -24,6 +28,7 @@
   type TelegramInboxMode = "manual" | "mentions_and_replies" | "all";
   type ProjectResourceKind = "repository" | "directory" | "figma" | "documentation" | "website" | "other";
   type ProjectResource = { id: string; kind: ProjectResourceKind; label: string; location: string; notes?: string; agent_access: boolean };
+  type ProjectContextPreviewBlock = { kind: "heading" | "paragraph" | "bullets" | "numbers" | "quote" | "code"; level?: number; text?: string; items?: string[] };
   type SourceMedia = { kind: "photo" | "video" | "document" | "audio" | "voice" | "animation" | "other"; file_name: string; provider_file_id?: number; mime_type?: string; size?: number; relative_path?: string };
   type TelegramContextMessage = { message_id: number; message_ids?: number[]; author: string; sent_at: string; text: string; url?: string; reply_to_message_id?: number; is_target: boolean; media?: SourceMedia[] };
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string; provider?: string; chat_id?: number; chat_title?: string; message_id?: number; message_ids?: number[]; media?: SourceMedia[]; context?: TelegramContextMessage[] };
@@ -62,7 +67,7 @@
   type ChatItem = Omit<ProjectRecord, "telegram_chats"> & { telegram_chats: TelegramProjectLink[]; open: number };
   type MarkdownHint = { title: string; left: number; top: number };
   type TelegramStatus = { step: string; configured: boolean; managed_credentials: boolean; account_name?: string; account_username?: string; qr_link?: string; password_hint?: string; error?: string };
-  type TelegramChat = { id: number; title: string };
+  type TelegramChat = { id: number; title: string; kind?: "private" | "secret" | "group" | "channel" | "direct" | "unknown"; username?: string; avatar_data_url?: string; avatar_file_id?: number };
   type TelegramLinkedTask = { id: string; title: string; urgency: Urgency; status: "open" | "completed"; trashed: boolean };
   type TelegramMessage = { id: number; message_ids?: number[]; chat_id: number; text: string; author: string; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean; linked_task?: TelegramLinkedTask };
   type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; message_ids?: number[]; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; context?: TelegramContextMessage[]; discovered_at: string; processed_at?: string; task_id?: string; linked_task?: TelegramLinkedTask };
@@ -70,11 +75,18 @@
   type TelegramTaskCreationResult = { task: TaskRecord; media_errors: string[] };
   type TelegramInboxSyncResult = { scanned_projects: number; added: number; failed_projects: number; errors: string[]; busy: boolean };
   type TelegramMediaSyncResult = { downloaded: number; failed: number; errors: string[]; busy: boolean };
-  type TelegramSyncStatus = { completed_at: string; health: "success" | "partial" | "error"; scanned_projects: number; added_candidates: number; downloaded_media: number; failures: number; errors: string[] };
+  type TelegramSyncStatus = { completed_at: string; health: "success" | "partial" | "error"; scanned_projects: number; added_candidates: number; downloaded_media: number; failures: number; errors?: string[] };
   type TelegramSyncRequest = { id: string; requested_at: string };
   type TelegramSyncResult = { inbox: TelegramInboxSyncResult; media: TelegramMediaSyncResult; status?: TelegramSyncStatus };
   type TelegramSyncState = "idle" | "syncing" | "success" | "partial" | "error";
   type TelegramSyncSummary = { added: number; downloaded: number; failed: number; syncedAt: string };
+  type GitHubAccount = { id: number; login: string; name?: string; avatar_url: string; html_url: string };
+  type GitHubStatus = { configured: boolean; managed_app: boolean; connected: boolean; app_slug?: string; account?: GitHubAccount; token_expires_at?: string; needs_reauthorization: boolean; credential_store_available: boolean; error?: string };
+  type GitHubDeviceCode = { user_code: string; verification_uri: string; expires_at: string; interval_seconds: number };
+  type GitHubAuthorizationResult = { state: "pending"; retry_after_seconds: number } | { state: "authorized"; account: GitHubAccount };
+  type GitHubInstallation = { id: number; account_login: string; account_type: string; repository_selection: string; html_url: string };
+  type GitHubRepository = { id: number; installation_id: number; name: string; full_name: string; private: boolean; html_url: string; description?: string; default_branch: string; archived: boolean; pushed_at?: string; owner_avatar_url: string };
+  type GitHubRepositoryCatalog = { installations: GitHubInstallation[]; repositories: GitHubRepository[] };
   type TelegramTaskDraft = { title: string; notes: string; urgency: Urgency };
   type StoreDiagnostics = { healthy: boolean; root: string; format_version: number; project_count: number; linked_chat_count: number; open_task_count: number; completed_task_count: number; trashed_task_count: number; pending_inbox_count: number; issues: string[] };
   type AttachmentCleanupReport = { total_files: number; total_bytes: number; orphaned_files: number; orphaned_bytes: number };
@@ -202,6 +214,21 @@
   let downloadingSourceMedia = -1;
   let telegramScanTimer: number | undefined;
   let telegramRequestTimer: number | undefined;
+  let integrationModal: "telegram" | "github" | null = null;
+  let githubStatus: GitHubStatus = { configured: false, managed_app: false, connected: false, needs_reauthorization: false, credential_store_available: true };
+  let githubClientId = "";
+  let githubAppSlug = "";
+  let githubDeviceCode: GitHubDeviceCode | null = null;
+  let githubAuthorizationCompleted: GitHubAccount | null = null;
+  let githubCodeCopied = false;
+  let githubRepositories: GitHubRepository[] = [];
+  let githubInstallations: GitHubInstallation[] = [];
+  let githubSearch = "";
+  let githubManagingRepositoryId = 0;
+  let githubBusy = false;
+  let githubError = "";
+  let githubAuthTimer: number | undefined;
+  let integrationModalReturnFocus: HTMLElement | null = null;
   let updateState: UpdateState = "idle";
   let updateMessage = "";
   let availableUpdate: Update | null = null;
@@ -234,6 +261,8 @@
   let sourceViewerReturnFocus: HTMLElement | null = null;
   let telegramConnectionsDialog: HTMLDivElement;
   let telegramConnectionsReturnFocus: HTMLElement | null = null;
+  let telegramConnectionsOpenedFromIntegration = false;
+  let telegramConnectionsSaving = false;
   let telegramImportDialog: HTMLDivElement;
   let telegramImportReturnFocus: HTMLElement | null = null;
   let telegramInboxDialog: HTMLDivElement;
@@ -245,6 +274,8 @@
   let projectContextDraft = "";
   let projectContextResources: ProjectResource[] = [];
   let projectResourceAddOpen = false;
+  let projectContextEditorMode: "edit" | "preview" = "edit";
+  let expandedProjectResourceId = "";
   let projectContextError = "";
   let projectContextSaving = false;
   let projectContextDialog: HTMLDivElement;
@@ -688,6 +719,9 @@
       const block = parseLine(line);
       return createBlock(block.kind, block.text);
     }));
+    const firstContentBlock = [...editorRoot.querySelectorAll<HTMLElement>(":scope > .editor-block")]
+      .find((block) => !block.dataset.attachmentKind && (block.textContent ?? "").trim());
+    firstContentBlock?.classList.add("task-title-block");
     renumberLists();
     void hydrateAttachments();
   }
@@ -1253,6 +1287,8 @@
   async function selectChat(chat: ChatItem) {
     if (!await persistCurrentTask()) return;
     discardLocalDraft();
+    createChatOpen = false;
+    createChatTitle = "";
     selectedChatId = chat.id;
     activeSection = "tasks";
     workspaceView = "project";
@@ -1658,6 +1694,8 @@
   async function openTask(task: TaskItem) {
     if (!await persistCurrentTask()) return;
     discardLocalDraft();
+    createChatOpen = false;
+    createChatTitle = "";
     let fullTask = task;
     if (inTauri()) {
       try {
@@ -1790,6 +1828,8 @@
     projectContextDraft = currentChat.context ?? "";
     projectContextResources = (currentChat.resources ?? []).map((resource) => ({ ...resource }));
     projectResourceAddOpen = false;
+    projectContextEditorMode = "edit";
+    expandedProjectResourceId = "";
     projectContextError = "";
     projectContextOpen = true;
     await tick();
@@ -1807,6 +1847,8 @@
     projectContextDraft = "";
     projectContextResources = [];
     projectResourceAddOpen = false;
+    projectContextEditorMode = "edit";
+    expandedProjectResourceId = "";
     projectContextError = "";
     restoreModalFocus(returnFocus);
   }
@@ -1821,6 +1863,7 @@
     projectContextDraft = project.context ?? "";
     projectContextResources = (project.resources ?? []).map((resource) => ({ ...resource }));
     projectResourceAddOpen = false;
+    expandedProjectResourceId = "";
     projectContextError = "";
     await tick();
     projectContextDialog?.focus();
@@ -1867,7 +1910,7 @@
     return t(labels[kind]);
   }
 
-  function addProjectResource(kind: ProjectResourceKind) {
+  async function addProjectResource(kind: ProjectResourceKind) {
     if (projectContextResources.length >= 20) {
       projectContextError = t("projectResourceLimit");
       return;
@@ -1877,11 +1920,16 @@
     let suffix = 2;
     while (projectContextResources.some((resource) => resource.id === id)) id = `${stem}-${suffix++}`;
     projectContextResources = [
-      ...projectContextResources,
-      { id, kind, label: projectResourceKindLabel(kind), location: "", agent_access: false }
+      { id, kind, label: projectResourceKindLabel(kind), location: "", agent_access: false },
+      ...projectContextResources
     ];
     projectResourceAddOpen = false;
+    expandedProjectResourceId = id;
     projectContextError = "";
+    await tick();
+    const row = projectContextDialog?.querySelector<HTMLElement>(`[data-project-resource-id="${id}"]`);
+    row?.scrollIntoView({ block: "nearest" });
+    row?.querySelector<HTMLInputElement>("input")?.focus();
   }
 
   function updateProjectResource(id: string, patch: Partial<ProjectResource>) {
@@ -1890,7 +1938,68 @@
 
   function removeProjectResource(id: string) {
     projectContextResources = projectContextResources.filter((resource) => resource.id !== id);
+    if (expandedProjectResourceId === id) expandedProjectResourceId = "";
     projectContextError = "";
+  }
+
+  function insertProjectContextSection(title: string) {
+    const heading = `## ${title}`;
+    projectContextEditorMode = "edit";
+    if (!projectContextDraft.includes(heading)) {
+      projectContextDraft = `${projectContextDraft.trimEnd()}${projectContextDraft.trim() ? "\n\n" : ""}${heading}\n\n`;
+    }
+    void tick().then(() => {
+      projectContextTextarea?.focus();
+      const position = projectContextDraft.indexOf(heading) + heading.length + 2;
+      projectContextTextarea?.setSelectionRange(position, position);
+    });
+  }
+
+  function parseProjectContextPreview(markdown: string): ProjectContextPreviewBlock[] {
+    const lines = markdown.replace(/\r/g, "").split("\n");
+    const blocks: ProjectContextPreviewBlock[] = [];
+    let index = 0;
+    while (index < lines.length) {
+      const line = lines[index];
+      if (!line.trim()) { index += 1; continue; }
+      if (line.trimStart().startsWith("```")) {
+        const content: string[] = [];
+        index += 1;
+        while (index < lines.length && !lines[index].trimStart().startsWith("```")) content.push(lines[index++]);
+        if (index < lines.length) index += 1;
+        blocks.push({ kind: "code", text: content.join("\n") });
+        continue;
+      }
+      const heading = line.match(/^(#{1,3})\s+(.+)$/);
+      if (heading) {
+        blocks.push({ kind: "heading", level: heading[1].length, text: heading[2] });
+        index += 1;
+        continue;
+      }
+      if (/^\s*[-*+]\s+/.test(line)) {
+        const items: string[] = [];
+        while (index < lines.length && /^\s*[-*+]\s+/.test(lines[index])) items.push(lines[index++].replace(/^\s*[-*+]\s+/, ""));
+        blocks.push({ kind: "bullets", items });
+        continue;
+      }
+      if (/^\s*\d+[.)]\s+/.test(line)) {
+        const items: string[] = [];
+        while (index < lines.length && /^\s*\d+[.)]\s+/.test(lines[index])) items.push(lines[index++].replace(/^\s*\d+[.)]\s+/, ""));
+        blocks.push({ kind: "numbers", items });
+        continue;
+      }
+      if (/^\s*>\s?/.test(line)) {
+        const content: string[] = [];
+        while (index < lines.length && /^\s*>\s?/.test(lines[index])) content.push(lines[index++].replace(/^\s*>\s?/, ""));
+        blocks.push({ kind: "quote", text: content.join(" ") });
+        continue;
+      }
+      const content = [line.trim()];
+      index += 1;
+      while (index < lines.length && lines[index].trim() && !/^(#{1,3})\s+|^\s*([-*+]|\d+[.)]|>)\s+|^\s*```/.test(lines[index])) content.push(lines[index++].trim());
+      blocks.push({ kind: "paragraph", text: content.join(" ") });
+    }
+    return blocks;
   }
 
   async function deleteCurrentChat() {
@@ -2232,6 +2341,9 @@
   }
 
   async function changeSection(section: Section) {
+    createChatOpen = false;
+    createChatTitle = "";
+    newTaskMenuAnchor = null;
     if (activeSection === section) return;
     if (!await persistCurrentTask()) return;
     discardLocalDraft();
@@ -2268,6 +2380,7 @@
   }
 
   function mcpRuntimeLabel() {
+    if (!inTauri()) return t("mcpDesktopOnly");
     if (!mcpRuntime?.available) return t("mcpMissing");
     if (!mcpRuntime.compatible) return t("mcpVersionMismatch");
     if (mcpCheckState === "success") return t("mcpReady");
@@ -2309,6 +2422,189 @@
     if (["code", "password", "qr", "phone"].includes(telegramStatus.step)) return t("authorization");
     if (["database_error", "error"].includes(telegramStatus.step)) return t("needsAttention");
     return t("connecting");
+  }
+
+  function githubStatusLabel() {
+    if (githubStatus.connected) return t("connected");
+    if (githubStatus.needs_reauthorization) return t("githubReconnect");
+    if (githubStatus.error || !githubStatus.credential_store_available) return t("needsAttention");
+    return t("notConnected");
+  }
+
+  function githubStatusTone(): "idle" | "connected" | "attention" | "error" {
+    if (githubStatus.connected) return "connected";
+    if (githubStatus.error || !githubStatus.credential_store_available) return "error";
+    if (githubStatus.needs_reauthorization || githubDeviceCode) return "attention";
+    return "idle";
+  }
+
+  function connectedGithubResources() {
+    return chats.slice(1).reduce((count, project) => count + (project.resources ?? []).filter((resource) => resource.kind === "repository" && resource.location.startsWith("https://github.com/")).length, 0);
+  }
+
+  function connectedIntegrationCount() {
+    return Number(telegramStatus.step === "ready") + Number(githubStatus.connected);
+  }
+
+  function integrationNeedsAttention() {
+    return ["database_error", "error"].includes(telegramStatus.step)
+      || ["partial", "error"].includes(telegramSyncState)
+      || Boolean(githubStatus.error)
+      || !githubStatus.credential_store_available;
+  }
+
+  async function openIntegrationModal(provider: "telegram" | "github") {
+    // A project reload can invalidate the derived picker project while leaving its id set.
+    // Always clear that stale overlay state before opening a connector workspace again.
+    telegramPickerProjectId = "";
+    telegramChatSearch = "";
+    telegramSearchResults = [];
+    telegramSearchLoading = false;
+    telegramConnectionsOpenedFromIntegration = false;
+    integrationModalReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    integrationModal = provider;
+    githubError = "";
+    await tick();
+    document.querySelector<HTMLElement>(".integration-modal")?.focus();
+    if (provider === "github" && githubStatus.connected && !githubRepositories.length) void loadGithubRepositories();
+  }
+
+  function closeIntegrationModal() {
+    const returnFocus = integrationModalReturnFocus;
+    integrationModalReturnFocus = null;
+    integrationModal = null;
+    githubAuthorizationCompleted = null;
+    githubCodeCopied = false;
+    restoreModalFocus(returnFocus);
+  }
+
+  async function configureGithub(event: SubmitEvent) {
+    event.preventDefault();
+    if (githubBusy) return;
+    githubBusy = true;
+    githubError = "";
+    try {
+      githubStatus = await invoke<GitHubStatus>("github_configure", { clientId: githubClientId.trim(), appSlug: githubAppSlug.trim() });
+      githubClientId = "";
+      githubAppSlug = "";
+    } catch (error) { githubError = String(error); }
+    finally { githubBusy = false; }
+  }
+
+  async function beginGithubAuthorization() {
+    if (githubBusy) return;
+    githubBusy = true;
+    githubError = "";
+    githubAuthorizationCompleted = null;
+    githubCodeCopied = false;
+    window.clearTimeout(githubAuthTimer);
+    try {
+      githubDeviceCode = await invoke<GitHubDeviceCode>("github_begin_authorization");
+      try {
+        await navigator.clipboard.writeText(githubDeviceCode.user_code);
+        githubCodeCopied = true;
+      } catch { githubCodeCopied = false; }
+      await openUrl(githubDeviceCode.verification_uri);
+      githubAuthTimer = window.setTimeout(pollGithubAuthorization, githubDeviceCode.interval_seconds * 1000);
+    } catch (error) { githubError = String(error); }
+    finally { githubBusy = false; }
+  }
+
+  async function pollGithubAuthorization() {
+    if (!githubDeviceCode || githubBusy) return;
+    if (new Date(githubDeviceCode.expires_at).getTime() <= Date.now()) {
+      githubError = t("githubCodeExpired");
+      githubDeviceCode = null;
+      return;
+    }
+    githubBusy = true;
+    try {
+      const result = await invoke<GitHubAuthorizationResult>("github_poll_authorization");
+      if (result.state === "authorized") {
+        githubDeviceCode = null;
+        githubAuthorizationCompleted = result.account;
+        githubStatus = await invoke<GitHubStatus>("github_status");
+        const catalog = await invoke<GitHubRepositoryCatalog>("github_list_repositories");
+        githubRepositories = catalog.repositories;
+        githubInstallations = catalog.installations;
+      } else {
+        githubAuthTimer = window.setTimeout(pollGithubAuthorization, result.retry_after_seconds * 1000);
+      }
+    } catch (error) {
+      githubError = String(error);
+      githubDeviceCode = null;
+    } finally { githubBusy = false; }
+  }
+
+  async function copyGithubDeviceCode() {
+    if (!githubDeviceCode) return;
+    try {
+      await navigator.clipboard.writeText(githubDeviceCode.user_code);
+      githubCodeCopied = true;
+    } catch {
+      githubCodeCopied = false;
+    }
+  }
+
+  async function loadGithubRepositories() {
+    if (!githubStatus.connected || githubBusy) return;
+    githubBusy = true;
+    githubError = "";
+    try {
+      const catalog = await invoke<GitHubRepositoryCatalog>("github_list_repositories");
+      githubRepositories = catalog.repositories;
+      githubInstallations = catalog.installations;
+    } catch (error) { githubError = String(error); }
+    finally { githubBusy = false; }
+  }
+
+  async function installGithubApp() {
+    try { await openUrl(await invoke<string>("github_installation_url")); }
+    catch (error) { githubError = String(error); }
+  }
+
+  function githubRepositoryProjects(repository: GitHubRepository) {
+    return chats.slice(1).filter((project) => (project.resources ?? []).some((resource) => resource.kind === "repository" && resource.location === repository.html_url));
+  }
+
+  async function toggleGithubRepositoryProject(repository: GitHubRepository, projectId: string) {
+    const project = chats.find((item) => item.id === projectId);
+    if (!project || githubBusy) return;
+    const resources = [...(project.resources ?? [])];
+    const existingIndex = resources.findIndex((resource) => resource.kind === "repository" && resource.location === repository.html_url);
+    if (existingIndex >= 0) resources.splice(existingIndex, 1);
+    else resources.push({
+      id: `github-${repository.id}`,
+      kind: "repository",
+      label: repository.full_name,
+      location: repository.html_url,
+      notes: `GitHub · ${repository.default_branch}`,
+      agent_access: true
+    });
+    if (!inTauri()) {
+      chats = chats.map((item) => item.id === project.id ? { ...item, resources } : item);
+      return;
+    }
+    githubBusy = true;
+    githubError = "";
+    try {
+      const updated = await invoke<ProjectRecord>("set_project_resources", { id: project.id, resources, expectedVersion: project.version });
+      chats = chats.map((item) => item.id === updated.id ? { ...updated, resources: updated.resources ?? [], telegram_chats: updated.telegram_chats ?? [], open: item.open } : item);
+    } catch (error) { githubError = String(error); }
+    finally { githubBusy = false; }
+  }
+
+  async function disconnectGithub() {
+    if (githubBusy) return;
+    githubBusy = true;
+    githubError = "";
+    try {
+      githubStatus = await invoke<GitHubStatus>("github_disconnect");
+      githubRepositories = [];
+      githubInstallations = [];
+      githubDeviceCode = null;
+    } catch (error) { githubError = String(error); }
+    finally { githubBusy = false; }
   }
 
   async function runTelegramAction(action: () => Promise<unknown>) {
@@ -2374,7 +2670,9 @@
   function applyTelegramSyncStatus(status: TelegramSyncStatus | null | undefined) {
     if (!status) return;
     telegramSyncState = status.health;
-    telegramSyncErrors = status.errors;
+    // Sync status files created by older releases do not contain `errors`.
+    // Normalize them at the boundary so opening the connector cannot crash.
+    telegramSyncErrors = status.errors ?? [];
     telegramSyncSummary = {
       added: status.added_candidates,
       downloaded: status.downloaded_media,
@@ -2431,6 +2729,11 @@
 
   async function runMcpSelfCheck() {
     if (mcpCheckState === "checking") return;
+    if (!inTauri()) {
+      mcpCheckState = "idle";
+      mcpSelfCheck = null;
+      return;
+    }
     mcpCheckState = "checking";
     mcpSelfCheck = null;
     try {
@@ -2444,8 +2747,8 @@
       storeDiagnostics = diagnostics;
       mcpSelfCheck = selfCheck;
       mcpCheckState = runtime.available && runtime.compatible && diagnostics.healthy && selfCheck.passed ? "success" : "error";
-    } catch (error) {
-      mcpSelfCheck = { passed: false, duration_ms: 0, checks: [{ name: t("mcpSelfCheckFailed"), passed: false, detail: String(error) }] };
+    } catch {
+      mcpSelfCheck = { passed: false, duration_ms: 0, checks: [{ name: t("mcpSelfCheckFailed"), passed: false, detail: t("mcpSelfCheckRetry") }] };
       mcpCheckState = "error";
     }
   }
@@ -2504,9 +2807,9 @@
       mcpActivityNextCursor = page.next_cursor ?? "";
       mcpActivityRemaining = page.remaining;
       mcpActivityState = "idle";
-    } catch (error) {
+    } catch {
       mcpActivityState = "error";
-      mcpActivityError = String(error);
+      mcpActivityError = t("mcpActivityRetry");
     }
   }
 
@@ -2514,8 +2817,29 @@
     return t(mode === "manual" ? "telegramModeManual" : mode === "all" ? "telegramModeAll" : "telegramModeMentions");
   }
 
-  function openTelegramConnections(projectId: string) {
+  function telegramChatTypeLabel(kind?: TelegramChat["kind"]) {
+    if (kind === "private") return t("telegramChatPrivate");
+    if (kind === "secret") return t("telegramChatSecret");
+    if (kind === "direct") return t("telegramChatDirect");
+    if (kind === "channel") return t("telegramChatChannel");
+    if (kind === "group") return t("telegramChatGroup");
+    return t("telegramChatUnknown");
+  }
+
+  function telegramChatMeta(chat: TelegramChat) {
+    const type = telegramChatTypeLabel(chat.kind);
+    return chat.username ? `${type} · @${chat.username}` : `${type} · ID ${chat.id}`;
+  }
+
+  function telegramChatDetails(chatId: number) {
+    return telegramChats.find((chat) => chat.id === chatId)
+      ?? telegramSearchResults.find((chat) => chat.id === chatId);
+  }
+
+  function openTelegramConnections(projectId: string, fromIntegration = false) {
     if (!telegramPickerProjectId) telegramConnectionsReturnFocus = focusedElement();
+    telegramConnectionsOpenedFromIntegration = fromIntegration;
+    if (fromIntegration) integrationModal = null;
     telegramPickerProjectId = projectId;
     telegramChatSearch = "";
     telegramSearchResults = [];
@@ -2525,13 +2849,20 @@
 
   function closeTelegramConnections() {
     const returnFocus = telegramConnectionsReturnFocus;
+    const returnToIntegration = telegramConnectionsOpenedFromIntegration;
     telegramConnectionsReturnFocus = null;
+    telegramConnectionsOpenedFromIntegration = false;
     window.clearTimeout(telegramSearchTimer);
     telegramPickerProjectId = "";
     telegramChatSearch = "";
     telegramSearchResults = [];
     telegramSearchLoading = false;
-    restoreModalFocus(returnFocus);
+    if (returnToIntegration) {
+      integrationModal = "telegram";
+      void tick().then(() => document.querySelector<HTMLElement>(".integration-modal")?.focus());
+    } else {
+      restoreModalFocus(returnFocus);
+    }
   }
 
   function searchTelegramChats(value: string) {
@@ -2559,7 +2890,14 @@
   }
 
   async function saveProjectTelegramLinks(project: ChatItem, links: TelegramProjectLink[]) {
+    if (telegramConnectionsSaving) return;
+    telegramConnectionsSaving = true;
     try {
+      if (!inTauri()) {
+        chats = chats.map((chat) => chat.id === project.id ? { ...chat, telegram_chats: links } : chat);
+        telegramError = "";
+        return;
+      }
       const updated = await invoke<ProjectRecord>("set_project_telegram_chats", {
         id: project.id,
         telegramChats: links,
@@ -2574,6 +2912,8 @@
       telegramError = "";
     } catch (error) {
       telegramError = String(error);
+    } finally {
+      telegramConnectionsSaving = false;
     }
   }
 
@@ -3264,9 +3604,9 @@
     if (new URLSearchParams(window.location.search).get("preview") !== "mcp-readiness") return;
     activeSection = "settings";
     settingsSection = "mcp";
-    appVersion = "0.1.4";
+    appVersion = "0.1.5";
     mcpExecutable = "C:\\Program Files\\flood.md\\flood-mcp.exe";
-    mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.1.4", app_version: "0.1.4", compatible: true, source: "bundled" };
+    mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.1.5", app_version: "0.1.5", compatible: true, source: "bundled" };
     storeDiagnostics = { healthy: true, root: "preview", format_version: 1, project_count: 4, linked_chat_count: 2, open_task_count: 12, completed_task_count: 8, trashed_task_count: 1, pending_inbox_count: 5, issues: [] };
     mcpSelfCheck = { passed: true, duration_ms: 34, checks: [
       { name: "Изолированное хранилище", passed: true },
@@ -3285,6 +3625,31 @@
     attachmentCleanupReport = { total_files: 42, total_bytes: 8_800_000, orphaned_files: 3, orphaned_bytes: 640_000 };
     telegramStatus = { step: "ready", configured: true, managed_credentials: true, account_name: "Олег" };
     telegramSyncState = "partial";
+  }
+
+  function applyIntegrationsDevPreview() {
+    if (!import.meta.env.DEV || inTauri()) return;
+    const preview = new URLSearchParams(window.location.search).get("preview");
+    if (preview !== "integrations" && preview !== "github-connector") return;
+    const now = new Date().toISOString();
+    const project: ChatItem = { id: "preview-project", title: "flood.md", context: "", resources: [], created_at: now, updated_at: now, telegram_chats: [], version: "preview", open: 6 };
+    chats = [allChat(6), project];
+    activeSection = "settings";
+    settingsSection = "integrations";
+    loading = false;
+    telegramStatus = { step: "ready", configured: true, managed_credentials: true, account_name: "Олег" };
+    telegramChats = [
+      { id: -1001, title: "Tenebra", kind: "channel", username: "tenebra_app" },
+      { id: 1002, title: "Tenebra", kind: "direct", username: "tenebra_direct" },
+      { id: -1003, title: "Команда продукта", kind: "group" }
+    ];
+    githubStatus = { configured: true, managed_app: true, connected: true, needs_reauthorization: false, credential_store_available: true, app_slug: "flood-md", account: { id: 1, login: "tillwithered", name: "Oleg", avatar_url: "", html_url: "https://github.com/tillwithered" } };
+    githubInstallations = [{ id: 1, account_login: "tillwithered", account_type: "User", repository_selection: "selected", html_url: "https://github.com/settings/installations/1" }];
+    githubRepositories = [
+      { id: 1, installation_id: 1, name: "flood.md", full_name: "tillwithered/flood.md", private: false, html_url: "https://github.com/tillwithered/flood.md", description: "Локальные задачи без лишнего шума", default_branch: "main", archived: false, pushed_at: now, owner_avatar_url: "" },
+      { id: 2, installation_id: 1, name: "zakup", full_name: "tillwithered/zakup", private: true, html_url: "https://github.com/tillwithered/zakup", description: "Рабочий продукт", default_branch: "main", archived: false, pushed_at: now, owner_avatar_url: "" }
+    ];
+    if (preview === "github-connector") void openIntegrationModal("github");
   }
 
   function applyTelegramDevPreview() {
@@ -3373,6 +3738,50 @@
     void tick().then(() => projectContextDialog?.focus());
   }
 
+  function applyTaskSourceDevPreview() {
+    if (!import.meta.env.DEV || inTauri()) return;
+    if (new URLSearchParams(window.location.search).get("preview") !== "task-source") return;
+    const createdAt = "2026-09-12T01:01:07Z";
+    const project: ChatItem = { id: "preview-project", title: "тест", context: "", resources: [], created_at: createdAt, updated_at: createdAt, telegram_chats: [], version: "preview", open: 1 };
+    const source: MessageSnapshot = {
+      provider: "telegram",
+      chat_id: 1001,
+      chat_title: "Личное",
+      message_id: 15,
+      author: "vetka",
+      sent_at: createdAt,
+      text: "@tillwithered поправь отображение длинного названия проекта, пожалуйста",
+      media: [{ kind: "photo", file_name: "screenshot-project-title.jpg", size: 84_735 }],
+      context: [{ message_id: 15, author: "vetka", sent_at: createdAt, text: "@tillwithered поправь отображение длинного названия проекта, пожалуйста", is_target: true, media: [{ kind: "photo", file_name: "screenshot-project-title.jpg", size: 84_735 }] }]
+    };
+    const task: TaskItem = {
+      id: "preview-task",
+      title: "Исправить отображение длинного названия проекта",
+      chat: project.title,
+      chatId: project.id,
+      updated: createdAt,
+      createdAt,
+      updatedAt: createdAt,
+      urgency: "normal",
+      completed: false,
+      markdown: "Исправить отображение длинного названия проекта\n\n- Проверить компоновку заголовка на узком окне\n- Сохранить доступность действий проекта",
+      source,
+      sourceAuthor: source.author,
+      hasSource: true,
+      version: "preview"
+    };
+    chats = [allChat(1), project];
+    tasks = [task];
+    selectedChatId = project.id;
+    selectedTaskId = task.id;
+    markdown = task.markdown;
+    lastSavedMarkdown = task.markdown;
+    workspaceView = "task";
+    activeSection = "tasks";
+    loading = false;
+    void tick().then(() => renderMarkdown(markdown));
+  }
+
   function minimizeWindow() {
     if (inTauri()) void getCurrentWindow().minimize();
   }
@@ -3399,6 +3808,8 @@
     applySettingsDevPreview();
     applyTelegramDevPreview();
     applyProjectContextDevPreview();
+    applyTaskSourceDevPreview();
+    applyIntegrationsDevPreview();
     const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
     const updateSystemTheme = () => { if (themePreference === "system") applyTheme(); };
     colorScheme.addEventListener("change", updateSystemTheme);
@@ -3418,6 +3829,7 @@
         mcpExecutable = mcpRuntime?.executable_path || await invoke<string>("mcp_executable_path");
         if (mcpRuntime && (!mcpRuntime.available || !mcpRuntime.compatible)) mcpCheckState = "error";
         storeDiagnostics = await invoke<StoreDiagnostics>("diagnose_store").catch(() => null);
+        githubStatus = await invoke<GitHubStatus>("github_status").catch((error) => ({ ...githubStatus, error: String(error) }));
         applyTelegramSyncStatus(await invoke<TelegramSyncStatus | null>("telegram_sync_status").catch(() => null));
         await refreshTelegramSyncRequest();
         await applyTelegramStatus(await invoke<TelegramStatus>("telegram_status"));
@@ -3484,6 +3896,7 @@
       window.clearInterval(telegramRequestTimer);
       window.clearTimeout(telegramSearchTimer);
       window.clearTimeout(telegramDismissUndoTimer);
+      window.clearTimeout(githubAuthTimer);
       window.removeEventListener("blur", flush);
       document.removeEventListener("pointerdown", closeMenus);
       colorScheme.removeEventListener("change", updateSystemTheme);
@@ -3746,7 +4159,11 @@
           <div class="task-meta" aria-label={t("taskMetadata")}>
             <span class="task-project-meta" title={selectedTask.chat}>{selectedTask.chat}</span>
             <span title={fullDate(selectedTask.createdAt)}>{t("created", { date: compactDate(selectedTask.createdAt) })}</span>
-            <span class="source-meta" title={taskSourceLabel(selectedTask)}><FloodGlyph kind="info" size={13} /><span class="source-meta-label">{taskSourceMetaLabel(selectedTask)}</span></span>
+            {#if selectedTask.source}
+              <button class="source-meta" title={taskSourceLabel(selectedTask)} aria-haspopup="dialog" onclick={openSourceViewer}><FloodGlyph kind="info" size={13} /><span class="source-meta-label">{taskSourceMetaLabel(selectedTask)}</span></button>
+            {:else}
+              <span class="source-meta" title={taskSourceLabel(selectedTask)}><FloodGlyph kind="info" size={13} /><span class="source-meta-label">{taskSourceMetaLabel(selectedTask)}</span></span>
+            {/if}
             {#if selectedTask.source?.url}<a href={selectedTask.source.url} target="_blank" rel="noreferrer">{t("openMessage")}</a>{/if}
           </div>
           {#if conflictRemote}
@@ -3756,20 +4173,13 @@
             </div>
           {/if}
           <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label={t("taskEditor")} spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={() => { editorHint = null; clearAttachmentSelection(); void saveNow(); }}></div>
-          {#if selectedTask.source}
-            <button class="source-snapshot" aria-haspopup="dialog" onclick={openSourceViewer}>
-              <FloodGlyph kind="info" size={18} />
-              <span><strong>{selectedTask.source.chat_title || t("sourceMessage")}</strong><small>{selectedTask.source.author || t("notSpecified")}{selectedTask.source.sent_at ? ` · ${fullDate(selectedTask.source.sent_at)}` : ""}</small></span>
-              <span class="source-snapshot-action">{selectedTask.source.media?.length ? t("mediaCount", { count: selectedTask.source.media.length }) : t("viewSource")}<ChevronRight size={14} /></span>
-            </button>
-          {/if}
         </div>
       </section>
     {:else if activeSection === "tasks"}
       <section class="workspace project-workspace">
         <div class="project-page">
           {#if loadError}<div class="data-error"><strong>{t("dataOpenError")}</strong><span>{loadError}</span></div>{/if}
-          <header class="project-header">
+          <header class="project-header project-overview-header">
             <div>
               {#if renameChatOpen}
                 <form class="rename-chat-form" onsubmit={submitRenameChat}><input bind:value={renameChatTitle} aria-label={t("projectName")} /><button aria-label={t("save")}><Check size={16} /></button><button type="button" aria-label={t("cancel")} onclick={() => (renameChatOpen = false)}><X size={16} /></button></form>
@@ -3911,7 +4321,7 @@
               <button class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => openSettingsSection("general")}><Settings size={16} />{t("general")}</button>
               <button class:active={settingsSection === "appearance"} aria-current={settingsSection === "appearance" ? "page" : undefined} onclick={() => openSettingsSection("appearance")}><Palette size={16} />{t("appearance")}</button>
               <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => openSettingsSection("data")}><Database size={16} />{t("data")}</button>
-              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => openSettingsSection("integrations")}><Plug size={16} />{t("integrations")} <span class:connected={telegramStatus.step === "ready"} class:error={["database_error", "error"].includes(telegramStatus.step) || ["partial", "error"].includes(telegramSyncState)} class="integration-chip">{["database_error", "error"].includes(telegramStatus.step) || ["partial", "error"].includes(telegramSyncState) ? "!" : telegramStatus.step === "ready" ? "1" : "·"}</span></button>
+              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => openSettingsSection("integrations")}><Plug size={16} />{t("integrations")} <span class:connected={connectedIntegrationCount() > 0} class:error={integrationNeedsAttention()} class="integration-chip">{integrationNeedsAttention() ? "!" : connectedIntegrationCount() || "·"}</span></button>
               <button class:active={settingsSection === "mcp"} aria-current={settingsSection === "mcp" ? "page" : undefined} onclick={() => openSettingsSection("mcp")}><Bot size={16} />{t("mcpAndAi")} <span class:connected={mcpCheckState === "success"} class:error={mcpCheckState === "error"} class="integration-chip">{mcpCheckState === "success" ? "✓" : "·"}</span></button>
               <button class:active={settingsSection === "about"} aria-current={settingsSection === "about" ? "page" : undefined} onclick={() => openSettingsSection("about")}><Info size={16} />{t("about")}</button>
             </nav>
@@ -3929,115 +4339,87 @@
                       <button onclick={continueInitialSetup}>{setupHasProject ? t("addFirstTask") : t("createFirstProject")}<ArrowRight size={14} /></button>
                     </div>
                   {/if}
-                  <div class="setting-static"><span><Languages size={16} /><span><strong>{t("language")}</strong><small>{t("interfaceLanguage")}</small></span></span><div class="language-picker" aria-label={t("interfaceLanguage")}><button class:active={locale === "ru"} aria-pressed={locale === "ru"} onclick={() => setLocale("ru")}>{t("russian")}</button><button class:active={locale === "en"} aria-pressed={locale === "en"} onclick={() => setLocale("en")}>{t("english")}</button></div></div>
-                  <button class:active={showCompleted} class="setting-row" role="switch" aria-checked={showCompleted} onclick={toggleCompletedVisibility}><span><ListTodo size={16} /><span><strong>{t("showCompleted")}</strong><small>{t("showCompletedDescription")}</small></span></span><span class="switch"><span></span></span></button>
+                  <h4 class="settings-group-label">{t("settingsBehavior")}</h4>
+                  <div class="settings-group">
+                    <div class="setting-static"><span><Languages size={16} /><span><strong>{t("language")}</strong><small>{t("interfaceLanguage")}</small></span></span><div class="language-picker" aria-label={t("interfaceLanguage")}><button class:active={locale === "ru"} aria-pressed={locale === "ru"} onclick={() => setLocale("ru")}>{t("russian")}</button><button class:active={locale === "en"} aria-pressed={locale === "en"} onclick={() => setLocale("en")}>{t("english")}</button></div></div>
+                    <button class:active={showCompleted} class="setting-row" role="switch" aria-checked={showCompleted} onclick={toggleCompletedVisibility}><span><ListTodo size={16} /><span><strong>{t("showCompleted")}</strong><small>{t("showCompletedDescription")}</small></span></span><span class="switch"><span></span></span></button>
+                  </div>
                 </section>
               {:else if settingsSection === "appearance"}
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>{t("appearance")}</h3><p>{t("appearanceDescription")}</p></div>
-                  <div class="settings-control"><strong>{t("theme")}</strong><div class="theme-picker" aria-label={t("interfaceTheme")}><button class:active={themePreference === "system"} aria-pressed={themePreference === "system"} onclick={() => setTheme("system")}>{t("systemTheme")}</button><button class:active={themePreference === "light"} aria-pressed={themePreference === "light"} onclick={() => setTheme("light")}>{t("lightTheme")}</button><button class:active={themePreference === "dark"} aria-pressed={themePreference === "dark"} onclick={() => setTheme("dark")}>{t("darkTheme")}</button></div></div>
-                  <button class:active={reduceMotion} class="setting-row" role="switch" aria-checked={reduceMotion} onclick={toggleMotionPreference}><span><span><strong>{t("reduceMotion")}</strong><small>{t("reduceMotionDescription")}</small></span></span><span class="switch"><span></span></span></button>
+                  <h4 class="settings-group-label">{t("settingsInterface")}</h4>
+                  <div class="settings-group">
+                    <div class="setting-static"><span><Palette size={16} /><span><strong>{t("theme")}</strong><small>{t("interfaceTheme")}</small></span></span><div class="theme-picker" aria-label={t("interfaceTheme")}><button class:active={themePreference === "system"} aria-pressed={themePreference === "system"} onclick={() => setTheme("system")}>{t("systemTheme")}</button><button class:active={themePreference === "light"} aria-pressed={themePreference === "light"} onclick={() => setTheme("light")}>{t("lightTheme")}</button><button class:active={themePreference === "dark"} aria-pressed={themePreference === "dark"} onclick={() => setTheme("dark")}>{t("darkTheme")}</button></div></div>
+                    <button class:active={reduceMotion} class="setting-row" role="switch" aria-checked={reduceMotion} onclick={toggleMotionPreference}><span><span><strong>{t("reduceMotion")}</strong><small>{t("reduceMotionDescription")}</small></span></span><span class="switch"><span></span></span></button>
+                  </div>
                 </section>
               {:else if settingsSection === "data"}
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>{t("data")}</h3><p>{t("dataDescription")}</p></div>
-                  <div class="data-location"><span><FolderOpen size={17} /><span><strong>{t("tasksFolder")}</strong><code>{dataDirectory || t("availableInApp")}</code></span></span><button onclick={openDataDirectory} disabled={!dataDirectory}>{t("open")}</button></div>
-                  <div class="data-location attachment-cleanup-row">
-                    <span><Paperclip size={17} /><span><strong>{t("unusedAttachments")}</strong><small>{#if attachmentCleanupState === "checking"}{t("checkingAttachments")}{:else if attachmentCleanupReport}{attachmentCleanupReport.orphaned_files ? t("attachmentCleanupSummary", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) }) : t("attachmentsHealthy")}{:else}{t("unusedAttachmentsDescription")}{/if}</small></span></span>
-                    {#if attachmentCleanupReport?.orphaned_files}
-                      <button class="danger-text" onclick={() => (attachmentCleanupConfirm = true)} disabled={attachmentCleanupState === "checking" || attachmentCleanupState === "cleaning"}><Trash2 size={14} />{t("cleanAttachments")}</button>
-                    {:else}
-                      <button onclick={loadAttachmentCleanupReport} disabled={attachmentCleanupState === "checking" || attachmentCleanupState === "cleaning"}><RefreshCw class={attachmentCleanupState === "checking" ? "spinning" : ""} size={14} />{t("checkAttachments")}</button>
+                  <h4 class="settings-group-label">{t("settingsStorage")}</h4>
+                  <div class="settings-group">
+                    <div class="data-location"><span><FolderOpen size={17} /><span><strong>{t("tasksFolder")}</strong><code>{dataDirectory || t("availableInApp")}</code></span></span><button onclick={openDataDirectory} disabled={!dataDirectory}>{t("open")}</button></div>
+                    <div class="data-location attachment-cleanup-row">
+                      <span><Paperclip size={17} /><span><strong>{t("unusedAttachments")}</strong><small>{#if attachmentCleanupState === "checking"}{t("checkingAttachments")}{:else if attachmentCleanupReport}{attachmentCleanupReport.orphaned_files ? t("attachmentCleanupSummary", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) }) : t("attachmentsHealthy")}{:else}{t("unusedAttachmentsDescription")}{/if}</small></span></span>
+                      {#if attachmentCleanupReport?.orphaned_files}
+                        <button class="danger-text" onclick={() => (attachmentCleanupConfirm = true)} disabled={attachmentCleanupState === "checking" || attachmentCleanupState === "cleaning"}><Trash2 size={14} />{t("cleanAttachments")}</button>
+                      {:else}
+                        <button onclick={loadAttachmentCleanupReport} disabled={attachmentCleanupState === "checking" || attachmentCleanupState === "cleaning"}><RefreshCw class={attachmentCleanupState === "checking" ? "spinning" : ""} size={14} />{t("checkAttachments")}</button>
+                      {/if}
+                    </div>
+                    {#if attachmentCleanupConfirm && attachmentCleanupReport?.orphaned_files}
+                      <div class="restore-confirm attachment-cleanup-confirm" role="alert">
+                        <FloodGlyph kind="important" size={32} />
+                        <span><strong>{t("attachmentCleanupQuestion", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) })}</strong><small>{t("attachmentCleanupWarning")}</small></span>
+                        <div><button onclick={() => (attachmentCleanupConfirm = false)} disabled={attachmentCleanupState === "cleaning"}>{t("cancel")}</button><button class="cleanup-button" onclick={cleanupOrphanedAttachments} disabled={attachmentCleanupState === "cleaning"}>{attachmentCleanupState === "cleaning" ? t("cleaningAttachments") : t("delete")}</button></div>
+                      </div>
                     {/if}
+                    {#if attachmentCleanupMessage}<p class:error={attachmentCleanupState === "error"} class:success={attachmentCleanupState === "success"} class="data-action-message" role="status">{attachmentCleanupMessage}</p>{/if}
                   </div>
-                  {#if attachmentCleanupConfirm && attachmentCleanupReport?.orphaned_files}
-                    <div class="restore-confirm attachment-cleanup-confirm" role="alert">
-                      <FloodGlyph kind="important" size={32} />
-                      <span><strong>{t("attachmentCleanupQuestion", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) })}</strong><small>{t("attachmentCleanupWarning")}</small></span>
-                      <div><button onclick={() => (attachmentCleanupConfirm = false)} disabled={attachmentCleanupState === "cleaning"}>{t("cancel")}</button><button class="cleanup-button" onclick={cleanupOrphanedAttachments} disabled={attachmentCleanupState === "cleaning"}>{attachmentCleanupState === "cleaning" ? t("cleaningAttachments") : t("delete")}</button></div>
+                  <h4 class="settings-group-label">{t("settingsBackups")}</h4>
+                  <div class="settings-group settings-actions-group">
+                    <div class="data-actions">
+                      <button onclick={createDataBackup} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><Download size={15} />{dataActionState === "backing-up" ? t("backingUp") : t("createBackup")}</button>
+                      <button onclick={chooseBackupToRestore} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><RotateCcw size={15} />{t("restoreBackup")}</button>
+                      <button onclick={() => loadData(true)} disabled={dataActionState === "restoring"}><RefreshCw size={15} />{t("reload")}</button>
                     </div>
-                  {/if}
-                  {#if attachmentCleanupMessage}<p class:error={attachmentCleanupState === "error"} class:success={attachmentCleanupState === "success"} class="data-action-message" role="status">{attachmentCleanupMessage}</p>{/if}
-                  <div class="data-actions">
-                    <button onclick={createDataBackup} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><Download size={15} />{dataActionState === "backing-up" ? t("backingUp") : t("createBackup")}</button>
-                    <button onclick={chooseBackupToRestore} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><RotateCcw size={15} />{t("restoreBackup")}</button>
-                    <button onclick={() => loadData(true)} disabled={dataActionState === "restoring"}><RefreshCw size={15} />{t("reload")}</button>
+                    {#if pendingRestorePath}
+                      <div class="restore-confirm" role="alert">
+                        <FloodGlyph kind="info" size={32} />
+                        <span><strong>{t("restoreBackupQuestion", { file: fileName(pendingRestorePath) })}</strong><small>{t("restoreBackupWarning")}</small></span>
+                        <div><button onclick={() => (pendingRestorePath = "")}>{t("cancel")}</button><button class="restore-button" onclick={restoreDataBackup}>{t("restoreBackup")}</button></div>
+                      </div>
+                    {/if}
+                    {#if dataActionMessage}<p class:error={dataActionState === "error"} class="data-action-message" role="status">{dataActionMessage}</p>{/if}
                   </div>
-                  {#if pendingRestorePath}
-                    <div class="restore-confirm" role="alert">
-                      <FloodGlyph kind="info" size={32} />
-                      <span><strong>{t("restoreBackupQuestion", { file: fileName(pendingRestorePath) })}</strong><small>{t("restoreBackupWarning")}</small></span>
-                      <div><button onclick={() => (pendingRestorePath = "")}>{t("cancel")}</button><button class="restore-button" onclick={restoreDataBackup}>{t("restoreBackup")}</button></div>
-                    </div>
-                  {/if}
-                  {#if dataActionMessage}<p class:error={dataActionState === "error"} class="data-action-message" role="status">{dataActionMessage}</p>{/if}
                 </section>
               {:else if settingsSection === "integrations"}
-                <section class="settings-section">
+                <section class="settings-section integrations-settings-section">
                   <div class="settings-section-title"><h3>{t("integrations")}</h3><p>{t("integrationsDescription")}</p></div>
-                  <div class="integration-card telegram-card">
-                    <div class="integration-head"><span><FloodGlyph kind={["database_error", "error"].includes(telegramStatus.step) ? "urgent" : telegramStatus.step === "ready" ? "connected" : "brand"} size={18} motion={telegramStatus.step === "ready" ? "pop" : "none"} /><span><strong>Telegram</strong><small>{telegramStatus.account_name || t("tdlibClient")}</small></span></span><span class:connected={telegramStatus.step === "ready"} class="status-text">{telegramStatusLabel()}</span></div>
-                    {#if telegramSyncRequest && telegramStatus.step !== "ready"}<div class="telegram-sync-request-note"><FloodGlyph kind="important" size={16} /><span><strong>{t("telegramSyncWaiting")}</strong><small>{t("telegramSyncWaitingDescription")}</small></span></div>{/if}
-                    {#if telegramStatus.step === "unconfigured"}
-                      <p>{t("telegramDescription")}</p>
-                      <form class="telegram-form credentials" onsubmit={configureTelegram}>
-                        <label><span>API ID</span><input bind:value={telegramApiId} inputmode="numeric" autocomplete="off" placeholder="12345678" required /></label>
-                        <label><span>API Hash</span><input bind:value={telegramApiHash} type="password" autocomplete="off" placeholder="••••••••••••••••" required /></label>
-                        <button class="primary-button" disabled={telegramBusy}>{t("connect")}</button>
-                      </form>
-                      <button class="telegram-help" onclick={() => openUrl("https://my.telegram.org/apps")}><ExternalLink size={13} />{t("getTelegramKeys")}</button>
-                    {:else if telegramStatus.step === "phone"}
-                      <p>{t("telegramChooseLogin")}</p>
-                      <div class="telegram-login-options"><button class="primary-button" disabled={telegramBusy} onclick={requestTelegramQr}><QrCode size={15} />{t("loginWithQr")}</button><span>{t("or")}</span></div>
-                      <form class="telegram-form inline" onsubmit={submitTelegramPhone}><label><span>{t("phoneNumber")}</span><input bind:value={telegramPhone} type="tel" autocomplete="tel" placeholder="+7 700 000 00 00" required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
-                    {:else if telegramStatus.step === "qr"}
-                      <div class="telegram-qr">{#if telegramQrDataUrl}<img src={telegramQrDataUrl} alt={t("telegramQrCode")} />{/if}<span><strong>{t("scanQr")}</strong><small>{t("scanQrDescription")}</small></span></div>
-                      <button class="telegram-help" onclick={() => openUrl(telegramStatus.qr_link || "tg://login")}><ExternalLink size={13} />{t("openInTelegram")}</button>
-                    {:else if telegramStatus.step === "code"}
-                      <form class="telegram-form inline" onsubmit={submitTelegramCode}><label><span>{t("telegramCode")}</span><input bind:value={telegramCode} inputmode="numeric" autocomplete="one-time-code" required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
-                    {:else if telegramStatus.step === "password"}
-                      <form class="telegram-form inline" onsubmit={submitTelegramPassword}><label><span>{t("telegramPassword")}</span><input bind:value={telegramPassword} type="password" autocomplete="current-password" placeholder={telegramStatus.password_hint || ""} required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
-                    {:else if telegramStatus.step === "ready"}
-                      <p>{t("telegramReady", { count: telegramChats.length })}</p>
-                      <div class:warning={telegramSyncState === "partial"} class:error={telegramSyncState === "error"} class="telegram-sync-row" role="status" title={telegramSyncErrors.join("\n")}><span><RefreshCw class={telegramSyncState === "syncing" ? "spinning" : ""} size={14} /><span><strong>{t("telegramSynchronization")}</strong><small>{telegramSyncLabel()}</small>{#if telegramSyncErrors[0]}<small class="sync-error">{telegramSyncErrors[0]}{telegramSyncErrors.length > 1 ? ` · +${telegramSyncErrors.length - 1}` : ""}</small>{/if}</span></span><button disabled={telegramSyncState === "syncing"} onclick={() => syncTelegram()}>{t("syncNow")}</button></div>
-                      <div class="telegram-project-links">
-                        <strong>{t("projectConnections")}</strong>
-                        {#each chats.slice(1) as project (project.id)}
-                          <div class="telegram-project-link">
-                            <span><Folder size={14} /><span title={project.title}>{project.title}</span></span>
-                            <div class="telegram-link-summary"><span>{project.telegram_chats.length ? t("linkedChats", { count: project.telegram_chats.length }) : t("notLinked")}</span><button onclick={() => openTelegramConnections(project.id)}>{t("configure")}</button></div>
-                          </div>
-                        {/each}
-                      </div>
-                      <div class="telegram-local-note"><ShieldCheck size={14} /><span><strong>{t("telegramLocalSession")}</strong><small>{t("telegramLocalSessionDescription")}</small></span></div>
-                      <button class="telegram-help danger" disabled={telegramBusy} onclick={disconnectTelegram}><LogOut size={13} />{t("disconnect")}</button>
-                    {:else if telegramStatus.step === "database_error"}
-                      <div class="integration-recovery" role="alert">
-                        <FloodGlyph kind="urgent" size={32} />
-                        <span><strong>{t("telegramDatabaseError")}</strong><small>{t("telegramDatabaseErrorDescription")}</small></span>
-                      </div>
-                      <button class="primary-button recovery-button" disabled={telegramBusy} onclick={resetTelegramDatabase}><RotateCcw size={14} />{t("repairConnection")}</button>
-                    {:else}
-                      <div class="telegram-loading"><RefreshCw class="spinning" size={15} />{t("connecting")}</div>
-                    {/if}
-                    {#if telegramError && telegramStatus.step !== "database_error"}<p class="telegram-error">{telegramError}</p>{/if}
+                  <div class="connector-grid">
+                    <IntegrationCard provider="telegram" title="Telegram" description={t("telegramConnectorDescription")} status={telegramStatusLabel()} detail={telegramStatus.step === "ready" ? t("telegramConnectorDetail", { account: telegramStatus.account_name || "Telegram", projects: chats.slice(1).filter((project) => project.telegram_chats.length).length }) : t("telegramConnectorIdle")} tone={["database_error", "error"].includes(telegramStatus.step) ? "error" : telegramStatus.step === "ready" ? "connected" : telegramStatus.step === "unconfigured" ? "idle" : "attention"} actionLabel={telegramStatus.step === "unconfigured" ? t("connect") : t("manageConnector")} onclick={() => openIntegrationModal("telegram")} />
+                    <IntegrationCard provider="github" title="GitHub" description={t("githubConnectorDescription")} status={githubStatusLabel()} detail={githubStatus.connected ? t("githubConnectorDetail", { account: githubStatus.account?.login || "GitHub", projects: connectedGithubResources() }) : t("githubConnectorIdle")} tone={githubStatusTone()} actionLabel={githubStatus.connected ? t("manageConnector") : t("connect")} onclick={() => openIntegrationModal("github")} />
                   </div>
                 </section>
               {:else if settingsSection === "mcp"}
                 <section class="settings-section mcp-settings-section">
                   <div class="settings-section-title"><h3>{t("mcpAndAi")}</h3><p>{t("mcpPageDescription")}</p></div>
                   <div class="mcp-readiness" aria-label={t("agentReadiness")}>
-                    <div class="mcp-readiness-head"><span><FloodGlyph kind={mcpCheckState === "error" ? "urgent" : mcpCheckState === "success" ? "connected" : "brand"} size={28} /><span><strong>{t("agentReadiness")}</strong><small>{mcpRuntimeLabel()}</small></span></span><button class="mcp-check-button" disabled={mcpCheckState === "checking"} onclick={runMcpSelfCheck}><RefreshCw class={mcpCheckState === "checking" ? "spinning" : ""} size={14} />{t("runSelfCheck")}</button></div>
-                    <div class="readiness-list">
-                      <span class:done={Boolean(mcpRuntime?.available)}><i>{#if mcpRuntime?.available}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("mcpBinary")}</strong><small>{mcpRuntime?.available ? `${fileName(mcpExecutable)} · ${mcpRuntime.version || "?"}` : t("mcpMissingDescription")}</small></span></span>
-                      <span class:done={Boolean(mcpRuntime?.compatible)}><i>{#if mcpRuntime?.compatible}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("versionCompatibility")}</strong><small>{mcpRuntime ? `${t("appVersionLabel")} ${mcpRuntime.app_version} · MCP ${mcpRuntime.version || "?"}` : t("notChecked")}</small></span></span>
-                      <span class:done={Boolean(storeDiagnostics?.healthy)}><i>{#if storeDiagnostics?.healthy}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("storeDiagnostics")}</strong><small>{storeDiagnostics ? t("storageSummary", { projects: storeDiagnostics.project_count, tasks: storeDiagnostics.open_task_count, inbox: storeDiagnostics.pending_inbox_count }) : t("notChecked")}</small></span></span>
-                      <span class:done={Boolean(mcpSelfCheck?.passed)}><i>{#if mcpSelfCheck?.passed}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("isolatedSelfCheck")}</strong><small>{mcpSelfCheck ? t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms }) : t("selfCheckDescription")}</small></span></span>
-                      <button class:attention={Boolean(attachmentCleanupReport?.orphaned_files)} class:done={attachmentCleanupReport?.orphaned_files === 0} onclick={() => openSettingsSection("data")}><i>{#if attachmentCleanupReport?.orphaned_files === 0}<Check size={12} />{:else if attachmentCleanupReport?.orphaned_files}<Paperclip size={11} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("unusedAttachments")}</strong><small>{#if attachmentCleanupReport}{attachmentCleanupReport.orphaned_files ? t("attachmentCleanupSummary", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) }) : t("attachmentsHealthy")}{:else}{t("notChecked")}{/if}</small></span><ChevronRight size={13} /></button>
-                      <button class:attention={Boolean(storeDiagnostics && storeDiagnostics.linked_chat_count > 0 && !telegramAgentReady())} class:done={telegramAgentReady()} onclick={() => openSettingsSection("integrations")}><i>{#if telegramAgentReady()}<Check size={12} />{:else if storeDiagnostics?.linked_chat_count}<Send size={11} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("telegramSynchronization")}</strong><small>{telegramAgentReadinessLabel()}</small></span><ChevronRight size={13} /></button>
-                    </div>
+                    <div class="mcp-readiness-head"><span><FloodGlyph kind={mcpCheckState === "error" ? "urgent" : mcpCheckState === "success" ? "connected" : "brand"} size={28} /><span><strong>{t("agentReadiness")}</strong><small>{mcpRuntimeLabel()}</small></span></span><button class="mcp-check-button" disabled={!inTauri() || mcpCheckState === "checking"} onclick={runMcpSelfCheck}><RefreshCw class={mcpCheckState === "checking" ? "spinning" : ""} size={14} />{t("runSelfCheck")}</button></div>
+                    <details class="mcp-readiness-details">
+                      <summary><span><ListChecks size={15} />{t("mcpCheckDetails")}</span><small>{mcpSelfCheck ? t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms }) : t("notChecked")}</small><ChevronDown size={14} /></summary>
+                      <div class="readiness-list">
+                        <span class:done={Boolean(mcpRuntime?.available)}><i>{#if mcpRuntime?.available}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("mcpBinary")}</strong><small>{mcpRuntime?.available ? `${fileName(mcpExecutable)} · ${mcpRuntime.version || "?"}` : t("mcpMissingDescription")}</small></span></span>
+                        <span class:done={Boolean(mcpRuntime?.compatible)}><i>{#if mcpRuntime?.compatible}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("versionCompatibility")}</strong><small>{mcpRuntime ? `${t("appVersionLabel")} ${mcpRuntime.app_version} · MCP ${mcpRuntime.version || "?"}` : t("notChecked")}</small></span></span>
+                        <span class:done={Boolean(storeDiagnostics?.healthy)}><i>{#if storeDiagnostics?.healthy}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("storeDiagnostics")}</strong><small>{storeDiagnostics ? t("storageSummary", { projects: storeDiagnostics.project_count, tasks: storeDiagnostics.open_task_count, inbox: storeDiagnostics.pending_inbox_count }) : t("notChecked")}</small></span></span>
+                        <span class:done={Boolean(mcpSelfCheck?.passed)}><i>{#if mcpSelfCheck?.passed}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("isolatedSelfCheck")}</strong><small>{mcpSelfCheck ? t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms }) : t("selfCheckDescription")}</small></span></span>
+                        <button class:attention={Boolean(attachmentCleanupReport?.orphaned_files)} class:done={attachmentCleanupReport?.orphaned_files === 0} onclick={() => openSettingsSection("data")}><i>{#if attachmentCleanupReport?.orphaned_files === 0}<Check size={12} />{:else if attachmentCleanupReport?.orphaned_files}<Paperclip size={11} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("unusedAttachments")}</strong><small>{#if attachmentCleanupReport}{attachmentCleanupReport.orphaned_files ? t("attachmentCleanupSummary", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) }) : t("attachmentsHealthy")}{:else}{t("notChecked")}{/if}</small></span><ChevronRight size={13} /></button>
+                        <button class:attention={Boolean(storeDiagnostics && storeDiagnostics.linked_chat_count > 0 && !telegramAgentReady())} class:done={telegramAgentReady()} onclick={() => openSettingsSection("integrations")}><i>{#if telegramAgentReady()}<Check size={12} />{:else if storeDiagnostics?.linked_chat_count}<Send size={11} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("telegramSynchronization")}</strong><small>{telegramAgentReadinessLabel()}</small></span><ChevronRight size={13} /></button>
+                      </div>
+                    </details>
                     {#if mcpSelfCheck}
-                      <details class:error={!mcpSelfCheck.passed} class="mcp-check-result" open={!mcpSelfCheck.passed}>
+                      <details class:error={!mcpSelfCheck.passed} class="mcp-check-result">
                         <summary><span>{#if mcpSelfCheck.passed}<CheckCircle2 size={14} />{:else}<X size={14} />{/if}<strong>{mcpSelfCheck.passed ? t("allChecksPassed") : t("someChecksFailed")}</strong></span><small>{t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms })}</small><ChevronDown size={14} /></summary>
                         <ul>{#each mcpSelfCheck.checks as check}<li class:passed={check.passed}>{#if check.passed}<Check size={12} />{:else}<X size={12} />{/if}<span>{check.name}{check.detail ? `: ${check.detail}` : ""}</span></li>{/each}</ul>
                       </details>
@@ -4082,7 +4464,7 @@
                   <div class="mcp-block mcp-examples">
                     <div class="mcp-block-title"><MessageSquareText size={17} /><span><strong>{t("mcpExampleTitle")}</strong><small>{t("mcpExampleDescription")}</small></span></div>
                     <div class="mcp-example-list">
-                      {#each [{ icon: ListTodo, prompt: t("mcpPromptPriorities") }, { icon: ListChecks, prompt: t("mcpPromptTelegram") }, { icon: Search, prompt: t("mcpPromptSearch") }, { icon: ShieldCheck, prompt: t("mcpPromptDiagnostics") }] as example (example.prompt)}
+                      {#each [{ icon: ListChecks, prompt: t("mcpPromptProjectTriage") }, { icon: MessageSquareText, prompt: t("mcpPromptTaskWork") }, { icon: ListTodo, prompt: t("mcpPromptPriorities") }, { icon: Search, prompt: t("mcpPromptSearch") }, { icon: ShieldCheck, prompt: t("mcpPromptDiagnostics") }] as example (example.prompt)}
                         <button onclick={() => copyMcpPrompt(example.prompt)}><svelte:component this={example.icon} size={15} /><span>{example.prompt}</span><small>{copiedMcpPrompt === example.prompt ? t("copied") : t("copyPrompt")}</small></button>
                       {/each}
                     </div>
@@ -4096,21 +4478,25 @@
               {:else}
                 <section class="settings-section">
                   <div class="settings-section-title"><h3>{t("about")}</h3><p>flood.md {appVersion}</p></div>
-                  <div class="about-brand"><FloodGlyph kind="brand" size={42} /><span><strong>flood.md</strong><small>{t("localTasksNoNoise")}</small></span></div>
-                  {#if installationRuntime}
-                    <div class="installation-runtime">
-                      <span class="installation-runtime-summary"><FloodGlyph kind={installationRuntime.parallel_installed_copy ? "important" : installationRuntime.kind === "installed" ? "connected" : "brand"} size={18} /><span><strong>{t("applicationLaunch")}</strong><small>{installationKindLabel()}</small></span></span>
-                      <div class="installation-path"><code title={installationRuntime.executable_path}>{installationRuntime.executable_path}</code><button onclick={() => openApplicationDirectory(installationRuntime!.directory_path)}><FolderOpen size={14} />{t("openFolder")}</button></div>
-                    </div>
-                    {#if installationRuntime.parallel_installed_copy}
-                      <div class="parallel-install-warning" role="status">
-                        <FloodGlyph kind="important" size={18} />
-                        <span><strong>{t("parallelInstallFound")}</strong><small>{t("parallelInstallDescription")}</small><code title={installationRuntime.parallel_installed_copy}>{installationRuntime.parallel_installed_copy}</code></span>
-                        <button onclick={() => openApplicationDirectory(fileDirectory(installationRuntime!.parallel_installed_copy!))}><FolderOpen size={14} />{t("show")}</button>
+                  <h4 class="settings-group-label">{t("settingsApplication")}</h4>
+                  <div class="settings-group about-group">
+                    <div class="about-brand"><FloodGlyph kind="brand" size={42} /><span><strong>flood.md</strong><small>{t("localTasksNoNoise")}</small></span></div>
+                    {#if installationRuntime}
+                      <div class="installation-runtime">
+                        <span class="installation-runtime-summary"><FloodGlyph kind={installationRuntime.parallel_installed_copy ? "important" : installationRuntime.kind === "installed" ? "connected" : "brand"} size={18} /><span><strong>{t("applicationLaunch")}</strong><small>{installationKindLabel()}</small></span></span>
+                        <div class="installation-path"><code title={installationRuntime.executable_path}>{installationRuntime.executable_path}</code><button onclick={() => openApplicationDirectory(installationRuntime!.directory_path)}><FolderOpen size={14} />{t("openFolder")}</button></div>
                       </div>
+                      {#if installationRuntime.parallel_installed_copy}
+                        <div class="parallel-install-warning" role="status">
+                          <FloodGlyph kind="important" size={18} />
+                          <span><strong>{t("parallelInstallFound")}</strong><small>{t("parallelInstallDescription")}</small><code title={installationRuntime.parallel_installed_copy}>{installationRuntime.parallel_installed_copy}</code></span>
+                          <button onclick={() => openApplicationDirectory(fileDirectory(installationRuntime!.parallel_installed_copy!))}><FolderOpen size={14} />{t("show")}</button>
+                        </div>
+                      {/if}
                     {/if}
-                  {/if}
-                  <div class:error={updateState === "error"} class:success={updateState === "current" && Boolean(updateMessage)} class="update-row"><span><strong>{t("updates")}</strong><small>{updateMessage || (installationRuntime?.kind === "development" ? t("updateDevelopmentDescription") : t("updateViaGithub"))}</small>{#if updateState === "downloading"}<progress max="100" value={updateProgress}></progress>{/if}</span>{#if updateState === "available"}<button class="primary-small" onclick={installAvailableUpdate}><Download size={15} />{t("installVersion", { version: availableUpdate?.version ?? "" })}</button>{:else}<button onclick={checkForUpdates} disabled={updateState === "checking" || updateState === "downloading" || installationRuntime?.kind === "development"}><span class:spinning={updateState === "checking"} class="update-icon"><RefreshCw size={15} /></span>{updateState === "checking" ? t("checking") : t("check")}</button>{/if}</div>
+                  </div>
+                  <h4 class="settings-group-label">{t("updates")}</h4>
+                  <div class="settings-group"><div class:error={updateState === "error"} class:success={updateState === "current" && Boolean(updateMessage)} class="update-row"><span><strong>{t("updates")}</strong><small>{updateMessage || (installationRuntime?.kind === "development" ? t("updateDevelopmentDescription") : t("updateViaGithub"))}</small>{#if updateState === "downloading"}<progress max="100" value={updateProgress}></progress>{/if}</span>{#if updateState === "available"}<button class="primary-small" onclick={installAvailableUpdate}><Download size={15} />{t("installVersion", { version: availableUpdate?.version ?? "" })}</button>{:else}<button onclick={checkForUpdates} disabled={updateState === "checking" || updateState === "downloading" || installationRuntime?.kind === "development"}><span class:spinning={updateState === "checking"} class="update-icon"><RefreshCw size={15} /></span>{updateState === "checking" ? t("checking") : t("check")}</button>{/if}</div></div>
                   <button class="settings-action" onclick={() => openUrl("https://github.com/tillwithered/flood.md")}><ExternalLink size={15} />{t("openGithub")}</button>
                 </section>
               {/if}
@@ -4122,8 +4508,113 @@
   </div>
 </main>
 
+{#if integrationModal === "telegram"}
+  <IntegrationModal provider="telegram" title="Telegram" subtitle={telegramStatus.account_name || t("tdlibClient")} closeLabel={t("close")} onclose={closeIntegrationModal} onkeydown={trapModalFocus}>
+    <div class="connector-management">
+      <div class="connector-management-status"><FloodGlyph kind={["database_error", "error"].includes(telegramStatus.step) ? "urgent" : telegramStatus.step === "ready" ? "connected" : "info"} size={20} /><span><strong>{telegramStatusLabel()}</strong><small>{t("telegramConnectorDescription")}</small></span></div>
+      {#if telegramSyncRequest && telegramStatus.step !== "ready"}<div class="telegram-sync-request-note"><FloodGlyph kind="important" size={16} /><span><strong>{t("telegramSyncWaiting")}</strong><small>{t("telegramSyncWaitingDescription")}</small></span></div>{/if}
+      {#if telegramStatus.step === "unconfigured"}
+        <p>{t("telegramDescription")}</p>
+        <form class="telegram-form credentials" onsubmit={configureTelegram}>
+          <label><span>API ID</span><input bind:value={telegramApiId} inputmode="numeric" autocomplete="off" placeholder="12345678" required /></label>
+          <label><span>API Hash</span><input bind:value={telegramApiHash} type="password" autocomplete="off" placeholder="••••••••••••••••" required /></label>
+          <button class="primary-button" disabled={telegramBusy}>{t("connect")}</button>
+        </form>
+        <button class="telegram-help" onclick={() => openUrl("https://my.telegram.org/apps")}><ExternalLink size={13} />{t("getTelegramKeys")}</button>
+      {:else if telegramStatus.step === "phone"}
+        <p>{t("telegramChooseLogin")}</p>
+        <div class="telegram-login-options"><button class="primary-button" disabled={telegramBusy} onclick={requestTelegramQr}><QrCode size={15} />{t("loginWithQr")}</button><span>{t("or")}</span></div>
+        <form class="telegram-form inline" onsubmit={submitTelegramPhone}><label><span>{t("phoneNumber")}</span><input bind:value={telegramPhone} type="tel" autocomplete="tel" placeholder="+7 700 000 00 00" required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
+      {:else if telegramStatus.step === "qr"}
+        <div class="telegram-qr">{#if telegramQrDataUrl}<img src={telegramQrDataUrl} alt={t("telegramQrCode")} />{/if}<span><strong>{t("scanQr")}</strong><small>{t("scanQrDescription")}</small></span></div>
+        <button class="telegram-help" onclick={() => openUrl(telegramStatus.qr_link || "tg://login")}><ExternalLink size={13} />{t("openInTelegram")}</button>
+      {:else if telegramStatus.step === "code"}
+        <form class="telegram-form inline" onsubmit={submitTelegramCode}><label><span>{t("telegramCode")}</span><input bind:value={telegramCode} inputmode="numeric" autocomplete="one-time-code" required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
+      {:else if telegramStatus.step === "password"}
+        <form class="telegram-form inline" onsubmit={submitTelegramPassword}><label><span>{t("telegramPassword")}</span><input bind:value={telegramPassword} type="password" autocomplete="current-password" placeholder={telegramStatus.password_hint || ""} required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
+      {:else if telegramStatus.step === "ready"}
+        <div class:warning={telegramSyncState === "partial"} class:error={telegramSyncState === "error"} class="telegram-sync-row" role="status" title={telegramSyncErrors.join("\n")}><span><RefreshCw class={telegramSyncState === "syncing" ? "spinning" : ""} size={14} /><span><strong>{t("telegramSynchronization")}</strong><small>{telegramSyncLabel()}</small>{#if telegramSyncErrors[0]}<small class="sync-error">{telegramSyncErrors[0]}{telegramSyncErrors.length > 1 ? ` · +${telegramSyncErrors.length - 1}` : ""}</small>{/if}</span></span><button disabled={telegramSyncState === "syncing"} onclick={() => syncTelegram()}>{t("syncNow")}</button></div>
+        <div class="telegram-project-links">
+          <strong>{t("projectConnections")}</strong>
+          {#each chats.slice(1) as project (project.id)}
+            <div class="telegram-project-link"><span><Folder size={14} /><span title={project.title}>{project.title}</span></span><div class="telegram-link-summary"><span>{project.telegram_chats.length ? t("linkedChats", { count: project.telegram_chats.length }) : t("notLinked")}</span><button onclick={() => openTelegramConnections(project.id, true)}>{t("configure")}</button></div></div>
+          {/each}
+        </div>
+        <div class="telegram-local-note"><ShieldCheck size={14} /><span><strong>{t("telegramLocalSession")}</strong><small>{t("telegramLocalSessionDescription")}</small></span></div>
+        <button class="telegram-help danger" disabled={telegramBusy} onclick={disconnectTelegram}><LogOut size={13} />{t("disconnect")}</button>
+      {:else if telegramStatus.step === "database_error"}
+        <div class="integration-recovery" role="alert"><FloodGlyph kind="urgent" size={32} /><span><strong>{t("telegramDatabaseError")}</strong><small>{t("telegramDatabaseErrorDescription")}</small></span></div>
+        <button class="primary-button recovery-button" disabled={telegramBusy} onclick={resetTelegramDatabase}><RotateCcw size={14} />{t("repairConnection")}</button>
+      {:else}
+        <div class="telegram-loading"><RefreshCw class="spinning" size={15} />{t("connecting")}</div>
+      {/if}
+      {#if telegramError && telegramStatus.step !== "database_error"}<p class="connector-error" role="alert">{telegramError}</p>{/if}
+    </div>
+  </IntegrationModal>
+{:else if integrationModal === "github"}
+  <IntegrationModal provider="github" title="GitHub" subtitle={githubStatus.account?.login || t("githubAppConnector")} closeLabel={t("close")} onclose={closeIntegrationModal} onkeydown={trapModalFocus}>
+    <div class="connector-management github-management">
+      <div class="connector-management-status"><FloodGlyph kind={githubStatusTone() === "error" ? "urgent" : githubStatus.connected ? "connected" : githubDeviceCode ? "important" : "info"} size={20} /><span><strong>{githubStatusLabel()}</strong><small>{t("githubPermissionSummary")}</small></span>{#if githubStatus.managed_app}<span class="managed-chip">{t("officialConnector")}</span>{/if}</div>
+      {#if !githubStatus.configured}
+        <div class="connector-empty"><FloodGlyph kind="info" size={30} /><span><strong>{t("githubAppRequired")}</strong><small>{t("githubAppRequiredDescription")}</small></span></div>
+        <form class="github-config-form" onsubmit={configureGithub}>
+          <label><span>Client ID</span><input bind:value={githubClientId} autocomplete="off" placeholder="Iv1…" required /></label>
+          <label><span>App slug</span><input bind:value={githubAppSlug} autocomplete="off" placeholder="flood-md" required /></label>
+          <button class="primary-button" disabled={githubBusy}>{t("saveAndContinue")}</button>
+        </form>
+        <button class="telegram-help" onclick={() => openUrl("https://docs.github.com/apps/creating-github-apps/registering-a-github-app/registering-a-github-app")}><ExternalLink size={13} />{t("githubCreateApp")}</button>
+      {:else if githubDeviceCode}
+        <div class="github-device-flow">
+          <span><small>{t("githubDeviceCode")}</small><strong>{githubDeviceCode.user_code}</strong></span>
+          <button onclick={copyGithubDeviceCode}>{#if githubCodeCopied}<Check size={14} />{t("copied")}{:else}<Clipboard size={14} />{t("copy")}{/if}</button>
+        </div>
+        <p>{t("githubDeviceInstructions")}</p>
+        <div class="github-auth-wait"><RefreshCw class="spinning" size={15} /><span><strong>{t("githubWaiting")}</strong><small>{t("githubWaitingDescription")}</small></span></div>
+        <button class="telegram-help" onclick={() => openUrl(githubDeviceCode!.verification_uri)}><ExternalLink size={13} />{t("openGithub")}</button>
+      {:else if githubAuthorizationCompleted}
+        <div class="github-auth-success" role="status">
+          <FloodGlyph kind="connected" size={34} />
+          <span><strong>{t("githubConnectedSuccess")}</strong><small>{t("githubConnectedSuccessDescription", { account: githubAuthorizationCompleted.login })}</small></span>
+        </div>
+        <button class="primary-button connector-primary" onclick={() => (githubAuthorizationCompleted = null)}>{t("showRepositories")}<ChevronRight size={14} /></button>
+      {:else if !githubStatus.connected}
+        <div class="connector-empty"><FloodGlyph kind="brand" size={30} /><span><strong>{t("githubConnectTitle")}</strong><small>{t("githubConnectDescription")}</small></span></div>
+        <div class="github-permissions"><span><Check size={13} />{t("githubReadContents")}</span><span><Check size={13} />{t("githubReadWork")}</span><span><ShieldCheck size={13} />{t("githubNoWrite")}</span></div>
+        <button class="primary-button connector-primary" disabled={githubBusy || !githubStatus.credential_store_available} onclick={beginGithubAuthorization}>{#if githubBusy}<RefreshCw class="spinning" size={14} />{/if}{t("continueWithGithub")}</button>
+      {:else}
+        <div class="github-account-row"><FloodGlyph kind="connected" size={26} /><span><strong>{githubStatus.account?.name || githubStatus.account?.login}</strong><small>@{githubStatus.account?.login} · {t("githubSessionStored")}</small></span><button onclick={() => openUrl(githubStatus.account?.html_url || "https://github.com")}><ExternalLink size={14} />{t("profile")}</button></div>
+        <div class="github-installation-row"><span><strong>{t("githubRepositoryAccess")}</strong><small>{t("githubInstallationCount", { count: githubInstallations.length })}</small></span><div><button disabled={githubBusy} onclick={loadGithubRepositories}><RefreshCw class={githubBusy ? "spinning" : ""} size={14} />{t("refresh")}</button><button onclick={installGithubApp}>{t("changeAccess")}</button></div></div>
+        {#if githubRepositories.length}
+          <label class="github-repository-search"><Search size={15} /><input bind:value={githubSearch} placeholder={t("searchRepositories")} /></label>
+          <div class="github-repositories">
+            {#each githubRepositories.filter((repository) => repository.full_name.toLocaleLowerCase().includes(githubSearch.trim().toLocaleLowerCase())) as repository (repository.id)}
+              <article class="github-repository-row">
+                <div class="github-repository-head"><span><Folder size={15} /><span><strong>{repository.full_name}</strong><small>{repository.private ? t("privateRepository") : t("publicRepository")} · {repository.default_branch}{repository.description ? ` · ${repository.description}` : ""}</small></span></span><button class:active={githubManagingRepositoryId === repository.id} onclick={() => (githubManagingRepositoryId = githubManagingRepositoryId === repository.id ? 0 : repository.id)}>{githubRepositoryProjects(repository).length ? t("linkedProjects", { count: githubRepositoryProjects(repository).length }) : t("linkToProject")}<ChevronDown size={14} /></button></div>
+                {#if githubManagingRepositoryId === repository.id}
+                  <div class="github-project-picker">
+                    <small>{t("githubChooseProjects")}</small>
+                    {#each chats.slice(1) as project (project.id)}
+                      {@const linked = githubRepositoryProjects(repository).some((item) => item.id === project.id)}
+                      <button class:checked={linked} role="checkbox" aria-checked={linked} disabled={githubBusy} onclick={() => toggleGithubRepositoryProject(repository, project.id)}><span class="picker-check">{#if linked}<Check size={12} />{/if}</span><span title={project.title}>{project.title}</span><small>{linked ? t("agentAccessEnabled") : t("notLinked")}</small></button>
+                    {/each}
+                  </div>
+                {/if}
+              </article>
+            {/each}
+          </div>
+        {:else}
+          <div class="connector-empty"><FloodGlyph kind="important" size={28} /><span><strong>{t("githubNoRepositories")}</strong><small>{t("githubNoRepositoriesDescription")}</small></span><button class="primary-button" onclick={installGithubApp}>{t("installGithubApp")}</button></div>
+        {/if}
+        <div class="telegram-local-note"><ShieldCheck size={14} /><span><strong>{t("githubSecureStorage")}</strong><small>{t("githubSecureStorageDescription")}</small></span></div>
+        <button class="telegram-help danger" disabled={githubBusy} onclick={disconnectGithub}><LogOut size={13} />{t("disconnect")}</button>
+      {/if}
+      {#if githubError}<p class="connector-error" role="alert">{githubError}</p>{/if}
+    </div>
+  </IntegrationModal>
+{/if}
+
 {#if projectContextOpen}
-  <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeProjectContext(); }}>
+  <div class="telegram-import-backdrop" role="presentation">
     <div class="telegram-import-panel project-context-panel" bind:this={projectContextDialog} role="dialog" aria-modal="true" aria-label={t("projectContext")} tabindex="-1" onkeydown={trapModalFocus}>
       <form class="project-context-form" onsubmit={saveProjectContext}>
         <header>
@@ -4132,6 +4623,43 @@
         </header>
         <div class="project-context-body">
           <p>{t("projectContextDescription")}</p>
+          <section class="project-context-section project-context-markdown" aria-label={t("projectContextMarkdown")}>
+            <div class="project-context-section-heading">
+              <span><strong>{t("projectContextMarkdown")}</strong><small>{t("projectContextMarkdownDescription")}</small></span>
+              <div class="project-context-mode" aria-label={t("projectContextViewMode")}>
+                <button class:active={projectContextEditorMode === "edit"} type="button" onclick={() => (projectContextEditorMode = "edit")}>{t("projectContextEdit")}</button>
+                <button class:active={projectContextEditorMode === "preview"} type="button" onclick={() => (projectContextEditorMode = "preview")}>{t("projectContextPreview")}</button>
+              </div>
+            </div>
+            {#if projectContextEditorMode === "edit"}
+              <textarea class="project-context-editor" bind:this={projectContextTextarea} bind:value={projectContextDraft} maxlength="200000" spellcheck="true" placeholder={t("projectContextPlaceholder")}></textarea>
+            {:else}
+              {@const previewBlocks = parseProjectContextPreview(projectContextDraft)}
+              <div class="project-context-preview">
+                {#if previewBlocks.length === 0}
+                  <div class="project-context-preview-empty"><FileText size={18} /><span>{t("projectContextPreviewEmpty")}</span></div>
+                {:else}
+                  {#each previewBlocks as block}
+                    {#if block.kind === "heading" && block.level === 1}<h1><MarkdownInline text={block.text} /></h1>
+                    {:else if block.kind === "heading" && block.level === 2}<h2><MarkdownInline text={block.text} /></h2>
+                    {:else if block.kind === "heading"}<h3><MarkdownInline text={block.text} /></h3>
+                    {:else if block.kind === "bullets"}<ul>{#each block.items ?? [] as item}<li><MarkdownInline text={item} /></li>{/each}</ul>
+                    {:else if block.kind === "numbers"}<ol>{#each block.items ?? [] as item}<li><MarkdownInline text={item} /></li>{/each}</ol>
+                    {:else if block.kind === "quote"}<blockquote><MarkdownInline text={block.text} /></blockquote>
+                    {:else if block.kind === "code"}<pre><code>{block.text}</code></pre>
+                    {:else}<p><MarkdownInline text={block.text} /></p>{/if}
+                  {/each}
+                {/if}
+              </div>
+            {/if}
+            <div class="project-context-hints" aria-label={t("projectContextHints")}>
+              <button type="button" onclick={() => insertProjectContextSection(t("projectContextGoal"))}>## {t("projectContextGoal")}</button>
+              <button type="button" onclick={() => insertProjectContextSection(t("projectContextRepositories"))}>## {t("projectContextRepositories")}</button>
+              <button type="button" onclick={() => insertProjectContextSection(t("projectContextDesign"))}>## {t("projectContextDesign")}</button>
+              <button type="button" onclick={() => insertProjectContextSection(t("projectContextConstraints"))}>## {t("projectContextConstraints")}</button>
+            </div>
+            <small class="project-context-privacy"><ShieldCheck size={14} />{t("projectContextPrivacy")}</small>
+          </section>
           <section class="project-resource-section" aria-label={t("projectResources")}>
             <div class="project-resource-heading">
               <span><strong>{t("projectResources")}</strong><small>{t("projectResourcesDescription")}</small></span>
@@ -4152,34 +4680,34 @@
             {:else}
               <div class="project-resource-list">
                 {#each projectContextResources as resource (resource.id)}
-                  <article class="project-resource-row">
+                  <article class:expanded={expandedProjectResourceId === resource.id} class="project-resource-row" data-project-resource-id={resource.id}>
                     <div class="project-resource-row-heading">
-                      <span>{#if resource.kind === "repository"}<FolderOpen size={15} />{:else if resource.kind === "directory"}<Folder size={15} />{:else if resource.kind === "figma"}<Palette size={15} />{:else if resource.kind === "documentation"}<FileText size={15} />{:else}<Link size={15} />{/if}<strong>{projectResourceKindLabel(resource.kind)}</strong></span>
+                      <button class="project-resource-summary" type="button" aria-expanded={expandedProjectResourceId === resource.id} onclick={() => (expandedProjectResourceId = expandedProjectResourceId === resource.id ? "" : resource.id)}>
+                        <span class="project-resource-kind-icon">{#if resource.kind === "repository"}<FolderOpen size={15} />{:else if resource.kind === "directory"}<Folder size={15} />{:else if resource.kind === "figma"}<Palette size={15} />{:else if resource.kind === "documentation"}<FileText size={15} />{:else}<Link size={15} />{/if}</span>
+                        <span><strong>{resource.label || projectResourceKindLabel(resource.kind)}</strong><small>{resource.location || t("resourceLocationMissing")} · {resource.agent_access ? t("agentAccessEnabled") : t("agentAccessDisabled")}</small></span>
+                        <ChevronDown size={15} />
+                      </button>
                       <button class="icon-button" type="button" aria-label={t("removeResource")} title={t("removeResource")} onclick={() => removeProjectResource(resource.id)}><Trash2 size={14} /></button>
                     </div>
-                    <div class="project-resource-fields">
-                      <label><span>{t("resourceName")}</span><input value={resource.label} maxlength="120" placeholder={t("resourceNamePlaceholder")} oninput={(event) => updateProjectResource(resource.id, { label: event.currentTarget.value })} /></label>
-                      <label class="resource-location"><span>{t("resourceLocation")}</span><input value={resource.location} maxlength="2048" placeholder={t("resourceLocationPlaceholder")} spellcheck="false" oninput={(event) => updateProjectResource(resource.id, { location: event.currentTarget.value })} /></label>
-                      <label class="resource-notes"><span>{t("resourceNotes")}</span><input value={resource.notes ?? ""} maxlength="4000" placeholder={t("resourceNotesPlaceholder")} oninput={(event) => updateProjectResource(resource.id, { notes: event.currentTarget.value || undefined })} /></label>
-                    </div>
-                    <button class:active={resource.agent_access} class="project-resource-access" type="button" role="switch" aria-checked={resource.agent_access} onclick={() => updateProjectResource(resource.id, { agent_access: !resource.agent_access })}>
-                      <FloodGlyph kind={resource.agent_access ? "connected" : "info"} size={18} />
-                      <span><strong>{t("agentResourceAccess")}</strong><small>{resource.agent_access ? t("agentResourceAccessOn") : t("agentResourceAccessOff")}</small></span>
-                      <span class="project-resource-switch" aria-hidden="true"><i></i></span>
-                    </button>
+                    {#if expandedProjectResourceId === resource.id}
+                      <div class="project-resource-details">
+                        <div class="project-resource-fields">
+                          <label><span>{t("resourceName")}</span><input value={resource.label} maxlength="120" placeholder={t("resourceNamePlaceholder")} oninput={(event) => updateProjectResource(resource.id, { label: event.currentTarget.value })} /></label>
+                          <label class="resource-location"><span>{t("resourceLocation")}</span><input value={resource.location} maxlength="2048" placeholder={t("resourceLocationPlaceholder")} spellcheck="false" oninput={(event) => updateProjectResource(resource.id, { location: event.currentTarget.value })} /></label>
+                          <label class="resource-notes"><span>{t("resourceNotes")}</span><input value={resource.notes ?? ""} maxlength="4000" placeholder={t("resourceNotesPlaceholder")} oninput={(event) => updateProjectResource(resource.id, { notes: event.currentTarget.value || undefined })} /></label>
+                        </div>
+                        <button class:active={resource.agent_access} class="project-resource-access" type="button" role="switch" aria-checked={resource.agent_access} onclick={() => updateProjectResource(resource.id, { agent_access: !resource.agent_access })}>
+                          <FloodGlyph kind={resource.agent_access ? "connected" : "info"} size={18} />
+                          <span><strong>{t("agentResourceAccess")}</strong><small>{resource.agent_access ? t("agentResourceAccessOn") : t("agentResourceAccessOff")}</small></span>
+                          <span class="project-resource-switch" aria-hidden="true"><i></i></span>
+                        </button>
+                      </div>
+                    {/if}
                   </article>
                 {/each}
               </div>
             {/if}
           </section>
-          <label class="project-context-editor">
-            <span>{t("projectContextMarkdown")}</span>
-            <textarea bind:this={projectContextTextarea} bind:value={projectContextDraft} maxlength="200000" spellcheck="true" placeholder={t("projectContextPlaceholder")}></textarea>
-          </label>
-          <div class="project-context-hints" aria-label={t("projectContextHints")}>
-            <span>## {t("projectContextGoal")}</span><span>## {t("projectContextRepositories")}</span><span>## {t("projectContextDesign")}</span><span>## {t("projectContextConstraints")}</span>
-          </div>
-          <small class="project-context-privacy">{t("projectContextPrivacy")}</small>
           {#if projectContextError}
             <div class="project-context-error" role="alert"><span>{projectContextError}</span><button type="button" onclick={reloadProjectContext}>{t("reload")}</button></div>
           {/if}
@@ -4191,7 +4719,7 @@
 {/if}
 
 {#if telegramConnectionsProject}
-  <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeTelegramConnections(); }}>
+  <div class="telegram-import-backdrop" role="presentation">
     <div class="telegram-import-panel telegram-connections-panel" bind:this={telegramConnectionsDialog} role="dialog" aria-modal="true" aria-label={t("telegramConnectionsTitle")} tabindex="-1" onkeydown={trapModalFocus}>
       <header><span><Send size={17} /><span><strong>{t("telegramConnectionsTitle")}</strong><small title={telegramConnectionsProject.title}>{telegramConnectionsProject.title}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeTelegramConnections}><X size={16} /></button></header>
       <div class="telegram-connections-body">
@@ -4203,9 +4731,10 @@
             <h4>{t("linkedTelegramChats")}</h4>
             <div class="telegram-selected-chats">
               {#each telegramConnectionsProject.telegram_chats as link (link.chat_id)}
+                {@const details = telegramChatDetails(link.chat_id)}
                 <article class="telegram-selected-chat">
-                  <div><Send size={14} /><strong title={link.title}>{link.title}</strong><button class="icon-button" aria-label={t("removeConnection")} title={t("removeConnection")} onclick={() => toggleProjectTelegramChat(telegramConnectionsProject, { id: link.chat_id, title: link.title })}><X size={14} /></button></div>
-                  <div class="telegram-mode-picker" aria-label={t("collectionMode")}>{#each telegramModes as mode}<button class:active={link.inbox_mode === mode} onclick={() => setProjectTelegramMode(telegramConnectionsProject, link, mode)}>{telegramModeLabel(mode)}</button>{/each}</div>
+                  <div><TelegramChatIdentity title={link.title} kind={details?.kind} meta={details ? telegramChatMeta(details) : `${t("telegramChatUnknown")} · ID ${link.chat_id}`} avatarDataUrl={details?.avatar_data_url} avatarFileId={details?.avatar_file_id} /><button class="icon-button" disabled={telegramConnectionsSaving} aria-label={t("removeConnection")} title={t("removeConnection")} onclick={() => toggleProjectTelegramChat(telegramConnectionsProject, { id: link.chat_id, title: link.title })}><X size={14} /></button></div>
+                  <div class="telegram-mode-picker" aria-label={t("collectionMode")}>{#each telegramModes as mode}<button class:active={link.inbox_mode === mode} disabled={telegramConnectionsSaving} onclick={() => setProjectTelegramMode(telegramConnectionsProject, link, mode)}>{telegramModeLabel(mode)}</button>{/each}</div>
                 </article>
               {/each}
             </div>
@@ -4217,7 +4746,7 @@
           <div class="telegram-connections-list">
             {#each telegramVisibleChats as telegramChat (telegramChat.id)}
               {@const linked = telegramConnectionsProject.telegram_chats.some((link) => link.chat_id === telegramChat.id)}
-              <button class:active={linked} onclick={() => toggleProjectTelegramChat(telegramConnectionsProject, telegramChat)}><span class="picker-check">{#if linked}<Check size={13} />{/if}</span><span title={telegramChat.title}>{telegramChat.title}</span><small>{linked ? t("linked") : t("add")}</small></button>
+              <button class:active={linked} disabled={telegramConnectionsSaving} onclick={() => toggleProjectTelegramChat(telegramConnectionsProject, telegramChat)}><span class="picker-check">{#if linked}<Check size={13} />{/if}</span><TelegramChatIdentity title={telegramChat.title} kind={telegramChat.kind} meta={telegramChatMeta(telegramChat)} avatarDataUrl={telegramChat.avatar_data_url} avatarFileId={telegramChat.avatar_file_id} /><small>{linked ? t("linked") : t("add")}</small></button>
             {:else}<div class="telegram-connections-empty">{t("nothingFound")}</div>{/each}
           </div>
         </section>
@@ -4313,11 +4842,18 @@
 {#if sourceViewerOpen && selectedTask?.source}
   <div class="telegram-import-backdrop source-viewer-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeSourceViewer(); }}>
     <div class="telegram-import-panel source-viewer-panel" bind:this={sourceViewerDialog} role="dialog" aria-modal="true" aria-label={t("taskSource")} tabindex="-1" onkeydown={trapModalFocus}>
-      <header><span><FloodGlyph kind="info" size={22} /><span><strong>{t("taskSource")}</strong><small>{selectedTask.source.chat_title || t("sourceMessage")}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeSourceViewer}><X size={16} /></button></header>
+      <header><span><FloodGlyph kind="info" size={22} /><span><strong>{selectedTask.source.provider === "telegram" ? taskSourceMetaLabel(selectedTask) : t("taskSource")}</strong><small>{selectedTask.source.chat_title || t("sourceMessage")}{selectedTask.source.sent_at ? ` · ${fullDate(selectedTask.source.sent_at)}` : ""}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeSourceViewer}><X size={16} /></button></header>
       <div class="source-viewer-body">
-        {#if selectedTask.source.context?.length}
+        {#if selectedTask.source.context?.length === 1}
+          {@const message = selectedTask.source.context[0]}
+          <section class="source-message-card source-message-primary">
+            <div class="source-message-meta"><span><strong>{message.author || "Telegram"}</strong><small>{selectedTask.source.chat_title || "Telegram"}</small></span><time datetime={message.sent_at}>{fullDate(message.sent_at)}</time></div>
+            {#if message.text}<p>{message.text}</p>{:else}<p class="source-empty-text">{t("noSourceText")}</p>{/if}
+            {#if message.media?.length}<small class="source-message-media"><Paperclip size={12} />{t("contextMediaCount", { count: message.media.length })}</small>{/if}
+          </section>
+        {:else if selectedTask.source.context?.length}
           <section class="telegram-context-block source-context-block">
-            <header><span><FloodGlyph kind="info" size={16} /><strong>{t("conversationContext")}</strong></span><small>{t("contextMessages", { count: selectedTask.source.context.length })}</small></header>
+            <header><span><strong>{t("conversationContext")}</strong></span><small>{t("contextMessages", { count: selectedTask.source.context.length })}</small></header>
             <div class="telegram-context-list">
               {#each selectedTask.source.context as message (message.message_id)}
                 <article class:target={message.is_target} class="telegram-context-message">

@@ -54,6 +54,10 @@ pub struct TelegramStatus {
 pub struct TelegramChat {
     pub id: i64,
     pub title: String,
+    pub kind: String,
+    pub username: Option<String>,
+    pub avatar_data_url: Option<String>,
+    pub avatar_file_id: Option<i32>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -98,6 +102,67 @@ struct TelegramInner {
 
 #[derive(Clone)]
 pub struct TelegramManager(Arc<TelegramInner>);
+
+async fn telegram_chat_summary(chat: tdlib::types::Chat, client_id: i32) -> TelegramChat {
+    let (kind, username) = match chat.r#type.clone() {
+        enums::ChatType::Private(private) => {
+            let username = match functions::get_user(private.user_id, client_id).await {
+                Ok(enums::User::User(user)) => primary_telegram_username(&user.usernames),
+                _ => None,
+            };
+            ("private", username)
+        }
+        enums::ChatType::Secret(secret) => {
+            let username = match functions::get_user(secret.user_id, client_id).await {
+                Ok(enums::User::User(user)) => primary_telegram_username(&user.usernames),
+                _ => None,
+            };
+            ("secret", username)
+        }
+        enums::ChatType::BasicGroup(_) => ("group", None),
+        enums::ChatType::Supergroup(supergroup) => {
+            match functions::get_supergroup(supergroup.supergroup_id, client_id).await {
+                Ok(enums::Supergroup::Supergroup(group)) => {
+                    let kind = if group.is_direct_messages_group {
+                        "direct"
+                    } else if group.is_channel {
+                        "channel"
+                    } else {
+                        "group"
+                    };
+                    (kind, primary_telegram_username(&group.usernames))
+                }
+                _ if supergroup.is_channel => ("channel", None),
+                _ => ("group", None),
+            }
+        }
+    };
+    let avatar_data_url = chat
+        .photo
+        .as_ref()
+        .and_then(|photo| photo.minithumbnail.as_ref())
+        .map(|thumbnail| thumbnail.data.trim())
+        .filter(|data| !data.is_empty())
+        .map(|data| format!("data:image/jpeg;base64,{data}"));
+    let avatar_file_id = chat.photo.as_ref().map(|photo| photo.small.id);
+
+    TelegramChat {
+        id: chat.id,
+        title: chat.title,
+        kind: kind.to_owned(),
+        username,
+        avatar_data_url,
+        avatar_file_id,
+    }
+}
+
+fn primary_telegram_username(usernames: &Option<tdlib::types::Usernames>) -> Option<String> {
+    usernames
+        .as_ref()
+        .and_then(|usernames| usernames.active_usernames.first())
+        .filter(|username| !username.is_empty())
+        .cloned()
+}
 
 impl TelegramManager {
     pub fn new(app: AppHandle, root: PathBuf) -> Self {
@@ -270,13 +335,31 @@ impl TelegramManager {
         let mut result = Vec::with_capacity(chats.chat_ids.len());
         for id in chats.chat_ids {
             if let Ok(enums::Chat::Chat(chat)) = functions::get_chat(id, client_id).await {
-                result.push(TelegramChat {
-                    id: chat.id,
-                    title: chat.title,
-                });
+                result.push(telegram_chat_summary(chat, client_id).await);
             }
         }
         Ok(result)
+    }
+
+    pub async fn chat_avatar_data_url(&self, file_id: i32) -> Result<Option<String>, String> {
+        if self.status().step != "ready" {
+            return Err("Сначала подключите Telegram".into());
+        }
+        let enums::File::File(file) =
+            functions::download_file(file_id, 1, 0, 0, true, self.client_id()?)
+                .await
+                .map_err(td_error)?;
+        if !file.local.is_downloading_completed || file.local.path.is_empty() {
+            return Ok(None);
+        }
+        let bytes = fs::read(&file.local.path).map_err(|error| error.to_string())?;
+        if bytes.len() > 2 * 1024 * 1024 {
+            return Err("Аватар Telegram превышает допустимый размер".into());
+        }
+        Ok(Some(format!(
+            "data:image/jpeg;base64,{}",
+            STANDARD.encode(bytes)
+        )))
     }
 
     pub async fn search_chats(
@@ -311,13 +394,15 @@ impl TelegramManager {
             if !seen.insert(id) {
                 continue;
             }
-            if let Ok(enums::Chat::Chat(chat)) = functions::get_chat(id, client_id).await
-                && chat.title.to_lowercase().contains(&normalized_query)
-            {
-                result.push(TelegramChat {
-                    id: chat.id,
-                    title: chat.title,
-                });
+            if let Ok(enums::Chat::Chat(chat)) = functions::get_chat(id, client_id).await {
+                let summary = telegram_chat_summary(chat, client_id).await;
+                let username_matches = summary
+                    .username
+                    .as_ref()
+                    .is_some_and(|username| username.to_lowercase().contains(&normalized_query));
+                if summary.title.to_lowercase().contains(&normalized_query) || username_matches {
+                    result.push(summary);
+                }
             }
         }
         Ok(result)

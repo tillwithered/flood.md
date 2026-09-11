@@ -17,6 +17,7 @@ atomic-write-file.workspace = true
 base64.workspace = true
 chrono.workspace = true
 flood-core = { path = "../crates/flood-core" }
+flood-github = { path = "../crates/flood-github" }
 notify = "8.2.0"
 serde.workspace = true
 serde_json.workspace = true

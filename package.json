@@ -1,11 +1,12 @@
 {
   "name": "flood-md",
   "private": true,
-  "version": "0.1.4",
+  "version": "0.1.5",
   "license": "PolyForm-Noncommercial-1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "build:mcp:dev": "cargo build -p flood-mcp --bin flood-mcp",
     "build": "vite build",
     "check": "node scripts/check-font-size-floor.mjs && svelte-check --tsconfig ./tsconfig.json",
     "tauri": "tauri"

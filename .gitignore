@@ -1,6 +1,7 @@
 node_modules/
 dist/
 target/
+.codex-audit/
 src-tauri/target/
 src-tauri/gen/
 *.log
