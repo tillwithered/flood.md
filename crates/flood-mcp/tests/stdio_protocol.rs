@@ -143,6 +143,7 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         "read_project_telegram_updates",
         "list_project_resource_files",
         "read_project_resource_file",
+        "search_project_resource",
     ] {
         let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
         assert_eq!(tool["annotations"]["readOnlyHint"], true);
@@ -189,6 +190,13 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert_eq!(read_resource_file["annotations"]["readOnlyHint"], true);
     assert!(read_resource_file["inputSchema"]["properties"]["path"].is_object());
+    let search_resource = tools
+        .iter()
+        .find(|tool| tool["name"] == "search_project_resource")
+        .unwrap();
+    assert_eq!(search_resource["annotations"]["readOnlyHint"], true);
+    assert_eq!(search_resource["annotations"]["openWorldHint"], false);
+    assert!(search_resource["inputSchema"]["properties"]["query"].is_object());
     let project_task_preview = tools
         .iter()
         .find(|tool| tool["name"] == "preview_project_telegram_tasks")
