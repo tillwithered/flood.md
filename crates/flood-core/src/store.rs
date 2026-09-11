@@ -646,21 +646,38 @@ impl Store {
         expected_version: &str,
     ) -> Result<Project, StoreError> {
         validate_id(id)?;
-        for resource in &mut resources {
-            resource.id = resource.id.trim().to_owned();
-            resource.label = resource.label.trim().to_owned();
-            resource.location = resource.location.trim().to_owned();
-            resource.notes = resource
-                .notes
-                .take()
-                .map(|notes| notes.trim().to_owned())
-                .filter(|notes| !notes.is_empty());
-        }
+        normalize_project_resources(&mut resources);
         validate_project_resources(&resources)?;
         let _lock = self.lock_exclusive()?;
         let mut project =
             read_project(&self.project_path(id)).map_err(|error| map_missing(error, id))?;
         ensure_version(&project.version, expected_version)?;
+        project.resources = resources;
+        project.updated_at = Utc::now();
+        self.write_project(&project)?;
+        read_project(&self.project_path(id))
+    }
+
+    pub fn update_project_details(
+        &self,
+        id: &str,
+        context: &str,
+        mut resources: Vec<ProjectResource>,
+        expected_version: &str,
+    ) -> Result<Project, StoreError> {
+        validate_id(id)?;
+        if context.len() > 200_000 {
+            return Err(StoreError::Validation(
+                "контекст проекта превышает допустимые 200 КБ".into(),
+            ));
+        }
+        normalize_project_resources(&mut resources);
+        validate_project_resources(&resources)?;
+        let _lock = self.lock_exclusive()?;
+        let mut project =
+            read_project(&self.project_path(id)).map_err(|error| map_missing(error, id))?;
+        ensure_version(&project.version, expected_version)?;
+        project.context = context.trim().to_owned();
         project.resources = resources;
         project.updated_at = Utc::now();
         self.write_project(&project)?;
@@ -3680,6 +3697,19 @@ fn validate_project_resources(resources: &[ProjectResource]) -> Result<(), Store
     Ok(())
 }
 
+fn normalize_project_resources(resources: &mut [ProjectResource]) {
+    for resource in resources {
+        resource.id = resource.id.trim().to_owned();
+        resource.label = resource.label.trim().to_owned();
+        resource.location = resource.location.trim().to_owned();
+        resource.notes = resource
+            .notes
+            .take()
+            .map(|notes| notes.trim().to_owned())
+            .filter(|notes| !notes.is_empty());
+    }
+}
+
 fn validate_source(source: &Option<crate::MessageSnapshot>) -> Result<(), StoreError> {
     if let Some(source) = source {
         if source.text.trim().is_empty() && source.media.is_empty() {
@@ -4975,12 +5005,9 @@ mod tests {
         let context =
             "## Репозиторий\n\n`C:/work/client`\n\n## Макеты\n\nhttps://figma.com/file/example";
         let updated = store
-            .update_project_context(&project.id, context, &project.version)
-            .unwrap();
-        assert_eq!(updated.context, context);
-        let updated = store
-            .set_project_resources(
-                &updated.id,
+            .update_project_details(
+                &project.id,
+                context,
                 vec![
                     crate::ProjectResource {
                         id: "main-repository".into(),
@@ -4997,9 +5024,10 @@ mod tests {
                         notes: None,
                     },
                 ],
-                &updated.version,
+                &project.version,
             )
             .unwrap();
+        assert_eq!(updated.context, context);
         assert_eq!(updated.resources.len(), 2);
         assert_eq!(updated.resources[0].location, "C:/work/client");
         assert_eq!(

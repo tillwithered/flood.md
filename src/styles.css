@@ -892,7 +892,7 @@ button { color: inherit; }
 .telegram-import-panel > header strong { font-size: 14px; }
 .telegram-import-panel > header small { color: var(--muted); font-size: var(--font-size-min); }
 .telegram-import-panel > header > div { display: flex; align-items: center; gap: 3px; }
-.project-context-panel { width: min(760px, calc(100vw - 56px)); max-height: min(780px, calc(100vh - 72px)); }
+.project-context-panel { width: min(880px, calc(100vw - 56px)); max-height: min(840px, calc(100vh - 72px)); }
 .project-context-form { display: grid; min-height: 0; max-height: inherit; grid-template-rows: 64px minmax(0, 1fr) auto; overflow: hidden; }
 .project-context-form > header { display: flex; min-height: 64px; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 14px 12px 18px; border-bottom: 1px solid var(--line); }
 .project-context-form > header > span { display: flex; min-width: 0; align-items: center; gap: 10px; }
@@ -902,6 +902,35 @@ button { color: inherit; }
 .project-context-form > header small { color: var(--muted); font-size: var(--font-size-min); }
 .project-context-body { display: grid; min-height: 0; gap: 16px; padding: 18px; overflow-y: auto; scrollbar-gutter: stable; }
 .project-context-body > p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.project-resource-section { display: grid; gap: 10px; padding: 12px; border-radius: 10px; background: var(--surface); }
+.project-resource-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.project-resource-heading > span { display: grid; min-width: 0; gap: 3px; }
+.project-resource-heading strong { font-size: 13px; }
+.project-resource-heading small { color: var(--muted); font-size: var(--font-size-min); line-height: 1.4; }
+.project-resource-heading > button { display: inline-flex; min-height: 32px; flex: 0 0 auto; align-items: center; gap: 6px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--elevated); color: var(--ink); font: inherit; font-size: var(--font-size-min); cursor: pointer; }
+.project-resource-heading > button:hover { background: var(--hover); }
+.project-resource-heading > button:disabled { opacity: .5; cursor: default; }
+.project-resource-kind-menu { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 9px; background: var(--elevated); animation: menu-in 120ms ease-out; }
+.project-resource-kind-menu button { display: flex; min-height: 34px; align-items: center; gap: 7px; padding: 6px 9px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font: inherit; font-size: var(--font-size-min); text-align: left; cursor: pointer; }
+.project-resource-kind-menu button:hover, .project-resource-kind-menu button:focus-visible { outline: 0; background: var(--hover); color: var(--ink); }
+.project-resource-empty { display: flex; min-height: 58px; align-items: center; justify-content: center; gap: 9px; color: var(--faint); }
+.project-resource-empty > span { display: grid; gap: 2px; }
+.project-resource-empty strong { color: var(--muted); font-size: var(--font-size-min); font-weight: 600; }
+.project-resource-empty small { font-size: var(--font-size-min); }
+.project-resource-list { display: grid; border-radius: 9px; background: var(--elevated); }
+.project-resource-row { display: grid; gap: 10px; padding: 11px 12px 12px; border-top: 1px solid var(--line); }
+.project-resource-row:first-child { border-top: 0; }
+.project-resource-row-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.project-resource-row-heading > span { display: flex; min-width: 0; align-items: center; gap: 7px; color: var(--muted); }
+.project-resource-row-heading strong { overflow: hidden; color: var(--ink); font-size: var(--font-size-min); font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.project-resource-row-heading .icon-button { width: 28px; height: 28px; color: var(--faint); }
+.project-resource-row-heading .icon-button:hover { color: var(--danger-ink); }
+.project-resource-fields { display: grid; grid-template-columns: minmax(150px, .8fr) minmax(220px, 1.2fr); gap: 9px; }
+.project-resource-fields label { display: grid; gap: 5px; }
+.project-resource-fields label > span { color: var(--muted); font-size: var(--font-size-min); }
+.project-resource-fields .resource-notes { grid-column: 1 / -1; }
+.project-resource-fields input { width: 100%; height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; outline: 0; background: var(--surface); color: var(--ink); font: inherit; font-size: 12px; }
+.project-resource-fields input:focus { border-color: color-mix(in srgb, var(--ink) 38%, var(--line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 6%, transparent); }
 .project-context-editor { display: grid; gap: 8px; }
 .project-context-editor > span { font-size: 12px; font-weight: 650; }
 .project-context-editor textarea { width: 100%; min-height: 320px; resize: vertical; padding: 13px 14px; border: 1px solid var(--line); border-radius: 10px; outline: none; background: var(--surface); color: var(--ink); font: 13px/1.55 "Cascadia Mono", Consolas, monospace; }
@@ -916,6 +945,11 @@ button { color: inherit; }
 .project-context-form > footer { display: flex; justify-content: flex-end; gap: 7px; padding: 12px 18px; border-top: 1px solid var(--line); }
 .project-context-form > footer .primary-button { background: var(--ink); color: var(--on-ink); }
 .project-context-form > footer button:disabled { opacity: .55; cursor: default; }
+@media (max-width: 680px) {
+  .project-resource-kind-menu { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .project-resource-fields { grid-template-columns: minmax(0, 1fr); }
+  .project-resource-fields .resource-notes { grid-column: auto; }
+}
 .telegram-connections-panel { width: min(700px, calc(100vw - 56px)); height: min(700px, calc(100vh - 72px)); grid-template-rows: 64px minmax(0, 1fr); }
 .telegram-connections-body { display: grid; min-height: 0; gap: 18px; padding: 18px; overflow-y: auto; scrollbar-gutter: stable; }
 .telegram-connections-body > p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }

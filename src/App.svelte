@@ -97,6 +97,7 @@
   const pendingUpdateVersionKey = "flood.pending-update-version";
   const maxAttachmentBytes = 25 * 1024 * 1024;
   const telegramModes: TelegramInboxMode[] = ["manual", "mentions_and_replies", "all"];
+  const projectResourceKinds: ProjectResourceKind[] = ["repository", "directory", "figma", "documentation", "website", "other"];
   const mcpClients: McpClient[] = ["codex", "claude", "cursor", "manual"];
 
   let tasks: TaskItem[] = [];
@@ -242,6 +243,8 @@
   let projectContextProjectTitle = "";
   let projectContextVersion = "";
   let projectContextDraft = "";
+  let projectContextResources: ProjectResource[] = [];
+  let projectResourceAddOpen = false;
   let projectContextError = "";
   let projectContextSaving = false;
   let projectContextDialog: HTMLDivElement;
@@ -1785,10 +1788,12 @@
     projectContextProjectTitle = currentChat.title;
     projectContextVersion = currentChat.version;
     projectContextDraft = currentChat.context ?? "";
+    projectContextResources = (currentChat.resources ?? []).map((resource) => ({ ...resource }));
+    projectResourceAddOpen = false;
     projectContextError = "";
     projectContextOpen = true;
     await tick();
-    projectContextTextarea?.focus();
+    projectContextDialog?.focus();
   }
 
   function closeProjectContext() {
@@ -1800,6 +1805,8 @@
     projectContextProjectTitle = "";
     projectContextVersion = "";
     projectContextDraft = "";
+    projectContextResources = [];
+    projectResourceAddOpen = false;
     projectContextError = "";
     restoreModalFocus(returnFocus);
   }
@@ -1812,9 +1819,11 @@
     projectContextProjectTitle = project.title;
     projectContextVersion = project.version;
     projectContextDraft = project.context ?? "";
+    projectContextResources = (project.resources ?? []).map((resource) => ({ ...resource }));
+    projectResourceAddOpen = false;
     projectContextError = "";
     await tick();
-    projectContextTextarea?.focus();
+    projectContextDialog?.focus();
   }
 
   async function saveProjectContext(event: SubmitEvent) {
@@ -1822,14 +1831,20 @@
     if (!projectContextProjectId || !inTauri() || projectContextSaving) return;
     projectContextSaving = true;
     projectContextError = "";
+    if (projectContextResources.some((resource) => !resource.label.trim() || !resource.location.trim())) {
+      projectContextError = t("projectResourceRequired");
+      projectContextSaving = false;
+      return;
+    }
     try {
-      const updated = await invoke<ProjectRecord>("update_project_context", {
+      const updated = await invoke<ProjectRecord>("update_project_details", {
         id: projectContextProjectId,
         context: projectContextDraft,
+        resources: projectContextResources,
         expectedVersion: projectContextVersion
       });
       chats = chats.map((chat) => chat.id === updated.id
-        ? { ...updated, telegram_chats: updated.telegram_chats ?? [], open: chat.open }
+        ? { ...updated, resources: updated.resources ?? [], telegram_chats: updated.telegram_chats ?? [], open: chat.open }
         : chat);
       projectContextSaving = false;
       closeProjectContext();
@@ -1838,6 +1853,44 @@
     } finally {
       projectContextSaving = false;
     }
+  }
+
+  function projectResourceKindLabel(kind: ProjectResourceKind) {
+    const labels: Record<ProjectResourceKind, MessageKey> = {
+      repository: "projectResourceRepository",
+      directory: "projectResourceDirectory",
+      figma: "projectResourceFigma",
+      documentation: "projectResourceDocumentation",
+      website: "projectResourceWebsite",
+      other: "projectResourceOther"
+    };
+    return t(labels[kind]);
+  }
+
+  function addProjectResource(kind: ProjectResourceKind) {
+    if (projectContextResources.length >= 20) {
+      projectContextError = t("projectResourceLimit");
+      return;
+    }
+    const stem = `${kind}-${Date.now().toString(36)}`;
+    let id = stem;
+    let suffix = 2;
+    while (projectContextResources.some((resource) => resource.id === id)) id = `${stem}-${suffix++}`;
+    projectContextResources = [
+      ...projectContextResources,
+      { id, kind, label: projectResourceKindLabel(kind), location: "" }
+    ];
+    projectResourceAddOpen = false;
+    projectContextError = "";
+  }
+
+  function updateProjectResource(id: string, patch: Partial<ProjectResource>) {
+    projectContextResources = projectContextResources.map((resource) => resource.id === id ? { ...resource, ...patch } : resource);
+  }
+
+  function removeProjectResource(id: string) {
+    projectContextResources = projectContextResources.filter((resource) => resource.id !== id);
+    projectContextError = "";
   }
 
   async function deleteCurrentChat() {
@@ -3298,6 +3351,10 @@
       id: "preview-project",
       title: "Рабочее приложение flood.md",
       context: "## Цель\n\nСобирать понятные задачи из рабочих обсуждений без потери исходного контекста.\n\n## Репозитории\n\n`C:/work/flood.md`\n\n## Макеты\n\nОсновной файл интерфейса в Figma.",
+      resources: [
+        { id: "main-repository", kind: "repository", label: "Основной репозиторий", location: "C:/work/flood.md", notes: "Рабочая копия desktop-приложения" },
+        { id: "interface-design", kind: "figma", label: "Макеты интерфейса", location: "https://figma.com/design/example" }
+      ],
       created_at: now,
       updated_at: now,
       telegram_chats: [{ chat_id: -1001, title: "Команда продукта", inbox_mode: "mentions_and_replies" }],
@@ -3311,8 +3368,9 @@
     projectContextProjectTitle = project.title;
     projectContextVersion = project.version;
     projectContextDraft = project.context ?? "";
+    projectContextResources = (project.resources ?? []).map((resource) => ({ ...resource }));
     projectContextOpen = true;
-    void tick().then(() => projectContextTextarea?.focus());
+    void tick().then(() => projectContextDialog?.focus());
   }
 
   function minimizeWindow() {
@@ -4074,6 +4132,41 @@
         </header>
         <div class="project-context-body">
           <p>{t("projectContextDescription")}</p>
+          <section class="project-resource-section" aria-label={t("projectResources")}>
+            <div class="project-resource-heading">
+              <span><strong>{t("projectResources")}</strong><small>{t("projectResourcesDescription")}</small></span>
+              <button type="button" disabled={projectContextSaving || projectContextResources.length >= 20} aria-expanded={projectResourceAddOpen} onclick={() => (projectResourceAddOpen = !projectResourceAddOpen)}><Plus size={14} />{t("addResource")}</button>
+            </div>
+            {#if projectResourceAddOpen}
+              <div class="project-resource-kind-menu" aria-label={t("chooseResourceType")}>
+                {#each projectResourceKinds as kind}
+                  <button type="button" onclick={() => addProjectResource(kind)}>
+                    {#if kind === "repository"}<FolderOpen size={15} />{:else if kind === "directory"}<Folder size={15} />{:else if kind === "figma"}<Palette size={15} />{:else if kind === "documentation"}<FileText size={15} />{:else}<Link size={15} />{/if}
+                    {projectResourceKindLabel(kind)}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+            {#if projectContextResources.length === 0}
+              <div class="project-resource-empty"><Link size={17} /><span><strong>{t("noProjectResources")}</strong><small>{t("noProjectResourcesDescription")}</small></span></div>
+            {:else}
+              <div class="project-resource-list">
+                {#each projectContextResources as resource (resource.id)}
+                  <article class="project-resource-row">
+                    <div class="project-resource-row-heading">
+                      <span>{#if resource.kind === "repository"}<FolderOpen size={15} />{:else if resource.kind === "directory"}<Folder size={15} />{:else if resource.kind === "figma"}<Palette size={15} />{:else if resource.kind === "documentation"}<FileText size={15} />{:else}<Link size={15} />{/if}<strong>{projectResourceKindLabel(resource.kind)}</strong></span>
+                      <button class="icon-button" type="button" aria-label={t("removeResource")} title={t("removeResource")} onclick={() => removeProjectResource(resource.id)}><Trash2 size={14} /></button>
+                    </div>
+                    <div class="project-resource-fields">
+                      <label><span>{t("resourceName")}</span><input value={resource.label} maxlength="120" placeholder={t("resourceNamePlaceholder")} oninput={(event) => updateProjectResource(resource.id, { label: event.currentTarget.value })} /></label>
+                      <label class="resource-location"><span>{t("resourceLocation")}</span><input value={resource.location} maxlength="2048" placeholder={t("resourceLocationPlaceholder")} spellcheck="false" oninput={(event) => updateProjectResource(resource.id, { location: event.currentTarget.value })} /></label>
+                      <label class="resource-notes"><span>{t("resourceNotes")}</span><input value={resource.notes ?? ""} maxlength="4000" placeholder={t("resourceNotesPlaceholder")} oninput={(event) => updateProjectResource(resource.id, { notes: event.currentTarget.value || undefined })} /></label>
+                    </div>
+                  </article>
+                {/each}
+              </div>
+            {/if}
+          </section>
           <label class="project-context-editor">
             <span>{t("projectContextMarkdown")}</span>
             <textarea bind:this={projectContextTextarea} bind:value={projectContextDraft} maxlength="200000" spellcheck="true" placeholder={t("projectContextPlaceholder")}></textarea>
