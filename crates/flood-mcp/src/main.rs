@@ -4,10 +4,10 @@ use flood_core::{
     ActivityAction, ActivityEntityKind, ActivityPage, ActivitySource, AttachmentCleanupReport,
     CreateTask, InboxCandidateStatus, MessageSnapshot, Project, RecordActivity, SelfCheckItem,
     SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
-    TaskStatus, TaskSummary, TelegramChatPage, TelegramContextMessage, TelegramInboxCandidate,
-    TelegramLinkedTask, TelegramMediaRequest, TelegramMediaRequestState, TelegramSyncHealth,
-    TelegramSyncRequest, TelegramSyncStatus, Urgency, default_data_dir,
-    run_self_check as run_core_self_check,
+    TaskStatus, TaskSummary, TelegramAgentCheckpoint, TelegramChatPage, TelegramContextMessage,
+    TelegramInboxCandidate, TelegramLinkedTask, TelegramMediaRequest, TelegramMediaRequestState,
+    TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, TelegramUpdatesPage, Urgency,
+    default_data_dir, run_self_check as run_core_self_check,
 };
 use rmcp::{
     Json, ServiceExt,
@@ -412,6 +412,20 @@ struct ReadTelegramChatArgs {
     limit: Option<usize>,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct ReadTelegramUpdatesArgs {
+    chat_id: i64,
+    /// От 1 до 50 сообщений. По умолчанию 20.
+    limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct AcknowledgeTelegramUpdatesArgs {
+    chat_id: i64,
+    /// ID последнего сообщения, которое агент действительно обработал.
+    through_message_id: i64,
+}
+
 #[derive(Debug, Serialize, schemars::JsonSchema)]
 struct TelegramChatSummaryOutput {
     chat_id: i64,
@@ -420,6 +434,9 @@ struct TelegramChatSummaryOutput {
     message_count: usize,
     oldest_message_id: Option<i64>,
     newest_message_id: Option<i64>,
+    agent_checkpoint_message_id: Option<i64>,
+    /// Отсутствует до первого подтверждённого чтения агентом.
+    agent_unprocessed_count: Option<usize>,
     project_ids: Vec<String>,
 }
 
@@ -814,6 +831,7 @@ impl FloodServer {
                 "confirmed_telegram_triage",
                 "telegram_conversation_context",
                 "telegram_chat_reader",
+                "telegram_read_checkpoint",
                 "telegram_image_content",
                 "telegram_sync_status",
                 "telegram_sync_request",
@@ -827,7 +845,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Получить единую ограниченную стартовую сводку flood.md для агента. Выполняет изолированный self-check MCP и возвращает readiness ready/attention/blocked, диагностику реального хранилища, аудит вложений, до 10 приоритетных задач, до 5 последних действий MCP, свежесть Telegram и следующие подходящие tools. Свежие связанные чаты открываются через list_telegram_chats/read_telegram_chat, выбранный кандидат — через get_telegram_candidate_context. Создание проектов и задач защищено обязательным request_id от дублей при повторе. Не возвращает полную базу, тексты задач в журнале или Telegram-входящие. Используйте первым вызовом вместо серии широких списков",
+        description = "Получить единую ограниченную стартовую сводку flood.md для агента. Выполняет изолированный self-check MCP и возвращает readiness ready/attention/blocked, диагностику реального хранилища, аудит вложений, до 10 приоритетных задач, до 5 последних действий MCP, свежесть Telegram и следующие подходящие tools. Связанные чаты и число необработанных сообщений показывает list_telegram_chats, новое читает read_telegram_updates, произвольную историю — read_telegram_chat, выбранного кандидата — get_telegram_candidate_context. Создание проектов и задач защищено обязательным request_id от дублей при повторе. Не возвращает полную базу, тексты задач в журнале или Telegram-входящие. Используйте первым вызовом вместо серии широких списков",
         annotations(
             title = "Рабочая сводка flood.md",
             read_only_hint = true,
@@ -1018,7 +1036,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Показать локально синхронизированные Telegram-чаты как список диалогов: название, время обновления, диапазон и число сохранённых сообщений, а также связанные проекты. Можно ограничить одним project_id. Содержимое сообщений не возвращается",
+        description = "Показать локально синхронизированные Telegram-чаты как список диалогов: название, время обновления, диапазон сохранённых сообщений, связанные проекты, локальную закладку агента и число ещё не обработанных им сообщений. Можно ограничить одним project_id. Содержимое сообщений не возвращается",
         annotations(
             title = "Список Telegram-чатов",
             read_only_hint = true,
@@ -1034,6 +1052,10 @@ impl FloodServer {
             self.store.get_project(project_id).map_err(store_error)?;
         }
         let projects = self.store.list_projects().map_err(store_error)?;
+        let checkpoints = self
+            .store
+            .list_telegram_agent_checkpoints()
+            .map_err(store_error)?;
         let chats = self
             .store
             .list_telegram_chat_snapshots()
@@ -1058,6 +1080,21 @@ impl FloodServer {
                     return None;
                 }
                 Some(TelegramChatSummaryOutput {
+                    agent_checkpoint_message_id: checkpoints
+                        .iter()
+                        .find(|checkpoint| checkpoint.chat_id == chat.chat_id)
+                        .map(|checkpoint| checkpoint.last_read_message_id),
+                    agent_unprocessed_count: checkpoints
+                        .iter()
+                        .find(|checkpoint| checkpoint.chat_id == chat.chat_id)
+                        .map(|checkpoint| {
+                            chat.messages
+                                .iter()
+                                .filter(|message| {
+                                    message.message_id > checkpoint.last_read_message_id
+                                })
+                                .count()
+                        }),
                     chat_id: chat.chat_id,
                     title: chat.title,
                     synced_at: chat.synced_at,
@@ -1091,6 +1128,44 @@ impl FloodServer {
                 args.after_message_id,
                 args.limit.unwrap_or(20),
             )
+            .map(Json)
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Прочитать только ещё не обработанные агентом сообщения Telegram-чата. При первом вызове возвращает свежий ограниченный фрагмент, а после acknowledge_telegram_updates — сообщения новее локальной закладки. Это не меняет статус прочтения в Telegram. Если remaining больше нуля, обработайте и подтвердите текущую порцию, затем вызовите инструмент снова",
+        annotations(
+            title = "Новое в Telegram-чате",
+            read_only_hint = true,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn read_telegram_updates(
+        &self,
+        Parameters(args): Parameters<ReadTelegramUpdatesArgs>,
+    ) -> Result<Json<TelegramUpdatesPage>, String> {
+        self.store
+            .read_telegram_updates(args.chat_id, args.limit.unwrap_or(20))
+            .map(Json)
+            .map_err(store_error)
+    }
+
+    #[tool(
+        description = "Сохранить локальную закладку flood.md после того, как агент действительно обработал сообщения до указанного ID. Закладка двигается только вперёд и не отправляет Telegram read-receipt. Не подтверждайте сообщения, которые модель не прочитала",
+        annotations(
+            title = "Подтвердить прочитанное агентом",
+            read_only_hint = false,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn acknowledge_telegram_updates(
+        &self,
+        Parameters(args): Parameters<AcknowledgeTelegramUpdatesArgs>,
+    ) -> Result<Json<TelegramAgentCheckpoint>, String> {
+        self.store
+            .acknowledge_telegram_updates(args.chat_id, args.through_message_id)
             .map(Json)
             .map_err(store_error)
     }
@@ -2705,6 +2780,8 @@ fn run_binary_self_check() -> SelfCheckResult {
         "request_telegram_sync",
         "list_telegram_chats",
         "read_telegram_chat",
+        "read_telegram_updates",
+        "acknowledge_telegram_updates",
         "request_telegram_image",
         "get_telegram_media_request",
         "read_telegram_image",
@@ -2854,6 +2931,8 @@ mod tests {
             "request_telegram_sync",
             "list_telegram_chats",
             "read_telegram_chat",
+            "read_telegram_updates",
+            "acknowledge_telegram_updates",
             "request_telegram_image",
             "get_telegram_media_request",
             "read_telegram_image",
@@ -3209,6 +3288,8 @@ mod tests {
             .0;
         assert_eq!(chats.chats.len(), 1);
         assert_eq!(chats.chats[0].message_count, 12);
+        assert_eq!(chats.chats[0].agent_unprocessed_count, None);
+        assert!(chats.chats[0].agent_checkpoint_message_id.is_none());
 
         let latest = server
             .read_telegram_chat(Parameters(ReadTelegramChatArgs {
@@ -3234,6 +3315,41 @@ mod tests {
             .0;
         assert_eq!(updates.messages.len(), 2);
         assert_eq!(updates.messages[0].message_id, 11);
+
+        let first_agent_read = server
+            .read_telegram_updates(Parameters(ReadTelegramUpdatesArgs {
+                chat_id: -10042,
+                limit: Some(3),
+            }))
+            .unwrap()
+            .0;
+        assert!(first_agent_read.initial_window);
+        assert_eq!(first_agent_read.messages[0].message_id, 10);
+        server
+            .acknowledge_telegram_updates(Parameters(AcknowledgeTelegramUpdatesArgs {
+                chat_id: -10042,
+                through_message_id: 10,
+            }))
+            .unwrap();
+        let chats_after_read = server
+            .list_telegram_chats(Parameters(ListTelegramChatsArgs { project_id: None }))
+            .unwrap()
+            .0;
+        assert_eq!(
+            chats_after_read.chats[0].agent_checkpoint_message_id,
+            Some(10)
+        );
+        assert_eq!(chats_after_read.chats[0].agent_unprocessed_count, Some(2));
+        let unread = server
+            .read_telegram_updates(Parameters(ReadTelegramUpdatesArgs {
+                chat_id: -10042,
+                limit: Some(10),
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(unread.checkpoint_message_id, Some(10));
+        assert_eq!(unread.messages.len(), 2);
+        assert_eq!(unread.messages[0].message_id, 11);
 
         let image_request = server
             .request_telegram_image(Parameters(RequestTelegramMediaArgs {

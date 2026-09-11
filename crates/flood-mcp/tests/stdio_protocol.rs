@@ -136,11 +136,21 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert_eq!(telegram_context["annotations"]["readOnlyHint"], true);
     assert_eq!(telegram_context["annotations"]["openWorldHint"], false);
-    for name in ["list_telegram_chats", "read_telegram_chat"] {
+    for name in [
+        "list_telegram_chats",
+        "read_telegram_chat",
+        "read_telegram_updates",
+    ] {
         let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
         assert_eq!(tool["annotations"]["readOnlyHint"], true);
         assert_eq!(tool["annotations"]["openWorldHint"], false);
     }
+    let acknowledge_updates = tools
+        .iter()
+        .find(|tool| tool["name"] == "acknowledge_telegram_updates")
+        .unwrap();
+    assert_eq!(acknowledge_updates["annotations"]["readOnlyHint"], false);
+    assert_eq!(acknowledge_updates["annotations"]["destructiveHint"], false);
     let request_image = tools
         .iter()
         .find(|tool| tool["name"] == "request_telegram_image")

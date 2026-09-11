@@ -1,9 +1,10 @@
 use crate::{
     ActivityAction, ActivityEntityKind, ActivityEvent, ActivitySource, CreateTask,
     InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind, Task,
-    TaskPatch, TaskStatus, TaskSummary, TelegramChatSnapshot, TelegramContextMessage,
-    TelegramInboxCandidate, TelegramLinkedTask, TelegramMediaRequest, TelegramMediaRequestState,
-    TelegramProjectLink, TelegramSyncRequest, TelegramSyncStatus, Urgency,
+    TaskPatch, TaskStatus, TaskSummary, TelegramAgentCheckpoint, TelegramChatSnapshot,
+    TelegramContextMessage, TelegramInboxCandidate, TelegramLinkedTask, TelegramMediaRequest,
+    TelegramMediaRequestState, TelegramProjectLink, TelegramSyncRequest, TelegramSyncStatus,
+    Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
@@ -170,6 +171,14 @@ struct TelegramChatsDocument {
 }
 
 #[derive(Default, Serialize, Deserialize)]
+struct TelegramAgentCheckpointsDocument {
+    #[serde(default = "telegram_agent_checkpoints_format_version")]
+    format_version: u8,
+    #[serde(default)]
+    checkpoints: Vec<TelegramAgentCheckpoint>,
+}
+
+#[derive(Default, Serialize, Deserialize)]
 struct TelegramMediaRequestsDocument {
     #[serde(default = "telegram_media_requests_format_version")]
     format_version: u8,
@@ -189,6 +198,20 @@ pub struct TelegramChatPage {
     pub has_newer: bool,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct TelegramUpdatesPage {
+    pub chat_id: i64,
+    pub title: String,
+    pub synced_at: chrono::DateTime<Utc>,
+    pub checkpoint_message_id: Option<i64>,
+    pub messages: Vec<crate::TelegramContextMessage>,
+    pub latest_available_message_id: Option<i64>,
+    pub remaining: usize,
+    pub initial_window: bool,
+    pub initial_window_truncated: bool,
+    pub checkpoint_before_cache: bool,
+}
+
 #[derive(Default, Serialize, Deserialize)]
 struct ActivityDocument {
     #[serde(default = "activity_format_version")]
@@ -202,6 +225,10 @@ fn inbox_format_version() -> u8 {
 }
 
 fn telegram_chats_format_version() -> u8 {
+    1
+}
+
+fn telegram_agent_checkpoints_format_version() -> u8 {
     1
 }
 
@@ -896,6 +923,125 @@ impl Store {
             oldest_message_id,
             newest_message_id,
         })
+    }
+
+    pub fn read_telegram_updates(
+        &self,
+        chat_id: i64,
+        limit: usize,
+    ) -> Result<TelegramUpdatesPage, StoreError> {
+        let limit = limit.clamp(1, 50);
+        let _lock = self.lock_shared()?;
+        let chat = self
+            .read_telegram_chats()?
+            .chats
+            .into_iter()
+            .find(|chat| chat.chat_id == chat_id)
+            .ok_or_else(|| StoreError::NotFound(format!("Telegram-чат {chat_id}")))?;
+        let checkpoint = self
+            .read_telegram_agent_checkpoints()?
+            .checkpoints
+            .into_iter()
+            .find(|checkpoint| checkpoint.chat_id == chat_id);
+        let checkpoint_message_id = checkpoint
+            .as_ref()
+            .map(|checkpoint| checkpoint.last_read_message_id);
+        let initial_window = checkpoint_message_id.is_none();
+        let latest_available_message_id = chat.messages.last().map(|message| message.message_id);
+        let checkpoint_before_cache = checkpoint_message_id.is_some_and(|checkpoint| {
+            chat.messages
+                .first()
+                .is_some_and(|message| checkpoint < message.message_id)
+        });
+        let eligible = if let Some(checkpoint) = checkpoint_message_id {
+            chat.messages
+                .iter()
+                .filter(|message| message.message_id > checkpoint)
+                .cloned()
+                .collect::<Vec<_>>()
+        } else {
+            chat.messages.clone()
+        };
+        let initial_window_truncated = initial_window && eligible.len() > limit;
+        let (messages, remaining) = if initial_window {
+            let skip = eligible.len().saturating_sub(limit);
+            (eligible.into_iter().skip(skip).collect(), 0)
+        } else {
+            let remaining = eligible.len().saturating_sub(limit);
+            (eligible.into_iter().take(limit).collect(), remaining)
+        };
+        Ok(TelegramUpdatesPage {
+            chat_id,
+            title: chat.title,
+            synced_at: chat.synced_at,
+            checkpoint_message_id,
+            messages,
+            latest_available_message_id,
+            remaining,
+            initial_window,
+            initial_window_truncated,
+            checkpoint_before_cache,
+        })
+    }
+
+    pub fn list_telegram_agent_checkpoints(
+        &self,
+    ) -> Result<Vec<TelegramAgentCheckpoint>, StoreError> {
+        let _lock = self.lock_shared()?;
+        Ok(self.read_telegram_agent_checkpoints()?.checkpoints)
+    }
+
+    pub fn acknowledge_telegram_updates(
+        &self,
+        chat_id: i64,
+        through_message_id: i64,
+    ) -> Result<TelegramAgentCheckpoint, StoreError> {
+        let _lock = self.lock_exclusive()?;
+        let chat = self
+            .read_telegram_chats()?
+            .chats
+            .into_iter()
+            .find(|chat| chat.chat_id == chat_id)
+            .ok_or_else(|| StoreError::NotFound(format!("Telegram-чат {chat_id}")))?;
+        let canonical_message_id = chat
+            .messages
+            .iter()
+            .find(|message| {
+                message.message_id == through_message_id
+                    || message.message_ids.contains(&through_message_id)
+            })
+            .map(|message| message.message_id)
+            .ok_or_else(|| {
+                StoreError::NotFound(format!(
+                    "сообщение Telegram {through_message_id} в локальной ленте"
+                ))
+            })?;
+        let mut document = self.read_telegram_agent_checkpoints()?;
+        if let Some(existing) = document
+            .checkpoints
+            .iter_mut()
+            .find(|checkpoint| checkpoint.chat_id == chat_id)
+        {
+            if canonical_message_id < existing.last_read_message_id {
+                return Err(StoreError::Validation(
+                    "закладку агента нельзя переместить назад".into(),
+                ));
+            }
+            existing.last_read_message_id = canonical_message_id;
+            existing.updated_at = Utc::now();
+            let checkpoint = existing.clone();
+            self.write_telegram_agent_checkpoints(&document)?;
+            return Ok(checkpoint);
+        }
+        let checkpoint = TelegramAgentCheckpoint {
+            chat_id,
+            last_read_message_id: canonical_message_id,
+            updated_at: Utc::now(),
+        };
+        document.checkpoints.push(checkpoint.clone());
+        document.checkpoints.sort_by_key(|item| item.chat_id);
+        self.write_telegram_agent_checkpoints(&document)?;
+        Ok(checkpoint)
     }
 
     pub fn request_telegram_media(
@@ -2157,6 +2303,12 @@ impl Store {
         self.root.join("integrations").join("telegram-chats.json")
     }
 
+    fn telegram_agent_checkpoints_path(&self) -> PathBuf {
+        self.root
+            .join("integrations")
+            .join("telegram-agent-checkpoints.json")
+    }
+
     fn telegram_media_requests_path(&self) -> PathBuf {
         self.root
             .join("integrations")
@@ -2190,6 +2342,40 @@ impl Store {
             ));
         }
         atomic_write_bytes(&self.telegram_chats_path(), &bytes)
+    }
+
+    fn read_telegram_agent_checkpoints(
+        &self,
+    ) -> Result<TelegramAgentCheckpointsDocument, StoreError> {
+        let path = self.telegram_agent_checkpoints_path();
+        if !path.exists() {
+            return Ok(TelegramAgentCheckpointsDocument {
+                format_version: telegram_agent_checkpoints_format_version(),
+                checkpoints: Vec::new(),
+            });
+        }
+        let document: TelegramAgentCheckpointsDocument =
+            serde_json::from_slice(&read_limited_bytes(&path, MAX_INTEGRATION_STATE_BYTES)?)?;
+        if document.format_version != telegram_agent_checkpoints_format_version() {
+            return Err(StoreError::Validation(
+                "неподдерживаемая версия закладок Telegram-агента".into(),
+            ));
+        }
+        Ok(document)
+    }
+
+    fn write_telegram_agent_checkpoints(
+        &self,
+        document: &TelegramAgentCheckpointsDocument,
+    ) -> Result<(), StoreError> {
+        let mut bytes = serde_json::to_vec_pretty(document)?;
+        bytes.push(b'\n');
+        if bytes.len() as u64 > MAX_INTEGRATION_STATE_BYTES {
+            return Err(StoreError::Validation(
+                "закладки Telegram-агента превышают безопасный размер".into(),
+            ));
+        }
+        atomic_write_bytes(&self.telegram_agent_checkpoints_path(), &bytes)
     }
 
     fn read_telegram_media_requests(&self) -> Result<TelegramMediaRequestsDocument, StoreError> {
@@ -4417,6 +4603,27 @@ mod tests {
         assert_eq!(newer.messages.len(), 3);
         assert_eq!(newer.messages[0].message_id, 28);
         assert!(!newer.has_newer);
+
+        let initial_updates = store.read_telegram_updates(-10042, 5).unwrap();
+        assert!(initial_updates.initial_window);
+        assert!(initial_updates.initial_window_truncated);
+        assert_eq!(initial_updates.messages[0].message_id, 26);
+        assert_eq!(initial_updates.messages[4].message_id, 30);
+        assert_eq!(initial_updates.remaining, 0);
+
+        let checkpoint = store.acknowledge_telegram_updates(-10042, 28).unwrap();
+        assert_eq!(checkpoint.last_read_message_id, 28);
+        let first_unread = store.read_telegram_updates(-10042, 1).unwrap();
+        assert!(!first_unread.initial_window);
+        assert_eq!(first_unread.messages[0].message_id, 29);
+        assert_eq!(first_unread.remaining, 1);
+
+        store.acknowledge_telegram_updates(-10042, 29).unwrap();
+        let reopened = Store::new(store.root().to_path_buf()).unwrap();
+        let next_unread = reopened.read_telegram_updates(-10042, 10).unwrap();
+        assert_eq!(next_unread.messages.len(), 1);
+        assert_eq!(next_unread.messages[0].message_id, 30);
+        assert!(store.acknowledge_telegram_updates(-10042, 28).is_err());
     }
 
     #[test]

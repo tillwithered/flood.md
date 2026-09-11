@@ -87,6 +87,13 @@ pub struct TelegramChatSnapshot {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct TelegramAgentCheckpoint {
+    pub chat_id: i64,
+    pub last_read_message_id: i64,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum TelegramMediaRequestState {
     Queued,
