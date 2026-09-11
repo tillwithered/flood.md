@@ -1272,7 +1272,7 @@ name = "flood-desktop"
 version = "0.1.6"
 dependencies = [
  "atomic-write-file",
- "base64 0.22.1",
+ "base64 0.23.1",
  "chrono",
  "flood-core",
  "flood-github",
@@ -1294,7 +1294,7 @@ name = "flood-github"
 version = "0.1.6"
 dependencies = [
  "atomic-write-file",
- "base64 0.22.1",
+ "base64 0.23.1",
  "chrono",
  "keyring",
  "reqwest",
@@ -1309,7 +1309,7 @@ name = "flood-mcp"
 version = "0.1.6"
 dependencies = [
  "anyhow",
- "base64 0.22.1",
+ "base64 0.23.1",
  "chrono",
  "flood-core",
  "flood-github",
