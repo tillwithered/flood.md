@@ -144,6 +144,7 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         "list_project_resource_files",
         "read_project_resource_file",
         "search_project_resource",
+        "get_task_work_context",
     ] {
         let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
         assert_eq!(tool["annotations"]["readOnlyHint"], true);
@@ -197,6 +198,13 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     assert_eq!(search_resource["annotations"]["readOnlyHint"], true);
     assert_eq!(search_resource["annotations"]["openWorldHint"], false);
     assert!(search_resource["inputSchema"]["properties"]["query"].is_object());
+    let task_work_context = tools
+        .iter()
+        .find(|tool| tool["name"] == "get_task_work_context")
+        .unwrap();
+    assert_eq!(task_work_context["annotations"]["readOnlyHint"], true);
+    assert_eq!(task_work_context["annotations"]["openWorldHint"], false);
+    assert!(task_work_context["inputSchema"]["properties"]["id"].is_object());
     let project_task_preview = tools
         .iter()
         .find(|tool| tool["name"] == "preview_project_telegram_tasks")
@@ -613,7 +621,7 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     );
     let brief = receive(&mut stdout, 15);
     assert_eq!(brief["result"]["isError"], false);
-    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 7);
+    assert_eq!(brief["result"]["structuredContent"]["brief_version"], 8);
     assert_eq!(
         brief["result"]["structuredContent"]["readiness"]["level"],
         "ready"

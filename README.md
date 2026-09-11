@@ -79,6 +79,8 @@ For agent-assisted triage, `get_telegram_sync_status` reports when the desktop a
 
 `search_project_resource` complements the local reader with bounded, case-insensitive line search, so an agent can locate relevant code before requesting a specific file instead of loading the whole repository.
 
+For an existing task, `get_task_work_context` is the preferred entry point. It returns the Markdown task, a bounded project context, per-resource permissions, and a centered Telegram conversation from the current local cache. If the message has already left the rolling cache, the snapshot stored with the task is returned instead. Media remains explicit and on demand.
+
 For packaging and diagnostics, `flood-mcp.exe --version` prints the server version and `flood-mcp.exe --self-check` prints the isolated check result as JSON without starting the stdio transport.
 
 ## Development
