@@ -8,11 +8,35 @@ pub struct Project {
     pub title: String,
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub context: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub resources: Vec<ProjectResource>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub telegram_chats: Vec<TelegramProjectLink>,
     pub version: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectResourceKind {
+    Repository,
+    Directory,
+    Figma,
+    Documentation,
+    Website,
+    Other,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct ProjectResource {
+    pub id: String,
+    pub kind: ProjectResourceKind,
+    pub label: String,
+    /// Локальный путь или публичный адрес. Секреты и токены здесь хранить нельзя.
+    pub location: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notes: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]

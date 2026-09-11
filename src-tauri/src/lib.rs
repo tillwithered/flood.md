@@ -1,10 +1,10 @@
 use chrono::Utc;
 use flood_core::{
     ActivityPage, AttachmentCleanupReport, AttachmentCleanupResult, CreateTask,
-    InboxCandidateStatus, Project, SelfCheckResult, SourceMedia, SourceMediaKind, Store,
-    StoreDiagnostics, Task, TaskPatch, TaskSummary, TelegramInboxCandidate, TelegramInboxPage,
-    TelegramProjectLink, TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, Urgency,
-    default_data_dir,
+    InboxCandidateStatus, Project, ProjectResource, SelfCheckResult, SourceMedia, SourceMediaKind,
+    Store, StoreDiagnostics, Task, TaskPatch, TaskSummary, TelegramInboxCandidate,
+    TelegramInboxPage, TelegramProjectLink, TelegramSyncHealth, TelegramSyncRequest,
+    TelegramSyncStatus, Urgency, default_data_dir,
 };
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
@@ -286,6 +286,20 @@ fn update_project_context(
         state
             .store
             .update_project_context(&id, &context, &expected_version),
+    )
+}
+
+#[tauri::command]
+fn set_project_resources(
+    id: String,
+    resources: Vec<ProjectResource>,
+    expected_version: String,
+    state: State<'_, AppState>,
+) -> Result<Project, String> {
+    result(
+        state
+            .store
+            .set_project_resources(&id, resources, &expected_version),
     )
 }
 
@@ -1304,6 +1318,7 @@ pub fn run() {
             create_project,
             update_project,
             update_project_context,
+            set_project_resources,
             set_project_telegram_chats,
             delete_project,
             list_tasks,

@@ -3,12 +3,12 @@ use chrono::{DateTime, Utc};
 use flood_core::{
     ActivityAction, ActivityEntityKind, ActivityPage, ActivitySource, AttachmentCleanupReport,
     CreateTask, CreateTelegramDiscussionTask, InboxCandidateStatus, MessageSnapshot, Project,
-    RecordActivity, SelfCheckItem, SelfCheckResult, SourceMedia, SourceMediaKind, Store,
-    StoreDiagnostics, Task, TaskPatch, TaskStatus, TaskSummary, TelegramAgentCheckpoint,
-    TelegramChatPage, TelegramContextMessage, TelegramInboxCandidate, TelegramLinkedTask,
-    TelegramMediaRequest, TelegramMediaRequestState, TelegramMessageContextPage,
-    TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, TelegramUpdatesPage, Urgency,
-    default_data_dir, run_self_check as run_core_self_check,
+    ProjectResource, ProjectResourceKind, RecordActivity, SelfCheckItem, SelfCheckResult,
+    SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch, TaskStatus,
+    TaskSummary, TelegramAgentCheckpoint, TelegramChatPage, TelegramContextMessage,
+    TelegramInboxCandidate, TelegramLinkedTask, TelegramMediaRequest, TelegramMediaRequestState,
+    TelegramMessageContextPage, TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus,
+    TelegramUpdatesPage, Urgency, default_data_dir, run_self_check as run_core_self_check,
 };
 use rmcp::{
     Json, ServiceExt,
@@ -99,6 +99,14 @@ struct UpdateProjectContextArgs {
     id: String,
     /// Markdown-описание назначения проекта, важных ссылок, локальных путей и ограничений.
     context: String,
+    expected_version: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct SetProjectResourcesArgs {
+    id: String,
+    /// Полный новый список источников контекста. Не более 20; id каждого источника — стабильный slug.
+    resources: Vec<ProjectResource>,
     expected_version: String,
 }
 
@@ -298,10 +306,21 @@ struct ProjectBriefOutput {
     brief_version: u8,
     project: Project,
     context_truncated: bool,
+    /// Источники только указывают, где лежит контекст; flood.md не открывает их автоматически.
+    resources_are_references_only: bool,
+    resource_access: Vec<ProjectResourceAccessOutput>,
     open_tasks: TaskDigestOutput,
     telegram_chats: Vec<TelegramChatSummaryOutput>,
     telegram: TelegramSyncStatusOutput,
     suggested_tools: Vec<&'static str>,
+}
+
+#[derive(Debug, Serialize, schemars::JsonSchema)]
+struct ProjectResourceAccessOutput {
+    resource_id: String,
+    access_method: &'static str,
+    requires_explicit_access: bool,
+    next_step: &'static str,
 }
 
 #[derive(Debug, Serialize, schemars::JsonSchema)]
@@ -1007,6 +1026,7 @@ impl FloodServer {
             capabilities: vec![
                 "projects",
                 "project_context",
+                "structured_project_resources",
                 "bounded_project_brief",
                 "tasks",
                 "bounded_task_lists",
@@ -1673,7 +1693,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Получить единый ограниченный бриф конкретного проекта для начала работы агента: Markdown-контекст из project.md (до 20 000 символов), компактный приоритетный список открытых задач, связанные локальные Telegram-чаты с закладками чтения и свежесть синхронизации. Не читает сообщения и изображения автоматически: новое по всему проекту читает read_project_telegram_updates, конкретную реплику с соседями — read_telegram_message_context, произвольную историю — read_telegram_chat, изображения — request_telegram_image. Используйте вместо отдельных get_project, get_task_digest и list_telegram_chats",
+        description = "Получить единый ограниченный бриф конкретного проекта для начала работы агента: Markdown-контекст из project.md (до 20 000 символов), структурированные ссылки на репозиторий, папку, Figma или документацию, компактный список задач и состояние Telegram. Источники контекста являются только ссылками и не открываются автоматически: используйте доступный MCP-клиенту файловый, Figma или браузерный коннектор после явного доступа. Новое по проекту читает read_project_telegram_updates, конкретную реплику с соседями — read_telegram_message_context, изображения — request_telegram_image",
         annotations(
             title = "Бриф проекта",
             read_only_hint = true,
@@ -1691,6 +1711,36 @@ impl FloodServer {
         if context_truncated {
             project.context = truncate_preserving_layout(&project.context, MAX_CONTEXT_CHARS);
         }
+        let resource_access = project
+            .resources
+            .iter()
+            .map(|resource| {
+                let (access_method, next_step) = match resource.kind {
+                    ProjectResourceKind::Repository | ProjectResourceKind::Directory => (
+                        "local_filesystem",
+                        "Откройте путь файловыми или кодовыми инструментами MCP-клиента после разрешения пользователя",
+                    ),
+                    ProjectResourceKind::Figma => (
+                        "figma_connector",
+                        "Откройте адрес настроенным Figma-коннектором после разрешения пользователя",
+                    ),
+                    ProjectResourceKind::Documentation | ProjectResourceKind::Website => (
+                        "browser_or_connector",
+                        "Откройте адрес браузером или подходящим коннектором после разрешения пользователя",
+                    ),
+                    ProjectResourceKind::Other => (
+                        "client_connector",
+                        "Выберите подходящий инструмент MCP-клиента и запросите доступ при необходимости",
+                    ),
+                };
+                ProjectResourceAccessOutput {
+                    resource_id: resource.id.clone(),
+                    access_method,
+                    requires_explicit_access: true,
+                    next_step,
+                }
+            })
+            .collect();
         let open_tasks = self
             .get_task_digest(Parameters(TaskDigestArgs {
                 project_id: Some(args.id.clone()),
@@ -1711,6 +1761,9 @@ impl FloodServer {
         if project.context.trim().is_empty() {
             suggested_tools.push("update_project_context");
         }
+        if project.resources.is_empty() {
+            suggested_tools.push("set_project_resources");
+        }
         if !telegram_chats.is_empty() && !telegram.fresh && telegram.pending_request.is_none() {
             suggested_tools.push("request_telegram_sync");
         }
@@ -1726,9 +1779,11 @@ impl FloodServer {
         suggested_tools.push("create_task_from_telegram_discussion");
 
         Ok(Json(ProjectBriefOutput {
-            brief_version: 1,
+            brief_version: 2,
             project,
             context_truncated,
+            resources_are_references_only: true,
+            resource_access,
             open_tasks,
             telegram_chats,
             telegram,
@@ -1805,6 +1860,33 @@ impl FloodServer {
         let project = self
             .store
             .update_project_context(&args.id, &args.context, &args.expected_version)
+            .map_err(store_error)?;
+        self.record_mcp_activity(
+            ActivityAction::ProjectUpdated,
+            ActivityEntityKind::Project,
+            Some(project.id.clone()),
+            Some(project.id.clone()),
+            false,
+        );
+        Ok(Json(ProjectOutput { project }))
+    }
+
+    #[tool(
+        description = "Заменить полный список структурированных источников контекста проекта в project.md. Поддерживаются repository, directory, figma, documentation, website и other. Каждый источник имеет стабильный id-slug, понятное название, локальный путь или публичный адрес и необязательную заметку. Здесь нельзя хранить токены, пароли и приватные ключи. Инструмент только сохраняет ссылки и ничего не открывает и не отправляет наружу; expected_version возьмите из свежего get_project",
+        annotations(
+            title = "Обновить источники проекта",
+            read_only_hint = false,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn set_project_resources(
+        &self,
+        Parameters(args): Parameters<SetProjectResourcesArgs>,
+    ) -> Result<Json<ProjectOutput>, String> {
+        let project = self
+            .store
+            .set_project_resources(&args.id, args.resources, &args.expected_version)
             .map_err(store_error)?;
         self.record_mcp_activity(
             ActivityAction::ProjectUpdated,
@@ -3568,6 +3650,7 @@ fn run_binary_self_check() -> SelfCheckResult {
         "list_projects",
         "get_project_brief",
         "update_project_context",
+        "set_project_resources",
         "list_tasks",
         "search_tasks",
         "get_task_digest",
@@ -3726,6 +3809,7 @@ mod tests {
             "list_recent_activity",
             "run_self_check",
             "update_project_context",
+            "set_project_resources",
             "search_tasks",
             "get_task_digest",
             "get_telegram_sync_status",
@@ -4053,6 +4137,30 @@ mod tests {
             .unwrap()
             .0
             .project;
+        let project = server
+            .set_project_resources(Parameters(SetProjectResourcesArgs {
+                id: project.id,
+                resources: vec![
+                    ProjectResource {
+                        id: "main-repository".into(),
+                        kind: ProjectResourceKind::Repository,
+                        label: "Основной репозиторий".into(),
+                        location: "C:/work/app".into(),
+                        notes: Some("Использовать текущую рабочую копию".into()),
+                    },
+                    ProjectResource {
+                        id: "design".into(),
+                        kind: ProjectResourceKind::Figma,
+                        label: "Макеты".into(),
+                        location: "https://figma.com/file/example".into(),
+                        notes: None,
+                    },
+                ],
+                expected_version: project.version,
+            }))
+            .unwrap()
+            .0
+            .project;
         server
             .create_task(Parameters(CreateTaskArgs {
                 project_id: project.id.clone(),
@@ -4071,13 +4179,25 @@ mod tests {
             .unwrap()
             .0;
 
-        assert_eq!(brief.brief_version, 1);
+        assert_eq!(brief.brief_version, 2);
         assert!(brief.project.context.contains("C:/work/app"));
+        assert_eq!(brief.project.resources.len(), 2);
+        assert!(brief.resources_are_references_only);
+        assert_eq!(brief.resource_access.len(), 2);
+        assert_eq!(brief.resource_access[0].access_method, "local_filesystem");
+        assert_eq!(brief.resource_access[1].access_method, "figma_connector");
+        assert!(
+            brief
+                .resource_access
+                .iter()
+                .all(|resource| resource.requires_explicit_access)
+        );
         assert!(!brief.context_truncated);
         assert_eq!(brief.open_tasks.tasks.len(), 1);
         assert_eq!(brief.open_tasks.tasks[0].title, "Проверить сборку");
         assert!(brief.telegram_chats.is_empty());
         assert!(!brief.suggested_tools.contains(&"update_project_context"));
+        assert!(!brief.suggested_tools.contains(&"set_project_resources"));
         assert!(brief.suggested_tools.contains(&"get_task"));
     }
 

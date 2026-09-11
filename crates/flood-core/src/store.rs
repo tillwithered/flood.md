@@ -1,10 +1,10 @@
 use crate::{
     ActivityAction, ActivityEntityKind, ActivityEvent, ActivitySource, CreateTask,
-    InboxCandidateReason, InboxCandidateStatus, MessageSnapshot, Project, SourceMedia,
-    SourceMediaKind, Task, TaskPatch, TaskStatus, TaskSummary, TelegramAgentCheckpoint,
-    TelegramChatSnapshot, TelegramContextMessage, TelegramInboxCandidate, TelegramLinkedTask,
-    TelegramMediaRequest, TelegramMediaRequestState, TelegramProjectLink, TelegramSyncRequest,
-    TelegramSyncStatus, Urgency,
+    InboxCandidateReason, InboxCandidateStatus, MessageSnapshot, Project, ProjectResource,
+    SourceMedia, SourceMediaKind, Task, TaskPatch, TaskStatus, TaskSummary,
+    TelegramAgentCheckpoint, TelegramChatSnapshot, TelegramContextMessage, TelegramInboxCandidate,
+    TelegramLinkedTask, TelegramMediaRequest, TelegramMediaRequestState, TelegramProjectLink,
+    TelegramSyncRequest, TelegramSyncStatus, Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
@@ -162,6 +162,8 @@ struct ProjectDocument {
     telegram: Option<TelegramProjectLink>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     telegram_chats: Vec<TelegramProjectLink>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    resources: Vec<ProjectResource>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
@@ -586,6 +588,7 @@ impl Store {
             id,
             title,
             context: String::new(),
+            resources: Vec::new(),
             created_at: now,
             updated_at: now,
             telegram_chats: Vec::new(),
@@ -631,6 +634,34 @@ impl Store {
             read_project(&self.project_path(id)).map_err(|error| map_missing(error, id))?;
         ensure_version(&project.version, expected_version)?;
         project.context = context.trim().to_owned();
+        project.updated_at = Utc::now();
+        self.write_project(&project)?;
+        read_project(&self.project_path(id))
+    }
+
+    pub fn set_project_resources(
+        &self,
+        id: &str,
+        mut resources: Vec<ProjectResource>,
+        expected_version: &str,
+    ) -> Result<Project, StoreError> {
+        validate_id(id)?;
+        for resource in &mut resources {
+            resource.id = resource.id.trim().to_owned();
+            resource.label = resource.label.trim().to_owned();
+            resource.location = resource.location.trim().to_owned();
+            resource.notes = resource
+                .notes
+                .take()
+                .map(|notes| notes.trim().to_owned())
+                .filter(|notes| !notes.is_empty());
+        }
+        validate_project_resources(&resources)?;
+        let _lock = self.lock_exclusive()?;
+        let mut project =
+            read_project(&self.project_path(id)).map_err(|error| map_missing(error, id))?;
+        ensure_version(&project.version, expected_version)?;
+        project.resources = resources;
         project.updated_at = Utc::now();
         self.write_project(&project)?;
         read_project(&self.project_path(id))
@@ -2612,6 +2643,7 @@ impl Store {
             updated_at: project.updated_at,
             telegram: None,
             telegram_chats: project.telegram_chats.clone(),
+            resources: project.resources.clone(),
         };
         let body = if project.context.is_empty() {
             format!("# {}\n", project.title)
@@ -3318,6 +3350,7 @@ fn read_project(path: &Path) -> Result<Project, StoreError> {
         return Err(invalid(path, "неподдерживаемая версия формата"));
     }
     validate_id(&doc.id)?;
+    validate_project_resources(&doc.resources).map_err(|error| invalid(path, error.to_string()))?;
     let mut telegram_chats = doc.telegram_chats;
     if telegram_chats.is_empty()
         && let Some(legacy) = doc.telegram
@@ -3328,6 +3361,7 @@ fn read_project(path: &Path) -> Result<Project, StoreError> {
         id: doc.id,
         context: project_context_from_body(&body, &doc.title),
         title: doc.title,
+        resources: doc.resources,
         created_at: doc.created_at,
         updated_at: doc.updated_at,
         telegram_chats,
@@ -3600,6 +3634,52 @@ fn clean_required(value: &str, field: &str, max: usize) -> Result<String, StoreE
     }
     Ok(value.to_owned())
 }
+
+fn validate_project_resources(resources: &[ProjectResource]) -> Result<(), StoreError> {
+    if resources.len() > 20 {
+        return Err(StoreError::Validation(
+            "у проекта может быть не более 20 источников контекста".into(),
+        ));
+    }
+    let mut seen = HashSet::new();
+    for resource in resources {
+        if resource.id.is_empty()
+            || resource.id.len() > 80
+            || !resource.id.bytes().all(|byte| {
+                byte.is_ascii_lowercase()
+                    || byte.is_ascii_digit()
+                    || matches!(byte, b'-' | b'_' | b'.')
+            })
+        {
+            return Err(StoreError::Validation(
+                "id источника должен содержать до 80 строчных латинских букв, цифр, точек, дефисов или подчёркиваний".into(),
+            ));
+        }
+        if !seen.insert(resource.id.as_str()) {
+            return Err(StoreError::Validation(
+                "id источников проекта не должны повторяться".into(),
+            ));
+        }
+        clean_required(&resource.label, "название источника проекта", 120)?;
+        clean_required(&resource.location, "адрес источника проекта", 2_048)?;
+        if resource.location.contains(['\r', '\n']) {
+            return Err(StoreError::Validation(
+                "адрес источника проекта должен занимать одну строку".into(),
+            ));
+        }
+        if resource
+            .notes
+            .as_ref()
+            .is_some_and(|notes| notes.chars().count() > 4_000)
+        {
+            return Err(StoreError::Validation(
+                "заметка об источнике проекта превышает 4000 символов".into(),
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn validate_source(source: &Option<crate::MessageSnapshot>) -> Result<(), StoreError> {
     if let Some(source) = source {
         if source.text.trim().is_empty() && source.media.is_empty() {
@@ -4889,7 +4969,7 @@ mod tests {
     }
 
     #[test]
-    fn project_context_round_trips_and_survives_rename() {
+    fn project_context_and_resources_round_trip_and_survive_rename() {
         let store = temp_store();
         let project = store.create_project("Клиент").unwrap();
         let context =
@@ -4898,13 +4978,60 @@ mod tests {
             .update_project_context(&project.id, context, &project.version)
             .unwrap();
         assert_eq!(updated.context, context);
+        let updated = store
+            .set_project_resources(
+                &updated.id,
+                vec![
+                    crate::ProjectResource {
+                        id: "main-repository".into(),
+                        kind: crate::ProjectResourceKind::Repository,
+                        label: "Основной репозиторий".into(),
+                        location: " C:/work/client ".into(),
+                        notes: Some(" Рабочая копия для разработки ".into()),
+                    },
+                    crate::ProjectResource {
+                        id: "product-layouts".into(),
+                        kind: crate::ProjectResourceKind::Figma,
+                        label: "Макеты".into(),
+                        location: "https://figma.com/file/example".into(),
+                        notes: None,
+                    },
+                ],
+                &updated.version,
+            )
+            .unwrap();
+        assert_eq!(updated.resources.len(), 2);
+        assert_eq!(updated.resources[0].location, "C:/work/client");
+        assert_eq!(
+            updated.resources[0].notes.as_deref(),
+            Some("Рабочая копия для разработки")
+        );
         let renamed = store
             .update_project(&updated.id, "Клиентское приложение", &updated.version)
             .unwrap();
         assert_eq!(renamed.context, context);
+        assert_eq!(renamed.resources, updated.resources);
         let markdown = fs::read_to_string(store.project_path(&renamed.id)).unwrap();
         assert!(markdown.contains("# Клиентское приложение"));
         assert!(markdown.contains("## Репозиторий"));
+        assert!(markdown.contains("resources:"));
+        assert!(markdown.contains("kind: repository"));
+        assert!(markdown.contains("kind: figma"));
+        assert!(
+            store
+                .set_project_resources(
+                    &renamed.id,
+                    vec![crate::ProjectResource {
+                        id: "Bad ID".into(),
+                        kind: crate::ProjectResourceKind::Other,
+                        label: "Некорректный".into(),
+                        location: "value".into(),
+                        notes: None,
+                    }],
+                    &renamed.version,
+                )
+                .is_err()
+        );
     }
 
     #[test]

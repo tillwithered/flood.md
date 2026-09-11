@@ -22,11 +22,13 @@
   type DataActionState = "idle" | "backing-up" | "restoring" | "success" | "error";
   type AttachmentCleanupState = "idle" | "checking" | "cleaning" | "success" | "error";
   type TelegramInboxMode = "manual" | "mentions_and_replies" | "all";
+  type ProjectResourceKind = "repository" | "directory" | "figma" | "documentation" | "website" | "other";
+  type ProjectResource = { id: string; kind: ProjectResourceKind; label: string; location: string; notes?: string };
   type SourceMedia = { kind: "photo" | "video" | "document" | "audio" | "voice" | "animation" | "other"; file_name: string; provider_file_id?: number; mime_type?: string; size?: number; relative_path?: string };
   type TelegramContextMessage = { message_id: number; message_ids?: number[]; author: string; sent_at: string; text: string; url?: string; reply_to_message_id?: number; is_target: boolean; media?: SourceMedia[] };
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string; provider?: string; chat_id?: number; chat_title?: string; message_id?: number; message_ids?: number[]; media?: SourceMedia[]; context?: TelegramContextMessage[] };
   type TelegramProjectLink = { chat_id: number; title: string; inbox_mode: TelegramInboxMode };
-  type ProjectRecord = { id: string; title: string; context?: string; created_at: string; updated_at: string; telegram_chats?: TelegramProjectLink[]; version: string };
+  type ProjectRecord = { id: string; title: string; context?: string; resources?: ProjectResource[]; created_at: string; updated_at: string; telegram_chats?: TelegramProjectLink[]; version: string };
   type TaskRecord = {
     id: string;
     project_id: string;

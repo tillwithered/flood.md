@@ -164,6 +164,12 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert_eq!(message_context["annotations"]["readOnlyHint"], true);
     assert!(message_context["inputSchema"]["properties"]["message_id"].is_object());
+    let project_resources = tools
+        .iter()
+        .find(|tool| tool["name"] == "set_project_resources")
+        .unwrap();
+    assert_eq!(project_resources["annotations"]["readOnlyHint"], false);
+    assert!(project_resources["inputSchema"]["properties"]["resources"].is_object());
     let project_task_preview = tools
         .iter()
         .find(|tool| tool["name"] == "preview_project_telegram_tasks")
