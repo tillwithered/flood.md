@@ -48,12 +48,13 @@ jobs:
           releaseBody: |
             ## flood.md ${{ github.ref_name }}
 
-            The first stable flood.md release: a local-first task workspace where an MCP agent can review bounded Telegram discussions, inspect attached images and permitted project context, and create concise prioritized tasks.
+            Stable flood.md hotfix release: a local-first task workspace where an MCP agent can review bounded Telegram discussions, inspect attached images and permitted project context, and create concise prioritized tasks.
 
-            Первая стабильная версия flood.md: локальный задачник, в котором MCP-агент может разобрать ограниченный контекст Telegram, посмотреть приложенные изображения и разрешённый контекст проекта, а затем создать компактные задачи с приоритетами.
+            Стабильный hotfix-релиз flood.md: локальный задачник, в котором MCP-агент может разобрать ограниченный контекст Telegram, посмотреть приложенные изображения и разрешённый контекст проекта, а затем создать компактные задачи с приоритетами.
 
             ### Highlights
 
+            - Fixed the Windows release-only crash after Telegram two-factor authentication while preserving the existing local session and data.
             - Local Markdown tasks with conflict-safe editing, attachments, urgency, completion, trash, backup, and recovery.
             - Telegram through TDLib: linked chats, mentions and replies, albums, media, human-sized context windows, inbox triage, and duplicate-safe task creation.
             - Read-only GitHub App connector with repository selection and bounded MCP access to files, search, README, issues, and pull requests.

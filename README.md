@@ -10,7 +10,7 @@
   <img alt="Local first" src="https://img.shields.io/badge/data-local--first-111111?style=flat-square">
 </p>
 
-See [what changed in 0.1.5](CHANGELOG.md).
+See [what changed in 0.1.6](CHANGELOG.md).
 
 ## Why flood.md
 

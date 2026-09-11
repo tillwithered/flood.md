@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.6 — 2026-09-12
+
+### Telegram hotfix
+
+- Fixed a Windows release-only stack overflow that could close flood.md immediately after Telegram two-factor authentication and on every later launch.
+- Reduced large TDLib chat values before asynchronous suspension and boxed Telegram IPC futures, keeping chat listing and search off the desktop UI thread's limited stack.
+- Existing Telegram sessions, project links, messages, media, and Markdown tasks remain intact; reconnecting the account is not required.
+
 ## 0.1.5 — 2026-09-12
 
 ### GitHub connector

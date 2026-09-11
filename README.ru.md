@@ -10,7 +10,7 @@
   <img alt="Локальные данные" src="https://img.shields.io/badge/data-local--first-111111?style=flat-square">
 </p>
 
-[Что изменилось в версии 0.1.5](CHANGELOG.md).
+[Что изменилось в версии 0.1.6](CHANGELOG.md).
 
 ## Зачем нужен flood.md
 

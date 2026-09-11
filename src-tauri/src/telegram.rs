@@ -103,40 +103,27 @@ struct TelegramInner {
 #[derive(Clone)]
 pub struct TelegramManager(Arc<TelegramInner>);
 
-async fn telegram_chat_summary(chat: tdlib::types::Chat, client_id: i32) -> TelegramChat {
-    let (kind, username) = match chat.r#type.clone() {
-        enums::ChatType::Private(private) => {
-            let username = match functions::get_user(private.user_id, client_id).await {
-                Ok(enums::User::User(user)) => primary_telegram_username(&user.usernames),
-                _ => None,
-            };
-            ("private", username)
-        }
-        enums::ChatType::Secret(secret) => {
-            let username = match functions::get_user(secret.user_id, client_id).await {
-                Ok(enums::User::User(user)) => primary_telegram_username(&user.usernames),
-                _ => None,
-            };
-            ("secret", username)
-        }
-        enums::ChatType::BasicGroup(_) => ("group", None),
-        enums::ChatType::Supergroup(supergroup) => {
-            match functions::get_supergroup(supergroup.supergroup_id, client_id).await {
-                Ok(enums::Supergroup::Supergroup(group)) => {
-                    let kind = if group.is_direct_messages_group {
-                        "direct"
-                    } else if group.is_channel {
-                        "channel"
-                    } else {
-                        "group"
-                    };
-                    (kind, primary_telegram_username(&group.usernames))
-                }
-                _ if supergroup.is_channel => ("channel", None),
-                _ => ("group", None),
-            }
-        }
-    };
+enum TelegramChatIdentityLookup {
+    None(&'static str),
+    User {
+        user_id: i64,
+        kind: &'static str,
+    },
+    Supergroup {
+        supergroup_id: i64,
+        fallback_kind: &'static str,
+    },
+}
+
+struct TelegramChatSummarySeed {
+    id: i64,
+    title: String,
+    avatar_data_url: Option<String>,
+    avatar_file_id: Option<i32>,
+    identity: TelegramChatIdentityLookup,
+}
+
+fn telegram_chat_summary_seed(chat: tdlib::types::Chat) -> TelegramChatSummarySeed {
     let avatar_data_url = chat
         .photo
         .as_ref()
@@ -145,14 +132,75 @@ async fn telegram_chat_summary(chat: tdlib::types::Chat, client_id: i32) -> Tele
         .filter(|data| !data.is_empty())
         .map(|data| format!("data:image/jpeg;base64,{data}"));
     let avatar_file_id = chat.photo.as_ref().map(|photo| photo.small.id);
+    let identity = match chat.r#type {
+        enums::ChatType::Private(private) => TelegramChatIdentityLookup::User {
+            user_id: private.user_id,
+            kind: "private",
+        },
+        enums::ChatType::Secret(secret) => TelegramChatIdentityLookup::User {
+            user_id: secret.user_id,
+            kind: "secret",
+        },
+        enums::ChatType::BasicGroup(_) => TelegramChatIdentityLookup::None("group"),
+        enums::ChatType::Supergroup(supergroup) => TelegramChatIdentityLookup::Supergroup {
+            supergroup_id: supergroup.supergroup_id,
+            fallback_kind: if supergroup.is_channel {
+                "channel"
+            } else {
+                "group"
+            },
+        },
+    };
 
-    TelegramChat {
+    TelegramChatSummarySeed {
         id: chat.id,
         title: chat.title,
-        kind: kind.to_owned(),
-        username,
         avatar_data_url,
         avatar_file_id,
+        identity,
+    }
+}
+
+async fn telegram_chat_summary(chat: tdlib::types::Chat, client_id: i32) -> TelegramChat {
+    // `tdlib::types::Chat` is a very large generated value. Keeping it alive
+    // across an `.await` makes Tauri's IPC future large enough to overflow the
+    // Windows UI-thread stack in release builds. Reduce it to owned primitives
+    // before the first suspension point.
+    let seed = telegram_chat_summary_seed(chat);
+    let (kind, username) = match seed.identity {
+        TelegramChatIdentityLookup::None(kind) => (kind, None),
+        TelegramChatIdentityLookup::User { user_id, kind } => {
+            let username = match functions::get_user(user_id, client_id).await {
+                Ok(enums::User::User(user)) => primary_telegram_username(&user.usernames),
+                _ => None,
+            };
+            (kind, username)
+        }
+        TelegramChatIdentityLookup::Supergroup {
+            supergroup_id,
+            fallback_kind,
+        } => match functions::get_supergroup(supergroup_id, client_id).await {
+            Ok(enums::Supergroup::Supergroup(group)) => {
+                let kind = if group.is_direct_messages_group {
+                    "direct"
+                } else if group.is_channel {
+                    "channel"
+                } else {
+                    "group"
+                };
+                (kind, primary_telegram_username(&group.usernames))
+            }
+            _ => (fallback_kind, None),
+        },
+    };
+
+    TelegramChat {
+        id: seed.id,
+        title: seed.title,
+        kind: kind.to_owned(),
+        username,
+        avatar_data_url: seed.avatar_data_url,
+        avatar_file_id: seed.avatar_file_id,
     }
 }
 
@@ -1320,12 +1368,19 @@ fn next_mask(state: &mut u64) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::{
-        StoredTelegramConfig, config_backup_path, config_path, contains_username_mention,
-        context_window_indices, generate_database_key, group_by_album, message_media,
-        normalize_database_key, read_config, valid_api_hash, valid_database_key, write_config,
+        StoredTelegramConfig, TelegramChatIdentityLookup, TelegramChatSummarySeed,
+        config_backup_path, config_path, contains_username_mention, context_window_indices,
+        generate_database_key, group_by_album, message_media, normalize_database_key, read_config,
+        valid_api_hash, valid_database_key, write_config,
     };
     use base64::{Engine as _, engine::general_purpose::STANDARD};
     use std::{env, fs};
+
+    #[test]
+    fn telegram_chat_summary_seed_stays_small_for_async_use() {
+        assert!(std::mem::size_of::<TelegramChatIdentityLookup>() <= 32);
+        assert!(std::mem::size_of::<TelegramChatSummarySeed>() <= 128);
+    }
 
     #[test]
     fn generated_database_key_is_valid_32_byte_base64() {

@@ -16,6 +16,7 @@ use std::{
     fs,
     future::Future,
     path::{Path, PathBuf},
+    pin::Pin,
     process::{Command, Output, Stdio},
     sync::{
         Mutex,
@@ -155,7 +156,7 @@ fn run_mcp_command(
 }
 
 async fn with_telegram_timeout<T>(
-    future: impl Future<Output = Result<T, String>>,
+    future: Pin<Box<dyn Future<Output = Result<T, String>> + Send + '_>>,
 ) -> Result<T, String> {
     tokio::time::timeout(TELEGRAM_PROJECT_SYNC_TIMEOUT, future)
         .await
@@ -774,17 +775,17 @@ fn telegram_configure(
 
 #[tauri::command]
 async fn telegram_request_qr(state: State<'_, AppState>) -> Result<(), String> {
-    with_telegram_timeout(state.telegram.request_qr()).await
+    with_telegram_timeout(Box::pin(state.telegram.request_qr())).await
 }
 
 #[tauri::command]
 async fn telegram_submit_phone(phone: String, state: State<'_, AppState>) -> Result<(), String> {
-    with_telegram_timeout(state.telegram.submit_phone(phone)).await
+    with_telegram_timeout(Box::pin(state.telegram.submit_phone(phone))).await
 }
 
 #[tauri::command]
 async fn telegram_submit_code(code: String, state: State<'_, AppState>) -> Result<(), String> {
-    with_telegram_timeout(state.telegram.submit_code(code)).await
+    with_telegram_timeout(Box::pin(state.telegram.submit_code(code))).await
 }
 
 #[tauri::command]
@@ -792,12 +793,12 @@ async fn telegram_submit_password(
     password: String,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    with_telegram_timeout(state.telegram.submit_password(password)).await
+    with_telegram_timeout(Box::pin(state.telegram.submit_password(password))).await
 }
 
 #[tauri::command]
 async fn telegram_list_chats(state: State<'_, AppState>) -> Result<Vec<TelegramChat>, String> {
-    with_telegram_timeout(state.telegram.chats()).await
+    with_telegram_timeout(Box::pin(state.telegram.chats())).await
 }
 
 #[tauri::command]
@@ -805,7 +806,7 @@ async fn telegram_chat_avatar(
     file_id: i32,
     state: State<'_, AppState>,
 ) -> Result<Option<String>, String> {
-    with_telegram_timeout(state.telegram.chat_avatar_data_url(file_id)).await
+    with_telegram_timeout(Box::pin(state.telegram.chat_avatar_data_url(file_id))).await
 }
 
 #[tauri::command]
@@ -814,7 +815,7 @@ async fn telegram_search_chats(
     limit: i32,
     state: State<'_, AppState>,
 ) -> Result<Vec<TelegramChat>, String> {
-    with_telegram_timeout(state.telegram.search_chats(query, limit)).await
+    with_telegram_timeout(Box::pin(state.telegram.search_chats(query, limit))).await
 }
 
 #[tauri::command]
@@ -824,7 +825,8 @@ async fn telegram_list_messages(
     project_id: Option<String>,
     state: State<'_, AppState>,
 ) -> Result<Vec<TelegramMessage>, String> {
-    let mut messages = with_telegram_timeout(state.telegram.messages(chat_id, limit)).await?;
+    let mut messages =
+        with_telegram_timeout(Box::pin(state.telegram.messages(chat_id, limit))).await?;
     if let Some(project_id) = project_id {
         let message_groups = messages
             .iter()
@@ -880,8 +882,10 @@ async fn telegram_refresh_inbox(
     state: State<'_, AppState>,
 ) -> Result<TelegramInboxPage, String> {
     let project = result(state.store.get_project(&project_id))?;
-    let refresh =
-        with_telegram_timeout(state.telegram.refresh_candidates(&project, limit_per_chat)).await?;
+    let refresh = with_telegram_timeout(Box::pin(
+        state.telegram.refresh_candidates(&project, limit_per_chat),
+    ))
+    .await?;
     for chat in refresh.chats {
         result(state.store.upsert_telegram_chat_snapshot(chat))?;
     }
@@ -1062,7 +1066,7 @@ async fn telegram_add_inbox_message(
         .iter()
         .find(|link| link.chat_id == chat_id)
         .ok_or_else(|| "Этот Telegram-чат не связан с проектом".to_string())?;
-    let candidate = with_telegram_timeout(
+    let candidate = with_telegram_timeout(Box::pin(
         state.telegram.manual_candidate(
             &project_id,
             link,
@@ -1071,7 +1075,7 @@ async fn telegram_add_inbox_message(
                 .or_else(|| message_id.map(|id| vec![id]))
                 .ok_or_else(|| "Сообщение Telegram не выбрано".to_string())?,
         ),
-    )
+    ))
     .await?;
     result(
         state
@@ -1397,12 +1401,12 @@ fn push_sync_error(errors: &mut Vec<String>, error: String) {
 
 #[tauri::command]
 async fn telegram_disconnect(state: State<'_, AppState>) -> Result<(), String> {
-    with_telegram_timeout(state.telegram.disconnect()).await
+    with_telegram_timeout(Box::pin(state.telegram.disconnect())).await
 }
 
 #[tauri::command]
 async fn telegram_reset_database(state: State<'_, AppState>) -> Result<(), String> {
-    with_telegram_timeout(state.telegram.reset_database()).await
+    with_telegram_timeout(Box::pin(state.telegram.reset_database())).await
 }
 
 pub fn run() {
