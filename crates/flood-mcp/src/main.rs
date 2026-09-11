@@ -2,12 +2,13 @@ use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::{DateTime, Utc};
 use flood_core::{
     ActivityAction, ActivityEntityKind, ActivityPage, ActivitySource, AttachmentCleanupReport,
-    CreateTask, InboxCandidateStatus, MessageSnapshot, Project, RecordActivity, SelfCheckItem,
-    SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskPatch,
-    TaskStatus, TaskSummary, TelegramAgentCheckpoint, TelegramChatPage, TelegramContextMessage,
-    TelegramInboxCandidate, TelegramLinkedTask, TelegramMediaRequest, TelegramMediaRequestState,
-    TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, TelegramUpdatesPage, Urgency,
-    default_data_dir, run_self_check as run_core_self_check,
+    CreateTask, CreateTelegramDiscussionTask, InboxCandidateStatus, MessageSnapshot, Project,
+    RecordActivity, SelfCheckItem, SelfCheckResult, SourceMedia, SourceMediaKind, Store,
+    StoreDiagnostics, Task, TaskPatch, TaskStatus, TaskSummary, TelegramAgentCheckpoint,
+    TelegramChatPage, TelegramContextMessage, TelegramInboxCandidate, TelegramLinkedTask,
+    TelegramMediaRequest, TelegramMediaRequestState, TelegramSyncHealth, TelegramSyncRequest,
+    TelegramSyncStatus, TelegramUpdatesPage, Urgency, default_data_dir,
+    run_self_check as run_core_self_check,
 };
 use rmcp::{
     Json, ServiceExt,
@@ -197,6 +198,24 @@ struct CreateTaskFromCandidateArgs {
     /// Необязательный контекст или ожидаемый результат под названием.
     notes: Option<String>,
     urgency: Option<String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct CreateTaskFromTelegramDiscussionArgs {
+    project_id: String,
+    chat_id: i64,
+    /// Сообщение, в котором сформулировано поручение или итог обсуждения.
+    target_message_id: i64,
+    /// До 20 релевантных сообщений из read_telegram_chat/read_telegram_updates.
+    #[serde(default)]
+    context_message_ids: Vec<i64>,
+    /// Короткое, ориентированное на результат название задачи.
+    title: String,
+    /// Необязательные выводы агента, критерии результата или уточнения.
+    notes: Option<String>,
+    urgency: Option<String>,
+    /// Новый стабильный UUID. Повторяйте его только после неопределённого результата того же вызова.
+    request_id: String,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -830,6 +849,7 @@ impl FloodServer {
                 "bounded_telegram_triage",
                 "confirmed_telegram_triage",
                 "telegram_conversation_context",
+                "telegram_discussion_tasks",
                 "telegram_chat_reader",
                 "telegram_read_checkpoint",
                 "telegram_image_content",
@@ -1959,6 +1979,51 @@ impl FloodServer {
     }
 
     #[tool(
+        description = "Создать одну задачу из произвольного смыслового фрагмента связанного Telegram-чата, даже если сообщения не попадали во Входящие. Укажите target_message_id с поручением или итогом и до 20 context_message_ids, которые нужны для понимания. flood.md сохранит разговор по времени, авторов, ответы, ссылки и медиа, а все выбранные вложения поставит на локальную загрузку. Повторный request_id или уже использованное исходное сообщение не создаёт дубль",
+        annotations(
+            title = "Создать задачу из обсуждения Telegram",
+            read_only_hint = false,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn create_task_from_telegram_discussion(
+        &self,
+        Parameters(args): Parameters<CreateTaskFromTelegramDiscussionArgs>,
+    ) -> Result<Json<CreateTaskOutput>, String> {
+        let description = task_description(Some(args.title), args.notes, None)?
+            .ok_or_else(|| "title обязателен".to_string())?;
+        let outcome = self
+            .store
+            .create_task_from_telegram_messages_idempotent(
+                CreateTelegramDiscussionTask {
+                    project_id: args.project_id,
+                    chat_id: args.chat_id,
+                    target_message_id: args.target_message_id,
+                    context_message_ids: args.context_message_ids,
+                    description,
+                    urgency: parse_urgency(args.urgency.as_deref().unwrap_or("normal"))?,
+                },
+                &args.request_id,
+            )
+            .map_err(store_error)?;
+        if outcome.created {
+            self.record_mcp_activity(
+                ActivityAction::TelegramTaskCreated,
+                ActivityEntityKind::Task,
+                Some(outcome.value.id.clone()),
+                Some(outcome.value.project_id.clone()),
+                true,
+            );
+        }
+        Ok(Json(CreateTaskOutput {
+            task: outcome.value,
+            created: outcome.created,
+            request_id: args.request_id,
+        }))
+    }
+
+    #[tool(
         description = "Изменить состояние Telegram-кандидата: pending возвращает во входящие, dismissed скрывает как нерелевантный",
         annotations(title = "Обработать Telegram-кандидат", open_world_hint = false)
     )]
@@ -2788,6 +2853,7 @@ fn run_binary_self_check() -> SelfCheckResult {
         "preview_telegram_triage",
         "apply_telegram_triage",
         "get_telegram_candidate_context",
+        "create_task_from_telegram_discussion",
         "run_self_check",
     ];
     let missing_tools = required_tools
@@ -2943,6 +3009,7 @@ mod tests {
             "get_telegram_candidate",
             "get_telegram_candidate_context",
             "create_task_from_telegram_candidate",
+            "create_task_from_telegram_discussion",
             "set_telegram_candidate_status",
         ] {
             assert!(
@@ -3282,7 +3349,7 @@ mod tests {
 
         let chats = server
             .list_telegram_chats(Parameters(ListTelegramChatsArgs {
-                project_id: Some(project.id),
+                project_id: Some(project.id.clone()),
             }))
             .unwrap()
             .0;
@@ -3371,6 +3438,45 @@ mod tests {
                 .provider_file_id,
             Some(120)
         );
+
+        let task = server
+            .create_task_from_telegram_discussion(Parameters(
+                CreateTaskFromTelegramDiscussionArgs {
+                    project_id: project.id,
+                    chat_id: -10042,
+                    target_message_id: 12,
+                    context_message_ids: vec![10, 11],
+                    title: "Разобрать итог обсуждения".into(),
+                    notes: Some("Учесть два предыдущих сообщения и скриншот.".into()),
+                    urgency: Some("important".into()),
+                    request_id: "mcp-telegram-discussion-task".into(),
+                },
+            ))
+            .unwrap()
+            .0;
+        assert!(task.created);
+        assert_eq!(task.task.urgency, Urgency::Important);
+        let source = task.task.source.as_ref().unwrap();
+        assert_eq!(source.message_id, Some(12));
+        assert_eq!(source.context.len(), 3);
+        assert_eq!(source.media.len(), 1);
+        let repeated = server
+            .create_task_from_telegram_discussion(Parameters(
+                CreateTaskFromTelegramDiscussionArgs {
+                    project_id: task.task.project_id.clone(),
+                    chat_id: -10042,
+                    target_message_id: 12,
+                    context_message_ids: vec![10, 11],
+                    title: "Разобрать итог обсуждения".into(),
+                    notes: Some("Учесть два предыдущих сообщения и скриншот.".into()),
+                    urgency: Some("important".into()),
+                    request_id: "mcp-telegram-discussion-task".into(),
+                },
+            ))
+            .unwrap()
+            .0;
+        assert!(!repeated.created);
+        assert_eq!(repeated.task.id, task.task.id);
     }
 
     #[test]

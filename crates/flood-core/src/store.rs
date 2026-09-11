@@ -1,10 +1,10 @@
 use crate::{
     ActivityAction, ActivityEntityKind, ActivityEvent, ActivitySource, CreateTask,
-    InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind, Task,
-    TaskPatch, TaskStatus, TaskSummary, TelegramAgentCheckpoint, TelegramChatSnapshot,
-    TelegramContextMessage, TelegramInboxCandidate, TelegramLinkedTask, TelegramMediaRequest,
-    TelegramMediaRequestState, TelegramProjectLink, TelegramSyncRequest, TelegramSyncStatus,
-    Urgency,
+    InboxCandidateReason, InboxCandidateStatus, MessageSnapshot, Project, SourceMedia,
+    SourceMediaKind, Task, TaskPatch, TaskStatus, TaskSummary, TelegramAgentCheckpoint,
+    TelegramChatSnapshot, TelegramContextMessage, TelegramInboxCandidate, TelegramLinkedTask,
+    TelegramMediaRequest, TelegramMediaRequestState, TelegramProjectLink, TelegramSyncRequest,
+    TelegramSyncStatus, Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
@@ -105,6 +105,16 @@ pub struct RecordActivity {
     pub entity_id: Option<String>,
     pub project_id: Option<String>,
     pub reversible: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct CreateTelegramDiscussionTask {
+    pub project_id: String,
+    pub chat_id: i64,
+    pub target_message_id: i64,
+    pub context_message_ids: Vec<i64>,
+    pub description: String,
+    pub urgency: Urgency,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -1431,6 +1441,185 @@ impl Store {
         read_task(&self.task_path(&task.project_id, &task.id))
     }
 
+    pub fn create_task_from_telegram_messages_idempotent(
+        &self,
+        input: CreateTelegramDiscussionTask,
+        request_id: &str,
+    ) -> Result<CreateOutcome<Task>, StoreError> {
+        validate_id(&input.project_id)?;
+        let description = clean_required(&input.description, "описание задачи", 20_000)?;
+        let request_id = clean_required(request_id, "request_id", 200)?;
+        if input.context_message_ids.len() > 20 {
+            return Err(StoreError::Validation(
+                "контекст задачи может содержать не более 20 сообщений".into(),
+            ));
+        }
+        let _lock = self.lock_exclusive()?;
+        let project = read_project(&self.project_path(&input.project_id))
+            .map_err(|error| map_missing(error, &input.project_id))?;
+        if !project
+            .telegram_chats
+            .iter()
+            .any(|link| link.chat_id == input.chat_id)
+        {
+            return Err(StoreError::Validation(
+                "Telegram-чат не связан с выбранным проектом".into(),
+            ));
+        }
+        let chat = self
+            .read_telegram_chats()?
+            .chats
+            .into_iter()
+            .find(|chat| chat.chat_id == input.chat_id)
+            .ok_or_else(|| StoreError::NotFound(format!("Telegram-чат {}", input.chat_id)))?;
+        let target = chat
+            .messages
+            .iter()
+            .find(|message| telegram_message_contains_id(message, input.target_message_id))
+            .cloned()
+            .ok_or_else(|| {
+                StoreError::NotFound(format!(
+                    "исходное сообщение Telegram {} в локальной ленте",
+                    input.target_message_id
+                ))
+            })?;
+        let mut requested_ids = input
+            .context_message_ids
+            .iter()
+            .copied()
+            .collect::<HashSet<_>>();
+        requested_ids.insert(input.target_message_id);
+        for message_id in &requested_ids {
+            if !chat
+                .messages
+                .iter()
+                .any(|message| telegram_message_contains_id(message, *message_id))
+            {
+                return Err(StoreError::NotFound(format!(
+                    "сообщение Telegram {message_id} в локальной ленте"
+                )));
+            }
+        }
+        let mut context = chat
+            .messages
+            .iter()
+            .filter(|message| {
+                requested_ids
+                    .iter()
+                    .any(|id| telegram_message_contains_id(message, *id))
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        context.sort_by_key(|message| message.sent_at);
+        if context.len() > 20 {
+            return Err(StoreError::Validation(
+                "выбранные ID относятся более чем к 20 сообщениям".into(),
+            ));
+        }
+        for message in &mut context {
+            message.is_target = telegram_message_contains_id(message, input.target_message_id);
+        }
+        let mut media = Vec::new();
+        for item in &context {
+            for attachment in &item.media {
+                let duplicate = media.iter().any(|existing: &SourceMedia| {
+                    match (existing.provider_file_id, attachment.provider_file_id) {
+                        (Some(existing_id), Some(attachment_id)) => existing_id == attachment_id,
+                        _ => existing == attachment,
+                    }
+                });
+                if !duplicate {
+                    media.push(attachment.clone());
+                }
+            }
+        }
+        if media.len() > 20 {
+            return Err(StoreError::Validation(
+                "в выбранном обсуждении более 20 медиафайлов".into(),
+            ));
+        }
+        let mut episode_message_ids = context
+            .iter()
+            .flat_map(telegram_context_message_ids)
+            .collect::<Vec<_>>();
+        episode_message_ids.sort_unstable();
+        episode_message_ids.dedup();
+        let source = MessageSnapshot {
+            text: target.text.clone(),
+            author: Some(target.author.clone()),
+            sent_at: Some(target.sent_at),
+            url: target.url.clone(),
+            provider: Some("telegram".into()),
+            chat_id: Some(input.chat_id),
+            chat_title: Some(chat.title),
+            message_id: Some(target.message_id),
+            message_ids: episode_message_ids,
+            media,
+            context,
+        };
+        validate_source(&Some(source.clone()))?;
+        let id = deterministic_id("task", &request_id);
+        match self.find_task(&id) {
+            Ok(task) => {
+                let same_source = task.source.as_ref().is_some_and(|existing| {
+                    existing.provider.as_deref() == Some("telegram")
+                        && existing.chat_id == Some(input.chat_id)
+                        && source_message_ids(existing) == source.message_ids
+                });
+                if task.project_id != input.project_id || !same_source {
+                    return Err(StoreError::Validation(
+                        "request_id уже использован для другой задачи".into(),
+                    ));
+                }
+                self.link_pending_telegram_candidates_to_task(
+                    input.chat_id,
+                    &source.message_ids,
+                    &task.id,
+                )?;
+                return Ok(CreateOutcome {
+                    value: task,
+                    created: false,
+                });
+            }
+            Err(StoreError::NotFound(_)) => {}
+            Err(error) => return Err(error),
+        }
+        if let Some(task) = self.find_task_by_telegram_source(input.chat_id, &source.message_ids)? {
+            self.link_pending_telegram_candidates_to_task(
+                input.chat_id,
+                &source.message_ids,
+                &task.id,
+            )?;
+            return Ok(CreateOutcome {
+                value: task,
+                created: false,
+            });
+        }
+        let source_message_ids = source.message_ids.clone();
+        let task = self.create_task_locked(
+            CreateTask {
+                project_id: input.project_id,
+                description: description.clone(),
+                urgency: input.urgency,
+                source: Some(source),
+            },
+            description,
+            id,
+        )?;
+        if let Err(error) = self.link_pending_telegram_candidates_to_task(
+            input.chat_id,
+            &source_message_ids,
+            &task.id,
+        ) {
+            let _ = fs::remove_file(self.task_path(&task.project_id, &task.id));
+            return Err(error);
+        }
+        Ok(CreateOutcome {
+            value: task,
+            created: true,
+        })
+    }
+
     pub fn telegram_tasks_for_messages(
         &self,
         project_id: &str,
@@ -2231,6 +2420,35 @@ impl Store {
             }
         }
         Err(StoreError::NotFound(id.to_owned()))
+    }
+
+    fn link_pending_telegram_candidates_to_task(
+        &self,
+        chat_id: i64,
+        message_ids: &[i64],
+        task_id: &str,
+    ) -> Result<(), StoreError> {
+        let mut document = self.read_telegram_inbox()?;
+        let mut changed = false;
+        for candidate in &mut document.candidates {
+            if candidate.chat_id != chat_id
+                || candidate.status != InboxCandidateStatus::Pending
+                || !candidate_message_ids(candidate)
+                    .iter()
+                    .any(|id| message_ids.contains(id))
+            {
+                continue;
+            }
+            candidate.status = InboxCandidateStatus::Imported;
+            candidate.processed_at = Some(Utc::now());
+            candidate.task_id = Some(task_id.to_owned());
+            candidate.linked_task = None;
+            changed = true;
+        }
+        if changed {
+            self.write_telegram_inbox(&document)?;
+        }
+        Ok(())
     }
 
     fn find_task_by_telegram_source(
@@ -3384,6 +3602,18 @@ fn candidate_message_ids(candidate: &TelegramInboxCandidate) -> Vec<i64> {
     } else {
         candidate.message_ids.clone()
     }
+}
+
+fn telegram_context_message_ids(message: &TelegramContextMessage) -> Vec<i64> {
+    let mut ids = message.message_ids.clone();
+    if !ids.contains(&message.message_id) {
+        ids.push(message.message_id);
+    }
+    ids
+}
+
+fn telegram_message_contains_id(message: &TelegramContextMessage, message_id: i64) -> bool {
+    message.message_id == message_id || message.message_ids.contains(&message_id)
 }
 
 fn candidate_context_media(
@@ -4695,5 +4925,169 @@ mod tests {
             b"jpeg"
         );
         assert!(store.pending_telegram_media_requests(3).unwrap().is_empty());
+    }
+
+    #[test]
+    fn telegram_discussion_becomes_one_task_with_context_and_media() {
+        let store = temp_store();
+        let project = store.create_project("Интерфейс").unwrap();
+        let project = store
+            .set_project_telegram_chats(
+                &project.id,
+                vec![TelegramProjectLink {
+                    chat_id: -10055,
+                    title: "Рабочий чат".into(),
+                    inbox_mode: crate::TelegramInboxMode::Manual,
+                }],
+                &project.version,
+            )
+            .unwrap();
+        let now = Utc::now();
+        let photo = |id: i32, name: &str| SourceMedia {
+            kind: SourceMediaKind::Photo,
+            file_name: name.into(),
+            provider_file_id: Some(id),
+            mime_type: Some("image/jpeg".into()),
+            size: Some(4),
+            relative_path: None,
+        };
+        store
+            .upsert_telegram_chat_snapshot(TelegramChatSnapshot {
+                chat_id: -10055,
+                title: "Рабочий чат".into(),
+                synced_at: now,
+                messages: vec![
+                    TelegramContextMessage {
+                        message_id: 1,
+                        message_ids: vec![1],
+                        author: "Анна".into(),
+                        sent_at: now,
+                        text: "Мне не нравится это поле".into(),
+                        url: Some("https://t.me/c/55/1".into()),
+                        reply_to_message_id: None,
+                        is_target: false,
+                        media: vec![photo(101, "before.jpg")],
+                    },
+                    TelegramContextMessage {
+                        message_id: 2,
+                        message_ids: vec![2],
+                        author: "Олег".into(),
+                        sent_at: now + chrono::Duration::seconds(1),
+                        text: "Сделаем его компактнее".into(),
+                        url: Some("https://t.me/c/55/2".into()),
+                        reply_to_message_id: Some(1),
+                        is_target: false,
+                        media: Vec::new(),
+                    },
+                    TelegramContextMessage {
+                        message_id: 3,
+                        message_ids: vec![3],
+                        author: "Анна".into(),
+                        sent_at: now + chrono::Duration::seconds(2),
+                        text: "@tillwithered поправь поле сегодня".into(),
+                        url: Some("https://t.me/c/55/3".into()),
+                        reply_to_message_id: Some(2),
+                        is_target: false,
+                        media: vec![photo(103, "reference.jpg")],
+                    },
+                ],
+            })
+            .unwrap();
+        let candidate = TelegramInboxCandidate {
+            id: format!("telegram:{}:-10055:3", project.id),
+            project_id: project.id.clone(),
+            chat_id: -10055,
+            chat_title: "Рабочий чат".into(),
+            message_id: 3,
+            message_ids: vec![3],
+            text: "@tillwithered поправь поле сегодня".into(),
+            author: "Анна".into(),
+            sent_at: now + chrono::Duration::seconds(2),
+            url: Some("https://t.me/c/55/3".into()),
+            reason: InboxCandidateReason::Mention,
+            status: InboxCandidateStatus::Pending,
+            media: vec![photo(103, "reference.jpg")],
+            context: Vec::new(),
+            discovered_at: now,
+            processed_at: None,
+            task_id: None,
+            linked_task: None,
+        };
+        store
+            .upsert_telegram_candidates(vec![candidate.clone()])
+            .unwrap();
+
+        let created = store
+            .create_task_from_telegram_messages_idempotent(
+                CreateTelegramDiscussionTask {
+                    project_id: project.id.clone(),
+                    chat_id: -10055,
+                    target_message_id: 3,
+                    context_message_ids: vec![1, 2],
+                    description: "Исправить поле\n\nСделать компактнее по обсуждению.".into(),
+                    urgency: Urgency::Important,
+                },
+                "telegram-discussion-request",
+            )
+            .unwrap();
+        assert!(created.created);
+        let source = created.value.source.as_ref().unwrap();
+        assert_eq!(source.message_id, Some(3));
+        assert_eq!(source.message_ids, vec![1, 2, 3]);
+        assert_eq!(source.context.len(), 3);
+        assert_eq!(source.context[2].reply_to_message_id, Some(2));
+        assert!(source.context[2].is_target);
+        assert_eq!(source.media.len(), 2);
+        assert_eq!(source.media[0].provider_file_id, Some(101));
+        assert_eq!(source.media[1].provider_file_id, Some(103));
+        let imported_candidate = store.get_telegram_candidate(&candidate.id).unwrap();
+        assert_eq!(imported_candidate.status, InboxCandidateStatus::Imported);
+        assert_eq!(
+            imported_candidate.task_id.as_deref(),
+            Some(created.value.id.as_str())
+        );
+        let refined = store
+            .update_task(
+                &created.value.id,
+                TaskPatch {
+                    description: Some("Исправить поле по уточнённому решению".into()),
+                    ..TaskPatch::default()
+                },
+                &created.value.version,
+            )
+            .unwrap();
+
+        let repeated = store
+            .create_task_from_telegram_messages_idempotent(
+                CreateTelegramDiscussionTask {
+                    project_id: project.id.clone(),
+                    chat_id: -10055,
+                    target_message_id: 3,
+                    context_message_ids: vec![1, 2],
+                    description: "Исправить поле\n\nСделать компактнее по обсуждению.".into(),
+                    urgency: Urgency::Important,
+                },
+                "telegram-discussion-request",
+            )
+            .unwrap();
+        assert!(!repeated.created);
+        assert_eq!(repeated.value.id, created.value.id);
+        assert_eq!(repeated.value.description, refined.description);
+
+        let same_source = store
+            .create_task_from_telegram_messages_idempotent(
+                CreateTelegramDiscussionTask {
+                    project_id: project.id,
+                    chat_id: -10055,
+                    target_message_id: 3,
+                    context_message_ids: vec![1, 2],
+                    description: "Другой заголовок".into(),
+                    urgency: Urgency::Urgent,
+                },
+                "another-discussion-request",
+            )
+            .unwrap();
+        assert!(!same_source.created);
+        assert_eq!(same_source.value.id, created.value.id);
     }
 }

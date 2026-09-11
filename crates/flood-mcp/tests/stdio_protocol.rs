@@ -151,6 +151,12 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         .unwrap();
     assert_eq!(acknowledge_updates["annotations"]["readOnlyHint"], false);
     assert_eq!(acknowledge_updates["annotations"]["destructiveHint"], false);
+    let discussion_task = tools
+        .iter()
+        .find(|tool| tool["name"] == "create_task_from_telegram_discussion")
+        .unwrap();
+    assert_eq!(discussion_task["annotations"]["readOnlyHint"], false);
+    assert_eq!(discussion_task["annotations"]["destructiveHint"], false);
     let request_image = tools
         .iter()
         .find(|tool| tool["name"] == "request_telegram_image")
