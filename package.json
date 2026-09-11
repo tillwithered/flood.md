@@ -25,7 +25,7 @@
     "@tauri-apps/cli": "2.11.4",
     "@types/node": "24.7.2",
     "@types/qrcode": "^1.5.6",
-    "svelte-check": "4.3.4",
+    "svelte-check": "4.7.6",
     "typescript": "5.9.3",
     "vite": "8.2.2"
   }
