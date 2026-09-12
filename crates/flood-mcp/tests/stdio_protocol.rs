@@ -142,6 +142,19 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
                 .is_some_and(|fields| fields.iter().any(|field| field == "request_id"))
         );
     }
+    for name in ["create_task", "update_task"] {
+        let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
+        let tool_description = tool["description"].as_str().unwrap();
+        assert!(
+            tool_description.contains("кликабельными"),
+            "{name} does not explain clickable Markdown links: {tool_description}"
+        );
+        assert!(
+            tool["inputSchema"]["properties"]["description"]["description"]
+                .as_str()
+                .is_some_and(|description| description.contains("](https://...)"))
+        );
+    }
     let triage_batch = tools
         .iter()
         .find(|tool| tool["name"] == "get_telegram_triage_batch")

@@ -124,6 +124,7 @@
   let activeSection: Section = "tasks";
   let workspaceView: WorkspaceView = "project";
   let selectedTaskId = "";
+  let selectedTaskNavigationScope = "";
   let draftTaskId = "";
   let draftDirty = false;
   let selectedChatId = "all";
@@ -638,7 +639,19 @@
           continue;
         }
       }
-      const nextCandidates = [value.indexOf("![", cursor + 1), value.indexOf("**", cursor + 1), value.indexOf("*", cursor + 1), value.indexOf("<u>", cursor + 1), value.indexOf("[", cursor + 1)].filter((index) => index >= 0);
+      const bareUrlMatch = value.slice(cursor).match(/^https?:\/\/[^\s]+/i);
+      if (bareUrlMatch) {
+        const url = bareUrlMatch[0].replace(/[.,!?;:]+$/, "");
+        if (isHttpUrl(url)) {
+          const link = document.createElement("a");
+          link.textContent = url;
+          decorateExternalLink(link, url);
+          parent.append(link);
+          cursor += url.length;
+          continue;
+        }
+      }
+      const nextCandidates = [value.indexOf("![", cursor + 1), value.indexOf("**", cursor + 1), value.indexOf("*", cursor + 1), value.indexOf("<u>", cursor + 1), value.indexOf("[", cursor + 1), value.indexOf("http://", cursor + 1), value.indexOf("https://", cursor + 1)].filter((index) => index >= 0);
       const next = nextCandidates.length ? Math.min(...nextCandidates) : value.length;
       parent.append(document.createTextNode(value.slice(cursor, Math.max(cursor + 1, next))));
       cursor = Math.max(cursor + 1, next);
@@ -793,7 +806,10 @@
   function discardLocalDraft() {
     if (!draftTaskId) return;
     tasks = tasks.filter((task) => task.id !== draftTaskId);
-    if (selectedTaskId === draftTaskId) selectedTaskId = "";
+    if (selectedTaskId === draftTaskId) {
+      selectedTaskId = "";
+      selectedTaskNavigationScope = "";
+    }
     draftTaskId = "";
     draftDirty = false;
     markdown = "";
@@ -945,23 +961,18 @@
   function updateSelectionToolbar() {
     const selection = window.getSelection();
     if (!selection?.rangeCount || !editorRoot) {
-      selectionToolbar = null;
-      savedSelection = null;
-      linkEditorOpen = false;
+      closeSelectionToolbar();
       return;
     }
     const range = selection.getRangeAt(0);
     const container = range.commonAncestorContainer instanceof Element ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement;
     if (!container || !editorRoot.contains(container)) {
-      selectionToolbar = null;
-      savedSelection = null;
-      linkEditorOpen = false;
+      closeSelectionToolbar();
       return;
     }
     savedSelection = range.cloneRange();
     if (selection.isCollapsed) {
-      selectionToolbar = null;
-      linkEditorOpen = false;
+      closeSelectionToolbar();
       return;
     }
     const rect = range.getBoundingClientRect();
@@ -969,6 +980,23 @@
       left: Math.max(12, Math.min(window.innerWidth - 214, rect.left + rect.width / 2 - 103)),
       top: Math.max(58, rect.top - 44)
     };
+  }
+
+  function closeSelectionToolbar() {
+    selectionToolbar = null;
+    savedSelection = null;
+    linkEditorOpen = false;
+    linkDraft = "";
+  }
+
+  function handleEditorBlur() {
+    editorHint = null;
+    clearAttachmentSelection();
+    void saveNow();
+    window.setTimeout(() => {
+      const active = document.activeElement;
+      if (!(active instanceof Element && active.closest(".selection-toolbar"))) closeSelectionToolbar();
+    });
   }
 
   function restoreSelection() {
@@ -1298,6 +1326,7 @@
     sourceEditorOpen = false;
     datePickerOpen = false;
     taskActionMenuOpen = false;
+    closeSelectionToolbar();
   }
 
   function buildCommandResults(value: string, taskList: TaskItem[], projectList: ChatItem[], _locale: Locale, telegramStep: string): CommandItem[] {
@@ -1691,7 +1720,7 @@
     if (first) placeCaret(first, first.textContent?.length ?? 0);
   }
 
-  async function openTask(task: TaskItem) {
+  async function openTask(task: TaskItem, navigationScope = task.chatId) {
     if (!await persistCurrentTask()) return;
     discardLocalDraft();
     createChatOpen = false;
@@ -1712,6 +1741,7 @@
       setChatExpanded(owner.id);
     }
     selectedTaskId = fullTask.id;
+    selectedTaskNavigationScope = navigationScope;
     markdown = fullTask.markdown;
     lastSavedMarkdown = fullTask.markdown;
     saveState = "idle";
@@ -1719,6 +1749,7 @@
     activeSection = "tasks";
     editorHint = null;
     sourceEditorOpen = false;
+    closeSelectionToolbar();
     closeSourceViewer();
     taskActionMenuOpen = false;
     void tick().then(() => renderMarkdown(markdown));
@@ -1759,6 +1790,7 @@
     selectedChatId = targetChat.id;
     setChatExpanded(targetChat.id);
     selectedTaskId = draft.id;
+    selectedTaskNavigationScope = targetChat.id;
     markdown = draft.markdown;
     lastSavedMarkdown = draft.markdown;
     saveState = "idle";
@@ -1771,10 +1803,11 @@
     discardLocalDraft();
     workspaceView = "project";
     selectedTaskId = "";
+    selectedTaskNavigationScope = "";
     markdown = "";
     lastSavedMarkdown = "";
     editorHint = null;
-    selectionToolbar = null;
+    closeSelectionToolbar();
     taskActionMenuOpen = false;
     sourceEditorOpen = false;
     closeSourceViewer();
@@ -2014,6 +2047,7 @@
       setChatExpanded(deletedId, false);
       selectedChatId = "all";
       selectedTaskId = "";
+      selectedTaskNavigationScope = "";
       workspaceView = "project";
       deleteChatConfirmOpen = false;
       formError = "";
@@ -2169,6 +2203,7 @@
       const converted = toTaskItem(moved);
       tasks = tasks.map((item) => item.id === moved.id ? converted : item);
       selectedChatId = chat.id;
+      if (selectedTaskNavigationScope !== "all" && selectedTaskNavigationScope !== "search") selectedTaskNavigationScope = chat.id;
       setChatExpanded(chat.id);
       lastSavedMarkdown = converted.markdown;
       taskActionMenuOpen = false;
@@ -2195,6 +2230,7 @@
       tasks = tasks.filter((item) => item.id !== task.id);
       trashedTasks = [trashed, ...trashedTasks];
       selectedTaskId = "";
+      selectedTaskNavigationScope = "";
       markdown = "";
       lastSavedMarkdown = "";
       workspaceView = "project";
@@ -2352,6 +2388,7 @@
     emptyTrashConfirmOpen = false;
     purgeTaskId = "";
     editorHint = null;
+    closeSelectionToolbar();
     if (section === "tasks") { await tick(); renderMarkdown(markdown); await focusEditor(); }
   }
 
@@ -3462,6 +3499,7 @@
       await invoke("restore_backup", { source: pendingRestorePath });
       discardLocalDraft();
       selectedTaskId = "";
+      selectedTaskNavigationScope = "";
       selectedChatId = "all";
       workspaceView = "project";
       await loadData(false);
@@ -3897,6 +3935,7 @@
     const flush = () => { void saveNow(); };
     const closeMenus = (event: PointerEvent) => {
       const target = event.target instanceof Element ? event.target : null;
+      if (!target?.closest(".selection-toolbar") && !editorRoot?.contains(target)) closeSelectionToolbar();
       if (!target?.closest(".urgency-menu")) urgencyMenuOpen = false;
       if (!target?.closest(".source-popover") && !target?.closest(".source-action-button")) {
         sourceEditorOpen = false;
@@ -4109,7 +4148,7 @@
               <section class="sidebar-search-group">
                 <button class="search-project-result" onclick={() => selectChat(group.chat)}><Folder size={15} /><span>{group.chat.title}</span><small>{group.tasks.length}</small></button>
                 {#each group.tasks as task (task.id)}
-                  <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
+                  <button class:selected={workspaceView === "task" && selectedTaskId === task.id && selectedTaskNavigationScope === "search"} class="nested-task" onclick={() => openTask(task, "search")}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
                 {/each}
               </section>
             {:else}
@@ -4129,7 +4168,7 @@
           {#if !sidebarCollapsed && allTasksExpanded}
             <div class="nested-tasks all-task-list">
               {#each visibleTasks as task}
-                <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
+                <button class:selected={workspaceView === "task" && selectedTaskId === task.id && selectedTaskNavigationScope === "all"} class="nested-task" onclick={() => openTask(task, "all")}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
               {/each}
             </div>
           {/if}
@@ -4147,7 +4186,7 @@
               {#if !sidebarCollapsed && expandedChatIds.includes(chat.id)}
                 <div class="nested-tasks">
                   {#each tasksForChat(chat) as task}
-                    <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
+                    <button class:selected={workspaceView === "task" && selectedTaskId === task.id && selectedTaskNavigationScope === chat.id} class="nested-task" onclick={() => openTask(task, chat.id)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
                   {:else}<span class="nested-empty">{t("noOpenTasks")}</span>{/each}
                 </div>
               {/if}
@@ -4195,7 +4234,7 @@
               <div><button onclick={useDiskVersion}>{t("diskVersion")}</button><button onclick={keepLocalVersion}>{t("localVersion")}</button></div>
             </div>
           {/if}
-          <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label={t("taskEditor")} spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={() => { editorHint = null; clearAttachmentSelection(); void saveNow(); }}></div>
+          <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label={t("taskEditor")} spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={handleEditorBlur}></div>
         </div>
       </section>
     {:else if activeSection === "tasks"}
@@ -4257,7 +4296,7 @@
                       <button class="project-group-title" onclick={() => selectChat(chat)}><span>{chat.title}</span><small>{chatTasks.length}</small><ChevronRight size={14} /></button>
                       <div class="project-task-list">
                         {#each chatTasks as task}
-                          <button class="project-task" onclick={() => openTask(task)}>
+                          <button class="project-task" onclick={() => openTask(task, "all")}>
                             <FloodGlyph kind={task.urgency} size={14} />
                             <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}</small></span>
                             <ChevronRight size={15} />
@@ -4274,7 +4313,7 @@
           {:else}
             <div class="project-task-list standalone">
               {#each currentOpenTasks as task}
-                <button class="project-task" onclick={() => openTask(task)}>
+                <button class="project-task" onclick={() => openTask(task, currentChat.id)}>
                   <FloodGlyph kind={task.urgency} size={14} />
                   <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}{task.urgency !== "normal" ? ` · ${t(task.urgency === "urgent" ? "urgentShort" : "importantShort")}` : ""}</small></span>
                   <ChevronRight size={15} />
@@ -4294,7 +4333,7 @@
               {#if completedGroupOpen}
                 <div class="project-task-list completed-list">
                   {#each currentCompletedTasks as task}
-                    <button class="project-task completed-task" onclick={() => openTask(task)}><FloodGlyph kind="completed" size={16} motion="pop" /><span class="project-task-copy"><strong>{task.title}</strong><small>{task.chat}</small></span><ChevronRight size={15} /></button>
+                    <button class="project-task completed-task" onclick={() => openTask(task, currentChat.id)}><FloodGlyph kind="completed" size={16} motion="pop" /><span class="project-task-copy"><strong>{task.title}</strong><small>{task.chat}</small></span><ChevronRight size={15} /></button>
                   {/each}
                 </div>
               {/if}

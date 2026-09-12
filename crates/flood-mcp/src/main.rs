@@ -253,7 +253,8 @@ struct SourceMediaArgs {
 struct CreateTaskArgs {
     project_id: String,
     /// Markdown задачи: первая строка — короткий заголовок `# ...`, затем только
-    /// необходимые для выполнения детали. Не копируйте сюда источник, автора и дату.
+    /// необходимые для выполнения детали. Ссылки оформляйте как `[название](https://...)`,
+    /// чтобы они оставались кликабельными. Не копируйте сюда источник, автора и дату.
     description: String,
     urgency: Option<String>,
     source: Option<SnapshotArgs>,
@@ -266,6 +267,8 @@ struct CreateTaskArgs {
 struct UpdateTaskArgs {
     id: String,
     expected_version: String,
+    /// Полный новый Markdown задачи. Ссылки оформляйте как
+    /// `[название](https://...)`, а не как подпись и URL обычным текстом.
     description: Option<String>,
     urgency: Option<String>,
     status: Option<String>,
@@ -3502,7 +3505,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Создать открытую задачу. В description используйте компактный Markdown: первая строка `# Короткое действие или результат`, затем только необходимые детали, обычно до трёх пунктов и критерий готовности. Не добавляйте служебные фразы, автора и дату. urgency: normal, important или urgent. request_id обязателен: передайте новый стабильный UUID и повторяйте его только при повторе того же запроса после неопределённого результата",
+        description = "Создать открытую задачу. В description используйте компактный Markdown: первая строка `# Короткое действие или результат`, затем только необходимые детали, обычно до трёх пунктов и критерий готовности. Ссылки оформляйте как `[понятное название](https://...)`, чтобы они были кликабельными; не вставляйте подпись и URL раздельным обычным текстом. Не добавляйте служебные фразы, автора и дату. urgency: normal, important или urgent. request_id обязателен: передайте новый стабильный UUID и повторяйте его только при повторе того же запроса после неопределённого результата",
         annotations(
             title = "Создать задачу",
             destructive_hint = false,
@@ -3540,7 +3543,7 @@ impl FloodServer {
     }
 
     #[tool(
-        description = "Изменить задачу. status: open или completed; требуется актуальный expected_version",
+        description = "Изменить задачу. description — полный Markdown задачи; ссылки в нём оформляйте как `[понятное название](https://...)`, чтобы они были кликабельными. status: open или completed; требуется актуальный expected_version",
         annotations(title = "Изменить задачу", open_world_hint = false)
     )]
     fn update_task(
