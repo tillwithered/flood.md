@@ -43,6 +43,7 @@ fn provenance_is_persistent_structured_and_content_free() {
         }],
         result: ActivityApplyResult::Applied,
         recovery: ActivityRecoveryAvailability::Available,
+        compensation: None,
     };
     let recorded = store
         .record_activity_with_provenance(

@@ -42,3 +42,11 @@ Every successfully applied meaningful MCP mutation also writes one `mutation_app
 The provenance record deliberately excludes mutation payloads, task descriptions, message bodies, reasons, credentials, and secret values. Source messages are represented only by stable references such as `chat_id:message_id`.
 
 Older `activity.json` entries remain valid because `provenance` is optional. Existing per-entity activity events are retained; the provenance event adds one human-readable reconstruction point for the approved apply without changing Markdown storage formats.
+
+## Rollback and interrupted apply recovery
+
+Versioned project workspace items and project memory entries can be restored to a retained revision through `Store` with the current `expected_version`. A rollback writes the restored value as a new version and preserves the value being replaced as another revision, so the rollback itself can be reversed. Existing Markdown formats do not change.
+
+Task batch apply persists its recovery receipt before task writes. If the process stops after the receipt is durable, reopening the store deterministically reapplies the target task snapshots and finalizes the receipt. An ordinary in-process write failure first attempts to restore the original files; if that rollback cannot finish, the pending receipt remains and startup continues forward to the approved target state. Reopening an already finalized receipt is idempotent.
+
+Mutation provenance also records compensation metadata. Local reversible mutations use `local_rollback`. A plan with an external write records `external_compensating_action` when compensation may be possible, or `unavailable` when the plan is irreversible. This is reconstruction metadata only; flood.md does not claim or perform rollback in an external system unless that provider supplies a real compensating operation.

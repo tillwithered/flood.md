@@ -28,8 +28,8 @@ use flood_core::{
     run_self_check as run_core_self_check,
 };
 use flood_core::{
-    ActivityApplyResult, ActivityGuidanceRef, ActivityOperationResult, ActivityProvenance,
-    ActivityRecoveryAvailability, MutationSourceRef,
+    ActivityApplyResult, ActivityCompensation, ActivityCompensationStrategy, ActivityGuidanceRef,
+    ActivityOperationResult, ActivityProvenance, ActivityRecoveryAvailability, MutationSourceRef,
 };
 use flood_github::{
     GitHubConnector, GitHubFile, GitHubRepositoryContext, GitHubSearchHit, GitHubTree,
@@ -7290,6 +7290,24 @@ impl FloodServer {
             operations,
             result,
             recovery,
+            compensation: Some(ActivityCompensation {
+                external_effect: plan.external_effect,
+                strategy: match (plan.external_effect, plan.reversibility) {
+                    (MutationExternalEffect::Write, MutationReversibility::Irreversible) => {
+                        ActivityCompensationStrategy::Unavailable
+                    }
+                    (MutationExternalEffect::Write, _) => {
+                        ActivityCompensationStrategy::ExternalCompensatingAction
+                    }
+                    (_, MutationReversibility::Reversible) => {
+                        ActivityCompensationStrategy::LocalRollback
+                    }
+                    (_, MutationReversibility::Irreversible) => {
+                        ActivityCompensationStrategy::Unavailable
+                    }
+                    _ => ActivityCompensationStrategy::None,
+                },
+            }),
         };
         let input = RecordActivity {
             source: ActivitySource::Mcp,

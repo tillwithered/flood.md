@@ -1483,6 +1483,49 @@ impl Store {
         self.get_project_workspace_item(project_id, id)
     }
 
+    pub fn rollback_project_workspace_item(
+        &self,
+        project_id: &str,
+        id: &str,
+        revision_index: usize,
+        expected_version: &str,
+    ) -> Result<ProjectWorkspaceItem, StoreError> {
+        validate_id(project_id)?;
+        validate_id(id)?;
+        let _lock = self.lock_exclusive()?;
+        let mut item = self.get_project_workspace_item(project_id, id)?;
+        ensure_version(&item.version, expected_version)?;
+        if revision_index >= item.revisions.len() {
+            return Err(StoreError::Validation(
+                "указанная ревизия элемента проекта не существует".into(),
+            ));
+        }
+        let revision = item.revisions[revision_index].clone();
+        let now = Utc::now();
+        item.revisions.push(ProjectWorkspaceRevision {
+            title: item.title.clone(),
+            summary: item.summary.clone(),
+            content: item.content.clone(),
+            agent_access: item.agent_access,
+            changed_at: now,
+        });
+        if item.revisions.len() > MAX_PROJECT_WORKSPACE_REVISIONS {
+            item.revisions.drain(
+                0..item
+                    .revisions
+                    .len()
+                    .saturating_sub(MAX_PROJECT_WORKSPACE_REVISIONS),
+            );
+        }
+        item.title = revision.title;
+        item.summary = revision.summary;
+        item.content = revision.content;
+        item.agent_access = revision.agent_access;
+        item.updated_at = now;
+        self.write_project_workspace_item(&item)?;
+        self.get_project_workspace_item(project_id, id)
+    }
+
     pub fn delete_project_workspace_item(
         &self,
         project_id: &str,
@@ -1668,6 +1711,57 @@ impl Store {
             entry.text = text;
         }
         entry.pinned = pinned;
+        entry.updated_at = Some(now);
+        project.updated_at = now;
+        self.write_project(&project)?;
+        read_project(&self.project_path(project_id))
+    }
+
+    pub fn rollback_project_memory(
+        &self,
+        project_id: &str,
+        memory_id: &str,
+        revision_index: usize,
+        expected_version: &str,
+    ) -> Result<Project, StoreError> {
+        validate_id(project_id)?;
+        validate_id(memory_id)?;
+        let _lock = self.lock_exclusive()?;
+        let mut project = read_project(&self.project_path(project_id))
+            .map_err(|error| map_missing(error, project_id))?;
+        ensure_version(&project.version, expected_version)?;
+        let revision_text = project
+            .memory
+            .iter()
+            .find(|entry| entry.id == memory_id)
+            .ok_or_else(|| StoreError::NotFound(memory_id.to_owned()))?
+            .revisions
+            .get(revision_index)
+            .ok_or_else(|| {
+                StoreError::Validation("указанная ревизия памяти проекта не существует".into())
+            })?
+            .text
+            .clone();
+        ensure_unique_active_memory_text(&project.memory, &revision_text, Some(memory_id))?;
+        let entry = project
+            .memory
+            .iter_mut()
+            .find(|entry| entry.id == memory_id)
+            .ok_or_else(|| StoreError::NotFound(memory_id.to_owned()))?;
+        if entry.state != crate::ProjectMemoryState::Active {
+            return Err(StoreError::Validation(
+                "Заменённую запись нельзя откатить".into(),
+            ));
+        }
+        let now = Utc::now();
+        entry.revisions.push(crate::ProjectMemoryRevision {
+            text: entry.text.clone(),
+            changed_at: now,
+        });
+        if entry.revisions.len() > 10 {
+            entry.revisions.remove(0);
+        }
+        entry.text = revision_text;
         entry.updated_at = Some(now);
         project.updated_at = now;
         self.write_project(&project)?;
@@ -9766,6 +9860,55 @@ mod tests {
     }
 
     #[test]
+    fn project_workspace_item_rollback_is_versioned_and_reversible() {
+        let store = temp_store();
+        let project = store.create_project("Rollback workspace").unwrap();
+        let created = store
+            .create_project_workspace_item_idempotent(
+                &project.id,
+                crate::ProjectWorkspaceItemKind::Document,
+                "Версия 1",
+                None,
+                "Первое содержимое",
+                true,
+                "rollback-workspace-create",
+            )
+            .unwrap()
+            .value;
+        let updated = store
+            .update_project_workspace_item(
+                &project.id,
+                &created.id,
+                "Версия 2",
+                Some("Изменено"),
+                "Второе содержимое",
+                false,
+                &created.version,
+            )
+            .unwrap();
+
+        let rolled_back = store
+            .rollback_project_workspace_item(&project.id, &updated.id, 0, &updated.version)
+            .unwrap();
+        assert_eq!(rolled_back.title, "Версия 1");
+        assert_eq!(rolled_back.content, "Первое содержимое");
+        assert!(rolled_back.agent_access);
+        assert_eq!(rolled_back.revisions.len(), 2);
+        assert_eq!(rolled_back.revisions[1].title, "Версия 2");
+        assert_ne!(rolled_back.version, updated.version);
+
+        assert!(matches!(
+            store.rollback_project_workspace_item(&project.id, &updated.id, 0, &updated.version),
+            Err(StoreError::Conflict)
+        ));
+        let restored_forward = store
+            .rollback_project_workspace_item(&project.id, &updated.id, 1, &rolled_back.version)
+            .unwrap();
+        assert_eq!(restored_forward.title, "Версия 2");
+        assert_eq!(restored_forward.content, "Второе содержимое");
+    }
+
+    #[test]
     fn project_memory_is_bounded_deduplicated_and_persistent() {
         let store = temp_store();
         let project = store.create_project("Память").unwrap();
@@ -9884,6 +10027,49 @@ mod tests {
             .unwrap();
         assert_eq!(deleted.memory.len(), 1);
         assert_eq!(deleted.memory[0].id, replacement_id);
+    }
+
+    #[test]
+    fn project_memory_rollback_keeps_current_value_as_revision() {
+        let store = temp_store();
+        let project = store.create_project("Rollback памяти").unwrap();
+        let created = store
+            .add_project_memory_idempotent(
+                &project.id,
+                "Первая версия",
+                None,
+                false,
+                &project.version,
+                "rollback-memory-create",
+            )
+            .unwrap()
+            .value;
+        let memory_id = created.memory[0].id.clone();
+        let updated = store
+            .update_project_memory(
+                &project.id,
+                &memory_id,
+                "Вторая версия",
+                false,
+                &created.version,
+            )
+            .unwrap();
+
+        let rolled_back = store
+            .rollback_project_memory(&project.id, &memory_id, 0, &updated.version)
+            .unwrap();
+        let entry = rolled_back
+            .memory
+            .iter()
+            .find(|entry| entry.id == memory_id)
+            .unwrap();
+        assert_eq!(entry.text, "Первая версия");
+        assert_eq!(entry.revisions.len(), 2);
+        assert_eq!(entry.revisions[1].text, "Вторая версия");
+        assert!(matches!(
+            store.rollback_project_memory(&project.id, &memory_id, 0, &updated.version),
+            Err(StoreError::Conflict)
+        ));
     }
 
     #[test]
@@ -10534,5 +10720,69 @@ mod tests {
                 .unwrap()
                 .applied
         );
+    }
+
+    #[test]
+    fn pending_task_batch_recovers_from_every_task_write_boundary() {
+        for written_count in 0..=2 {
+            let store = temp_store();
+            let project = store.create_project("Границы восстановления").unwrap();
+            let request_id = format!("batch-boundary-{written_count}");
+            let outcome = store
+                .apply_task_batch(
+                    vec![
+                        TaskBatchOperation::Create {
+                            operation_id: "first".into(),
+                            project_id: project.id.clone(),
+                            description: "# Первая".into(),
+                            urgency: Urgency::Normal,
+                            source: None,
+                        },
+                        TaskBatchOperation::Create {
+                            operation_id: "second".into(),
+                            project_id: project.id.clone(),
+                            description: "# Вторая".into(),
+                            urgency: Urgency::Important,
+                            source: None,
+                        },
+                    ],
+                    Vec::new(),
+                    &request_id,
+                )
+                .unwrap();
+            let targets = outcome.tasks.clone();
+            let receipt_path = store.task_batch_receipt_path(&request_id);
+            let mut receipt = store.read_task_batch_receipt(&receipt_path).unwrap();
+            receipt.applied = false;
+            receipt.task_ids.clear();
+            receipt.tasks = targets.clone();
+            store
+                .write_task_batch_receipt(&receipt_path, &receipt)
+                .unwrap();
+
+            for task in targets.iter().skip(written_count) {
+                fs::remove_file(store.task_path(&task.project_id, &task.id)).unwrap();
+            }
+
+            let reopened = Store::new(store.root()).unwrap();
+            for target in &targets {
+                let recovered = reopened.get_task(&target.id).unwrap();
+                assert_eq!(recovered.description, target.description);
+                assert_eq!(recovered.urgency, target.urgency);
+            }
+            let finalized = reopened.read_task_batch_receipt(&receipt_path).unwrap();
+            assert!(finalized.applied);
+            assert!(finalized.tasks.is_empty());
+            assert_eq!(finalized.task_ids.len(), 2);
+
+            let reopened_again = Store::new(store.root()).unwrap();
+            assert_eq!(
+                reopened_again
+                    .list_tasks(Some(&project.id), false)
+                    .unwrap()
+                    .len(),
+                2
+            );
+        }
     }
 }

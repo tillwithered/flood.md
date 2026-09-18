@@ -784,6 +784,22 @@ pub enum ActivityRecoveryAvailability {
     Unavailable,
 }
 
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ActivityCompensationStrategy {
+    #[default]
+    None,
+    LocalRollback,
+    ExternalCompensatingAction,
+    Unavailable,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct ActivityCompensation {
+    pub external_effect: crate::MutationExternalEffect,
+    pub strategy: ActivityCompensationStrategy,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct ActivityProvenance {
     pub initiator: crate::MutationInitiator,
@@ -799,6 +815,8 @@ pub struct ActivityProvenance {
     pub operations: Vec<ActivityOperationResult>,
     pub result: ActivityApplyResult,
     pub recovery: ActivityRecoveryAvailability,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compensation: Option<ActivityCompensation>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
