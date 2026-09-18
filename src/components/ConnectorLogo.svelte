@@ -2,12 +2,13 @@
   import githubLogo from "../assets/connector-logos/github.svg";
   import mcpLogo from "../assets/connector-logos/mcp.svg";
   import telegramLogo from "../assets/connector-logos/telegram.svg";
+  import type { ConnectorLogoProvider } from "../integrations/registry";
 
   let {
     provider,
     size = 22
   }: {
-    provider: "telegram" | "github" | "mcp";
+    provider: ConnectorLogoProvider;
     size?: number;
   } = $props();
 

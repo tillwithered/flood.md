@@ -1,0 +1,11 @@
+[package]
+name = "flood-connectors"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+chrono.workspace = true
+schemars.workspace = true
+serde.workspace = true
+thiserror.workspace = true

@@ -2,6 +2,7 @@
   import type { Snippet } from "svelte";
   import { X } from "@lucide/svelte";
   import ConnectorLogo from "./ConnectorLogo.svelte";
+  import type { ConnectorLogoProvider } from "../integrations/registry";
 
   let {
     provider,
@@ -12,7 +13,7 @@
     onkeydown,
     children
   }: {
-    provider: "telegram" | "github" | "mcp";
+    provider: ConnectorLogoProvider;
     title: string;
     subtitle: string;
     closeLabel: string;

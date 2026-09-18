@@ -1,6 +1,13 @@
 use atomic_write_file::AtomicWriteFile;
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::{DateTime, Utc};
+use flood_connectors::{
+    CONNECTOR_CONTRACT_VERSION, ConnectorAdapter, ConnectorDescriptor, ConnectorFuture,
+    ConnectorHealth, ConnectorIdentity, ConnectorOperationError, ConnectorRuntimeStatus,
+    ConnectorSource, ConnectorSourceKind, ContextAssetKind, ContextAssetReference, ContextBatch,
+    ContextSignal, ContextSignalKind, ExternalActor, SourceCatalogRequest, SourcePage,
+    TELEGRAM_CONNECTOR_ID, TimelineRequest,
+};
 use flood_core::{
     InboxCandidateReason, InboxCandidateStatus, Project, SourceMedia, SourceMediaKind,
     TelegramChatSnapshot, TelegramContextMessage, TelegramInboxCandidate, TelegramInboxMode,
@@ -67,6 +74,9 @@ pub struct TelegramMessage {
     pub chat_id: i64,
     pub text: String,
     pub author: String,
+    pub sender_id: String,
+    pub sender_username: Option<String>,
+    pub is_outgoing: bool,
     pub sent_at: i32,
     pub url: Option<String>,
     pub chat_title: String,
@@ -89,6 +99,13 @@ struct TelegramCandidateContent {
     context: Vec<TelegramContextMessage>,
 }
 
+#[derive(Clone)]
+struct TelegramSenderIdentity {
+    id: String,
+    name: String,
+    username: Option<String>,
+}
+
 struct TelegramInner {
     app: AppHandle,
     root: PathBuf,
@@ -102,6 +119,182 @@ struct TelegramInner {
 
 #[derive(Clone)]
 pub struct TelegramManager(Arc<TelegramInner>);
+
+pub fn telegram_connector_descriptor() -> ConnectorDescriptor {
+    flood_connectors::telegram_connector_descriptor()
+}
+
+impl ConnectorIdentity for TelegramManager {
+    fn descriptor(&self) -> ConnectorDescriptor {
+        telegram_connector_descriptor()
+    }
+
+    fn status(&self) -> ConnectorRuntimeStatus {
+        let status = TelegramManager::status(self);
+        let health = match status.step.as_str() {
+            "ready" => ConnectorHealth::Ready,
+            "unconfigured" => ConnectorHealth::Disconnected,
+            "error" | "database_error" => ConnectorHealth::Error,
+            "waiting_phone" | "waiting_code" | "waiting_password" | "waiting_qr" => {
+                ConnectorHealth::Attention
+            }
+            _ => ConnectorHealth::Connecting,
+        };
+        ConnectorRuntimeStatus {
+            connector_id: TELEGRAM_CONNECTOR_ID.into(),
+            health,
+            configured: status.configured,
+            account_label: status.account_username.or(status.account_name),
+            detail: status.error,
+            observed_at: Utc::now(),
+        }
+    }
+}
+
+impl ConnectorAdapter for TelegramManager {
+    fn list_sources(&self, request: SourceCatalogRequest) -> ConnectorFuture<'_, SourcePage> {
+        let manager = self.clone();
+        Box::pin(async move {
+            let query = request.query.unwrap_or_default();
+            let mut chats = if query.trim().is_empty() {
+                manager.chats().await
+            } else {
+                manager.search_chats(query, 100).await
+            }
+            .map_err(ConnectorOperationError::Failed)?;
+            let offset = request
+                .cursor
+                .as_deref()
+                .and_then(|cursor| cursor.strip_prefix("offset:"))
+                .and_then(|offset| offset.parse::<usize>().ok())
+                .unwrap_or(0);
+            let limit = request.limit.clamp(1, 100);
+            chats.sort_by_key(|chat| chat.title.to_lowercase());
+            let next_offset = offset.saturating_add(limit).min(chats.len());
+            let sources = chats
+                .iter()
+                .skip(offset)
+                .take(limit)
+                .map(|chat| chat.connector_source(false))
+                .collect();
+            Ok(SourcePage {
+                sources,
+                next_cursor: (next_offset < chats.len()).then(|| format!("offset:{next_offset}")),
+            })
+        })
+    }
+
+    fn read_timeline(&self, request: TimelineRequest) -> ConnectorFuture<'_, ContextBatch> {
+        let manager = self.clone();
+        Box::pin(async move {
+            let chat_id = request
+                .source_id
+                .strip_prefix("chat:")
+                .and_then(|value| value.parse::<i64>().ok())
+                .ok_or_else(|| {
+                    ConnectorOperationError::Failed("invalid Telegram source id".into())
+                })?;
+            let after_message_id = request
+                .cursor
+                .as_deref()
+                .and_then(|cursor| cursor.strip_prefix("message:"))
+                .and_then(|value| value.parse::<i64>().ok());
+            let messages = manager
+                .messages(chat_id, request.limit.clamp(1, 50) as i32)
+                .await
+                .map_err(ConnectorOperationError::Failed)?;
+            let mut signals = messages
+                .into_iter()
+                .filter(|message| after_message_id.is_none_or(|after| message.id > after))
+                .map(|message| message.context_signal())
+                .collect::<Vec<_>>();
+            signals.sort_by_key(|signal| signal.occurred_at);
+            let next_cursor = signals
+                .iter()
+                .filter_map(|signal| signal.external_id.strip_prefix("message:"))
+                .filter_map(|value| value.parse::<i64>().ok())
+                .max()
+                .map(|message_id| format!("message:{message_id}"))
+                .or(request.cursor);
+            Ok(ContextBatch {
+                connector_id: TELEGRAM_CONNECTOR_ID.into(),
+                source_id: request.source_id,
+                synced_at: Utc::now(),
+                next_cursor,
+                has_more: false,
+                signals,
+            })
+        })
+    }
+}
+
+impl TelegramChat {
+    pub fn connector_source(&self, agent_access: bool) -> ConnectorSource {
+        let detail = self
+            .username
+            .as_ref()
+            .map(|username| format!("{} · @{username}", self.kind))
+            .or_else(|| Some(format!("{} · ID {}", self.kind, self.id)));
+        ConnectorSource {
+            connector_id: TELEGRAM_CONNECTOR_ID.into(),
+            source_id: format!("chat:{}", self.id),
+            kind: ConnectorSourceKind::Conversation,
+            label: self.title.clone(),
+            detail,
+            url: None,
+            agent_access,
+        }
+    }
+}
+
+impl TelegramMessage {
+    pub fn context_signal(&self) -> ContextSignal {
+        let assets = self
+            .media
+            .iter()
+            .enumerate()
+            .map(|(index, media)| ContextAssetReference {
+                asset_id: format!("message:{}:media:{index}", self.id),
+                kind: match &media.kind {
+                    SourceMediaKind::Photo => ContextAssetKind::Image,
+                    SourceMediaKind::Video | SourceMediaKind::Animation => ContextAssetKind::Video,
+                    SourceMediaKind::Audio | SourceMediaKind::Voice => ContextAssetKind::Audio,
+                    SourceMediaKind::Document => ContextAssetKind::Document,
+                    SourceMediaKind::Other => ContextAssetKind::Other,
+                },
+                file_name: media.file_name.clone(),
+                mime_type: media.mime_type.clone(),
+                size: media.size,
+            })
+            .collect();
+        let mut attributes = std::collections::BTreeMap::new();
+        attributes.insert("is_mention".into(), self.is_mention.to_string());
+        attributes.insert(
+            "is_reply_to_current_user".into(),
+            self.is_reply_to_me.to_string(),
+        );
+        ContextSignal {
+            contract_version: CONNECTOR_CONTRACT_VERSION,
+            connector_id: TELEGRAM_CONNECTOR_ID.into(),
+            source_id: format!("chat:{}", self.chat_id),
+            external_id: format!("message:{}", self.id),
+            kind: ContextSignalKind::Message,
+            occurred_at: DateTime::from_timestamp(i64::from(self.sent_at), 0)
+                .unwrap_or_else(Utc::now),
+            actor: Some(ExternalActor {
+                actor_id: self.sender_id.clone(),
+                display_name: self.author.clone(),
+                username: self.sender_username.clone(),
+                is_current_user: self.is_outgoing,
+            }),
+            text: self.text.clone(),
+            reply_to_external_id: None,
+            assets,
+            url: self.url.clone(),
+            attributes,
+        }
+    }
+}
 
 enum TelegramChatIdentityLookup {
     None(&'static str),
@@ -477,7 +670,7 @@ impl TelegramManager {
                 continue;
             }
             let message = representative_message(&group).clone();
-            let author = self.sender_name(&message.sender_id, client_id).await;
+            let sender = self.sender_identity(&message.sender_id, client_id).await;
             let mut is_reply_to_me = false;
             for item in &group {
                 if reply_is_to_me(item, client_id).await {
@@ -497,7 +690,10 @@ impl TelegramManager {
                 message_ids: group.iter().map(|item| item.id).collect(),
                 chat_id,
                 text,
-                author,
+                author: sender.name,
+                sender_id: sender.id,
+                sender_username: sender.username,
+                is_outgoing: message.is_outgoing,
                 sent_at: message.date,
                 url,
                 chat_title: chat_title.clone(),
@@ -570,19 +766,19 @@ impl TelegramManager {
             .map_err(td_error)?;
             let groups = group_telegram_messages(history.messages.into_iter().flatten().collect());
             let mut context_cache = HashMap::<usize, TelegramContextMessage>::new();
-            let mut sender_cache = HashMap::<String, String>::new();
+            let mut sender_cache = HashMap::<String, TelegramSenderIdentity>::new();
             let mut timeline = Vec::with_capacity(groups.len());
             for group in &groups {
                 let sender = &representative_message(group).sender_id;
                 let sender_key = telegram_sender_key(sender);
-                let author = if let Some(author) = sender_cache.get(&sender_key) {
-                    author.clone()
+                let identity = if let Some(identity) = sender_cache.get(&sender_key) {
+                    identity.clone()
                 } else {
-                    let author = self.sender_name(sender, client_id).await;
-                    sender_cache.insert(sender_key, author.clone());
-                    author
+                    let identity = self.sender_identity(sender, client_id).await;
+                    sender_cache.insert(sender_key, identity.clone());
+                    identity
                 };
-                let message = timeline_message_from_messages(group, author)?;
+                let message = timeline_message_from_messages(group, identity)?;
                 if !message.text.trim().is_empty() || !message.media.is_empty() {
                     timeline.push(message);
                 }
@@ -730,7 +926,7 @@ impl TelegramManager {
         } = content;
         let client_id = self.client_id()?;
         let message = representative_message(&messages);
-        let author = self.sender_name(&message.sender_id, client_id).await;
+        let sender = self.sender_identity(&message.sender_id, client_id).await;
         let url =
             match functions::get_message_link(link.chat_id, message.id, 0, false, false, client_id)
                 .await
@@ -753,7 +949,10 @@ impl TelegramManager {
             message_id: message.id,
             message_ids: messages.iter().map(|message| message.id).collect(),
             text,
-            author,
+            author: sender.name,
+            sender_id: Some(sender.id),
+            sender_username: sender.username,
+            is_outgoing: message.is_outgoing,
             sent_at,
             url,
             reason,
@@ -790,12 +989,16 @@ impl TelegramManager {
             Err(_) => None,
         };
         let (text, media) = combined_message_content(messages);
+        let sender = self
+            .sender_identity(&message.sender_id, self.client_id()?)
+            .await;
         Ok(TelegramContextMessage {
             message_id: message.id,
             message_ids: messages.iter().map(|message| message.id).collect(),
-            author: self
-                .sender_name(&message.sender_id, self.client_id()?)
-                .await,
+            author: sender.name,
+            sender_id: Some(sender.id),
+            sender_username: sender.username,
+            is_outgoing: message.is_outgoing,
             sent_at,
             text,
             url,
@@ -815,22 +1018,40 @@ impl TelegramManager {
         self.0.config.lock().expect("telegram config lock").clone()
     }
 
-    async fn sender_name(&self, sender: &enums::MessageSender, client_id: i32) -> String {
+    async fn sender_identity(
+        &self,
+        sender: &enums::MessageSender,
+        client_id: i32,
+    ) -> TelegramSenderIdentity {
         match sender {
             enums::MessageSender::User(sender) => {
                 match functions::get_user(sender.user_id, client_id).await {
-                    Ok(enums::User::User(user)) => {
-                        format!("{} {}", user.first_name, user.last_name)
+                    Ok(enums::User::User(user)) => TelegramSenderIdentity {
+                        id: telegram_sender_key(&enums::MessageSender::User(sender.clone())),
+                        name: format!("{} {}", user.first_name, user.last_name)
                             .trim()
-                            .to_owned()
-                    }
-                    Err(_) => "Telegram".into(),
+                            .to_owned(),
+                        username: primary_telegram_username(&user.usernames),
+                    },
+                    Err(_) => TelegramSenderIdentity {
+                        id: telegram_sender_key(&enums::MessageSender::User(sender.clone())),
+                        name: "Telegram".into(),
+                        username: None,
+                    },
                 }
             }
             enums::MessageSender::Chat(sender) => {
                 match functions::get_chat(sender.chat_id, client_id).await {
-                    Ok(enums::Chat::Chat(chat)) => chat.title,
-                    Err(_) => "Telegram".into(),
+                    Ok(enums::Chat::Chat(chat)) => TelegramSenderIdentity {
+                        id: telegram_sender_key(&enums::MessageSender::Chat(sender.clone())),
+                        name: chat.title,
+                        username: None,
+                    },
+                    Err(_) => TelegramSenderIdentity {
+                        id: telegram_sender_key(&enums::MessageSender::Chat(sender.clone())),
+                        name: "Telegram".into(),
+                        username: None,
+                    },
                 }
             }
         }
@@ -1198,7 +1419,7 @@ fn telegram_sender_key(sender: &enums::MessageSender) -> String {
 
 fn timeline_message_from_messages(
     messages: &[tdlib::types::Message],
-    author: String,
+    sender: TelegramSenderIdentity,
 ) -> Result<TelegramContextMessage, String> {
     let message = representative_message(messages);
     let sent_at = DateTime::from_timestamp(message.date.into(), 0)
@@ -1207,7 +1428,10 @@ fn timeline_message_from_messages(
     Ok(TelegramContextMessage {
         message_id: message.id,
         message_ids: messages.iter().map(|message| message.id).collect(),
-        author,
+        author: sender.name,
+        sender_id: Some(sender.id),
+        sender_username: sender.username,
+        is_outgoing: message.is_outgoing,
         sent_at,
         text,
         url: None,
@@ -1368,7 +1592,7 @@ fn next_mask(state: &mut u64) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::{
-        StoredTelegramConfig, TelegramChatIdentityLookup, TelegramChatSummarySeed,
+        StoredTelegramConfig, TelegramChatIdentityLookup, TelegramChatSummarySeed, TelegramMessage,
         config_backup_path, config_path, contains_username_mention, context_window_indices,
         generate_database_key, group_by_album, message_media, normalize_database_key, read_config,
         valid_api_hash, valid_database_key, write_config,
@@ -1494,5 +1718,40 @@ mod tests {
             vec![3, 4, 5, 6, 7, 8, 9]
         );
         assert_eq!(context_window_indices(&groups, 11), vec![8, 9, 10, 11]);
+    }
+
+    #[test]
+    fn telegram_message_becomes_provider_neutral_signal_with_media() {
+        let message = TelegramMessage {
+            id: 77,
+            message_ids: vec![77, 78],
+            chat_id: -10042,
+            text: "Проверь экран".into(),
+            author: "Дима".into(),
+            sender_id: "user:42".into(),
+            sender_username: Some("dima".into()),
+            is_outgoing: false,
+            sent_at: 1_700_000_000,
+            url: Some("https://t.me/c/42/77".into()),
+            chat_title: "Рабочий чат".into(),
+            media: vec![flood_core::SourceMedia {
+                kind: flood_core::SourceMediaKind::Photo,
+                file_name: "screen.jpg".into(),
+                provider_file_id: Some(9),
+                mime_type: Some("image/jpeg".into()),
+                size: Some(1024),
+                relative_path: None,
+            }],
+            is_mention: true,
+            is_reply_to_me: false,
+            linked_task: None,
+        };
+        let signal = message.context_signal();
+        assert_eq!(signal.connector_id, "telegram");
+        assert_eq!(signal.source_id, "chat:-10042");
+        assert_eq!(signal.external_id, "message:77");
+        assert_eq!(signal.actor.as_ref().unwrap().actor_id, "user:42");
+        assert_eq!(signal.assets.len(), 1);
+        assert!(signal.validate().is_ok());
     }
 }

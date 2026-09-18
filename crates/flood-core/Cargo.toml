@@ -8,6 +8,7 @@ license.workspace = true
 atomic-write-file.workspace = true
 chrono.workspace = true
 fs2.workspace = true
+flood-connectors = { path = "../flood-connectors" }
 hex.workspace = true
 serde.workspace = true
 schemars.workspace = true

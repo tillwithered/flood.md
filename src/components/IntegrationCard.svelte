@@ -2,6 +2,7 @@
   import { ChevronRight } from "@lucide/svelte";
   import ConnectorLogo from "./ConnectorLogo.svelte";
   import FloodGlyph from "./FloodGlyph.svelte";
+  import type { ConnectorLogoProvider, ConnectorTone } from "../integrations/registry";
 
   let {
     provider,
@@ -13,12 +14,12 @@
     actionLabel,
     onclick
   }: {
-    provider: "telegram" | "github" | "mcp";
+    provider: ConnectorLogoProvider;
     title: string;
     description: string;
     status: string;
     detail: string;
-    tone?: "idle" | "connected" | "attention" | "error";
+    tone?: ConnectorTone;
     actionLabel: string;
     onclick: () => void;
   } = $props();

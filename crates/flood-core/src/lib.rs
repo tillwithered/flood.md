@@ -1,10 +1,13 @@
 mod model;
 mod store;
+mod workflow;
 
 pub use model::*;
 pub use store::{
-    ActivityPage, AttachmentCleanupReport, AttachmentCleanupResult, CreateOutcome,
-    CreateTelegramDiscussionTask, RecordActivity, SelfCheckItem, SelfCheckResult, Store,
-    StoreDiagnostics, StoreError, TelegramChatPage, TelegramInboxPage, TelegramMessageContextPage,
-    TelegramUpdatesPage, default_data_dir, run_self_check,
+    ActivityPage, AttachmentCleanupReport, AttachmentCleanupResult, AutomationEventClaim,
+    AutomationEventPage, CreateOutcome, CreateTelegramDiscussionTask, RecordActivity,
+    SelfCheckItem, SelfCheckResult, Store, StoreDiagnostics, StoreError, TelegramChatPage,
+    TelegramInboxPage, TelegramMessageContextPage, TelegramUpdatesPage, default_data_dir,
+    run_self_check,
 };
+pub use workflow::*;
