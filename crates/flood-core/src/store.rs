@@ -3604,6 +3604,53 @@ impl Store {
         read_task(&self.task_path(&task.project_id, &task.id))
     }
 
+    pub fn preview_task_batch(
+        &self,
+        operations: Vec<TaskBatchOperation>,
+        expected_versions: Vec<crate::ExpectedTaskVersion>,
+        request_id: &str,
+    ) -> Result<TaskBatchOutcome, StoreError> {
+        if operations.is_empty() || operations.len() > MAX_TASK_BATCH_OPERATIONS {
+            return Err(StoreError::Validation(format!(
+                "пакет должен содержать от 1 до {MAX_TASK_BATCH_OPERATIONS} действий"
+            )));
+        }
+        let request_id = clean_required(request_id, "request_id", 200)?;
+        let payload = serde_json::to_vec(&(&operations, &expected_versions))?;
+        let payload_digest = hex::encode(Sha256::digest(payload));
+        let receipt_path = self.task_batch_receipt_path(&request_id);
+        let _lock = self.lock_exclusive()?;
+
+        if receipt_path.exists() {
+            let receipt = self.read_task_batch_receipt(&receipt_path)?;
+            if receipt.request_id != request_id || receipt.payload_digest != payload_digest {
+                return Err(StoreError::Validation(
+                    "request_id уже использован для другого пакетного изменения".into(),
+                ));
+            }
+            let tasks = if receipt.applied {
+                self.read_applied_task_batch_tasks(&receipt)?
+            } else {
+                receipt.tasks.clone()
+            };
+            return Ok(TaskBatchOutcome {
+                request_id,
+                repeated: true,
+                operations: receipt.operations,
+                tasks,
+            });
+        }
+
+        let (operation_results, tasks) =
+            self.prepare_task_batch_locked(&operations, &expected_versions, &request_id)?;
+        Ok(TaskBatchOutcome {
+            request_id,
+            repeated: false,
+            operations: operation_results,
+            tasks,
+        })
+    }
+
     pub fn apply_task_batch(
         &self,
         operations: Vec<TaskBatchOperation>,
@@ -10316,6 +10363,68 @@ mod tests {
         assert!(repeated.repeated);
         assert_eq!(repeated.operations, first.operations);
         assert_eq!(store.list_tasks(Some(&project.id), false).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn task_batch_preview_is_read_only_and_rejects_stale_versions() {
+        let store = temp_store();
+        let project = store.create_project("Preview пакета").unwrap();
+        let existing = store
+            .create_task(CreateTask {
+                project_id: project.id,
+                description: "# Исходная задача".into(),
+                urgency: Urgency::Normal,
+                source: None,
+            })
+            .unwrap();
+        let operations = vec![TaskBatchOperation::Update {
+            operation_id: "raise-priority".into(),
+            task: TaskBatchReference {
+                task_id: Some(existing.id.clone()),
+                operation_id: None,
+            },
+            patch: TaskPatch {
+                urgency: Some(Urgency::Urgent),
+                ..TaskPatch::default()
+            },
+        }];
+        let versions = vec![crate::ExpectedTaskVersion {
+            task_id: existing.id.clone(),
+            version: existing.version.clone(),
+        }];
+        let request_id = "batch-preview-read-only";
+
+        let first = store
+            .preview_task_batch(operations.clone(), versions.clone(), request_id)
+            .unwrap();
+        let second = store
+            .preview_task_batch(operations.clone(), versions.clone(), request_id)
+            .unwrap();
+        assert!(!first.repeated);
+        assert!(!second.repeated);
+        assert_eq!(first.operations, second.operations);
+        assert_eq!(first.tasks[0].urgency, Urgency::Urgent);
+        assert_eq!(
+            store.get_task(&existing.id).unwrap().urgency,
+            Urgency::Normal
+        );
+        assert!(!store.task_batch_receipt_path(request_id).exists());
+
+        store
+            .update_task(
+                &existing.id,
+                TaskPatch {
+                    description: Some("# Изменено отдельно".into()),
+                    ..TaskPatch::default()
+                },
+                &existing.version,
+            )
+            .unwrap();
+        assert!(matches!(
+            store.preview_task_batch(operations, versions, request_id),
+            Err(StoreError::Conflict)
+        ));
+        assert!(!store.task_batch_receipt_path(request_id).exists());
     }
 
     #[test]

@@ -19,4 +19,11 @@ Changing payload, target/scope, expected version, effect/cost/reversibility/appr
 
 Confirmation is only content binding. It is not a capability token and does not grant filesystem, connector, network, agent, or external-write authority. Every apply path must still run its existing access, scope, expected-version, and policy checks before the first write.
 
-Existing simple local edits keep their current expected-version behavior. The first integration test binds the new contract to the existing atomic task-batch semantics: exact retry stays idempotent, changed payload under the same request is rejected, and stale expected versions fail before a batch write. Preview/apply surfaces can migrate to the same contract incrementally without changing stored Markdown formats.
+Existing simple local edits keep their current expected-version behavior. Stored Markdown formats do not change.
+
+The shared lifecycle is now wired into two meaningful MCP mutation paths:
+
+- `preview_project_workspace_item_update` returns a `MutationPlan`; its existing `preview_token` is the serialized confirmation for that exact plan. `apply_project_workspace_item_update` rebuilds the plan and verifies the token before calling `Store`.
+- `preview_task_batch` validates the complete create/update/link/unlink batch without writing and returns the predicted outcome, `MutationPlan`, and `confirmation_token`. `apply_task_batch` accepts only the unchanged operations, expected versions, request ID, and token from that preview.
+
+For task batches, preview is read-only, payload substitution is rejected as `preview_mismatch`, expected versions are checked again immediately before the atomic write, and an exact retry returns the original result with `repeated = true`. Cross-layer MCP coverage also verifies that an external task change after preview produces `conflict` and leaves the external value intact.

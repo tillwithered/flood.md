@@ -32,6 +32,7 @@
 | Task: trash / restore | `trash_task` / `restore_task` | `trash_task` / `restore_task` | `Store::trash_task` / `Store::restore_task` | MCP: Project Work Context, activity | один `expected_version` |
 | Task: permanent delete | `delete_trashed_task` | `delete_trashed_task` | `Store::delete_trashed_task` | MCP: destructive gate + Project Work Context | один `expected_version` |
 | Task: clear source | `clear_task_source` | `update_task(clear_source=true)` | desktop: `Store::clear_task_source`; MCP: `Store::update_task` с `source=Some(None)` | форма API различается | обе операции используют core version check; MCP не содержит отдельной domain-validation |
+| Task batch | — | `preview_task_batch` → `apply_task_batch` | `Store::preview_task_batch` / `Store::apply_task_batch` используют общий validation path | MCP связывает подтверждение с точным `MutationPlan` и требует свежий Project Work Context | preview ничего не записывает; payload swap → `preview_mismatch`; stale version → `conflict` до первой записи; exact retry → `repeated=true` |
 
 ## Проверяемые инварианты
 
@@ -45,5 +46,5 @@
 
 - `flood-core`: unit/integration tests для Store validation, idempotent create и stale-version конфликтов.
 - `flood-mcp`: stdio smoke проверяет tool negotiation и structured responses.
-- `stdio_compact_context_reads_preserve_the_mutation_gate`: внешнее изменение через `Store` делает MCP mutation stale; workspace update и task update возвращают `code = "conflict"`, после свежей версии mutation проходит.
+- `stdio_compact_context_reads_preserve_the_mutation_gate`: внешний `Store` проверяет cross-layer semantics; workspace update блокируется на stale Project Work Context, а task batch проходит preview/apply, отклоняет payload swap, безопасно повторяется и возвращает `code = "conflict"` после внешнего изменения задачи до apply.
 - Tauri adapter test `store_conflict_has_stable_tauri_error_code`: desktop получает тот же канонический `conflict` code.

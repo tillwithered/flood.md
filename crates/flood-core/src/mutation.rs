@@ -192,10 +192,37 @@ pub enum MutationPlanError {
     IntegrityMismatch,
     #[error("mutation confirmation does not match this plan")]
     ConfirmationMismatch,
+    #[error("mutation confirmation token is malformed")]
+    InvalidConfirmationToken,
     #[error("mutation plan has expired")]
     Expired,
     #[error("failed to serialize mutation plan: {0}")]
     Serialization(#[from] serde_json::Error),
+}
+
+impl MutationConfirmation {
+    pub fn to_token(&self) -> String {
+        format!("{}.{}", self.plan_id, self.content_digest)
+    }
+
+    pub fn from_token(value: &str) -> Result<Self, MutationPlanError> {
+        let value = value.trim();
+        let (plan_id, content_digest) = value
+            .split_once('.')
+            .ok_or(MutationPlanError::InvalidConfirmationToken)?;
+        if plan_id.is_empty()
+            || content_digest.is_empty()
+            || content_digest.contains('.')
+            || plan_id.chars().count() != 26
+            || content_digest.chars().count() != 64
+        {
+            return Err(MutationPlanError::InvalidConfirmationToken);
+        }
+        Ok(Self {
+            plan_id: plan_id.to_owned(),
+            content_digest: content_digest.to_owned(),
+        })
+    }
 }
 
 impl MutationPlan {
@@ -228,6 +255,19 @@ impl MutationPlan {
             plan_id: self.plan_id.clone(),
             content_digest: self.content_digest.clone(),
         }
+    }
+
+    pub fn confirmation_token(&self) -> String {
+        self.confirmation().to_token()
+    }
+
+    pub fn verify_confirmation_token_at(
+        &self,
+        token: &str,
+        now: DateTime<Utc>,
+    ) -> Result<(), MutationPlanError> {
+        let confirmation = MutationConfirmation::from_token(token)?;
+        self.verify_confirmation_at(&confirmation, now)
     }
 
     pub fn verify_integrity(&self) -> Result<(), MutationPlanError> {
@@ -508,6 +548,24 @@ mod tests {
 
         let version = MutationPlan::new(draft(json!({"status": "completed"}), "v2")).unwrap();
         assert_ne!(base.content_digest, version.content_digest);
+    }
+
+    #[test]
+    fn confirmation_token_round_trips_and_rejects_other_payloads() {
+        let plan = MutationPlan::new(draft(json!({"status": "completed"}), "v1")).unwrap();
+        let token = plan.confirmation_token();
+        plan.verify_confirmation_token_at(&token, Utc::now())
+            .unwrap();
+
+        let changed = MutationPlan::new(draft(json!({"status": "open"}), "v1")).unwrap();
+        assert!(matches!(
+            changed.verify_confirmation_token_at(&token, Utc::now()),
+            Err(MutationPlanError::ConfirmationMismatch)
+        ));
+        assert!(matches!(
+            plan.verify_confirmation_token_at("broken", Utc::now()),
+            Err(MutationPlanError::InvalidConfirmationToken)
+        ));
     }
 
     #[test]

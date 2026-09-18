@@ -446,6 +446,140 @@ fn stdio_compact_context_reads_preserve_the_mutation_gate() {
             true
         );
 
+        let batch_operations = json!([
+            {
+                "kind": "create",
+                "operation_id": "parent",
+                "project_id": project.id,
+                "description": "# Пакет: родитель",
+                "urgency": "important"
+            },
+            {
+                "kind": "create",
+                "operation_id": "child",
+                "project_id": project.id,
+                "description": "# Пакет: дочерняя задача"
+            },
+            {
+                "kind": "link",
+                "operation_id": "child-parent",
+                "task": {"operation_id": "child"},
+                "target": {"operation_id": "parent"},
+                "relation": "subtask_of"
+            }
+        ]);
+        let batch_preview_args = json!({
+            "operations": batch_operations,
+            "expected_versions": [],
+            "request_id": "compact-task-batch"
+        });
+        let batch_preview = call("preview_task_batch", batch_preview_args.clone());
+        assert_eq!(batch_preview["isError"], false);
+        assert_eq!(batch_preview["structuredContent"]["repeated"], false);
+        assert_eq!(
+            batch_preview["structuredContent"]["tasks"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        assert!(
+            store
+                .list_tasks(Some(&project.id), false)
+                .unwrap()
+                .is_empty()
+        );
+        let batch_token = batch_preview["structuredContent"]["confirmation_token"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        assert_eq!(
+            batch_preview["structuredContent"]["mutation_plan"]["plan_id"]
+                .as_str()
+                .map(str::len),
+            Some(26)
+        );
+
+        let mut swapped_batch_args = batch_preview_args.clone();
+        swapped_batch_args["operations"][1]["description"] = "# Подменённый payload".into();
+        swapped_batch_args["confirmation_token"] = batch_token.clone().into();
+        let swapped_batch = call("apply_task_batch", swapped_batch_args);
+        assert_eq!(swapped_batch["isError"], true);
+        assert_eq!(
+            swapped_batch["structuredContent"]["code"],
+            "preview_mismatch"
+        );
+        assert!(
+            store
+                .list_tasks(Some(&project.id), false)
+                .unwrap()
+                .is_empty()
+        );
+
+        let mut batch_apply_args = batch_preview_args;
+        batch_apply_args["confirmation_token"] = batch_token.into();
+        let batch_applied = call("apply_task_batch", batch_apply_args.clone());
+        assert_eq!(batch_applied["isError"], false);
+        assert_eq!(batch_applied["structuredContent"]["repeated"], false);
+        assert_eq!(
+            batch_applied["structuredContent"]["tasks"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        let batch_repeated = call("apply_task_batch", batch_apply_args);
+        assert_eq!(batch_repeated["isError"], false);
+        assert_eq!(batch_repeated["structuredContent"]["repeated"], true);
+        assert_eq!(store.list_tasks(Some(&project.id), false).unwrap().len(), 2);
+
+        let stale_batch_task_id = batch_applied["structuredContent"]["tasks"][0]["id"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        let stale_batch_task_version = batch_applied["structuredContent"]["tasks"][0]["version"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        let stale_batch_preview_args = json!({
+            "operations": [{
+                "kind": "update",
+                "operation_id": "update-parent",
+                "task": {"task_id": stale_batch_task_id},
+                "description": "# Локальная пакетная версия"
+            }],
+            "expected_versions": [{
+                "task_id": stale_batch_task_id,
+                "version": stale_batch_task_version
+            }],
+            "request_id": "compact-task-batch-stale"
+        });
+        let stale_batch_preview = call("preview_task_batch", stale_batch_preview_args.clone());
+        assert_eq!(stale_batch_preview["isError"], false);
+        let stale_batch_token = stale_batch_preview["structuredContent"]["confirmation_token"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        store
+            .update_task(
+                &stale_batch_task_id,
+                TaskPatch {
+                    description: Some("# Внешняя пакетная версия".into()),
+                    ..Default::default()
+                },
+                &stale_batch_task_version,
+            )
+            .unwrap();
+        let mut stale_batch_apply_args = stale_batch_preview_args;
+        stale_batch_apply_args["confirmation_token"] = stale_batch_token.into();
+        let stale_batch_apply = call("apply_task_batch", stale_batch_apply_args);
+        assert_eq!(stale_batch_apply["isError"], true);
+        assert_eq!(stale_batch_apply["structuredContent"]["code"], "conflict");
+        assert_eq!(
+            store.get_task(&stale_batch_task_id).unwrap().description,
+            "# Внешняя пакетная версия"
+        );
+
         let created_task = call("create_task", create_args);
         assert_ne!(created_task["isError"], true);
         let task_id = created_task["structuredContent"]["task"]["id"]
