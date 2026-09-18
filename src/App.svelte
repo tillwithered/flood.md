@@ -120,8 +120,9 @@
   type McpClient = "codex" | "claude" | "cursor" | "manual";
   type McpRuntimeInfo = { executable_path: string; launch_command: string; launch_args: string[]; available: boolean; version?: string; protocol_version?: string; tool_catalog_revision?: string; tool_count?: number; app_version: string; compatible: boolean; source: "bundled" | "development" };
   type InstallationRuntimeInfo = { executable_path: string; directory_path: string; kind: "installed" | "development" | "portable"; parallel_installed_copy?: string };
-  type ActivityAction = "project_created" | "project_updated" | "project_deleted" | "task_created" | "task_updated" | "task_completed" | "task_moved" | "task_trashed" | "task_restored" | "task_deleted" | "trash_emptied" | "telegram_task_created" | "telegram_candidate_dismissed" | "telegram_candidate_restored" | "telegram_sync_requested";
-  type ActivityEvent = { id: string; occurred_at: string; source: "mcp"; action: ActivityAction; entity_kind: "workspace" | "project" | "task" | "telegram_candidate"; entity_id?: string; project_id?: string; reversible: boolean };
+  type ActivityAction = "project_created" | "project_updated" | "project_deleted" | "task_created" | "task_updated" | "task_completed" | "task_moved" | "task_trashed" | "task_restored" | "task_deleted" | "trash_emptied" | "telegram_task_created" | "telegram_candidate_dismissed" | "telegram_candidate_restored" | "telegram_sync_requested" | "mutation_applied";
+  type ActivityProvenance = { initiator: { kind: "human" | "agent" | "automation" | "connector" | "system"; id?: string; provider?: string }; run_id?: string; guidance: { kind: "rule" | "skill"; id: string; version: string }[]; sources: { kind: string; id: string; version?: string }[]; approved_plan_id: string; approved_plan_digest: string; operations: { operation_id: string; kind: string; target_id?: string; changed: boolean }[]; result: "applied" | "no_changes"; recovery: "available" | "best_effort" | "unavailable" };
+  type ActivityEvent = { id: string; occurred_at: string; source: "mcp"; action: ActivityAction; entity_kind: "workspace" | "project" | "task" | "telegram_candidate"; entity_id?: string; project_id?: string; reversible: boolean; provenance?: ActivityProvenance };
   type ActivityPage = { events: ActivityEvent[]; total: number; next_cursor?: string; remaining: number };
   type AgentRunState = "queued" | "running" | "ready_for_review" | "accepted" | "needs_input" | "failed" | "cancelled" | "interrupted";
   type AppliedGuidance = { kind: "rule" | "skill"; id: string; title: string; version: string; reason: string };
@@ -3817,7 +3818,8 @@
     telegram_task_created: "activityTelegramTaskCreated",
     telegram_candidate_dismissed: "activityTelegramCandidateDismissed",
     telegram_candidate_restored: "activityTelegramCandidateRestored",
-    telegram_sync_requested: "activityTelegramSyncRequested"
+    telegram_sync_requested: "activityTelegramSyncRequested",
+    mutation_applied: "activityMutationApplied"
   };
 
   function activityEntityLabel(event: ActivityEvent) {
@@ -3838,6 +3840,18 @@
     if (event.action.startsWith("telegram_")) return "info";
     if (["task_created", "project_created", "task_restored"].includes(event.action)) return "connected";
     return "brand";
+  }
+
+  function activityProvenanceLabel(event: ActivityEvent) {
+    const provenance = event.provenance;
+    if (!provenance) return "";
+    const provider = provenance.initiator.provider || provenance.initiator.kind;
+    const recovery = provenance.recovery === "available"
+      ? t("activityRecoveryAvailable")
+      : provenance.recovery === "best_effort"
+        ? t("activityRecoveryBestEffort")
+        : t("activityRecoveryUnavailable");
+    return `${provider} · ${t("activityPlanDigest", { digest: provenance.approved_plan_digest.slice(0, 8) })} · ${t("activityOperationCount", { count: provenance.operations.length })} · ${recovery}`;
   }
 
   async function loadMcpActivity(append = false) {
@@ -4694,6 +4708,7 @@
     ]).map((name) => ({ name, passed: true })) };
     mcpCheckState = "success";
     mcpActivity = [
+      { id: "01JOURNAL04", occurred_at: "2026-09-11T00:05:00Z", source: "mcp", action: "mutation_applied", entity_kind: "workspace", reversible: true, provenance: { initiator: { kind: "agent", provider: "codex" }, run_id: "run-preview", guidance: [{ kind: "rule", id: "human-agent-interaction", version: "1" }], sources: [{ kind: "telegram_message", id: "-100100:42" }], approved_plan_id: "plan-preview", approved_plan_digest: "9f3a17c6c85d4b22", operations: [{ operation_id: "op-create", kind: "create_task", target_id: "01PREVIEWTASK", changed: true }], result: "applied", recovery: "available" } },
       { id: "01JOURNAL03", occurred_at: "2026-09-11T00:04:00Z", source: "mcp", action: "telegram_task_created", entity_kind: "task", entity_id: "01PREVIEWTASK", project_id: "01PREVIEWPROJECT", reversible: true },
       { id: "01JOURNAL02", occurred_at: "2026-09-11T00:03:00Z", source: "mcp", action: "task_completed", entity_kind: "task", entity_id: "01COMPLETEDTASK", project_id: "01PREVIEWPROJECT", reversible: true },
       { id: "01JOURNAL01", occurred_at: "2026-09-11T00:02:00Z", source: "mcp", action: "telegram_sync_requested", entity_kind: "workspace", reversible: false }
@@ -5781,7 +5796,13 @@
                         {#each mcpActivity as event (event.id)}
                           <div class="mcp-activity-row">
                             <FloodGlyph kind={activityGlyph(event)} size={16} />
-                            <span><strong>{t(activityActionKeys[event.action])}</strong><small title={event.entity_id}>{activityEntityLabel(event)}</small></span>
+                            <span>
+                              <strong>{t(activityActionKeys[event.action])}</strong>
+                              <small title={event.entity_id}>{activityEntityLabel(event)}</small>
+                              {#if event.provenance}
+                                <small class="mcp-activity-provenance">{activityProvenanceLabel(event)}</small>
+                              {/if}
+                            </span>
                             <time datetime={event.occurred_at} title={fullDate(event.occurred_at)}>{relativeDate(event.occurred_at)}</time>
                           </div>
                         {/each}

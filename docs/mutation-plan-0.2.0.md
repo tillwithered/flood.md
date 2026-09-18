@@ -27,3 +27,18 @@ The shared lifecycle is now wired into two meaningful MCP mutation paths:
 - `preview_task_batch` validates the complete create/update/link/unlink batch without writing and returns the predicted outcome, `MutationPlan`, and `confirmation_token`. `apply_task_batch` accepts only the unchanged operations, expected versions, request ID, and token from that preview.
 
 For task batches, preview is read-only, payload substitution is rejected as `preview_mismatch`, expected versions are checked again immediately before the atomic write, and an exact retry returns the original result with `repeated = true`. Cross-layer MCP coverage also verifies that an external task change after preview produces `conflict` and leaves the external value intact.
+
+## Provenance audit
+
+Every successfully applied meaningful MCP mutation also writes one `mutation_applied` activity event with an optional `provenance` object. The audit record contains only reconstruction metadata:
+
+- initiator kind/provider and optional run ID;
+- project guidance references (`kind`, `id`, `version`);
+- source references by kind and stable ID;
+- approved plan ID and digest;
+- operation IDs, kinds, optional target IDs, and whether each operation changed data;
+- aggregate apply result and recovery availability.
+
+The provenance record deliberately excludes mutation payloads, task descriptions, message bodies, reasons, credentials, and secret values. Source messages are represented only by stable references such as `chat_id:message_id`.
+
+Older `activity.json` entries remain valid because `provenance` is optional. Existing per-entity activity events are retained; the provenance event adds one human-readable reconstruction point for the approved apply without changing Markdown storage formats.

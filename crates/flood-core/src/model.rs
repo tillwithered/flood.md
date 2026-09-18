@@ -750,6 +750,55 @@ pub enum ActivityAction {
     TelegramCandidateDismissed,
     TelegramCandidateRestored,
     TelegramSyncRequested,
+    MutationApplied,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct ActivityGuidanceRef {
+    pub kind: GuidanceKind,
+    pub id: String,
+    pub version: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct ActivityOperationResult {
+    pub operation_id: String,
+    pub kind: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub target_id: Option<String>,
+    pub changed: bool,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ActivityApplyResult {
+    Applied,
+    NoChanges,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ActivityRecoveryAvailability {
+    Available,
+    BestEffort,
+    Unavailable,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct ActivityProvenance {
+    pub initiator: crate::MutationInitiator,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub run_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub guidance: Vec<ActivityGuidanceRef>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sources: Vec<crate::MutationSourceRef>,
+    pub approved_plan_id: String,
+    pub approved_plan_digest: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub operations: Vec<ActivityOperationResult>,
+    pub result: ActivityApplyResult,
+    pub recovery: ActivityRecoveryAvailability,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
@@ -764,6 +813,8 @@ pub struct ActivityEvent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project_id: Option<String>,
     pub reversible: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provenance: Option<ActivityProvenance>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]

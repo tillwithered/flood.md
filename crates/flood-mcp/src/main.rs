@@ -27,6 +27,10 @@ use flood_core::{
     WorkInitiator, WorkPacket, WorkPacketEvidence, WorkPurpose, default_data_dir,
     run_self_check as run_core_self_check,
 };
+use flood_core::{
+    ActivityApplyResult, ActivityGuidanceRef, ActivityOperationResult, ActivityProvenance,
+    ActivityRecoveryAvailability, MutationSourceRef,
+};
 use flood_github::{
     GitHubConnector, GitHubFile, GitHubRepositoryContext, GitHubSearchHit, GitHubTree,
     GitHubWorkItem, GitHubWorkItemKind, parse_repository_url,
@@ -122,6 +126,7 @@ struct ProjectContextReceipt {
     revision: String,
     snapshot: ProjectContextSnapshot,
     pending_rule_ids: HashSet<String>,
+    guidance: Vec<ActivityGuidanceRef>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -3496,7 +3501,10 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<ListProjectWorkspaceItemsArgs>,
     ) -> Result<Json<ProjectWorkspaceItemsOutput>, String> {
-        let project = self.store.get_project(&args.project_id).map_err(store_error)?;
+        let project = self
+            .store
+            .get_project(&args.project_id)
+            .map_err(store_error)?;
         let all_items = self
             .store
             .list_project_workspace_items(&args.project_id, None)
@@ -3518,18 +3526,27 @@ impl FloodServer {
                 let id = cursor.strip_prefix(&cursor_prefix).ok_or_else(|| {
                     "Контекст или kind изменились: начните список материалов без cursor".to_string()
                 })?;
-                items.iter().position(|item| item.id == id).map(|index| index + 1)
-                    .ok_or_else(|| "Неизвестный cursor: начните список материалов заново".to_string())?
+                items
+                    .iter()
+                    .position(|item| item.id == id)
+                    .map(|index| index + 1)
+                    .ok_or_else(|| {
+                        "Неизвестный cursor: начните список материалов заново".to_string()
+                    })?
             }
             None => 0,
         };
         let total = items.len();
-        let page = items.into_iter().skip(offset).take(args.limit.unwrap_or(20).clamp(1, 100))
+        let page = items
+            .into_iter()
+            .skip(offset)
+            .take(args.limit.unwrap_or(20).clamp(1, 100))
             .map(|item| ProjectWorkspaceItemSummary::new(item, args.include_content))
             .collect::<Vec<_>>();
         let remaining = total.saturating_sub(offset + page.len());
         let next_cursor = if remaining > 0 {
-            page.last().map(|item| format!("{cursor_prefix}{}", item.id))
+            page.last()
+                .map(|item| format!("{cursor_prefix}{}", item.id))
         } else {
             None
         };
@@ -3564,7 +3581,10 @@ impl FloodServer {
             .map_err(store_error)?;
         Self::require_material_access(&item)?;
         self.mark_project_rule_read(&args.project_id, &item)?;
-        Ok(Json(ProjectWorkspaceItemReadOutput::new(item, args.include_history)))
+        Ok(Json(ProjectWorkspaceItemReadOutput::new(
+            item,
+            args.include_history,
+        )))
     }
 
     #[tool(
@@ -3581,14 +3601,21 @@ impl FloodServer {
         Parameters(args): Parameters<CheckProjectContextArgs>,
     ) -> Result<Json<ProjectContextCheckOutput>, String> {
         let current = self.project_context_snapshot(&args.project_id)?;
-        let receipts = self.project_context_receipts.lock()
+        let receipts = self
+            .project_context_receipts
+            .lock()
             .map_err(|_| "Не удалось проверить receipt рабочего контекста".to_string())?;
         let receipt = receipts.get(&args.project_id);
-        let pending_rule_ids = receipt.map(|receipt| {
-            current.pending_rules(&receipt.snapshot, &receipt.pending_rule_ids)
-        }).unwrap_or_else(|| current.items.iter()
-            .filter(|(_, item)| item.kind == ProjectWorkspaceItemKind::Rule)
-            .map(|(id, _)| id.clone()).collect());
+        let pending_rule_ids = receipt
+            .map(|receipt| current.pending_rules(&receipt.snapshot, &receipt.pending_rule_ids))
+            .unwrap_or_else(|| {
+                current
+                    .items
+                    .iter()
+                    .filter(|(_, item)| item.kind == ProjectWorkspaceItemKind::Rule)
+                    .map(|(id, _)| id.clone())
+                    .collect()
+            });
         let status = match receipt {
             None => "missing",
             Some(receipt) if receipt.revision != current.revision => "stale",
@@ -3800,6 +3827,20 @@ impl FloodServer {
                 &args.expected_version,
             )
             .map_err(McpToolError::from_store)?;
+        let project_ids = [args.project_id.clone()]
+            .into_iter()
+            .collect::<HashSet<_>>();
+        self.record_mcp_mutation_activity(
+            &mutation_plan,
+            &project_ids,
+            vec![ActivityOperationResult {
+                operation_id: "update".into(),
+                kind: "update_project_workspace_item".into(),
+                target_id: Some(args.id.clone()),
+                changed: item.version != args.expected_version,
+            }],
+            None,
+        );
         self.record_mcp_activity(
             ActivityAction::ProjectUpdated,
             ActivityEntityKind::Project,
@@ -6164,6 +6205,27 @@ impl FloodServer {
             .apply_task_batch(operations, args.expected_versions, &args.request_id)
             .map_err(McpToolError::from_store)?;
         if !outcome.repeated {
+            let project_ids = outcome
+                .tasks
+                .iter()
+                .map(|task| task.project_id.clone())
+                .collect::<HashSet<_>>();
+            let audit_operations = outcome
+                .operations
+                .iter()
+                .map(|operation| ActivityOperationResult {
+                    operation_id: operation.operation_id.clone(),
+                    kind: mutation_plan
+                        .operations
+                        .iter()
+                        .find(|candidate| candidate.operation_id == operation.operation_id)
+                        .map(|candidate| candidate.kind.clone())
+                        .unwrap_or_else(|| "task_operation".into()),
+                    target_id: Some(operation.task_id.clone()),
+                    changed: operation.changed,
+                })
+                .collect();
+            self.record_mcp_mutation_activity(&mutation_plan, &project_ids, audit_operations, None);
             for operation in outcome
                 .operations
                 .iter()
@@ -6839,13 +6901,19 @@ impl FloodServer {
             .iter()
             .map(|rule| (rule.id.as_str(), rule))
             .collect::<HashMap<_, _>>();
-        let pending_rule_ids = evidence.items.iter()
+        let pending_rule_ids = evidence
+            .items
+            .iter()
             .filter(|item| item.kind == ProjectWorkspaceItemKind::Rule)
-            .filter(|item| included_rules.get(item.id.as_str()).is_none_or(|rule| {
-                !rule.agent_access || rule.version != item.version
-                    || rule.content.chars().count() != item.content_chars
-            }))
-            .map(|item| item.id.clone()).collect();
+            .filter(|item| {
+                included_rules.get(item.id.as_str()).is_none_or(|rule| {
+                    !rule.agent_access
+                        || rule.version != item.version
+                        || rule.content.chars().count() != item.content_chars
+                })
+            })
+            .map(|item| item.id.clone())
+            .collect();
         // No fresh storage read here: it could silently acknowledge versions the
         // returned packet never contained, including equal-length changed rules.
         let snapshot = ProjectContextSnapshot::from_evidence(evidence);
@@ -6860,6 +6928,15 @@ impl FloodServer {
                         revision: revision.clone(),
                         snapshot,
                         pending_rule_ids,
+                        guidance: work_packet
+                            .guidance
+                            .iter()
+                            .map(|guidance| ActivityGuidanceRef {
+                                kind: guidance.reference.kind.clone(),
+                                id: guidance.reference.id.clone(),
+                                version: guidance.reference.version.clone(),
+                            })
+                            .collect(),
                     },
                 );
         }
@@ -6996,16 +7073,24 @@ impl FloodServer {
 
     fn require_material_access(item: &ProjectWorkspaceItem) -> Result<(), String> {
         if !item.agent_access {
-            return Err("Доступ агента к материалу не разрешён; включите Agent access в приложении".into());
+            return Err(
+                "Доступ агента к материалу не разрешён; включите Agent access в приложении".into(),
+            );
         }
         Ok(())
     }
 
-    fn acknowledge_project_mutation(&self, project: &Project, expected_version: &str) -> Result<(), String> {
+    fn acknowledge_project_mutation(
+        &self,
+        project: &Project,
+        expected_version: &str,
+    ) -> Result<(), String> {
         if !self.enforce_context_route {
             return Ok(());
         }
-        let mut receipts = self.project_context_receipts.lock()
+        let mut receipts = self
+            .project_context_receipts
+            .lock()
             .map_err(|_| "Не удалось обновить receipt рабочего контекста".to_string())?;
         if let Some(receipt) = receipts.get_mut(&project.id) {
             // Advance only this known result. Other materials/pending rules and
@@ -7019,14 +7104,24 @@ impl FloodServer {
         Ok(())
     }
 
-    fn acknowledge_material_mutation(&self, item: &ProjectWorkspaceItem, expected_version: Option<&str>) -> Result<(), String> {
+    fn acknowledge_material_mutation(
+        &self,
+        item: &ProjectWorkspaceItem,
+        expected_version: Option<&str>,
+    ) -> Result<(), String> {
         if !self.enforce_context_route {
             return Ok(());
         }
-        let mut receipts = self.project_context_receipts.lock()
+        let mut receipts = self
+            .project_context_receipts
+            .lock()
             .map_err(|_| "Не удалось обновить receipt рабочего контекста".to_string())?;
         if let Some(receipt) = receipts.get_mut(&item.project_id) {
-            let previous = receipt.snapshot.items.get(&item.id).map(|item| item.version.as_str());
+            let previous = receipt
+                .snapshot
+                .items
+                .get(&item.id)
+                .map(|item| item.version.as_str());
             if previous != expected_version {
                 return Ok(());
             }
@@ -7138,6 +7233,82 @@ impl FloodServer {
             return Err("Корень локального источника не является папкой".into());
         }
         Ok((resource, root))
+    }
+
+    fn audit_guidance_for_projects(
+        &self,
+        project_ids: &HashSet<String>,
+    ) -> Vec<ActivityGuidanceRef> {
+        if !self.enforce_context_route {
+            return Vec::new();
+        }
+        let Ok(receipts) = self.project_context_receipts.lock() else {
+            eprintln!("flood-mcp: не удалось прочитать provenance рабочего контекста");
+            return Vec::new();
+        };
+        let mut guidance = project_ids
+            .iter()
+            .filter_map(|project_id| receipts.get(project_id))
+            .flat_map(|receipt| receipt.guidance.iter().cloned())
+            .collect::<Vec<_>>();
+        guidance.sort_by(|left, right| {
+            left.id
+                .cmp(&right.id)
+                .then_with(|| left.version.cmp(&right.version))
+        });
+        guidance.dedup();
+        guidance
+    }
+
+    fn record_mcp_mutation_activity(
+        &self,
+        plan: &MutationPlan,
+        project_ids: &HashSet<String>,
+        operations: Vec<ActivityOperationResult>,
+        run_id: Option<String>,
+    ) {
+        let project_id = (project_ids.len() == 1)
+            .then(|| project_ids.iter().next().cloned())
+            .flatten();
+        let recovery = match plan.reversibility {
+            MutationReversibility::Reversible => ActivityRecoveryAvailability::Available,
+            MutationReversibility::BestEffort => ActivityRecoveryAvailability::BestEffort,
+            MutationReversibility::Irreversible => ActivityRecoveryAvailability::Unavailable,
+        };
+        let result = if operations.iter().any(|operation| operation.changed) {
+            ActivityApplyResult::Applied
+        } else {
+            ActivityApplyResult::NoChanges
+        };
+        let provenance = ActivityProvenance {
+            initiator: plan.initiator.clone(),
+            run_id,
+            guidance: self.audit_guidance_for_projects(project_ids),
+            sources: plan.sources.clone(),
+            approved_plan_id: plan.plan_id.clone(),
+            approved_plan_digest: plan.content_digest.clone(),
+            operations,
+            result,
+            recovery,
+        };
+        let input = RecordActivity {
+            source: ActivitySource::Mcp,
+            action: ActivityAction::MutationApplied,
+            entity_kind: if project_id.is_some() {
+                ActivityEntityKind::Project
+            } else {
+                ActivityEntityKind::Workspace
+            },
+            entity_id: project_id.clone(),
+            project_id,
+            reversible: !matches!(recovery, ActivityRecoveryAvailability::Unavailable),
+        };
+        if let Err(error) = self
+            .store
+            .record_activity_with_provenance(input, provenance)
+        {
+            eprintln!("flood-mcp: не удалось записать provenance изменения: {error}");
+        }
     }
 
     fn record_mcp_activity(
@@ -9043,6 +9214,24 @@ fn project_workspace_update_mutation_plan(
     .map_err(store_error)
 }
 
+fn message_snapshot_source_ref(snapshot: &MessageSnapshot) -> Option<MutationSourceRef> {
+    let message_id = snapshot.message_id?;
+    let kind = match snapshot.provider.as_deref() {
+        Some("telegram") => "telegram_message",
+        Some("github") => "github_message",
+        _ => "message",
+    };
+    let id = snapshot
+        .chat_id
+        .map(|chat_id| format!("{chat_id}:{message_id}"))
+        .unwrap_or_else(|| message_id.to_string());
+    Some(MutationSourceRef {
+        kind: kind.into(),
+        id,
+        version: None,
+    })
+}
+
 fn task_batch_mutation_plan(
     operations: &[TaskBatchOperation],
     expected_versions: &[ExpectedTaskVersion],
@@ -9064,7 +9253,26 @@ fn task_batch_mutation_plan(
         .map(|expected| expected.entity.clone())
         .collect::<Vec<_>>();
     let mut mutation_operations = Vec::with_capacity(operations.len());
+    let mut sources = Vec::new();
     for operation in operations {
+        match operation {
+            TaskBatchOperation::Create {
+                source: Some(source),
+                ..
+            } => {
+                if let Some(source) = message_snapshot_source_ref(source) {
+                    sources.push(source);
+                }
+            }
+            TaskBatchOperation::Update { patch, .. } => {
+                if let Some(Some(source)) = patch.source.as_ref()
+                    && let Some(source) = message_snapshot_source_ref(source)
+                {
+                    sources.push(source);
+                }
+            }
+            _ => {}
+        }
         let (operation_id, kind, target) = match operation {
             TaskBatchOperation::Create {
                 operation_id,
@@ -9120,6 +9328,8 @@ fn task_batch_mutation_plan(
             payload: serde_json::to_value(operation).map_err(store_error)?,
         });
     }
+    sources.sort();
+    sources.dedup();
     MutationPlan::new(MutationPlanDraft {
         request_id: request_id.to_owned(),
         initiator: MutationInitiator {
@@ -9136,7 +9346,7 @@ fn task_batch_mutation_plan(
         operations: mutation_operations,
         affected_entities,
         reasons: vec!["task_batch".into()],
-        sources: Vec::new(),
+        sources,
         external_effect: MutationExternalEffect::None,
         cost: MutationCost::default(),
         reversibility: MutationReversibility::Reversible,
@@ -10043,7 +10253,18 @@ mod tests {
                     project_id: project.id.clone(),
                     description: child_description.into(),
                     urgency: None,
-                    source: None,
+                    source: Some(SnapshotArgs {
+                        text: "PRIVATE SOURCE BODY credential=SENSITIVE_VALUE".into(),
+                        author: Some("Private author".into()),
+                        sent_at: None,
+                        url: None,
+                        provider: Some("telegram".into()),
+                        chat_id: Some(-100123),
+                        chat_title: Some("Private chat".into()),
+                        message_id: Some(456),
+                        message_ids: Vec::new(),
+                        media: Vec::new(),
+                    }),
                 },
                 TaskBatchOperationArgs::Link {
                     operation_id: "child-parent".into(),
@@ -10093,6 +10314,25 @@ mod tests {
         assert_eq!(first.tasks.len(), 2);
         let child_id = first.operations[1].task_id.clone();
         assert_eq!(server.store.get_task(&child_id).unwrap().relations.len(), 1);
+        let activity = server.store.list_activity(None, 20).unwrap();
+        let audit = activity
+            .events
+            .iter()
+            .find(|event| event.action == ActivityAction::MutationApplied)
+            .and_then(|event| event.provenance.as_ref())
+            .expect("confirmed mutation must have provenance");
+        assert_eq!(
+            audit.approved_plan_digest,
+            preview.mutation_plan.content_digest
+        );
+        assert_eq!(audit.operations.len(), 3);
+        assert_eq!(audit.sources.len(), 1);
+        assert_eq!(audit.sources[0].kind, "telegram_message");
+        assert_eq!(audit.sources[0].id, "-100123:456");
+        let audit_json = serde_json::to_string(&activity).unwrap();
+        assert!(!audit_json.contains("# Проверить состояния"));
+        assert!(!audit_json.contains("PRIVATE SOURCE BODY"));
+        assert!(!audit_json.contains("SENSITIVE_VALUE"));
 
         let repeated = server.apply_task_batch(Parameters(request())).unwrap().0;
         assert!(repeated.repeated);
@@ -10103,6 +10343,17 @@ mod tests {
                 .unwrap()
                 .len(),
             2
+        );
+        assert_eq!(
+            server
+                .store
+                .list_activity(None, 20)
+                .unwrap()
+                .events
+                .iter()
+                .filter(|event| event.action == ActivityAction::MutationApplied)
+                .count(),
+            1
         );
     }
 

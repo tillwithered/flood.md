@@ -1102,6 +1102,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .mcp-activity-row strong, .mcp-activity-row small { overflow: hidden; font-size: var(--font-size-min); text-overflow: ellipsis; white-space: nowrap; }
 .mcp-activity-row strong { font-weight: 620; }
 .mcp-activity-row small, .mcp-activity-row time { color: var(--muted); }
+.mcp-activity-row .mcp-activity-provenance { color: var(--faint); }
 .mcp-activity-row time { font-size: var(--font-size-min); white-space: nowrap; }
 .mcp-activity-empty { display: grid; min-height: 54px; grid-template-columns: 20px minmax(0, 1fr); align-items: center; gap: 9px; padding-top: 8px; border-top: 1px solid var(--soft-line); }
 .mcp-activity-empty > span { display: grid; min-width: 0; gap: 3px; }

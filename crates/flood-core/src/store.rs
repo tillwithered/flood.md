@@ -1,14 +1,14 @@
 use crate::{
-    ActivityAction, ActivityEntityKind, ActivityEvent, ActivitySource, AgentRun, AgentRunPatch,
-    AgentRunState, AutomationEvent, AutomationEventOutcome, AutomationEventState,
-    AutomationProvider, AutomationSettings, CreateTask, InboxCandidateReason, InboxCandidateStatus,
-    MessageSnapshot, Project, ProjectAutomationPolicy, ProjectResource, ProjectResourceKind,
-    ProjectWorkspaceItem, ProjectWorkspaceItemKind, ProjectWorkspaceRevision, SourceMedia,
-    SourceMediaKind, Task, TaskBatchAction, TaskBatchOperation, TaskBatchOperationResult,
-    TaskBatchOutcome, TaskBatchReference, TaskPatch, TaskStatus, TaskSummary,
-    TelegramAgentCheckpoint, TelegramChatSnapshot, TelegramContextMessage, TelegramInboxCandidate,
-    TelegramLinkedTask, TelegramMediaRequest, TelegramMediaRequestState, TelegramProjectLink,
-    TelegramSyncRequest, TelegramSyncStatus, Urgency,
+    ActivityAction, ActivityEntityKind, ActivityEvent, ActivityProvenance, ActivitySource,
+    AgentRun, AgentRunPatch, AgentRunState, AutomationEvent, AutomationEventOutcome,
+    AutomationEventState, AutomationProvider, AutomationSettings, CreateTask, InboxCandidateReason,
+    InboxCandidateStatus, MessageSnapshot, Project, ProjectAutomationPolicy, ProjectResource,
+    ProjectResourceKind, ProjectWorkspaceItem, ProjectWorkspaceItemKind, ProjectWorkspaceRevision,
+    SourceMedia, SourceMediaKind, Task, TaskBatchAction, TaskBatchOperation,
+    TaskBatchOperationResult, TaskBatchOutcome, TaskBatchReference, TaskPatch, TaskStatus,
+    TaskSummary, TelegramAgentCheckpoint, TelegramChatSnapshot, TelegramContextMessage,
+    TelegramInboxCandidate, TelegramLinkedTask, TelegramMediaRequest, TelegramMediaRequestState,
+    TelegramProjectLink, TelegramSyncRequest, TelegramSyncStatus, Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
@@ -34,7 +34,7 @@ const MAX_ATTACHMENT_BYTES: u64 = 25 * 1024 * 1024;
 const MAX_MARKDOWN_FILE_BYTES: u64 = 1024 * 1024;
 const MAX_TELEGRAM_INBOX_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_INTEGRATION_STATE_BYTES: u64 = 64 * 1024;
-const MAX_ACTIVITY_BYTES: u64 = 512 * 1024;
+const MAX_ACTIVITY_BYTES: u64 = 2 * 1024 * 1024;
 const MAX_ACTIVITY_EVENTS: usize = 500;
 const MAX_TELEGRAM_CHAT_MESSAGES: usize = 100;
 const MAX_TELEGRAM_MEDIA_REQUESTS: usize = 20;
@@ -447,6 +447,22 @@ impl Store {
     }
 
     pub fn record_activity(&self, input: RecordActivity) -> Result<ActivityEvent, StoreError> {
+        self.record_activity_inner(input, None)
+    }
+
+    pub fn record_activity_with_provenance(
+        &self,
+        input: RecordActivity,
+        provenance: ActivityProvenance,
+    ) -> Result<ActivityEvent, StoreError> {
+        self.record_activity_inner(input, Some(provenance))
+    }
+
+    fn record_activity_inner(
+        &self,
+        input: RecordActivity,
+        provenance: Option<ActivityProvenance>,
+    ) -> Result<ActivityEvent, StoreError> {
         validate_activity_reference(
             &input.entity_kind,
             input.entity_id.as_deref(),
@@ -463,6 +479,7 @@ impl Store {
             entity_id: input.entity_id,
             project_id: input.project_id,
             reversible: input.reversible,
+            provenance,
         };
         document.events.push(event.clone());
         compact_activity(&mut document);
@@ -7848,6 +7865,7 @@ mod tests {
                     entity_id: Some(Ulid::new().to_string()),
                     project_id: None,
                     reversible: false,
+                    provenance: None,
                 })
                 .collect(),
         };
