@@ -514,6 +514,36 @@ fn result<T>(value: Result<T, flood_core::StoreError>) -> Result<T, String> {
     value.map_err(|error| error.to_string())
 }
 
+#[derive(Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+struct AppCommandError {
+    code: &'static str,
+    message: String,
+}
+
+impl From<flood_core::StoreError> for AppCommandError {
+    fn from(error: flood_core::StoreError) -> Self {
+        let code = match &error {
+            flood_core::StoreError::Conflict => "conflict",
+            flood_core::StoreError::NotFound(_) => "not_found",
+            flood_core::StoreError::Validation(_) => "validation",
+            flood_core::StoreError::InvalidFile { .. } => "invalid_file",
+            flood_core::StoreError::Io(_) => "io",
+            flood_core::StoreError::Yaml(_) => "yaml",
+            flood_core::StoreError::Json(_) => "json",
+            flood_core::StoreError::Backup(_) => "backup",
+        };
+        Self {
+            code,
+            message: error.to_string(),
+        }
+    }
+}
+
+fn command_result<T>(value: Result<T, flood_core::StoreError>) -> Result<T, AppCommandError> {
+    value.map_err(AppCommandError::from)
+}
+
 fn background_launch_requested(args: &[String]) -> bool {
     args.iter().any(|arg| arg == "--flood-background")
 }
@@ -798,8 +828,8 @@ fn update_project_details(
     resources: Vec<ProjectResource>,
     expected_version: String,
     state: State<'_, AppState>,
-) -> Result<Project, String> {
-    result(
+) -> Result<Project, AppCommandError> {
+    command_result(
         state
             .store
             .update_project_details(&id, &context, resources, &expected_version),
@@ -854,8 +884,8 @@ fn update_project_workspace_item(
     agent_access: bool,
     expected_version: String,
     state: State<'_, AppState>,
-) -> Result<ProjectWorkspaceItem, String> {
-    result(state.store.update_project_workspace_item(
+) -> Result<ProjectWorkspaceItem, AppCommandError> {
+    command_result(state.store.update_project_workspace_item(
         &project_id,
         &id,
         &title,
@@ -872,8 +902,8 @@ fn delete_project_workspace_item(
     id: String,
     expected_version: String,
     state: State<'_, AppState>,
-) -> Result<(), String> {
-    result(
+) -> Result<(), AppCommandError> {
+    command_result(
         state
             .store
             .delete_project_workspace_item(&project_id, &id, &expected_version),
@@ -2059,8 +2089,8 @@ fn update_task(
     patch: TaskPatch,
     expected_version: String,
     state: State<'_, AppState>,
-) -> Result<Task, String> {
-    result(state.store.update_task(&id, patch, &expected_version))
+) -> Result<Task, AppCommandError> {
+    command_result(state.store.update_task(&id, patch, &expected_version))
 }
 
 #[tauri::command]
@@ -4397,10 +4427,11 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::{
-        CodexInvocation, automation_description, automation_urgency, background_launch_requested,
-        classify_installation, codex_prompt, description_with_source_media, finish_codex_run,
-        finish_work_result, isolated_codex_command, mcp_launch_spec, push_sync_error,
-        queued_agent_continuation, strip_json_fence,
+        AppCommandError, CodexInvocation, automation_description, automation_urgency,
+        background_launch_requested, classify_installation, codex_prompt,
+        description_with_source_media, finish_codex_run, finish_work_result,
+        isolated_codex_command, mcp_launch_spec, push_sync_error, queued_agent_continuation,
+        strip_json_fence,
     };
     use flood_core::{
         AgentRun, AgentRunState, AgentRunner, AgentRunnerError, AutomationEventOutcome,
@@ -4410,6 +4441,16 @@ mod tests {
     };
 
     struct ContractTestRunner;
+
+    #[test]
+    fn store_conflict_has_stable_tauri_error_code() {
+        let error = AppCommandError::from(flood_core::StoreError::Conflict);
+        assert_eq!(error.code, "conflict");
+        assert_eq!(
+            error.message,
+            "данные изменились в другом процессе; обновите список и повторите"
+        );
+    }
 
     #[test]
     fn local_agent_json_fences_are_removed_without_touching_plain_json() {

@@ -1,4 +1,4 @@
-use flood_core::{ProjectWorkspaceItemKind, Store, TelegramInboxCandidate};
+use flood_core::{ProjectWorkspaceItemKind, Store, TaskPatch, TelegramInboxCandidate};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
@@ -106,18 +106,41 @@ fn stdio_compact_context_reads_preserve_the_mutation_gate() {
     let data_dir = std::env::temp_dir().join(format!("flood-mcp-compact-{}", Ulid::new()));
     let store = Store::new(&data_dir).unwrap();
     let project = store.create_project("Проверка контекста").unwrap();
-    let original = store.create_project_workspace_item_idempotent(
-        &project.id, ProjectWorkspaceItemKind::Rule, "Правило", None,
-        "Исходный текст", true, "compact-rule",
-    ).unwrap().value;
-    let rule = store.update_project_workspace_item(
-        &project.id, &original.id, &original.title, None,
-        "Текущий текст", true, &original.version,
-    ).unwrap();
-    let hidden = store.create_project_workspace_item_idempotent(
-        &project.id, ProjectWorkspaceItemKind::Skill, "PRIVATE_TITLE", None,
-        "PRIVATE_BODY", false, "compact-private",
-    ).unwrap().value;
+    let original = store
+        .create_project_workspace_item_idempotent(
+            &project.id,
+            ProjectWorkspaceItemKind::Rule,
+            "Правило",
+            None,
+            "Исходный текст",
+            true,
+            "compact-rule",
+        )
+        .unwrap()
+        .value;
+    let rule = store
+        .update_project_workspace_item(
+            &project.id,
+            &original.id,
+            &original.title,
+            None,
+            "Текущий текст",
+            true,
+            &original.version,
+        )
+        .unwrap();
+    let hidden = store
+        .create_project_workspace_item_idempotent(
+            &project.id,
+            ProjectWorkspaceItemKind::Skill,
+            "PRIVATE_TITLE",
+            None,
+            "PRIVATE_BODY",
+            false,
+            "compact-private",
+        )
+        .unwrap()
+        .value;
 
     struct ProcessGuard(std::process::Child);
     impl Drop for ProcessGuard {
@@ -126,66 +149,228 @@ fn stdio_compact_context_reads_preserve_the_mutation_gate() {
             let _ = self.0.wait();
         }
     }
-    let mut process = ProcessGuard(Command::new(env!("CARGO_BIN_EXE_flood-mcp"))
-        .env("FLOOD_DATA_DIR", &data_dir)
-        .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null())
-        .spawn().unwrap());
+    let mut process = ProcessGuard(
+        Command::new(env!("CARGO_BIN_EXE_flood-mcp"))
+            .env("FLOOD_DATA_DIR", &data_dir)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap(),
+    );
     let mut stdin = process.0.stdin.take().unwrap();
     let mut stdout = BufReader::new(process.0.stdout.take().unwrap());
-    send(&mut stdin, json!({
-        "jsonrpc": "2.0", "id": 1, "method": "initialize",
-        "params": {"protocolVersion": "2025-11-25", "capabilities": {},
-            "clientInfo": {"name": "compact-context-test", "version": "1.0"}}
-    }));
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": {"protocolVersion": "2025-11-25", "capabilities": {},
+                "clientInfo": {"name": "compact-context-test", "version": "1.0"}}
+        }),
+    );
     assert!(receive(&mut stdout, 1).get("result").is_some());
-    send(&mut stdin, json!({"jsonrpc": "2.0", "method": "notifications/initialized"}));
-    let mut request_id = 1;
-    let mut call = |name: &str, arguments: Value| -> Value {
-        request_id += 1;
-        send(&mut stdin, json!({"jsonrpc": "2.0", "id": request_id,
-            "method": "tools/call", "params": {"name": name, "arguments": arguments}}));
-        let response = receive(&mut stdout, request_id);
-        assert!(response.get("error").is_none(), "{response}");
-        response["result"].clone()
-    };
-    let check_args = json!({"project_id": project.id});
-    assert_eq!(call("check_project_context", check_args.clone())["structuredContent"]["status"], "missing");
-    let listed = call("list_project_workspace_items", check_args.clone());
-    assert_eq!(listed["structuredContent"]["total"], 1);
-    assert!(listed["structuredContent"]["items"][0].get("content").is_none());
-    assert!(!listed.to_string().contains("PRIVATE"));
-    let item_args = json!({"project_id": project.id, "id": rule.id});
-    let current = call("get_project_workspace_item", item_args.clone());
-    assert_eq!(current["structuredContent"]["history_included"], false);
-    assert_eq!(current["structuredContent"]["revision_count"], 1);
-    assert!(current["structuredContent"]["item"].get("revisions").is_none());
-    let historical = call("get_project_workspace_item", json!({
-        "project_id": project.id, "id": rule.id, "include_history": true
-    }));
-    assert_eq!(historical["structuredContent"]["item"]["revisions"][0]["content"], "Исходный текст");
-    let denied = call("get_project_workspace_item", json!({"project_id": project.id, "id": hidden.id}));
-    assert_eq!(denied["isError"], true);
-    assert!(!denied.to_string().contains("PRIVATE"));
-    let brief_args = json!({"id": project.id, "task_limit": 1});
-    assert_ne!(call("get_project_brief", brief_args.clone())["isError"], true);
-    assert_eq!(call("check_project_context", check_args.clone())["structuredContent"]["status"], "current");
+    send(
+        &mut stdin,
+        json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
+    );
+    {
+        let mut request_id = 1;
+        let mut call = |name: &str, arguments: Value| -> Value {
+            request_id += 1;
+            send(
+                &mut stdin,
+                json!({"jsonrpc": "2.0", "id": request_id,
+                "method": "tools/call", "params": {"name": name, "arguments": arguments}}),
+            );
+            let response = receive(&mut stdout, request_id);
+            assert!(response.get("error").is_none(), "{response}");
+            response["result"].clone()
+        };
+        let check_args = json!({"project_id": project.id});
+        assert_eq!(
+            call("check_project_context", check_args.clone())["structuredContent"]["status"],
+            "missing"
+        );
+        let listed = call("list_project_workspace_items", check_args.clone());
+        assert_eq!(listed["structuredContent"]["total"], 1);
+        assert!(
+            listed["structuredContent"]["items"][0]
+                .get("content")
+                .is_none()
+        );
+        assert!(!listed.to_string().contains("PRIVATE"));
+        let item_args = json!({"project_id": project.id, "id": rule.id});
+        let current = call("get_project_workspace_item", item_args.clone());
+        assert_eq!(current["structuredContent"]["history_included"], false);
+        assert_eq!(current["structuredContent"]["revision_count"], 1);
+        assert!(
+            current["structuredContent"]["item"]
+                .get("revisions")
+                .is_none()
+        );
+        let historical = call(
+            "get_project_workspace_item",
+            json!({
+                "project_id": project.id, "id": rule.id, "include_history": true
+            }),
+        );
+        assert_eq!(
+            historical["structuredContent"]["item"]["revisions"][0]["content"],
+            "Исходный текст"
+        );
+        let denied = call(
+            "get_project_workspace_item",
+            json!({"project_id": project.id, "id": hidden.id}),
+        );
+        assert_eq!(denied["isError"], true);
+        assert!(!denied.to_string().contains("PRIVATE"));
+        let brief_args = json!({"id": project.id, "task_limit": 1});
+        assert_ne!(
+            call("get_project_brief", brief_args.clone())["isError"],
+            true
+        );
+        assert_eq!(
+            call("check_project_context", check_args.clone())["structuredContent"]["status"],
+            "current"
+        );
 
-    // A second Store instance changes Markdown while the MCP process is alive.
-    let externally_updated = store.update_project_workspace_item(
-        &project.id, &rule.id, &rule.title, None, "Новое внешнее правило", true, &rule.version,
-    ).unwrap();
-    let stale = call("check_project_context", check_args.clone());
-    assert_eq!(stale["structuredContent"]["status"], "stale");
-    assert_eq!(stale["structuredContent"]["changes"][0]["current_version"], externally_updated.version);
-    let create_args = json!({"project_id": project.id, "description": "# Проверенная задача",
-        "request_id": "compact-create-task"});
-    assert_eq!(call("create_task", create_args.clone())["isError"], true);
-    call("get_project_workspace_item", item_args);
-    assert_eq!(call("check_project_context", check_args.clone())["structuredContent"]["status"], "stale");
-    assert_ne!(call("get_project_brief", brief_args)["isError"], true);
-    assert_ne!(call("create_task", create_args)["isError"], true);
-    assert_eq!(call("check_project_context", check_args)["structuredContent"]["status"], "current");
-    drop(call);
+        let preview_args = json!({
+            "project_id": project.id,
+            "id": rule.id,
+            "title": rule.title,
+            "content": "Локальная версия правила",
+            "agent_access": true,
+            "expected_version": rule.version,
+        });
+        let preview = call(
+            "preview_project_workspace_item_update",
+            preview_args.clone(),
+        );
+        let preview_token = preview["structuredContent"]["preview_token"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        let mut stale_apply_args = preview_args.clone();
+        stale_apply_args["preview_token"] = preview_token.into();
+
+        // A second Store instance changes Markdown while the MCP process is alive.
+        let externally_updated = store
+            .update_project_workspace_item(
+                &project.id,
+                &rule.id,
+                &rule.title,
+                None,
+                "Новое внешнее правило",
+                true,
+                &rule.version,
+            )
+            .unwrap();
+        let stale = call("check_project_context", check_args.clone());
+        assert_eq!(stale["structuredContent"]["status"], "stale");
+        assert_eq!(
+            stale["structuredContent"]["changes"][0]["current_version"],
+            externally_updated.version
+        );
+        let create_args = json!({"project_id": project.id, "description": "# Проверенная задача",
+            "request_id": "compact-create-task"});
+        assert_eq!(call("create_task", create_args.clone())["isError"], true);
+        let stale_apply = call("apply_project_workspace_item_update", stale_apply_args);
+        assert_eq!(stale_apply["isError"], true);
+        assert_eq!(stale_apply["structuredContent"]["code"], "conflict");
+        assert!(
+            stale_apply["structuredContent"]["message"]
+                .as_str()
+                .is_some_and(|message| message.contains("Project Work Context устарел"))
+        );
+        call("get_project_workspace_item", item_args.clone());
+        assert_eq!(
+            call("check_project_context", check_args.clone())["structuredContent"]["status"],
+            "stale"
+        );
+        assert_ne!(
+            call("get_project_brief", brief_args.clone())["isError"],
+            true
+        );
+
+        let fresh_item = call("get_project_workspace_item", item_args.clone());
+        let fresh_version = fresh_item["structuredContent"]["item"]["version"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        let fresh_preview_args = json!({
+            "project_id": project.id,
+            "id": rule.id,
+            "title": rule.title,
+            "content": "Локальная версия правила",
+            "agent_access": true,
+            "expected_version": fresh_version,
+        });
+        let fresh_preview = call(
+            "preview_project_workspace_item_update",
+            fresh_preview_args.clone(),
+        );
+        let fresh_preview_token = fresh_preview["structuredContent"]["preview_token"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        let mut fresh_apply_args = fresh_preview_args;
+        fresh_apply_args["preview_token"] = fresh_preview_token.into();
+        assert_ne!(
+            call("apply_project_workspace_item_update", fresh_apply_args)["isError"],
+            true
+        );
+
+        let created_task = call("create_task", create_args);
+        assert_ne!(created_task["isError"], true);
+        let task_id = created_task["structuredContent"]["task"]["id"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        let task_version = created_task["structuredContent"]["task"]["version"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        store
+            .update_task(
+                &task_id,
+                TaskPatch {
+                    description: Some("# Внешняя версия задачи".into()),
+                    ..Default::default()
+                },
+                &task_version,
+            )
+            .unwrap();
+        let stale_task = call(
+            "update_task",
+            json!({
+                "id": task_id,
+                "expected_version": task_version,
+                "description": "# Локальная версия задачи",
+            }),
+        );
+        assert_eq!(stale_task["isError"], true);
+        assert_eq!(stale_task["structuredContent"]["code"], "conflict");
+        let fresh_task = call("get_task", json!({"id": task_id}));
+        let fresh_task_version = fresh_task["structuredContent"]["task"]["version"]
+            .as_str()
+            .unwrap()
+            .to_string();
+        assert_ne!(
+            call(
+                "update_task",
+                json!({
+                    "id": task_id,
+                    "expected_version": fresh_task_version,
+                    "description": "# Локальная версия задачи",
+                }),
+            )["isError"],
+            true
+        );
+        assert_eq!(
+            call("check_project_context", check_args)["structuredContent"]["status"],
+            "current"
+        );
+    }
     drop(stdin);
     assert!(process.0.wait().unwrap().success());
 }

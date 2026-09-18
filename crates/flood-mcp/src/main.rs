@@ -3712,16 +3712,19 @@ impl FloodServer {
     fn apply_project_workspace_item_update(
         &self,
         Parameters(args): Parameters<ApplyProjectWorkspaceItemUpdateArgs>,
-    ) -> Result<Json<ProjectWorkspaceItemMutationOutput>, String> {
-        self.require_project_context(&args.project_id)?;
-        let current = self.store
+    ) -> Result<Json<ProjectWorkspaceItemMutationOutput>, McpToolError> {
+        self.require_project_context_for_mutation(&args.project_id)?;
+        let current = self
+            .store
             .get_project_workspace_item(&args.project_id, &args.id)
-            .map_err(store_error)?;
+            .map_err(McpToolError::from_store)?;
         Self::require_material_access(&current)?;
         // The store checks expected_version again under its write lock. Revoking
         // access between this read and the write therefore causes a conflict.
         if current.version != args.expected_version {
-            return Err("Материал изменён; перечитайте его и подготовьте новый preview".into());
+            return Err(McpToolError::conflict(
+                "Материал изменён; перечитайте его и подготовьте новый preview",
+            ));
         }
         let expected_token = project_workspace_update_preview_token(
             &args.project_id,
@@ -3746,7 +3749,7 @@ impl FloodServer {
                 args.agent_access,
                 &args.expected_version,
             )
-            .map_err(store_error)?;
+            .map_err(McpToolError::from_store)?;
         self.record_mcp_activity(
             ActivityAction::ProjectUpdated,
             ActivityEntityKind::Project,
@@ -4589,12 +4592,12 @@ impl FloodServer {
     fn update_project(
         &self,
         Parameters(args): Parameters<UpdateProjectArgs>,
-    ) -> Result<Json<ProjectOutput>, String> {
-        self.require_project_context(&args.id)?;
+    ) -> Result<Json<ProjectOutput>, McpToolError> {
+        self.require_project_context_for_mutation(&args.id)?;
         let project = self
             .store
             .update_project(&args.id, &args.title, &args.expected_version)
-            .map_err(store_error)?;
+            .map_err(McpToolError::from_store)?;
         self.record_mcp_activity(
             ActivityAction::ProjectUpdated,
             ActivityEntityKind::Project,
@@ -4617,12 +4620,12 @@ impl FloodServer {
     fn update_project_context(
         &self,
         Parameters(args): Parameters<UpdateProjectContextArgs>,
-    ) -> Result<Json<ProjectOutput>, String> {
-        self.require_project_context(&args.id)?;
+    ) -> Result<Json<ProjectOutput>, McpToolError> {
+        self.require_project_context_for_mutation(&args.id)?;
         let project = self
             .store
             .update_project_context(&args.id, &args.context, &args.expected_version)
-            .map_err(store_error)?;
+            .map_err(McpToolError::from_store)?;
         self.record_mcp_activity(
             ActivityAction::ProjectUpdated,
             ActivityEntityKind::Project,
@@ -4646,9 +4649,12 @@ impl FloodServer {
     fn set_project_resources(
         &self,
         Parameters(args): Parameters<SetProjectResourcesArgs>,
-    ) -> Result<Json<ProjectOutput>, String> {
-        self.require_project_context(&args.id)?;
-        let current = self.store.get_project(&args.id).map_err(store_error)?;
+    ) -> Result<Json<ProjectOutput>, McpToolError> {
+        self.require_project_context_for_mutation(&args.id)?;
+        let current = self
+            .store
+            .get_project(&args.id)
+            .map_err(McpToolError::from_store)?;
         let resources = args
             .resources
             .into_iter()
@@ -4672,7 +4678,7 @@ impl FloodServer {
         let project = self
             .store
             .set_project_resources(&args.id, resources, &args.expected_version)
-            .map_err(store_error)?;
+            .map_err(McpToolError::from_store)?;
         self.record_mcp_activity(
             ActivityAction::ProjectUpdated,
             ActivityEntityKind::Project,
@@ -6458,8 +6464,8 @@ impl FloodServer {
     fn update_task(
         &self,
         Parameters(args): Parameters<UpdateTaskArgs>,
-    ) -> Result<Json<TaskOutput>, String> {
-        self.require_task_project_context(&args.id)?;
+    ) -> Result<Json<TaskOutput>, McpToolError> {
+        self.require_task_project_context_for_mutation(&args.id)?;
         let source = if args.clear_source {
             Some(None)
         } else {
@@ -6474,7 +6480,7 @@ impl FloodServer {
         let task = self
             .store
             .update_task(&args.id, patch, &args.expected_version)
-            .map_err(store_error)?;
+            .map_err(McpToolError::from_store)?;
         self.record_mcp_activity(
             ActivityAction::TaskUpdated,
             ActivityEntityKind::Task,
@@ -6854,9 +6860,31 @@ impl FloodServer {
         }
     }
 
+    fn require_project_context_for_mutation(&self, project_id: &str) -> Result<(), McpToolError> {
+        self.require_project_context(project_id).map_err(|message| {
+            if message.starts_with("Project Work Context устарел:") {
+                McpToolError::conflict(message)
+            } else {
+                McpToolError::from(message)
+            }
+        })
+    }
+
     fn require_task_project_context(&self, task_id: &str) -> Result<String, String> {
         let task = self.store.get_task(task_id).map_err(store_error)?;
         self.require_project_context(&task.project_id)?;
+        Ok(task.project_id)
+    }
+
+    fn require_task_project_context_for_mutation(
+        &self,
+        task_id: &str,
+    ) -> Result<String, McpToolError> {
+        let task = self
+            .store
+            .get_task(task_id)
+            .map_err(McpToolError::from_store)?;
+        self.require_project_context_for_mutation(&task.project_id)?;
         Ok(task.project_id)
     }
 
@@ -8873,6 +8901,54 @@ fn project_workspace_update_preview_token(
 
 fn store_error(error: impl std::fmt::Display) -> String {
     error.to_string()
+}
+
+#[derive(Debug)]
+struct McpToolError(CallToolResult);
+
+impl McpToolError {
+    fn coded(code: &'static str, message: impl Into<String>) -> Self {
+        Self(CallToolResult::structured_error(serde_json::json!({
+            "code": code,
+            "message": message.into(),
+        })))
+    }
+
+    fn conflict(message: impl Into<String>) -> Self {
+        Self::coded("conflict", message)
+    }
+
+    fn from_store(error: flood_core::StoreError) -> Self {
+        let code = match &error {
+            flood_core::StoreError::Conflict => "conflict",
+            flood_core::StoreError::NotFound(_) => "not_found",
+            flood_core::StoreError::Validation(_) => "validation",
+            flood_core::StoreError::InvalidFile { .. } => "invalid_file",
+            flood_core::StoreError::Io(_) => "io",
+            flood_core::StoreError::Yaml(_) => "yaml",
+            flood_core::StoreError::Json(_) => "json",
+            flood_core::StoreError::Backup(_) => "backup",
+        };
+        Self::coded(code, error.to_string())
+    }
+}
+
+impl From<String> for McpToolError {
+    fn from(message: String) -> Self {
+        Self::coded("tool_error", message)
+    }
+}
+
+impl From<&str> for McpToolError {
+    fn from(message: &str) -> Self {
+        Self::coded("tool_error", message)
+    }
+}
+
+impl rmcp::handler::server::tool::IntoCallToolResult for McpToolError {
+    fn into_call_tool_result(self) -> Result<rmcp::model::CallToolResponse, rmcp::ErrorData> {
+        Ok(self.0.into())
+    }
 }
 
 fn run_binary_self_check() -> SelfCheckResult {

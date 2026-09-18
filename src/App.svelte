@@ -50,6 +50,7 @@
   type TelegramProjectLink = { chat_id: number; title: string; inbox_mode: TelegramInboxMode };
   type TelegramParticipantRole = { sender_id: string; display_name: string; username?: string; role: string; source: "manual" | "agent" };
   type ProjectRecord = { id: string; title: string; context?: string; resources?: ProjectResource[]; memory?: ProjectMemoryEntry[]; created_at: string; updated_at: string; telegram_chats?: TelegramProjectLink[]; telegram_participants?: TelegramParticipantRole[]; version: string };
+  type CommandError = { code: string; message: string };
   type TaskRecord = {
     id: string;
     project_id: string;
@@ -343,6 +344,7 @@
   let projectMemoryDeleteConfirmId = "";
   let expandedProjectResourceId = "";
   let projectContextError = "";
+  let projectContextConflictRemote: ProjectRecord | null = null;
   let projectContextSaving = false;
   let projectContextDialog: HTMLElement;
   let projectContextTextarea: HTMLTextAreaElement;
@@ -351,6 +353,8 @@
   let projectWorkspaceItems: ProjectWorkspaceItem[] = [];
   let projectWorkspaceLoading = false;
   let projectWorkspaceError = "";
+  let projectWorkspaceConflictRemote: ProjectWorkspaceItem | null = null;
+  let projectWorkspaceConflictAction: "save" | "delete" | null = null;
   let projectWorkspaceEditorId = "";
   let projectWorkspaceEditorKind: ProjectWorkspaceItemKind = "document";
   let projectWorkspaceTitle = "";
@@ -400,6 +404,36 @@
   }
 
   let t = translator(locale);
+
+  function parseCommandError(error: unknown): CommandError {
+    const fromObject = (value: unknown): CommandError | null => {
+      if (!value || typeof value !== "object") return null;
+      const candidate = value as { code?: unknown; message?: unknown };
+      if (typeof candidate.message !== "string") return null;
+      return { code: typeof candidate.code === "string" ? candidate.code : "", message: candidate.message };
+    };
+    const direct = fromObject(error);
+    if (direct) return direct;
+    if (typeof error === "string") {
+      try {
+        const parsed = fromObject(JSON.parse(error));
+        if (parsed) return parsed;
+      } catch {
+        // Older Tauri commands reject with a plain string.
+      }
+      return { code: "", message: error };
+    }
+    return { code: "", message: String(error) };
+  }
+
+  function commandErrorMessage(error: unknown) {
+    return parseCommandError(error).message;
+  }
+
+  function isConflictError(error: unknown) {
+    const parsed = parseCommandError(error);
+    return parsed.code === "conflict" || parsed.message.includes("изменились в другом процессе");
+  }
 
   function saveUiPreferences() {
     localStorage.setItem(uiPreferencesKey, JSON.stringify({
@@ -984,7 +1018,7 @@
           if (hasNewerText) scheduleSave();
         } catch (error) {
           saveState = "error";
-          saveError = String(error);
+          saveError = commandErrorMessage(error);
         }
       })();
       saveInFlight = work;
@@ -1030,9 +1064,13 @@
         savedOk = true;
       } catch (error) {
         saveState = "error";
-        saveError = String(error);
-        if (saveError.includes("изменились в другом процессе")) {
-          try { conflictRemote = await invoke<TaskRecord>("get_task", { id: taskId }); } catch { conflictRemote = null; }
+        saveError = commandErrorMessage(error);
+        if (isConflictError(error)) {
+          try {
+            conflictRemote = await invoke<TaskRecord>("get_task", { id: taskId });
+          } catch {
+            conflictRemote = null;
+          }
         }
       }
     })();
@@ -1046,23 +1084,39 @@
   async function keepLocalVersion() {
     const local = tasks.find((task) => task.id === selectedTaskId);
     if (!local || !conflictRemote) return;
+    const snapshot = local.markdown;
     try {
       saveState = "saving";
       const saved = await invoke<TaskRecord>("update_task", {
         id: local.id,
-        patch: { description: local.markdown },
+        patch: { description: snapshot },
         expectedVersion: conflictRemote.version
       });
       const converted = toTaskItem(saved);
-      tasks = tasks.map((task) => task.id === saved.id ? converted : task);
-      markdown = converted.markdown;
-      lastSavedMarkdown = converted.markdown;
+      tasks = tasks.map((task) => {
+        if (task.id !== saved.id) return task;
+        if (task.markdown !== snapshot) {
+          return { ...task, version: saved.version, updatedAt: saved.updated_at, updated: relativeDate(saved.updated_at) };
+        }
+        return converted;
+      });
+      const current = tasks.find((task) => task.id === saved.id);
+      markdown = current?.markdown ?? converted.markdown;
+      lastSavedMarkdown = snapshot;
       conflictRemote = null;
       saveError = "";
       saveState = "saved";
+      if (current && current.markdown !== snapshot) scheduleSave();
     } catch (error) {
       saveState = "error";
-      saveError = String(error);
+      saveError = commandErrorMessage(error);
+      if (isConflictError(error)) {
+        try {
+          conflictRemote = await invoke<TaskRecord>("get_task", { id: local.id });
+        } catch {
+          // Keep the previous remote version so the local draft remains recoverable.
+        }
+      }
     }
   }
 
@@ -2166,6 +2220,7 @@
     resetProjectWorkspaceEditor();
     expandedProjectResourceId = "";
     projectContextError = "";
+    projectContextConflictRemote = null;
     resetProjectMemoryEditor(true);
     projectContextOpen = true;
     workspaceView = "context";
@@ -2221,12 +2276,14 @@
     resetProjectWorkspaceEditor();
     expandedProjectResourceId = "";
     projectContextError = "";
+    projectContextConflictRemote = null;
     resetProjectMemoryEditor(true);
     restoreModalFocus(returnFocus);
   }
 
   async function reloadProjectContext() {
     if (!projectContextProjectId) return;
+    projectContextConflictRemote = null;
     await loadData(true);
     const project = chats.find((item) => item.id === projectContextProjectId);
     if (!project) return;
@@ -2245,6 +2302,7 @@
     projectGithubOpen = false;
     expandedProjectResourceId = "";
     projectContextError = "";
+    projectContextConflictRemote = null;
     resetProjectMemoryEditor(false);
     resetProjectWorkspaceEditor();
     if (inTauri()) void loadProjectWorkspaceItems();
@@ -2287,6 +2345,8 @@
     projectWorkspaceDeleteConfirm = false;
     projectWorkspaceCloseConfirm = false;
     projectWorkspaceOriginal = "";
+    projectWorkspaceConflictRemote = null;
+    projectWorkspaceConflictAction = null;
   }
 
   function projectWorkspaceDraftSignature() {
@@ -2310,7 +2370,7 @@
   }
 
   function closeProjectWorkspaceEditor(force = false) {
-    if (projectWorkspaceSaving) return;
+    if (projectWorkspaceSaving && !force) return;
     if (!force && projectWorkspaceHasUnsavedChanges()) {
       projectWorkspaceCloseConfirm = true;
       return;
@@ -2384,6 +2444,8 @@
     projectWorkspaceDeleteConfirm = false;
     projectWorkspaceCloseConfirm = false;
     projectWorkspaceError = "";
+    projectWorkspaceConflictRemote = null;
+    projectWorkspaceConflictAction = null;
     projectWorkspaceOriginal = projectWorkspaceDraftSignature();
     void tick().then(() => projectWorkspaceDialog?.focus());
   }
@@ -2397,14 +2459,70 @@
     projectWorkspaceAgentAccess = revision.agent_access;
   }
 
+  async function refreshProjectWorkspaceConflict(id: string, action: "save" | "delete") {
+    try {
+      const latestItems = await invoke<ProjectWorkspaceItem[]>("list_project_workspace_items", {
+        projectId: projectContextProjectId
+      });
+      projectWorkspaceItems = latestItems;
+      projectWorkspaceConflictRemote = latestItems.find((item) => item.id === id) ?? null;
+      projectWorkspaceConflictAction = projectWorkspaceConflictRemote ? action : null;
+    } catch {
+      // Preserve the local draft and the original error if rereading also fails.
+    }
+  }
+
+  async function updateProjectWorkspaceItemAgainst(expectedVersion: string) {
+    const id = projectWorkspaceEditorId;
+    if (!id || id === "new") return false;
+    try {
+      const saved = await invoke<ProjectWorkspaceItem>("update_project_workspace_item", {
+        projectId: projectContextProjectId,
+        id,
+        title: projectWorkspaceTitle,
+        summary: projectWorkspaceSummary || null,
+        content: projectWorkspaceContent,
+        agentAccess: projectWorkspaceAgentAccess,
+        expectedVersion
+      });
+      projectWorkspaceItems = projectWorkspaceItems.map((item) => item.id === saved.id ? saved : item);
+      projectWorkspaceConflictRemote = null;
+      projectWorkspaceConflictAction = null;
+      projectWorkspaceError = "";
+      return true;
+    } catch (error) {
+      projectWorkspaceError = commandErrorMessage(error);
+      if (isConflictError(error)) await refreshProjectWorkspaceConflict(id, "save");
+      return false;
+    }
+  }
+
+  async function deleteProjectWorkspaceItemAgainst(id: string, expectedVersion: string) {
+    try {
+      await invoke("delete_project_workspace_item", {
+        projectId: projectContextProjectId,
+        id,
+        expectedVersion
+      });
+      projectWorkspaceItems = projectWorkspaceItems.filter((item) => item.id !== id);
+      projectWorkspaceConflictRemote = null;
+      projectWorkspaceConflictAction = null;
+      projectWorkspaceError = "";
+      return true;
+    } catch (error) {
+      projectWorkspaceError = commandErrorMessage(error);
+      if (isConflictError(error)) await refreshProjectWorkspaceConflict(id, "delete");
+      return false;
+    }
+  }
+
   async function saveProjectWorkspaceItem() {
     if (!projectContextProjectId || !projectWorkspaceTitle.trim() || !projectWorkspaceContent.trim() || !inTauri() || projectWorkspaceSaving) return;
     projectWorkspaceSaving = true;
     projectWorkspaceError = "";
     try {
-      let saved: ProjectWorkspaceItem;
       if (projectWorkspaceEditorId === "new") {
-        saved = await invoke<ProjectWorkspaceItem>("create_project_workspace_item", {
+        const saved = await invoke<ProjectWorkspaceItem>("create_project_workspace_item", {
           projectId: projectContextProjectId,
           kind: projectWorkspaceEditorKind,
           title: projectWorkspaceTitle,
@@ -2414,23 +2532,14 @@
           requestId: crypto.randomUUID()
         });
         projectWorkspaceItems = [saved, ...projectWorkspaceItems];
+        closeProjectWorkspaceEditor(true);
       } else {
         const current = projectWorkspaceItems.find((item) => item.id === projectWorkspaceEditorId);
         if (!current) return;
-        saved = await invoke<ProjectWorkspaceItem>("update_project_workspace_item", {
-          projectId: projectContextProjectId,
-          id: current.id,
-          title: projectWorkspaceTitle,
-          summary: projectWorkspaceSummary || null,
-          content: projectWorkspaceContent,
-          agentAccess: projectWorkspaceAgentAccess,
-          expectedVersion: current.version
-        });
-        projectWorkspaceItems = projectWorkspaceItems.map((item) => item.id === saved.id ? saved : item);
+        if (await updateProjectWorkspaceItemAgainst(current.version)) closeProjectWorkspaceEditor(true);
       }
-      closeProjectWorkspaceEditor(true);
     } catch (error) {
-      projectWorkspaceError = String(error);
+      projectWorkspaceError = commandErrorMessage(error);
     } finally {
       projectWorkspaceSaving = false;
     }
@@ -2446,15 +2555,37 @@
     projectWorkspaceSaving = true;
     projectWorkspaceError = "";
     try {
-      await invoke("delete_project_workspace_item", {
-        projectId: projectContextProjectId,
-        id: current.id,
-        expectedVersion: current.version
-      });
-      projectWorkspaceItems = projectWorkspaceItems.filter((item) => item.id !== current.id);
-      closeProjectWorkspaceEditor(true);
-    } catch (error) {
-      projectWorkspaceError = String(error);
+      if (await deleteProjectWorkspaceItemAgainst(current.id, current.version)) closeProjectWorkspaceEditor(true);
+    } finally {
+      projectWorkspaceSaving = false;
+    }
+  }
+
+  function useDiskProjectWorkspaceVersion() {
+    const remote = projectWorkspaceConflictRemote;
+    if (!remote) return;
+    projectWorkspaceTitle = remote.title;
+    projectWorkspaceSummary = remote.summary ?? "";
+    projectWorkspaceContent = remote.content;
+    projectWorkspaceAgentAccess = remote.agent_access;
+    projectWorkspaceDeleteConfirm = false;
+    projectWorkspaceError = "";
+    projectWorkspaceConflictRemote = null;
+    projectWorkspaceConflictAction = null;
+    projectWorkspaceOriginal = projectWorkspaceDraftSignature();
+  }
+
+  async function keepLocalProjectWorkspaceVersion() {
+    const remote = projectWorkspaceConflictRemote;
+    const action = projectWorkspaceConflictAction;
+    if (!remote || !action || projectWorkspaceSaving) return;
+    projectWorkspaceSaving = true;
+    projectWorkspaceError = "";
+    try {
+      const succeeded = action === "delete"
+        ? await deleteProjectWorkspaceItemAgainst(remote.id, remote.version)
+        : await updateProjectWorkspaceItemAgainst(remote.version);
+      if (succeeded) closeProjectWorkspaceEditor(true);
     } finally {
       projectWorkspaceSaving = false;
     }
@@ -2581,6 +2712,44 @@
     }
   }
 
+  async function refreshProjectContextConflict() {
+    try {
+      const projects = await invoke<ProjectRecord[]>("list_projects");
+      projectContextConflictRemote = projects.find((project) => project.id === projectContextProjectId) ?? null;
+    } catch {
+      // Keep the local draft and the original error if rereading also fails.
+    }
+  }
+
+  async function saveProjectContextAgainst(expectedVersion: string) {
+    try {
+      const updated = await invoke<ProjectRecord>("update_project_details", {
+        id: projectContextProjectId,
+        context: projectContextDraft,
+        resources: projectContextResources,
+        expectedVersion
+      });
+      chats = chats.map((chat) => chat.id === updated.id
+        ? { ...updated, resources: updated.resources ?? [], telegram_chats: updated.telegram_chats ?? [], open: chat.open }
+        : chat);
+      projectContextVersion = updated.version;
+      projectContextConflictRemote = null;
+      projectContextError = "";
+      if (projectAutoRunDraft !== projectAutoRunSaved) {
+        const policy = await invoke<ProjectAutomationPolicy>("set_project_auto_run", {
+          projectId: projectContextProjectId,
+          enabled: projectAutoRunDraft
+        });
+        projectAutoRunSaved = policy.auto_run_created_tasks;
+      }
+      return true;
+    } catch (error) {
+      projectContextError = commandErrorMessage(error);
+      if (isConflictError(error)) await refreshProjectContextConflict();
+      return false;
+    }
+  }
+
   async function saveProjectContext(event: SubmitEvent) {
     event.preventDefault();
     if (!projectContextProjectId || !inTauri() || projectContextSaving) return;
@@ -2591,31 +2760,35 @@
       projectContextSaving = false;
       return;
     }
-    try {
-      const updated = await invoke<ProjectRecord>("update_project_details", {
-        id: projectContextProjectId,
-        context: projectContextDraft,
-        resources: projectContextResources,
-        expectedVersion: projectContextVersion
-      });
-      chats = chats.map((chat) => chat.id === updated.id
-        ? { ...updated, resources: updated.resources ?? [], telegram_chats: updated.telegram_chats ?? [], open: chat.open }
-        : chat);
-      projectContextVersion = updated.version;
-      if (projectAutoRunDraft !== projectAutoRunSaved) {
-        const policy = await invoke<ProjectAutomationPolicy>("set_project_auto_run", {
-          projectId: projectContextProjectId,
-          enabled: projectAutoRunDraft
-        });
-        projectAutoRunSaved = policy.auto_run_created_tasks;
-      }
-      projectContextSaving = false;
-      closeProjectContext();
-    } catch (error) {
-      projectContextError = String(error);
-    } finally {
-      projectContextSaving = false;
-    }
+    const saved = await saveProjectContextAgainst(projectContextVersion);
+    projectContextSaving = false;
+    if (saved) closeProjectContext();
+  }
+
+  function useDiskProjectContextVersion() {
+    const remote = projectContextConflictRemote;
+    if (!remote) return;
+    chats = chats.map((chat) => chat.id === remote.id
+      ? { ...remote, resources: remote.resources ?? [], telegram_chats: remote.telegram_chats ?? [], open: chat.open }
+      : chat);
+    projectContextProjectTitle = remote.title;
+    projectContextVersion = remote.version;
+    projectContextDraft = remote.context ?? "";
+    projectContextResources = (remote.resources ?? []).map((resource) => ({ ...resource }));
+    projectContextConflictRemote = null;
+    projectContextError = "";
+    projectResourceAddOpen = false;
+    expandedProjectResourceId = "";
+  }
+
+  async function keepLocalProjectContextVersion() {
+    const remote = projectContextConflictRemote;
+    if (!remote || projectContextSaving) return;
+    projectContextSaving = true;
+    projectContextError = "";
+    const saved = await saveProjectContextAgainst(remote.version);
+    projectContextSaving = false;
+    if (saved) closeProjectContext();
   }
 
   function projectResourceKindLabel(kind: ProjectResourceKind) {
@@ -5803,7 +5976,7 @@
 
           {#if ["documents", "rules", "skills"].includes(projectWorkspaceSection)}
             {@const workspaceKind = projectWorkspaceSection === "documents" ? "document" : projectWorkspaceSection === "rules" ? "rule" : "skill"}
-            {@const ownedItems = projectWorkspaceItemsFor(workspaceKind)}
+            {@const ownedItems = projectWorkspaceItems.filter((item) => item.kind === workspaceKind)}
             <section class="project-workspace-owned" aria-label={t(`projectWorkspace_${projectWorkspaceSection}` as MessageKey)}>
               <div class="project-resource-heading">
                 <span><strong>{t(`projectWorkspaceOwned_${workspaceKind}` as MessageKey)}</strong><small>{t(`projectWorkspaceOwned_${workspaceKind}Description` as MessageKey)}</small></span>
@@ -6075,11 +6248,16 @@
             </button>
           </section>
           {/if}
-          {#if projectContextError}
+          {#if projectContextConflictRemote}
+            <div class="save-conflict project-context-conflict" role="alert">
+              <span><strong>{t("externalChange")}</strong> {t("chooseVersion")}</span>
+              <div><button type="button" onclick={useDiskProjectContextVersion}>{t("diskVersion")}</button><button type="button" onclick={keepLocalProjectContextVersion}>{t("localVersion")}</button></div>
+            </div>
+          {:else if projectContextError}
             <div class="project-context-error" role="alert"><span>{projectContextError}</span><button type="button" onclick={reloadProjectContext}>{t("reload")}</button></div>
           {/if}
         </div>
-        <footer><button type="button" disabled={projectContextSaving} onclick={closeProjectContext}>{t("back")}</button>{#if ["documents", "integrations", "skills", "automation"].includes(projectWorkspaceSection)}<button class="primary-button" type="submit" disabled={projectContextSaving || projectAutoRunLoading}>{#if projectContextSaving}<RefreshCw class="spinning" size={14} />{/if}{projectContextSaving ? t("saving") : t("save")}</button>{/if}</footer>
+        <footer><button type="button" disabled={projectContextSaving} onclick={closeProjectContext}>{t("back")}</button>{#if ["documents", "integrations", "skills", "automation"].includes(projectWorkspaceSection)}<button class="primary-button" type="submit" disabled={projectContextSaving || projectAutoRunLoading || Boolean(projectContextConflictRemote)}>{#if projectContextSaving}<RefreshCw class="spinning" size={14} />{/if}{projectContextSaving ? t("saving") : t("save")}</button>{/if}</footer>
       </form>
     </section>
   </div>
@@ -6111,7 +6289,12 @@
         {#if artifactItem?.revisions?.length}
           <small class="project-workspace-history"><RotateCcw size={13} />{t("projectWorkspaceHistory", { count: artifactItem.revisions.length })}</small>
         {/if}
-        {#if projectWorkspaceError}<p class="artifact-modal-error" role="alert">{projectWorkspaceError}</p>{/if}
+        {#if projectWorkspaceConflictRemote}
+          <div class="artifact-discard-warning" role="alert">
+            <span><strong>{t("externalChange")}</strong><small>{t("chooseVersion")}</small></span>
+            <div><button type="button" onclick={useDiskProjectWorkspaceVersion}>{projectWorkspaceConflictAction === "delete" ? t("keepLatestVersion") : t("diskVersion")}</button><button class:danger-button={projectWorkspaceConflictAction === "delete"} type="button" onclick={keepLocalProjectWorkspaceVersion}>{projectWorkspaceConflictAction === "delete" ? t("deleteLatestVersion") : t("localVersion")}</button></div>
+          </div>
+        {:else if projectWorkspaceError}<p class="artifact-modal-error" role="alert">{projectWorkspaceError}</p>{/if}
         {#if projectWorkspaceCloseConfirm}
           <div class="artifact-discard-warning" role="alert">
             <span><strong>{t("unsavedChanges")}</strong><small>{t("unsavedChangesDescription")}</small></span>
@@ -6121,8 +6304,8 @@
       </div>
 
       <footer>
-        <span>{#if projectWorkspaceEditorId !== "new"}<button class:confirming={projectWorkspaceDeleteConfirm} class="artifact-delete" type="button" disabled={projectWorkspaceSaving} onclick={deleteProjectWorkspaceItem}><Trash2 size={14} />{projectWorkspaceDeleteConfirm ? t("confirmDelete") : t("delete")}</button>{/if}</span>
-        <span><button type="button" disabled={projectWorkspaceSaving} onclick={() => closeProjectWorkspaceEditor()}>{t("cancel")}</button><button class="primary-button" type="button" disabled={!projectWorkspaceTitle.trim() || !projectWorkspaceContent.trim() || projectWorkspaceSaving} onclick={saveProjectWorkspaceItem}>{projectWorkspaceSaving ? t("saving") : t("save")}</button></span>
+        <span>{#if projectWorkspaceEditorId !== "new"}<button class:confirming={projectWorkspaceDeleteConfirm} class="artifact-delete" type="button" disabled={projectWorkspaceSaving || Boolean(projectWorkspaceConflictRemote)} onclick={deleteProjectWorkspaceItem}><Trash2 size={14} />{projectWorkspaceDeleteConfirm ? t("confirmDelete") : t("delete")}</button>{/if}</span>
+        <span><button type="button" disabled={projectWorkspaceSaving} onclick={() => closeProjectWorkspaceEditor()}>{t("cancel")}</button><button class="primary-button" type="button" disabled={!projectWorkspaceTitle.trim() || !projectWorkspaceContent.trim() || projectWorkspaceSaving || Boolean(projectWorkspaceConflictRemote)} onclick={saveProjectWorkspaceItem}>{projectWorkspaceSaving ? t("saving") : t("save")}</button></span>
       </footer>
     </div>
   </div>
