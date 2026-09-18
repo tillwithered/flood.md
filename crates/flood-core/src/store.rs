@@ -4510,10 +4510,15 @@ impl Store {
             collect_backup_files(&integrations, &mut files)?;
             let telegram_media_cache = integrations.join("telegram-media");
             files.retain(|path| {
-                path != &self.telegram_sync_request_path()
-                    && path != &self.telegram_connector_status_path()
-                    && path != &self.telegram_media_requests_path()
-                    && !path.starts_with(&telegram_media_cache)
+                !path.starts_with(&integrations)
+                    || (path != &self.telegram_sync_request_path()
+                        && path != &self.telegram_sync_status_path()
+                        && path != &self.telegram_connector_status_path()
+                        && path != &self.telegram_media_requests_path()
+                        && !path.starts_with(&telegram_media_cache)
+                        && path
+                            .strip_prefix(&integrations)
+                            .is_ok_and(backup_integration_path_is_portable))
             });
         }
         let temporary = parent.join(format!(".flood-backup-{}.tmp", Ulid::new()));
@@ -6459,6 +6464,43 @@ fn collect_backup_files(directory: &Path, output: &mut Vec<PathBuf>) -> Result<(
     }
     output.sort();
     Ok(())
+}
+
+fn backup_integration_path_is_portable(path: &Path) -> bool {
+    !path.components().any(|component| {
+        let Some(name) = component.as_os_str().to_str() else {
+            return true;
+        };
+        let name = name.to_ascii_lowercase();
+        name == ".env"
+            || name.starts_with(".env.")
+            || matches!(
+                name.as_str(),
+                "credential"
+                    | "credentials"
+                    | "credentials.json"
+                    | "secret"
+                    | "secrets"
+                    | "secrets.json"
+                    | "secrets.yml"
+                    | "secrets.yaml"
+                    | "session"
+                    | "session.json"
+                    | "sessions"
+                    | "sessions.json"
+                    | "token"
+                    | "token.json"
+                    | "tokens"
+                    | "tokens.json"
+                    | "id_rsa"
+                    | "id_ed25519"
+            )
+            || name.contains("access-token")
+            || name.contains("refresh-token")
+            || [".pem", ".key", ".p12", ".pfx"]
+                .iter()
+                .any(|extension| name.ends_with(extension))
+    })
 }
 
 fn is_attachment_path(path: &Path) -> bool {
