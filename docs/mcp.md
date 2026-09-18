@@ -6,7 +6,9 @@ For the Russian version, see [mcp.ru.md](mcp.ru.md).
 
 ## Supported clients
 
-The local server works with clients that can start a command on the user's computer, including Codex, Claude Desktop, and Cursor. Open **Settings → MCP and AI**, choose the client, copy the generated configuration, then restart the client or open a new session.
+The stable support claim is evidence-based. Codex CLI, Claude Code, and Gemini CLI are tracked in the [0.2.0 client interoperability matrix](./mcp-client-interoperability-0.2.0.md), which records the exact client version and whether connect, tool discovery, bounded reads, preview/apply mutations, error handling, and cancellation were actually exercised. Other local stdio MCP clients may work, but they are not part of the stable support matrix until the same checks have evidence.
+
+Open **Settings → MCP and AI**, choose the client, copy the generated configuration, then restart the client or open a new session.
 
 A regular cloud ChatGPT conversation cannot start <code>flood-mcp.exe</code>. OpenAI's remote MCP connection expects an HTTPS endpoint. flood.md does not include a hosted bridge in the local-first release.
 
