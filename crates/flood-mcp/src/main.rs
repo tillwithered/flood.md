@@ -39,6 +39,7 @@ use rmcp::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
@@ -58,7 +59,13 @@ const TELEGRAM_SYNC_FRESH_SECONDS: u64 = 5 * 60;
 const TELEGRAM_REQUEST_WAIT_SECONDS: u64 = 2 * 60;
 const MCP_SERVER_NAME: &str = "flood.md";
 const MCP_SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
-const MCP_PROTOCOL_VERSION: &str = "2025-11-25";
+const MCP_PROTOCOL_VERSION: &str = "2026-07-28";
+const MCP_SUPPORTED_PROTOCOL_VERSION_NAMES: &[&str] = &["2025-06-18", "2025-11-25", "2026-07-28"];
+const MCP_SUPPORTED_PROTOCOL_VERSIONS: &[ProtocolVersion] = &[
+    ProtocolVersion::V_2025_06_18,
+    ProtocolVersion::V_2025_11_25,
+    ProtocolVersion::V_2026_07_28,
+];
 
 fn tool_catalog_revision() -> String {
     let mut tools = FloodServer::tool_router().list_all();
@@ -1849,6 +1856,7 @@ struct RuntimeInfoOutput {
     name: &'static str,
     version: &'static str,
     protocol_version: &'static str,
+    supported_protocol_versions: Vec<&'static str>,
     tool_catalog_revision: String,
     tool_count: usize,
     data_root: String,
@@ -1861,6 +1869,7 @@ struct McpManifestOutput {
     name: &'static str,
     version: &'static str,
     protocol_version: &'static str,
+    supported_protocol_versions: Vec<&'static str>,
     tool_catalog_revision: String,
     tool_count: usize,
 }
@@ -1870,6 +1879,7 @@ fn mcp_manifest() -> McpManifestOutput {
         name: MCP_SERVER_NAME,
         version: MCP_SERVER_VERSION,
         protocol_version: MCP_PROTOCOL_VERSION,
+        supported_protocol_versions: MCP_SUPPORTED_PROTOCOL_VERSION_NAMES.to_vec(),
         tool_catalog_revision: tool_catalog_revision(),
         tool_count: tool_catalog_count(),
     }
@@ -2201,6 +2211,10 @@ impl FloodServer {
 #[prompt_handler(router = self.prompt_router)]
 #[tool_handler]
 impl ServerHandler for FloodServer {
+    fn supported_protocol_versions(&self) -> Cow<'static, [ProtocolVersion]> {
+        Cow::Borrowed(MCP_SUPPORTED_PROTOCOL_VERSIONS)
+    }
+
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(
             ServerCapabilities::builder()
@@ -2238,6 +2252,7 @@ impl FloodServer {
             name: MCP_SERVER_NAME,
             version: MCP_SERVER_VERSION,
             protocol_version: MCP_PROTOCOL_VERSION,
+            supported_protocol_versions: MCP_SUPPORTED_PROTOCOL_VERSION_NAMES.to_vec(),
             tool_catalog_revision: tool_catalog_revision(),
             tool_count: tool_catalog_count(),
             data_root: self.store.root().to_string_lossy().into_owned(),
@@ -9029,7 +9044,13 @@ fn run_binary_self_check() -> SelfCheckResult {
             .then(|| format!("Не найдены: {}", missing_tools.join(", "))),
     });
     let manifest = mcp_manifest();
-    let catalog_identity_ok = manifest.protocol_version == ProtocolVersion::LATEST.as_str()
+    let declared_protocols_match_sdk = MCP_SUPPORTED_PROTOCOL_VERSIONS
+        .iter()
+        .map(ProtocolVersion::as_str)
+        .eq(MCP_SUPPORTED_PROTOCOL_VERSION_NAMES.iter().copied());
+    let catalog_identity_ok = manifest.protocol_version == MCP_PROTOCOL_VERSION
+        && manifest.supported_protocol_versions == MCP_SUPPORTED_PROTOCOL_VERSION_NAMES
+        && declared_protocols_match_sdk
         && manifest.tool_count == tools.len()
         && manifest.tool_catalog_revision.len() == 64;
     result.checks.push(SelfCheckItem {
@@ -9037,8 +9058,11 @@ fn run_binary_self_check() -> SelfCheckResult {
         passed: catalog_identity_ok,
         detail: (!catalog_identity_ok).then(|| {
             format!(
-                "protocol {}, tools {}, revision {}",
-                manifest.protocol_version, manifest.tool_count, manifest.tool_catalog_revision
+                "protocol {}, supported {:?}, tools {}, revision {}",
+                manifest.protocol_version,
+                manifest.supported_protocol_versions,
+                manifest.tool_count,
+                manifest.tool_catalog_revision
             )
         }),
     });

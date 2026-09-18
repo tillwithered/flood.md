@@ -27,7 +27,11 @@ fn command_line_reports_version_and_runs_isolated_self_check() {
     let manifest: Value = serde_json::from_slice(&manifest.stdout).unwrap();
     assert_eq!(manifest["name"], "flood.md");
     assert_eq!(manifest["version"], env!("CARGO_PKG_VERSION"));
-    assert_eq!(manifest["protocol_version"], "2025-11-25");
+    assert_eq!(manifest["protocol_version"], "2026-07-28");
+    assert_eq!(
+        manifest["supported_protocol_versions"],
+        json!(["2025-06-18", "2025-11-25", "2026-07-28"])
+    );
     assert!(
         manifest["tool_count"]
             .as_u64()
@@ -84,6 +88,17 @@ fn receive(reader: &mut impl BufRead, expected_id: i64) -> Value {
     }
 }
 
+fn modern_request_meta() -> Value {
+    json!({
+        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+        "io.modelcontextprotocol/clientInfo": {
+            "name": "flood-modern-conformance",
+            "version": "0.2.0"
+        },
+        "io.modelcontextprotocol/clientCapabilities": {}
+    })
+}
+
 fn canonical_json(value: Value) -> Value {
     match value {
         Value::Array(values) => Value::Array(values.into_iter().map(canonical_json).collect()),
@@ -99,6 +114,117 @@ fn canonical_json(value: Value) -> Value {
         }
         value => value,
     }
+}
+
+#[test]
+fn stdio_server_supports_2026_07_28_discovery_and_tools_flow() {
+    let data_dir = std::env::temp_dir().join(format!("flood-mcp-modern-{}", Ulid::new()));
+    let mut child = Command::new(env!("CARGO_BIN_EXE_flood-mcp"))
+        .env("FLOOD_DATA_DIR", &data_dir)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    let mut stdin = child.stdin.take().unwrap();
+    let mut stdout = BufReader::new(child.stdout.take().unwrap());
+
+    let discover: Value =
+        serde_json::from_str(include_str!("fixtures/mcp_2026_07_28_discover.json")).unwrap();
+    send(&mut stdin, discover);
+    let discovered = receive(&mut stdout, 1);
+    assert_eq!(discovered["result"]["resultType"], "complete");
+    assert_eq!(
+        discovered["result"]["supportedVersions"],
+        json!(["2025-06-18", "2025-11-25", "2026-07-28"])
+    );
+    assert!(discovered["result"]["capabilities"]["tools"].is_object());
+    assert!(discovered["result"]["capabilities"]["prompts"].is_object());
+    assert!(discovered["result"]["capabilities"].get("tasks").is_none());
+    assert_eq!(discovered["result"]["ttlMs"], 0);
+    assert_eq!(discovered["result"]["cacheScope"], "private");
+    assert_eq!(
+        discovered["result"]["_meta"]["io.modelcontextprotocol/serverInfo"]["name"],
+        "flood.md"
+    );
+    assert_eq!(
+        discovered["result"]["_meta"]["io.modelcontextprotocol/serverInfo"]["version"],
+        env!("CARGO_PKG_VERSION")
+    );
+
+    let mut request_id = 2_i64;
+    let mut next_cursor: Option<String> = None;
+    let mut tools = Vec::new();
+    loop {
+        let mut params = json!({ "_meta": modern_request_meta() });
+        if let Some(cursor) = next_cursor.as_ref() {
+            params["cursor"] = json!(cursor);
+        }
+        send(
+            &mut stdin,
+            json!({
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "method": "tools/list",
+                "params": params
+            }),
+        );
+        let page = receive(&mut stdout, request_id);
+        assert_eq!(page["result"]["resultType"], "complete");
+        tools.extend(page["result"]["tools"].as_array().unwrap().iter().cloned());
+        next_cursor = page["result"]["nextCursor"].as_str().map(str::to_owned);
+        if next_cursor.is_none() {
+            break;
+        }
+        request_id += 1;
+    }
+
+    request_id += 1;
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "method": "tools/call",
+            "params": {
+                "name": "get_runtime_info",
+                "arguments": {},
+                "_meta": modern_request_meta()
+            }
+        }),
+    );
+    let runtime = receive(&mut stdout, request_id);
+    assert_eq!(runtime["result"]["resultType"], "complete");
+    assert_eq!(runtime["result"]["isError"], false);
+    assert_eq!(
+        runtime["result"]["structuredContent"]["protocol_version"],
+        "2026-07-28"
+    );
+    assert_eq!(
+        runtime["result"]["structuredContent"]["supported_protocol_versions"],
+        json!(["2025-06-18", "2025-11-25", "2026-07-28"])
+    );
+
+    let manifest = Command::new(env!("CARGO_BIN_EXE_flood-mcp"))
+        .arg("--manifest")
+        .output()
+        .unwrap();
+    assert!(manifest.status.success());
+    let manifest: Value = serde_json::from_slice(&manifest.stdout).unwrap();
+    assert_eq!(manifest["tool_count"].as_u64(), Some(tools.len() as u64));
+    let mut canonical_tools = tools.clone();
+    canonical_tools.sort_by(|left, right| left["name"].as_str().cmp(&right["name"].as_str()));
+    let discovered_catalog_revision = hex::encode(Sha256::digest(
+        serde_json::to_vec(&canonical_json(Value::Array(canonical_tools))).unwrap(),
+    ));
+    assert_eq!(
+        manifest["tool_catalog_revision"],
+        discovered_catalog_revision
+    );
+
+    drop(stdin);
+    assert!(child.wait().unwrap().success());
+    let _ = std::fs::remove_dir_all(data_dir);
 }
 
 #[test]
@@ -491,6 +617,7 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         }),
     );
     let listed = receive(&mut stdout, 2);
+    assert!(listed["result"].get("resultType").is_none());
     let mut tools = listed["result"]["tools"].as_array().unwrap().clone();
     let mut next_cursor = listed["result"]["nextCursor"].as_str().map(str::to_owned);
     let mut page_id = 200;
@@ -885,6 +1012,7 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
         }),
     );
     let runtime = receive(&mut stdout, 6);
+    assert!(runtime["result"].get("resultType").is_none());
     assert_eq!(runtime["result"]["isError"], false);
     assert_eq!(
         runtime["result"]["structuredContent"]["version"],
@@ -892,7 +1020,11 @@ fn stdio_server_negotiates_and_returns_structured_tools() {
     );
     assert_eq!(
         runtime["result"]["structuredContent"]["protocol_version"],
-        "2025-11-25"
+        "2026-07-28"
+    );
+    assert_eq!(
+        runtime["result"]["structuredContent"]["supported_protocol_versions"],
+        json!(["2025-06-18", "2025-11-25", "2026-07-28"])
     );
     assert_eq!(
         runtime["result"]["structuredContent"]["tool_count"]
@@ -1382,7 +1514,8 @@ fn stdio_telegram_triage_requires_and_applies_the_previewed_plan() {
             }
         }),
     );
-    assert!(receive(&mut stdout, 1).get("result").is_some());
+    let initialized = receive(&mut stdout, 1);
+    assert_eq!(initialized["result"]["protocolVersion"], "2025-06-18");
     send(
         &mut stdin,
         json!({ "jsonrpc": "2.0", "method": "notifications/initialized" }),
@@ -1400,6 +1533,7 @@ fn stdio_telegram_triage_requires_and_applies_the_previewed_plan() {
         }),
     );
     let project_context = receive(&mut stdout, 20);
+    assert!(project_context["result"].get("resultType").is_none());
     assert_eq!(project_context["result"]["isError"], false);
     let decisions = json!([{
         "candidate_id": candidate_id,
