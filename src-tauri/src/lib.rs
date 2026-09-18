@@ -523,16 +523,7 @@ struct AppCommandError {
 
 impl From<flood_core::StoreError> for AppCommandError {
     fn from(error: flood_core::StoreError) -> Self {
-        let code = match &error {
-            flood_core::StoreError::Conflict => "conflict",
-            flood_core::StoreError::NotFound(_) => "not_found",
-            flood_core::StoreError::Validation(_) => "validation",
-            flood_core::StoreError::InvalidFile { .. } => "invalid_file",
-            flood_core::StoreError::Io(_) => "io",
-            flood_core::StoreError::Yaml(_) => "yaml",
-            flood_core::StoreError::Json(_) => "json",
-            flood_core::StoreError::Backup(_) => "backup",
-        };
+        let code = error.code();
         Self {
             code,
             message: error.to_string(),

@@ -8919,17 +8919,7 @@ impl McpToolError {
     }
 
     fn from_store(error: flood_core::StoreError) -> Self {
-        let code = match &error {
-            flood_core::StoreError::Conflict => "conflict",
-            flood_core::StoreError::NotFound(_) => "not_found",
-            flood_core::StoreError::Validation(_) => "validation",
-            flood_core::StoreError::InvalidFile { .. } => "invalid_file",
-            flood_core::StoreError::Io(_) => "io",
-            flood_core::StoreError::Yaml(_) => "yaml",
-            flood_core::StoreError::Json(_) => "json",
-            flood_core::StoreError::Backup(_) => "backup",
-        };
-        Self::coded(code, error.to_string())
+        Self::coded(error.code(), error.to_string())
     }
 }
 

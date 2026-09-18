@@ -75,6 +75,21 @@ pub enum StoreError {
     Backup(String),
 }
 
+impl StoreError {
+    pub const fn code(&self) -> &'static str {
+        match self {
+            Self::Conflict => "conflict",
+            Self::NotFound(_) => "not_found",
+            Self::Validation(_) => "validation",
+            Self::InvalidFile { .. } => "invalid_file",
+            Self::Io(_) => "io",
+            Self::Yaml(_) => "yaml",
+            Self::Json(_) => "json",
+            Self::Backup(_) => "backup",
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Store {
     root: PathBuf,
@@ -7313,6 +7328,36 @@ fn compact_automation_events(document: &mut AutomationEventsDocument) -> Result<
 mod tests {
     use super::*;
     use crate::{AppliedGuidance, GuidanceKind, GuidanceReference};
+
+    #[test]
+    fn store_error_codes_are_stable() {
+        let errors = [
+            (StoreError::Conflict, "conflict"),
+            (StoreError::NotFound("task".into()), "not_found"),
+            (StoreError::Validation("title".into()), "validation"),
+            (
+                StoreError::InvalidFile {
+                    path: "task.md".into(),
+                    message: "frontmatter".into(),
+                },
+                "invalid_file",
+            ),
+            (StoreError::Io(std::io::Error::other("disk")), "io"),
+            (
+                StoreError::Yaml(serde_yaml::from_str::<serde_yaml::Value>("[").unwrap_err()),
+                "yaml",
+            ),
+            (
+                StoreError::Json(serde_json::from_str::<serde_json::Value>("{").unwrap_err()),
+                "json",
+            ),
+            (StoreError::Backup("copy".into()), "backup"),
+        ];
+
+        for (error, expected) in errors {
+            assert_eq!(error.code(), expected);
+        }
+    }
 
     fn temp_store() -> Store {
         let root = env::temp_dir().join(format!("flood-test-{}", Ulid::new()));
