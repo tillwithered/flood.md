@@ -2,13 +2,15 @@ use crate::{
     ActivityAction, ActivityEntityKind, ActivityEvent, ActivityProvenance, ActivitySource,
     AgentRun, AgentRunPatch, AgentRunState, AutomationEvent, AutomationEventOutcome,
     AutomationEventState, AutomationProvider, AutomationSettings, CreateTask, InboxCandidateReason,
-    InboxCandidateStatus, MessageSnapshot, Project, ProjectAutomationPolicy, ProjectResource,
-    ProjectResourceKind, ProjectWorkspaceItem, ProjectWorkspaceItemKind, ProjectWorkspaceRevision,
-    SourceMedia, SourceMediaKind, Task, TaskBatchAction, TaskBatchOperation,
-    TaskBatchOperationResult, TaskBatchOutcome, TaskBatchReference, TaskPatch, TaskStatus,
-    TaskSummary, TelegramAgentCheckpoint, TelegramChatSnapshot, TelegramContextMessage,
-    TelegramInboxCandidate, TelegramLinkedTask, TelegramMediaRequest, TelegramMediaRequestState,
-    TelegramProjectLink, TelegramSyncRequest, TelegramSyncStatus, Urgency,
+    InboxCandidateStatus, MessageSnapshot, Project, ProjectAutomationPolicy,
+    ProjectKnowledgeProposal, ProjectKnowledgeProposalPayload, ProjectKnowledgeProposalState,
+    ProjectKnowledgeProposalTarget, ProjectResource, ProjectResourceKind, ProjectWorkspaceItem,
+    ProjectWorkspaceItemKind, ProjectWorkspaceRevision, SourceMedia, SourceMediaKind, Task,
+    TaskBatchAction, TaskBatchOperation, TaskBatchOperationResult, TaskBatchOutcome,
+    TaskBatchReference, TaskPatch, TaskStatus, TaskSummary, TelegramAgentCheckpoint,
+    TelegramChatSnapshot, TelegramContextMessage, TelegramInboxCandidate, TelegramLinkedTask,
+    TelegramMediaRequest, TelegramMediaRequestState, TelegramProjectLink, TelegramSyncRequest,
+    TelegramSyncStatus, Urgency,
 };
 use atomic_write_file::AtomicWriteFile;
 use chrono::Utc;
@@ -36,6 +38,7 @@ const MAX_TELEGRAM_INBOX_BYTES: u64 = 64 * 1024 * 1024;
 const MAX_INTEGRATION_STATE_BYTES: u64 = 64 * 1024;
 const MAX_ACTIVITY_BYTES: u64 = 2 * 1024 * 1024;
 const MAX_ACTIVITY_EVENTS: usize = 500;
+const MAX_KNOWLEDGE_PROPOSAL_BYTES: u64 = 1024 * 1024;
 const MAX_TELEGRAM_CHAT_MESSAGES: usize = 100;
 const MAX_TELEGRAM_MEDIA_REQUESTS: usize = 20;
 const MAX_AGENT_IMAGE_BYTES: u64 = 8 * 1024 * 1024;
@@ -1766,6 +1769,167 @@ impl Store {
         project.updated_at = now;
         self.write_project(&project)?;
         read_project(&self.project_path(project_id))
+    }
+
+    pub fn list_project_knowledge_proposals(
+        &self,
+        project_id: &str,
+    ) -> Result<Vec<ProjectKnowledgeProposal>, StoreError> {
+        validate_id(project_id)?;
+        let directory = self.project_knowledge_proposals_dir(project_id);
+        if !directory.exists() {
+            return Ok(Vec::new());
+        }
+        let mut proposals = Vec::new();
+        for entry in fs::read_dir(directory)? {
+            let path = entry?.path();
+            if path.extension().and_then(|value| value.to_str()) != Some("json") {
+                continue;
+            }
+            proposals.push(self.read_project_knowledge_proposal(&path)?);
+        }
+        proposals.sort_by_key(|proposal| Reverse(proposal.created_at));
+        Ok(proposals)
+    }
+
+    pub fn get_project_knowledge_proposal(
+        &self,
+        project_id: &str,
+        proposal_id: &str,
+    ) -> Result<ProjectKnowledgeProposal, StoreError> {
+        validate_id(project_id)?;
+        validate_id(proposal_id)?;
+        let path = self.project_knowledge_proposal_path(project_id, proposal_id);
+        if !path.exists() {
+            return Err(StoreError::NotFound(proposal_id.to_owned()));
+        }
+        self.read_project_knowledge_proposal(&path)
+    }
+
+    pub fn create_project_knowledge_proposal(
+        &self,
+        project_id: &str,
+        target: ProjectKnowledgeProposalTarget,
+        base_version: &str,
+        payload: ProjectKnowledgeProposalPayload,
+        summary: &str,
+        reason: &str,
+        evidence: Vec<String>,
+        provenance: Option<ActivityProvenance>,
+    ) -> Result<ProjectKnowledgeProposal, StoreError> {
+        validate_id(project_id)?;
+        validate_project_knowledge_proposal_parts(&target, &payload, summary, reason)?;
+        ensure_project_knowledge_base(self, project_id, &target, base_version)?;
+        let now = Utc::now();
+        let proposal = ProjectKnowledgeProposal {
+            id: Ulid::new().to_string(),
+            project_id: project_id.to_owned(),
+            target,
+            base_version: base_version.to_owned(),
+            payload,
+            summary: summary.trim().to_owned(),
+            reason: reason.trim().to_owned(),
+            evidence: evidence
+                .into_iter()
+                .map(|value| value.trim().to_owned())
+                .filter(|value| !value.is_empty())
+                .collect(),
+            provenance,
+            state: ProjectKnowledgeProposalState::Pending,
+            decision_reason: None,
+            decision_provenance: None,
+            created_at: now,
+            updated_at: now,
+        };
+        self.write_project_knowledge_proposal(&proposal)?;
+        Ok(proposal)
+    }
+
+    pub fn apply_project_knowledge_proposal(
+        &self,
+        project_id: &str,
+        proposal_id: &str,
+    ) -> Result<ProjectKnowledgeProposal, StoreError> {
+        let mut proposal = self.get_project_knowledge_proposal(project_id, proposal_id)?;
+        if proposal.state == ProjectKnowledgeProposalState::Applied {
+            return Ok(proposal);
+        }
+        if proposal.state == ProjectKnowledgeProposalState::Rejected {
+            return Err(StoreError::Validation(
+                "Отклонённое предложение нельзя применить".into(),
+            ));
+        }
+
+        let result = match (&proposal.target, &proposal.payload) {
+            (
+                ProjectKnowledgeProposalTarget::WorkspaceItem { item_id, .. },
+                ProjectKnowledgeProposalPayload::WorkspaceItem {
+                    title,
+                    summary,
+                    content,
+                    agent_access,
+                },
+            ) => self
+                .update_project_workspace_item(
+                    project_id,
+                    item_id,
+                    title,
+                    summary.as_deref(),
+                    content,
+                    *agent_access,
+                    &proposal.base_version,
+                )
+                .map(|_| ()),
+            (
+                ProjectKnowledgeProposalTarget::ProjectMemory { memory_id },
+                ProjectKnowledgeProposalPayload::ProjectMemory { text, pinned },
+            ) => self
+                .update_project_memory(project_id, memory_id, text, *pinned, &proposal.base_version)
+                .map(|_| ()),
+            _ => Err(StoreError::Validation(
+                "Тип цели и payload предложения не совпадают".into(),
+            )),
+        };
+
+        if let Err(error) = result {
+            if !matches!(error, StoreError::Conflict)
+                || !project_knowledge_payload_matches_current(self, &proposal)?
+            {
+                return Err(error);
+            }
+        }
+
+        proposal.state = ProjectKnowledgeProposalState::Applied;
+        proposal.updated_at = Utc::now();
+        self.write_project_knowledge_proposal(&proposal)?;
+        Ok(proposal)
+    }
+
+    pub fn reject_project_knowledge_proposal(
+        &self,
+        project_id: &str,
+        proposal_id: &str,
+        decision_reason: Option<&str>,
+        decision_provenance: Option<ActivityProvenance>,
+    ) -> Result<ProjectKnowledgeProposal, StoreError> {
+        let mut proposal = self.get_project_knowledge_proposal(project_id, proposal_id)?;
+        if proposal.state == ProjectKnowledgeProposalState::Rejected {
+            return Ok(proposal);
+        }
+        if proposal.state == ProjectKnowledgeProposalState::Applied {
+            return Err(StoreError::Validation(
+                "Применённое предложение нельзя отклонить".into(),
+            ));
+        }
+        proposal.state = ProjectKnowledgeProposalState::Rejected;
+        proposal.decision_reason = decision_reason
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned);
+        proposal.decision_provenance = decision_provenance;
+        proposal.updated_at = Utc::now();
+        self.write_project_knowledge_proposal(&proposal)?;
+        Ok(proposal)
     }
 
     pub fn supersede_project_memory_idempotent(
@@ -4942,6 +5106,13 @@ impl Store {
         self.project_workspace_kind_dir(project_id, kind)
             .join(format!("{id}.md"))
     }
+    fn project_knowledge_proposals_dir(&self, project_id: &str) -> PathBuf {
+        self.projects_dir().join(project_id).join("proposals")
+    }
+    fn project_knowledge_proposal_path(&self, project_id: &str, proposal_id: &str) -> PathBuf {
+        self.project_knowledge_proposals_dir(project_id)
+            .join(format!("{proposal_id}.json"))
+    }
     fn task_dir(&self, project_id: &str) -> PathBuf {
         self.projects_dir().join(project_id).join("tasks")
     }
@@ -5157,6 +5328,31 @@ impl Store {
             format!("# {}\n\n{}\n", item.title, item.content.trim())
         };
         atomic_write(&path, &encode(&doc, &body)?)
+    }
+
+    fn read_project_knowledge_proposal(
+        &self,
+        path: &Path,
+    ) -> Result<ProjectKnowledgeProposal, StoreError> {
+        serde_json::from_slice(&read_limited_bytes(path, MAX_KNOWLEDGE_PROPOSAL_BYTES)?)
+            .map_err(StoreError::from)
+    }
+
+    fn write_project_knowledge_proposal(
+        &self,
+        proposal: &ProjectKnowledgeProposal,
+    ) -> Result<(), StoreError> {
+        let path = self.project_knowledge_proposal_path(&proposal.project_id, &proposal.id);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let content = serde_json::to_string_pretty(proposal)?;
+        if content.len() as u64 > MAX_KNOWLEDGE_PROPOSAL_BYTES {
+            return Err(StoreError::Validation(
+                "Предложение изменения knowledge слишком большое".into(),
+            ));
+        }
+        atomic_write(&path, &content)
     }
 
     fn telegram_inbox_path(&self) -> PathBuf {
@@ -6859,6 +7055,111 @@ fn validate_project_workspace_item(item: &ProjectWorkspaceItem) -> Result<(), St
         clean_workspace_content(&revision.content)?;
     }
     Ok(())
+}
+
+fn validate_project_knowledge_proposal_parts(
+    target: &ProjectKnowledgeProposalTarget,
+    payload: &ProjectKnowledgeProposalPayload,
+    summary: &str,
+    reason: &str,
+) -> Result<(), StoreError> {
+    if summary.trim().is_empty() || reason.trim().is_empty() {
+        return Err(StoreError::Validation(
+            "Предложению нужны непустые summary и reason".into(),
+        ));
+    }
+    match (target, payload) {
+        (
+            ProjectKnowledgeProposalTarget::WorkspaceItem { item_id, .. },
+            ProjectKnowledgeProposalPayload::WorkspaceItem { title, .. },
+        ) => {
+            validate_id(item_id)?;
+            if title.trim().is_empty() {
+                return Err(StoreError::Validation(
+                    "У предложенного материала должен быть заголовок".into(),
+                ));
+            }
+        }
+        (
+            ProjectKnowledgeProposalTarget::ProjectMemory { memory_id },
+            ProjectKnowledgeProposalPayload::ProjectMemory { text, .. },
+        ) => {
+            validate_id(memory_id)?;
+            if text.trim().is_empty() {
+                return Err(StoreError::Validation(
+                    "Предложенная запись памяти не может быть пустой".into(),
+                ));
+            }
+        }
+        _ => {
+            return Err(StoreError::Validation(
+                "Тип цели и payload предложения не совпадают".into(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn ensure_project_knowledge_base(
+    store: &Store,
+    project_id: &str,
+    target: &ProjectKnowledgeProposalTarget,
+    base_version: &str,
+) -> Result<(), StoreError> {
+    match target {
+        ProjectKnowledgeProposalTarget::WorkspaceItem { item_id, item_kind } => {
+            let item = store.get_project_workspace_item(project_id, item_id)?;
+            if item.kind != *item_kind {
+                return Err(StoreError::Validation(
+                    "Тип целевого материала не совпадает".into(),
+                ));
+            }
+            ensure_version(&item.version, base_version)
+        }
+        ProjectKnowledgeProposalTarget::ProjectMemory { memory_id } => {
+            let project = store.get_project(project_id)?;
+            if !project.memory.iter().any(|entry| entry.id == *memory_id) {
+                return Err(StoreError::NotFound(memory_id.clone()));
+            }
+            ensure_version(&project.version, base_version)
+        }
+    }
+}
+
+fn project_knowledge_payload_matches_current(
+    store: &Store,
+    proposal: &ProjectKnowledgeProposal,
+) -> Result<bool, StoreError> {
+    match (&proposal.target, &proposal.payload) {
+        (
+            ProjectKnowledgeProposalTarget::WorkspaceItem { item_id, item_kind },
+            ProjectKnowledgeProposalPayload::WorkspaceItem {
+                title,
+                summary,
+                content,
+                agent_access,
+            },
+        ) => {
+            let item = store.get_project_workspace_item(&proposal.project_id, item_id)?;
+            Ok(item.kind == *item_kind
+                && item.title == *title
+                && item.summary == *summary
+                && item.content == *content
+                && item.agent_access == *agent_access)
+        }
+        (
+            ProjectKnowledgeProposalTarget::ProjectMemory { memory_id },
+            ProjectKnowledgeProposalPayload::ProjectMemory { text, pinned },
+        ) => {
+            let project = store.get_project(&proposal.project_id)?;
+            Ok(project
+                .memory
+                .iter()
+                .find(|entry| entry.id == *memory_id)
+                .is_some_and(|entry| entry.text == *text && entry.pinned == *pinned))
+        }
+        _ => Ok(false),
+    }
 }
 
 fn validate_activity_reference(
@@ -10784,5 +11085,176 @@ mod tests {
                 2
             );
         }
+    }
+
+    #[test]
+    fn knowledge_proposal_survives_restart_rejects_stale_base_and_retries_apply() {
+        let store = temp_store();
+        let project = store.create_project("Knowledge proposals").unwrap();
+        let item = store
+            .create_project_workspace_item_idempotent(
+                &project.id,
+                ProjectWorkspaceItemKind::Rule,
+                "Правило",
+                None,
+                "Старая версия",
+                true,
+                "knowledge-proposal-rule",
+            )
+            .unwrap()
+            .value;
+        let stale = store
+            .create_project_knowledge_proposal(
+                &project.id,
+                ProjectKnowledgeProposalTarget::WorkspaceItem {
+                    item_id: item.id.clone(),
+                    item_kind: item.kind,
+                },
+                &item.version,
+                ProjectKnowledgeProposalPayload::WorkspaceItem {
+                    title: item.title.clone(),
+                    summary: item.summary.clone(),
+                    content: "Предлагаемая версия".into(),
+                    agent_access: item.agent_access,
+                },
+                "Обновить правило",
+                "Новая проверенная договорённость",
+                vec!["issue-29".into()],
+                None,
+            )
+            .unwrap();
+
+        let reopened = Store::new(store.root()).unwrap();
+        assert_eq!(
+            reopened
+                .get_project_knowledge_proposal(&project.id, &stale.id)
+                .unwrap(),
+            stale
+        );
+        let concurrent = reopened
+            .update_project_workspace_item(
+                &project.id,
+                &item.id,
+                &item.title,
+                item.summary.as_deref(),
+                "Параллельная версия",
+                item.agent_access,
+                &item.version,
+            )
+            .unwrap();
+        assert!(matches!(
+            reopened.apply_project_knowledge_proposal(&project.id, &stale.id),
+            Err(StoreError::Conflict)
+        ));
+
+        let proposal = reopened
+            .create_project_knowledge_proposal(
+                &project.id,
+                ProjectKnowledgeProposalTarget::WorkspaceItem {
+                    item_id: concurrent.id.clone(),
+                    item_kind: concurrent.kind,
+                },
+                &concurrent.version,
+                ProjectKnowledgeProposalPayload::WorkspaceItem {
+                    title: concurrent.title.clone(),
+                    summary: concurrent.summary.clone(),
+                    content: "Итоговая версия".into(),
+                    agent_access: concurrent.agent_access,
+                },
+                "Применить итог",
+                "Ревью завершено",
+                Vec::new(),
+                None,
+            )
+            .unwrap();
+        let applied = reopened
+            .apply_project_knowledge_proposal(&project.id, &proposal.id)
+            .unwrap();
+        assert_eq!(applied.state, ProjectKnowledgeProposalState::Applied);
+        let repeated = reopened
+            .apply_project_knowledge_proposal(&project.id, &proposal.id)
+            .unwrap();
+        assert_eq!(repeated, applied);
+        assert_eq!(
+            reopened
+                .get_project_workspace_item(&project.id, &item.id)
+                .unwrap()
+                .content,
+            "Итоговая версия"
+        );
+    }
+
+    #[test]
+    fn rejected_knowledge_proposal_is_persistent_and_idempotent() {
+        let store = temp_store();
+        let project = store.create_project("Rejected proposal").unwrap();
+        let item = store
+            .create_project_workspace_item_idempotent(
+                &project.id,
+                ProjectWorkspaceItemKind::Document,
+                "Документ",
+                None,
+                "Текущий текст",
+                true,
+                "knowledge-proposal-document",
+            )
+            .unwrap()
+            .value;
+        let proposal = store
+            .create_project_knowledge_proposal(
+                &project.id,
+                ProjectKnowledgeProposalTarget::WorkspaceItem {
+                    item_id: item.id.clone(),
+                    item_kind: item.kind,
+                },
+                &item.version,
+                ProjectKnowledgeProposalPayload::WorkspaceItem {
+                    title: item.title.clone(),
+                    summary: item.summary.clone(),
+                    content: "Отклонённый текст".into(),
+                    agent_access: item.agent_access,
+                },
+                "Изменить документ",
+                "Предложение агента",
+                Vec::new(),
+                None,
+            )
+            .unwrap();
+        let rejected = store
+            .reject_project_knowledge_proposal(&project.id, &proposal.id, Some("Не подходит"), None)
+            .unwrap();
+        assert_eq!(rejected.state, ProjectKnowledgeProposalState::Rejected);
+        assert_eq!(rejected.decision_reason.as_deref(), Some("Не подходит"));
+        assert_eq!(
+            store
+                .reject_project_knowledge_proposal(
+                    &project.id,
+                    &proposal.id,
+                    Some("Другая причина"),
+                    None
+                )
+                .unwrap(),
+            rejected
+        );
+        assert!(
+            store
+                .apply_project_knowledge_proposal(&project.id, &proposal.id)
+                .is_err()
+        );
+
+        let reopened = Store::new(store.root()).unwrap();
+        assert_eq!(
+            reopened
+                .get_project_knowledge_proposal(&project.id, &proposal.id)
+                .unwrap(),
+            rejected
+        );
+        assert_eq!(
+            reopened
+                .get_project_workspace_item(&project.id, &item.id)
+                .unwrap()
+                .content,
+            "Текущий текст"
+        );
     }
 }

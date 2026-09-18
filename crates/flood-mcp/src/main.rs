@@ -14,6 +14,7 @@ use flood_core::{
     MutationCost, MutationEntityRef, MutationExpectedVersion, MutationExternalEffect,
     MutationInitiator, MutationInitiatorKind, MutationOperation, MutationPlan, MutationPlanDraft,
     MutationReversibility, MutationTarget, PolicyContext, PolicyGate, PolicyVerdict, Project,
+    ProjectKnowledgeProposal, ProjectKnowledgeProposalPayload, ProjectKnowledgeProposalTarget,
     ProjectMemoryEntry, ProjectMemoryState, ProjectResource, ProjectResourceKind,
     ProjectWorkspaceItem, ProjectWorkspaceItemKind, RecordActivity, SelfCheckItem, SelfCheckResult,
     SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task, TaskBatchAction,
@@ -330,6 +331,18 @@ struct ApplyProjectWorkspaceItemUpdateArgs {
     agent_access: bool,
     expected_version: String,
     preview_token: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+struct CreateProjectKnowledgeProposalArgs {
+    project_id: String,
+    target: ProjectKnowledgeProposalTarget,
+    base_version: String,
+    payload: ProjectKnowledgeProposalPayload,
+    summary: String,
+    reason: String,
+    #[serde(default)]
+    evidence: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -3785,6 +3798,12 @@ impl FloodServer {
         Parameters(args): Parameters<ApplyProjectWorkspaceItemUpdateArgs>,
     ) -> Result<Json<ProjectWorkspaceItemMutationOutput>, McpToolError> {
         self.require_project_context_for_mutation(&args.project_id)?;
+        if self.enforce_context_route {
+            return Err(McpToolError::coded(
+                "review_required",
+                "Изменения project knowledge через MCP применяются только через proposal и человеческий review",
+            ));
+        }
         let current = self
             .store
             .get_project_workspace_item(&args.project_id, &args.id)
@@ -3854,6 +3873,36 @@ impl FloodServer {
             created: false,
             request_id: None,
         }))
+    }
+
+    #[tool(
+        description = "Создать persistent proposal изменения project knowledge для человеческого review. Инструмент не меняет канонический material/memory; base_version будет повторно проверен при apply",
+        annotations(
+            title = "Предложить изменение знаний проекта",
+            read_only_hint = false,
+            destructive_hint = false,
+            open_world_hint = false
+        )
+    )]
+    fn create_project_knowledge_proposal(
+        &self,
+        Parameters(args): Parameters<CreateProjectKnowledgeProposalArgs>,
+    ) -> Result<Json<ProjectKnowledgeProposal>, String> {
+        self.require_project_context(&args.project_id)?;
+        let proposal = self
+            .store
+            .create_project_knowledge_proposal(
+                &args.project_id,
+                args.target,
+                &args.base_version,
+                args.payload,
+                &args.summary,
+                &args.reason,
+                args.evidence,
+                None,
+            )
+            .map_err(store_error)?;
+        Ok(Json(proposal))
     }
 
     #[tool(
@@ -3967,6 +4016,12 @@ impl FloodServer {
         &self,
         Parameters(args): Parameters<UpdateProjectMemoryArgs>,
     ) -> Result<Json<ProjectMemoryMutationOutput>, String> {
+        if self.enforce_context_route {
+            return Err(
+                "Изменения project knowledge через MCP применяются только через proposal и человеческий review"
+                    .into(),
+            );
+        }
         self.require_project_context(&args.project_id)?;
         let project = self
             .store
@@ -9461,6 +9516,7 @@ fn run_binary_self_check() -> SelfCheckResult {
         "list_project_memory",
         "add_project_memory",
         "update_project_memory",
+        "create_project_knowledge_proposal",
         "supersede_project_memory",
         "delete_project_memory",
         "list_project_workspace_items",
@@ -9854,6 +9910,93 @@ mod tests {
         );
     }
 
+    #[test]
+    fn project_knowledge_proposal_is_persistent_and_direct_mcp_apply_is_blocked() {
+        let mut server = server();
+        let project = server.store.create_project("Review").unwrap();
+        let created = server
+            .create_project_workspace_item(Parameters(CreateProjectWorkspaceItemArgs {
+                project_id: project.id.clone(),
+                kind: ProjectWorkspaceItemKind::Document,
+                title: "Правила".into(),
+                summary: None,
+                content: "Старая версия".into(),
+                agent_access: true,
+                request_id: "proposal-item".into(),
+            }))
+            .unwrap()
+            .0;
+        let proposal = server
+            .create_project_knowledge_proposal(Parameters(CreateProjectKnowledgeProposalArgs {
+                project_id: project.id.clone(),
+                target: ProjectKnowledgeProposalTarget::WorkspaceItem {
+                    item_id: created.item.id.clone(),
+                    item_kind: ProjectWorkspaceItemKind::Document,
+                },
+                base_version: created.item.version.clone(),
+                payload: ProjectKnowledgeProposalPayload::WorkspaceItem {
+                    title: "Правила".into(),
+                    summary: None,
+                    content: "Новая версия".into(),
+                    agent_access: true,
+                },
+                summary: "Обновить правила".into(),
+                reason: "Предложение агента".into(),
+                evidence: vec!["task:42".into()],
+            }))
+            .unwrap()
+            .0;
+        assert_eq!(
+            proposal.state,
+            flood_core::ProjectKnowledgeProposalState::Pending
+        );
+        assert_eq!(
+            server
+                .store
+                .get_project_workspace_item(&project.id, &created.item.id)
+                .unwrap()
+                .content,
+            "Старая версия"
+        );
+
+        let preview = server
+            .preview_project_workspace_item_update(Parameters(
+                PreviewProjectWorkspaceItemUpdateArgs {
+                    project_id: project.id.clone(),
+                    id: created.item.id.clone(),
+                    title: "Правила".into(),
+                    summary: None,
+                    content: "Новая версия".into(),
+                    agent_access: true,
+                    expected_version: created.item.version.clone(),
+                },
+            ))
+            .unwrap()
+            .0;
+        server.enforce_context_route = true;
+        server
+            .get_project_brief(Parameters(ProjectBriefArgs {
+                id: project.id.clone(),
+                task_limit: None,
+                context_budget_chars: None,
+                include_legacy_snapshot: false,
+            }))
+            .unwrap();
+        let direct = server.apply_project_workspace_item_update(Parameters(
+            ApplyProjectWorkspaceItemUpdateArgs {
+                project_id: project.id,
+                id: created.item.id,
+                title: preview.proposed_title,
+                summary: preview.proposed_summary,
+                content: preview.proposed_content,
+                agent_access: preview.proposed_agent_access,
+                expected_version: created.item.version,
+                preview_token: preview.preview_token,
+            },
+        ));
+        assert!(direct.is_err(), "real MCP mode must require human review");
+    }
+
     #[tokio::test]
     async fn connector_catalog_and_project_sources_use_provider_neutral_contract() {
         // `reqwest::blocking::Client` owns a small runtime and must also be
@@ -9998,6 +10141,7 @@ mod tests {
             "list_project_memory",
             "add_project_memory",
             "update_project_memory",
+            "create_project_knowledge_proposal",
             "supersede_project_memory",
             "delete_project_memory",
             "list_project_workspace_items",

@@ -139,6 +139,68 @@ pub struct ProjectWorkspaceItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case", tag = "kind")]
+pub enum ProjectKnowledgeProposalTarget {
+    WorkspaceItem {
+        item_id: String,
+        item_kind: ProjectWorkspaceItemKind,
+    },
+    ProjectMemory {
+        memory_id: String,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case", tag = "kind")]
+pub enum ProjectKnowledgeProposalPayload {
+    WorkspaceItem {
+        title: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        summary: Option<String>,
+        content: String,
+        #[serde(default)]
+        agent_access: bool,
+    },
+    ProjectMemory {
+        text: String,
+        #[serde(default)]
+        pinned: bool,
+    },
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ProjectKnowledgeProposalState {
+    #[default]
+    Pending,
+    Applied,
+    Rejected,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub struct ProjectKnowledgeProposal {
+    pub id: String,
+    pub project_id: String,
+    pub target: ProjectKnowledgeProposalTarget,
+    pub base_version: String,
+    pub payload: ProjectKnowledgeProposalPayload,
+    pub summary: String,
+    pub reason: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub evidence: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provenance: Option<ActivityProvenance>,
+    #[serde(default)]
+    pub state: ProjectKnowledgeProposalState,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decision_reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decision_provenance: Option<ActivityProvenance>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 pub struct TelegramProjectLink {
     pub chat_id: i64,
     pub title: String,

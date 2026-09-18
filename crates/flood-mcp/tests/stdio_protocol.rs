@@ -441,9 +441,11 @@ fn stdio_compact_context_reads_preserve_the_mutation_gate() {
             .to_string();
         let mut fresh_apply_args = fresh_preview_args;
         fresh_apply_args["preview_token"] = fresh_preview_token.into();
-        assert_ne!(
-            call("apply_project_workspace_item_update", fresh_apply_args)["isError"],
-            true
+        let review_blocked = call("apply_project_workspace_item_update", fresh_apply_args);
+        assert_eq!(review_blocked["isError"], true);
+        assert_eq!(
+            review_blocked["structuredContent"]["code"],
+            "review_required"
         );
 
         let batch_operations = json!([
