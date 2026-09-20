@@ -20,11 +20,9 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - name: Verify source, MCP, desktop and release contract
+      - name: Validate release contract after clean-main source gate
         shell: pwsh
-        run: |
-          pwsh -NoProfile -File scripts/verify-stable.ps1
-          pwsh -NoProfile -File scripts/verify-release-contract.ps1
+        run: pwsh -NoProfile -File scripts/verify-release-contract.ps1
       - name: Build signed release-candidate bundle without publishing
         shell: pwsh
         env:
