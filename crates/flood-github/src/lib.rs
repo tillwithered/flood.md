@@ -1,13 +1,22 @@
 use atomic_write_file::AtomicWriteFile;
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use chrono::{DateTime, Duration, Utc};
+use flood_connectors::{
+    CONNECTOR_CONTRACT_VERSION, ConnectorAdapter, ConnectorDescriptor, ConnectorFuture,
+    ConnectorHealth, ConnectorIdentity, ConnectorOperationError, ConnectorRuntimeStatus,
+    ConnectorSource, ConnectorSourceKind, ContextSignal, ContextSignalKind, ExternalActor,
+    GITHUB_CONNECTOR_ID, SourceCatalogRequest, SourcePage,
+};
 use keyring::Entry;
 use reqwest::{
     Url,
     blocking::{Client, RequestBuilder},
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use std::{fs, io::Write, ops::Deref, path::PathBuf, sync::Arc, time::Duration as StdDuration};
+use std::{
+    collections::BTreeMap, fs, io::Write, ops::Deref, path::PathBuf, sync::Arc,
+    time::Duration as StdDuration,
+};
 
 const CONFIG_VERSION: u8 = 1;
 const KEYRING_SERVICE: &str = "io.flood.desktop.github";
@@ -15,6 +24,8 @@ const ACCESS_TOKEN_ACCOUNT: &str = "access-token";
 const REFRESH_TOKEN_ACCOUNT: &str = "refresh-token";
 const API_VERSION: &str = "2026-03-10";
 const USER_AGENT: &str = "flood.md";
+const MAX_TREE_ENTRIES: usize = 5_000;
+const MAX_FILE_BYTES: usize = 1_048_576;
 
 #[derive(Debug, thiserror::Error)]
 pub enum GitHubError {
@@ -26,6 +37,11 @@ pub enum GitHubError {
     NoInstallation,
     #[error("GitHub вернул ошибку {status}: {message}")]
     Api { status: u16, message: String },
+    #[error("GitHub временно ограничил запросы: {message}")]
+    RateLimited {
+        retry_after_seconds: Option<u64>,
+        message: String,
+    },
     #[error("не удалось сохранить секрет GitHub в системном хранилище: {0}")]
     Keyring(String),
     #[error("не удалось прочитать настройки GitHub: {0}")]
@@ -181,6 +197,41 @@ pub struct GitHubPullRequest {
     pub head: String,
     pub base: String,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum GitHubWorkItemKind {
+    Issue,
+    PullRequest,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq)]
+pub struct GitHubComment {
+    pub id: u64,
+    pub author: String,
+    pub body: String,
+    pub html_url: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq)]
+pub struct GitHubWorkItem {
+    pub repository: String,
+    pub kind: GitHubWorkItemKind,
+    pub number: u64,
+    pub title: String,
+    pub state: String,
+    pub html_url: String,
+    pub author: String,
+    pub body: Option<String>,
+    pub labels: Vec<String>,
+    pub draft: Option<bool>,
+    pub head: Option<String>,
+    pub base: Option<String>,
+    pub updated_at: DateTime<Utc>,
+    pub comments: Vec<GitHubComment>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, schemars::JsonSchema, PartialEq, Eq)]
@@ -509,9 +560,11 @@ impl GitHubConnector {
             })
             .collect::<Vec<_>>();
         entries.sort_by(|left, right| left.path.cmp(&right.path));
+        let locally_truncated = entries.len() > MAX_TREE_ENTRIES;
+        entries.truncate(MAX_TREE_ENTRIES);
         Ok(GitHubTree {
             entries,
-            truncated: response.truncated,
+            truncated: response.truncated || locally_truncated,
         })
     }
 
@@ -602,6 +655,107 @@ impl GitHubConnector {
                 .collect(),
             pull_requests: pulls.into_iter().map(Into::into).collect(),
         })
+    }
+
+    pub fn work_item(
+        &self,
+        full_name: &str,
+        kind: GitHubWorkItemKind,
+        number: u64,
+        comments_limit: usize,
+    ) -> Result<GitHubWorkItem> {
+        if number == 0 {
+            return Err(GitHubError::Config(
+                "номер issue или pull request должен быть больше нуля".into(),
+            ));
+        }
+        let (owner, repository_name) = repository_parts(full_name)?;
+        let mut item = match kind {
+            GitHubWorkItemKind::Issue => {
+                let response: IssueResponse = self.api(self.client.get(github_api_url(&[
+                    "repos",
+                    owner,
+                    repository_name,
+                    "issues",
+                    &number.to_string(),
+                ])))?;
+                if response.pull_request.is_some() {
+                    return Err(GitHubError::Config(
+                        "ссылка ведёт на pull request, а не issue".into(),
+                    ));
+                }
+                GitHubWorkItem {
+                    repository: full_name.to_owned(),
+                    kind,
+                    number: response.number,
+                    title: response.title,
+                    state: response.state,
+                    html_url: response.html_url,
+                    author: response.user.login,
+                    body: response.body,
+                    labels: response
+                        .labels
+                        .into_iter()
+                        .map(|label| label.name)
+                        .collect(),
+                    draft: None,
+                    head: None,
+                    base: None,
+                    updated_at: response.updated_at,
+                    comments: Vec::new(),
+                }
+            }
+            GitHubWorkItemKind::PullRequest => {
+                let response: PullResponse = self.api(self.client.get(github_api_url(&[
+                    "repos",
+                    owner,
+                    repository_name,
+                    "pulls",
+                    &number.to_string(),
+                ])))?;
+                GitHubWorkItem {
+                    repository: full_name.to_owned(),
+                    kind,
+                    number: response.number,
+                    title: response.title,
+                    state: response.state,
+                    html_url: response.html_url,
+                    author: response.user.login,
+                    body: response.body,
+                    labels: Vec::new(),
+                    draft: Some(response.draft),
+                    head: Some(response.head.label),
+                    base: Some(response.base.label),
+                    updated_at: response.updated_at,
+                    comments: Vec::new(),
+                }
+            }
+        };
+        let comments: Vec<CommentResponse> = self.api(
+            self.client
+                .get(github_api_url(&[
+                    "repos",
+                    owner,
+                    repository_name,
+                    "issues",
+                    &number.to_string(),
+                    "comments",
+                ]))
+                .query(&[("per_page", comments_limit.clamp(1, 20).to_string())]),
+        )?;
+        item.comments = comments.into_iter().map(Into::into).collect();
+        Ok(item)
+    }
+
+    pub async fn repository_context_async(
+        &self,
+        full_name: String,
+        limit: usize,
+    ) -> Result<GitHubRepositoryContext> {
+        let connector = self.clone();
+        tokio::task::spawn_blocking(move || connector.repository_context(&full_name, limit))
+            .await
+            .map_err(|error| GitHubError::Network(format!("GitHub worker failed: {error}")))?
     }
 
     pub fn disconnect(&self) -> Result<()> {
@@ -802,6 +956,188 @@ impl GitHubConnector {
     }
 }
 
+pub fn github_connector_descriptor() -> ConnectorDescriptor {
+    flood_connectors::github_connector_descriptor()
+}
+
+impl ConnectorIdentity for GitHubConnector {
+    fn descriptor(&self) -> ConnectorDescriptor {
+        github_connector_descriptor()
+    }
+
+    fn status(&self) -> ConnectorRuntimeStatus {
+        let status = GitHubConnector::status(self);
+        let health = if status.error.is_some() || !status.credential_store_available {
+            ConnectorHealth::Error
+        } else if status.needs_reauthorization {
+            ConnectorHealth::Attention
+        } else if status.connected {
+            ConnectorHealth::Ready
+        } else {
+            ConnectorHealth::Disconnected
+        };
+        ConnectorRuntimeStatus {
+            connector_id: GITHUB_CONNECTOR_ID.into(),
+            health,
+            configured: status.configured,
+            account_label: status.account.map(|account| account.login),
+            detail: status.error,
+            observed_at: Utc::now(),
+        }
+    }
+}
+
+impl ConnectorAdapter for GitHubConnector {
+    fn list_sources(&self, request: SourceCatalogRequest) -> ConnectorFuture<'_, SourcePage> {
+        let connector = self.clone();
+        Box::pin(async move {
+            request.validate()?;
+            let catalog = tokio::task::spawn_blocking(move || connector.repositories())
+                .await
+                .map_err(|error| ConnectorOperationError::Failed(error.to_string()))?
+                .map_err(connector_operation_error)?;
+            let query = request.query.unwrap_or_default().trim().to_lowercase();
+            let offset = match request.cursor.as_deref() {
+                None => 0,
+                Some(cursor) => cursor
+                    .strip_prefix("offset:")
+                    .and_then(|value| value.parse::<usize>().ok())
+                    .ok_or_else(|| {
+                        ConnectorOperationError::InvalidRequest(
+                            "invalid GitHub source cursor".into(),
+                        )
+                    })?,
+            };
+            let limit = request.limit.clamp(1, 100);
+            let repositories = catalog
+                .repositories
+                .into_iter()
+                .filter(|repository| {
+                    query.is_empty() || repository.full_name.to_lowercase().contains(&query)
+                })
+                .collect::<Vec<_>>();
+            let next_offset = offset.saturating_add(limit).min(repositories.len());
+            let sources = repositories
+                .iter()
+                .skip(offset)
+                .take(limit)
+                .map(|repository| repository.connector_source(false))
+                .collect();
+            Ok(SourcePage {
+                sources,
+                next_cursor: (next_offset < repositories.len())
+                    .then(|| format!("offset:{next_offset}")),
+            })
+        })
+    }
+}
+
+fn connector_operation_error(error: GitHubError) -> ConnectorOperationError {
+    match error {
+        other @ (GitHubError::Unconfigured
+        | GitHubError::NotConnected
+        | GitHubError::NoInstallation) => ConnectorOperationError::NotReady(other.to_string()),
+        GitHubError::Api {
+            status: 401,
+            message,
+        } => ConnectorOperationError::AuthExpired(message),
+        GitHubError::Api {
+            status: 403,
+            message,
+        } => ConnectorOperationError::PermissionDenied(message),
+        GitHubError::RateLimited {
+            retry_after_seconds,
+            message,
+        } => ConnectorOperationError::RateLimited {
+            retry_after_seconds,
+            message,
+        },
+        other => ConnectorOperationError::Failed(other.to_string()),
+    }
+}
+
+impl GitHubRepository {
+    pub fn connector_source(&self, agent_access: bool) -> ConnectorSource {
+        ConnectorSource {
+            connector_id: GITHUB_CONNECTOR_ID.into(),
+            source_id: format!("repository:{}", self.id),
+            kind: ConnectorSourceKind::Repository,
+            label: self.full_name.clone(),
+            detail: self.description.clone(),
+            url: Some(self.html_url.clone()),
+            agent_access,
+        }
+    }
+}
+
+impl GitHubRepositoryContext {
+    /// Convert GitHub work state into the same bounded signal stream used by
+    /// communication and design connectors. File bodies stay in the explicit
+    /// read API and are never copied into every automation run.
+    pub fn context_signals(&self) -> Vec<ContextSignal> {
+        self.context_signals_for_source(&format!("repository:{}", self.repository.id))
+    }
+
+    pub fn context_signals_for_source(&self, source_id: &str) -> Vec<ContextSignal> {
+        let source_id = source_id.to_owned();
+        let mut signals = Vec::with_capacity(self.issues.len() + self.pull_requests.len());
+        signals.extend(self.issues.iter().map(|issue| {
+            let mut attributes = BTreeMap::new();
+            attributes.insert("state".into(), issue.state.clone());
+            if !issue.labels.is_empty() {
+                attributes.insert("labels".into(), issue.labels.join(", "));
+            }
+            ContextSignal {
+                contract_version: CONNECTOR_CONTRACT_VERSION,
+                connector_id: GITHUB_CONNECTOR_ID.into(),
+                source_id: source_id.clone(),
+                external_id: format!("issue:{}", issue.number),
+                kind: ContextSignalKind::Issue,
+                occurred_at: issue.updated_at,
+                actor: Some(ExternalActor {
+                    actor_id: format!("github:{}", issue.author),
+                    display_name: issue.author.clone(),
+                    username: Some(issue.author.clone()),
+                    is_current_user: false,
+                }),
+                text: issue.title.clone(),
+                reply_to_external_id: None,
+                assets: Vec::new(),
+                url: Some(issue.html_url.clone()),
+                attributes,
+            }
+        }));
+        signals.extend(self.pull_requests.iter().map(|pull| {
+            let mut attributes = BTreeMap::new();
+            attributes.insert("state".into(), pull.state.clone());
+            attributes.insert("head".into(), pull.head.clone());
+            attributes.insert("base".into(), pull.base.clone());
+            attributes.insert("draft".into(), pull.draft.to_string());
+            ContextSignal {
+                contract_version: CONNECTOR_CONTRACT_VERSION,
+                connector_id: GITHUB_CONNECTOR_ID.into(),
+                source_id: source_id.clone(),
+                external_id: format!("pull-request:{}", pull.number),
+                kind: ContextSignalKind::PullRequest,
+                occurred_at: pull.updated_at,
+                actor: Some(ExternalActor {
+                    actor_id: format!("github:{}", pull.author),
+                    display_name: pull.author.clone(),
+                    username: Some(pull.author.clone()),
+                    is_current_user: false,
+                }),
+                text: pull.title.clone(),
+                reply_to_external_id: None,
+                assets: Vec::new(),
+                url: Some(pull.html_url.clone()),
+                attributes,
+            }
+        }));
+        signals.sort_by_key(|signal| signal.occurred_at);
+        signals
+    }
+}
+
 #[derive(Deserialize)]
 struct TokenResponse {
     access_token: Option<String>,
@@ -884,6 +1220,11 @@ struct FileResponse {
 }
 
 fn decode_file(response: FileResponse) -> Result<GitHubFile> {
+    if response.size > MAX_FILE_BYTES as u64 {
+        return Err(GitHubError::Response(
+            "файл больше безопасного лимита 1 МБ".into(),
+        ));
+    }
     if response.encoding != "base64" {
         return Err(GitHubError::Response(
             "GitHub вернул файл не в base64".into(),
@@ -893,7 +1234,7 @@ fn decode_file(response: FileResponse) -> Result<GitHubFile> {
     let bytes = STANDARD
         .decode(compact)
         .map_err(|error| GitHubError::Response(error.to_string()))?;
-    if bytes.len() > 1_048_576 {
+    if bytes.len() > MAX_FILE_BYTES {
         return Err(GitHubError::Response(
             "файл больше безопасного лимита 1 МБ".into(),
         ));
@@ -946,6 +1287,7 @@ struct IssueResponse {
     user: UserResponse,
     #[serde(default)]
     labels: Vec<LabelResponse>,
+    body: Option<String>,
     updated_at: DateTime<Utc>,
     pull_request: Option<serde_json::Value>,
 }
@@ -976,9 +1318,34 @@ struct PullResponse {
     draft: bool,
     html_url: String,
     user: UserResponse,
+    body: Option<String>,
     head: BranchResponse,
     base: BranchResponse,
     updated_at: DateTime<Utc>,
+}
+
+#[derive(Deserialize)]
+struct CommentResponse {
+    id: u64,
+    user: UserResponse,
+    #[serde(default)]
+    body: String,
+    html_url: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<CommentResponse> for GitHubComment {
+    fn from(value: CommentResponse) -> Self {
+        Self {
+            id: value.id,
+            author: value.user.login,
+            body: value.body,
+            html_url: value.html_url,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
 }
 impl From<PullResponse> for GitHubPullRequest {
     fn from(value: PullResponse) -> Self {
@@ -1065,6 +1432,24 @@ fn network_error(error: reqwest::Error) -> GitHubError {
 
 fn parse_response<T: DeserializeOwned>(response: reqwest::blocking::Response) -> Result<T> {
     let status = response.status();
+    let rate_limit_remaining = response
+        .headers()
+        .get("x-ratelimit-remaining")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<u64>().ok());
+    let retry_after_seconds = response
+        .headers()
+        .get("retry-after")
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<u64>().ok())
+        .or_else(|| {
+            response
+                .headers()
+                .get("x-ratelimit-reset")
+                .and_then(|value| value.to_str().ok())
+                .and_then(|value| value.parse::<i64>().ok())
+                .map(|reset| reset.saturating_sub(Utc::now().timestamp()).max(0) as u64)
+        });
     let bytes = response.bytes().map_err(network_error)?;
     if !status.is_success() {
         let message = serde_json::from_slice::<serde_json::Value>(&bytes)
@@ -1076,6 +1461,12 @@ fn parse_response<T: DeserializeOwned>(response: reqwest::blocking::Response) ->
                     .map(ToOwned::to_owned)
             })
             .unwrap_or_else(|| String::from_utf8_lossy(&bytes).chars().take(500).collect());
+        if status.as_u16() == 429 || (status.as_u16() == 403 && rate_limit_remaining == Some(0)) {
+            return Err(GitHubError::RateLimited {
+                retry_after_seconds,
+                message,
+            });
+        }
         return Err(GitHubError::Api {
             status: status.as_u16(),
             message,
@@ -1203,5 +1594,48 @@ mod tests {
             Some("access-token:Iv23Example".into())
         );
         assert_eq!(connector_account("access-token", " "), None);
+    }
+
+    #[test]
+    fn repository_work_is_normalized_without_copying_file_bodies() {
+        let now = Utc::now();
+        let context = GitHubRepositoryContext {
+            repository: GitHubRepository {
+                id: 42,
+                installation_id: 7,
+                name: "app".into(),
+                full_name: "example/app".into(),
+                private: true,
+                html_url: "https://github.com/example/app".into(),
+                description: Some("Product".into()),
+                default_branch: "main".into(),
+                archived: false,
+                pushed_at: Some(now),
+                owner_avatar_url: String::new(),
+            },
+            readme: Some(GitHubFile {
+                path: "README.md".into(),
+                content: "large body stays behind explicit read".into(),
+                size: 37,
+                sha: "abc".into(),
+                html_url: None,
+            }),
+            issues: vec![GitHubIssue {
+                number: 12,
+                title: "Fix sync".into(),
+                state: "open".into(),
+                html_url: "https://github.com/example/app/issues/12".into(),
+                author: "alex".into(),
+                labels: vec!["bug".into()],
+                updated_at: now,
+            }],
+            pull_requests: Vec::new(),
+        };
+        let signals = context.context_signals();
+        assert_eq!(signals.len(), 1);
+        assert_eq!(signals[0].external_id, "issue:12");
+        assert_eq!(signals[0].source_id, "repository:42");
+        assert!(!signals[0].text.contains("large body"));
+        assert!(signals[0].validate().is_ok());
     }
 }

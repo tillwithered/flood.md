@@ -11,6 +11,7 @@ permissions:
 jobs:
   publish:
     runs-on: windows-latest
+    environment: release
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -18,9 +19,15 @@ jobs:
           node-version: 22
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - run: npm ci
-      - run: npm run check
+      - name: Stable verification gate
+        shell: pwsh
+        run: pwsh -NoProfile -File scripts/verify-stable.ps1
+      - name: Validate release version and updater contract
+        shell: pwsh
+        run: pwsh -NoProfile -File scripts/verify-release-contract.ps1 -ExpectedTag "${{ github.ref_name }}"
       - name: Validate protected release credentials
         shell: pwsh
         env:
@@ -29,8 +36,9 @@ jobs:
           FLOOD_GITHUB_CLIENT_ID: ${{ vars.FLOOD_GITHUB_CLIENT_ID }}
           FLOOD_GITHUB_APP_SLUG: ${{ vars.FLOOD_GITHUB_APP_SLUG }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:TG_API_ID) -or [string]::IsNullOrWhiteSpace($env:TG_API_HASH) -or [string]::IsNullOrWhiteSpace($env:FLOOD_GITHUB_CLIENT_ID) -or [string]::IsNullOrWhiteSpace($env:FLOOD_GITHUB_APP_SLUG) -or [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+          if ([string]::IsNullOrWhiteSpace($env:TG_API_ID) -or [string]::IsNullOrWhiteSpace($env:TG_API_HASH) -or [string]::IsNullOrWhiteSpace($env:FLOOD_GITHUB_CLIENT_ID) -or [string]::IsNullOrWhiteSpace($env:FLOOD_GITHUB_APP_SLUG) -or [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY) -or [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD)) {
             throw "Required release secrets are not configured"
           }
       - uses: tauri-apps/tauri-action@v1
@@ -62,6 +70,31 @@ jobs:
             - Refined light/dark desktop UI, 720 px reading zones, accessible 12 px minimum text, and clear source/media views.
 
             Full details: [CHANGELOG.md](https://github.com/tillwithered/flood.md/blob/${{ github.ref_name }}/CHANGELOG.md).
-          releaseDraft: false
+          releaseDraft: true
           prerelease: false
           updaterJsonPreferNsis: true
+      - name: Verify clean install and upgrade from latest public stable
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $current = Get-ChildItem target/release/bundle/nsis -Filter "*-setup.exe" | Select-Object -First 1
+          if (-not $current) { throw "Current NSIS installer was not produced" }
+          New-Item -ItemType Directory -Force target/previous-stable | Out-Null
+          gh release download --repo tillwithered/flood.md --pattern "*-setup.exe" --dir target/previous-stable --clobber
+          $previous = Get-ChildItem target/previous-stable -Filter "*-setup.exe" | Select-Object -First 1
+          if (-not $previous) { throw "Previous public stable installer was not found" }
+          $expected = "${{ github.ref_name }}".TrimStart("v")
+          pwsh -NoProfile -File scripts/verify-windows-install-upgrade.ps1 -CurrentInstaller $current.FullName -PreviousInstaller $previous.FullName -ExpectedVersion $expected
+      - name: Verify updater artifacts and publish the validated draft
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $signature = Get-ChildItem target/release/bundle/nsis -Filter "*.sig" | Select-Object -First 1
+          if (-not $signature -or $signature.Length -lt 1) { throw "Updater signature was not produced" }
+          $artifact = Get-Item ($signature.FullName -replace '\.sig$', '')
+          node scripts/verify-updater-signature.mjs $artifact.FullName $signature.FullName
+          $assets = @(gh release view "${{ github.ref_name }}" --json assets --jq '.assets[].name')
+          if (-not ($assets -contains "latest.json") -or -not ($assets | Where-Object { $_ -match '\.sig$' })) { throw "Release is missing updater metadata or signature" }
+          gh release edit "${{ github.ref_name }}" --draft=false

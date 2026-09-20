@@ -1,0 +1,164 @@
+<!doctype html><html lang="ru" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>Flood · Iconography 0.6.5</title><style>
+:root{
+  color-scheme:light;
+  --canvas:#fafafa;--panel:#fff;--surface:#f5f5f5;--surface-2:#ededed;--ink:#171717;--muted:#5d5d5a;--edge:#e8e8e8;
+  --focus-core:#737373;--focus-halo:rgb(23 23 23 / 12%);--selected:#efefef;
+  --danger:#c7274e;--danger-bg:#fff0f3;--success:#166534;--success-bg:#f0f7f1;--warning:#925b0a;--warning-bg:#fff8ed;
+  --tooltip-bg:#202020;--tooltip-fg:#fff;--tooltip-gap:6px;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --canvas:#0d0d0c;--panel:#20201e;--surface:#2a2a28;--surface-2:#343431;--ink:#f4f4f2;--muted:#c3c1bc;--edge:#393936;
+  --focus-core:#a0a09a;--focus-halo:rgb(244 244 242 / 13%);--selected:#2d2d2a;
+  --danger:#ff607d;--danger-bg:#32171f;--success:#8fd49b;--success-bg:#16261a;--warning:#f0bf70;--warning-bg:#2c2417;
+  --tooltip-bg:#f0f0ed;--tooltip-fg:#171715;
+}
+*{box-sizing:border-box}body{margin:0;background:var(--canvas);color:var(--ink);font:14px/20px 'Golos Text',system-ui,sans-serif}
+button,input,textarea{font:inherit;color:inherit}button{appearance:none;-webkit-appearance:none;border:0;cursor:pointer}button:focus{outline:none}
+[hidden]{display:none!important}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.lab{max-width:1180px;margin:auto;padding:32px 32px 64px}.bar,.actions,.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.bar{justify-content:space-between;margin-bottom:28px}.brand{font-weight:600}.brand span{font-size:13px;font-weight:400;color:var(--muted);margin-left:12px}
+.btn{min-height:36px;border-radius:10px;padding:7px 12px;background:var(--surface);display:inline-flex;align-items:center;justify-content:center;gap:8px}.btn.ghost{background:transparent}.btn[aria-pressed="true"]{background:var(--ink);color:var(--canvas)}
+h1{font-size:24px;line-height:32px;margin:0 0 8px;font-weight:600;letter-spacing:-.025em}h2{font-size:20px;line-height:26px;margin:0;font-weight:600}h3{font-size:15px;line-height:22px;margin:0;font-weight:600}p{margin:0}.muted,.meta{color:var(--muted)}.meta{font-size:13px;line-height:18px}
+.intro{max-width:780px;display:grid;gap:8px;margin-bottom:24px}.tabs{display:flex;gap:4px;border-bottom:1px solid var(--edge);padding-bottom:10px;margin-bottom:28px}.tabs button{min-height:36px;padding:8px 12px;border-radius:8px;background:transparent;color:var(--muted)}.tabs button[aria-selected="true"]{background:var(--selected);color:var(--ink)}.tabs .n{font-size:12px;margin-right:8px}
+.sheet{border:1px solid var(--edge);border-radius:16px;background:var(--panel);padding:24px;display:grid;gap:20px;min-width:0}.grid{display:grid;gap:24px}.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.icon-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}.icon-card{border:1px solid var(--edge);border-radius:12px;padding:14px 10px;background:var(--panel);display:grid;gap:8px;justify-items:center;text-align:center;min-width:0}.icon-stage{width:40px;height:40px;border-radius:10px;background:var(--surface);display:grid;place-items:center}.icon-card .name{font-size:12px;line-height:16px;color:var(--muted);overflow-wrap:anywhere}.icon-card .meaning{font-weight:500;overflow-wrap:anywhere}
+.glyph{width:16px;height:16px;display:block;fill:currentColor;stroke:none;flex:none}.glyph.size20{width:20px;height:20px}.glyph.size24{width:24px;height:24px}
+.toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap}.toolbar .cluster{display:flex;gap:4px}.toolbar .cluster+.cluster{margin-left:6px}.icon-btn{width:36px;height:36px;border-radius:10px;background:transparent;color:var(--ink);display:grid;place-items:center;position:relative;padding:0;box-shadow:none}.icon-btn:hover:not([aria-disabled="true"]){background:var(--surface)}.icon-btn:active:not([aria-disabled="true"]){background:var(--surface-2)}.icon-btn[aria-pressed="true"]{background:var(--selected)}.icon-btn[aria-disabled="true"]{color:var(--muted);cursor:not-allowed}
+.focus-ring,.icon-btn:focus-visible,.btn:focus-visible,.textmark:focus-visible{box-shadow:0 0 0 1px var(--focus-core),0 0 0 4px var(--focus-halo)}
+.states{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}.state{display:grid;gap:10px;justify-items:center;padding:14px 8px;border-radius:12px;background:var(--panel);border:1px solid var(--edge)}.state .label{font-size:12px;color:var(--muted)}
+.tooltip{position:fixed;z-index:1000;max-width:260px;padding:6px 8px;border-radius:8px;background:var(--tooltip-bg);color:var(--tooltip-fg);font-size:12px;line-height:16px;pointer-events:none;white-space:normal;box-shadow:none}.tooltip[data-side="top"]{transform-origin:bottom center}.tooltip[data-side="bottom"]{transform-origin:top center}
+.tooltip-demo{min-height:180px;display:grid;place-items:center;border:1px dashed var(--edge);border-radius:14px;background:color-mix(in srgb,var(--surface) 55%,transparent)}
+.size-row{display:flex;align-items:end;gap:28px;flex-wrap:wrap}.size-item{display:grid;gap:8px;justify-items:center}.size-stage{width:52px;height:52px;border-radius:12px;background:var(--surface);display:grid;place-items:center}.size-item .role{font-size:12px;line-height:16px;color:var(--muted);text-align:center}
+.textmarks{display:flex;gap:8px;flex-wrap:wrap}.textmark{min-width:36px;height:36px;border-radius:10px;background:var(--surface);display:grid;place-items:center;padding:0 10px;font-weight:600}.textmark.u{text-decoration:underline}.textmark.h1{font-size:13px}
+.callout{padding:12px 14px;border-radius:12px;background:var(--surface);color:var(--muted);font-size:13px;line-height:18px}.callout strong{color:var(--ink)}
+.map-table{width:100%;border-collapse:collapse}.map-table th,.map-table td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--edge);vertical-align:top}.map-table th{font-size:12px;line-height:16px;color:var(--muted);font-weight:500}.map-table td:first-child{font-weight:500}.status{display:inline-flex;align-items:center;padding:2px 7px;border-radius:999px;background:var(--surface);font-size:12px;line-height:16px;color:var(--muted)}.status.gap{background:var(--warning-bg);color:var(--warning)}
+.review{margin-top:30px;border-top:1px solid var(--edge);padding-top:22px;display:grid;gap:10px;max-width:720px}.review textarea{min-height:80px;resize:none;border:1px solid var(--edge);border-radius:10px;background:var(--surface);padding:10px 12px;color:var(--ink)}
+.foot{margin-top:28px;color:var(--muted);font-size:12px;line-height:18px;max-width:900px}
+@media(max-width:900px){.icon-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.states{grid-template-columns:repeat(3,minmax(0,1fr))}.grid.two,.grid.three{grid-template-columns:1fr}}
+@media(pointer:coarse){.icon-btn{width:44px;height:44px}.btn,.textmark{min-height:44px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media(forced-colors:active){.sheet,.icon-card,.icon-stage,.state,.tooltip-demo,.review textarea{background:Canvas;color:CanvasText;border-color:CanvasText}.icon-btn:hover,.icon-btn[aria-pressed="true"]{background:Highlight;color:HighlightText}.tooltip{background:CanvasText;color:Canvas;outline:1px solid Canvas}.icon-btn:focus-visible,.btn:focus-visible,.textmark:focus-visible{box-shadow:none;outline:2px solid Highlight;outline-offset:2px}}
+
+</style></head>
+<body><main class="lab">
+<header class="bar"><p class="brand">flood.md <span>Iconography lab / 0.6.5</span></p><button class="btn" id="theme">Тёмная тема</button></header>
+<div class="intro"><h1>Меньше иконок. Больше узнаваемости.</h1><p class="muted">Heroicons Solid остаётся единым набором для действий и объектов. Проверяем реальные смыслы Flood, icon-only controls и tooltip — без возврата к stroke-family и лишнему chrome.</p></div>
+<nav class="tabs" role="tablist" aria-label="Иконография"><button id="tab-map" role="tab" aria-controls="panel-map" aria-selected="true"><span class="n">01</span>Карта смыслов</button><button id="tab-actions" role="tab" aria-controls="panel-actions" aria-selected="false" tabindex="-1"><span class="n">02</span>Icon-only</button><button id="tab-tooltip" role="tab" aria-controls="panel-tooltip" aria-selected="false" tabindex="-1"><span class="n">03</span>Tooltip</button><button id="tab-scale" role="tab" aria-controls="panel-scale" aria-selected="false" tabindex="-1"><span class="n">04</span>Размер и исключения</button></nav>
+<section id="panel-map" role="tabpanel" aria-labelledby="tab-map">
+<div class="grid"><section class="sheet"><div><h2>Основной action set</h2><p class="muted">Одинаковый fill-weight, currentColor и slot. Иконка не несёт состояние сама по себе.</p></div><div class="icon-grid">
+<div class="icon-card"><div class="icon-stage" data-icon="search"></div><div class="meaning">Поиск</div><div class="name">magnifying-glass</div></div>
+<div class="icon-card"><div class="icon-stage" data-icon="attach"></div><div class="meaning">Вложение</div><div class="name">paper-clip</div></div>
+<div class="icon-card"><div class="icon-stage" data-icon="bookmark"></div><div class="meaning">Закрепить</div><div class="name">bookmark</div></div>
+<div class="icon-card"><div class="icon-stage" data-icon="refresh"></div><div class="meaning">Обновить</div><div class="name">arrow-path</div></div>
+<div class="icon-card"><div class="icon-stage" data-icon="settings"></div><div class="meaning">Настройки</div><div class="name">cog-6-tooth</div></div>
+<div class="icon-card"><div class="icon-stage" data-icon="more"></div><div class="meaning">Ещё</div><div class="name">ellipsis-horizontal</div></div>
+<div class="icon-card"><div class="icon-stage" data-icon="trash"></div><div class="meaning">Удалить</div><div class="name">trash</div></div>
+<div class="icon-card"><div class="icon-stage" data-icon="plus"></div><div class="meaning">Добавить</div><div class="name">plus</div></div>
+<div class="icon-card"><div class="icon-stage" data-icon="link"></div><div class="meaning">Связать</div><div class="name">link</div></div>
+<div class="icon-card"><div class="icon-stage" data-icon="external"></div><div class="meaning">Открыть вне</div><div class="name">arrow-top-right-on-square</div></div>
+<div class="icon-card"><div class="icon-stage" data-icon="download"></div><div class="meaning">Скачать</div><div class="name">arrow-down-tray</div></div>
+<div class="icon-card"><div class="icon-stage" data-icon="edit"></div><div class="meaning">Изменить</div><div class="name">pencil-square</div></div>
+</div></section>
+<section class="sheet"><h2>Migration map по текущему App.svelte</h2><table class="map-table"><thead><tr><th>Смысл</th><th>Новый язык</th><th>Статус</th></tr></thead><tbody>
+<tr><td>Search / Settings / More</td><td>Heroicons Solid</td><td><span class="status">direct</span></td></tr>
+<tr><td>Folder / Document / Calendar / Language</td><td>Heroicons Solid object icons</td><td><span class="status">direct</span></td></tr>
+<tr><td>Bold / Heading1 / Underline</td><td>Типографические B / H1 / U</td><td><span class="status">exception</span></td></tr>
+<tr><td>Bot / agent identity</td><td>Flood blob / agent identity</td><td><span class="status">exception</span></td></tr>
+<tr><td>Circle / Square / mixed mark</td><td>Геометрические state marks</td><td><span class="status">exception</span></td></tr>
+<tr><td>PanelLeftOpen / PanelLeftClose</td><td>Нужен отдельный precise affordance</td><td><span class="status gap">gap</span></td></tr>
+<tr><td>Provider / integration identity</td><td>Настоящий provider logo</td><td><span class="status">exception</span></td></tr>
+</tbody></table><p class="callout"><strong>Правило:</strong> не мигрировать поверхность наполовину, если половина её смыслов ещё требует случайных Lucide-иконок. Сначала карта, затем surface-by-surface замена.</p></section></div>
+</section>
+<section id="panel-actions" role="tabpanel" aria-labelledby="tab-actions" hidden>
+<div class="grid two"><section class="sheet"><div><h2>Живой toolbar</h2><p class="muted">36×36, R10, glyph16. Rest прозрачный; hover/pressed/selected только neutral fill.</p></div><div id="live-toolbar" class="toolbar"><div class="cluster"><button class="icon-btn" aria-label="Поиск" data-tip="Поиск" data-icon="search"></button><button class="icon-btn" aria-label="Прикрепить файл" data-tip="Прикрепить файл" data-icon="attach"></button><button class="icon-btn" id="pin-demo" aria-label="Закрепить" data-tip="Закрепить" data-icon="bookmark" aria-pressed="false"></button></div><div class="cluster"><button class="icon-btn" aria-label="Обновить" data-tip="Обновить" data-icon="refresh"></button><button class="icon-btn" aria-label="Настройки" data-tip="Настройки" data-icon="settings"></button><button class="icon-btn" aria-label="Ещё действия" data-tip="Ещё действия" data-icon="more"></button></div><div class="cluster"><button class="icon-btn" aria-label="Удалить" data-tip="Удалить" data-icon="trash"></button></div></div><p id="action-result" class="meta"></p><p class="meta" id="pin-state">Не закреплено</p></section>
+<section class="sheet"><h2>State sheet</h2><div class="states"><div class="state"><button class="icon-btn" aria-label="Обычное" data-icon="settings"></button><span class="label">rest</span></div><div class="state"><button class="icon-btn" aria-label="Hover" data-icon="settings" style="background:var(--surface)"></button><span class="label">hover</span></div><div class="state"><button class="icon-btn" aria-label="Pressed" data-icon="settings" style="background:var(--surface-2)"></button><span class="label">pressed</span></div><div class="state"><button class="icon-btn" aria-label="Selected" data-icon="bookmark" aria-pressed="true"></button><span class="label">selected</span></div><div class="state"><button class="icon-btn focus-ring" aria-label="Focus" data-icon="settings"></button><span class="label">focus</span></div><div class="state"><button class="icon-btn" aria-label="Недоступно" aria-disabled="true" data-tip="Недоступно: сначала выберите проект" data-icon="attach"></button><span class="label">aria-disabled</span></div></div><p class="callout">Trash остаётся нейтральным в обычном toolbar/menu. Розово-красный появляется в реальном destructive confirmation, а не заранее.</p></section></div>
+</section>
+<section id="panel-tooltip" role="tabpanel" aria-labelledby="tab-tooltip" hidden>
+<div class="grid two"><section class="sheet"><h2>Pointer и keyboard</h2><div class="tooltip-demo"><div class="toolbar"><button class="icon-btn" aria-label="Открыть настройки" data-tip="Открыть настройки" data-icon="settings"></button><button class="icon-btn" aria-label="Скопировать ссылку" data-tip="Скопировать ссылку" data-icon="link"></button><button class="icon-btn" aria-label="Открыть в браузере" data-tip="Открыть в браузере" data-icon="external"></button></div></div><p class="meta">Hover: 450 ms. Focus: 120 ms. Escape скрывает только tooltip.</p></section><section class="sheet"><h2>Не использовать tooltip как документацию</h2><div class="row"><button class="icon-btn" aria-label="Прикрепить файл" aria-disabled="true" aria-describedby="attach-reason" data-tip="Недоступно: сначала выберите проект" data-icon="attach"></button><span id="attach-reason" class="meta">Недоступно, пока проект не выбран.</span></div><p class="callout">Accessible name существует всегда. Причина недоступности существует отдельно от tooltip. В tooltip нет действий, форм и обязательных ошибок.</p></section></div>
+</section>
+<section id="panel-scale" role="tabpanel" aria-labelledby="tab-scale" hidden>
+<div class="grid two"><section class="sheet"><h2>Роли размера</h2><div class="size-row"><div class="size-item"><div class="size-stage"><span data-icon="settings"></span></div><div class="role">16 · action/control</div></div><div class="size-item"><div class="size-stage"><svg class="glyph size20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .206 1.25l-1.18 2.045a1 1 0 0 1-1.187.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.114a7.05 7.05 0 0 1 0-2.227L1.821 7.773a1 1 0 0 1-.206-1.25l1.18-2.045a1 1 0 0 1 1.187-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd"/></svg></div><div class="role">20 · object/section</div></div><div class="size-item"><div class="size-stage"><span style="font-size:24px;font-weight:700;line-height:1">?</span></div><div class="role">24 · отдельный master позже</div></div></div><p class="meta">Не вводим 14/18/22 для локальной подгонки. 24px требует отдельного optical master review.</p></section>
+<section class="sheet"><h2>Исключения — это часть системы</h2><div class="textmarks"><button class="textmark" aria-label="Жирный">B</button><button class="textmark h1" aria-label="Заголовок первого уровня">H1</button><button class="textmark u" aria-label="Подчёркивание">U</button></div><div class="callout"><strong>Agent:</strong> используем Flood blob/identity вместо generic robot.</div><div class="callout"><strong>State marks:</strong> checkbox mixed, radio dot, circle/square — геометрия, не поиск «похожей» Heroicon.</div><div class="callout"><strong>Provider:</strong> GitHub/Telegram/Figma показывают свои logos; Heroicons описывают действия рядом, а не заменяют identity.</div></section></div>
+</section>
+<section class="review"><h3>Отзыв к открытому разделу</h3><div class="actions"><button class="btn" data-review="keep" aria-pressed="false">Оставить</button><button class="btn" data-review="revise" aria-pressed="false">Доработать</button><button class="btn" data-review="undecided" aria-pressed="true">Пока не решил</button></div><textarea id="review-note" aria-label="Комментарий" placeholder="Что оставить, что поправить…"></textarea><div><button class="btn ghost" id="export">Скачать отзыв</button></div></section>
+<p class="foot">Локальный desktop specimen. Heroicons Solid · MIT © Tailwind Labs, Inc. Пакеты приложения не меняются, сеть не используется. Tooltips визуальные: accessible name задаётся на кнопке независимо от них.</p>
+</main><div id="flood-tooltip" class="tooltip" role="tooltip" hidden></div><script>
+/*
+MIT License
+Copyright (c) Tailwind Labs, Inc.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+Heroicons pinned commit: 616b7a4dbbf3d011760af8066262cd5c6b3868f3
+*/
+'use strict';
+(() => {
+  const $ = id => document.getElementById(id), all = q => [...document.querySelectorAll(q)];
+  const root = document.documentElement;
+  const icons = {
+    search:'<path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11ZM2 9a7 7 0 1 1 12.452 4.391l3.328 3.329a.75.75 0 1 1-1.06 1.06l-3.329-3.328A7 7 0 0 1 2 9Z" clip-rule="evenodd"/>',
+    attach:'<path fill-rule="evenodd" d="M15.621 4.379a3 3 0 0 0-4.242 0l-7 7a3 3 0 0 0 4.241 4.243h.001l.497-.5a.75.75 0 0 1 1.064 1.057l-.498.501-.002.002a4.5 4.5 0 0 1-6.364-6.364l7-7a4.5 4.5 0 0 1 6.368 6.36l-3.455 3.553A2.625 2.625 0 1 1 9.52 9.52l3.45-3.451a.75.75 0 1 1 1.061 1.06l-3.45 3.451a1.125 1.125 0 0 0 1.587 1.595l3.454-3.553a3 3 0 0 0 0-4.242Z" clip-rule="evenodd"/>',
+    bookmark:'<path fill-rule="evenodd" d="M10 2c-1.716 0-3.408.106-5.07.31C3.806 2.45 3 3.414 3 4.517V17.25a.75.75 0 0 0 1.075.676L10 15.082l5.925 2.844A.75.75 0 0 0 17 17.25V4.517c0-1.103-.806-2.068-1.93-2.207A41.403 41.403 0 0 0 10 2Z" clip-rule="evenodd"/>',
+    refresh:'<path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clip-rule="evenodd"/>',
+    settings:'<path fill-rule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929 1.115l1.598-.54a1 1 0 0 1 1.186.447l1.18 2.044a1 1 0 0 1-.205 1.251l-1.267 1.113a7.047 7.047 0 0 1 0 2.228l1.267 1.113a1 1 0 0 1 .206 1.25l-1.18 2.045a1 1 0 0 1-1.187.447l-1.598-.54a6.993 6.993 0 0 1-1.929 1.115l-.33 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-1.115l-1.598.54a1 1 0 0 1-1.186-.447l-1.18-2.044a1 1 0 0 1 .205-1.251l1.267-1.114a7.05 7.05 0 0 1 0-2.227L1.821 7.773a1 1 0 0 1-.206-1.25l1.18-2.045a1 1 0 0 1 1.187-.447l1.598.54A6.992 6.992 0 0 1 7.51 3.456l.33-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd"/>',
+    more:'<path d="M3 10a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0ZM8.5 10a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0ZM15.5 8.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/>',
+    trash:'<path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clip-rule="evenodd"/>',
+    plus:'<path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z"/>',
+    link:'<path d="M12.232 4.232a2.5 2.5 0 0 1 3.536 3.536l-1.225 1.224a.75.75 0 0 0 1.061 1.06l1.224-1.224a4 4 0 0 0-5.656-5.656l-3 3a4 4 0 0 0 .225 5.865.75.75 0 0 0 .977-1.138 2.5 2.5 0 0 1-.142-3.667l3-3Z"/><path d="M11.603 7.963a.75.75 0 0 0-.977 1.138 2.5 2.5 0 0 1 .142 3.667l-3 3a2.5 2.5 0 0 1-3.536-3.536l1.225-1.224a.75.75 0 0 0-1.061-1.06l-1.224 1.224a4 4 0 1 0 5.656 5.656l3-3a4 4 0 0 0-.225-5.865Z"/>',
+    external:'<path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M6.194 12.753a.75.75 0 0 0 1.06.053L16.5 4.44v2.81a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.553l-9.056 8.194a.75.75 0 0 0-.053 1.06Z" clip-rule="evenodd"/>',
+    download:'<path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z"/><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z"/>',
+    edit:'<path d="m5.433 13.917 1.262-3.155A4 4 0 0 1 7.58 9.42l6.92-6.918a2.121 2.121 0 0 1 3 3l-6.92 6.918c-.383.383-.84.685-1.343.886l-3.154 1.262a.5.5 0 0 1-.65-.65Z"/><path d="M3.5 5.75c0-.69.56-1.25 1.25-1.25H10A.75.75 0 0 0 10 3H4.75A2.75 2.75 0 0 0 2 5.75v9.5A2.75 2.75 0 0 0 4.75 18h9.5A2.75 2.75 0 0 0 17 15.25V10a.75.75 0 0 0-1.5 0v5.25c0 .69-.56 1.25-1.25 1.25h-9.5c-.69 0-1.25-.56-1.25-1.25v-9.5Z"/>',
+    info:'<path fill-rule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z" clip-rule="evenodd"/>',
+    send:'<path d="M3.105 2.288a.75.75 0 0 0-.826.95l1.414 4.926A1.5 1.5 0 0 0 5.135 9.25h6.115a.75.75 0 0 1 0 1.5H5.135a1.5 1.5 0 0 0-1.442 1.086l-1.414 4.926a.75.75 0 0 0 .826.95 28.897 28.897 0 0 0 15.293-7.155.75.75 0 0 0 0-1.114A28.897 28.897 0 0 0 3.105 2.288Z"/>',
+    shield:'<path fill-rule="evenodd" d="M9.661 2.237a.531.531 0 0 1 .678 0 11.947 11.947 0 0 0 7.078 2.749.5.5 0 0 1 .479.425c.069.52.104 1.05.104 1.59 0 5.162-3.26 9.563-7.834 11.256a.48.48 0 0 1-.332 0C5.26 16.564 2 12.163 2 7c0-.538.035-1.069.104-1.589a.5.5 0 0 1 .48-.425 11.947 11.947 0 0 0 7.077-2.75Zm4.196 5.954a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd"/>'
+  };
+  const svg = (name, cls='glyph') => `<svg class="${cls}" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" focusable="false">${icons[name]}</svg>`;
+  all('[data-icon]').forEach(el=>{ const n=el.dataset.icon; if(icons[n]) el.innerHTML=svg(n); });
+
+  const tabs=['map','actions','tooltip','scale']; let tab='map';
+  function activate(id,focus=false){tab=id;tabs.forEach(t=>{const on=t===id;$('tab-'+t).setAttribute('aria-selected',String(on));$('tab-'+t).tabIndex=on?0:-1;$('panel-'+t).hidden=!on;});if(focus)$('tab-'+id).focus();hideTip();}
+  tabs.forEach((id,i)=>{$('tab-'+id).onclick=()=>activate(id);$('tab-'+id).onkeydown=e=>{let n;if(e.key==='ArrowRight')n=(i+1)%tabs.length;if(e.key==='ArrowLeft')n=(i+tabs.length-1)%tabs.length;if(e.key==='Home')n=0;if(e.key==='End')n=tabs.length-1;if(n!==undefined){e.preventDefault();activate(tabs[n],true);}};});
+  $('theme').onclick=()=>{root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';$('theme').textContent=root.dataset.theme==='dark'?'Светлая тема':'Тёмная тема';hideTip();};
+
+  let tipTimer=0, tipTarget=null;
+  const tip=$('flood-tooltip');
+  function positionTip(target){const r=target.getBoundingClientRect(),gap=6,gutter=8;tip.style.left='0px';tip.style.top='0px';tip.hidden=false;const b=tip.getBoundingClientRect();let side='top',top=r.top-gap-b.height;if(top<gutter){side='bottom';top=r.bottom+gap;}let left=r.left+r.width/2-b.width/2;left=Math.max(gutter,Math.min(innerWidth-b.width-gutter,left));tip.dataset.side=side;tip.style.left=Math.round(left)+'px';tip.style.top=Math.round(top)+'px';}
+  function showTip(target,delay){clearTimeout(tipTimer);tipTimer=setTimeout(()=>{if(!document.body.contains(target))return;tipTarget=target;tip.textContent=target.dataset.tip||target.getAttribute('aria-label')||'';positionTip(target);},delay);}
+  function hideTip(){clearTimeout(tipTimer);tip.hidden=true;tipTarget=null;}
+  all('[data-tip]').forEach(el=>{
+    el.addEventListener('pointerenter',()=>showTip(el,450));
+    el.addEventListener('pointerleave',hideTip);
+    el.addEventListener('focus',()=>showTip(el,120));
+    el.addEventListener('blur',hideTip);
+    el.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();hideTip();}});
+  });
+  window.addEventListener('resize',()=>{if(tipTarget&&!tip.hidden)positionTip(tipTarget);});
+  window.addEventListener('scroll',()=>{if(tipTarget&&!tip.hidden)positionTip(tipTarget);},true);
+
+  all('.icon-btn[aria-disabled="true"]').forEach(btn=>{
+    btn.addEventListener('click',e=>e.preventDefault());
+    btn.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();}});
+  });
+  $('pin-demo').onclick=()=>{const on=$('pin-demo').getAttribute('aria-pressed')!=='true';$('pin-demo').setAttribute('aria-pressed',String(on));$('pin-state').textContent=on?'Закреплено':'Не закреплено';};
+  $('action-result').textContent='Наведите курсор или пройдите Tab по toolbar.';
+  all('#live-toolbar .icon-btn:not([aria-disabled="true"])').forEach(btn=>btn.addEventListener('click',()=>{$('action-result').textContent=btn.getAttribute('aria-label')+' · локальная демонстрация';}));
+
+  const reviews=Object.fromEntries(tabs.map(id=>[id,{decision:'undecided',note:''}]));
+  all('[data-review]').forEach(b=>b.onclick=()=>{reviews[tab].decision=b.dataset.review;all('[data-review]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));});
+  $('review-note').oninput=()=>reviews[tab].note=$('review-note').value;
+  $('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify({lab:'0.6.5',reviews},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='flood-iconography-065-review.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+  window.iconographyLab={snapshot:()=>({tab,reviews,pin:$('pin-demo').getAttribute('aria-pressed'),tooltip:tip.hidden?null:tip.textContent})};
+})();
+
+</script></body></html>

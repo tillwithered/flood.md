@@ -45,6 +45,7 @@ jobs:
           if (-not $current -or -not $signature -or $signature.Length -lt 1) { throw "Signed RC artifacts are incomplete" }
           $artifact = Get-Item ($signature.FullName -replace '\.sig$', '')
           node scripts/verify-updater-signature.mjs $artifact.FullName $signature.FullName
+          if ($LASTEXITCODE -ne 0) { throw "Updater signature verification failed" }
           $previousDir = Join-Path $PWD "target/previous-stable"
           New-Item -ItemType Directory -Force -Path $previousDir | Out-Null
           gh release download --repo tillwithered/flood.md --pattern "*-setup.exe" --dir $previousDir

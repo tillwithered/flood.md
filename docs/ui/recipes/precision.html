@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><title>Flood · Детали интерфейса · Lab 0.4</title><link rel="stylesheet" href="precision.css"></head>
+<body class="precision" data-theme="light">
+<main class="wrap">
+<div class="brandbar"><div class="brand">flood.md <small>Design lab / 0.4</small></div><div class="actions"><span class="pill">Кандидаты на утверждение</span><button class="ui-btn" id="theme" type="button" aria-pressed="false">Тёмная тема</button></div></div>
+<header class="intro"><h1>Детали, которые собирают интерфейс</h1><p class="muted">Чистая светлая база уже принята. Теперь проверяем текст, ритм, контролы и выбор — без новой палитры и лишних рамок.</p></header>
+<nav class="tabs" role="tablist" aria-label="Разделы дизайн-лаборатории">
+<button role="tab" id="tab-type" aria-controls="panel-type" aria-selected="true" data-tab="type" type="button"><span class="n">01</span>Текст</button>
+<button role="tab" id="tab-list" aria-controls="panel-list" aria-selected="false" tabindex="-1" data-tab="list" type="button"><span class="n">02</span>Списки</button>
+<button role="tab" id="tab-controls" aria-controls="panel-controls" aria-selected="false" tabindex="-1" data-tab="controls" type="button"><span class="n">03</span>Контролы</button>
+<button role="tab" id="tab-states" aria-controls="panel-states" aria-selected="false" tabindex="-1" data-tab="states" type="button"><span class="n">04</span>Состояния</button>
+</nav>
+<section role="tabpanel" id="panel-type" aria-labelledby="tab-type">
+<div class="section-intro"><h2>Сначала читается главное</h2><p class="muted">Одинаковый текст, ширина и поверхность. Меняем только типографический вес и ритм. Не делаем второстепенное нечитаемым.</p></div>
+<div class="pair"><div><p class="caption">A / Одинаковый вес у всего</p><article class="panel pad type-demo" data-variant="flat" id="type-flat"></article></div><div><p class="caption">B / Контекст → название → содержание</p><article class="panel pad type-demo" data-variant="hierarchy" id="type-hierarchy"></article></div></div>
+<p class="rule"><strong>Предложение T-01.</strong> Название 20/26 и 600; рабочий текст 14/20 и 400; метаданные 13/18. Контекст не спорит с названием. Проверяем сочетание, а не размер шрифта в отрыве от экрана.</p>
+</section>
+<section role="tabpanel" id="panel-list" aria-labelledby="tab-list" hidden>
+<div class="section-intro"><h2>Больше задач — не больше коробок</h2><p class="muted">18 задач, длинные названия и разные состояния. Меняйте плотность и оформление: все данные сохраняются. Выбор — для групповой операции, не завершение задачи.</p></div>
+<div class="panel" id="collection" data-density="normal" data-noise="false">
+<div class="list-top"><h3>Работа над Flood</h3><div class="actions" role="group" aria-label="Плотность только в образце"><button class="ui-btn" type="button" id="normal" aria-pressed="true">Обычная</button><button class="ui-btn" type="button" id="compact" aria-pressed="false">Плотная</button><button class="ui-btn tertiary" type="button" id="noise" aria-pressed="false">Добавить шум</button></div></div>
+<div class="list-tools"><div class="field-group"><label for="task-search">Поиск по задачам</label><div class="searchbox"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input id="task-search" type="search" placeholder="Название, источник или состояние" autocomplete="off"></div></div><button class="ui-btn" type="button" id="attention" aria-pressed="false">Только требует участия</button><button class="ui-btn tertiary" type="button" id="clear-filter">Сбросить фильтр</button></div>
+<div class="list-scroll" tabindex="0" role="region" aria-label="Прокручиваемый список задач"><ul class="task-list" id="task-list"></ul><div class="empty" id="empty" hidden><h3>Совпадений нет</h3><p class="muted">Выбор сохранён. Измените запрос или сбросьте фильтр.</p><button class="ui-btn" type="button" id="empty-clear">Очистить поиск и фильтр</button></div></div>
+<div class="list-bottom"><p class="meta" id="list-count" aria-live="polite"></p><div class="actions"><p class="meta" id="selected-count" aria-live="polite">Выбрано: 0</p><button class="ui-btn tertiary" id="clear-selection" type="button">Снять выбор</button></div></div>
+</div>
+<p class="rule"><strong>Предложение L-01.</strong> Одна коллекция вместо стопки карточек. Две плотности меняют интервалы, не размер текста и не состав метаданных. На узком окне значения переносятся, не удаляются.</p>
+</section>
+<section role="tabpanel" id="panel-controls" aria-labelledby="tab-controls" hidden>
+<div class="section-intro"><h2>Разные действия. Одна геометрия.</h2><p class="muted">Поле, фильтр и кнопка получают согласованную высоту, радиус и размер иконки. Поиск и фильтр в паре синхронизированы; «Создать» здесь только демонстрация.</p></div>
+<div class="actions" style="margin-bottom:16px"><label class="check-label"><input type="checkbox" id="guides">Показать направляющие</label></div>
+<div class="pair"><div><p class="caption">A / Размеры собраны по отдельности</p><div class="panel pad"><div class="control-demo" data-variant="uneven" id="controls-uneven"></div></div></div><div><p class="caption">B / Единый ряд, 36 px и radius 10</p><div class="panel pad"><div class="control-demo" data-variant="aligned" id="controls-aligned"></div></div></div></div>
+<p id="controls-message" class="rule" role="status">Иконка занимает 16 px, но не определяет размер области нажатия.</p>
+<div class="grid3">
+<div class="panel pad stack"><h3>Ввод и ошибка</h3><div class="field-group"><label for="project-name">Название проекта</label><input class="field" id="project-name" value="Flood" aria-describedby="name-hint"><p class="meta" id="name-hint">Имя остаётся при ошибке.</p></div><button class="ui-btn" id="validate" type="button">Проверить поле</button></div>
+<div class="panel pad stack"><h3>Место для ожидания</h3><p class="meta">Демо: 0,7 секунды ожидания. Кнопка не меняет ширину.</p><button class="ui-btn primary" id="save" type="button"><span class="save-slot" aria-hidden="true"></span><span>Сохранить</span></button><p class="feedback" id="save-status" role="status">Изменения не отправляются.</p></div>
+<div class="panel pad stack"><h3>Честная недоступность</h3><button class="ui-btn" type="button" disabled aria-describedby="disabled-reason">Подключить источник</button><p class="meta" id="disabled-reason">Сначала войдите в аккаунт. Причина видна без наведения.</p><p class="meta">Без пунктирной рамки и без исчезнувшего текста.</p></div>
+</div>
+<p class="rule"><strong>Предложение C-01.</strong> Один размер на ряд, минимум 36 px на desktop и 44 px при coarse pointer. Общая геометрия не означает одинаковое оформление поля и primary.</p>
+</section>
+<section role="tabpanel" id="panel-states" aria-labelledby="tab-states" hidden>
+<div class="section-intro"><h2>Выбрано — не значит в фокусе</h2><p class="muted">Эти шесть образцов статичны: рядом показаны разные состояния одного control. Ниже — настоящий выбор с клавиатурой.</p></div>
+<div class="state-grid" id="state-grid"></div>
+<div class="pair" style="margin-top:24px"><div class="panel pad"><fieldset class="choice-list"><legend>Один источник: radio + поверхность</legend><label class="choice"><input type="radio" name="source-choice" value="Контекст проекта" checked>Контекст проекта</label><label class="choice"><input type="radio" name="source-choice" value="Описание задачи">Описание задачи</label><label class="choice"><input type="radio" name="source-choice" value="История решений">История решений</label></fieldset></div><div class="panel pad stack"><h3>Не складываем все сигналы сразу</h3><p>Для выбора значения достаточно метки и спокойной поверхности. Толстая боковая полоса не добавляется автоматически к radio или checkbox.</p><p class="meta">Фокус остаётся отдельным отчётливым контуром. В списке задач checkbox означает групповой выбор; галочка не превращает задачу в завершённую.</p><p class="status-note" id="source-status" role="status">Выбран источник: Контекст проекта</p></div></div>
+<p class="rule"><strong>Предложение S-01.</strong> У каждого сигнала одна роль: hover — обратная связь, selected — выбор, focus — позиция клавиатуры. Изменение состояния не меняет padding, толщину border и вес текста.</p>
+</section>
+<section class="review" aria-label="Локальный отзыв на текущий раздел">
+<div><h3 id="review-title">Проверяем: текст</h3><p class="meta">Отметка относится только к текущему разделу. Новые варианты не становятся принятыми автоматически.</p><div class="review-actions" role="group" aria-label="Решение по текущему разделу"><button class="ui-btn" type="button" data-vote="keep" aria-pressed="false">Оставить</button><button class="ui-btn" type="button" data-vote="revise" aria-pressed="false">Доработать</button><button class="ui-btn tertiary" type="button" data-vote="pending" aria-pressed="true">Пока не решил</button></div></div>
+<div class="field-group"><label for="review-note">Что сохранить или изменить</label><textarea class="field" id="review-note" placeholder="Например: плотный список нравится, кнопку фильтра сделать спокойнее."></textarea></div>
+</section>
+<footer class="footer"><div><p class="meta" id="review-summary" role="status">Рассмотрено: 0 из 4</p><p class="meta">Отметки живут в этой странице до перезагрузки. Скачать отзыв — сохранить JSON локально; в GitHub ничего не отправляется. Шрифт: Golos Text при наличии, иначе системный.</p></div><button class="ui-btn" id="export" type="button">Скачать отзыв</button></footer>
+<noscript>Для интерактивных сравнений нужен JavaScript. Здесь нет сетевых запросов.</noscript>
+</main><script src="precision.js"></script>
+</body></html>

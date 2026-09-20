@@ -2,6 +2,8 @@ node_modules/
 dist/
 target/
 .codex-audit/
+.codex-route-verify-data/
+artifacts/
 src-tauri/target/
 src-tauri/gen/
 *.log

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark">
+<title>Flood · Примитивы 0.6</title>
+<link rel="stylesheet" href="precision.css"><link rel="stylesheet" href="primitives.css">
+</head>
+<body class="precision primitives" data-theme="light" data-guides="false">
+<div class="wrap">
+<header class="brandbar"><div class="brand">flood.md <small>Лаборатория · 0.6</small></div><button class="ui-btn" id="theme">Тёмная тема</button></header>
+<div class="intro"><span class="eyebrow">ПРИМИТИВЫ, НЕ НОВЫЙ ЭКРАН</span><h1>Сначала детали.</h1><p class="muted">Fill-иконки, явные состояния контролов и геометрия, которая действительно связана. Палитра прежняя. Новые решения — на утверждение.</p></div>
+<nav class="tabs" role="tablist" aria-label="Разделы примитивов">
+<button role="tab" id="tab-icons" aria-controls="page-icons" aria-selected="true"><span class="n">01</span>Иконки</button>
+<button role="tab" id="tab-choice" aria-controls="page-choice" aria-selected="false" tabindex="-1"><span class="n">02</span>Выбор</button>
+<button role="tab" id="tab-fields" aria-controls="page-fields" aria-selected="false" tabindex="-1"><span class="n">03</span>Поля и кнопки</button>
+<button role="tab" id="tab-geometry" aria-controls="page-geometry" aria-selected="false" tabindex="-1"><span class="n">04</span>Радиусы и эффекты</button>
+</nav>
+<main>
+<section class="tab-page" id="page-icons" role="tabpanel" aria-labelledby="tab-icons">
+<div class="section-intro"><h2>Силуэт вместо обводки</h2><p class="muted">Два настоящих набора: те же значения, размер и цвет. Сравниваем характер и читаемость, а не фон за иконкой.</p></div>
+<div class="compact-tools"><label for="glyph-size">Размер <select id="glyph-size" class="ui-btn"><option value="16">16 px</option><option value="20" selected>20 px</option><option value="24">24 px</option></select></label><label><input id="guides" type="checkbox"> Показать слоты</label></div>
+<div class="pair" id="icon-comparison"></div>
+<div class="notice"><label for="icon-family">Набор для остальных примеров</label> <select id="icon-family" class="ui-btn"><option value="phosphor">Phosphor Fill</option><option value="hero">Heroicons Solid</option></select><p class="meta">Выбор здесь локальный: библиотека приложения не меняется. Heroicons показан из набора 20 px; 16/24 в этом сравнении — масштабирование, не другие optical masters.</p></div>
+<div class="facts-inline"><span>Один набор на поверхность</span><span>SVG, не иконочный шрифт</span><span>Fill не означает «всё залить чёрным»</span></div>
+</section>
+<section class="tab-page" id="page-choice" role="tabpanel" aria-labelledby="tab-choice" hidden>
+<div class="section-intro"><h2>Три формы. Три разных намерения.</h2><p class="muted">Чекбокс выбирает независимые пункты. Радио — один вариант. Switch сразу меняет настройку. Это не взаимозаменяемые картинки.</p></div>
+<div class="form-grid">
+<div class="panel pad"><fieldset><legend>Чекбокс · несколько</legend>
+<label class="choice"><input class="choice-input" id="check-all" type="checkbox"><span class="choice-mark" aria-hidden="true"></span><span class="copy">Все типы источников<small>Смешанное состояние — выбрана часть.</small></span></label>
+<div id="check-children" class="cluster">
+<label class="choice"><input class="choice-input" type="checkbox" name="sources" value="repositories" checked><span class="choice-mark" aria-hidden="true"></span><span class="copy">Репозитории</span></label>
+<label class="choice"><input class="choice-input" type="checkbox" name="sources" value="documents"><span class="choice-mark" aria-hidden="true"></span><span class="copy">Документы</span></label>
+<label class="choice"><input class="choice-input" type="checkbox" name="sources" value="messages"><span class="choice-mark" aria-hidden="true"></span><span class="copy">Сообщения</span></label>
+</div><p id="check-summary" class="demo-status" role="status"></p></fieldset></div>
+<div class="panel pad"><fieldset><legend>Радио · один вариант</legend>
+<label class="choice"><input class="choice-input" type="radio" name="order" value="updated" checked><span class="choice-mark" aria-hidden="true"></span><span class="copy">По обновлению<small>Последние изменения — первыми.</small></span></label>
+<label class="choice"><input class="choice-input" type="radio" name="order" value="title"><span class="choice-mark" aria-hidden="true"></span><span class="copy">По названию</span></label>
+<label class="choice"><input class="choice-input" type="radio" name="order" value="manual" disabled aria-describedby="manual-reason"><span class="choice-mark" aria-hidden="true"></span><span class="copy">Вручную<small id="manual-reason">В этом примере ручной порядок недоступен.</small></span></label>
+<p class="demo-status">Стрелки меняют выбор. Space выбирает. Mixed-состояния у радио нет.</p></fieldset></div>
+</div>
+<div class="panel pad"><h3>Переключатель · немедленная настройка</h3>
+<label class="choice"><input class="choice-input" id="switch-live" type="checkbox" role="switch" aria-describedby="switch-feedback"><span class="switch-mark" aria-hidden="true"></span><span class="copy">Показывать завершённые<small>Включение применяется сразу, без отдельной кнопки «Сохранить».</small></span></label>
+<div class="compact-tools"><label><input id="switch-fail" type="checkbox"> Симулировать ошибку следующего изменения</label></div>
+<p class="switch-feedback" id="switch-feedback" role="status">Выключено. Только локальная демонстрация.</p></div>
+<div><div class="caption">Анатомия состояний <span>Ниже схемы, не дополнительные переключатели</span></div><div class="state-grid" id="choice-states"></div></div>
+<div class="form-grid"><div class="panel pad"><h3>Недоступный выбор</h3><label class="choice"><input class="choice-input" type="checkbox" checked disabled aria-describedby="disabled-reason"><span class="choice-mark" aria-hidden="true"></span><span class="copy">Репозиторий подключён<small id="disabled-reason">Изменение недоступно во время операции.</small></span></label></div><div class="panel pad"><h3>Ошибка не стирает выбор</h3><label class="choice"><input class="choice-input" id="invalid-check" type="checkbox" aria-invalid="true" aria-describedby="check-error"><span class="choice-mark" aria-hidden="true"></span><span class="copy">Подтвердить область изменения</span></label><p id="check-error" class="error">Подтвердите область перед продолжением.</p></div></div>
+</section>
+<section class="tab-page" id="page-fields" role="tabpanel" aria-labelledby="tab-fields" hidden>
+<div class="section-intro"><h2>Не только высота и радиус</h2><p class="muted">У каждого поля есть label, значение, состояния и способ восстановления. Пунктир и бледность не заменяют объяснение.</p></div>
+<div class="form-grid">
+<div class="panel pad stack"><h3>Select · короткое значение</h3><label class="field-group">Сортировка<span class="select-wrap"><select id="sort-live" class="select"><option>По обновлению</option><option>По названию</option><option>Сначала важные</option></select><span class="caret" aria-hidden="true"></span></span><small class="muted">Сам control монохромный. Открытый список рисует браузер/ОС.</small></label><label class="field-group">Недоступный выбор<span class="select-wrap"><select class="select" disabled aria-describedby="select-disabled-reason"><option>По обновлению</option></select><span class="caret" aria-hidden="true"></span></span><small class="muted" id="select-disabled-reason">Дождитесь завершения обновления.</small></label></div>
+<div class="panel pad stack"><h3>Select · ошибка</h3><label class="field-group">Выберите формат<span class="select-wrap"><select class="select" id="format-select" aria-invalid="true" aria-describedby="format-error"><option value="">Не выбран</option><option value="md">Markdown</option><option value="json">JSON</option></select><span class="caret" aria-hidden="true"></span></span><small class="error" id="format-error">Выберите формат экспорта.</small></label><p class="meta">Внешний вид закрытого select — кандидат. Управление поисковым combobox уже есть в 0.5; его асинхронные состояния ещё не закрыты.</p></div>
+<div class="panel pad stack"><h3>Ввод · редактирование</h3><label class="field-group">Найти источник<span class="field-icon"><span data-demo-icon="search" aria-hidden="true"></span><input id="text-live" class="field" placeholder="Название или владелец" type="search"></span></label><label class="field-group">Идентификатор · только чтение<input class="field" value="flood-dev" readonly><small class="muted">Можно выделить и скопировать. Это не disabled.</small></label></div>
+<div class="panel pad stack"><h3>Ввод · длинный текст</h3><label class="field-group">Примечание<textarea class="field mini-area" id="note-live" placeholder="Что важно учесть"></textarea></label><p class="meta">Enter создаёт строку. Высота может расти, текст не уменьшается до 11 px.</p></div>
+</div>
+<div class="panel pad stack"><h3>Кнопки · вес, ожидание, недоступность</h3><div class="button-samples"><button class="ui-btn primary" data-echo="Основное действие"><span data-demo-icon="document" aria-hidden="true"></span>Сохранить</button><button class="ui-btn" data-echo="Вторичное действие">Отмена</button><button class="ui-btn tertiary" data-echo="Текстовое действие">Подробнее</button><button class="ui-btn danger" data-echo="Только демонстрация опасного действия">Удалить</button></div><div class="button-samples"><button class="ui-btn primary save-button" id="save-demo"><span class="loading-slot" aria-hidden="true"></span><span>Сохранить</span></button><button class="ui-btn" disabled aria-describedby="save-reason">Сохранить</button><span id="save-reason" class="meta">Нет изменений.</span></div><p id="button-feedback" class="demo-status" role="status">Локальная симуляция. Данные никуда не отправляются.</p></div>
+</section>
+<section class="tab-page" id="page-geometry" role="tabpanel" aria-labelledby="tab-geometry" hidden>
+<div class="section-intro"><h2>Радиусы связаны в CSS, а не на словах</h2><p class="muted">Для параллельных округлых контуров: внутренний радиус = внешний − реальный inset. Border входит в inset.</p></div>
+<div class="compact-tools"><label for="inset">Видимый inset <select id="inset" class="ui-btn"><option value="4">4 px</option><option value="6" selected>6 px</option><option value="10">10 px</option></select></label><button id="measure" class="ui-btn">Измерить контуры</button></div>
+<div class="geometry-pair">
+<div><p class="caption">A · независимые радиусы <span>Антипаттерн</span></p><div class="nested-shell" data-wrong="true"><div class="nested-fill"><strong>16 снаружи, 16 внутри</strong><p class="meta">Inset меняется, внутренний угол — нет.</p></div></div><p class="formula">Независимое значение даёт неравномерную толщину у угла.</p></div>
+<div><p class="caption">B · связанный контур <span>Кандидат</span></p><div class="nested-shell" id="nested-correct"><div class="nested-fill"><strong>Тот же материал и отступ</strong><p class="meta">Угол пересчитывается вместе с inset.</p></div></div><p class="formula">R <output id="outer-value">16</output> − B <output id="inset-value">6</output> = r <output id="inner-value">10</output> px. <span id="measured" role="status"></span></p></div>
+</div>
+<div class="geometry-examples">
+<div class="stack"><h3>Локальное меню</h3><div class="inset-menu" id="geometry-menu"><button data-echo="Пример выбора команды">Переименовать</button><button data-echo="Пример выбора команды">Закрепить</button></div><p class="meta">R14 − (border 1 + padding 6) = r7. Это образец геометрии, не новое меню-компаунд.</p></div>
+<div class="stack"><h3>Поле с вложенной кнопкой</h3><label class="field-group" for="joined-input">Найти<span class="joined-field" id="geometry-field"><input id="joined-input" value="flood-dev"><button id="clear-joined" type="button" aria-label="Очистить поиск"><span class="close-glyph" aria-hidden="true"></span></button></span></label><p class="meta">R10 − (border 1 + padding 2) = r7. Фокус не обрезается родителем.</p></div>
+</div>
+<div class="notice"><strong>Не любой ребёнок наследует формулу.</strong><p class="meta">Отдельная кнопка в глубине диалога сохраняет radius control. Формула относится к параллельным контурам. Круг, capsule и squircle требуют собственного контракта.</p></div>
+<div><h3>Эффекты по роли, не на каждом элементе</h3><p class="rule">Уберите эффект: смысл и фокус должны сохраниться. Свет и тень не заменяют границу поля.</p></div>
+<div class="effect-grid"><div class="effect" data-effect="none"><strong>В потоке</strong><p class="meta">Без тени. Отступ и текст уже группируют содержание.</p></div><div class="effect" data-effect="edge"><strong>Самостоятельная поверхность</strong><p class="meta">Один слабый локальный край, без ореола.</p></div><div class="effect" data-effect="floating"><strong>Реальное наложение</strong><p class="meta">Контактная + мягкая тень. Верхний свет затухает к краям.</p></div></div>
+<p class="demo-status" id="geometry-feedback" role="status"></p>
+</section>
+</main>
+<section class="review-box"><h3>Что оставить в этом разделе?</h3><div class="review-actions"><button class="ui-btn" data-review="keep" aria-pressed="false">Оставить</button><button class="ui-btn" data-review="revise" aria-pressed="false">Доработать</button><button class="ui-btn" data-review="undecided" aria-pressed="true">Пока не решил</button></div><label class="field-group" for="review-note">Комментарий<textarea id="review-note" class="field mini-area" placeholder="Например: Phosphor нравится, но лупа слишком тяжёлая"></textarea></label><div><button id="export" class="ui-btn">Скачать отзыв</button></div><p class="meta">Отзыв хранится только в памяти страницы. Экспортируйте перед закрытием. Он не отправляется в GitHub.</p></section>
+<footer class="small-print">Все новые примитивы — кандидаты. Рендер браузера не заменяет Tauri/iOS и проверку со скринридером. Шрифт: локальный Golos Text либо системный fallback. Иконки: Phosphor Icons и Heroicons, MIT; исходные лицензии включены в портативный файл.</footer>
+</div>
+<script src="primitive-icons.js"></script><script src="primitives.js"></script>
+</body>
+</html>

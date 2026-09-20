@@ -1,0 +1,148 @@
+/* Primitive lab 0.6. Candidate component contracts, not an application import. */
+.primitives { --glyph-size:20px; --choice-size:18px; --choice-radius:5px; --thumb:calc(var(--track-height) - var(--thumb-inset) * 2); --track-width:36px; --track-height:20px; --thumb-inset:2px; --shadow-near:rgb(0 0 0 / 5%); --shadow-far:rgb(0 0 0 / 10%); --top-light:rgb(255 255 255 / 65%); }
+.primitives[data-theme="dark"] { --shadow-near:rgb(0 0 0 / 24%); --shadow-far:rgb(0 0 0 / 36%); --top-light:rgb(255 255 255 / 14%); }
+.primitives .wrap { max-width:1160px; }
+.primitives .tab-page { display:grid; gap:24px; }
+.primitives .section-intro { margin:0; }
+.primitives p { overflow-wrap:anywhere; }
+.primitives .eyebrow { color:var(--muted); font-size:12px; line-height:16px; }
+.primitives .caption { justify-content:space-between; }
+.primitives .compact-tools { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.primitives .compact-tools label { display:flex; align-items:center; gap:8px; }
+.primitives .pair { gap:24px; }
+.primitives .icon-catalog { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:28px 16px; }
+.primitives .icon-cell { display:grid; justify-items:center; gap:10px; color:var(--ink); }
+.primitives .icon-cell span:last-child { font-size:12px; line-height:16px; color:var(--muted); }
+.primitives .glyph-slot { width:28px; height:28px; display:inline-grid; place-items:center; flex-shrink:0; }
+.primitives .glyph { width:var(--glyph-size); height:var(--glyph-size); fill:currentColor; flex-shrink:0; display:block; }
+.primitives .ui-btn .glyph, .primitives .field-icon .glyph { width:16px; height:16px; }
+.primitives[data-guides="true"] .glyph-slot { outline:1px dashed var(--boundary); background:var(--row-hover); }
+.primitives .icon-context { margin-top:28px; padding-top:20px; border-top:1px solid var(--edge); display:grid; gap:12px; }
+.primitives .icon-caption { font-size:13px; line-height:18px; color:var(--muted); }
+.primitives .facts-inline { display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--muted); }
+.primitives .notice { background:var(--surface); border-radius:10px; padding:16px; }
+.primitives .notice p + p { margin-top:8px; }
+.primitives .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.primitives fieldset { min-width:0; border:0; padding:0; }
+.primitives legend { font-size:16px; line-height:24px; font-weight:600; margin-bottom:16px; padding:0; }
+.primitives .choice { min-height:36px; display:flex; align-items:flex-start; gap:10px; padding:8px 0; cursor:pointer; position:relative; }
+.primitives .choice .copy { display:grid; gap:3px; min-width:0; }
+.primitives .choice small { font-size:13px; line-height:18px; color:var(--muted); }
+.primitives .choice:has(:disabled) { cursor:not-allowed; }
+.primitives .choice-input { position:absolute; width:18px; height:18px; margin:1px 0 0; opacity:0; }
+.primitives .choice-mark { width:var(--choice-size); height:var(--choice-size); margin-top:1px; flex:0 0 var(--choice-size); border:1px solid var(--boundary); border-radius:var(--choice-radius); background:var(--field); color:var(--on-ink); position:relative; display:grid; place-items:center; transition:background-color 120ms ease-out; }
+.primitives .choice-mark::after { content:""; width:12px; height:12px; background:currentColor; clip-path:polygon(10% 48%,25% 34%,43% 53%,78% 15%,92% 28%,43% 85%); opacity:0; }
+.primitives .choice-input:checked + .choice-mark, .primitives .choice-input:indeterminate + .choice-mark { background:var(--ink); border-color:var(--ink); }
+.primitives .choice-input:checked + .choice-mark::after, .primitives .choice-input:indeterminate + .choice-mark::after { opacity:1; }
+.primitives .choice-input:indeterminate + .choice-mark::after { clip-path:none; width:10px; height:2px; border-radius:1px; }
+.primitives .choice-input[type="radio"] + .choice-mark { border-radius:50%; }
+.primitives .choice-input[type="radio"] + .choice-mark::after { clip-path:none; width:8px; height:8px; border-radius:50%; background:var(--on-ink); }
+.primitives .choice-input:focus-visible + .choice-mark { outline:2px solid var(--focus); outline-offset:3px; }
+.primitives .choice-input:disabled + .choice-mark { background:var(--control-bg); border-color:var(--control-edge); color:var(--muted); }
+.primitives .choice-input[type="radio"]:disabled + .choice-mark::after { background:var(--muted); }
+.primitives .choice-input:disabled ~ .copy { color:var(--muted); }
+.primitives .choice-input[aria-invalid="true"] + .choice-mark { border-color:var(--danger-text); }
+.primitives .error { color:var(--danger-text); font-size:13px; line-height:18px; }
+.primitives .cluster { display:grid; gap:4px; }
+.primitives .demo-status { margin-top:12px; min-height:20px; color:var(--muted); font-size:13px; }
+.primitives .switch-mark { width:var(--track-width); height:var(--track-height); margin-top:0; flex:0 0 var(--track-width); border-radius:999px; border:1px solid var(--boundary); background:var(--control-bg); position:relative; }
+.primitives .switch-mark::after { content:""; width:var(--thumb); height:var(--thumb); position:absolute; top:calc(var(--thumb-inset) - 1px); left:calc(var(--thumb-inset) - 1px); border-radius:50%; background:var(--muted); transition:transform 120ms ease-out; }
+.primitives .choice-input:checked + .switch-mark { background:var(--ink); border-color:var(--ink); }
+.primitives .choice-input:checked + .switch-mark::after { transform:translateX(calc(var(--track-width) - var(--thumb) - var(--thumb-inset) * 2)); background:var(--on-ink); }
+.primitives .choice-input:disabled + .switch-mark { background:var(--control-bg); border-color:var(--control-edge); }
+.primitives .choice-input:disabled + .switch-mark::after { background:var(--muted); }
+.primitives .choice-input:focus-visible + .switch-mark { outline:2px solid var(--focus); outline-offset:3px; }
+.primitives .choice-input[role="switch"] { width:36px; height:20px; }
+.primitives .switch-feedback { min-height:20px; font-size:13px; line-height:18px; margin-top:8px; }
+.primitives .state-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+.primitives .state-cell { display:grid; gap:12px; padding:16px; background:var(--panel); border:1px solid var(--edge); border-radius:10px; }
+.primitives .state-cell > small { color:var(--muted); font-size:12px; line-height:16px; }
+.primitives .sample-choice { display:flex; align-items:center; gap:12px; min-height:28px; }
+.primitives .sample-choice[data-state="checked"] .choice-mark, .primitives .sample-choice[data-state="mixed"] .choice-mark { background:var(--ink); border-color:var(--ink); }
+.primitives .sample-choice[data-state="checked"] .choice-mark::after, .primitives .sample-choice[data-state="mixed"] .choice-mark::after { opacity:1; }
+.primitives .sample-choice[data-state="mixed"] .choice-mark::after { clip-path:none; width:10px; height:2px; }
+.primitives .sample-choice[data-state="focus"] .choice-mark { outline:2px solid var(--focus); outline-offset:3px; }
+.primitives .sample-choice[data-state="disabled"] .choice-mark { background:var(--control-bg); border-color:var(--control-edge); }
+.primitives .sample-choice[data-state="invalid"] .choice-mark { border-color:var(--danger-text); }
+.primitives .sample-choice[data-state="hover"] .choice-mark { background:var(--control-hover); }
+.primitives .field-group { display:grid; gap:8px; min-width:0; }
+.primitives .field-group small { font-size:13px; line-height:18px; }
+.primitives .field, .primitives .select { width:100%; min-width:0; font:inherit; border:1px solid var(--boundary); border-radius:10px; min-height:36px; padding:7px 12px; background:var(--field); color:var(--ink); }
+.primitives select { font:inherit; color:var(--ink); }
+.primitives .select-wrap { position:relative; }
+.primitives .select { appearance:none; padding-inline-end:36px; cursor:pointer; }
+.primitives .caret { position:absolute; right:12px; top:50%; margin-top:-3px; width:10px; height:6px; background:var(--ink); clip-path:polygon(0 0,50% 65%,100% 0,100% 40%,50% 100%,0 40%); pointer-events:none; }
+.primitives :is(.field,.select):focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
+.primitives :is(.field,.select)[aria-invalid="true"] { border-color:var(--danger-text); }
+.primitives :is(.field,.select):disabled { color:var(--muted); background:var(--control-bg); border-color:var(--control-edge); cursor:not-allowed; }
+.primitives .field[readonly] { background:var(--surface); }
+.primitives .field-icon { position:relative; }
+.primitives .field-icon .field { padding-inline-start:38px; }
+.primitives .field-icon [data-demo-icon] { position:absolute; left:12px; top:10px; color:var(--muted); }
+.primitives .field::placeholder { color:var(--muted); opacity:1; }
+.primitives .field.mini-area { min-height:84px; resize:vertical; display:block; }
+.primitives .button-samples { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.primitives .button-samples .ui-btn { min-width:110px; }
+.primitives .ui-btn.danger { background:var(--danger-text); color:var(--on-ink); border-color:var(--danger-text); }
+.primitives .ui-btn:disabled { color:var(--muted); border-style:solid; background:var(--control-bg); border-color:var(--control-edge); cursor:not-allowed; }
+.primitives .loading-slot { display:inline-grid; width:16px; height:16px; place-items:center; }
+.primitives .loading-slot:empty { display:none; }
+.primitives .save-button { min-width:148px; }
+.primitives .save-button .loading-slot { display:inline-grid; }
+.primitives .spinner-mini { width:14px; height:14px; border-radius:50%; border:2px solid currentColor; border-inline-end-color:transparent; animation:p-spin .8s linear infinite; }
+@keyframes p-spin { to{transform:rotate(360deg)} }
+.primitives .geometry-pair { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; align-items:start; }
+.primitives .nested-shell { --outer-radius:16px; --edge-width:1px; --inset:6px; --inner-radius:max(0px,calc(var(--outer-radius) - var(--inset))); border:var(--edge-width) solid var(--edge); border-radius:var(--outer-radius); padding:calc(var(--inset) - var(--edge-width)); background:var(--panel); }
+.primitives .nested-fill { border-radius:var(--inner-radius); min-height:112px; background:var(--control-bg); padding:16px; display:grid; align-content:center; gap:8px; }
+.primitives .nested-shell[data-wrong="true"] .nested-fill { border-radius:16px; }
+.primitives .formula { font-variant-numeric:tabular-nums; font-size:13px; line-height:20px; color:var(--muted); margin-top:12px; }
+.primitives .formula output { color:var(--ink); font-weight:500; }
+.primitives[data-guides="true"] .nested-fill { outline:1px dashed var(--boundary); outline-offset:-1px; }
+.primitives .geometry-examples { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.primitives .inset-menu { --outer-radius:14px; --edge-width:1px; --inset:7px; --inner-radius:max(0px,calc(var(--outer-radius) - var(--inset))); padding:calc(var(--inset) - var(--edge-width)); border:var(--edge-width) solid var(--edge); border-radius:var(--outer-radius); background:var(--panel); display:grid; gap:4px; }
+.primitives .inset-menu button { border:0; border-radius:var(--inner-radius); background:var(--control-bg); padding:9px 10px; min-height:38px; text-align:left; font:inherit; }
+.primitives .joined-field { --outer-radius:10px; --edge-width:1px; --inset:3px; --inner-radius:max(0px,calc(var(--outer-radius) - var(--inset))); display:flex; gap:8px; padding:calc(var(--inset) - var(--edge-width)); border:var(--edge-width) solid var(--boundary); border-radius:var(--outer-radius); background:var(--field); }
+.primitives .joined-field input { min-width:0; width:100%; border:0; outline:0; background:transparent; color:var(--ink); padding:6px 8px; }
+.primitives .joined-field button { flex:0 0 32px; border:0; border-radius:var(--inner-radius); background:var(--control-bg); color:var(--ink); font:inherit; }
+.primitives .joined-field:has(input:focus-visible) { outline:2px solid var(--focus); outline-offset:3px; }
+.primitives .effect-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+.primitives .effect { position:relative; padding:20px; min-height:136px; background:var(--panel); border:1px solid transparent; border-radius:16px; display:grid; align-content:start; gap:12px; }
+.primitives .effect[data-effect="edge"] { border-color:var(--edge); }
+.primitives .effect[data-effect="floating"] { border-color:var(--edge); box-shadow:0 2px 4px var(--shadow-near),0 12px 32px -8px var(--shadow-far); }
+.primitives .effect[data-effect="floating"]::before { content:""; position:absolute; top:0; left:16px; right:16px; height:1px; background:linear-gradient(90deg,transparent,var(--top-light) 30%,var(--top-light) 70%,transparent); pointer-events:none; }
+.primitives .review-box { margin-top:36px; border-top:1px solid var(--edge); padding-top:24px; display:grid; gap:12px; }
+.primitives .review-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.primitives .review-actions [aria-pressed="true"] { background:var(--ink); color:var(--on-ink); }
+.primitives .small-print { margin-top:32px; font-size:12px; line-height:18px; color:var(--muted); }
+@media (hover:hover) {
+  .primitives .choice:hover .choice-input:not(:disabled):not(:checked):not(:indeterminate) + .choice-mark { background:var(--control-hover); }
+  .primitives .inset-menu button:hover, .primitives .joined-field button:hover { background:var(--control-hover); }
+  .primitives .ui-btn.danger:not(:disabled):hover { background:var(--danger-text); color:var(--on-ink); }
+}
+@media (max-width:760px) { .primitives .state-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .primitives .effect-grid { grid-template-columns:1fr; } }
+@media (max-width:620px) { .primitives .pair,.primitives .form-grid,.primitives .geometry-pair,.primitives .geometry-examples { grid-template-columns:1fr; } .primitives .wrap { padding:20px 16px 48px; } .primitives .pad { padding:20px; } .primitives .icon-catalog { gap:24px 12px; } .primitives .tabs { gap:4px; } .primitives .tabs button { padding:8px; } }
+@media (pointer:coarse) { .primitives .choice,.primitives .ui-btn,.primitives .field,.primitives .select,.primitives .joined-field { min-height:44px; } .primitives .field-icon [data-demo-icon] { top:14px; } .primitives .inset-menu button { min-height:44px; } }
+@media (prefers-reduced-motion:reduce) { .primitives *, .primitives *::after { animation:none!important; transition:none!important; } }
+.primitives.theme-changing *, .primitives.theme-changing *::after { transition:none!important; }
+@media (forced-colors:active) {
+  .primitives .choice-input { opacity:1; position:static; appearance:auto; accent-color:auto; flex:0 0 18px; }
+  .primitives .choice-mark, .primitives .switch-mark { display:none; }
+  .primitives .choice-input:focus-visible { outline:2px solid Highlight; outline-offset:3px; }
+  .primitives .select { appearance:auto; background:Canvas; color:CanvasText; border-color:CanvasText; }
+  .primitives .caret { display:none; }
+  .primitives .effect, .primitives .nested-shell, .primitives .inset-menu { border-color:CanvasText; box-shadow:none; }
+  .primitives .effect::before { display:none; }
+  .primitives .ui-btn.danger { background:ButtonFace; color:ButtonText; border-color:ButtonText; }
+  .primitives .glyph { color:inherit; }
+}
+
+/* The base lab used selected rows; a standalone boolean control is not a row selection. */
+.primitives .choice:has(input:checked), .primitives .choice:not(:has(input:checked)):hover { background:transparent; }
+.primitives .ui-btn.danger:not(:disabled):active { background:var(--danger-text); color:var(--on-ink); }
+.primitives .close-glyph { display:block; width:12px; height:12px; margin:auto; position:relative; }
+.primitives .close-glyph::before, .primitives .close-glyph::after { content:""; position:absolute; top:5px; left:0; width:12px; height:2px; border-radius:1px; background:currentColor; transform:rotate(45deg); }
+.primitives .close-glyph::after { transform:rotate(-45deg); }
+.primitives .sample-choice[data-state="checked-focus"] .choice-mark { background:var(--ink); border-color:var(--ink); outline:2px solid var(--focus); outline-offset:3px; }
+.primitives .sample-choice[data-state="checked-focus"] .choice-mark::after { opacity:1; }
+
+.primitives .choice-input { z-index:1; }

@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Flood — ясность без шума · чистая светлая</title>
+<link rel="stylesheet" href="materials.css">
+<style>
+/* Isolated light-theme correction; materials.css is the preserved 0.2 baseline.
+   These candidate tokens do not change the application's production palette. */
+.flood-materials {
+  --panel-bg: #ffffff;
+  --control-bg: #f2f2f2;
+  --control-hover: #e9e9e9;
+  --control-pressed: #dfdfdf;
+  --control-edge: #d9d9d9;
+  --selection-mark: #171717;
+  --row-hover: #f7f7f7;
+  --row-selected: #f1f1f1;
+}
+.flood-materials:not([data-theme="dark"]) {
+  --canvas: #fafafa;
+  --surface: #f5f5f5;
+  --field: #ffffff;
+  --muted: #555555;
+  --hover: #f4f4f4;
+  --selected: #ececec;
+  --boundary-control: #858585;
+  --quiet-edge: #e8e8e8;
+  --edge-surface: #dedede;
+}
+.flood-materials[data-theme="dark"] {
+  --panel-bg: #20201e;
+  --control-bg: #2d2d2a;
+  --control-hover: #343431;
+  --control-pressed: #3c3c38;
+  --control-edge: #55554f;
+  --selection-mark: #f4f4f2;
+  --row-hover: #252523;
+  --row-selected: #2d2d2a;
+}
+/* Exact 0.3 comparison palette on identical current markup. */
+.flood-materials[data-theme="light"][data-palette="previous"] {
+  --canvas: #e9e9e6;
+  --surface: #f2f2ef;
+  --field: #ffffff;
+  --panel-bg: #ffffff;
+  --muted: #4f4f4c;
+  --boundary-control: #858581;
+  --edge-surface: rgb(23 23 23 / 10%);
+  --control-bg: #e5e5e2;
+  --control-hover: #dadad5;
+  --control-pressed: #cecec8;
+  --control-edge: #c1c1bb;
+  --row-hover: #f2f2ef;
+  --row-selected: #ecece8;
+}
+.flood-materials { margin: 0; font-size: 14px; line-height: 1.45; }
+.flood-materials main { max-inline-size: 1180px; margin: auto; padding: 40px 32px 64px; }
+.flood-materials h1 { margin: 0; font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -.025em; }
+.flood-materials h2 { margin: 0; font-size: 20px; line-height: 26px; font-weight: 600; letter-spacing: -.015em; }
+.flood-materials h3 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; }
+.flood-materials p { margin: 0; }
+.flood-materials .muted, .flood-materials .meta { color: var(--muted); }
+.flood-materials .meta { font-size: 13px; line-height: 18px; }
+.flood-materials .tabular { font-variant-numeric: tabular-nums; }
+.flood-materials .header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-block-end: 32px; }
+.flood-materials .intro { max-inline-size: 660px; display: grid; gap: 12px; }
+.flood-materials .brand { font-size: 14px; font-weight: 600; letter-spacing: -.02em; }
+.flood-materials .section { margin-block-start: 40px; }
+.flood-materials .section-head { display: grid; gap: 6px; margin-block-end: 16px; max-inline-size: 760px; }
+.flood-materials .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.flood-materials .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.flood-materials .pair > *, .flood-materials .grid > * { min-inline-size: 0; }
+.flood-materials .stack { display: grid; gap: 16px; }
+.flood-materials .material--quiet { background: var(--panel-bg); }
+/* Separate quiet white panels locally; do not darken the whole canvas.
+   :where keeps specificity low so accessibility media rules below win. */
+.flood-materials:where([data-theme="light"][data-palette="revised"]) .material--quiet:where(:not(.facts--noisy):not(.task-list--noisy)) {
+  border-color: var(--quiet-edge);
+}
+
+.flood-materials .sample { padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+.flood-materials .sample .actions { margin-block-start: auto; padding-block-start: 8px; }
+.flood-materials .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.flood-materials .sample p { max-inline-size: 48ch; }
+.flood-materials .control { background: var(--control-bg); border-color: var(--control-edge); font-size: 14px; }
+.flood-materials .control--primary { background: var(--ink); color: var(--on-ink); border-color: transparent; }
+.flood-materials .control--danger { background: var(--danger-solid); color: var(--on-danger); border-color: transparent; }
+.flood-materials .control--field { background: var(--field); border-color: var(--boundary-control); }
+.flood-materials .control:disabled { background: var(--surface); border-color: var(--edge-surface); border-style: solid; color: var(--muted); }
+.flood-materials button.control:not(:disabled):active { background: var(--control-pressed); }
+.flood-materials button.control--primary:not(:disabled):active { background: var(--primary-hover); color: var(--on-ink); }
+.flood-materials button.control--danger:not(:disabled):active { background: var(--danger-text); color: var(--on-danger); }
+@media (hover: hover) {
+  .flood-materials button.control:not(:disabled):hover { background: var(--control-hover); }
+  .flood-materials button.control--primary:not(:disabled):hover { background: var(--primary-hover); color: var(--on-ink); }
+  .flood-materials button.control--danger:not(:disabled):hover { background: var(--danger-text); color: var(--on-danger); }
+}
+.flood-materials fieldset { border: 0; padding: 0; margin: 0; min-inline-size: 0; }
+.flood-materials legend { padding: 0; margin-block-end: 8px; font-weight: 500; }
+.flood-materials .theme { display: flex; gap: 16px; flex-wrap: wrap; }
+.flood-materials .theme label { display: flex; gap: 6px; align-items: center; min-block-size: 36px; }
+.flood-materials input[type="radio"] { accent-color: var(--ink); margin: 0; flex: 0 0 18px; }
+.flood-materials .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px 20px; }
+.flood-materials .comparison-state { display: grid; gap: 2px; }
+.flood-materials .eyebrow { margin-block-end: 10px; font-weight: 500; color: var(--muted); }
+.flood-materials .facts { margin: 0; display: grid; gap: 16px; padding: 20px; }
+.flood-materials .facts > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: baseline; }
+.flood-materials .facts dt { color: var(--muted); }
+.flood-materials .facts dd { margin: 0; text-align: end; font-weight: 500; overflow-wrap: anywhere; }
+.flood-materials .facts--noisy { border-color: var(--boundary-control); gap: 8px; }
+.flood-materials .facts--noisy > div { border: 1px solid var(--boundary-control); padding: 11px; border-radius: 10px; }
+.flood-materials .facts--noisy dt { color: var(--ink); font-weight: 600; }
+.flood-materials .task-list { list-style: none; margin: 0; padding: 8px; display: grid; gap: 2px; }
+.flood-materials .task-list li { min-inline-size: 0; }
+.flood-materials .task-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; width: 100%; padding: 14px 12px; text-align: start; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--ink); font: inherit; cursor: pointer; }
+.flood-materials .task-title { display: block; font-weight: 500; overflow-wrap: anywhere; }
+.flood-materials .task-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); font-size: 13px; line-height: 18px; margin-block-start: 4px; }
+.flood-materials .task-state { font-size: 13px; line-height: 20px; align-self: center; white-space: nowrap; }
+.flood-materials .task-state[data-tone="warning"] { color: var(--warning-text); }
+.flood-materials .task-state[data-tone="danger"] { color: var(--danger-text); }
+.flood-materials .task-state[data-tone="success"] { color: var(--success-text); }
+.flood-materials .task-list--noisy { gap: 8px; padding: 16px; border: 1px solid var(--boundary-control); }
+.flood-materials .task-list--noisy .task-row { border-color: var(--boundary-control); }
+.flood-materials .task-list--noisy .task-title { font-weight: 600; }
+.flood-materials .task-list--noisy .task-meta { gap: 6px; color: var(--ink); font-weight: 600; }
+.flood-materials .task-list--noisy .task-meta span { padding: 2px 6px; border: 1px solid var(--edge-surface); border-radius: 6px; }
+.flood-materials .task-list--noisy .task-state { border: 1px solid currentColor; border-radius: 6px; padding: 2px 6px; font-weight: 600; }
+@media (hover: hover) { .flood-materials .task-row:hover { background: var(--row-hover); } }
+.flood-materials .task-row[aria-pressed="true"] { background: var(--row-selected); box-shadow: inset 3px 0 var(--selection-mark); }
+.flood-materials .field-group { display: grid; gap: 8px; }
+.flood-materials .field-group label { font-weight: 500; }
+.flood-materials .repo-options { display: grid; gap: 4px; }
+.flood-materials .repo-option { display: flex; gap: 12px; align-items: center; border: 1px solid transparent; border-radius: 10px; padding: 12px; cursor: pointer; }
+.flood-materials .repo-option > span { min-inline-size: 0; }
+.flood-materials .repo-name { display: block; font-weight: 500; overflow-wrap: anywhere; }
+.flood-materials .repo-option:has(input:checked) { background: var(--row-selected); }
+@media (hover: hover) { .flood-materials .repo-option:not(:has(input:checked)):hover { background: var(--row-hover); } }
+.flood-materials .repo-option:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.flood-materials .repo-option input:focus-visible { outline: none; } /* The group keeps its visible focus outline. */
+.flood-materials .well { padding: 16px; border-radius: 10px; background: var(--surface); display: grid; gap: 8px; }
+.flood-materials .control-state { min-block-size: 44px; }
+.flood-materials .status { display: grid; gap: 4px; }
+.flood-materials .status strong { font-weight: 600; }
+.flood-materials .status p { line-height: 20px; }
+.flood-materials.theme-changing *, .flood-materials.theme-changing *::before { transition: none !important; }
+.flood-materials [hidden] { display: none !important; }
+.flood-materials .demo-note { padding-block-start: 20px; color: var(--muted); border-block-start: 1px solid var(--edge-divider); }
+.flood-materials .footer { margin-block-start: 40px; max-inline-size: 86ch; color: var(--muted); }
+@media (max-width: 780px) {
+  .flood-materials main { padding: 24px 16px 40px; }
+  .flood-materials .header { flex-direction: column; }
+  .flood-materials .grid, .flood-materials .pair { grid-template-columns: minmax(0, 1fr); }
+  .flood-materials .sample { padding: 20px; }
+}
+@media (max-width: 430px) {
+  .flood-materials .task-row { grid-template-columns: minmax(0, 1fr); }
+  .flood-materials .task-state { justify-self: start; }
+  .flood-materials .facts > div { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .flood-materials .facts dd { text-align: start; }
+}
+@media (pointer: coarse) {
+  .flood-materials .theme label, .flood-materials .control { min-block-size: 44px; }
+}
+@media (prefers-contrast: more) {
+  .flood-materials .material, .flood-materials .control:not(.control--primary):not(.control--danger) { border-color: var(--boundary-control); }
+}
+@media (forced-colors: active) {
+  .flood-materials .material, .flood-materials .well { background: Canvas; color: CanvasText; border: 1px solid CanvasText; box-shadow: none; }
+  .flood-materials .control, .flood-materials button.control:hover, .flood-materials button.control:active { background: ButtonFace; color: ButtonText; border-color: ButtonText; }
+  .flood-materials .control:disabled { color: GrayText; border-color: GrayText; }
+  .flood-materials .control--field { background: Canvas; color: CanvasText; border-color: CanvasText; }
+  .flood-materials .task-state { color: CanvasText; }
+  .flood-materials .task-row[aria-pressed="true"], .flood-materials .repo-option:has(input:checked) { background: Highlight; color: HighlightText; box-shadow: none; border-color: Highlight; }
+  .flood-materials .task-row[aria-pressed="true"] :is(.task-state,.task-meta) { color: HighlightText; }
+  .flood-materials .repo-option:has(input:checked) .meta { color: HighlightText; }
+  .flood-materials .repo-option:focus-within { outline-color: Highlight; }
+}
+</style>
+</head>
+<body class="flood-materials" data-theme="light" data-palette="revised">
+<main>
+<header class="header">
+  <div class="intro"><div class="brand">flood.md / UI lab · светлая</div><h1>Ясность без лишнего шума</h1><p class="muted">Почти белый фон. Нейтральные поверхности. Меньше шума, без серой подложки на весь экран.</p></div>
+  <fieldset><legend>Тема</legend><div class="theme"><label><input name="theme" type="radio" value="light" checked> Светлая</label><label><input name="theme" type="radio" value="dark"> Тёмная</label></div></fieldset>
+</header>
+<section class="material material--quiet toolbar" aria-label="Сравнение светлой палитры">
+  <div class="comparison-state"><strong id="palette-title">Светлая: чистый нейтральный фон</strong><p class="meta" id="palette-note">Те же данные и размеры. Меняются светлая палитра и тонкий край поверхности.</p></div>
+  <button class="control" type="button" id="compare" aria-pressed="false">Сравнить с предыдущей</button>
+</section>
+<section class="section" aria-labelledby="surfaces-title">
+  <div class="section-head"><h2 id="surfaces-title">01 / Фон ≠ карточка ≠ кнопка</h2><p class="muted">У каждого уровня своя роль. Верхний блик помогает только там, где уже читается поверхность.</p></div>
+  <div class="grid">
+    <article class="material material--quiet sample"><h3>Рабочая поверхность</h3><p class="muted">Белая поверхность и тонкий локальный край. Без серой подложки и объёмной тени.</p><div class="actions"><button class="control" type="button" data-demo="Локальный пример: настройки не изменялись.">Настроить</button></div></article>
+    <article class="material material--outlined sample"><h3>Вложенная группа</h3><div class="well"><span>Доступ агента</span><strong>Только чтение</strong></div><div class="actions"><button class="control" type="button" data-demo="Локальный пример: доступ не изменялся.">Изменить доступ</button></div></article>
+    <article class="material material--floating material--top-light sample"><h3>Поверх страницы</h3><p class="muted">Мягкий край и тень у наложенной поверхности. Блик не заменяет её границу.</p><div class="actions"><button class="control control--primary" type="button" data-demo="Локальный пример: подтверждение не отправлялось.">Подтвердить</button></div></article>
+  </div>
+</section>
+<section class="section" aria-labelledby="facts-title">
+  <div class="section-head"><h2 id="facts-title">02 / Одинаковые данные, разный шум</h2><p class="muted">Ничего не удалено: те же подписи, значения и порядок. Меняется только организация.</p></div>
+  <div class="pair"><div><p class="eyebrow">Каждое поле требует внимания</p><dl class="material material--quiet facts facts--noisy"><div><dt>Проект</dt><dd>Flood</dd></div><div><dt>Репозиторий</dt><dd>flood-dev</dd></div><div><dt>Доступ агента</dt><dd>Чтение</dd></div></dl></div><div><p class="eyebrow">Значения читаются одной группой</p><dl class="material material--quiet facts"><div><dt>Проект</dt><dd>Flood</dd></div><div><dt>Репозиторий</dt><dd>flood-dev</dd></div><div><dt>Доступ агента</dt><dd>Чтение</dd></div></dl></div></div>
+</section>
+<section class="section" aria-labelledby="rows-title">
+  <div class="section-head"><h2 id="rows-title">03 / Название важнее обвязки</h2><p class="muted">Одинаковые задачи, метаданные и состояния. Без цветных тегов на каждой мелочи и рамки вокруг каждой строки.</p></div>
+  <div class="pair"><div><p class="eyebrow">Карточка внутри карточки, метаданные как кнопки</p><ul id="noisy-list" class="material material--quiet task-list task-list--noisy" aria-label="Те же задачи, шумное оформление"></ul></div><div><p class="eyebrow">Название → контекст → состояние</p><ul id="quiet-list" class="material material--quiet task-list" aria-label="Те же задачи, спокойное оформление"></ul></div></div>
+  <p class="meta" style="margin-block-start:12px">Нажатие выделяет одну и ту же задачу в обоих примерах. Это локальная демонстрация, не выполнение задачи.</p>
+</section>
+<section class="section" aria-labelledby="interaction-title">
+  <div class="section-head"><h2 id="interaction-title">04 / Наведение — не выбор. Выбор — не фокус.</h2><p class="muted">Наведите курсор, выберите репозиторий и пройдите элементы через Tab. Строки не прыгают между состояниями.</p></div>
+  <div class="pair">
+    <div class="material material--quiet sample">
+      <div class="field-group"><label for="repo-search">Поиск репозитория</label><input type="search" id="repo-search" class="control control--field" placeholder="Например, flood-dev" autocomplete="off" spellcheck="false"><p class="meta" id="repo-count">3 репозитория · демонстрационные данные</p></div>
+      <fieldset class="repo-options"><legend>Репозитории проекта</legend>
+        <label class="repo-option" data-repo="flood-dev"><input type="radio" name="repo" value="flood-dev" checked><span><span class="repo-name">flood-dev</span><span class="meta">tillwithered · приватный</span></span></label>
+        <label class="repo-option" data-repo="flood-md"><input type="radio" name="repo" value="flood-md"><span><span class="repo-name">flood-md</span><span class="meta">tillwithered · публичный</span></span></label>
+        <label class="repo-option" data-repo="design-system"><input type="radio" name="repo" value="design-system"><span><span class="repo-name">design-system</span><span class="meta">tillwithered · приватный</span></span></label>
+      </fieldset>
+      <div id="no-results" class="well" hidden><strong>Совпадений нет</strong><p class="meta">Выбранный репозиторий сохранён. Измените запрос или очистите поиск.</p><div><button type="button" class="control" id="clear-search">Очистить поиск</button></div></div>
+      <div class="demo-note"><p class="control-state" id="selection">Выбрано: flood-dev</p><div class="actions"><button class="control control--primary" type="button" id="confirm">Подтвердить выбор</button><button class="control" type="button" id="reset">Сбросить</button></div></div>
+    </div>
+    <div class="material material--quiet sample"><h3>Мелочи, которые удерживают порядок</h3><div class="stack"><div><strong>Название и метаданные — на одной оси</strong><p class="muted">Не нужен отдельный значок перед каждым фрагментом текста.</p></div><div><strong>Выбор остаётся после фильтрации</strong><p class="muted">Скрытый результат не означает потерянное решение.</p></div><div><strong>Ответ рядом с действием</strong><p class="muted">Без второго баннера и тоста с тем же текстом.</p></div><div><strong>Текст не исчезает ради минимализма</strong><p class="muted">Права доступа, ошибки и обязательные действия остаются видимыми.</p></div></div><p id="selection-feedback" class="control-state" role="status" aria-live="polite">Подключение к GitHub не выполняется.</p></div>
+  </div>
+</section>
+<section class="section" aria-labelledby="status-title">
+  <div class="section-head"><h2 id="status-title">05 / Цвет — только по делу</h2><p class="muted">Палитра Warning, Danger и Success сохранена. Розово-красный остаётся цветом ошибки, не всей формы.</p></div>
+  <div class="grid"><div class="status status--warning"><strong>Нужно ваше решение</strong><p>Агенту требуется уточнение. Работа приостановлена.</p></div><div class="status status--danger"><strong>Не удалось сохранить</strong><p>Пример ошибки с сохранённым черновиком.</p></div><div class="status status--success"><strong>Изменения сохранены</strong><p>Пример подтверждённого результата.</p></div></div>
+</section>
+<p id="demo-message" class="footer control-state" role="status" aria-live="polite"></p>
+<footer class="footer">Изолированный образец: коррекция светлой темы. Светлая тема открывается по умолчанию. Кнопки и поиск работают только локально; данные не отправляются. Цвета — кандидаты для внедрения, не изменение интерфейса приложения. Golos Text используется при наличии, иначе системный шрифт.</footer>
+</main>
+<script id="sample-data" type="application/json">[{"id":"picker","title":"Выбор GitHub-репозитория","source":"flood-dev","updated":"8 минут назад","state":"Нужно решение","tone":"warning"},{"id":"draft","title":"Сохранение черновика задачи","source":"flood-dev","updated":"12 минут назад","state":"Ошибка","tone":"danger"},{"id":"context","title":"Контекст проекта","source":"flood-dev","updated":"20 минут назад","state":"Сохранено","tone":"success"}]</script>
+<script>
+'use strict';
+const root = document.body;
+const tasks = JSON.parse(document.getElementById('sample-data').textContent);
+const compare = document.getElementById('compare');
+function updatePalette() {
+  const dark = root.dataset.theme === 'dark';
+  const previous = !dark && root.dataset.palette === 'previous';
+  compare.disabled = dark;
+  compare.setAttribute('aria-pressed', String(previous));
+  compare.textContent = previous ? 'Вернуть исправленную' : 'Сравнить с предыдущей';
+  document.getElementById('palette-title').textContent = dark ? 'Тёмная: исходная основа 0.2' : previous ? 'Предыдущая: тёплая серая подложка' : 'Светлая: чистый нейтральный фон';
+  document.getElementById('palette-note').textContent = dark ? 'Сравнение палитр относится к светлой теме. Новые вложенные контролы используют отдельный нейтральный тон.' : 'Те же данные и размеры. Меняются светлая палитра и тонкий край поверхности.';
+}
+function switchPalette(change) {
+  root.classList.add('theme-changing');
+  change(); updatePalette();
+  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-changing')));
+}
+document.querySelectorAll('input[name="theme"]').forEach(input => input.addEventListener('change', () => { switchPalette(() => { root.dataset.theme = input.value; }); }));
+compare.addEventListener('click', () => { switchPalette(() => { root.dataset.palette = root.dataset.palette === 'previous' ? 'revised' : 'previous'; }); });
+for (const id of ['noisy-list', 'quiet-list']) {
+  const list = document.getElementById(id);
+  for (const task of tasks) {
+    const item = document.createElement('li');
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'task-row'; button.dataset.task = task.id; button.setAttribute('aria-pressed','false');
+    const text = document.createElement('span');
+    const title = document.createElement('span'); title.className = 'task-title'; title.textContent = task.title;
+    const meta = document.createElement('span'); meta.className = 'task-meta';
+    for (const value of [task.source, task.updated]) { const span = document.createElement('span'); span.textContent = value; meta.append(span); }
+    text.append(title,meta);
+    const state = document.createElement('span'); state.className = 'task-state'; state.dataset.tone = task.tone; state.textContent = task.state;
+    button.append(text,state); item.append(button); list.append(item);
+    button.addEventListener('click', () => {
+      document.querySelectorAll('[data-task]').forEach(row => row.setAttribute('aria-pressed',String(row.dataset.task === task.id)));
+      document.getElementById('demo-message').textContent = 'В обоих примерах выделено: ' + task.title + '. Данные задачи не менялись.';
+    });
+  }
+}
+let selected = 'flood-dev';
+const search = document.getElementById('repo-search');
+const options = [...document.querySelectorAll('[data-repo]')];
+function filterRepos() {
+  const query = search.value.trim().toLocaleLowerCase('ru');
+  let count = 0;
+  for (const option of options) { const visible = option.textContent.toLocaleLowerCase('ru').includes(query); option.hidden = !visible; if (visible) count++; }
+  document.getElementById('repo-count').textContent = 'Показано: ' + count + ' из 3 · демонстрационные данные';
+  document.getElementById('no-results').hidden = count > 0;
+  const selectedVisible = options.some(option => option.dataset.repo === selected && !option.hidden);
+  document.getElementById('selection').textContent = 'Выбрано: ' + selected + (selectedVisible ? '' : ' — скрыт фильтром');
+}
+search.addEventListener('input', filterRepos);
+document.querySelectorAll('input[name="repo"]').forEach(input => input.addEventListener('change', () => { selected = input.value; filterRepos(); document.getElementById('selection-feedback').textContent = 'Выбор изменён. Подтверждение ещё не выполнено.'; }));
+document.getElementById('clear-search').addEventListener('click', () => { search.value = ''; filterRepos(); search.focus(); });
+document.getElementById('reset').addEventListener('click', () => { selected = 'flood-dev'; document.querySelector('input[name="repo"][value="flood-dev"]').checked = true; search.value = ''; filterRepos(); document.getElementById('selection-feedback').textContent = 'Исходный выбор восстановлен.'; });
+document.getElementById('confirm').addEventListener('click', () => { document.getElementById('selection-feedback').textContent = 'Локально подтверждено: ' + selected + '. Подключение к GitHub не выполнялось.'; });
+document.querySelectorAll('[data-demo]').forEach(button => button.addEventListener('click', () => { document.getElementById('demo-message').textContent = button.dataset.demo; }));
+updatePalette();
+</script>
+</body>
+</html>

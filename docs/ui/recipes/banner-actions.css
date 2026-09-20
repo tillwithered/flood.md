@@ -1,0 +1,4 @@
+.notice-action{appearance:none;border:0;background:transparent;color:currentColor;min-height:32px;padding:6px 8px;border-radius:8px;font:inherit;font-weight:500;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px;cursor:pointer}
+.notice-action:hover{background:color-mix(in srgb,currentColor 3%,transparent)}
+.notice-action:active{background:color-mix(in srgb,currentColor 5%,transparent)}
+.notice-action:focus-visible{outline:none;box-shadow:0 0 0 1px var(--focus-core),0 0 0 4px var(--focus-halo)}

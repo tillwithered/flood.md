@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="ru" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Flood · Feedback primitives 0.6.6</title>
+  <style>/* Isolated desktop specimen 0.6.3. Not a production stylesheet. */
+:root{color-scheme:light;--canvas:#fafafa;--panel:#ffffff;--surface:#f5f5f5;--ink:#171717;--muted:#555555;--edge:#e8e8e8;--field-edge:#dddddd;--hover:#eeeeee;--selected:#f1f1f1;--boundary:#858585;--on-ink:#ffffff;--danger:#c7274e;--danger-bg:#fff0f3;--success:#166534;--success-bg:#f0f7f1;--warning:#925b0a;--warning-bg:#fff8ed;--radius:10px;--popup-radius:14px;--popup-inset:7px;--popup-gap:6px;--field-inset:3px;--control-height:36px;--focus-core:#737373;--focus-halo:rgb(23 23 23 / 12%);--focus-inner:1px;--focus-outer:4px;--scroll-thumb:#858585;--scroll-hover:#626262}
+
+:root[data-theme="dark"]{color-scheme:dark;--canvas:#0d0d0c;--panel:#20201e;--surface:#2d2d2a;--ink:#f4f4f2;--muted:#cbc9c4;--edge:#393936;--field-edge:#4a4a46;--hover:#343431;--selected:#2d2d2a;--boundary:#85857f;--on-ink:#151513;--danger:#ff607d;--danger-bg:#32171f;--success:#8fd49b;--success-bg:#16261a;--warning:#f0bf70;--warning-bg:#2c2417;--focus-core:#a0a09a;--focus-halo:rgb(244 244 242 / 13%);--scroll-thumb:#85857f;--scroll-hover:#a6a6a0}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--ink);font:14px/20px 'Golos Text',system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button,input,select,textarea{appearance:none;-webkit-appearance:none;box-shadow:none}
+button,input,textarea{-webkit-tap-highlight-color:transparent}
+button:focus,input:focus,textarea:focus{outline:none}
+button{appearance:none;border:1px solid transparent}
+h1,h2,h3,p,fieldset{margin:0}
+h1{font-size:24px;line-height:32px;font-weight:600;letter-spacing:-.025em}
+h2{font-size:20px;line-height:26px;font-weight:600}
+h3{font-size:14px;line-height:20px;font-weight:500}
+strong{font-weight:500}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.lab{max-width:1180px;margin:auto;padding:32px 32px 64px}
+.bar,.actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bar{justify-content:space-between;margin-bottom:32px}
+.brand{font-weight:600}
+.brand span{font-size:13px;font-weight:400;color:var(--muted);margin-left:12px}
+.intro{display:grid;gap:8px;margin-bottom:24px;max-width:780px}
+.muted,.hint,.meta{color:var(--muted)}
+.hint,.meta{font-size:13px;line-height:18px}
+.hint{min-height:18px}
+.tabs{display:flex;gap:4px;padding-bottom:10px;border-bottom:1px solid var(--edge);margin-bottom:32px}
+.tabs button{background:transparent;color:var(--muted);padding:8px 12px;border-radius:8px;min-height:36px}
+.tabs [aria-selected="true"]{background:var(--selected);color:var(--ink);box-shadow:none}
+.tabs button span{font-size:12px;margin-right:8px}
+.lead{display:grid;gap:8px;margin-bottom:24px;max-width:780px}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px}
+.sheet{border:1px solid var(--edge);border-radius:16px;padding:24px;background:var(--panel);min-width:0;display:grid;align-content:start;gap:24px}
+.stack{display:grid;gap:16px}
+.group{display:grid;gap:8px;min-width:0;align-content:start}
+.group label,.group .label{font-weight:500}
+.fieldrow{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.caption{font-size:12px;color:var(--muted);margin-bottom:12px}
+.btn{min-height:36px;padding:7px 12px;border-radius:10px;background:var(--surface);border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;gap:8px;line-height:20px;box-shadow:none}
+.btn.primary{background:var(--ink);color:var(--on-ink)}
+.btn.ghost{background:transparent}
+.btn:disabled{color:var(--muted);background:var(--surface);cursor:not-allowed}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--on-ink)}
+.glyph{width:16px;height:16px;fill:currentColor;stroke:none;flex:none;display:block}
+.frame{border:1px solid var(--field-edge);border-radius:var(--radius);background:var(--surface);padding:calc(var(--field-inset) - 1px);display:flex;align-items:center;gap:0;min-height:var(--control-height);min-width:0;position:relative;transition:background-color 120ms ease-out,border-color 120ms ease-out}
+.frame input,.frame textarea,.frame select{background:transparent;appearance:none;border:0;outline:0;min-width:0;width:100%;flex:1;margin:0;padding:5px 9px;line-height:20px;border-radius:7px}
+.frame input::placeholder,.frame textarea::placeholder{color:var(--muted);opacity:1}
+.frame textarea{resize:none;min-height:110px;max-height:240px;display:block;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable}
+.frame.area{align-items:start}
+.frame .leading{display:flex;padding-left:9px;padding-right:8px;color:var(--muted);flex:none}
+.frame .leading + input{padding-left:0}
+.frame .suffix{padding-right:9px;padding-left:8px;color:var(--muted);white-space:nowrap}
+.frame .action{border:0;background:transparent;width:calc(var(--control-height) - 2*var(--field-inset));height:calc(var(--control-height) - 2*var(--field-inset));flex:none;border-radius:max(0px,calc(var(--radius) - var(--field-inset)));display:grid;place-items:center;padding:0;color:var(--muted)}
+.frame .action.text-action{width:auto;padding:0 8px}
+.frame:has([readonly]){background:transparent;border-style:solid}
+.frame:has(:disabled){background:var(--surface);border-color:var(--edge)}
+.frame:has(:disabled) :disabled{color:var(--muted);cursor:not-allowed}
+.frame:has([aria-invalid="true"]){border-color:var(--danger)}
+.error{color:var(--danger)}
+.ok{color:var(--success)}
+.select-trigger{width:100%;min-height:36px;padding:7px 11px;background:var(--surface);border:1px solid var(--field-edge);border-radius:10px;display:flex;gap:8px;align-items:center;text-align:left}
+.select-trigger .value{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.select-trigger:disabled{color:var(--muted);cursor:not-allowed;border-color:var(--edge)}
+.popup{position:fixed;z-index:30;background:var(--panel);color:var(--ink);border:1px solid var(--edge);border-radius:var(--popup-radius);padding:calc(var(--popup-inset) - 1px);display:flex;flex-direction:column;overflow:hidden;max-height:320px;box-shadow:0 12px 32px -14px rgb(0 0 0 / 18%)}
+:root[data-theme="dark"] .popup{box-shadow:0 12px 32px -14px rgb(0 0 0 / 44%)}
+.popup-scroll{min-height:0;flex:1 1 auto;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;border-radius:max(0px,calc(var(--popup-radius) - var(--popup-inset)))}
+.popup ul{list-style:none;padding:0;margin:0;display:grid;gap:2px}
+.option{min-height:36px;padding:8px 10px;border-radius:max(0px,calc(var(--popup-radius) - var(--popup-inset)));display:grid;grid-template-columns:minmax(0,1fr) 16px;gap:8px;align-items:center;cursor:pointer}
+.option>span{min-width:0;overflow-wrap:anywhere}
+.option{border:0;outline:0;box-shadow:none}
+.option[aria-selected="true"]{background:var(--selected)}
+.option[data-active="true"]{background:var(--hover)}
+.option[aria-disabled="true"]{cursor:not-allowed;color:var(--muted)}
+.option .meta{display:block;margin-top:2px}
+.popup-status{padding:12px 10px;color:var(--muted);font-size:13px;line-height:18px}
+.popup-status.error{color:var(--danger)}
+.option-check{width:16px;height:16px;display:block}
+.geometry-note{padding:14px 16px;background:var(--surface);border-radius:10px;font-size:13px;line-height:20px;color:var(--muted)}
+.geometry-note code{font-size:12px;color:var(--ink)}
+.facts{display:grid;gap:10px;margin:0}
+.facts div{display:flex;justify-content:space-between;gap:16px}
+.facts dt{color:var(--muted)}
+.facts dd{margin:0;font-variant-numeric:tabular-nums}
+.choice{display:flex;gap:10px;align-items:center;min-height:36px;cursor:pointer;position:relative}
+
+.choice input{position:absolute;inset-inline-start:0;width:18px;height:18px;margin:0;opacity:0}
+
+.choice-mark{width:18px;height:18px;flex:none;border:1px solid var(--boundary);border-radius:5px;background:var(--panel);display:grid;place-items:center;position:relative}
+
+.choice-mark svg{width:12px;height:12px;display:none}
+
+.choice input:checked+.choice-mark,.choice input:indeterminate+.choice-mark{background:var(--ink);color:var(--on-ink);border-color:transparent}
+
+.choice input[type=checkbox]:checked+.choice-mark svg{display:block}
+
+.choice input:indeterminate+.choice-mark svg{display:none}
+
+.choice input:indeterminate+.choice-mark::after{content:"";width:10px;height:2px;border-radius:1px;background:currentColor}
+
+.choice input[type=radio]+.choice-mark{border-radius:50%}
+
+.choice input[type=radio]:checked+.choice-mark{background:var(--panel);border-color:var(--boundary)}
+
+.choice input[type=radio]:checked+.choice-mark::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--ink)}
+
+.choice:has(:disabled){cursor:not-allowed;color:var(--muted)}
+fieldset{border:0;padding:0;display:grid;gap:8px}
+legend{font-weight:500;margin-bottom:8px;padding:0}
+.nested{--R:16px;--B:6px;border:1px solid var(--edge);border-radius:var(--R);padding:calc(var(--B) - 1px);background:var(--panel)}
+.nested>div{border-radius:max(0px,calc(var(--R) - var(--B)));background:var(--surface);padding:16px;min-height:104px;display:grid;gap:8px;align-content:center}
+.save-label{min-width:11em;display:inline-block}
+.spinner-slot{width:16px;display:inline-grid;place-items:center}
+.spin{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin 800ms linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}
+}
+.live{min-height:40px;font-size:13px;line-height:18px;margin-top:8px}
+.review{margin-top:32px;border-top:1px solid var(--edge);padding-top:24px;display:grid;gap:12px;max-width:720px}
+.review textarea{width:100%;min-height:70px;padding:10px 12px;border:1px solid var(--field-edge);border-radius:10px;background:var(--surface);resize:none;overflow-y:auto;max-height:240px}
+.foot{margin-top:32px;color:var(--muted);font-size:12px;line-height:18px;max-width:900px}
+.guide .frame::after{content:"";position:absolute;inset:3px 12px;border-inline:1px dashed var(--boundary);pointer-events:none}
+.theme-changing *{transition:none!important}
+/* All focus layers share one border box. No y-offset, bevel or second input outline. */
+:is(button,textarea,a):focus-visible,.frame:has(input:focus-visible),.frame:has(textarea:focus-visible),.choice input:focus-visible+.choice-mark{outline:0;box-shadow:0 0 0 var(--focus-inner) var(--focus-core),0 0 0 var(--focus-outer) var(--focus-halo)}
+
+.frame input:focus-visible,.frame textarea:focus-visible{outline:0;box-shadow:none}
+
+.frame:has(input[aria-invalid=true]:focus-visible){border-color:var(--danger)}
+
+::selection{background:var(--selected);color:var(--ink)}
+
+@media(hover:hover){.btn:not(:disabled):not(.primary):hover,.tabs button:not([aria-selected="true"]):hover{background:var(--hover)}
+.btn.primary:not(:disabled):hover{opacity:.9}
+.frame:not(:has(:disabled)):hover,.select-trigger:not(:disabled):hover{background:var(--hover)}
+.frame .action:hover{background:var(--selected);color:var(--ink)}
+.option:not([aria-disabled="true"]):hover{background:var(--selected)}
+}
+.btn:not(:disabled):active{background:var(--selected)}
+.btn.primary:not(:disabled):active{background:var(--ink)}
+
+@media(max-width:850px){.two{grid-template-columns:1fr}
+.lab{padding-inline:20px}
+.tabs{flex-wrap:wrap}
+}
+
+@media(prefers-contrast:more){.frame,.select-trigger,.btn:not(.ghost){border-color:var(--boundary)}
+}
+:root[data-contrast="strong"] .frame,:root[data-contrast="strong"] .select-trigger{border-color:var(--boundary)}
+
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}
+}
+
+@media(forced-colors:active){.sheet,.popup,.frame,.select-trigger,.btn,.nested{background:Canvas;color:CanvasText;border-color:CanvasText;box-shadow:none}
+.option[data-active="true"]{background:Highlight;color:HighlightText;outline:0}
+.option[aria-selected="true"] .option-check{color:CanvasText}
+.option[data-active="true"] .option-check{color:HighlightText}
+.option[data-active="true"] .meta{color:HighlightText}
+button:focus-visible,textarea:focus-visible,.frame:has(input:focus-visible),.frame:has(textarea:focus-visible),.choice input:focus-visible+.choice-mark{outline:2px solid Highlight;outline-offset:2px;box-shadow:none}
+.frame input:focus-visible,.frame textarea:focus-visible{outline:0;box-shadow:none}
+
+.choice-mark{background:Canvas;color:CanvasText;border-color:CanvasText}
+.choice input:checked+.choice-mark,.choice input:indeterminate+.choice-mark{background:Highlight;color:HighlightText}
+.choice input[type=radio]:checked+.choice-mark::after{background:HighlightText}
+.tabs [aria-selected="true"],.btn[aria-pressed="true"]{background:Highlight;color:HighlightText}
+.frame input,.frame textarea{color:CanvasText}
+.error,.ok,.meta,.muted{color:CanvasText}
+.spin{border-color:CanvasText;border-right-color:transparent}
+}
+
+
+input[type="search"]::-webkit-search-cancel-button{-webkit-appearance:none}
+
+
+/* The browser scroll engine remains; author chrome is confined to an inset scroll box. */
+.popup-scroll,textarea,html{scrollbar-color:var(--scroll-thumb) transparent;scrollbar-width:thin}
+
+@supports selector(::-webkit-scrollbar){
+ .popup-scroll,textarea,html{scrollbar-width:auto;scrollbar-color:auto}
+
+ ::-webkit-scrollbar{width:10px;height:10px}
+
+ ::-webkit-scrollbar-track{background:transparent}
+
+ ::-webkit-scrollbar-thumb{background:var(--scroll-thumb);border:3px solid transparent;background-clip:padding-box;border-radius:999px;min-height:24px}
+
+ ::-webkit-scrollbar-thumb:hover{background-color:var(--scroll-hover)}
+
+ ::-webkit-scrollbar-button{display:none;width:0;height:0}
+
+ ::-webkit-scrollbar-corner,::-webkit-resizer{background:transparent;display:none}
+
+}
+
+input[type=number]{appearance:textfield;-moz-appearance:textfield}
+
+input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+
+input::-ms-reveal,input::-ms-clear{display:none}
+
+@media(prefers-contrast:more){:root{--focus-inner:2px;--focus-core:var(--ink)}
+}
+
+@media(forced-colors:active){.popup-scroll,textarea,html{scrollbar-color:auto;scrollbar-width:auto}
+::-webkit-scrollbar-thumb{background:CanvasText;background-clip:padding-box}
+.option{box-shadow:none}
+.choice input[type=radio]:checked+.choice-mark{border-color:CanvasText}
+}
+
+</style>
+  <style>/* Flood feedback lab 0.6.6. Extends the accepted primitive baseline. */
+.feedback-lab{
+  --feedback-progress-height:6px;
+  --feedback-toast-width:340px;
+  --feedback-float-shadow:0 2px 5px rgb(0 0 0 / 6%),0 18px 50px -18px rgb(0 0 0 / 22%);
+}
+:root[data-theme="dark"] .feedback-lab{--feedback-float-shadow:0 2px 5px rgb(0 0 0 / 24%),0 20px 56px -18px rgb(0 0 0 / 52%)}
+.feedback-lab .hero-copy{max-width:820px;display:grid;gap:8px;margin-bottom:24px}
+.feedback-lab .feedback-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+.feedback-lab .feedback-stack{display:grid;gap:16px}
+.feedback-lab .demo-shell{border:1px solid var(--edge);border-radius:16px;background:var(--panel);overflow:hidden;min-width:0}
+.feedback-lab .demo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--edge);min-height:58px}
+.feedback-lab .demo-head>div{display:grid;gap:2px}
+.feedback-lab .demo-body{padding:16px 18px;display:grid;gap:14px;min-width:0}
+.feedback-lab .row-list{display:grid;gap:2px}
+.feedback-lab .work-row{min-height:58px;padding:9px 10px;border-radius:10px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:center}
+.feedback-lab .work-row:hover{background:var(--hover)}
+.feedback-lab .work-title{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.feedback-lab .work-meta{font-size:13px;line-height:18px;color:var(--muted)}
+.feedback-lab .refresh-state{display:inline-flex;align-items:center;gap:7px;min-height:20px;color:var(--muted);font-size:13px;line-height:18px;white-space:nowrap}
+.feedback-lab .spinner{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;display:inline-block;flex:none;animation:feedback-spin 780ms linear infinite}
+@keyframes feedback-spin{to{transform:rotate(360deg)}}
+.feedback-lab .skeleton-list{display:grid;gap:2px}
+.feedback-lab .skeleton-row{min-height:58px;padding:9px 10px;border-radius:10px;display:grid;grid-template-columns:minmax(0,1fr) 76px;gap:8px 16px;align-items:center}
+.feedback-lab .skeleton-copy{display:grid;gap:7px}
+.feedback-lab .skeleton-line{height:10px;border-radius:5px;background:color-mix(in srgb,var(--ink) 9%,transparent);animation:feedback-breathe 1500ms ease-in-out infinite alternate}
+.feedback-lab .skeleton-line.title{width:min(340px,78%);height:12px}
+.feedback-lab .skeleton-line.meta{width:min(220px,48%)}
+.feedback-lab .skeleton-line.trailing{width:58px;justify-self:end}
+@keyframes feedback-breathe{from{opacity:.58}to{opacity:1}}
+.feedback-lab .loading-note{padding:10px 12px;border-radius:10px;background:var(--surface);font-size:13px;line-height:18px;color:var(--muted)}
+.feedback-lab .metric-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
+.feedback-lab .progress-wrap{display:grid;gap:8px}
+.feedback-lab .progress-track{height:var(--feedback-progress-height);background:color-mix(in srgb,var(--ink) 9%,transparent);border-radius:999px;overflow:hidden}
+.feedback-lab .progress-fill{height:100%;width:0;border-radius:inherit;background:var(--ink);transition:width 180ms ease-out}
+.feedback-lab .progress-label{display:flex;justify-content:space-between;gap:12px;font-size:13px;line-height:18px;color:var(--muted);font-variant-numeric:tabular-nums}
+.feedback-lab .indeterminate-line{display:flex;align-items:flex-start;gap:10px;min-height:38px}
+.feedback-lab .indeterminate-line .spinner{margin-top:3px}
+.feedback-lab .indeterminate-copy{display:grid;gap:2px}
+.feedback-lab .feedback-inline{min-height:22px;display:flex;align-items:flex-start;gap:7px;font-size:13px;line-height:18px;color:var(--muted)}
+.feedback-lab .feedback-inline[data-tone="success"]{color:var(--success)}
+.feedback-lab .feedback-inline[data-tone="danger"]{color:var(--danger)}
+.feedback-lab .feedback-inline[data-tone="warning"]{color:var(--warning)}
+.feedback-lab .feedback-inline svg,.feedback-lab .notice svg,.feedback-lab .toast svg{width:16px;height:16px;fill:currentColor;flex:none;margin-top:1px}
+.feedback-lab .notice{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:10px;align-items:start;border-radius:12px;padding:12px 14px;background:var(--surface);min-width:0}
+.feedback-lab .notice[data-tone="warning"]{background:var(--warning-bg);color:var(--warning)}
+.feedback-lab .notice[data-tone="danger"]{background:var(--danger-bg);color:var(--danger)}
+.feedback-lab .notice[data-tone="success"]{background:var(--success-bg);color:var(--success)}
+.feedback-lab .notice-copy{display:grid;gap:2px;min-width:0}
+.feedback-lab .notice-copy strong{color:currentColor}
+.feedback-lab .notice-copy span{font-size:13px;line-height:18px;color:currentColor}
+.feedback-lab .notice .btn{align-self:center;color:currentColor;background:transparent;border-color:transparent;box-shadow:none;padding-inline:8px;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+@media(hover:hover){.feedback-lab .notice .btn:not(:disabled):hover{background:color-mix(in srgb,currentColor 3%,transparent)}}
+.feedback-lab .notice .btn:not(:disabled):active{background:color-mix(in srgb,currentColor 5%,transparent)}
+@media(max-width:620px){.feedback-lab .notice{grid-template-columns:16px minmax(0,1fr)}.feedback-lab .notice .btn{grid-column:2;justify-self:start;margin-left:-8px;white-space:normal}}
+.feedback-lab .feedback-rule{padding:12px 14px;border-radius:10px;background:var(--surface);color:var(--muted);font-size:13px;line-height:19px}
+.feedback-lab .feedback-rule strong{color:var(--ink)}
+.feedback-lab .toast-stage{min-height:270px;border:1px dashed var(--edge);border-radius:14px;background:var(--canvas);padding:16px;position:relative;overflow:hidden}
+.feedback-lab .toast-hint{max-width:52ch;color:var(--muted);font-size:13px;line-height:18px}
+.feedback-lab .toast-stack{position:absolute;right:12px;bottom:12px;width:min(var(--feedback-toast-width),calc(100% - 24px));display:grid;gap:8px;z-index:5}
+.feedback-lab .toast{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:10px;align-items:start;border:1px solid var(--edge);border-radius:12px;background:var(--panel);padding:11px 12px;box-shadow:var(--feedback-float-shadow);min-width:0}
+.feedback-lab .toast[data-tone="success"]>svg{color:var(--success)}
+.feedback-lab .toast[data-tone="warning"]>svg{color:var(--warning)}
+.feedback-lab .toast[data-tone="danger"]>svg{color:var(--danger)}
+.feedback-lab .toast-copy{display:grid;gap:2px;min-width:0}
+.feedback-lab .toast-copy strong{font-size:13px;line-height:18px;font-weight:500}
+.feedback-lab .toast-copy span{font-size:12px;line-height:16px;color:var(--muted)}
+.feedback-lab .toast-actions{display:flex;align-items:center;gap:4px}
+.feedback-lab .toast .toast-action,.feedback-lab .toast .toast-close{appearance:none;border:0;background:transparent;color:var(--ink);min-height:28px;border-radius:7px;padding:4px 7px;font:inherit;font-size:12px;line-height:16px;box-shadow:none}
+.feedback-lab .toast .toast-close{width:28px;padding:0;display:grid;place-items:center;color:var(--muted)}
+.feedback-lab .toast .toast-close svg{width:14px;height:14px;margin:0}
+.feedback-lab .toast :is(.toast-action,.toast-close):hover{background:var(--hover)}
+.feedback-lab .toast :is(.toast-action,.toast-close):focus-visible{box-shadow:0 0 0 var(--focus-inner) var(--focus-core),0 0 0 var(--focus-outer) var(--focus-halo);outline:none}
+.feedback-lab .type-table{width:100%;border-collapse:collapse;font-size:13px;line-height:18px}
+.feedback-lab .type-table th,.feedback-lab .type-table td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--edge);vertical-align:top}
+.feedback-lab .type-table th{color:var(--muted);font-weight:500}
+.feedback-lab .type-table tr:last-child td{border-bottom:0}
+.feedback-lab .review{margin-top:32px}
+.feedback-lab .toast-demo-actions{display:flex;flex-wrap:wrap;gap:8px}
+.feedback-lab .visually-stable{min-height:116px}
+@media(max-width:850px){.feedback-lab .feedback-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){
+  .feedback-lab .spinner{animation:none;border-right-color:currentColor;border-top-color:transparent}
+  .feedback-lab .skeleton-line{animation:none;opacity:.78}
+  .feedback-lab .progress-fill{transition:none}
+}
+@media(forced-colors:active){
+  .feedback-lab .notice,.feedback-lab .toast,.feedback-lab .toast-stage,.feedback-lab .progress-track,.feedback-lab .loading-note,.feedback-lab .feedback-rule{background:Canvas;color:CanvasText;border-color:CanvasText;box-shadow:none}
+  .feedback-lab .progress-fill{background:Highlight}
+  .feedback-lab .skeleton-line{background:GrayText}
+  .feedback-lab .toast :is(.toast-action,.toast-close):focus-visible{box-shadow:none;outline:2px solid Highlight;outline-offset:2px}
+}
+</style>
+</head>
+<body>
+<main class="lab feedback-lab">
+  <header class="bar">
+    <p class="brand">flood.md <span>Feedback lab / 0.6.6</span></p>
+    <div class="actions"><button class="btn" id="theme">Тёмная тема</button></div>
+  </header>
+  <div class="hero-copy">
+    <h1>Показываем состояние, не устраиваем представление.</h1>
+    <p class="muted">Первый load, refresh, измеримый прогресс и результат операции — разные вещи. Цвет появляется только у реального semantic state.</p>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Feedback primitives">
+    <button role="tab" id="tab-loading" aria-controls="panel-loading" aria-selected="true"><span>01</span>Loading</button>
+    <button role="tab" id="tab-progress" aria-controls="panel-progress" aria-selected="false" tabindex="-1"><span>02</span>Progress</button>
+    <button role="tab" id="tab-feedback" aria-controls="panel-feedback" aria-selected="false" tabindex="-1"><span>03</span>Inline и banner</button>
+    <button role="tab" id="tab-toast" aria-controls="panel-toast" aria-selected="false" tabindex="-1"><span>04</span>Toast</button>
+  </nav>
+
+  <section role="tabpanel" id="panel-loading" aria-labelledby="tab-loading">
+    <div class="lead"><h2>Первый load и refresh не выглядят одинаково</h2><p class="muted">Skeleton резервирует будущую геометрию. Refresh оставляет полезные данные на месте и показывает локальную активность.</p></div>
+    <div class="feedback-grid">
+      <section class="demo-shell" aria-labelledby="first-load-title">
+        <div class="demo-head"><div><h3 id="first-load-title">Первый вход в проект</h3><p class="meta">Структура ещё неизвестна пользователю</p></div><button class="btn" id="first-load">Повторить загрузку</button></div>
+        <div class="demo-body visually-stable" id="first-load-body" aria-busy="false"></div>
+      </section>
+      <section class="demo-shell" aria-labelledby="refresh-title">
+        <div class="demo-head"><div><h3 id="refresh-title">Обновление существующего списка</h3><p class="meta">Контент не исчезает во время refresh</p></div><div class="actions"><span class="refresh-state" id="refresh-state"></span><button class="btn" id="refresh">Обновить</button></div></div>
+        <div class="demo-body"><div class="row-list" id="refresh-list"></div><p class="hint" id="refresh-time">Последнее обновление: 08:20</p></div>
+      </section>
+    </div>
+    <div class="feedback-rule"><strong>Правило:</strong> не накрываем существующий список спиннером и не заменяем его skeleton при обычном refresh. Skeleton — прежде всего first load / существенная смена структуры.</div>
+  </section>
+
+  <section role="tabpanel" id="panel-progress" aria-labelledby="tab-progress" hidden>
+    <div class="lead"><h2>Процент только там, где есть настоящий знаменатель</h2><p class="muted">Если мы не знаем объём работы, не рисуем «73%». Показываем активную операцию и доступный контекст.</p></div>
+    <div class="feedback-grid">
+      <section class="sheet feedback-stack">
+        <div><h3>Измеримый импорт</h3><p class="meta">8 файлов — известный объём</p></div>
+        <div class="progress-wrap">
+          <div class="progress-label"><span id="progress-copy">Готово 0 из 8</span><span id="progress-percent">0%</span></div>
+          <div class="progress-track" id="progress" role="progressbar" aria-label="Импорт файлов" aria-valuemin="0" aria-valuemax="8" aria-valuenow="0"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+        <div class="actions"><button class="btn primary" id="run-progress">Запустить импорт</button><button class="btn ghost" id="reset-progress">Сбросить</button></div>
+        <p class="feedback-inline" id="progress-result"></p>
+      </section>
+      <section class="sheet feedback-stack">
+        <div><h3>Неизмеримая операция</h3><p class="meta">Проверка доступа к источникам — неизвестно, сколько займёт</p></div>
+        <div class="indeterminate-line" id="indeterminate-line"><span class="spinner" aria-hidden="true"></span><div class="indeterminate-copy"><strong>Проверяем доступ…</strong><span class="meta">Можно продолжать читать проект.</span></div></div>
+        <div class="feedback-rule">Spinner означает активную работу, но не процент. Для agent run без объективного denominator — тот же принцип: этап/последняя активность вместо fake progress bar.</div>
+      </section>
+    </div>
+  </section>
+
+  <section role="tabpanel" id="panel-feedback" aria-labelledby="tab-feedback" hidden>
+    <div class="lead"><h2>Сообщение живёт рядом с причиной</h2><p class="muted">Inline — локальный результат действия. Banner — длительное состояние области. Toast не заменяет ни одно из них.</p></div>
+    <div class="feedback-grid">
+      <section class="sheet feedback-stack">
+        <div><h3>Inline feedback</h3><p class="meta">Сохранение одного поля</p></div>
+        <div class="group"><label for="feedback-name">Название правила</label><div class="frame"><input id="feedback-name" value="Работа с источниками"></div></div>
+        <div class="actions"><button class="btn primary" id="save-inline">Сохранить</button><label class="choice"><input type="checkbox" id="fail-inline">Ошибка</label></div>
+        <p class="feedback-inline" id="inline-result" role="status"></p>
+        <div class="feedback-rule">Успех не создаёт вечную зелёную карточку. Ошибка остаётся рядом, пока человек не исправит или не повторит действие.</div>
+      </section>
+      <section class="sheet feedback-stack">
+        <div><h3>Persistent notices</h3><p class="meta">Состояние интеграции влияет на весь раздел</p></div>
+        <div class="notice" data-tone="warning" id="warning-notice"><span data-feedback-icon="warning"></span><div class="notice-copy"><strong>GitHub требует повторного входа</strong><span>Репозитории остаются видимыми, но обновление каталога недоступно.</span></div><button class="btn" id="reconnect">Переподключить</button></div>
+        <div class="notice" data-tone="danger"><span data-feedback-icon="danger"></span><div class="notice-copy"><strong>Нет доступа к выбранному источнику</strong><span>Права были отозваны. Подключение не будет повторено автоматически.</span></div><button class="btn">Управлять доступом</button></div>
+        <div class="notice" data-tone="success" id="connected-notice" hidden><span data-feedback-icon="success"></span><div class="notice-copy"><strong>GitHub снова подключён</strong><span>Доступ к источникам обновлён.</span></div><button class="btn" id="dismiss-success">Понятно</button></div>
+      </section>
+    </div>
+  </section>
+
+  <section role="tabpanel" id="panel-toast" aria-labelledby="tab-toast" hidden>
+    <div class="lead"><h2>Toast — краткий итог, не центр управления</h2><p class="muted">Не крадёт focus, не хранит критическую ошибку и не дублирует одно событие banner+toast+badge одновременно.</p></div>
+    <section class="sheet feedback-stack">
+      <div class="toast-demo-actions"><button class="btn" data-toast="success">Показать success</button><button class="btn" data-toast="undo">Показать Undo</button><button class="btn" data-toast="neutral">Показать neutral</button><button class="btn ghost" id="clear-toasts">Очистить</button></div>
+      <div class="toast-stage">
+        <p class="toast-hint">Toast stack закреплён внутри этой демонстрационной области. В продукте — локальный floating layer. Максимум три видимых сообщения.</p>
+        <div class="toast-stack" id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+      </div>
+      <div class="feedback-rule"><strong>Timing candidate:</strong> passive success/info — 5 c; Undo — 8 c. Hover или keyboard focus приостанавливают таймер. Ошибка, требующая решения, не auto-dismiss toast — это inline/banner.</div>
+    </section>
+  </section>
+
+  <section class="sheet review">
+    <h3>Матрица выбора feedback</h3>
+    <table class="type-table">
+      <thead><tr><th>Ситуация</th><th>Примитив</th><th>Почему</th></tr></thead>
+      <tbody>
+        <tr><td>Первый load структуры</td><td>Skeleton</td><td>Резервирует итоговую геометрию</td></tr>
+        <tr><td>Refresh уже видимых данных</td><td>Локальный spinner + текст</td><td>Не уничтожает полезный контент</td></tr>
+        <tr><td>Известно N из M</td><td>Progress bar</td><td>Есть честный знаменатель</td></tr>
+        <tr><td>Активная операция без знаменателя</td><td>Spinner/status</td><td>Не придумываем процент</td></tr>
+        <tr><td>Ошибка одного действия</td><td>Inline feedback</td><td>Рядом с причиной и recovery</td></tr>
+        <tr><td>Длительное состояние раздела</td><td>Banner/notice</td><td>Остаётся до устранения причины</td></tr>
+        <tr><td>Краткий подтверждённый итог</td><td>Toast</td><td>Не требует постоянного места</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <footer class="foot">Локальная демонстрация. Все задержки синтетические. Нет сети, реальных mutations или production imports.</footer>
+</main>
+<script>/* Flood feedback lab 0.6.6. Heroicons Solid paths: MIT © Tailwind Labs, Inc. */
+'use strict';
+(() => {
+  const $ = id => document.getElementById(id);
+  const all = q => [...document.querySelectorAll(q)];
+  const root = document.documentElement;
+  const icons = {
+    success:'M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z',
+    info:'M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9Z',
+    close:'M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z',
+    warning:'M9.401 3.003c.332-.576 1.164-.576 1.496 0l6.48 11.25A.864.864 0 0 1 16.63 15.5H3.668a.864.864 0 0 1-.748-1.247l6.48-11.25ZM10.15 6.5a.75.75 0 0 0-.75.75v3.5a.75.75 0 0 0 1.5 0v-3.5a.75.75 0 0 0-.75-.75Zm0 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z',
+    danger:'M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM6.47 6.47a.75.75 0 0 1 1.06 0L10 8.94l2.47-2.47a.75.75 0 1 1 1.06 1.06L11.06 10l2.47 2.47a.75.75 0 0 1-1.06 1.06L10 11.06l-2.47 2.47a.75.75 0 0 1-1.06-1.06L8.94 10 6.47 7.53a.75.75 0 0 1 0-1.06Z'
+  };
+  const svg = name => `<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="${icons[name]}"></path></svg>`;
+  all('[data-feedback-icon]').forEach(el => el.innerHTML = svg(el.dataset.feedbackIcon));
+
+  const tabs=['loading','progress','feedback','toast']; let activeTab='loading';
+  function activate(id, focus=false){activeTab=id;tabs.forEach((t,i)=>{const on=t===id;const b=$('tab-'+t);b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;$('panel-'+t).hidden=!on;});if(focus)$('tab-'+id).focus();}
+  tabs.forEach((id,i)=>{const b=$('tab-'+id);b.onclick=()=>activate(id);b.onkeydown=e=>{let n;if(e.key==='ArrowRight')n=(i+1)%tabs.length;if(e.key==='ArrowLeft')n=(i+tabs.length-1)%tabs.length;if(e.key==='Home')n=0;if(e.key==='End')n=tabs.length-1;if(n!==undefined){e.preventDefault();activate(tabs[n],true);}};});
+  $('theme').onclick=()=>{root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';$('theme').textContent=root.dataset.theme==='dark'?'Светлая тема':'Тёмная тема';};
+
+  const tasks=[
+    ['Проверить интеграцию GitHub','flood-dev · 8 мин назад'],
+    ['Обновить правила дизайн-системы','design-system · 14 мин назад'],
+    ['Сверить контекст задачи с Telegram','telegram-connector · 21 мин назад'],
+    ['Подготовить review результата агента','Flood · 32 мин назад']
+  ];
+  const rowsHTML=()=>tasks.map(([title,meta])=>`<div class="work-row"><div><div class="work-title">${title}</div><div class="work-meta">${meta}</div></div><span class="meta">Открыта</span></div>`).join('');
+  const skeletonHTML=()=>tasks.map((_,i)=>`<div class="skeleton-row"><div class="skeleton-copy"><span class="skeleton-line title" style="width:${66+i*5}%"></span><span class="skeleton-line meta" style="width:${34+i*4}%"></span></div><span class="skeleton-line trailing"></span></div>`).join('');
+  $('refresh-list').innerHTML=rowsHTML();
+  let firstTimer, refreshTimer;
+  function showLoaded(){$('first-load-body').setAttribute('aria-busy','false');$('first-load-body').innerHTML=`<div class="row-list">${rowsHTML()}</div>`;}
+  showLoaded();
+  $('first-load').onclick=()=>{clearTimeout(firstTimer);$('first-load-body').setAttribute('aria-busy','true');$('first-load-body').innerHTML=`<div class="skeleton-list">${skeletonHTML()}</div>`;firstTimer=setTimeout(showLoaded,1200);};
+  $('refresh').onclick=()=>{if($('refresh').disabled)return;clearTimeout(refreshTimer);$('refresh').disabled=true;$('refresh-state').innerHTML='<span class="spinner" aria-hidden="true"></span><span>Обновляем</span>';$('refresh-list').setAttribute('aria-busy','true');refreshTimer=setTimeout(()=>{$('refresh').disabled=false;$('refresh-state').textContent='';$('refresh-list').setAttribute('aria-busy','false');$('refresh-time').textContent='Последнее обновление: только что';},900);};
+
+  let progressTimer, progressValue=0;
+  function renderProgress(){const pct=Math.round(progressValue/8*100);$('progress').setAttribute('aria-valuenow',String(progressValue));$('progress-fill').style.width=pct+'%';$('progress-copy').textContent=`Готово ${progressValue} из 8`;$('progress-percent').textContent=pct+'%';}
+  $('run-progress').onclick=()=>{if(progressTimer)return;progressValue=0;renderProgress();$('progress-result').textContent='';$('run-progress').disabled=true;progressTimer=setInterval(()=>{progressValue++;renderProgress();if(progressValue>=8){clearInterval(progressTimer);progressTimer=null;$('run-progress').disabled=false;$('progress-result').dataset.tone='success';$('progress-result').innerHTML=svg('success')+'<span>Импорт завершён. 8 файлов готовы.</span>'; }},260);};
+  $('reset-progress').onclick=()=>{clearInterval(progressTimer);progressTimer=null;progressValue=0;renderProgress();$('run-progress').disabled=false;$('progress-result').removeAttribute('data-tone');$('progress-result').textContent='';};
+  renderProgress();
+
+  let inlineTimer;
+  $('save-inline').onclick=()=>{clearTimeout(inlineTimer);$('save-inline').disabled=true;$('inline-result').removeAttribute('data-tone');$('inline-result').innerHTML='<span class="spinner" aria-hidden="true"></span><span>Сохраняем…</span>';inlineTimer=setTimeout(()=>{$('save-inline').disabled=false;const fail=$('fail-inline').checked;$('inline-result').dataset.tone=fail?'danger':'success';$('inline-result').innerHTML=svg(fail?'danger':'success')+`<span>${fail?'Не удалось сохранить. Введённое значение осталось.':'Сохранено.'}</span>`;},650);};
+  $('reconnect').onclick=()=>{$('reconnect').disabled=true;$('reconnect').textContent='Подключаем…';setTimeout(()=>{$('warning-notice').hidden=true;$('connected-notice').hidden=false;$('reconnect').disabled=false;$('reconnect').textContent='Переподключить';},700);};
+  $('dismiss-success').onclick=()=>{$('connected-notice').hidden=true;};
+
+  let toastId=0; const toastTimers=new Map(); const toastStarted=new Map(); const toastRemaining=new Map();
+  function removeToast(id){clearTimeout(toastTimers.get(id));toastTimers.delete(id);toastStarted.delete(id);toastRemaining.delete(id);document.querySelector(`[data-toast-id="${id}"]`)?.remove();}
+  function armToast(id,ms){clearTimeout(toastTimers.get(id));toastRemaining.set(id,ms);toastStarted.set(id,performance.now());toastTimers.set(id,setTimeout(()=>removeToast(id),ms));}
+  function pauseToast(id){const start=toastStarted.get(id);if(start==null)return;const left=Math.max(0,(toastRemaining.get(id)||0)-(performance.now()-start));clearTimeout(toastTimers.get(id));toastRemaining.set(id,left);toastStarted.delete(id);}
+  function resumeToast(id){if(toastStarted.has(id))return;const left=toastRemaining.get(id);if(left>0)armToast(id,left);}
+  function showToast(kind){const id=++toastId;const configs={success:{tone:'success',icon:'success',title:'Репозиторий подключён',body:'flood-team/design-system',ttl:5000},undo:{tone:'neutral',icon:'info',title:'Задача перемещена в архив',body:'Действие можно отменить.',ttl:8000,action:'Отменить'},neutral:{tone:'neutral',icon:'info',title:'Ссылка скопирована',body:'Готово.',ttl:5000}};const c={...configs[kind]};if(root.dataset.testFast==='true')c.ttl=kind==='undo'?800:500;const node=document.createElement('div');node.className='toast';node.dataset.tone=c.tone;node.dataset.toastId=id;node.tabIndex=-1;node.innerHTML=`${svg(c.icon)}<div class="toast-copy"><strong>${c.title}</strong><span>${c.body}</span></div><div class="toast-actions">${c.action?`<button class="toast-action">${c.action}</button>`:''}<button class="toast-close" aria-label="Закрыть">${svg('close')}</button></div>`;$('toast-stack').prepend(node);[...$('toast-stack').children].slice(3).forEach(el=>removeToast(Number(el.dataset.toastId)));node.querySelector('.toast-close').onclick=()=>removeToast(id);const action=node.querySelector('.toast-action');if(action)action.onclick=()=>{node.querySelector('.toast-copy strong').textContent='Действие отменено';node.querySelector('.toast-copy span').textContent='Задача возвращена.';action.remove();armToast(id,2500);};node.addEventListener('mouseenter',()=>pauseToast(id));node.addEventListener('mouseleave',()=>resumeToast(id));node.addEventListener('focusin',()=>pauseToast(id));node.addEventListener('focusout',()=>{setTimeout(()=>{if(!node.contains(document.activeElement))resumeToast(id)},0)});node.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();removeToast(id);}});armToast(id,c.ttl);return node;}
+  all('[data-toast]').forEach(b=>b.onclick=()=>showToast(b.dataset.toast));
+  $('clear-toasts').onclick=()=>{[...$('toast-stack').children].forEach(el=>removeToast(Number(el.dataset.toastId)));};
+
+  window.feedbackLab={snapshot:()=>({activeTab,progressValue,toasts:$('toast-stack').children.length,refreshing:$('refresh').disabled,firstBusy:$('first-load-body').getAttribute('aria-busy')})};
+})();
+</script>
+</body>
+</html>

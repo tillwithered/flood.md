@@ -1,0 +1,151 @@
+/* Flood UI 0.2: opt-in reference specimen, NOT a production token import. */
+.flood-materials {
+  color-scheme: light;
+  --background: #ffffff;
+  --canvas: #f4f4f2;
+  --surface: #f7f7f7;
+  --elevated: #ffffff;
+  --field: #f7f7f7;
+  --ink: #171717;
+  --muted: #4f4f4c;
+  --hover: #f4f4f4;
+  --selected: #ececec;
+  --on-ink: #ffffff;
+  --primary-hover: #303030;
+  --edge-divider: rgb(23 23 23 / 7%);
+  --edge-surface: rgb(23 23 23 / 10%);
+  --edge-top: rgb(255 255 255 / 72%);
+  --boundary-control: #858581;
+  --focus-ring: #171717;
+  --shadow-contact: rgb(0 0 0 / 6%);
+  --shadow-ambient: rgb(0 0 0 / 8%);
+  --danger-surface: #fff0f3;
+  --danger-mark: #d92f55;
+  --danger-text: #c7274e;
+  --danger-solid: #d92f55;
+  --on-danger: #ffffff;
+  --warning-surface: #fff8ed;
+  --warning-text: #925b0a;
+  --success-surface: #f0f7f1;
+  --success-text: #166534;
+  --radius-control: 10px;
+  --radius-panel: 16px;
+  --space-control: 8px;
+  --space-construct: 16px;
+  --space-cluster: 24px;
+  --space-section: 32px;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: "Golos Text", system-ui, sans-serif;
+}
+.flood-materials[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #111110;
+  --canvas: #0d0d0c;
+  --surface: #20201e;
+  --elevated: #1c1c1a;
+  --field: #20201e;
+  --ink: #f4f4f2;
+  --muted: #cbc9c4;
+  --hover: #252523;
+  --selected: #2d2d2a;
+  --on-ink: #151513;
+  --primary-hover: #deded8;
+  --edge-divider: rgb(244 244 242 / 8%);
+  --edge-surface: rgb(244 244 242 / 12%);
+  --edge-top: rgb(255 255 255 / 14%);
+  --boundary-control: #85857f;
+  --focus-ring: #f4f4f2;
+  --shadow-contact: rgb(0 0 0 / 20%);
+  --shadow-ambient: rgb(0 0 0 / 28%);
+  --danger-surface: #32171f;
+  --danger-mark: #ff607d;
+  --danger-text: #ff607d;
+  --danger-solid: #ff607d;
+  --on-danger: #151513;
+  --warning-surface: #2c2417;
+  --warning-text: #f0bf70;
+  --success-surface: #16261a;
+  --success-text: #8fd49b;
+}
+.flood-materials *, .flood-materials *::before, .flood-materials *::after { box-sizing: border-box; }
+.flood-materials .material {
+  --material-radius: var(--radius-panel);
+  position: relative;
+  min-inline-size: 0;
+  border: 1px solid transparent;
+  border-radius: var(--material-radius);
+  background: var(--background);
+}
+.flood-materials .material--quiet { background: var(--surface); }
+.flood-materials .material--outlined { border-color: var(--edge-surface); }
+.flood-materials .material--floating {
+  border-color: var(--edge-surface);
+  background: var(--elevated);
+  box-shadow: 0 2px 4px var(--shadow-contact), 0 12px 32px -8px var(--shadow-ambient);
+}
+/* An opt-in top highlight, not a focus indicator or required boundary. */
+.flood-materials .material--top-light::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: max(var(--material-radius), 12px);
+  block-size: 1px;
+  background: linear-gradient(90deg, transparent, var(--edge-top) 30%, var(--edge-top) 70%, transparent);
+  pointer-events: none;
+}
+.flood-materials .divider { block-size: 1px; border: 0; margin: 0; background: var(--edge-divider); }
+.flood-materials .control {
+  min-block-size: 36px;
+  min-inline-size: 0;
+  padding: 7px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  line-height: 20px;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out;
+}
+.flood-materials button.control { cursor: pointer; }
+.flood-materials .control--primary { background: var(--ink); color: var(--on-ink); }
+.flood-materials .control--danger { background: var(--danger-solid); color: var(--on-danger); }
+.flood-materials .control--field { inline-size: 100%; border-color: var(--boundary-control); background: var(--field); }
+@media (hover: hover) {
+  .flood-materials button.control:not(:disabled):hover { background: var(--selected); color: var(--ink); }
+  .flood-materials button.control--primary:not(:disabled):hover { background: var(--primary-hover); color: var(--on-ink); }
+  .flood-materials button.control--danger:not(:disabled):hover { background: var(--danger-text); color: var(--on-danger); }
+}
+.flood-materials button.control:not(:disabled):active { background: var(--selected); color: var(--ink); }
+.flood-materials button.control--primary:not(:disabled):active { background: var(--primary-hover); color: var(--on-ink); }
+.flood-materials button.control--danger:not(:disabled):active { background: var(--danger-text); color: var(--on-danger); }
+.flood-materials .control:disabled { cursor: not-allowed; background: var(--surface); color: var(--muted); border-style: dashed; border-color: var(--edge-surface); }
+.flood-materials :is(button, input, a):focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.flood-materials .control--field::placeholder { color: var(--muted); opacity: 1; }
+.flood-materials ::selection { background: var(--selected); color: var(--ink); }
+.flood-materials input[aria-invalid="true"] { border-color: var(--danger-text); }
+.flood-materials input[type="radio"] { accent-color: var(--ink); inline-size: 18px; block-size: 18px; }
+.flood-materials .status { padding: 12px 16px; border-radius: var(--radius-control); background: var(--surface); }
+.flood-materials .status--danger { background: var(--danger-surface); color: var(--danger-text); }
+.flood-materials .status--warning { background: var(--warning-surface); color: var(--warning-text); }
+.flood-materials .status--success { background: var(--success-surface); color: var(--success-text); }
+.flood-materials .compound { --material-radius: 16px; --visible-inset: 6px; padding: calc(var(--visible-inset) - 1px); }
+.flood-materials .compound > .compound-inner { border-radius: max(0px, calc(var(--material-radius) - var(--visible-inset))); background: var(--surface); padding: 12px; }
+@media (pointer: coarse) { .flood-materials .control { min-block-size: 44px; } }
+@media (prefers-reduced-motion: reduce) { .flood-materials .control { transition: none; } }
+@media (prefers-contrast: more) {
+  .flood-materials .material--outlined, .flood-materials .material--floating { border-color: var(--boundary-control); }
+  .flood-materials .divider { background: var(--boundary-control); }
+  .flood-materials .material--top-light::before { display: none; }
+}
+@media (forced-colors: active) {
+  .flood-materials .material { background: Canvas; color: CanvasText; box-shadow: none; }
+  .flood-materials .material--outlined, .flood-materials .material--floating { border-color: CanvasText; }
+  .flood-materials .material--top-light::before { display: none; }
+  .flood-materials .control { border-color: ButtonText; background: ButtonFace; color: ButtonText; }
+  .flood-materials .control:disabled { border-color: GrayText; color: GrayText; }
+  .flood-materials .control--field { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .flood-materials .divider { background: CanvasText; }
+  .flood-materials .status { border: 1px solid CanvasText; background: Canvas; color: CanvasText; }
+  .flood-materials :is(button, input, a):focus-visible { outline-color: Highlight; }
+}

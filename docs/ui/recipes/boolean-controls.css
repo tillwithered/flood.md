@@ -1,0 +1,125 @@
+/* Boolean lab 0.6.4. Candidate geometry, inherited palette/focus from 0.6.3.
+   Never import the laboratory into application runtime. */
+.boolean-lab { --b-size:18px; --b-radius:5px; --b-gap:10px; --b-target:36px; --b-track-width:36px; --b-track-height:20px; --b-inset:2px; --b-thumb:calc(var(--b-track-height) - 2 * var(--b-inset)); --b-travel:calc(var(--b-track-width) - 2 * var(--b-inset) - var(--b-thumb)); }
+.boolean-lab .b-heading { display:flex; justify-content:space-between; gap:24px; align-items:start; margin-bottom:24px; }
+.boolean-lab .b-heading > div { display:grid; gap:8px; max-width:790px; }
+.boolean-lab .b-id { flex:none; font-size:12px; color:var(--muted); padding-top:5px; }
+.boolean-lab .b-workbench { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(260px,.8fr); gap:48px; align-items:start; }
+.boolean-lab .b-notes { padding-top:4px; display:grid; gap:20px; color:var(--muted); }
+.boolean-lab .b-notes h3 { color:var(--ink); font-size:16px; line-height:24px; }
+.boolean-lab .b-kicker { font-size:12px; line-height:16px; }
+.boolean-lab .b-notes .facts { gap:14px; font-size:13px; }
+.boolean-lab .b-notes dd { color:var(--ink); }
+.boolean-lab fieldset { gap:2px; min-width:0; }
+.boolean-lab legend { margin-bottom:12px; font-size:14px; line-height:20px; }
+.boolean-lab fieldset > .hint { margin-bottom:12px; }
+.boolean-lab .b-choice { display:grid; grid-template-columns:var(--b-size) minmax(0,1fr); gap:var(--b-gap); align-items:start; min-height:var(--b-target); padding:8px 0; cursor:pointer; border-radius:7px; position:relative; }
+.boolean-lab .b-choice:has(.b-switch) { grid-template-columns:var(--b-track-width) minmax(0,1fr); }
+.boolean-lab .b-control { display:inline-grid; position:relative; inline-size:var(--b-size); block-size:var(--b-size); flex:none; align-self:start; margin-block-start:1px; }
+.boolean-lab .b-control input { position:absolute; z-index:1; inset:0; margin:0; padding:0; width:100%; height:100%; opacity:0; appearance:none; -webkit-appearance:none; cursor:inherit; border:0; border-radius:inherit; }
+.boolean-lab .b-control input:focus-visible { outline:none; box-shadow:none; }
+.boolean-lab .b-mark { display:grid; place-items:center; width:100%; height:100%; border:1px solid var(--boundary); background:var(--panel); color:var(--ink); border-radius:var(--b-radius); box-shadow:none; pointer-events:none; transition:background-color 120ms ease-out,border-color 120ms ease-out; }
+.boolean-lab .b-check { display:none; width:12px; height:12px; }
+.boolean-lab .b-check svg { width:12px; height:12px; display:block; fill:currentColor; stroke:none; }
+.boolean-lab .b-mixed { display:none; width:10px; height:2px; border-radius:1px; background:currentColor; }
+.boolean-lab .b-checkbox:has(input:checked) .b-mark,
+.boolean-lab .b-checkbox:has(input:indeterminate) .b-mark,
+.boolean-lab .b-checkbox:is(.is-checked,.is-mixed) .b-mark { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
+.boolean-lab .b-checkbox:has(input:checked):not(:has(input:indeterminate)) .b-check,
+.boolean-lab .b-checkbox.is-checked .b-check { display:block; }
+.boolean-lab .b-checkbox:has(input:indeterminate) .b-mixed,
+.boolean-lab .b-checkbox.is-mixed .b-mixed { display:block; }
+.boolean-lab .b-copy { display:grid; gap:4px; min-width:0; }
+.boolean-lab .b-label { line-height:20px; font-weight:400; overflow-wrap:anywhere; }
+.boolean-lab .b-copy .hint { overflow-wrap:anywhere; }
+.boolean-lab #cb-master-label { font-weight:500; }
+.boolean-lab .b-children { margin-inline-start:calc(var(--b-size) + var(--b-gap)); }
+.boolean-lab .b-feedback { min-height:20px; font-size:13px; line-height:20px; margin-block:12px; }
+.boolean-lab .b-feedback:empty { min-height:0; margin:0; }
+.boolean-lab form > .actions { margin-top:16px; }
+.boolean-lab .b-radio .b-mark { border-radius:50%; }
+.boolean-lab .b-dot { width:8px; height:8px; border-radius:50%; background:currentColor; visibility:hidden; }
+.boolean-lab .b-radio:has(input:checked) .b-dot,.boolean-lab .b-radio.is-checked .b-dot { visibility:visible; }
+.boolean-lab .b-radio:has(input:checked) .b-mark,.boolean-lab .b-radio.is-checked .b-mark { border-color:var(--ink); }
+.boolean-lab .b-switch { width:var(--b-track-width); height:var(--b-track-height); margin-block-start:0; }
+.boolean-lab .b-switch .b-mark { display:flex; align-items:center; padding:calc(var(--b-inset) - 1px); border-radius:calc(var(--b-track-height) / 2); background:var(--surface); }
+.boolean-lab .b-thumb { display:block; width:var(--b-thumb); height:var(--b-thumb); border-radius:50%; background:var(--muted); flex:none; transform:translateX(0); transition:transform 120ms ease-out; }
+.boolean-lab .b-switch:has(input:checked) .b-mark,.boolean-lab .b-switch.is-checked .b-mark { background:var(--ink); border-color:var(--ink); }
+.boolean-lab .b-switch:has(input:checked) .b-thumb,.boolean-lab .b-switch.is-checked .b-thumb { transform:translateX(var(--b-travel)); background:var(--on-ink); }
+/* Interaction layers never move or resize the mark. */
+.boolean-lab .b-control:has(input[aria-invalid="true"]) .b-mark,
+.boolean-lab .b-control.is-invalid .b-mark { border-color:var(--danger); }
+.boolean-lab .b-control:has(input:focus-visible) .b-mark,
+.boolean-lab .b-control.is-focus .b-mark { box-shadow:0 0 0 var(--focus-inner) var(--focus-core),0 0 0 var(--focus-outer) var(--focus-halo); }
+.boolean-lab .b-choice:has(input:disabled) { cursor:not-allowed; color:var(--muted); }
+.boolean-lab .b-control:has(input:disabled) .b-mark,
+.boolean-lab .b-control.is-disabled .b-mark { border-color:var(--field-edge); background:var(--surface); color:var(--muted); }
+.boolean-lab .b-switch:has(input:disabled:checked) .b-mark,
+.boolean-lab .b-switch.is-disabled.is-checked .b-mark { background:var(--field-edge); }
+.boolean-lab .b-switch:has(input:disabled) .b-thumb,
+.boolean-lab .b-switch.is-disabled .b-thumb { background:var(--muted); }
+.boolean-lab .b-choice:has(input[aria-disabled="true"]) { cursor:wait; }
+.boolean-lab .b-control.is-hover:not(.is-checked):not(.is-mixed) .b-mark { background:var(--hover); }
+.boolean-lab .b-control.is-pressed:not(.is-checked):not(.is-mixed) .b-mark { background:var(--selected); }
+.boolean-lab :is(.b-checkbox,.b-switch).is-checked.is-hover .b-mark,
+.boolean-lab .b-checkbox.is-mixed.is-hover .b-mark { background:color-mix(in srgb,var(--ink) 90%,var(--panel)); }
+.boolean-lab :is(.b-checkbox,.b-switch).is-checked.is-pressed .b-mark,
+.boolean-lab .b-checkbox.is-mixed.is-pressed .b-mark { background:color-mix(in srgb,var(--ink) 82%,var(--panel)); }
+@media(hover:hover) {
+ .boolean-lab .b-choice:hover :is(.b-checkbox,.b-switch):has(input:checked):not(:has(input:disabled,input[aria-disabled="true"])) .b-mark,
+ .boolean-lab .b-choice:hover .b-checkbox:has(input:indeterminate):not(:has(input:disabled)) .b-mark { background:color-mix(in srgb,var(--ink) 90%,var(--panel)); }
+
+ .boolean-lab .b-choice:hover .b-control:not(:has(input:checked,input:indeterminate,input:disabled,input[aria-disabled="true"])) .b-mark { background:var(--hover); }
+}
+.boolean-lab .b-choice:active .b-control:not(:has(input:checked,input:indeterminate,input:disabled,input[aria-disabled="true"])) .b-mark { background:var(--selected); }
+.boolean-lab .b-choice:active :is(.b-checkbox,.b-switch):has(input:checked):not(:has(input:disabled,input[aria-disabled="true"])) .b-mark,
+.boolean-lab .b-choice:active .b-checkbox:has(input:indeterminate):not(:has(input:disabled)) .b-mark { background:color-mix(in srgb,var(--ink) 82%,var(--panel)); }
+.boolean-lab .b-indent-switch { margin-inline-start:calc(var(--b-track-width) + var(--b-gap)); }
+.boolean-lab .b-operation { display:grid; grid-template-columns:var(--b-track-width) minmax(0,1fr); gap:var(--b-gap); align-items:start; margin-block:12px; }
+.boolean-lab .b-operation .b-feedback { margin:0; min-height:40px; }
+.boolean-lab .b-operation-slot { display:grid; place-items:center; height:20px; }
+.boolean-lab #switch-feedback[data-tone="error"] { color:var(--danger); }
+.boolean-lab #switch-feedback[data-tone="success"] { color:var(--success); }
+.boolean-lab #switch-feedback[data-tone="unknown"] { color:var(--warning); }
+.boolean-lab .b-simulation { padding-top:20px; border-top:1px solid var(--edge); display:grid; gap:8px; }
+.boolean-lab .b-scenarios { display:flex; flex-wrap:wrap; gap:8px 20px; }
+.boolean-lab .b-scenarios .b-choice { min-width:90px; }
+/* Static state sheets: no focusable controls or fake ARIA checkboxes. */
+.boolean-lab .b-matrix { margin-top:36px; padding-top:24px; border-top:1px solid var(--edge); }
+.boolean-lab .b-matrix-heading { display:flex; align-items:baseline; gap:20px; justify-content:space-between; margin-bottom:16px; }
+.boolean-lab .b-state-table { width:100%; border-collapse:collapse; table-layout:fixed; text-align:start; }
+.boolean-lab .b-state-table th { color:var(--muted); font-size:13px; font-weight:400; text-align:start; }
+.boolean-lab .b-state-table thead th { padding:8px 16px 16px; }
+.boolean-lab .b-state-table th:first-child { width:25%; padding-inline-start:0; }
+.boolean-lab .b-state-table td { padding:12px 16px; height:52px; vertical-align:middle; }
+.boolean-lab .b-state-table tbody th { padding-block:12px; }
+.boolean-lab .b-state-table tbody tr:nth-child(2n) { background:var(--panel); }
+.boolean-lab .b-static { display:flex; align-items:center; gap:12px; min-height:28px; }
+.boolean-lab .b-static .b-control { margin:0; align-self:center; }
+.boolean-lab .b-static .b-status { color:var(--muted); font-size:12px; line-height:16px; overflow-wrap:anywhere; }
+.boolean-lab .b-static .b-status.error { color:var(--danger); }
+.boolean-lab .b-static .b-status.unknown { color:var(--warning); }
+.boolean-lab .b-sample-spinner { width:12px; height:12px; border:2px solid var(--muted); border-right-color:transparent; border-radius:50%; flex:none; }
+.boolean-lab.b-targets .b-choice { outline:1px dashed var(--boundary); outline-offset:0; background:var(--panel); }
+.boolean-lab.b-targets .b-control { outline:1px dashed var(--muted); outline-offset:1px; }
+.boolean-lab .b-measurements { white-space:pre-line; font-variant-numeric:tabular-nums; }
+.boolean-lab .review textarea { resize:none; overflow:auto; max-height:200px; }
+.boolean-lab .b-notes p,.boolean-lab .b-id,.boolean-lab .b-measurements { overflow-wrap:anywhere; }
+.boolean-lab .sheet { overflow:visible; }
+@media(max-width:900px) { .boolean-lab .b-workbench { grid-template-columns:1fr; gap:24px; } .boolean-lab .b-notes { max-width:680px; } .boolean-lab .b-heading,.boolean-lab .b-matrix-heading { flex-direction:column; gap:8px; } }
+@media(max-width:540px) { .boolean-lab .b-state-table td { padding-inline:10px; } .boolean-lab .b-state-table th:first-child { width:32%; } .boolean-lab .b-static { flex-wrap:wrap; gap:6px; } .boolean-lab .b-children { margin-inline-start:0; } }
+@media(pointer:coarse) { .boolean-lab { --b-target:44px; } .boolean-lab .b-choice { padding-block:12px; } }
+@media(prefers-reduced-motion:reduce) { .boolean-lab .b-thumb,.boolean-lab .b-mark { transition:none; } }
+@media(forced-colors:active) {
+ .boolean-lab .b-control { forced-color-adjust:none; }
+ .boolean-lab .b-mark { background:Canvas!important; color:CanvasText!important; border-color:CanvasText!important; box-shadow:none!important; }
+ .boolean-lab .b-checkbox:has(input:checked,input:indeterminate) .b-mark,
+ .boolean-lab .b-checkbox:is(.is-checked,.is-mixed) .b-mark,
+ .boolean-lab .b-switch:has(input:checked) .b-mark,
+ .boolean-lab .b-switch.is-checked .b-mark { background:Highlight!important; color:HighlightText!important; border-color:Highlight!important; }
+ .boolean-lab .b-thumb { background:CanvasText!important; }
+ .boolean-lab .b-switch:has(input:checked) .b-thumb,.boolean-lab .b-switch.is-checked .b-thumb { background:HighlightText!important; }
+ .boolean-lab .b-control:has(input:disabled) .b-mark,.boolean-lab .b-control.is-disabled .b-mark { border-color:GrayText!important; color:GrayText!important; }
+ .boolean-lab .b-control:has(input:focus-visible) .b-mark,.boolean-lab .b-control.is-focus .b-mark { outline:2px solid Highlight; outline-offset:2px; }
+ .boolean-lab .b-status,.boolean-lab .b-feedback { color:CanvasText!important; }
+}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ArrowRight, Bold, Bot, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Database, Download, ExternalLink, FileText, Folder, FolderOpen, FolderPlus, Heading1, Info, Languages, Link, ListChecks, ListTodo, LogOut, Maximize2, MessageSquareText, Minus, MoreHorizontal, Palette, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Plus, Plug, QrCode, RefreshCw, RotateCcw, Search, Send, Settings, ShieldCheck, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
+  import { ArrowRight, Bold, Bot, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Database, Download, ExternalLink, FileText, Folder, FolderOpen, FolderPlus, GitCompare, Heading1, Info, Languages, Link, ListChecks, ListTodo, LogOut, Maximize2, MessageSquareText, Minus, MoreHorizontal, Palette, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Pin, Plus, Plug, QrCode, RefreshCw, RotateCcw, Search, Send, Settings, ShieldCheck, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { getVersion } from "@tauri-apps/api/app";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -15,25 +15,45 @@
   import MarkdownInline from "./components/MarkdownInline.svelte";
   import TelegramChatIdentity from "./components/TelegramChatIdentity.svelte";
   import { translate, type Locale, type MessageKey } from "./i18n";
+  import {
+    connectorUiRegistry,
+    type ConnectorProvider,
+    type ConnectorTone,
+    type ConnectorUiDefinition
+  } from "./integrations/registry";
 
   type Section = "tasks" | "trash" | "settings";
   type SettingsSection = "general" | "appearance" | "data" | "integrations" | "mcp" | "about";
-  type WorkspaceView = "project" | "task";
+  type WorkspaceView = "project" | "task" | "context";
   type Urgency = "normal" | "important" | "urgent";
+  type TaskRelationKind = "related" | "subtask_of" | "blocked_by";
+  type TaskRelation = { task_id: string; kind: TaskRelationKind };
+  type TaskCheckpoint = { id: string; created_at: string; source: "user" | "agent"; summary: string; verification?: string[]; remaining?: string[]; blocker?: string; result?: string; agent_run_id?: string };
   type SaveState = "idle" | "saving" | "saved" | "error";
   type ThemePreference = "system" | "light" | "dark";
   type UpdateState = "idle" | "checking" | "available" | "current" | "downloading" | "error";
   type DataActionState = "idle" | "backing-up" | "restoring" | "success" | "error";
   type AttachmentCleanupState = "idle" | "checking" | "cleaning" | "success" | "error";
   type TelegramInboxMode = "manual" | "mentions_and_replies" | "all";
-  type ProjectResourceKind = "repository" | "directory" | "figma" | "documentation" | "website" | "other";
+  type ProjectResourceKind = "repository" | "directory" | "skill" | "figma" | "documentation" | "website" | "other";
   type ProjectResource = { id: string; kind: ProjectResourceKind; label: string; location: string; notes?: string; agent_access: boolean };
+  type ProjectWorkspaceSection = "overview" | "documents" | "memory" | "proposals" | "rules" | "skills" | "integrations" | "automation" | "history";
+  type ProjectWorkspaceItemKind = "document" | "rule" | "skill";
+  type ProjectWorkspaceRevision = { title: string; summary?: string; content: string; agent_access: boolean; changed_at: string };
+  type ProjectWorkspaceItem = { id: string; project_id: string; kind: ProjectWorkspaceItemKind; title: string; summary?: string; content: string; agent_access: boolean; created_at: string; updated_at: string; revisions?: ProjectWorkspaceRevision[]; version: string };
+  type ProjectKnowledgeProposalTarget = { kind: "workspace_item"; item_id: string; item_kind: ProjectWorkspaceItemKind } | { kind: "project_memory"; memory_id: string } | { kind: "new_project_memory" };
+  type ProjectKnowledgeProposalPayload = { kind: "workspace_item"; title: string; summary?: string; content: string; agent_access: boolean } | { kind: "project_memory"; text: string; pinned: boolean };
+  type ProjectKnowledgeProposal = { id: string; project_id: string; target: ProjectKnowledgeProposalTarget; base_version: string; payload: ProjectKnowledgeProposalPayload; summary: string; reason: string; evidence?: string[]; source_run_id?: string; version: string; state: "pending" | "applied" | "rejected"; decision_reason?: string; created_at: string; updated_at: string };
+  type ProjectMemoryRevision = { text: string; changed_at: string };
+  type ProjectMemoryEntry = { id: string; text: string; created_at: string; updated_at?: string; source_task_id?: string; pinned?: boolean; state?: "active" | "superseded"; superseded_by?: string; revisions?: ProjectMemoryRevision[] };
   type ProjectContextPreviewBlock = { kind: "heading" | "paragraph" | "bullets" | "numbers" | "quote" | "code"; level?: number; text?: string; items?: string[] };
   type SourceMedia = { kind: "photo" | "video" | "document" | "audio" | "voice" | "animation" | "other"; file_name: string; provider_file_id?: number; mime_type?: string; size?: number; relative_path?: string };
-  type TelegramContextMessage = { message_id: number; message_ids?: number[]; author: string; sent_at: string; text: string; url?: string; reply_to_message_id?: number; is_target: boolean; media?: SourceMedia[] };
+  type TelegramContextMessage = { message_id: number; message_ids?: number[]; author: string; sender_id?: string; sender_username?: string; is_outgoing?: boolean; sent_at: string; text: string; url?: string; reply_to_message_id?: number; is_target: boolean; media?: SourceMedia[] };
   type MessageSnapshot = { text: string; author?: string; sent_at?: string; url?: string; provider?: string; chat_id?: number; chat_title?: string; message_id?: number; message_ids?: number[]; media?: SourceMedia[]; context?: TelegramContextMessage[] };
   type TelegramProjectLink = { chat_id: number; title: string; inbox_mode: TelegramInboxMode };
-  type ProjectRecord = { id: string; title: string; context?: string; resources?: ProjectResource[]; created_at: string; updated_at: string; telegram_chats?: TelegramProjectLink[]; version: string };
+  type TelegramParticipantRole = { sender_id: string; display_name: string; username?: string; role: string; source: "manual" | "agent" };
+  type ProjectRecord = { id: string; title: string; context?: string; resources?: ProjectResource[]; memory?: ProjectMemoryEntry[]; created_at: string; updated_at: string; telegram_chats?: TelegramProjectLink[]; telegram_participants?: TelegramParticipantRole[]; version: string };
+  type CommandError = { code: string; message: string; recovery?: string };
   type TaskRecord = {
     id: string;
     project_id: string;
@@ -42,6 +62,9 @@
     updated_at: string;
     urgency: Urgency;
     status: "open" | "completed";
+    relations?: TaskRelation[];
+    checkpoints?: TaskCheckpoint[];
+    checkpoint_count?: number;
     source?: MessageSnapshot;
     trashed_at?: string;
     version: string;
@@ -57,6 +80,9 @@
     updatedAt: string;
     urgency: Urgency;
     completed: boolean;
+    relations: TaskRelation[];
+    checkpoints: TaskCheckpoint[];
+    checkpointCount: number;
     markdown: string;
     source?: MessageSnapshot;
     sourceAuthor?: string;
@@ -69,8 +95,8 @@
   type TelegramStatus = { step: string; configured: boolean; managed_credentials: boolean; account_name?: string; account_username?: string; qr_link?: string; password_hint?: string; error?: string };
   type TelegramChat = { id: number; title: string; kind?: "private" | "secret" | "group" | "channel" | "direct" | "unknown"; username?: string; avatar_data_url?: string; avatar_file_id?: number };
   type TelegramLinkedTask = { id: string; title: string; urgency: Urgency; status: "open" | "completed"; trashed: boolean };
-  type TelegramMessage = { id: number; message_ids?: number[]; chat_id: number; text: string; author: string; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean; linked_task?: TelegramLinkedTask };
-  type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; message_ids?: number[]; text: string; author: string; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; context?: TelegramContextMessage[]; discovered_at: string; processed_at?: string; task_id?: string; linked_task?: TelegramLinkedTask };
+  type TelegramMessage = { id: number; message_ids?: number[]; chat_id: number; text: string; author: string; sender_id?: string; sender_username?: string; is_outgoing?: boolean; sent_at: number; url?: string; chat_title: string; media: SourceMedia[]; is_mention: boolean; is_reply_to_me: boolean; linked_task?: TelegramLinkedTask };
+  type TelegramInboxCandidate = { id: string; project_id: string; chat_id: number; chat_title: string; message_id: number; message_ids?: number[]; text: string; author: string; sender_id?: string; sender_username?: string; is_outgoing?: boolean; sent_at: string; url?: string; reason: "manual" | "mention" | "reply" | "linked_chat"; status: "pending" | "dismissed" | "imported"; media?: SourceMedia[]; context?: TelegramContextMessage[]; discovered_at: string; processed_at?: string; task_id?: string; linked_task?: TelegramLinkedTask };
   type TelegramInboxPage = { candidates: TelegramInboxCandidate[]; total: number; next_cursor?: string; remaining: number };
   type TelegramTaskCreationResult = { task: TaskRecord; media_errors: string[] };
   type TelegramInboxSyncResult = { scanned_projects: number; added: number; failed_projects: number; errors: string[]; busy: boolean };
@@ -88,18 +114,32 @@
   type GitHubRepository = { id: number; installation_id: number; name: string; full_name: string; private: boolean; html_url: string; description?: string; default_branch: string; archived: boolean; pushed_at?: string; owner_avatar_url: string };
   type GitHubRepositoryCatalog = { installations: GitHubInstallation[]; repositories: GitHubRepository[] };
   type TelegramTaskDraft = { title: string; notes: string; urgency: Urgency };
-  type StoreDiagnostics = { healthy: boolean; root: string; format_version: number; project_count: number; linked_chat_count: number; open_task_count: number; completed_task_count: number; trashed_task_count: number; pending_inbox_count: number; issues: string[] };
+  type StoreDiagnostics = { healthy: boolean; root: string; format_version: number; project_count: number; linked_chat_count: number; open_task_count: number; completed_task_count: number; trashed_task_count: number; pending_inbox_count: number; pending_automation_event_count: number; failed_automation_event_count: number; issues: string[] };
   type AttachmentCleanupReport = { total_files: number; total_bytes: number; orphaned_files: number; orphaned_bytes: number };
   type AttachmentCleanupResult = { removed_files: number; removed_bytes: number };
   type SelfCheckItem = { name: string; passed: boolean; detail?: string };
   type SelfCheckResult = { passed: boolean; duration_ms: number; checks: SelfCheckItem[] };
   type McpCheckState = "idle" | "checking" | "success" | "error";
   type McpClient = "codex" | "claude" | "cursor" | "manual";
-  type McpRuntimeInfo = { executable_path: string; launch_command: string; launch_args: string[]; available: boolean; version?: string; app_version: string; compatible: boolean; source: "bundled" | "development" };
+  type McpRuntimeInfo = { executable_path: string; launch_command: string; launch_args: string[]; available: boolean; version?: string; protocol_version?: string; tool_catalog_revision?: string; tool_count?: number; app_version: string; compatible: boolean; source: "bundled" | "development" };
   type InstallationRuntimeInfo = { executable_path: string; directory_path: string; kind: "installed" | "development" | "portable"; parallel_installed_copy?: string };
-  type ActivityAction = "project_created" | "project_updated" | "project_deleted" | "task_created" | "task_updated" | "task_completed" | "task_moved" | "task_trashed" | "task_restored" | "task_deleted" | "trash_emptied" | "telegram_task_created" | "telegram_candidate_dismissed" | "telegram_candidate_restored" | "telegram_sync_requested";
-  type ActivityEvent = { id: string; occurred_at: string; source: "mcp"; action: ActivityAction; entity_kind: "workspace" | "project" | "task" | "telegram_candidate"; entity_id?: string; project_id?: string; reversible: boolean };
+  type ActivityAction = "project_created" | "project_updated" | "project_deleted" | "task_created" | "task_updated" | "task_completed" | "task_moved" | "task_trashed" | "task_restored" | "task_deleted" | "trash_emptied" | "telegram_task_created" | "telegram_candidate_dismissed" | "telegram_candidate_restored" | "telegram_sync_requested" | "mutation_applied";
+  type ActivityProvenance = { initiator: { kind: "human" | "agent" | "automation" | "connector" | "system"; id?: string; provider?: string }; run_id?: string; guidance: { kind: "rule" | "skill"; id: string; version: string }[]; sources: { kind: string; id: string; version?: string }[]; approved_plan_id: string; approved_plan_digest: string; operations: { operation_id: string; kind: string; target_id?: string; changed: boolean }[]; result: "applied" | "no_changes"; recovery: "available" | "best_effort" | "unavailable" };
+  type ActivityEvent = { id: string; occurred_at: string; source: "mcp"; action: ActivityAction; entity_kind: "workspace" | "project" | "task" | "telegram_candidate"; entity_id?: string; project_id?: string; reversible: boolean; provenance?: ActivityProvenance };
   type ActivityPage = { events: ActivityEvent[]; total: number; next_cursor?: string; remaining: number };
+  type AgentRunState = "queued" | "running" | "ready_for_review" | "accepted" | "needs_input" | "failed" | "cancelled" | "interrupted";
+  type AppliedGuidance = { kind: "rule" | "skill"; id: string; title: string; version: string; reason: string };
+  type AgentRunUsage = { state: "unknown" | "estimated" | "actual"; context_limit_chars?: number; estimated_input_tokens?: number; actual_input_tokens?: number; actual_output_tokens?: number; actual_total_tokens?: number; soft_warning?: boolean };
+  type AgentRun = { id: string; task_id: string; project_id: string; provider: string; state: AgentRunState; created_at: string; updated_at: string; started_at?: string; finished_at?: string; thread_id?: string; working_directory: string; progress?: string; result?: string; memory?: string[]; guidance?: AppliedGuidance[]; blocker?: string; last_response?: string; error?: string; usage?: AgentRunUsage };
+  type ProjectAttention = { kind: "agent_question" | "source_question"; message: string; task_id?: string; event_id?: string; occurred_at: string };
+  type ProjectAutomationPolicy = { project_id: string; auto_run_created_tasks: boolean; updated_at?: string };
+  type AutomationProvider = "auto" | "codex" | "claude" | "gemini";
+  type AutomationSettings = { background_ai_triage: boolean; provider: AutomationProvider; projects?: ProjectAutomationPolicy[]; updated_at?: string };
+  type ProviderCapabilities = { schema_version: number; attachments: boolean; images: boolean; resume: boolean; interactive_input: boolean; usage: boolean; structured_result: boolean; interrupt: boolean; model_identity: boolean };
+  type LocalAgentProviderStatus = { id: Exclude<AutomationProvider, "auto">; name: string; available: boolean; version?: string; supports_images: boolean; capabilities: ProviderCapabilities };
+  type AutomationOutcome = "task_created_or_linked" | "task_updated" | "duplicate" | "no_action" | "needs_data" | "agent_queued" | "skipped_while_off";
+  type AutomationStatusSummary = { pending: number; processing: number; processed: number; failed: number; last_outcome?: AutomationOutcome; last_activity_at?: string };
+  type AcceptedAgentRun = { run: AgentRun; task: TaskRecord };
   type CommandGroup = "actions" | "projects" | "tasks";
   type CommandItem = { id: string; group: CommandGroup; title: string; meta?: string; keywords: string; urgency?: Urgency; completed?: boolean };
 
@@ -111,6 +151,7 @@
   const telegramModes: TelegramInboxMode[] = ["manual", "mentions_and_replies", "all"];
   const projectResourceKinds: ProjectResourceKind[] = ["repository", "directory", "figma", "documentation", "website", "other"];
   const mcpClients: McpClient[] = ["codex", "claude", "cursor", "manual"];
+  const automationProviders: AutomationProvider[] = ["auto", "codex", "claude", "gemini"];
 
   let tasks: TaskItem[] = [];
   let trashedTasks: TaskItem[] = [];
@@ -119,17 +160,19 @@
   type BlockKind = "paragraph" | "heading-1" | "heading-2" | "heading-3" | "bullet" | "number" | "quote" | "code";
 
   let editorRoot: HTMLDivElement;
+  let taskTitleInput: HTMLInputElement;
+  let taskTitleDraft = "";
   let attachmentInput: HTMLInputElement;
   let attachmentObjectUrls: string[] = [];
   let activeSection: Section = "tasks";
   let workspaceView: WorkspaceView = "project";
   let selectedTaskId = "";
+  let selectedTaskNavigationScope = "";
   let draftTaskId = "";
   let draftDirty = false;
   let selectedChatId = "all";
   let query = "";
   let searchInput: HTMLInputElement;
-  let showCompleted = false;
   let sidebarCollapsed = false;
   let expandedChatIds: string[] = [];
   let allTasksExpanded = true;
@@ -159,6 +202,13 @@
   let mcpActivityRemaining = 0;
   let mcpActivityState: "idle" | "loading" | "error" = "idle";
   let mcpActivityError = "";
+  let automationSettings: AutomationSettings = { background_ai_triage: false, provider: "auto" };
+  let localAgentProviders: LocalAgentProviderStatus[] = [];
+  let localAgentProvidersState: "idle" | "loading" | "ready" | "error" = "idle";
+  let automationSettingsState: "idle" | "saving" | "error" = "idle";
+  let automationSettingsError = "";
+  let automationStatus: AutomationStatusSummary | null = null;
+  let automationStatusState: "idle" | "loading" | "retrying" | "error" = "idle";
   let telegramStatus: TelegramStatus = { step: "unconfigured", configured: false, managed_credentials: false };
   let telegramApiId = "";
   let telegramApiHash = "";
@@ -214,7 +264,7 @@
   let downloadingSourceMedia = -1;
   let telegramScanTimer: number | undefined;
   let telegramRequestTimer: number | undefined;
-  let integrationModal: "telegram" | "github" | null = null;
+  let integrationModal: ConnectorProvider | null = null;
   let githubStatus: GitHubStatus = { configured: false, managed_app: false, connected: false, needs_reauthorization: false, credential_store_available: true };
   let githubClientId = "";
   let githubAppSlug = "";
@@ -224,7 +274,6 @@
   let githubRepositories: GitHubRepository[] = [];
   let githubInstallations: GitHubInstallation[] = [];
   let githubSearch = "";
-  let githubManagingRepositoryId = 0;
   let githubBusy = false;
   let githubError = "";
   let githubAuthTimer: number | undefined;
@@ -244,6 +293,12 @@
   let saveError = "";
   let saveTimer: number | undefined;
   let refreshTimer: number | undefined;
+  let agentRunTimer: number | undefined;
+  let selectedTaskRuns: AgentRun[] = [];
+  let agentQueueRuns: AgentRun[] = [];
+  let agentRunBusy = false;
+  let agentRunError = "";
+  let agentResponse = "";
   let lastSavedMarkdown = "";
   let saveInFlight: Promise<void> | null = null;
   let conflictRemote: TaskRecord | null = null;
@@ -273,14 +328,59 @@
   let projectContextVersion = "";
   let projectContextDraft = "";
   let projectContextResources: ProjectResource[] = [];
+  let projectAttention: ProjectAttention[] = [];
+  let projectAttentionAnswerId = "";
+  let projectAttentionAnswer = "";
+  let projectAttentionBusy = false;
+  let projectAutoRunDraft = false;
+  let projectAutoRunSaved = false;
+  let projectAutoRunLoading = false;
+  let projectAutomationStatus: AutomationStatusSummary | null = null;
+  let projectGithubOpen = false;
   let projectResourceAddOpen = false;
   let projectContextEditorMode: "edit" | "preview" = "edit";
+  let projectMemoryEditorId = "";
+  let projectMemoryEditorMode: "edit" | "supersede" = "edit";
+  let projectMemoryDraft = "";
+  let projectMemoryPinned = false;
+  let projectMemorySearch = "";
+  let projectMemoryShowSuperseded = false;
+  let projectMemorySaving = false;
+  let projectMemoryError = "";
+  let projectMemoryDeleteConfirmId = "";
   let expandedProjectResourceId = "";
   let projectContextError = "";
+  let projectContextConflictRemote: ProjectRecord | null = null;
   let projectContextSaving = false;
-  let projectContextDialog: HTMLDivElement;
+  let projectContextDialog: HTMLElement;
   let projectContextTextarea: HTMLTextAreaElement;
   let projectContextReturnFocus: HTMLElement | null = null;
+  let projectWorkspaceSection: ProjectWorkspaceSection = "overview";
+  let projectWorkspaceItems: ProjectWorkspaceItem[] = [];
+  let projectWorkspaceLoading = false;
+  let projectWorkspaceError = "";
+  let projectKnowledgeProposals: ProjectKnowledgeProposal[] = [];
+  let projectKnowledgeLoading = false;
+  let projectKnowledgeError = "";
+  let projectKnowledgeReviewId = "";
+  let projectKnowledgeDecisionReason = "";
+  let projectKnowledgeBusy = false;
+  let projectKnowledgeDialog: HTMLElement;
+  let projectKnowledgeReturnFocus: HTMLElement | null = null;
+  let projectWorkspaceConflictRemote: ProjectWorkspaceItem | null = null;
+  let projectWorkspaceConflictAction: "save" | "delete" | null = null;
+  let projectWorkspaceEditorId = "";
+  let projectWorkspaceEditorKind: ProjectWorkspaceItemKind = "document";
+  let projectWorkspaceTitle = "";
+  let projectWorkspaceSummary = "";
+  let projectWorkspaceContent = "";
+  let projectWorkspaceAgentAccess = false;
+  let projectWorkspaceSaving = false;
+  let projectWorkspaceDeleteConfirm = false;
+  let projectWorkspaceCloseConfirm = false;
+  let projectWorkspaceOriginal = "";
+  let projectWorkspaceDialog: HTMLElement;
+  let projectWorkspaceReturnFocus: HTMLElement | null = null;
   let sourceMediaPreviews: Record<number, string> = {};
   let sourcePreviewObjectUrls: string[] = [];
   let sourceText = "";
@@ -319,12 +419,41 @@
 
   let t = translator(locale);
 
+  function parseCommandError(error: unknown): CommandError {
+    const fromObject = (value: unknown): CommandError | null => {
+      if (!value || typeof value !== "object") return null;
+      const candidate = value as { code?: unknown; message?: unknown; recovery?: unknown };
+      if (typeof candidate.message !== "string") return null;
+      return { code: typeof candidate.code === "string" ? candidate.code : "", message: candidate.message, recovery: typeof candidate.recovery === "string" ? candidate.recovery : undefined };
+    };
+    const direct = fromObject(error);
+    if (direct) return direct;
+    if (typeof error === "string") {
+      try {
+        const parsed = fromObject(JSON.parse(error));
+        if (parsed) return parsed;
+      } catch {
+        // Older Tauri commands reject with a plain string.
+      }
+      return { code: "", message: error };
+    }
+    return { code: "", message: String(error) };
+  }
+
+  function commandErrorMessage(error: unknown) {
+    return parseCommandError(error).message;
+  }
+
+  function isConflictError(error: unknown) {
+    const parsed = parseCommandError(error);
+    return parsed.code === "conflict" || parsed.message.includes("изменились в другом процессе");
+  }
+
   function saveUiPreferences() {
     localStorage.setItem(uiPreferencesKey, JSON.stringify({
       theme: themePreference,
       locale,
       reduceMotion,
-      showCompleted,
       sidebarCollapsed,
       expandedChatIds,
       allTasksExpanded
@@ -347,7 +476,6 @@
       if (stored.theme === "system" || stored.theme === "light" || stored.theme === "dark") themePreference = stored.theme;
       if (stored.locale === "ru" || stored.locale === "en") locale = stored.locale;
       if (typeof stored.reduceMotion === "boolean") reduceMotion = stored.reduceMotion;
-      if (typeof stored.showCompleted === "boolean") showCompleted = stored.showCompleted;
       if (typeof stored.sidebarCollapsed === "boolean") sidebarCollapsed = stored.sidebarCollapsed;
       if (Array.isArray(stored.expandedChatIds)) expandedChatIds = stored.expandedChatIds.filter((id): id is string => typeof id === "string");
       if (typeof stored.allTasksExpanded === "boolean") allTasksExpanded = stored.allTasksExpanded;
@@ -412,11 +540,6 @@
     sidebarProjectHint = null;
   }
 
-  function toggleCompletedVisibility() {
-    showCompleted = !showCompleted;
-    saveUiPreferences();
-  }
-
   function toggleMotionPreference() {
     reduceMotion = !reduceMotion;
     applyMotionPreference();
@@ -439,17 +562,35 @@
     saveUiPreferences();
   }
 
-  function taskTitle(description: string) {
-    const first = description.split("\n").find((line) => line.trim())?.trim() ?? t("untitled");
-    const plain = first
-      .replace(/^#{1,3}\s+/, "")
+  function plainTaskTitle(value: string) {
+    return value
+      .replace(/^#{1,3}\s*/, "")
       .replace(/^[-*>]\s+/, "")
       .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
       .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
       .replace(/\*\*|\*/g, "")
       .replace(/<\/?u>/g, "")
       .trim();
-    return plain || t("untitled");
+  }
+
+  function splitTaskDescription(description: string) {
+    const lines = description.replace(/\r\n?/g, "\n").split("\n");
+    const titleIndex = lines.findIndex((line) => line.trim());
+    if (titleIndex < 0) return { title: "", body: "" };
+    const title = plainTaskTitle(lines[titleIndex]);
+    const bodyLines = lines.slice(titleIndex + 1);
+    while (bodyLines[0]?.trim() === "") bodyLines.shift();
+    return { title, body: bodyLines.join("\n").trimEnd() };
+  }
+
+  function composeTaskDescription(title: string, body: string) {
+    const normalizedTitle = title.trim() || t("untitled");
+    const normalizedBody = body.replace(/\r\n?/g, "\n").trim();
+    return normalizedBody ? `# ${normalizedTitle}\n\n${normalizedBody}` : `# ${normalizedTitle}`;
+  }
+
+  function taskTitle(description: string) {
+    return splitTaskDescription(description).title || t("untitled");
   }
 
   function relativeDate(value: string) {
@@ -495,6 +636,9 @@
       updatedAt: task.updated_at,
       urgency: task.urgency,
       completed: task.status === "completed",
+      relations: task.relations ?? [],
+      checkpoints: task.checkpoints ?? [],
+      checkpointCount: task.checkpoints?.length ?? task.checkpoint_count ?? 0,
       markdown: task.description,
       source,
       sourceAuthor: source?.author ?? ("source_author" in task ? task.source_author : undefined),
@@ -502,6 +646,28 @@
       trashedAt: task.trashed_at,
       version: task.version
     };
+  }
+
+  function taskRelationLabel(kind: TaskRelationKind) {
+    return t(kind === "blocked_by" ? "blockedBy" : kind === "subtask_of" ? "subtaskOf" : "relatedTask");
+  }
+
+  function relationTarget(relation: TaskRelation) {
+    return tasks.find((task) => task.id === relation.task_id);
+  }
+
+  function latestTaskCheckpoint(task: TaskItem) {
+    return task.checkpoints.at(-1);
+  }
+
+  function checkpointIsRepresentedByLatestRun(checkpoint: TaskCheckpoint, run?: AgentRun) {
+    return Boolean(run && checkpoint.agent_run_id === run.id && run.result);
+  }
+
+  function taskHasOpenBlockers(task: TaskItem) {
+    return task.relations.some((relation) =>
+      relation.kind === "blocked_by" && !relationTarget(relation)?.completed
+    );
   }
 
   function allChat(open: number): ChatItem {
@@ -532,7 +698,7 @@
       tasks = summaries.map((task) => {
         const converted = toTaskItem(task, nextChats);
         if (previousSelected?.id === converted.id && previousSelected.version === converted.version) {
-          return { ...converted, source: previousSelected.source, hasSource: previousSelected.hasSource };
+          return { ...converted, source: previousSelected.source, hasSource: previousSelected.hasSource, checkpoints: previousSelected.checkpoints };
         }
         return converted;
       });
@@ -638,7 +804,19 @@
           continue;
         }
       }
-      const nextCandidates = [value.indexOf("![", cursor + 1), value.indexOf("**", cursor + 1), value.indexOf("*", cursor + 1), value.indexOf("<u>", cursor + 1), value.indexOf("[", cursor + 1)].filter((index) => index >= 0);
+      const bareUrlMatch = value.slice(cursor).match(/^https?:\/\/[^\s]+/i);
+      if (bareUrlMatch) {
+        const url = bareUrlMatch[0].replace(/[.,!?;:]+$/, "");
+        if (isHttpUrl(url)) {
+          const link = document.createElement("a");
+          link.textContent = url;
+          decorateExternalLink(link, url);
+          parent.append(link);
+          cursor += url.length;
+          continue;
+        }
+      }
+      const nextCandidates = [value.indexOf("![", cursor + 1), value.indexOf("**", cursor + 1), value.indexOf("*", cursor + 1), value.indexOf("<u>", cursor + 1), value.indexOf("[", cursor + 1), value.indexOf("http://", cursor + 1), value.indexOf("https://", cursor + 1)].filter((index) => index >= 0);
       const next = nextCandidates.length ? Math.min(...nextCandidates) : value.length;
       parent.append(document.createTextNode(value.slice(cursor, Math.max(cursor + 1, next))));
       cursor = Math.max(cursor + 1, next);
@@ -715,13 +893,12 @@
 
   function renderMarkdown(value: string) {
     if (!editorRoot) return;
-    editorRoot.replaceChildren(...value.split("\n").map((line) => {
+    const description = splitTaskDescription(value);
+    taskTitleDraft = description.title;
+    editorRoot.replaceChildren(...description.body.split("\n").map((line) => {
       const block = parseLine(line);
       return createBlock(block.kind, block.text);
     }));
-    const firstContentBlock = [...editorRoot.querySelectorAll<HTMLElement>(":scope > .editor-block")]
-      .find((block) => !block.dataset.attachmentKind && (block.textContent ?? "").trim());
-    firstContentBlock?.classList.add("task-title-block");
     renumberLists();
     void hydrateAttachments();
   }
@@ -756,15 +933,26 @@
   function serializeEditor() {
     const blocks = [...editorRoot.querySelectorAll<HTMLElement>(":scope > .editor-block")];
     renumberLists();
-    markdown = blocks.map((block) => {
+    const body = blocks.map((block) => {
       const kind = (block.dataset.block as BlockKind) || "paragraph";
       const prefix = kind === "number" ? `${block.dataset.number ?? "1"}. ` : blockPrefixes[kind];
       return `${prefix}${[...block.childNodes].map(serializeInline).join("")}`;
     }).join("\n");
-    const titleBlock = blocks.find((block) => block.dataset.block === "heading-1");
-    const nextTitle = titleBlock?.textContent?.trim();
-    tasks = tasks.map((task) => task.id === selectedTaskId ? { ...task, markdown, ...(nextTitle ? { title: nextTitle } : {}) } : task);
+    markdown = composeTaskDescription(taskTitleDraft, body);
+    const nextTitle = taskTitleDraft.trim() || t("untitled");
+    tasks = tasks.map((task) => task.id === selectedTaskId ? { ...task, markdown, title: nextTitle } : task);
     scheduleSave();
+  }
+
+  function syncTaskTitle() {
+    if (selectedTaskId === draftTaskId) draftDirty = true;
+    serializeEditor();
+  }
+
+  function handleTaskTitleKeydown(event: KeyboardEvent) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    void focusEditor();
   }
 
   function scheduleSave() {
@@ -793,7 +981,10 @@
   function discardLocalDraft() {
     if (!draftTaskId) return;
     tasks = tasks.filter((task) => task.id !== draftTaskId);
-    if (selectedTaskId === draftTaskId) selectedTaskId = "";
+    if (selectedTaskId === draftTaskId) {
+      selectedTaskId = "";
+      selectedTaskNavigationScope = "";
+    }
     draftTaskId = "";
     draftDirty = false;
     markdown = "";
@@ -841,7 +1032,7 @@
           if (hasNewerText) scheduleSave();
         } catch (error) {
           saveState = "error";
-          saveError = String(error);
+          saveError = commandErrorMessage(error);
         }
       })();
       saveInFlight = work;
@@ -887,9 +1078,13 @@
         savedOk = true;
       } catch (error) {
         saveState = "error";
-        saveError = String(error);
-        if (saveError.includes("изменились в другом процессе")) {
-          try { conflictRemote = await invoke<TaskRecord>("get_task", { id: taskId }); } catch { conflictRemote = null; }
+        saveError = commandErrorMessage(error);
+        if (isConflictError(error)) {
+          try {
+            conflictRemote = await invoke<TaskRecord>("get_task", { id: taskId });
+          } catch {
+            conflictRemote = null;
+          }
         }
       }
     })();
@@ -903,23 +1098,39 @@
   async function keepLocalVersion() {
     const local = tasks.find((task) => task.id === selectedTaskId);
     if (!local || !conflictRemote) return;
+    const snapshot = local.markdown;
     try {
       saveState = "saving";
       const saved = await invoke<TaskRecord>("update_task", {
         id: local.id,
-        patch: { description: local.markdown },
+        patch: { description: snapshot },
         expectedVersion: conflictRemote.version
       });
       const converted = toTaskItem(saved);
-      tasks = tasks.map((task) => task.id === saved.id ? converted : task);
-      markdown = converted.markdown;
-      lastSavedMarkdown = converted.markdown;
+      tasks = tasks.map((task) => {
+        if (task.id !== saved.id) return task;
+        if (task.markdown !== snapshot) {
+          return { ...task, version: saved.version, updatedAt: saved.updated_at, updated: relativeDate(saved.updated_at) };
+        }
+        return converted;
+      });
+      const current = tasks.find((task) => task.id === saved.id);
+      markdown = current?.markdown ?? converted.markdown;
+      lastSavedMarkdown = snapshot;
       conflictRemote = null;
       saveError = "";
       saveState = "saved";
+      if (current && current.markdown !== snapshot) scheduleSave();
     } catch (error) {
       saveState = "error";
-      saveError = String(error);
+      saveError = commandErrorMessage(error);
+      if (isConflictError(error)) {
+        try {
+          conflictRemote = await invoke<TaskRecord>("get_task", { id: local.id });
+        } catch {
+          // Keep the previous remote version so the local draft remains recoverable.
+        }
+      }
     }
   }
 
@@ -945,23 +1156,18 @@
   function updateSelectionToolbar() {
     const selection = window.getSelection();
     if (!selection?.rangeCount || !editorRoot) {
-      selectionToolbar = null;
-      savedSelection = null;
-      linkEditorOpen = false;
+      closeSelectionToolbar();
       return;
     }
     const range = selection.getRangeAt(0);
     const container = range.commonAncestorContainer instanceof Element ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement;
     if (!container || !editorRoot.contains(container)) {
-      selectionToolbar = null;
-      savedSelection = null;
-      linkEditorOpen = false;
+      closeSelectionToolbar();
       return;
     }
     savedSelection = range.cloneRange();
     if (selection.isCollapsed) {
-      selectionToolbar = null;
-      linkEditorOpen = false;
+      closeSelectionToolbar();
       return;
     }
     const rect = range.getBoundingClientRect();
@@ -969,6 +1175,23 @@
       left: Math.max(12, Math.min(window.innerWidth - 214, rect.left + rect.width / 2 - 103)),
       top: Math.max(58, rect.top - 44)
     };
+  }
+
+  function closeSelectionToolbar() {
+    selectionToolbar = null;
+    savedSelection = null;
+    linkEditorOpen = false;
+    linkDraft = "";
+  }
+
+  function handleEditorBlur() {
+    editorHint = null;
+    clearAttachmentSelection();
+    void saveNow();
+    window.setTimeout(() => {
+      const active = document.activeElement;
+      if (!(active instanceof Element && active.closest(".selection-toolbar"))) closeSelectionToolbar();
+    });
   }
 
   function restoreSelection() {
@@ -1250,6 +1473,12 @@
   }
 
   $: selectedTask = tasks.find((task) => task.id === selectedTaskId);
+  $: latestAgentRun = selectedTaskRuns[0];
+  $: latestCheckpoint = selectedTask ? latestTaskCheckpoint(selectedTask) : undefined;
+  $: visibleAgentQueue = agentQueueRuns.filter((run) => ["queued", "running", "needs_input"].includes(run.state));
+  $: currentProjectAgentRuns = visibleAgentQueue.filter((run) => selectedChatId === "all" || run.project_id === selectedChatId);
+  $: currentProjectPrimaryRun = currentProjectAgentRuns.find((run) => run.state === "running") ?? currentProjectAgentRuns.find((run) => run.state === "needs_input") ?? currentProjectAgentRuns.find((run) => run.state === "queued");
+  $: currentProjectQueuedCount = currentProjectAgentRuns.filter((run) => run.state === "queued").length;
   function taskMatchesQuery(task: TaskItem) {
     const haystack = `${task.title}\n${task.markdown}\n${task.sourceAuthor ?? ""}`.toLocaleLowerCase("ru");
     return haystack.includes(normalizedQuery);
@@ -1260,10 +1489,12 @@
   $: telegramVisibleChats = telegramChatSearch.trim() ? telegramSearchResults : telegramChats;
   $: normalizedQuery = query.trim().toLocaleLowerCase("ru");
   $: searchActive = normalizedQuery.length > 0;
-  $: visibleTasks = tasks.filter((task) => !isLocalDraft(task) && (showCompleted || !task.completed));
+  // The sidebar is an open-task navigator. Completed tasks stay available in the
+  // project view, but must never leak into its search or expanded project lists.
+  $: sidebarOpenTasks = tasks.filter((task) => !isLocalDraft(task) && !task.completed);
   $: sidebarSearchGroups = searchActive ? chats.slice(1).map((chat) => {
     const projectMatches = chat.title.toLocaleLowerCase("ru").includes(normalizedQuery);
-    const projectTasks = tasks.filter((task) => !isLocalDraft(task) && task.chatId === chat.id);
+    const projectTasks = sidebarOpenTasks.filter((task) => task.chatId === chat.id);
     return { chat, tasks: projectMatches ? projectTasks : projectTasks.filter(taskMatchesQuery), projectMatches };
   }).filter((group) => group.projectMatches || group.tasks.length) : [];
   $: currentProjectTasks = tasks
@@ -1277,15 +1508,16 @@
   $: setupCompleted = Number(setupHasProject) + Number(setupHasTask);
 
   function tasksForChat(chat: ChatItem) {
-    return tasks.filter((task) => !isLocalDraft(task) && task.chatId === chat.id && (showCompleted || !task.completed));
+    return sidebarOpenTasks.filter((task) => task.chatId === chat.id);
   }
 
   function openTaskCount(chatId: string) {
-    return tasks.filter((task) => !isLocalDraft(task) && !task.completed && (chatId === "all" || task.chatId === chatId)).length;
+    return sidebarOpenTasks.filter((task) => chatId === "all" || task.chatId === chatId).length;
   }
 
   async function selectChat(chat: ChatItem) {
     if (!await persistCurrentTask()) return;
+    if (projectContextOpen) closeProjectContext();
     discardLocalDraft();
     createChatOpen = false;
     createChatTitle = "";
@@ -1298,13 +1530,13 @@
     sourceEditorOpen = false;
     datePickerOpen = false;
     taskActionMenuOpen = false;
+    closeSelectionToolbar();
   }
 
-  function buildCommandResults(value: string, taskList: TaskItem[], projectList: ChatItem[], _locale: Locale, telegramStep: string): CommandItem[] {
+  function buildCommandResults(value: string, taskList: TaskItem[], projectList: ChatItem[], _locale: Locale, _telegramStep: string): CommandItem[] {
     const needle = value.trim().toLocaleLowerCase(locale);
     const actions: CommandItem[] = [
       { id: "action:new-task", group: "actions", title: t("newTask"), meta: "Ctrl+N", keywords: `${t("newTask")} создать добавить` },
-      { id: "action:inbox", group: "actions", title: t("openTelegramInbox"), meta: telegramStep === "ready" ? t("connected") : t("notConnected"), keywords: `${t("inbox")} telegram сообщения` },
       { id: "action:all-tasks", group: "actions", title: t("allTasks"), meta: openTasksLabel(taskList.filter((task) => !task.completed && !isLocalDraft(task)).length), keywords: `${t("allTasks")} список` },
       { id: "action:integrations", group: "actions", title: t("integrations"), meta: "Telegram", keywords: `${t("integrations")} telegram настройки` },
       { id: "action:mcp", group: "actions", title: t("mcpAndAi"), meta: "MCP", keywords: `${t("mcpAndAi")} codex claude cursor агент` },
@@ -1367,6 +1599,7 @@
     settingsSection = section;
     if (section === "data" && !attachmentCleanupReport) void loadAttachmentCleanupReport();
     if (section === "mcp") {
+      void loadLocalAgentProviders();
       if (!attachmentCleanupReport) void loadAttachmentCleanupReport();
       if (!mcpSelfCheck) void runMcpSelfCheck();
       if (!mcpActivity.length && mcpActivityState === "idle") void loadMcpActivity();
@@ -1393,11 +1626,6 @@
       if (currentChat.id !== "all") await createDraft(currentChat);
       else if (chats.length > 1) requestNewTask("workspace");
       else createChatOpen = true;
-      return;
-    }
-    if (item.id === "action:inbox") {
-      if (telegramStatus.step === "ready") await openTelegramInbox(false);
-      else await openSettingsSection("integrations");
       return;
     }
     if (item.id === "action:all-tasks") {
@@ -1503,6 +1731,8 @@
   async function handleWindowKeydown(event: KeyboardEvent) {
     if (event.key === "Escape") {
       if (commandPaletteOpen) closeCommandPalette();
+      else if (projectKnowledgeReviewId && !projectKnowledgeBusy) closeProjectKnowledgeReview();
+      else if (projectWorkspaceEditorId && !projectWorkspaceSaving) closeProjectWorkspaceEditor();
       else if (projectContextOpen && !projectContextSaving) closeProjectContext();
       else if (telegramConnectionsProject) closeTelegramConnections();
       else if (telegramInboxOpen && !telegramInboxProcessingId) closeTelegramInbox();
@@ -1535,6 +1765,11 @@
     if (event.ctrlKey && event.key.toLocaleLowerCase() === "s") {
       event.preventDefault();
       await saveNow();
+      return;
+    }
+    if (event.altKey && event.key === "ArrowLeft" && activeSection === "tasks" && workspaceView === "context") {
+      event.preventDefault();
+      closeProjectContext();
       return;
     }
     if (event.altKey && event.key === "ArrowLeft" && activeSection === "tasks" && workspaceView === "task") {
@@ -1691,7 +1926,13 @@
     if (first) placeCaret(first, first.textContent?.length ?? 0);
   }
 
-  async function openTask(task: TaskItem) {
+  async function focusTaskTitle() {
+    await tick();
+    taskTitleInput?.focus();
+    taskTitleInput?.select();
+  }
+
+  async function openTask(task: TaskItem, navigationScope = task.chatId) {
     if (!await persistCurrentTask()) return;
     discardLocalDraft();
     createChatOpen = false;
@@ -1712,6 +1953,7 @@
       setChatExpanded(owner.id);
     }
     selectedTaskId = fullTask.id;
+    selectedTaskNavigationScope = navigationScope;
     markdown = fullTask.markdown;
     lastSavedMarkdown = fullTask.markdown;
     saveState = "idle";
@@ -1719,9 +1961,167 @@
     activeSection = "tasks";
     editorHint = null;
     sourceEditorOpen = false;
+    closeSelectionToolbar();
     closeSourceViewer();
     taskActionMenuOpen = false;
+    selectedTaskRuns = [];
+    agentRunError = "";
+    agentResponse = "";
+    void loadTaskAgentRuns(fullTask.id);
     void tick().then(() => renderMarkdown(markdown));
+  }
+
+  async function loadTaskAgentRuns(taskId = selectedTaskId) {
+    if (!inTauri() || !taskId || taskId.startsWith("draft-")) return;
+    try {
+      selectedTaskRuns = await invoke<AgentRun[]>("list_task_agent_runs", { taskId });
+      agentRunError = "";
+    } catch (error) {
+      agentRunError = String(error);
+    }
+  }
+
+  async function loadAgentQueue() {
+    if (!inTauri()) return;
+    try {
+      agentQueueRuns = await invoke<AgentRun[]>("list_agent_runs", { activeOnly: false });
+    } catch {
+      // Очередь вторична: ошибка статуса не должна мешать работе с задачами.
+    }
+  }
+
+  async function startCodexTask() {
+    if (!selectedTask || agentRunBusy || !await persistCurrentTask(true)) return;
+    agentRunBusy = true;
+    agentRunError = "";
+    try {
+      const run = await invoke<AgentRun>("start_codex_task", { taskId: selectedTask.id });
+      selectedTaskRuns = [run, ...selectedTaskRuns];
+      void loadAgentQueue();
+    } catch (error) {
+      agentRunError = String(error);
+    } finally {
+      agentRunBusy = false;
+    }
+  }
+
+  async function cancelAgentRun(run: AgentRun) {
+    if (agentRunBusy) return;
+    agentRunBusy = true;
+    try {
+      const updated = await invoke<AgentRun>("cancel_agent_run", { id: run.id });
+      selectedTaskRuns = selectedTaskRuns.map((item) => item.id === updated.id ? updated : item);
+      void loadAgentQueue();
+    } catch (error) {
+      agentRunError = String(error);
+    } finally {
+      agentRunBusy = false;
+    }
+  }
+
+  async function continueCodexTask() {
+    if (!latestAgentRun || latestAgentRun.state !== "needs_input" || agentRunBusy || !agentResponse.trim()) return;
+    agentRunBusy = true;
+    agentRunError = "";
+    try {
+      const updated = await invoke<AgentRun>("continue_codex_task", { id: latestAgentRun.id, response: agentResponse.trim() });
+      selectedTaskRuns = selectedTaskRuns.map((item) => item.id === updated.id ? updated : item);
+      agentResponse = "";
+      void loadAgentQueue();
+    } catch (error) {
+      agentRunError = String(error);
+    } finally {
+      agentRunBusy = false;
+    }
+  }
+
+  async function acceptAgentResult() {
+    if (!selectedTask || !latestAgentRun || latestAgentRun.state !== "ready_for_review" || agentRunBusy || !await persistCurrentTask(true)) return;
+    agentRunBusy = true;
+    agentRunError = "";
+    try {
+      const accepted = await invoke<AcceptedAgentRun>("accept_agent_run", {
+        id: latestAgentRun.id,
+        expectedTaskVersion: selectedTask.version
+      });
+      const converted = toTaskItem(accepted.task);
+      tasks = tasks.map((task) => task.id === converted.id ? converted : task);
+      selectedTaskRuns = selectedTaskRuns.map((run) => run.id === accepted.run.id ? accepted.run : run);
+      lastSavedMarkdown = converted.markdown;
+      saveState = "saved";
+      void loadAgentQueue();
+    } catch (error) {
+      agentRunError = String(error);
+    } finally {
+      agentRunBusy = false;
+    }
+  }
+
+  function agentRunLabel(state: AgentRunState) {
+    const keys: Record<AgentRunState, MessageKey> = {
+      queued: "agentRunQueued", running: "agentRunRunning", ready_for_review: "agentRunReady",
+      accepted: "agentRunAccepted",
+      needs_input: "agentRunNeedsInput", failed: "agentRunFailed", cancelled: "agentRunCancelled",
+      interrupted: "agentRunInterrupted"
+    };
+    return t(keys[state]);
+  }
+
+  function agentUsageLabel(run: AgentRun) {
+    const usage = run.usage;
+    if (!usage || usage.state === "unknown") return t("agentUsageUnknown");
+    if (usage.state === "actual") {
+      if (usage.actual_total_tokens != null) return t("agentUsageActual", { count: usage.actual_total_tokens.toLocaleString() });
+      if (usage.actual_input_tokens != null) return t("agentUsageActualInput", { count: usage.actual_input_tokens.toLocaleString() });
+      if (usage.actual_output_tokens != null) return t("agentUsageActualOutput", { count: usage.actual_output_tokens.toLocaleString() });
+      return t("agentUsageUnknown");
+    }
+    if (usage.estimated_input_tokens == null) return t("agentUsageUnknown");
+    return t(usage.soft_warning ? "agentUsageEstimatedWarning" : "agentUsageEstimated", { count: usage.estimated_input_tokens.toLocaleString() });
+  }
+
+  function agentRunTask(run: AgentRun) {
+    return tasks.find((task) => task.id === run.task_id);
+  }
+
+  function openAgentRunTask(run: AgentRun) {
+    const task = agentRunTask(run);
+    if (task) void openTask(task, selectedChatId === "all" ? "all" : task.chatId);
+  }
+
+  function openProjectAttentionTask(item: ProjectAttention) {
+    if (item.event_id) {
+      projectAttentionAnswerId = projectAttentionAnswerId === item.event_id ? "" : item.event_id;
+      projectAttentionAnswer = "";
+      return;
+    }
+    if (!item.task_id) return;
+    const task = tasks.find((candidate) => candidate.id === item.task_id);
+    if (!task) return;
+    closeProjectContext();
+    void openTask(task, task.chatId);
+  }
+
+  async function answerProjectAttention(item: ProjectAttention) {
+    if (!item.event_id || !projectAttentionAnswer.trim() || projectAttentionBusy) return;
+    if (!inTauri()) {
+      projectAttention = projectAttention.filter((candidate) => candidate.event_id !== item.event_id);
+      projectAttentionAnswerId = "";
+      projectAttentionAnswer = "";
+      return;
+    }
+    projectAttentionBusy = true;
+    projectContextError = "";
+    try {
+      await invoke("answer_project_attention", { eventId: item.event_id, answer: projectAttentionAnswer.trim() });
+      projectAttention = projectAttention.filter((candidate) => candidate.event_id !== item.event_id);
+      projectAttentionAnswerId = "";
+      projectAttentionAnswer = "";
+    } catch (error) {
+      projectContextError = String(error);
+    } finally {
+      projectAttentionBusy = false;
+    }
   }
 
   function requestNewTask(anchor: "sidebar" | "workspace" = "workspace") {
@@ -1749,6 +2149,9 @@
       updatedAt: now,
       urgency: "normal",
       completed: false,
+      relations: [],
+      checkpoints: [],
+      checkpointCount: 0,
       markdown: "# ",
       hasSource: false,
       version: ""
@@ -1759,11 +2162,12 @@
     selectedChatId = targetChat.id;
     setChatExpanded(targetChat.id);
     selectedTaskId = draft.id;
+    selectedTaskNavigationScope = targetChat.id;
     markdown = draft.markdown;
     lastSavedMarkdown = draft.markdown;
     saveState = "idle";
     workspaceView = "task";
-    void tick().then(() => { renderMarkdown(markdown); void focusEditor(); });
+    void tick().then(() => { renderMarkdown(markdown); void focusTaskTitle(); });
   }
 
   async function backToProject() {
@@ -1771,10 +2175,11 @@
     discardLocalDraft();
     workspaceView = "project";
     selectedTaskId = "";
+    selectedTaskNavigationScope = "";
     markdown = "";
     lastSavedMarkdown = "";
     editorHint = null;
-    selectionToolbar = null;
+    closeSelectionToolbar();
     taskActionMenuOpen = false;
     sourceEditorOpen = false;
     closeSourceViewer();
@@ -1827,34 +2232,98 @@
     projectContextVersion = currentChat.version;
     projectContextDraft = currentChat.context ?? "";
     projectContextResources = (currentChat.resources ?? []).map((resource) => ({ ...resource }));
+    projectAttention = [];
+    projectAttentionAnswerId = "";
+    projectAttentionAnswer = "";
+    projectAutoRunDraft = false;
+    projectAutoRunSaved = false;
+    projectAutoRunLoading = inTauri();
+    projectAutomationStatus = inTauri() ? null : automationStatus;
     projectResourceAddOpen = false;
+    projectGithubOpen = false;
     projectContextEditorMode = "edit";
+    projectWorkspaceSection = "overview";
+    projectWorkspaceItems = [];
+    projectWorkspaceError = "";
+    projectKnowledgeProposals = [];
+    projectKnowledgeError = "";
+    projectKnowledgeReviewId = "";
+    projectKnowledgeDecisionReason = "";
+    projectKnowledgeBusy = false;
+    resetProjectWorkspaceEditor();
     expandedProjectResourceId = "";
     projectContextError = "";
+    projectContextConflictRemote = null;
+    resetProjectMemoryEditor(true);
     projectContextOpen = true;
+    workspaceView = "context";
+    if (githubStatus.connected && !githubRepositories.length) void loadGithubRepositories();
     await tick();
     projectContextDialog?.focus();
+    if (inTauri()) {
+      void loadProjectWorkspaceItems();
+      void loadProjectKnowledgeProposals();
+      try {
+        const policy = await invoke<ProjectAutomationPolicy>("project_automation_policy", { projectId: currentChat.id });
+        projectAutoRunDraft = policy.auto_run_created_tasks;
+        projectAutoRunSaved = policy.auto_run_created_tasks;
+      } catch (error) {
+        projectContextError = String(error);
+      } finally {
+        projectAutoRunLoading = false;
+      }
+      try {
+        projectAttention = await invoke<ProjectAttention[]>("project_attention", { projectId: currentChat.id });
+        projectAutomationStatus = await invoke<AutomationStatusSummary>("project_automation_status", { projectId: currentChat.id });
+      } catch (error) {
+        projectContextError ||= String(error);
+      }
+    }
   }
 
   function closeProjectContext() {
-    if (projectContextSaving) return;
+    if (projectContextSaving || projectMemorySaving) return;
     const returnFocus = projectContextReturnFocus;
     projectContextReturnFocus = null;
     projectContextOpen = false;
+    workspaceView = "project";
     projectContextProjectId = "";
     projectContextProjectTitle = "";
     projectContextVersion = "";
     projectContextDraft = "";
     projectContextResources = [];
+    projectAttention = [];
+    projectAttentionAnswerId = "";
+    projectAttentionAnswer = "";
+    projectAttentionBusy = false;
+    projectAutoRunDraft = false;
+    projectAutoRunSaved = false;
+    projectAutoRunLoading = false;
+    projectAutomationStatus = null;
     projectResourceAddOpen = false;
+    projectGithubOpen = false;
     projectContextEditorMode = "edit";
+    projectWorkspaceSection = "overview";
+    projectWorkspaceItems = [];
+    projectWorkspaceLoading = false;
+    projectWorkspaceError = "";
+    projectKnowledgeProposals = [];
+    projectKnowledgeLoading = false;
+    projectKnowledgeError = "";
+    projectKnowledgeReviewId = "";
+    projectKnowledgeDecisionReason = "";
+    projectKnowledgeBusy = false;
+    resetProjectWorkspaceEditor();
     expandedProjectResourceId = "";
     projectContextError = "";
+    projectContextConflictRemote = null;
+    resetProjectMemoryEditor(true);
     restoreModalFocus(returnFocus);
   }
 
   async function reloadProjectContext() {
     if (!projectContextProjectId) return;
+    projectContextConflictRemote = null;
     await loadData(true);
     const project = chats.find((item) => item.id === projectContextProjectId);
     if (!project) return;
@@ -1862,11 +2331,605 @@
     projectContextVersion = project.version;
     projectContextDraft = project.context ?? "";
     projectContextResources = (project.resources ?? []).map((resource) => ({ ...resource }));
+    projectAttention = inTauri()
+      ? await invoke<ProjectAttention[]>("project_attention", { projectId: project.id }).catch(() => [])
+      : projectAttention;
+    projectAutomationStatus = inTauri()
+      ? await invoke<AutomationStatusSummary>("project_automation_status", { projectId: project.id }).catch(() => null)
+      : automationStatus;
+    projectAutoRunLoading = inTauri();
     projectResourceAddOpen = false;
+    projectGithubOpen = false;
     expandedProjectResourceId = "";
     projectContextError = "";
+    projectContextConflictRemote = null;
+    resetProjectMemoryEditor(false);
+    resetProjectWorkspaceEditor();
+    if (inTauri()) {
+      void loadProjectWorkspaceItems();
+      void loadProjectKnowledgeProposals();
+    }
+    if (inTauri()) {
+      try {
+        const policy = await invoke<ProjectAutomationPolicy>("project_automation_policy", { projectId: project.id });
+        projectAutoRunDraft = policy.auto_run_created_tasks;
+        projectAutoRunSaved = policy.auto_run_created_tasks;
+      } catch (error) {
+        projectContextError = String(error);
+      } finally {
+        projectAutoRunLoading = false;
+      }
+    }
     await tick();
     projectContextDialog?.focus();
+  }
+
+  function resetProjectMemoryEditor(clearSearch = false) {
+    projectMemoryEditorId = "";
+    projectMemoryEditorMode = "edit";
+    projectMemoryDraft = "";
+    projectMemoryPinned = false;
+    projectMemorySaving = false;
+    projectMemoryError = "";
+    projectMemoryDeleteConfirmId = "";
+    if (clearSearch) {
+      projectMemorySearch = "";
+      projectMemoryShowSuperseded = false;
+    }
+  }
+
+  function resetProjectWorkspaceEditor() {
+    projectWorkspaceEditorId = "";
+    projectWorkspaceTitle = "";
+    projectWorkspaceSummary = "";
+    projectWorkspaceContent = "";
+    projectWorkspaceAgentAccess = false;
+    projectWorkspaceSaving = false;
+    projectWorkspaceDeleteConfirm = false;
+    projectWorkspaceCloseConfirm = false;
+    projectWorkspaceOriginal = "";
+    projectWorkspaceConflictRemote = null;
+    projectWorkspaceConflictAction = null;
+  }
+
+  function projectWorkspaceDraftSignature() {
+    return JSON.stringify({
+      title: projectWorkspaceTitle,
+      summary: projectWorkspaceSummary,
+      content: projectWorkspaceContent,
+      agent_access: projectWorkspaceAgentAccess
+    });
+  }
+
+  function projectWorkspaceHasUnsavedChanges() {
+    return Boolean(projectWorkspaceEditorId) && projectWorkspaceDraftSignature() !== projectWorkspaceOriginal;
+  }
+
+  function projectWorkspaceModalTitle() {
+    if (projectWorkspaceEditorId !== "new") return projectWorkspaceTitle || t("projectWorkspaceTitlePlaceholder");
+    if (projectWorkspaceEditorKind === "document") return t("newProjectDocument");
+    if (projectWorkspaceEditorKind === "rule") return t("newProjectRule");
+    return t("newProjectSkill");
+  }
+
+  function closeProjectWorkspaceEditor(force = false) {
+    if (projectWorkspaceSaving && !force) return;
+    if (!force && projectWorkspaceHasUnsavedChanges()) {
+      projectWorkspaceCloseConfirm = true;
+      return;
+    }
+    const returnFocus = projectWorkspaceReturnFocus;
+    projectWorkspaceReturnFocus = null;
+    resetProjectWorkspaceEditor();
+    restoreModalFocus(returnFocus);
+  }
+
+  function keepEditingProjectWorkspaceItem() {
+    projectWorkspaceCloseConfirm = false;
+    void tick().then(() => projectWorkspaceDialog?.focus());
+  }
+
+  function handleProjectWorkspaceModalKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeProjectWorkspaceEditor();
+      return;
+    }
+    trapModalFocus(event);
+  }
+
+  async function loadProjectWorkspaceItems() {
+    if (!projectContextProjectId || !inTauri()) return;
+    projectWorkspaceLoading = true;
+    projectWorkspaceError = "";
+    try {
+      projectWorkspaceItems = await invoke<ProjectWorkspaceItem[]>("list_project_workspace_items", {
+        projectId: projectContextProjectId
+      });
+    } catch (error) {
+      projectWorkspaceError = String(error);
+    } finally {
+      projectWorkspaceLoading = false;
+    }
+  }
+
+  async function loadProjectKnowledgeProposals() {
+    if (!projectContextProjectId || !inTauri()) return;
+    projectKnowledgeLoading = true;
+    projectKnowledgeError = "";
+    try {
+      projectKnowledgeProposals = await invoke<ProjectKnowledgeProposal[]>("list_project_knowledge_proposals", {
+        projectId: projectContextProjectId
+      });
+    } catch (error) {
+      projectKnowledgeError = commandErrorMessage(error);
+    } finally {
+      projectKnowledgeLoading = false;
+    }
+  }
+
+  function pendingProjectKnowledgeProposals() {
+    return projectKnowledgeProposals.filter((proposal) => proposal.state === "pending");
+  }
+
+  function projectKnowledgeTargetLabel(proposal: ProjectKnowledgeProposal) {
+    if (proposal.target.kind === "workspace_item") {
+      const target = proposal.target;
+      const item = projectWorkspaceItems.find((candidate) => candidate.id === target.item_id);
+      return item?.title ?? t(`projectWorkspaceOwned_${target.item_kind}` as MessageKey);
+    }
+    if (proposal.target.kind === "project_memory") {
+      const target = proposal.target;
+      return chats.find((project) => project.id === proposal.project_id)?.memory?.find((entry) => entry.id === target.memory_id)?.text ?? t("projectWorkspace_memory");
+    }
+    return t("newMemoryFact");
+  }
+
+  function projectKnowledgeBefore(proposal: ProjectKnowledgeProposal) {
+    if (proposal.target.kind === "workspace_item") {
+      const target = proposal.target;
+      return projectWorkspaceItems.find((item) => item.id === target.item_id)?.content ?? "";
+    }
+    if (proposal.target.kind === "project_memory") {
+      const target = proposal.target;
+      return chats.find((project) => project.id === proposal.project_id)?.memory?.find((entry) => entry.id === target.memory_id)?.text ?? "";
+    }
+    return "";
+  }
+
+  function projectKnowledgeAfter(proposal: ProjectKnowledgeProposal) {
+    return proposal.payload.kind === "workspace_item" ? proposal.payload.content : proposal.payload.text;
+  }
+
+  function projectKnowledgeDiff(proposal: ProjectKnowledgeProposal) {
+    const before = projectKnowledgeBefore(proposal).split("\n");
+    const after = projectKnowledgeAfter(proposal).split("\n");
+    let prefix = 0;
+    while (prefix < before.length && prefix < after.length && before[prefix] === after[prefix]) prefix += 1;
+    let suffix = 0;
+    while (suffix < before.length - prefix && suffix < after.length - prefix && before[before.length - 1 - suffix] === after[after.length - 1 - suffix]) suffix += 1;
+    return [
+      ...before.slice(0, prefix).map((text) => ({ kind: "same" as const, text })),
+      ...before.slice(prefix, before.length - suffix).map((text) => ({ kind: "remove" as const, text })),
+      ...after.slice(prefix, after.length - suffix).map((text) => ({ kind: "add" as const, text })),
+      ...before.slice(before.length - suffix).map((text) => ({ kind: "same" as const, text }))
+    ];
+  }
+
+  function openProjectKnowledgeReview(proposal: ProjectKnowledgeProposal) {
+    projectKnowledgeReturnFocus = focusedElement();
+    projectKnowledgeReviewId = proposal.id;
+    projectKnowledgeDecisionReason = "";
+    projectKnowledgeError = "";
+    void tick().then(() => projectKnowledgeDialog?.focus());
+  }
+
+  function closeProjectKnowledgeReview() {
+    if (projectKnowledgeBusy) return;
+    const returnFocus = projectKnowledgeReturnFocus;
+    projectKnowledgeReturnFocus = null;
+    projectKnowledgeReviewId = "";
+    projectKnowledgeDecisionReason = "";
+    restoreModalFocus(returnFocus);
+  }
+
+  function handleProjectKnowledgeModalKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      event.stopPropagation();
+      closeProjectKnowledgeReview();
+      return;
+    }
+    trapModalFocus(event);
+  }
+
+  async function refreshProjectKnowledgeAfterDecision() {
+    await loadData(true);
+    const project = chats.find((item) => item.id === projectContextProjectId);
+    if (project) {
+      projectContextVersion = project.version;
+      projectContextDraft = project.context ?? "";
+      projectContextResources = (project.resources ?? []).map((resource) => ({ ...resource }));
+    }
+    await Promise.all([loadProjectWorkspaceItems(), loadProjectKnowledgeProposals()]);
+  }
+
+  async function decideProjectKnowledgeProposal(action: "apply" | "reject") {
+    const proposal = projectKnowledgeProposals.find((item) => item.id === projectKnowledgeReviewId);
+    if (!proposal || proposal.state !== "pending" || projectKnowledgeBusy || !inTauri()) return;
+    projectKnowledgeBusy = true;
+    projectKnowledgeError = "";
+    try {
+      const updated = await invoke<ProjectKnowledgeProposal>(action === "apply" ? "apply_project_knowledge_proposal" : "reject_project_knowledge_proposal", {
+        projectId: proposal.project_id,
+        proposalId: proposal.id,
+        expectedVersion: proposal.version,
+        decisionReason: action === "reject" ? projectKnowledgeDecisionReason.trim() || null : undefined
+      });
+      projectKnowledgeProposals = projectKnowledgeProposals.map((item) => item.id === updated.id ? updated : item);
+      await refreshProjectKnowledgeAfterDecision();
+      projectKnowledgeBusy = false;
+      closeProjectKnowledgeReview();
+    } catch (error) {
+      const message = commandErrorMessage(error);
+      if (isConflictError(error)) await loadProjectKnowledgeProposals();
+      projectKnowledgeError = message;
+    } finally {
+      projectKnowledgeBusy = false;
+    }
+  }
+
+  async function reviewAgentKnowledgeProposals(run: AgentRun) {
+    const owner = chats.find((project) => project.id === run.project_id);
+    if (!owner) return;
+    selectedChatId = owner.id;
+    await tick();
+    await openProjectContext();
+    projectWorkspaceSection = "proposals";
+    await loadProjectKnowledgeProposals();
+    const pending = projectKnowledgeProposals.find((proposal) => proposal.source_run_id === run.id && proposal.state === "pending");
+    if (pending) openProjectKnowledgeReview(pending);
+  }
+
+  function projectWorkspaceItemsFor(kind: ProjectWorkspaceItemKind) {
+    return projectWorkspaceItems.filter((item) => item.kind === kind);
+  }
+
+  function openProjectWorkspaceSection(section: ProjectWorkspaceSection) {
+    projectWorkspaceSection = section;
+    projectWorkspaceError = "";
+    resetProjectWorkspaceEditor();
+    if (inTauri() && ["documents", "rules", "skills", "history"].includes(section)) {
+      void loadProjectWorkspaceItems();
+    }
+    if (inTauri() && ["overview", "proposals"].includes(section)) void loadProjectKnowledgeProposals();
+  }
+
+  function beginCreateProjectWorkspaceItem(kind: ProjectWorkspaceItemKind) {
+    projectWorkspaceReturnFocus = focusedElement();
+    resetProjectWorkspaceEditor();
+    projectWorkspaceEditorId = "new";
+    projectWorkspaceEditorKind = kind;
+    projectWorkspaceOriginal = projectWorkspaceDraftSignature();
+    void tick().then(() => projectWorkspaceDialog?.focus());
+  }
+
+  function editProjectWorkspaceItem(item: ProjectWorkspaceItem) {
+    projectWorkspaceReturnFocus = focusedElement();
+    projectWorkspaceEditorId = item.id;
+    projectWorkspaceEditorKind = item.kind;
+    projectWorkspaceTitle = item.title;
+    projectWorkspaceSummary = item.summary ?? "";
+    projectWorkspaceContent = item.content;
+    projectWorkspaceAgentAccess = item.agent_access;
+    projectWorkspaceDeleteConfirm = false;
+    projectWorkspaceCloseConfirm = false;
+    projectWorkspaceError = "";
+    projectWorkspaceConflictRemote = null;
+    projectWorkspaceConflictAction = null;
+    projectWorkspaceOriginal = projectWorkspaceDraftSignature();
+    void tick().then(() => projectWorkspaceDialog?.focus());
+  }
+
+  function restoreProjectWorkspaceRevision(item: ProjectWorkspaceItem, revision: ProjectWorkspaceRevision) {
+    projectWorkspaceSection = item.kind === "document" ? "documents" : item.kind === "rule" ? "rules" : "skills";
+    editProjectWorkspaceItem(item);
+    projectWorkspaceTitle = revision.title;
+    projectWorkspaceSummary = revision.summary ?? "";
+    projectWorkspaceContent = revision.content;
+    projectWorkspaceAgentAccess = revision.agent_access;
+  }
+
+  async function refreshProjectWorkspaceConflict(id: string, action: "save" | "delete") {
+    try {
+      const latestItems = await invoke<ProjectWorkspaceItem[]>("list_project_workspace_items", {
+        projectId: projectContextProjectId
+      });
+      projectWorkspaceItems = latestItems;
+      projectWorkspaceConflictRemote = latestItems.find((item) => item.id === id) ?? null;
+      projectWorkspaceConflictAction = projectWorkspaceConflictRemote ? action : null;
+    } catch {
+      // Preserve the local draft and the original error if rereading also fails.
+    }
+  }
+
+  async function updateProjectWorkspaceItemAgainst(expectedVersion: string) {
+    const id = projectWorkspaceEditorId;
+    if (!id || id === "new") return false;
+    try {
+      const saved = await invoke<ProjectWorkspaceItem>("update_project_workspace_item", {
+        projectId: projectContextProjectId,
+        id,
+        title: projectWorkspaceTitle,
+        summary: projectWorkspaceSummary || null,
+        content: projectWorkspaceContent,
+        agentAccess: projectWorkspaceAgentAccess,
+        expectedVersion
+      });
+      projectWorkspaceItems = projectWorkspaceItems.map((item) => item.id === saved.id ? saved : item);
+      projectWorkspaceConflictRemote = null;
+      projectWorkspaceConflictAction = null;
+      projectWorkspaceError = "";
+      return true;
+    } catch (error) {
+      projectWorkspaceError = commandErrorMessage(error);
+      if (isConflictError(error)) await refreshProjectWorkspaceConflict(id, "save");
+      return false;
+    }
+  }
+
+  async function deleteProjectWorkspaceItemAgainst(id: string, expectedVersion: string) {
+    try {
+      await invoke("delete_project_workspace_item", {
+        projectId: projectContextProjectId,
+        id,
+        expectedVersion
+      });
+      projectWorkspaceItems = projectWorkspaceItems.filter((item) => item.id !== id);
+      projectWorkspaceConflictRemote = null;
+      projectWorkspaceConflictAction = null;
+      projectWorkspaceError = "";
+      return true;
+    } catch (error) {
+      projectWorkspaceError = commandErrorMessage(error);
+      if (isConflictError(error)) await refreshProjectWorkspaceConflict(id, "delete");
+      return false;
+    }
+  }
+
+  async function saveProjectWorkspaceItem() {
+    if (!projectContextProjectId || !projectWorkspaceTitle.trim() || !projectWorkspaceContent.trim() || !inTauri() || projectWorkspaceSaving) return;
+    projectWorkspaceSaving = true;
+    projectWorkspaceError = "";
+    try {
+      if (projectWorkspaceEditorId === "new") {
+        const saved = await invoke<ProjectWorkspaceItem>("create_project_workspace_item", {
+          projectId: projectContextProjectId,
+          kind: projectWorkspaceEditorKind,
+          title: projectWorkspaceTitle,
+          summary: projectWorkspaceSummary || null,
+          content: projectWorkspaceContent,
+          agentAccess: projectWorkspaceAgentAccess,
+          requestId: crypto.randomUUID()
+        });
+        projectWorkspaceItems = [saved, ...projectWorkspaceItems];
+        closeProjectWorkspaceEditor(true);
+      } else {
+        const current = projectWorkspaceItems.find((item) => item.id === projectWorkspaceEditorId);
+        if (!current) return;
+        if (await updateProjectWorkspaceItemAgainst(current.version)) closeProjectWorkspaceEditor(true);
+      }
+    } catch (error) {
+      projectWorkspaceError = commandErrorMessage(error);
+    } finally {
+      projectWorkspaceSaving = false;
+    }
+  }
+
+  async function deleteProjectWorkspaceItem() {
+    const current = projectWorkspaceItems.find((item) => item.id === projectWorkspaceEditorId);
+    if (!current || !inTauri() || projectWorkspaceSaving) return;
+    if (!projectWorkspaceDeleteConfirm) {
+      projectWorkspaceDeleteConfirm = true;
+      return;
+    }
+    projectWorkspaceSaving = true;
+    projectWorkspaceError = "";
+    try {
+      if (await deleteProjectWorkspaceItemAgainst(current.id, current.version)) closeProjectWorkspaceEditor(true);
+    } finally {
+      projectWorkspaceSaving = false;
+    }
+  }
+
+  function useDiskProjectWorkspaceVersion() {
+    const remote = projectWorkspaceConflictRemote;
+    if (!remote) return;
+    projectWorkspaceTitle = remote.title;
+    projectWorkspaceSummary = remote.summary ?? "";
+    projectWorkspaceContent = remote.content;
+    projectWorkspaceAgentAccess = remote.agent_access;
+    projectWorkspaceDeleteConfirm = false;
+    projectWorkspaceError = "";
+    projectWorkspaceConflictRemote = null;
+    projectWorkspaceConflictAction = null;
+    projectWorkspaceOriginal = projectWorkspaceDraftSignature();
+  }
+
+  async function keepLocalProjectWorkspaceVersion() {
+    const remote = projectWorkspaceConflictRemote;
+    const action = projectWorkspaceConflictAction;
+    if (!remote || !action || projectWorkspaceSaving) return;
+    projectWorkspaceSaving = true;
+    projectWorkspaceError = "";
+    try {
+      const succeeded = action === "delete"
+        ? await deleteProjectWorkspaceItemAgainst(remote.id, remote.version)
+        : await updateProjectWorkspaceItemAgainst(remote.version);
+      if (succeeded) closeProjectWorkspaceEditor(true);
+    } finally {
+      projectWorkspaceSaving = false;
+    }
+  }
+
+  function projectMemoryEntries(state: "active" | "superseded") {
+    const search = projectMemorySearch.trim().toLocaleLowerCase();
+    return [...(chats.find((project) => project.id === projectContextProjectId)?.memory ?? [])]
+      .filter((entry) => (entry.state ?? "active") === state)
+      .filter((entry) => !search || entry.text.toLocaleLowerCase().includes(search))
+      .sort((left, right) => {
+        if (state === "active" && Boolean(left.pinned) !== Boolean(right.pinned)) return left.pinned ? -1 : 1;
+        return new Date(right.updated_at ?? right.created_at).getTime() - new Date(left.updated_at ?? left.created_at).getTime();
+      });
+  }
+
+  function applyProjectMemoryUpdate(updated: ProjectRecord) {
+    chats = chats.map((project) => project.id === updated.id
+      ? { ...updated, resources: updated.resources ?? [], memory: updated.memory ?? [], telegram_chats: updated.telegram_chats ?? [], open: project.open }
+      : project);
+    projectContextVersion = updated.version;
+  }
+
+  function beginAddProjectMemory() {
+    projectMemoryEditorId = "new";
+    projectMemoryEditorMode = "edit";
+    projectMemoryDraft = "";
+    projectMemoryPinned = false;
+    projectMemoryError = "";
+    projectMemoryDeleteConfirmId = "";
+  }
+
+  function beginEditProjectMemory(entry: ProjectMemoryEntry, mode: "edit" | "supersede" = "edit") {
+    projectMemoryEditorId = entry.id;
+    projectMemoryEditorMode = mode;
+    projectMemoryDraft = entry.text;
+    projectMemoryPinned = Boolean(entry.pinned);
+    projectMemoryError = "";
+    projectMemoryDeleteConfirmId = "";
+  }
+
+  async function saveProjectMemory() {
+    const text = projectMemoryDraft.trim();
+    if (!text || !projectContextProjectId || !inTauri() || projectMemorySaving) return;
+    projectMemorySaving = true;
+    projectMemoryError = "";
+    try {
+      let updated: ProjectRecord;
+      if (projectMemoryEditorId === "new") {
+        updated = await invoke<ProjectRecord>("add_project_memory", {
+          projectId: projectContextProjectId,
+          text,
+          pinned: projectMemoryPinned,
+          expectedVersion: projectContextVersion,
+          requestId: crypto.randomUUID()
+        });
+      } else if (projectMemoryEditorMode === "supersede") {
+        updated = await invoke<ProjectRecord>("supersede_project_memory", {
+          projectId: projectContextProjectId,
+          memoryId: projectMemoryEditorId,
+          replacementText: text,
+          pinned: projectMemoryPinned,
+          expectedVersion: projectContextVersion,
+          requestId: crypto.randomUUID()
+        });
+      } else {
+        updated = await invoke<ProjectRecord>("update_project_memory", {
+          projectId: projectContextProjectId,
+          memoryId: projectMemoryEditorId,
+          text,
+          pinned: projectMemoryPinned,
+          expectedVersion: projectContextVersion
+        });
+      }
+      applyProjectMemoryUpdate(updated);
+      resetProjectMemoryEditor(false);
+    } catch (error) {
+      projectMemoryError = String(error);
+    } finally {
+      projectMemorySaving = false;
+    }
+  }
+
+  async function toggleProjectMemoryPin(entry: ProjectMemoryEntry) {
+    if (!inTauri() || projectMemorySaving) return;
+    projectMemorySaving = true;
+    projectMemoryError = "";
+    try {
+      const updated = await invoke<ProjectRecord>("update_project_memory", {
+        projectId: projectContextProjectId,
+        memoryId: entry.id,
+        text: entry.text,
+        pinned: !entry.pinned,
+        expectedVersion: projectContextVersion
+      });
+      applyProjectMemoryUpdate(updated);
+    } catch (error) {
+      projectMemoryError = String(error);
+    } finally {
+      projectMemorySaving = false;
+    }
+  }
+
+  async function deleteProjectMemory(entry: ProjectMemoryEntry) {
+    if (projectMemoryDeleteConfirmId !== entry.id) {
+      projectMemoryDeleteConfirmId = entry.id;
+      return;
+    }
+    if (!inTauri() || projectMemorySaving) return;
+    projectMemorySaving = true;
+    projectMemoryError = "";
+    try {
+      const updated = await invoke<ProjectRecord>("delete_project_memory", {
+        projectId: projectContextProjectId,
+        memoryId: entry.id,
+        expectedVersion: projectContextVersion
+      });
+      applyProjectMemoryUpdate(updated);
+      resetProjectMemoryEditor(false);
+    } catch (error) {
+      projectMemoryError = String(error);
+    } finally {
+      projectMemorySaving = false;
+    }
+  }
+
+  async function refreshProjectContextConflict() {
+    try {
+      const projects = await invoke<ProjectRecord[]>("list_projects");
+      projectContextConflictRemote = projects.find((project) => project.id === projectContextProjectId) ?? null;
+    } catch {
+      // Keep the local draft and the original error if rereading also fails.
+    }
+  }
+
+  async function saveProjectContextAgainst(expectedVersion: string) {
+    try {
+      const updated = await invoke<ProjectRecord>("update_project_details", {
+        id: projectContextProjectId,
+        context: projectContextDraft,
+        resources: projectContextResources,
+        expectedVersion
+      });
+      chats = chats.map((chat) => chat.id === updated.id
+        ? { ...updated, resources: updated.resources ?? [], telegram_chats: updated.telegram_chats ?? [], open: chat.open }
+        : chat);
+      projectContextVersion = updated.version;
+      projectContextConflictRemote = null;
+      projectContextError = "";
+      if (projectAutoRunDraft !== projectAutoRunSaved) {
+        const policy = await invoke<ProjectAutomationPolicy>("set_project_auto_run", {
+          projectId: projectContextProjectId,
+          enabled: projectAutoRunDraft
+        });
+        projectAutoRunSaved = policy.auto_run_created_tasks;
+      }
+      return true;
+    } catch (error) {
+      projectContextError = commandErrorMessage(error);
+      if (isConflictError(error)) await refreshProjectContextConflict();
+      return false;
+    }
   }
 
   async function saveProjectContext(event: SubmitEvent) {
@@ -1879,29 +2942,42 @@
       projectContextSaving = false;
       return;
     }
-    try {
-      const updated = await invoke<ProjectRecord>("update_project_details", {
-        id: projectContextProjectId,
-        context: projectContextDraft,
-        resources: projectContextResources,
-        expectedVersion: projectContextVersion
-      });
-      chats = chats.map((chat) => chat.id === updated.id
-        ? { ...updated, resources: updated.resources ?? [], telegram_chats: updated.telegram_chats ?? [], open: chat.open }
-        : chat);
-      projectContextSaving = false;
-      closeProjectContext();
-    } catch (error) {
-      projectContextError = String(error);
-    } finally {
-      projectContextSaving = false;
-    }
+    const saved = await saveProjectContextAgainst(projectContextVersion);
+    projectContextSaving = false;
+    if (saved) closeProjectContext();
+  }
+
+  function useDiskProjectContextVersion() {
+    const remote = projectContextConflictRemote;
+    if (!remote) return;
+    chats = chats.map((chat) => chat.id === remote.id
+      ? { ...remote, resources: remote.resources ?? [], telegram_chats: remote.telegram_chats ?? [], open: chat.open }
+      : chat);
+    projectContextProjectTitle = remote.title;
+    projectContextVersion = remote.version;
+    projectContextDraft = remote.context ?? "";
+    projectContextResources = (remote.resources ?? []).map((resource) => ({ ...resource }));
+    projectContextConflictRemote = null;
+    projectContextError = "";
+    projectResourceAddOpen = false;
+    expandedProjectResourceId = "";
+  }
+
+  async function keepLocalProjectContextVersion() {
+    const remote = projectContextConflictRemote;
+    if (!remote || projectContextSaving) return;
+    projectContextSaving = true;
+    projectContextError = "";
+    const saved = await saveProjectContextAgainst(remote.version);
+    projectContextSaving = false;
+    if (saved) closeProjectContext();
   }
 
   function projectResourceKindLabel(kind: ProjectResourceKind) {
     const labels: Record<ProjectResourceKind, MessageKey> = {
       repository: "projectResourceRepository",
       directory: "projectResourceDirectory",
+      skill: "projectResourceSkill",
       figma: "projectResourceFigma",
       documentation: "projectResourceDocumentation",
       website: "projectResourceWebsite",
@@ -2014,6 +3090,7 @@
       setChatExpanded(deletedId, false);
       selectedChatId = "all";
       selectedTaskId = "";
+      selectedTaskNavigationScope = "";
       workspaceView = "project";
       deleteChatConfirmOpen = false;
       formError = "";
@@ -2169,6 +3246,7 @@
       const converted = toTaskItem(moved);
       tasks = tasks.map((item) => item.id === moved.id ? converted : item);
       selectedChatId = chat.id;
+      if (selectedTaskNavigationScope !== "all" && selectedTaskNavigationScope !== "search") selectedTaskNavigationScope = chat.id;
       setChatExpanded(chat.id);
       lastSavedMarkdown = converted.markdown;
       taskActionMenuOpen = false;
@@ -2195,6 +3273,7 @@
       tasks = tasks.filter((item) => item.id !== task.id);
       trashedTasks = [trashed, ...trashedTasks];
       selectedTaskId = "";
+      selectedTaskNavigationScope = "";
       markdown = "";
       lastSavedMarkdown = "";
       workspaceView = "project";
@@ -2352,6 +3431,7 @@
     emptyTrashConfirmOpen = false;
     purgeTaskId = "";
     editorHint = null;
+    closeSelectionToolbar();
     if (section === "tasks") { await tick(); renderMarkdown(markdown); await focusEditor(); }
   }
 
@@ -2431,7 +3511,7 @@
     return t("notConnected");
   }
 
-  function githubStatusTone(): "idle" | "connected" | "attention" | "error" {
+  function githubStatusTone(): ConnectorTone {
     if (githubStatus.connected) return "connected";
     if (githubStatus.error || !githubStatus.credential_store_available) return "error";
     if (githubStatus.needs_reauthorization || githubDeviceCode) return "attention";
@@ -2446,6 +3526,45 @@
     return Number(telegramStatus.step === "ready") + Number(githubStatus.connected);
   }
 
+  function connectorCardState(connector: ConnectorUiDefinition): {
+    status: string;
+    detail: string;
+    tone: ConnectorTone;
+    actionLabel: string;
+  } {
+    if (connector.id === "telegram") {
+      const ready = telegramStatus.step === "ready";
+      return {
+        status: telegramStatusLabel(),
+        detail: ready
+          ? t("telegramConnectorDetail", {
+              account: telegramStatus.account_name || "Telegram",
+              projects: chats.slice(1).filter((project) => project.telegram_chats.length).length
+            })
+          : t(connector.idleKey),
+        tone: ["database_error", "error"].includes(telegramStatus.step)
+          ? "error"
+          : ready
+            ? "connected"
+            : telegramStatus.step === "unconfigured"
+              ? "idle"
+              : "attention",
+        actionLabel: telegramStatus.step === "unconfigured" ? t("connect") : t("manageConnector")
+      };
+    }
+    return {
+      status: githubStatusLabel(),
+      detail: githubStatus.connected
+        ? t("githubConnectorDetail", {
+            account: githubStatus.account?.login || "GitHub",
+            projects: connectedGithubResources()
+          })
+        : t(connector.idleKey),
+      tone: githubStatusTone(),
+      actionLabel: githubStatus.connected ? t("manageConnector") : t("connect")
+    };
+  }
+
   function integrationNeedsAttention() {
     return ["database_error", "error"].includes(telegramStatus.step)
       || ["partial", "error"].includes(telegramSyncState)
@@ -2453,13 +3572,14 @@
       || !githubStatus.credential_store_available;
   }
 
-  async function openIntegrationModal(provider: "telegram" | "github") {
+  async function openIntegrationModal(provider: ConnectorProvider) {
     // A project reload can invalidate the derived picker project while leaving its id set.
     // Always clear that stale overlay state before opening a connector workspace again.
     telegramPickerProjectId = "";
     telegramChatSearch = "";
     telegramSearchResults = [];
     telegramSearchLoading = false;
+    telegramError = "";
     telegramConnectionsOpenedFromIntegration = false;
     integrationModalReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     integrationModal = provider;
@@ -2563,35 +3683,32 @@
     catch (error) { githubError = String(error); }
   }
 
-  function githubRepositoryProjects(repository: GitHubRepository) {
-    return chats.slice(1).filter((project) => (project.resources ?? []).some((resource) => resource.kind === "repository" && resource.location === repository.html_url));
+  function projectHasGithubRepository(repository: GitHubRepository) {
+    return projectContextResources.some((resource) => resource.kind === "repository" && resource.location === repository.html_url);
   }
 
-  async function toggleGithubRepositoryProject(repository: GitHubRepository, projectId: string) {
-    const project = chats.find((item) => item.id === projectId);
-    if (!project || githubBusy) return;
-    const resources = [...(project.resources ?? [])];
-    const existingIndex = resources.findIndex((resource) => resource.kind === "repository" && resource.location === repository.html_url);
-    if (existingIndex >= 0) resources.splice(existingIndex, 1);
-    else resources.push({
-      id: `github-${repository.id}`,
-      kind: "repository",
-      label: repository.full_name,
-      location: repository.html_url,
-      notes: `GitHub · ${repository.default_branch}`,
-      agent_access: true
-    });
-    if (!inTauri()) {
-      chats = chats.map((item) => item.id === project.id ? { ...item, resources } : item);
+  function toggleProjectGithubRepository(repository: GitHubRepository) {
+    const existingIndex = projectContextResources.findIndex((resource) => resource.kind === "repository" && resource.location === repository.html_url);
+    if (existingIndex >= 0) {
+      projectContextResources = projectContextResources.filter((_, index) => index !== existingIndex);
       return;
     }
-    githubBusy = true;
-    githubError = "";
-    try {
-      const updated = await invoke<ProjectRecord>("set_project_resources", { id: project.id, resources, expectedVersion: project.version });
-      chats = chats.map((item) => item.id === updated.id ? { ...updated, resources: updated.resources ?? [], telegram_chats: updated.telegram_chats ?? [], open: item.open } : item);
-    } catch (error) { githubError = String(error); }
-    finally { githubBusy = false; }
+    if (projectContextResources.length >= 20) {
+      projectContextError = t("projectResourceLimit");
+      return;
+    }
+    projectContextResources = [
+      {
+        id: `github-${repository.id}`,
+        kind: "repository",
+        label: repository.full_name,
+        location: repository.html_url,
+        notes: `GitHub · ${repository.default_branch}`,
+        agent_access: true
+      },
+      ...projectContextResources
+    ];
+    projectContextError = "";
   }
 
   async function disconnectGithub() {
@@ -2753,6 +3870,120 @@
     }
   }
 
+  async function toggleBackgroundAiTriage() {
+    if (!inTauri() || automationSettingsState === "saving") return;
+    const enabled = !automationSettings.background_ai_triage;
+    automationSettingsState = "saving";
+    automationSettingsError = "";
+    try {
+      automationSettings = await invoke<AutomationSettings>("set_background_ai_triage", { enabled });
+      automationSettingsState = "idle";
+      void loadAutomationStatus();
+      if (enabled && telegramStatus.step === "ready") void syncTelegram();
+    } catch (error) {
+      automationSettingsState = "error";
+      automationSettingsError = String(error);
+    }
+  }
+
+  async function loadLocalAgentProviders() {
+    if (!inTauri() || localAgentProvidersState === "loading") return;
+    localAgentProvidersState = "loading";
+    try {
+      localAgentProviders = await invoke<LocalAgentProviderStatus[]>("local_agent_providers");
+      localAgentProvidersState = "ready";
+    } catch {
+      localAgentProvidersState = "error";
+    }
+  }
+
+  async function chooseAutomationProvider(provider: AutomationProvider) {
+    if (!inTauri() || automationSettingsState === "saving" || automationSettings.provider === provider) return;
+    automationSettingsState = "saving";
+    automationSettingsError = "";
+    try {
+      automationSettings = await invoke<AutomationSettings>("set_automation_provider", { provider });
+      automationSettingsState = "idle";
+    } catch (error) {
+      automationSettingsState = "error";
+      automationSettingsError = String(error);
+    }
+  }
+
+  function automationProviderName(provider = automationSettings.provider) {
+    if (provider === "auto") {
+      return localAgentProviders.find((item) => item.available)?.name ?? t("agentAuto");
+    }
+    return localAgentProviders.find((item) => item.id === provider)?.name
+      ?? (provider === "codex" ? "Codex" : provider === "claude" ? "Claude Code" : "Gemini CLI");
+  }
+
+  function automationProviderDescription(provider: AutomationProvider) {
+    if (provider === "auto") return t("agentAutoDescription");
+    const status = localAgentProviders.find((item) => item.id === provider);
+    if (localAgentProvidersState === "loading") return t("agentChecking");
+    if (!status?.available) return t("agentUnavailable");
+    return status.supports_images ? t("agentReadyWithImages") : t("agentReadyTextOnly");
+  }
+
+  async function loadAutomationStatus() {
+    if (!inTauri() || automationStatusState === "retrying") return;
+    automationStatusState = "loading";
+    try {
+      automationStatus = await invoke<AutomationStatusSummary>("automation_status");
+      automationStatusState = "idle";
+    } catch {
+      automationStatusState = "error";
+    }
+  }
+
+  async function retryFailedAutomation() {
+    if (!inTauri() || automationStatusState === "retrying") return;
+    automationStatusState = "retrying";
+    try {
+      automationStatus = await invoke<AutomationStatusSummary>("retry_failed_automation");
+      automationStatusState = "idle";
+    } catch {
+      automationStatusState = "error";
+    }
+  }
+
+  function automationStatusLabel() {
+    if (!automationSettings.background_ai_triage) return t("automationStatusOff");
+    if (automationStatusState === "loading" && !automationStatus) return t("automationStatusLoading");
+    if (automationStatusState === "error") return t("automationStatusUnavailable");
+    return automationSummaryLabel(automationStatus);
+  }
+
+  function automationSummaryLabel(status: AutomationStatusSummary | null) {
+    if (!status) return t("automationStatusWaiting");
+    if (status.processing > 0) return t("automationStatusProcessing", { count: status.processing, provider: automationProviderName() });
+    if (status.failed > 0) return t("automationStatusFailed", { count: status.failed });
+    if (status.pending > 0) return t("automationStatusPending", { count: status.pending });
+    if (status.last_activity_at) return t("automationStatusQuiet", { action: automationOutcomeLabel(status.last_outcome), date: relativeDate(status.last_activity_at) });
+    return t("automationStatusWaiting");
+  }
+
+  function projectAutomationStatusLabel() {
+    return automationSettings.background_ai_triage
+      ? automationSummaryLabel(projectAutomationStatus)
+      : t("automationStatusOff");
+  }
+
+  function automationOutcomeLabel(outcome?: AutomationOutcome) {
+    if (!outcome) return t("automationOutcomeChecked");
+    const labels: Record<AutomationOutcome, MessageKey> = {
+      task_created_or_linked: "automationOutcomeTaskCreated",
+      task_updated: "automationOutcomeTaskUpdated",
+      duplicate: "automationOutcomeDuplicate",
+      no_action: "automationOutcomeNoAction",
+      needs_data: "automationOutcomeNeedsData",
+      agent_queued: "automationOutcomeAgentQueued",
+      skipped_while_off: "automationOutcomeSkippedWhileOff"
+    };
+    return t(labels[outcome]);
+  }
+
   const activityActionKeys: Record<ActivityAction, MessageKey> = {
     project_created: "activityProjectCreated",
     project_updated: "activityProjectUpdated",
@@ -2768,7 +3999,8 @@
     telegram_task_created: "activityTelegramTaskCreated",
     telegram_candidate_dismissed: "activityTelegramCandidateDismissed",
     telegram_candidate_restored: "activityTelegramCandidateRestored",
-    telegram_sync_requested: "activityTelegramSyncRequested"
+    telegram_sync_requested: "activityTelegramSyncRequested",
+    mutation_applied: "activityMutationApplied"
   };
 
   function activityEntityLabel(event: ActivityEvent) {
@@ -2789,6 +4021,18 @@
     if (event.action.startsWith("telegram_")) return "info";
     if (["task_created", "project_created", "task_restored"].includes(event.action)) return "connected";
     return "brand";
+  }
+
+  function activityProvenanceLabel(event: ActivityEvent) {
+    const provenance = event.provenance;
+    if (!provenance) return "";
+    const provider = provenance.initiator.provider || provenance.initiator.kind;
+    const recovery = provenance.recovery === "available"
+      ? t("activityRecoveryAvailable")
+      : provenance.recovery === "best_effort"
+        ? t("activityRecoveryBestEffort")
+        : t("activityRecoveryUnavailable");
+    return `${provider} · ${t("activityPlanDigest", { digest: provenance.approved_plan_digest.slice(0, 8) })} · ${t("activityOperationCount", { count: provenance.operations.length })} · ${recovery}`;
   }
 
   async function loadMcpActivity(append = false) {
@@ -3462,9 +4706,11 @@
       await invoke("restore_backup", { source: pendingRestorePath });
       discardLocalDraft();
       selectedTaskId = "";
+      selectedTaskNavigationScope = "";
       selectedChatId = "all";
       workspaceView = "project";
       await loadData(false);
+      await loadAgentQueue();
       dataActionState = "success";
       dataActionMessage = t("dataRestored");
       pendingRestorePath = "";
@@ -3599,6 +4845,10 @@
     return "__TAURI_INTERNALS__" in window;
   }
 
+  function devPreviewActive() {
+    return import.meta.env.DEV && !inTauri() && new URLSearchParams(window.location.search).has("preview");
+  }
+
   function applyDevPreviewPreferences() {
     if (!import.meta.env.DEV || inTauri()) return;
     const params = new URLSearchParams(window.location.search);
@@ -3621,7 +4871,13 @@
     appVersion = "0.1.6";
     mcpExecutable = "C:\\Program Files\\flood.md\\flood-mcp.exe";
     mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.1.6", app_version: "0.1.6", compatible: true, source: "bundled" };
-    storeDiagnostics = { healthy: true, root: "preview", format_version: 1, project_count: 4, linked_chat_count: 2, open_task_count: 12, completed_task_count: 8, trashed_task_count: 1, pending_inbox_count: 5, issues: [] };
+    automationSettings = { background_ai_triage: false, provider: "auto", updated_at: new Date().toISOString() };
+    const codexCapabilities = { schema_version: 1, attachments: true, images: true, resume: true, interactive_input: true, usage: true, structured_result: true, interrupt: true, model_identity: false };
+    const textCapabilities = { schema_version: 1, attachments: false, images: false, resume: false, interactive_input: false, usage: false, structured_result: true, interrupt: true, model_identity: false };
+    localAgentProviders = [{ id: "codex", name: "Codex", available: true, version: "codex-cli", supports_images: true, capabilities: codexCapabilities }, { id: "claude", name: "Claude Code", available: false, supports_images: false, capabilities: textCapabilities }, { id: "gemini", name: "Gemini CLI", available: false, supports_images: false, capabilities: textCapabilities }];
+    localAgentProvidersState = "ready";
+    automationStatus = { pending: 3, processing: 0, processed: 14, failed: 0, last_outcome: "task_created_or_linked", last_activity_at: new Date(Date.now() - 4 * 60_000).toISOString() };
+    storeDiagnostics = { healthy: true, root: "preview", format_version: 1, project_count: 4, linked_chat_count: 2, open_task_count: 12, completed_task_count: 8, trashed_task_count: 1, pending_inbox_count: 5, pending_automation_event_count: 3, failed_automation_event_count: 0, issues: [] };
     mcpSelfCheck = { passed: true, duration_ms: 34, checks: (locale === "en" ? [
       "Isolated storage",
       "Creation, updates, and conflicts",
@@ -3635,6 +4891,7 @@
     ]).map((name) => ({ name, passed: true })) };
     mcpCheckState = "success";
     mcpActivity = [
+      { id: "01JOURNAL04", occurred_at: "2026-09-11T00:05:00Z", source: "mcp", action: "mutation_applied", entity_kind: "workspace", reversible: true, provenance: { initiator: { kind: "agent", provider: "codex" }, run_id: "run-preview", guidance: [{ kind: "rule", id: "human-agent-interaction", version: "1" }], sources: [{ kind: "telegram_message", id: "-100100:42" }], approved_plan_id: "plan-preview", approved_plan_digest: "9f3a17c6c85d4b22", operations: [{ operation_id: "op-create", kind: "create_task", target_id: "01PREVIEWTASK", changed: true }], result: "applied", recovery: "available" } },
       { id: "01JOURNAL03", occurred_at: "2026-09-11T00:04:00Z", source: "mcp", action: "telegram_task_created", entity_kind: "task", entity_id: "01PREVIEWTASK", project_id: "01PREVIEWPROJECT", reversible: true },
       { id: "01JOURNAL02", occurred_at: "2026-09-11T00:03:00Z", source: "mcp", action: "task_completed", entity_kind: "task", entity_id: "01COMPLETEDTASK", project_id: "01PREVIEWPROJECT", reversible: true },
       { id: "01JOURNAL01", occurred_at: "2026-09-11T00:02:00Z", source: "mcp", action: "telegram_sync_requested", entity_kind: "workspace", reversible: false }
@@ -3740,7 +4997,12 @@
       context: english ? "## Goal\n\nTurn work discussions into clear tasks without losing source context.\n\n## Repositories\n\n`C:/work/flood.md`\n\n## Designs\n\nThe primary interface file is in Figma." : "## Цель\n\nСобирать понятные задачи из рабочих обсуждений без потери исходного контекста.\n\n## Репозитории\n\n`C:/work/flood.md`\n\n## Макеты\n\nОсновной файл интерфейса в Figma.",
       resources: [
         { id: "main-repository", kind: "repository", label: english ? "Main repository" : "Основной репозиторий", location: "C:/work/flood.md", notes: english ? "Desktop application working copy" : "Рабочая копия desktop-приложения", agent_access: true },
-        { id: "interface-design", kind: "figma", label: english ? "Interface designs" : "Макеты интерфейса", location: "https://figma.com/design/example", agent_access: false }
+        { id: "interface-design", kind: "figma", label: english ? "Interface designs" : "Макеты интерфейса", location: "https://figma.com/design/example", agent_access: false },
+        { id: "flood-ui", kind: "skill", label: "flood-ui", location: "C:/Users/name/.codex/skills/flood-ui", notes: english ? "Use for interface work" : "Использовать для работы с интерфейсом", agent_access: true }
+      ],
+      memory: [
+        { id: "memory-layout", text: english ? "Keep primary workspace pages within a 720 px content column." : "Основные страницы используют рабочую колонку шириной 720 px.", created_at: now, source_task_id: "preview-task" },
+        { id: "memory-type", text: english ? "Visible interface text must not be smaller than 12 px." : "Видимый текст интерфейса не должен быть меньше 12 px.", created_at: now, source_task_id: "preview-task" }
       ],
       created_at: now,
       updated_at: now,
@@ -3756,13 +5018,40 @@
     projectContextVersion = project.version;
     projectContextDraft = project.context ?? "";
     projectContextResources = (project.resources ?? []).map((resource) => ({ ...resource }));
+    projectWorkspaceItems = [
+      { id: "preview-document", project_id: project.id, kind: "document", title: english ? "Product direction" : "Направление продукта", summary: english ? "What flood.md is building and why" : "Что и зачем строит flood.md", content: project.context ?? "", agent_access: true, created_at: now, updated_at: now, revisions: [], version: "preview-document" },
+      { id: "preview-rule", project_id: project.id, kind: "rule", title: "Visual foundations v1", summary: english ? "Required quality floor for every surface" : "Обязательная база качества для каждой поверхности", content: "# Visual foundations v1", agent_access: true, created_at: now, updated_at: now, revisions: [], version: "preview-rule" },
+      { id: "preview-skill-design", project_id: project.id, kind: "skill", title: english ? "flood.md design system" : "Дизайн-система flood.md", summary: english ? "System direction, tokens and contracts" : "Системное направление, токены и контракты", content: "# Design system", agent_access: true, created_at: now, updated_at: now, revisions: [], version: "preview-skill-design" },
+      { id: "preview-skill-ui", project_id: project.id, kind: "skill", title: english ? "flood.md UI implementation" : "Реализация UI flood.md", summary: english ? "Implementation and visual verification" : "Реализация и визуальная приёмка", content: "# UI implementation", agent_access: true, created_at: now, updated_at: now, revisions: [], version: "preview-skill-ui" }
+    ];
+    projectKnowledgeProposals = [{
+      id: "preview-proposal",
+      project_id: project.id,
+      target: { kind: "workspace_item", item_id: "preview-skill-ui", item_kind: "skill" },
+      base_version: "preview-skill-ui",
+      payload: { kind: "workspace_item", title: english ? "flood.md UI implementation" : "Реализация UI flood.md", summary: english ? "Implementation and visual verification" : "Реализация и визуальная приёмка", content: "# UI implementation\n\n## Verification\n\nVerify the final result in the installed desktop application.", agent_access: true },
+      summary: english ? "Add the installed-app verification step" : "Добавить проверку установленного приложения",
+      reason: english ? "A browser preview does not prove the desktop shell works." : "Браузерный макет не подтверждает работу desktop-оболочки.",
+      evidence: [english ? "The task changes a Tauri surface." : "Задача меняет поверхность Tauri."],
+      source_run_id: "preview-run",
+      version: "preview-proposal-version",
+      state: "pending",
+      created_at: now,
+      updated_at: now
+    }];
+    projectAttention = [{ kind: "source_question", message: english ? "Which screen should the new Telegram reference apply to?" : "К какому экрану относится новый референс из Telegram?", event_id: "preview-event", occurred_at: now }];
+    projectAutoRunDraft = false;
+    projectAutoRunSaved = false;
+    projectAutoRunLoading = false;
+    resetProjectMemoryEditor(true);
     projectContextOpen = true;
     void tick().then(() => projectContextDialog?.focus());
   }
 
   function applyTaskSourceDevPreview() {
     if (!import.meta.env.DEV || inTauri()) return;
-    if (new URLSearchParams(window.location.search).get("preview") !== "task-source") return;
+    const preview = new URLSearchParams(window.location.search).get("preview");
+    if (preview !== "task-source" && preview !== "agent-question" && preview !== "agent-queue" && preview !== "agent-review") return;
     const createdAt = "2026-09-12T01:01:07Z";
     const project: ChatItem = { id: "preview-project", title: "тест", context: "", resources: [], created_at: createdAt, updated_at: createdAt, telegram_chats: [], version: "preview", open: 1 };
     const source: MessageSnapshot = {
@@ -3786,6 +5075,18 @@
       updatedAt: createdAt,
       urgency: "normal",
       completed: false,
+      relations: [{ task_id: "preview-completed-task", kind: "related" }],
+      checkpoints: [{
+        id: "preview-checkpoint",
+        created_at: createdAt,
+        source: "agent",
+        summary: "Композиция заголовка исправлена, рабочая ширина сохранена.",
+        verification: ["Проверена ширина 720 px", "Проверена тёмная тема"],
+        remaining: ["Проверить светлую тему на установленной сборке"],
+        result: "src/App.svelte",
+        agent_run_id: "preview-older-run"
+      }],
+      checkpointCount: 1,
       markdown: "Исправить отображение длинного названия проекта\n\n- Проверить компоновку заголовка на узком окне\n- Сохранить доступность действий проекта",
       source,
       sourceAuthor: source.author,
@@ -3793,7 +5094,17 @@
       version: "preview"
     };
     chats = [allChat(1), project];
-    tasks = [task];
+    const completedTask: TaskItem = {
+      ...task,
+      id: "preview-completed-task",
+      title: "Уже выполненная задача",
+      completed: true,
+      markdown: "Уже выполненная задача",
+      hasSource: false,
+      source: undefined,
+      sourceAuthor: undefined
+    };
+    tasks = [task, completedTask];
     selectedChatId = project.id;
     selectedTaskId = task.id;
     markdown = task.markdown;
@@ -3801,6 +5112,61 @@
     workspaceView = "task";
     activeSection = "tasks";
     loading = false;
+    loadError = "";
+    if (preview === "agent-question") {
+      selectedTaskRuns = [{
+        id: "preview-run", task_id: task.id, project_id: project.id, provider: "codex", state: "needs_input",
+        created_at: createdAt, updated_at: createdAt, thread_id: "preview-thread", working_directory: "C:/work/flood.md",
+        result: "Нашёл два варианта реализации и проверил текущую компоновку.",
+        blocker: "На мобильной ширине действия оставить в верхней панели или перенести под заголовок?"
+      }];
+    } else if (preview === "agent-review") {
+      selectedTaskRuns = [{
+        id: "preview-run", task_id: task.id, project_id: project.id, provider: "codex", state: "ready_for_review",
+        created_at: createdAt, updated_at: createdAt, thread_id: "preview-thread", working_directory: "C:/work/flood.md",
+        result: "Заголовок проекта вынесен в отдельную строку и больше не сжимается действиями.\n\nПроверено:\n• длинное название на ширине 720 px\n• светлая и тёмная темы\n• сборка интерфейса",
+        memory: ["Основные страницы используют рабочую колонку шириной 720 px."],
+        guidance: [
+          { kind: "rule", id: "visual-rule", title: "Visual foundations v1", version: "17d85f61a4", reason: "Обязательное правило проекта" },
+          { kind: "skill", id: "ui-skill", title: "Реализация UI flood.md", version: "67a0c1b29f", reason: "Совпало с задачей: интерфейс, заголовок" }
+        ]
+      }];
+    } else if (preview === "agent-queue") {
+      selectedTaskId = "";
+      workspaceView = "project";
+      const previewTitles = [
+        "Исправить отображение длинного названия проекта",
+        "Собрать общий Artifact Modal для документов, правил и skills",
+        "Проверить контраст вторичного текста в тёмной теме",
+        "Упростить навигацию по контексту проекта",
+        "Показать diff результата агента до принятия",
+        "Проверить редактор при масштабе текста 200%",
+        "Согласовать состояния пустого проекта",
+        "Унифицировать focus-visible у быстрых действий",
+        "Проверить восстановление после внешнего изменения Markdown",
+        "Убрать повторяющиеся пояснения в настройках",
+        "Собрать узкое состояние project overview",
+        "Проверить reduced motion для flood-глифов",
+        "Уточнить provenance для агентского результата",
+        "Подготовить заполненный сценарий из 15 задач",
+        "Сравнить локальную сборку с опубликованной версией"
+      ];
+      tasks = previewTitles.map((title, index) => ({
+        ...task,
+        id: index === 0 ? task.id : `preview-task-${index + 1}`,
+        title,
+        urgency: index === 4 ? "urgent" : index === 1 || index === 8 ? "important" : "normal",
+        relations: index === 0 ? task.relations : [],
+        checkpoints: index === 0 ? task.checkpoints : [],
+        checkpointCount: index === 0 ? task.checkpointCount : 0,
+        markdown: `${title}\n\nРабочая формулировка для проверки заполненного интерфейса.`
+      }));
+      chats = [allChat(tasks.length), { ...project, open: tasks.length }];
+      agentQueueRuns = [
+        { id: "preview-run", task_id: task.id, project_id: project.id, provider: "codex", state: "running", created_at: createdAt, updated_at: createdAt, working_directory: "C:/work/flood.md", progress: "Проверяю интерфейс" },
+        { id: "preview-queued", task_id: task.id, project_id: project.id, provider: "codex", state: "queued", created_at: createdAt, updated_at: createdAt, working_directory: "C:/work/flood.md" }
+      ];
+    }
     void tick().then(() => renderMarkdown(markdown));
   }
 
@@ -3841,6 +5207,7 @@
     let unlisten: UnlistenFn | undefined;
     let unlistenClose: UnlistenFn | undefined;
     let unlistenTelegram: UnlistenFn | undefined;
+    let unlistenAutomation: UnlistenFn | undefined;
     let disposed = false;
     void (async () => {
       if (inTauri()) {
@@ -3850,6 +5217,9 @@
         dataDirectory = await invoke<string>("data_directory");
         mcpRuntime = await invoke<McpRuntimeInfo>("mcp_runtime_info").catch(() => null);
         mcpExecutable = mcpRuntime?.executable_path || await invoke<string>("mcp_executable_path");
+        automationSettings = await invoke<AutomationSettings>("automation_settings").catch(() => automationSettings);
+        await loadLocalAgentProviders();
+        await loadAutomationStatus();
         if (mcpRuntime && (!mcpRuntime.available || !mcpRuntime.compatible)) mcpCheckState = "error";
         storeDiagnostics = await invoke<StoreDiagnostics>("diagnose_store").catch(() => null);
         githubStatus = await invoke<GitHubStatus>("github_status").catch((error) => ({ ...githubStatus, error: String(error) }));
@@ -3857,6 +5227,11 @@
         await refreshTelegramSyncRequest();
         await applyTelegramStatus(await invoke<TelegramStatus>("telegram_status"));
         unlistenTelegram = await listen<TelegramStatus>("telegram-status", (event) => void applyTelegramStatus(event.payload));
+        unlistenAutomation = await listen("automation-updated", () => {
+          void loadData(true);
+          void loadAutomationStatus();
+          void invoke<StoreDiagnostics>("diagnose_store").then((value) => (storeDiagnostics = value)).catch(() => undefined);
+        });
         unlistenClose = await getCurrentWindow().onCloseRequested(async (event) => {
           if (closingWindow) return;
           event.preventDefault();
@@ -3865,6 +5240,8 @@
       }
       await loadData(false);
       if (disposed || !inTauri()) return;
+      await invoke<number>("resume_agent_queue").catch(() => 0);
+      await loadAgentQueue();
       if (telegramStatus.step === "ready") {
         void syncTelegram();
       }
@@ -3877,11 +5254,23 @@
           if (request && telegramStatus.step === "ready") void syncTelegram();
         });
       }, 3_000);
+      agentRunTimer = window.setInterval(() => {
+        void loadAgentQueue();
+        if (workspaceView === "task" && selectedTaskId && selectedTaskRuns[0] && ["queued", "running"].includes(selectedTaskRuns[0].state)) {
+          void loadTaskAgentRuns();
+        }
+      }, 2_000);
       unlisten = await listen<string[]>("data-changed", (event) => {
         const changedPaths = event.payload.map((path) => path.toLocaleLowerCase());
         const telegramSyncRequested = changedPaths.some((path) => path.includes("telegram-sync-request"));
         const telegramMediaRequested = changedPaths.some((path) => path.endsWith("telegram-media-requests.json"));
+        const agentQueueChanged = changedPaths.some((path) => path.endsWith("agent-runs.json"));
         if (activeSection === "settings" && settingsSection === "mcp" && changedPaths.some((path) => path.endsWith("activity.json"))) void loadMcpActivity();
+        if (agentQueueChanged) {
+          void invoke<number>("resume_agent_queue")
+            .then(() => loadAgentQueue())
+            .catch(() => undefined);
+        }
         if (telegramSyncRequested) {
           void refreshTelegramSyncRequest();
           if (telegramStatus.step === "ready") void syncTelegram();
@@ -3897,6 +5286,7 @@
     const flush = () => { void saveNow(); };
     const closeMenus = (event: PointerEvent) => {
       const target = event.target instanceof Element ? event.target : null;
+      if (!target?.closest(".selection-toolbar") && !editorRoot?.contains(target)) closeSelectionToolbar();
       if (!target?.closest(".urgency-menu")) urgencyMenuOpen = false;
       if (!target?.closest(".source-popover") && !target?.closest(".source-action-button")) {
         sourceEditorOpen = false;
@@ -3917,6 +5307,7 @@
       window.clearTimeout(refreshTimer);
       window.clearInterval(telegramScanTimer);
       window.clearInterval(telegramRequestTimer);
+      window.clearInterval(agentRunTimer);
       window.clearTimeout(telegramSearchTimer);
       window.clearTimeout(telegramDismissUndoTimer);
       window.clearTimeout(githubAuthTimer);
@@ -3930,12 +5321,19 @@
       unlisten?.();
       unlistenClose?.();
       unlistenTelegram?.();
+      unlistenAutomation?.();
     };
   });
 </script>
 
 <svelte:head><title>flood.md</title></svelte:head>
 <svelte:window onkeydown={handleWindowKeydown} />
+
+{#if loading}
+  <div class="app-startup" role="status" aria-live="polite" aria-label={t("loading")}>
+    <span class="app-startup-mark"><FloodGlyph kind="brand" size={64} motion="breathe" /></span>
+  </div>
+{/if}
 
 {#if editorHint}
   <aside class="editor-hint" style:left={`${editorHint.left}px`} style:top={`${editorHint.top}px`} aria-live="polite">{editorHint.title}</aside>
@@ -3977,7 +5375,6 @@
               {#if item.group === "tasks"}<FloodGlyph kind={item.completed ? "completed" : item.urgency || "normal"} size={15} />
               {:else if item.group === "projects"}<Folder size={16} />
               {:else if item.id === "action:new-task"}<Plus size={16} />
-              {:else if item.id === "action:inbox"}<MessageSquareText size={16} />
               {:else if item.id === "action:all-tasks"}<ListTodo size={16} />
               {:else if item.id === "action:integrations"}<Plug size={16} />
               {:else if item.id === "action:mcp"}<Bot size={16} />
@@ -4007,6 +5404,8 @@
       {#if activeSection === "tasks"}
         {#if workspaceView === "task" && selectedTask}
           <button class="window-context-back" aria-label={t("backToProject", { project: selectedTask.chat })} title={`${t("backToProject", { project: selectedTask.chat })} · Alt+←`} onclick={backToProject}><ChevronLeft size={14} /><span>{selectedTask.chat}</span></button>
+        {:else if workspaceView === "context"}
+          <button class="window-context-back" aria-label={t("backToProject", { project: projectContextProjectTitle })} title={t("backToProject", { project: projectContextProjectTitle })} onclick={closeProjectContext}><ChevronLeft size={14} /><span>{projectContextProjectTitle} · {t("projectContext")}</span></button>
         {:else}
           <span>{currentChat.title}</span>
         {/if}
@@ -4109,7 +5508,7 @@
               <section class="sidebar-search-group">
                 <button class="search-project-result" onclick={() => selectChat(group.chat)}><Folder size={15} /><span>{group.chat.title}</span><small>{group.tasks.length}</small></button>
                 {#each group.tasks as task (task.id)}
-                  <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
+                  <button class:selected={workspaceView === "task" && selectedTaskId === task.id && selectedTaskNavigationScope === "search"} class="nested-task" onclick={() => openTask(task, "search")}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
                 {/each}
               </section>
             {:else}
@@ -4119,7 +5518,7 @@
         {:else}
           <div class:active={activeSection === "tasks" && selectedChatId === "all"} class="project-row all-tasks-row">
             <button class="project-open" onclick={() => chats[0] && selectChat(chats[0])} onmouseenter={(event) => showSidebarProjectHint(event, t("allTasks"))} onmouseleave={hideSidebarProjectHint} onfocus={(event) => showSidebarProjectHint(event, t("allTasks"))} onblur={hideSidebarProjectHint} aria-label={t("openAllTasks")}>
-              <ListTodo size={17} /><span>{t("allTasks")}</span><small>{tasks.filter((task) => !isLocalDraft(task) && !task.completed).length}</small>
+              <ListTodo size={17} /><span>{t("allTasks")}</span><small>{sidebarOpenTasks.length}</small>
             </button>
             {#if !sidebarCollapsed}
               <button type="button" class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={toggleAllTasks} aria-label={allTasksExpanded ? t("collapseAllTasks") : t("expandAllTasks")}><ChevronRight size={13} /></button>
@@ -4128,8 +5527,8 @@
 
           {#if !sidebarCollapsed && allTasksExpanded}
             <div class="nested-tasks all-task-list">
-              {#each visibleTasks as task}
-                <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
+              {#each sidebarOpenTasks as task (task.id)}
+                <button class:selected={workspaceView === "task" && selectedTaskId === task.id && selectedTaskNavigationScope === "all"} class="nested-task" onclick={() => openTask(task, "all")}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
               {/each}
             </div>
           {/if}
@@ -4147,7 +5546,7 @@
               {#if !sidebarCollapsed && expandedChatIds.includes(chat.id)}
                 <div class="nested-tasks">
                   {#each tasksForChat(chat) as task}
-                    <button class:selected={workspaceView === "task" && selectedTaskId === task.id} class="nested-task" onclick={() => openTask(task)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
+                    <button class:selected={workspaceView === "task" && selectedTaskId === task.id && selectedTaskNavigationScope === chat.id} class="nested-task" onclick={() => openTask(task, chat.id)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
                   {:else}<span class="nested-empty">{t("noOpenTasks")}</span>{/each}
                 </div>
               {/if}
@@ -4189,21 +5588,109 @@
             {/if}
             {#if selectedTask.source?.url}<a href={selectedTask.source.url} target="_blank" rel="noreferrer">{t("openMessage")}</a>{/if}
           </div>
+          <label class="task-title-field">
+            <span class="sr-only">{t("taskTitle")}</span>
+            <input bind:this={taskTitleInput} bind:value={taskTitleDraft} maxlength="160" aria-label={t("taskTitle")} placeholder={t("taskTitlePlaceholder")} oninput={syncTaskTitle} onkeydown={handleTaskTitleKeydown} onblur={() => void saveNow()} />
+          </label>
+          {#if selectedTask.relations.length}
+            <div class="task-relations" aria-label={t("taskRelations")}>
+              <Link size={14} aria-hidden="true" />
+              {#each selectedTask.relations as relation (`${relation.kind}:${relation.task_id}`)}
+                {@const target = relationTarget(relation)}
+                <button class:blocked={relation.kind === "blocked_by" && !target?.completed} class:completed={Boolean(target?.completed)} disabled={!target} title={target ? t("openRelatedTask", { task: target.title }) : relation.task_id} onclick={() => target && openTask(target, target.chatId)}>
+                  <small>{taskRelationLabel(relation.kind)}</small>
+                  <span>{target?.title ?? relation.task_id}</span>
+                  {#if target?.completed}<Check size={13} aria-hidden="true" />{/if}
+                </button>
+              {/each}
+            </div>
+          {/if}
           {#if conflictRemote}
             <div class="save-conflict" role="alert">
               <span><strong>{t("externalChange")}</strong> {t("chooseVersion")}</span>
               <div><button onclick={useDiskVersion}>{t("diskVersion")}</button><button onclick={keepLocalVersion}>{t("localVersion")}</button></div>
             </div>
           {/if}
-          <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label={t("taskEditor")} spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={() => { editorHint = null; clearAttachmentSelection(); void saveNow(); }}></div>
+          <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label={t("taskEditor")} spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={handleEditorBlur}></div>
+          {#if latestCheckpoint && !checkpointIsRepresentedByLatestRun(latestCheckpoint, latestAgentRun)}
+            <section class="task-checkpoint" aria-label={t("latestCheckpoint")}>
+              <header>
+                <span><CheckCircle2 size={17} /><strong>{t("latestCheckpoint")}</strong></span>
+                <small>{fullDate(latestCheckpoint.created_at)}</small>
+              </header>
+              <p>{latestCheckpoint.summary}</p>
+              {#if latestCheckpoint.verification?.length || latestCheckpoint.remaining?.length}
+                <div class="task-checkpoint-columns">
+                  {#if latestCheckpoint.verification?.length}
+                    <div><strong>{t("checkpointVerified")}</strong><ul>{#each latestCheckpoint.verification as item}<li>{item}</li>{/each}</ul></div>
+                  {/if}
+                  {#if latestCheckpoint.remaining?.length}
+                    <div><strong>{t("checkpointRemaining")}</strong><ul>{#each latestCheckpoint.remaining as item}<li>{item}</li>{/each}</ul></div>
+                  {/if}
+                </div>
+              {/if}
+              {#if latestCheckpoint.result}<p class="task-checkpoint-result"><strong>{t("checkpointResult")}</strong><span>{latestCheckpoint.result}</span></p>{/if}
+              {#if latestCheckpoint.blocker}<p class="task-checkpoint-blocker"><strong>{t("checkpointBlocker")}</strong><span>{latestCheckpoint.blocker}</span></p>{/if}
+            </section>
+          {/if}
+          {#if selectedTaskId !== draftTaskId}
+            <section class="agent-work" aria-label={t("agentWork")}>
+              <header>
+                <span class="agent-work-title"><FloodGlyph kind="brand" size={20} /><span><strong>{t("agentWork")}</strong>{#if latestAgentRun}<small>{agentRunLabel(latestAgentRun.state)}</small>{:else}<small>{t("agentWorkDescription")}</small>{/if}</span></span>
+                {#if latestAgentRun && ["queued", "running"].includes(latestAgentRun.state)}
+                  <button class="agent-stop" disabled={agentRunBusy} onclick={() => cancelAgentRun(latestAgentRun)}>{t("stopAgent")}</button>
+                {:else if !latestAgentRun || ["failed", "cancelled", "interrupted"].includes(latestAgentRun.state) || (latestAgentRun.state === "accepted" && !selectedTask.completed)}
+                  <button class="agent-start" disabled={agentRunBusy || taskHasOpenBlockers(selectedTask)} onclick={startCodexTask}><Bot size={15} />{latestAgentRun ? t("runAgain") : t("runWithCodex")}</button>
+                {/if}
+              </header>
+              {#if latestAgentRun?.progress}<p class="agent-progress">{latestAgentRun.progress}</p>{/if}
+              {#if latestAgentRun}<p class="agent-progress">{agentUsageLabel(latestAgentRun)}</p>{/if}
+              {#if latestAgentRun?.guidance?.length}
+                <details class="agent-guidance">
+                  <summary>{t("agentGuidance", { count: latestAgentRun.guidance.length })}</summary>
+                  <div>
+                    {#each latestAgentRun.guidance as item (`${item.kind}:${item.id}:${item.version}`)}
+                      <article>
+                        <span><strong>{item.title}</strong><small>{item.kind === "rule" ? t("projectRule") : t("projectSkill")} · {item.version.slice(0, 8)}</small></span>
+                        <p>{item.reason}</p>
+                      </article>
+                    {/each}
+                  </div>
+                </details>
+              {/if}
+              {#if latestAgentRun?.result}
+                <div class="agent-result">
+                  <strong>{t("agentResult")}</strong>
+                  <p>{latestAgentRun.result}</p>
+                  {#if latestAgentRun.memory?.length}<button class="agent-memory" type="button" onclick={() => reviewAgentKnowledgeProposals(latestAgentRun)}><Database size={14} /><span>{t("agentMemorySaved", { count: latestAgentRun.memory.length })}</span><small>{t("reviewAgentProposals")}</small></button>{/if}
+                  {#if latestAgentRun.state === "ready_for_review" && !selectedTask.completed}
+                    <button class="agent-accept" disabled={agentRunBusy} onclick={acceptAgentResult}><Check size={15} />{t("acceptAgentResult")}</button>
+                  {:else if latestAgentRun.state === "accepted" || selectedTask.completed}
+                    <span class="agent-accepted"><FloodGlyph kind="completed" size={15} />{t("agentResultAccepted")}</span>
+                  {/if}
+                </div>
+              {/if}
+              {#if latestAgentRun?.state === "needs_input" && latestAgentRun.blocker}
+                <form class="agent-question" onsubmit={(event) => { event.preventDefault(); void continueCodexTask(); }}>
+                  <div><strong>{t("agentQuestion")}</strong><p>{latestAgentRun.blocker}</p></div>
+                  <label><span>{t("yourAnswer")}</span><textarea bind:value={agentResponse} maxlength="4000" rows="2" placeholder={t("agentAnswerPlaceholder")}></textarea></label>
+                  <button disabled={agentRunBusy || !agentResponse.trim()}>{t("continueWork")}</button>
+                </form>
+              {/if}
+              {#if latestAgentRun?.error}<p class="agent-error" role="alert">{latestAgentRun.error}</p>{/if}
+              {#if agentRunError}<p class="agent-error" role="alert">{agentRunError}</p>{/if}
+            </section>
+          {/if}
         </div>
       </section>
     {:else if activeSection === "tasks"}
       <section class="workspace project-workspace">
         <div class="project-page">
-          {#if loadError}<div class="data-error"><strong>{t("dataOpenError")}</strong><span>{loadError}</span></div>{/if}
+          {#if loadError && !devPreviewActive()}<div class="data-error"><strong>{t("dataOpenError")}</strong><span>{loadError}</span></div>{/if}
           <header class="project-header project-overview-header">
-            <div>
+            <div class="project-heading-main">
+              <span class="project-brand-mark" aria-hidden="true"><FloodGlyph kind="brand" size={28} /></span>
+              <div class="project-heading-copy">
               {#if renameChatOpen}
                 <form class="rename-chat-form" onsubmit={submitRenameChat}><input bind:value={renameChatTitle} aria-label={t("projectName")} /><button aria-label={t("save")}><Check size={16} /></button><button type="button" aria-label={t("cancel")} onclick={() => (renameChatOpen = false)}><X size={16} /></button></form>
                 {#if formError}<span class="form-error">{formError}</span>{/if}
@@ -4217,19 +5704,13 @@
                 </div>
               {/if}
               <p>{loading ? t("loadingTasks") : openTasksLabel(currentOpenTasks.length)}</p>
+              </div>
             </div>
             <div class="project-header-actions">
-              {#if currentChat.id === "all" && telegramStatus.step === "ready"}
-                <button class="project-add-button inbox-button" onclick={() => openTelegramInbox(false)}><MessageSquareText size={15} />{t("inbox")}</button>
-              {/if}
-              {#if currentChat.id !== "all" && currentChat.telegram_chats.length}
-                <button class="project-add-button inbox-button" onclick={() => openTelegramInbox(false)}><MessageSquareText size={15} />{t("inbox")}</button>
-                <button class="project-add-button telegram-import-button" title={t("importFromTelegramChat", { chat: currentChat.telegram_chats[0].title })} onclick={openTelegramImporter}><Send size={15} />{t("fromTelegram")}</button>
-              {/if}
               {#if currentChat.id !== "all"}
                 <button class="project-add-button" onclick={openProjectContext}><FileText size={15} />{t("projectContext")}</button>
               {/if}
-              <button class="project-add-button" aria-expanded={newTaskMenuAnchor === "workspace"} onclick={() => requestNewTask("workspace")}><Plus size={16} />{t("newTask")}</button>
+              <button class="project-add-button primary" aria-expanded={newTaskMenuAnchor === "workspace"} onclick={() => requestNewTask("workspace")}><Plus size={16} />{t("newTask")}</button>
               {#if newTaskMenuAnchor === "workspace"}
                 <div class="new-task-menu workspace-new-task-menu">
                   <small>{t("chooseProject")}</small>
@@ -4238,6 +5719,24 @@
               {/if}
             </div>
           </header>
+
+          {#if currentProjectPrimaryRun}
+            {@const agentTask = agentRunTask(currentProjectPrimaryRun)}
+            {#if agentTask}
+              <section class="project-flow-section agent-flow" aria-label={currentProjectPrimaryRun.state === "needs_input" || currentProjectPrimaryRun.state === "ready_for_review" ? t("needsDecision") : t("delegatedWork")}>
+                <header class="project-flow-heading">
+                  <span><strong>{currentProjectPrimaryRun.state === "needs_input" || currentProjectPrimaryRun.state === "ready_for_review" ? t("needsDecision") : t("delegatedWork")}</strong><small>{agentRunLabel(currentProjectPrimaryRun.state)}</small></span>
+                  <span class="project-flow-count">1</span>
+                </header>
+                <button class:needs-attention={currentProjectPrimaryRun.state === "needs_input" || currentProjectPrimaryRun.state === "ready_for_review"} class="project-agent-status" onclick={() => openAgentRunTask(currentProjectPrimaryRun)}>
+                  <FloodGlyph kind="brand" size={20} />
+                  <span class="project-agent-identity"><strong>Codex</strong><small>{t("agentRole")}</small></span>
+                  <span class="project-agent-work"><strong>{agentTask.title}</strong><small>{agentRunLabel(currentProjectPrimaryRun.state)}{currentProjectQueuedCount ? ` · ${t("tasksQueued", { count: currentProjectQueuedCount })}` : ""}</small></span>
+                  <ChevronRight size={15} />
+                </button>
+              </section>
+            {/if}
+          {/if}
 
           {#if deleteChatConfirmOpen}
             <div class="destructive-confirm project-delete-confirm" role="alert">
@@ -4257,7 +5756,7 @@
                       <button class="project-group-title" onclick={() => selectChat(chat)}><span>{chat.title}</span><small>{chatTasks.length}</small><ChevronRight size={14} /></button>
                       <div class="project-task-list">
                         {#each chatTasks as task}
-                          <button class="project-task" onclick={() => openTask(task)}>
+                          <button class="project-task" onclick={() => openTask(task, "all")}>
                             <FloodGlyph kind={task.urgency} size={14} />
                             <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}</small></span>
                             <ChevronRight size={15} />
@@ -4272,17 +5771,20 @@
               <div class="project-empty"><p>{t("noOpenTasks")}</p></div>
             {/if}
           {:else}
-            <div class="project-task-list standalone">
-              {#each currentOpenTasks as task}
-                <button class="project-task" onclick={() => openTask(task)}>
-                  <FloodGlyph kind={task.urgency} size={14} />
-                  <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}{task.urgency !== "normal" ? ` · ${t(task.urgency === "urgent" ? "urgentShort" : "importantShort")}` : ""}</small></span>
-                  <ChevronRight size={15} />
-                </button>
-              {:else}
-                <div class="project-empty"><p>{t("noOpenTasks")}</p><button onclick={() => requestNewTask("workspace")}>{t("addTask")}</button></div>
-              {/each}
-            </div>
+            <section class="project-flow-section focus-flow" aria-label={t("myFocus")}>
+              <header class="project-flow-heading"><span><strong>{t("myFocus")}</strong><small>{t("openWork")}</small></span><span class="project-flow-count">{currentOpenTasks.length}</span></header>
+              <div class="project-task-list standalone">
+                {#each currentOpenTasks as task}
+                  <button class="project-task" onclick={() => openTask(task, currentChat.id)}>
+                    <FloodGlyph kind={task.urgency} size={14} />
+                    <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}{task.urgency !== "normal" ? ` · ${t(task.urgency === "urgent" ? "urgentShort" : "importantShort")}` : ""}</small></span>
+                    <ChevronRight size={15} />
+                  </button>
+                {:else}
+                  <div class="project-empty"><p>{t("noOpenTasks")}</p><button onclick={() => requestNewTask("workspace")}>{t("addTask")}</button></div>
+                {/each}
+              </div>
+            </section>
           {/if}
 
           {#if currentCompletedTasks.length}
@@ -4294,7 +5796,7 @@
               {#if completedGroupOpen}
                 <div class="project-task-list completed-list">
                   {#each currentCompletedTasks as task}
-                    <button class="project-task completed-task" onclick={() => openTask(task)}><FloodGlyph kind="completed" size={16} motion="pop" /><span class="project-task-copy"><strong>{task.title}</strong><small>{task.chat}</small></span><ChevronRight size={15} /></button>
+                    <button class="project-task completed-task" onclick={() => openTask(task, currentChat.id)}><FloodGlyph kind="completed" size={16} motion="pop" /><span class="project-task-copy"><strong>{task.title}</strong><small>{task.chat}</small></span><ChevronRight size={15} /></button>
                   {/each}
                 </div>
               {/if}
@@ -4365,7 +5867,6 @@
                   <h4 class="settings-group-label">{t("settingsBehavior")}</h4>
                   <div class="settings-group">
                     <div class="setting-static"><span><Languages size={16} /><span><strong>{t("language")}</strong><small>{t("interfaceLanguage")}</small></span></span><div class="language-picker" aria-label={t("interfaceLanguage")}><button class:active={locale === "ru"} aria-pressed={locale === "ru"} onclick={() => setLocale("ru")}>{t("russian")}</button><button class:active={locale === "en"} aria-pressed={locale === "en"} onclick={() => setLocale("en")}>{t("english")}</button></div></div>
-                    <button class:active={showCompleted} class="setting-row" role="switch" aria-checked={showCompleted} onclick={toggleCompletedVisibility}><span><ListTodo size={16} /><span><strong>{t("showCompleted")}</strong><small>{t("showCompletedDescription")}</small></span></span><span class="switch"><span></span></span></button>
                   </div>
                 </section>
               {:else if settingsSection === "appearance"}
@@ -4421,13 +5922,43 @@
                 <section class="settings-section integrations-settings-section">
                   <div class="settings-section-title"><h3>{t("integrations")}</h3><p>{t("integrationsDescription")}</p></div>
                   <div class="connector-grid">
-                    <IntegrationCard provider="telegram" title="Telegram" description={t("telegramConnectorDescription")} status={telegramStatusLabel()} detail={telegramStatus.step === "ready" ? t("telegramConnectorDetail", { account: telegramStatus.account_name || "Telegram", projects: chats.slice(1).filter((project) => project.telegram_chats.length).length }) : t("telegramConnectorIdle")} tone={["database_error", "error"].includes(telegramStatus.step) ? "error" : telegramStatus.step === "ready" ? "connected" : telegramStatus.step === "unconfigured" ? "idle" : "attention"} actionLabel={telegramStatus.step === "unconfigured" ? t("connect") : t("manageConnector")} onclick={() => openIntegrationModal("telegram")} />
-                    <IntegrationCard provider="github" title="GitHub" description={t("githubConnectorDescription")} status={githubStatusLabel()} detail={githubStatus.connected ? t("githubConnectorDetail", { account: githubStatus.account?.login || "GitHub", projects: connectedGithubResources() }) : t("githubConnectorIdle")} tone={githubStatusTone()} actionLabel={githubStatus.connected ? t("manageConnector") : t("connect")} onclick={() => openIntegrationModal("github")} />
+                    {#each connectorUiRegistry as connector (connector.id)}
+                      {@const card = connectorCardState(connector)}
+                      <IntegrationCard provider={connector.id} title={connector.title} description={t(connector.descriptionKey)} status={card.status} detail={card.detail} tone={card.tone} actionLabel={card.actionLabel} onclick={() => openIntegrationModal(connector.id)} />
+                    {/each}
                   </div>
                 </section>
               {:else if settingsSection === "mcp"}
                 <section class="settings-section mcp-settings-section">
                   <div class="settings-section-title"><h3>{t("mcpAndAi")}</h3><p>{t("mcpPageDescription")}</p></div>
+                  <h4 class="settings-group-label">{t("automation")}</h4>
+                  <div class="settings-group automation-settings-group">
+                    <div class="project-automation-warning"><FloodGlyph kind="important" size={18} /><span><strong>{t("automationExperimental")}</strong><small>{t("automationExperimentalDescription")}</small></span></div>
+                    <div class="setting-static agent-provider-row">
+                      <span><FloodGlyph kind={localAgentProviders.some((provider) => provider.available) ? "connected" : "info"} size={20} /><span><strong>{t("localAgent")}</strong><small>{t("localAgentDescription")}</small></span></span>
+                      <div class="agent-provider-choices" role="radiogroup" aria-label={t("localAgent")}>
+                        {#each automationProviders as provider}
+                          {@const providerStatus = provider === "auto" ? null : localAgentProviders.find((item) => item.id === provider)}
+                          <button class:active={automationSettings.provider === provider} role="radio" aria-checked={automationSettings.provider === provider} disabled={automationSettingsState === "saving" || (provider !== "auto" && localAgentProvidersState === "ready" && !providerStatus?.available)} title={automationProviderDescription(provider)} onclick={() => chooseAutomationProvider(provider)}>
+                            {provider === "auto" ? t("agentAuto") : provider === "codex" ? "Codex" : provider === "claude" ? "Claude" : "Gemini"}
+                          </button>
+                        {/each}
+                      </div>
+                    </div>
+                    <button class:active={automationSettings.background_ai_triage} class="setting-row" role="switch" aria-checked={automationSettings.background_ai_triage} disabled={!inTauri() || automationSettingsState === "saving"} onclick={toggleBackgroundAiTriage}>
+                      <span><FloodGlyph kind={automationSettings.background_ai_triage ? "brand" : "info"} size={20} /><span><strong>{t("backgroundAiTriage")}</strong><small>{t("backgroundAiTriageDescription", { provider: automationProviderName() })}</small></span></span>
+                      <span class="switch"><span></span></span>
+                    </button>
+                    <div class:error={Boolean(automationStatus?.failed) || automationStatusState === "error"} class="setting-static automation-status-row">
+                      <span><FloodGlyph kind={automationStatus?.failed || automationStatusState === "error" ? "urgent" : automationStatus?.processing ? "brand" : "info"} size={20} /><span><strong>{t("automationStatus")}</strong><small aria-live="polite">{automationStatusLabel()}</small></span></span>
+                      {#if automationStatus?.failed}
+                        <button class="automation-retry-button" disabled={automationStatusState === "retrying"} onclick={retryFailedAutomation}><RefreshCw class={automationStatusState === "retrying" ? "spinning" : ""} size={14} />{t("retry")}</button>
+                      {:else if automationStatus?.pending || automationStatus?.processing}
+                        <small class="automation-queue-count">{t("automationQueueCount", { count: (automationStatus.pending || 0) + (automationStatus.processing || 0) })}</small>
+                      {/if}
+                    </div>
+                  </div>
+                  {#if automationSettingsState === "error"}<p class="automation-settings-error" role="status">{automationSettingsError || t("backgroundAiTriageFailed")}</p>{/if}
                   <div class="mcp-readiness" aria-label={t("agentReadiness")}>
                     <div class="mcp-readiness-head"><span><FloodGlyph kind={mcpCheckState === "error" ? "urgent" : mcpCheckState === "success" ? "connected" : "brand"} size={28} /><span><strong>{t("agentReadiness")}</strong><small>{mcpRuntimeLabel()}</small></span></span><button class="mcp-check-button" disabled={!inTauri() || mcpCheckState === "checking"} onclick={runMcpSelfCheck}><RefreshCw class={mcpCheckState === "checking" ? "spinning" : ""} size={14} />{t("runSelfCheck")}</button></div>
                     <details class="mcp-readiness-details">
@@ -4435,6 +5966,7 @@
                       <div class="readiness-list">
                         <span class:done={Boolean(mcpRuntime?.available)}><i>{#if mcpRuntime?.available}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("mcpBinary")}</strong><small>{mcpRuntime?.available ? `${fileName(mcpExecutable)} · ${mcpRuntime.version || "?"}` : t("mcpMissingDescription")}</small></span></span>
                         <span class:done={Boolean(mcpRuntime?.compatible)}><i>{#if mcpRuntime?.compatible}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("versionCompatibility")}</strong><small>{mcpRuntime ? `${t("appVersionLabel")} ${mcpRuntime.app_version} · MCP ${mcpRuntime.version || "?"}` : t("notChecked")}</small></span></span>
+                        <span class:done={Boolean(mcpRuntime?.tool_catalog_revision)}><i>{#if mcpRuntime?.tool_catalog_revision}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("mcpToolCatalog")}</strong><small>{mcpRuntime?.tool_catalog_revision ? `${mcpRuntime.tool_count ?? "?"} · ${t("mcpProtocolLabel")} ${mcpRuntime.protocol_version ?? "?"} · ${mcpRuntime.tool_catalog_revision.slice(0, 12)}` : t("notChecked")}</small></span></span>
                         <span class:done={Boolean(storeDiagnostics?.healthy)}><i>{#if storeDiagnostics?.healthy}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("storeDiagnostics")}</strong><small>{storeDiagnostics ? t("storageSummary", { projects: storeDiagnostics.project_count, tasks: storeDiagnostics.open_task_count, inbox: storeDiagnostics.pending_inbox_count }) : t("notChecked")}</small></span></span>
                         <span class:done={Boolean(mcpSelfCheck?.passed)}><i>{#if mcpSelfCheck?.passed}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("isolatedSelfCheck")}</strong><small>{mcpSelfCheck ? t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms }) : t("selfCheckDescription")}</small></span></span>
                         <button class:attention={Boolean(attachmentCleanupReport?.orphaned_files)} class:done={attachmentCleanupReport?.orphaned_files === 0} onclick={() => openSettingsSection("data")}><i>{#if attachmentCleanupReport?.orphaned_files === 0}<Check size={12} />{:else if attachmentCleanupReport?.orphaned_files}<Paperclip size={11} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("unusedAttachments")}</strong><small>{#if attachmentCleanupReport}{attachmentCleanupReport.orphaned_files ? t("attachmentCleanupSummary", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) }) : t("attachmentsHealthy")}{:else}{t("notChecked")}{/if}</small></span><ChevronRight size={13} /></button>
@@ -4463,7 +5995,13 @@
                         {#each mcpActivity as event (event.id)}
                           <div class="mcp-activity-row">
                             <FloodGlyph kind={activityGlyph(event)} size={16} />
-                            <span><strong>{t(activityActionKeys[event.action])}</strong><small title={event.entity_id}>{activityEntityLabel(event)}</small></span>
+                            <span>
+                              <strong>{t(activityActionKeys[event.action])}</strong>
+                              <small title={event.entity_id}>{activityEntityLabel(event)}</small>
+                              {#if event.provenance}
+                                <small class="mcp-activity-provenance">{activityProvenanceLabel(event)}</small>
+                              {/if}
+                            </span>
                             <time datetime={event.occurred_at} title={fullDate(event.occurred_at)}>{relativeDate(event.occurred_at)}</time>
                           </div>
                         {/each}
@@ -4557,12 +6095,6 @@
         <form class="telegram-form inline" onsubmit={submitTelegramPassword}><label><span>{t("telegramPassword")}</span><input bind:value={telegramPassword} type="password" autocomplete="current-password" placeholder={telegramStatus.password_hint || ""} required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
       {:else if telegramStatus.step === "ready"}
         <div class:warning={telegramSyncState === "partial"} class:error={telegramSyncState === "error"} class="telegram-sync-row" role="status" title={telegramSyncErrors.join("\n")}><span><RefreshCw class={telegramSyncState === "syncing" ? "spinning" : ""} size={14} /><span><strong>{t("telegramSynchronization")}</strong><small>{telegramSyncLabel()}</small>{#if telegramSyncErrors[0]}<small class="sync-error">{telegramSyncErrors[0]}{telegramSyncErrors.length > 1 ? ` · +${telegramSyncErrors.length - 1}` : ""}</small>{/if}</span></span><button disabled={telegramSyncState === "syncing"} onclick={() => syncTelegram()}>{t("syncNow")}</button></div>
-        <div class="telegram-project-links">
-          <strong>{t("projectConnections")}</strong>
-          {#each chats.slice(1) as project (project.id)}
-            <div class="telegram-project-link"><span><Folder size={14} /><span title={project.title}>{project.title}</span></span><div class="telegram-link-summary"><span>{project.telegram_chats.length ? t("linkedChats", { count: project.telegram_chats.length }) : t("notLinked")}</span><button onclick={() => openTelegramConnections(project.id, true)}>{t("configure")}</button></div></div>
-          {/each}
-        </div>
         <div class="telegram-local-note"><ShieldCheck size={14} /><span><strong>{t("telegramLocalSession")}</strong><small>{t("telegramLocalSessionDescription")}</small></span></div>
         <button class="telegram-help danger" disabled={telegramBusy} onclick={disconnectTelegram}><LogOut size={13} />{t("disconnect")}</button>
       {:else if telegramStatus.step === "database_error"}
@@ -4599,7 +6131,7 @@
           <FloodGlyph kind="connected" size={34} />
           <span><strong>{t("githubConnectedSuccess")}</strong><small>{t("githubConnectedSuccessDescription", { account: githubAuthorizationCompleted.login })}</small></span>
         </div>
-        <button class="primary-button connector-primary" onclick={() => (githubAuthorizationCompleted = null)}>{t("showRepositories")}<ChevronRight size={14} /></button>
+        <button class="primary-button connector-primary" onclick={() => (githubAuthorizationCompleted = null)}>{t("continue")}<ChevronRight size={14} /></button>
       {:else if !githubStatus.connected}
         <div class="connector-empty"><FloodGlyph kind="brand" size={30} /><span><strong>{t("githubConnectTitle")}</strong><small>{t("githubConnectDescription")}</small></span></div>
         <div class="github-permissions"><span><Check size={13} />{t("githubReadContents")}</span><span><Check size={13} />{t("githubReadWork")}</span><span><ShieldCheck size={13} />{t("githubNoWrite")}</span></div>
@@ -4607,25 +6139,7 @@
       {:else}
         <div class="github-account-row"><FloodGlyph kind="connected" size={26} /><span><strong>{githubStatus.account?.name || githubStatus.account?.login}</strong><small>@{githubStatus.account?.login} · {t("githubSessionStored")}</small></span><button onclick={() => openUrl(githubStatus.account?.html_url || "https://github.com")}><ExternalLink size={14} />{t("profile")}</button></div>
         <div class="github-installation-row"><span><strong>{t("githubRepositoryAccess")}</strong><small>{t("githubInstallationCount", { count: githubInstallations.length })}</small></span><div><button disabled={githubBusy} onclick={loadGithubRepositories}><RefreshCw class={githubBusy ? "spinning" : ""} size={14} />{t("refresh")}</button><button onclick={installGithubApp}>{t("changeAccess")}</button></div></div>
-        {#if githubRepositories.length}
-          <label class="github-repository-search"><Search size={15} /><input bind:value={githubSearch} placeholder={t("searchRepositories")} /></label>
-          <div class="github-repositories">
-            {#each githubRepositories.filter((repository) => repository.full_name.toLocaleLowerCase().includes(githubSearch.trim().toLocaleLowerCase())) as repository (repository.id)}
-              <article class="github-repository-row">
-                <div class="github-repository-head"><span><Folder size={15} /><span><strong>{repository.full_name}</strong><small>{repository.private ? t("privateRepository") : t("publicRepository")} · {repository.default_branch}{repository.description ? ` · ${repository.description}` : ""}</small></span></span><button class:active={githubManagingRepositoryId === repository.id} onclick={() => (githubManagingRepositoryId = githubManagingRepositoryId === repository.id ? 0 : repository.id)}>{githubRepositoryProjects(repository).length ? t("linkedProjects", { count: githubRepositoryProjects(repository).length }) : t("linkToProject")}<ChevronDown size={14} /></button></div>
-                {#if githubManagingRepositoryId === repository.id}
-                  <div class="github-project-picker">
-                    <small>{t("githubChooseProjects")}</small>
-                    {#each chats.slice(1) as project (project.id)}
-                      {@const linked = githubRepositoryProjects(repository).some((item) => item.id === project.id)}
-                      <button class:checked={linked} role="checkbox" aria-checked={linked} disabled={githubBusy} onclick={() => toggleGithubRepositoryProject(repository, project.id)}><span class="picker-check">{#if linked}<Check size={12} />{/if}</span><span title={project.title}>{project.title}</span><small>{linked ? t("agentAccessEnabled") : t("notLinked")}</small></button>
-                    {/each}
-                  </div>
-                {/if}
-              </article>
-            {/each}
-          </div>
-        {:else}
+        {#if !githubRepositories.length && !githubBusy}
           <div class="connector-empty"><FloodGlyph kind="important" size={28} /><span><strong>{t("githubNoRepositories")}</strong><small>{t("githubNoRepositoriesDescription")}</small></span><button class="primary-button" onclick={installGithubApp}>{t("installGithubApp")}</button></div>
         {/if}
         <div class="telegram-local-note"><ShieldCheck size={14} /><span><strong>{t("githubSecureStorage")}</strong><small>{t("githubSecureStorageDescription")}</small></span></div>
@@ -4637,15 +6151,202 @@
 {/if}
 
 {#if projectContextOpen}
-  <div class="telegram-import-backdrop" role="presentation">
-    <div class="telegram-import-panel project-context-panel" bind:this={projectContextDialog} role="dialog" aria-modal="true" aria-label={t("projectContext")} tabindex="-1" onkeydown={trapModalFocus}>
+  {@const activeMemory = projectMemoryEntries("active")}
+  {@const supersededMemory = projectMemoryEntries("superseded")}
+  <div class:sidebar-collapsed={sidebarCollapsed} class="project-context-route">
+    <section class="project-context-page" bind:this={projectContextDialog} aria-label={t("projectContext")} tabindex="-1">
       <form class="project-context-form" onsubmit={saveProjectContext}>
         <header>
           <span><FloodGlyph kind="info" size={22} /><span><strong>{t("projectContext")}</strong><small title={projectContextProjectTitle}>{projectContextProjectTitle}</small></span></span>
-          <button class="icon-button" type="button" aria-label={t("close")} disabled={projectContextSaving} onclick={closeProjectContext}><X size={16} /></button>
         </header>
         <div class="project-context-body">
-          <p>{t("projectContextDescription")}</p>
+          <nav class="project-workspace-nav" aria-label={t("projectWorkspaceSections")}>
+            {#each ["overview", "documents", "memory", "proposals", "rules", "skills", "integrations", "automation", "history"] as section}
+              <button class:active={projectWorkspaceSection === section} type="button" onclick={() => openProjectWorkspaceSection(section as ProjectWorkspaceSection)}>{t(`projectWorkspace_${section}` as MessageKey)}</button>
+            {/each}
+          </nav>
+
+          {#if projectWorkspaceSection === "overview"}
+            <section class="project-workspace-overview" aria-label={t("projectWorkspace_overview")}>
+              <div class="project-workspace-stats">
+                <button type="button" onclick={() => openProjectWorkspaceSection("documents")}><FileText size={18} /><span><strong>{projectWorkspaceItemsFor("document").length + 1}</strong><small>{t("projectWorkspace_documents")}</small></span></button>
+                <button type="button" onclick={() => openProjectWorkspaceSection("memory")}><Database size={18} /><span><strong>{activeMemory.length}</strong><small>{t("projectWorkspace_memory")}</small></span></button>
+                <button type="button" onclick={() => openProjectWorkspaceSection("proposals")}><GitCompare size={18} /><span><strong>{pendingProjectKnowledgeProposals().length}</strong><small>{t("projectWorkspace_proposals")}</small></span></button>
+                <button type="button" onclick={() => openProjectWorkspaceSection("rules")}><ShieldCheck size={18} /><span><strong>{projectWorkspaceItemsFor("rule").length}</strong><small>{t("projectWorkspace_rules")}</small></span></button>
+                <button type="button" onclick={() => openProjectWorkspaceSection("skills")}><Bot size={18} /><span><strong>{projectWorkspaceItemsFor("skill").length}</strong><small>{t("projectWorkspace_skills")}</small></span></button>
+              </div>
+            </section>
+          {/if}
+
+          {#if projectWorkspaceSection === "proposals"}
+            <section class="project-workspace-owned" aria-label={t("projectKnowledgeTitle")}>
+              <div class="project-resource-heading"><span><strong>{t("projectKnowledgeTitle")}</strong><small>{t("projectKnowledgeDescription")}</small></span></div>
+              {#if projectKnowledgeLoading}
+                <div class="project-resource-empty"><RefreshCw class="spinning" size={17} /><span><strong>{t("loading")}</strong></span></div>
+              {:else if pendingProjectKnowledgeProposals().length === 0}
+                <div class="project-resource-empty"><Check size={17} /><span><strong>{t("projectKnowledgeEmpty")}</strong><small>{t("projectKnowledgeEmptyDescription")}</small></span></div>
+              {:else}
+                <div class="project-knowledge-list">
+                  {#each pendingProjectKnowledgeProposals() as proposal (proposal.id)}
+                    <button type="button" onclick={() => openProjectKnowledgeReview(proposal)}>
+                      <span><strong>{proposal.summary}</strong><small>{projectKnowledgeTargetLabel(proposal)} · {fullDate(proposal.created_at)}</small></span>
+                      <ChevronRight size={15} />
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+              {#if projectKnowledgeError}<p class="project-memory-error" role="alert">{projectKnowledgeError}</p>{/if}
+            </section>
+          {/if}
+
+          {#if projectWorkspaceSection === "history"}
+            <section class="project-workspace-owned" aria-label={t("projectWorkspace_history")}>
+              <div class="project-resource-heading"><span><strong>{t("projectWorkspace_history")}</strong><small>{t("projectWorkspaceHistoryDescription")}</small></span></div>
+              {#if projectWorkspaceItems.every((item) => (item.revisions?.length ?? 0) === 0)}
+                <div class="project-resource-empty"><RotateCcw size={17} /><span><strong>{t("projectWorkspaceHistoryEmpty")}</strong><small>{t("projectWorkspaceHistoryEmptyDescription")}</small></span></div>
+              {:else}
+                <div class="project-workspace-history-list">
+                  {#each projectWorkspaceItems.filter((item) => item.revisions?.length) as item (item.id)}
+                    {#each [...(item.revisions ?? [])].reverse() as revision, index (revision.changed_at)}
+                      <article><span><strong>{item.title}</strong><small>{t(`projectWorkspaceOwned_${item.kind}` as MessageKey)} · {fullDate(revision.changed_at)} · v{(item.revisions?.length ?? 0) - index}</small></span><button type="button" onclick={() => restoreProjectWorkspaceRevision(item, revision)}>{t("restore")}</button></article>
+                    {/each}
+                  {/each}
+                </div>
+              {/if}
+            </section>
+          {/if}
+
+          {#if ["documents", "rules", "skills"].includes(projectWorkspaceSection)}
+            {@const workspaceKind = projectWorkspaceSection === "documents" ? "document" : projectWorkspaceSection === "rules" ? "rule" : "skill"}
+            {@const ownedItems = projectWorkspaceItems.filter((item) => item.kind === workspaceKind)}
+            <section class="project-workspace-owned" aria-label={t(`projectWorkspace_${projectWorkspaceSection}` as MessageKey)}>
+              <div class="project-resource-heading">
+                <span><strong>{t(`projectWorkspaceOwned_${workspaceKind}` as MessageKey)}</strong><small>{t(`projectWorkspaceOwned_${workspaceKind}Description` as MessageKey)}</small></span>
+                <button type="button" disabled={projectWorkspaceSaving || projectWorkspaceEditorId === "new"} onclick={() => beginCreateProjectWorkspaceItem(workspaceKind)}><Plus size={14} />{t("create")}</button>
+              </div>
+              {#if projectWorkspaceLoading}
+                <div class="project-resource-empty"><RefreshCw class="spinning" size={17} /><span><strong>{t("loading")}</strong></span></div>
+              {:else if ownedItems.length === 0 && projectWorkspaceEditorId !== "new"}
+                <div class="project-resource-empty"><FileText size={17} /><span><strong>{t("projectWorkspaceEmpty")}</strong><small>{t("projectWorkspaceEmptyDescription")}</small></span></div>
+              {:else}
+                <div class="project-workspace-item-list">
+                  {#each ownedItems as item (item.id)}
+                    <button class:active={projectWorkspaceEditorId === item.id} type="button" onclick={() => editProjectWorkspaceItem(item)}><span><strong>{item.title}</strong><small>{item.summary || t("projectWorkspaceNoSummary")} · v{(item.revisions?.length ?? 0) + 1}</small></span>{#if item.agent_access}<FloodGlyph kind="connected" size={16} />{/if}</button>
+                  {/each}
+                </div>
+              {/if}
+              {#if projectWorkspaceError}<p class="project-memory-error" role="alert">{projectWorkspaceError}</p>{/if}
+            </section>
+          {/if}
+
+          {#if projectWorkspaceSection === "overview" && projectAttention.length}
+            <section class="project-attention" aria-label={t("projectAttention")}>
+              <div class="project-attention-heading"><span><strong>{t("projectAttention")}</strong><small>{t("projectAttentionDescription")}</small></span><span>{projectAttention.length}</span></div>
+              {#each projectAttention as item (item.kind + item.occurred_at)}
+                <div class="project-attention-item">
+                  <button type="button" disabled={!item.task_id && !item.event_id} aria-expanded={item.event_id ? projectAttentionAnswerId === item.event_id : undefined} onclick={() => openProjectAttentionTask(item)}>
+                    <FloodGlyph kind="important" size={16} />
+                    <span><strong>{item.kind === "agent_question" ? t("agentQuestion") : t("sourceQuestion")}</strong><small>{item.message}</small></span>
+                    {#if item.task_id || item.event_id}<ChevronRight class={projectAttentionAnswerId === item.event_id ? "expanded" : ""} size={14} />{/if}
+                  </button>
+                  {#if item.event_id && projectAttentionAnswerId === item.event_id}
+                    <div class="project-attention-answer">
+                      <input bind:value={projectAttentionAnswer} maxlength="1000" placeholder={t("agentAnswerPlaceholder")} onkeydown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void answerProjectAttention(item); } }} />
+                      <button class="primary-button" type="button" disabled={!projectAttentionAnswer.trim() || projectAttentionBusy} onclick={() => answerProjectAttention(item)}>{t("sendClarification")}</button>
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+            </section>
+          {/if}
+          {#if projectWorkspaceSection === "integrations"}
+          <section class="project-resource-section" aria-label={t("connectedEnvironments")}>
+            <div class="project-resource-heading">
+              <span><strong>{t("connectedEnvironments")}</strong><small>{t("connectedEnvironmentsDescription")}</small></span>
+            </div>
+            <div class="project-context-connector-row">
+              <span><Send size={16} /><span><strong>Telegram</strong><small>{currentChat.telegram_chats.length ? t("linkedChats", { count: currentChat.telegram_chats.length }) : telegramStatus.step === "ready" ? t("notLinked") : t("notConnected")}</small></span></span>
+              {#if telegramStatus.step === "ready"}<button type="button" disabled={projectContextSaving} onclick={() => openTelegramConnections(projectContextProjectId)}>{t("configure")}</button>{:else}<button type="button" onclick={() => { closeProjectContext(); void openSettingsSection("integrations"); }}>{t("connect")}</button>{/if}
+            </div>
+            <div class="project-context-connector-row">
+              <span><FolderOpen size={16} /><span><strong>GitHub</strong><small>{projectContextResources.filter((resource) => resource.kind === "repository" && resource.location.startsWith("https://github.com/")).length ? t("linkedRepositories", { count: projectContextResources.filter((resource) => resource.kind === "repository" && resource.location.startsWith("https://github.com/")).length }) : githubStatus.connected ? t("notLinked") : t("notConnected")}</small></span></span>
+              {#if githubStatus.connected}<button type="button" aria-expanded={projectGithubOpen} disabled={projectContextSaving} onclick={() => { projectGithubOpen = !projectGithubOpen; if (projectGithubOpen && !githubRepositories.length) void loadGithubRepositories(); }}>{t("configure")}</button>{:else}<button type="button" onclick={() => { closeProjectContext(); void openSettingsSection("integrations"); }}>{t("connect")}</button>{/if}
+            </div>
+            {#if projectGithubOpen && githubStatus.connected}
+              <div class="project-github-picker">
+                <div class="project-github-picker-heading"><span><strong>{t("projectGithubRepositories")}</strong><small>{t("projectGithubRepositoriesDescription")}</small></span><button type="button" disabled={githubBusy} onclick={loadGithubRepositories}><RefreshCw class={githubBusy ? "spinning" : ""} size={14} />{t("refresh")}</button></div>
+                <label class="github-repository-search"><Search size={15} /><input bind:value={githubSearch} placeholder={t("searchRepositories")} /></label>
+                {#if githubRepositories.length}
+                  <div class="project-github-list">
+                    {#each githubRepositories.filter((repository) => repository.full_name.toLocaleLowerCase().includes(githubSearch.trim().toLocaleLowerCase())) as repository (repository.id)}
+                      {@const linked = projectHasGithubRepository(repository)}
+                      <button class:checked={linked} type="button" role="checkbox" aria-checked={linked} onclick={() => toggleProjectGithubRepository(repository)}>
+                        <span class="picker-check">{#if linked}<Check size={12} />{/if}</span>
+                        <span><strong>{repository.full_name}</strong><small>{repository.private ? t("privateRepository") : t("publicRepository")} · {repository.default_branch}</small></span>
+                      </button>
+                    {/each}
+                  </div>
+                {:else if !githubBusy}
+                  <div class="project-resource-empty"><FolderOpen size={17} /><span><strong>{t("githubNoRepositories")}</strong><small>{t("githubNoRepositoriesDescription")}</small></span></div>
+                {/if}
+                {#if githubError}<p class="connector-error" role="alert">{githubError}</p>{/if}
+              </div>
+            {/if}
+          </section>
+          {/if}
+          {#if projectWorkspaceSection === "memory"}
+          <section class="project-memory-section" aria-label={t("projectMemory") }>
+            <div class="project-memory-heading">
+              <span><strong>{t("projectMemory")}</strong><small>{t("projectMemoryDescription")}</small></span>
+              <button type="button" disabled={projectMemorySaving || projectMemoryEditorId === "new"} onclick={beginAddProjectMemory}><Plus size={14} />{t("addMemory")}</button>
+            </div>
+            <label class="project-memory-search"><Search size={14} /><span class="sr-only">{t("searchMemory")}</span><input bind:value={projectMemorySearch} placeholder={t("searchMemory")} /></label>
+            {#if projectMemoryEditorId === "new"}
+              <div class="project-memory-editor">
+                <label><span>{t("memoryText")}</span><textarea bind:value={projectMemoryDraft} maxlength="600" placeholder={t("memoryTextPlaceholder")}></textarea></label>
+                <button class:active={projectMemoryPinned} class="project-memory-pin-toggle" type="button" aria-pressed={projectMemoryPinned} onclick={() => (projectMemoryPinned = !projectMemoryPinned)}><Pin size={14} />{projectMemoryPinned ? t("memoryPinned") : t("pinMemory")}</button>
+                <div class="project-memory-editor-actions"><button type="button" onclick={() => resetProjectMemoryEditor(false)}>{t("cancel")}</button><button class="primary-button" type="button" disabled={!projectMemoryDraft.trim() || projectMemorySaving} onclick={saveProjectMemory}>{t("addMemory")}</button></div>
+              </div>
+            {/if}
+            {#if activeMemory.length === 0 && projectMemoryEditorId !== "new"}
+              <div class="project-memory-empty"><Database size={18} /><span><strong>{projectMemorySearch ? t("memorySearchEmpty") : t("noProjectMemory")}</strong><small>{projectMemorySearch ? t("memorySearchEmptyDescription") : t("noProjectMemoryDescription")}</small></span></div>
+            {:else if activeMemory.length}
+              <div class="project-memory-list">
+                {#each activeMemory as entry (entry.id)}
+                  <article class:pinned={entry.pinned} class:expanded={projectMemoryEditorId === entry.id} class="project-memory-row">
+                    <div class="project-memory-summary">
+                      <span class="project-memory-mark">{#if entry.pinned}<Pin size={14} />{:else}<Database size={14} />{/if}</span>
+                      <span><strong>{entry.text}</strong><small>{entry.updated_at ? t("memoryUpdated", { date: compactDate(entry.updated_at) }) : t("memoryCreated", { date: compactDate(entry.created_at) })}{entry.source_task_id ? ` · ${t("memoryFromTask")}` : ""}</small></span>
+                      <div><button class:active={entry.pinned} class="icon-button" type="button" title={entry.pinned ? t("unpinMemory") : t("pinMemory")} aria-label={entry.pinned ? t("unpinMemory") : t("pinMemory")} disabled={projectMemorySaving} onclick={() => toggleProjectMemoryPin(entry)}><Pin size={14} /></button><button class="icon-button" type="button" title={t("editMemory")} aria-label={t("editMemory")} onclick={() => beginEditProjectMemory(entry)}><Pencil size={14} /></button></div>
+                    </div>
+                    {#if projectMemoryEditorId === entry.id}
+                      <div class="project-memory-editor">
+                        <div class="project-memory-mode" aria-label={t("memoryChangeMode")}><button class:active={projectMemoryEditorMode === "edit"} type="button" onclick={() => beginEditProjectMemory(entry, "edit")}>{t("correctMemory")}</button><button class:active={projectMemoryEditorMode === "supersede"} type="button" onclick={() => beginEditProjectMemory(entry, "supersede")}>{t("replaceMemory")}</button></div>
+                        <p>{projectMemoryEditorMode === "edit" ? t("correctMemoryDescription") : t("replaceMemoryDescription")}</p>
+                        <label><span>{projectMemoryEditorMode === "edit" ? t("memoryText") : t("replacementMemoryText")}</span><textarea bind:value={projectMemoryDraft} maxlength="600"></textarea></label>
+                        <button class:active={projectMemoryPinned} class="project-memory-pin-toggle" type="button" aria-pressed={projectMemoryPinned} onclick={() => (projectMemoryPinned = !projectMemoryPinned)}><Pin size={14} />{projectMemoryPinned ? t("memoryPinned") : t("pinMemory")}</button>
+                        {#if entry.revisions?.length}<details class="project-memory-revisions"><summary>{t("memoryPreviousVersions", { count: entry.revisions.length })}</summary>{#each [...entry.revisions].reverse() as revision}<div><span>{revision.text}</span><small>{fullDate(revision.changed_at)}</small></div>{/each}</details>{/if}
+                        {#if projectMemoryError}<p class="project-memory-error" role="alert">{projectMemoryError}</p>{/if}
+                        <div class="project-memory-editor-actions danger-separated">
+                          <button class:confirming={projectMemoryDeleteConfirmId === entry.id} class="memory-delete-button" type="button" disabled={projectMemorySaving} onclick={() => deleteProjectMemory(entry)}><Trash2 size={14} />{projectMemoryDeleteConfirmId === entry.id ? t("confirmDeleteMemory") : t("deleteMemory")}</button>
+                          <span><button type="button" onclick={() => resetProjectMemoryEditor(false)}>{t("cancel")}</button><button class="primary-button" type="button" disabled={!projectMemoryDraft.trim() || projectMemorySaving || (projectMemoryEditorMode === "supersede" && projectMemoryDraft.trim() === entry.text)} onclick={saveProjectMemory}>{projectMemoryEditorMode === "supersede" ? t("replaceMemory") : t("save")}</button></span>
+                        </div>
+                      </div>
+                    {/if}
+                  </article>
+                {/each}
+              </div>
+            {/if}
+            {#if supersededMemory.length || projectMemoryShowSuperseded}
+              <button class="project-memory-history-toggle" type="button" aria-expanded={projectMemoryShowSuperseded} onclick={() => (projectMemoryShowSuperseded = !projectMemoryShowSuperseded)}><RotateCcw size={14} />{projectMemoryShowSuperseded ? t("hideSupersededMemory") : t("showSupersededMemory", { count: supersededMemory.length })}<ChevronDown size={14} /></button>
+              {#if projectMemoryShowSuperseded}
+                <div class="project-memory-superseded">{#each supersededMemory as entry (entry.id)}<article><span><strong>{entry.text}</strong><small>{t("memorySuperseded")} · {compactDate(entry.updated_at ?? entry.created_at)}</small></span><button class="icon-button" type="button" title={t("deleteMemory")} aria-label={t("deleteMemory")} onclick={() => deleteProjectMemory(entry)}><Trash2 size={14} /></button>{#if projectMemoryDeleteConfirmId === entry.id}<button class="memory-delete-confirm" type="button" onclick={() => deleteProjectMemory(entry)}>{t("confirmDeleteMemory")}</button>{/if}</article>{/each}</div>
+              {/if}
+            {/if}
+            {#if projectMemoryError && !projectMemoryEditorId}<p class="project-memory-error" role="alert">{projectMemoryError}</p>{/if}
+          </section>
+          {/if}
+          {#if projectWorkspaceSection === "documents"}
           <section class="project-context-section project-context-markdown" aria-label={t("projectContextMarkdown")}>
             <div class="project-context-section-heading">
               <span><strong>{t("projectContextMarkdown")}</strong><small>{t("projectContextMarkdownDescription")}</small></span>
@@ -4683,6 +6384,8 @@
             </div>
             <small class="project-context-privacy"><ShieldCheck size={14} />{t("projectContextPrivacy")}</small>
           </section>
+          {/if}
+          {#if projectWorkspaceSection === "integrations"}
           <section class="project-resource-section" aria-label={t("projectResources")}>
             <div class="project-resource-heading">
               <span><strong>{t("projectResources")}</strong><small>{t("projectResourcesDescription")}</small></span>
@@ -4698,11 +6401,11 @@
                 {/each}
               </div>
             {/if}
-            {#if projectContextResources.length === 0}
+            {#if projectContextResources.filter((resource) => resource.kind !== "skill").length === 0}
               <div class="project-resource-empty"><Link size={17} /><span><strong>{t("noProjectResources")}</strong><small>{t("noProjectResourcesDescription")}</small></span></div>
             {:else}
               <div class="project-resource-list">
-                {#each projectContextResources as resource (resource.id)}
+                {#each projectContextResources.filter((resource) => resource.kind !== "skill") as resource (resource.id)}
                   <article class:expanded={expandedProjectResourceId === resource.id} class="project-resource-row" data-project-resource-id={resource.id}>
                     <div class="project-resource-row-heading">
                       <button class="project-resource-summary" type="button" aria-expanded={expandedProjectResourceId === resource.id} onclick={() => (expandedProjectResourceId = expandedProjectResourceId === resource.id ? "" : resource.id)}>
@@ -4731,14 +6434,158 @@
               </div>
             {/if}
           </section>
-          {#if projectContextError}
+          {/if}
+          {#if projectWorkspaceSection === "skills"}
+          <section class="project-resource-section" aria-label={t("projectSkills")}>
+            <div class="project-resource-heading">
+              <span><strong>{t("projectSkills")}</strong><small>{t("projectSkillsDescription")}</small></span>
+              <button type="button" disabled={projectContextSaving || projectContextResources.length >= 20} onclick={() => addProjectResource("skill")}><Plus size={14} />{t("addSkill")}</button>
+            </div>
+            {#if projectContextResources.filter((resource) => resource.kind === "skill").length === 0}
+              <div class="project-resource-empty"><Bot size={17} /><span><strong>{t("noProjectSkills")}</strong><small>{t("noProjectSkillsDescription")}</small></span></div>
+            {:else}
+              <div class="project-resource-list">
+                {#each projectContextResources.filter((resource) => resource.kind === "skill") as resource (resource.id)}
+                  <article class:expanded={expandedProjectResourceId === resource.id} class="project-resource-row" data-project-resource-id={resource.id}>
+                    <div class="project-resource-row-heading">
+                      <button class="project-resource-summary" type="button" aria-expanded={expandedProjectResourceId === resource.id} onclick={() => (expandedProjectResourceId = expandedProjectResourceId === resource.id ? "" : resource.id)}>
+                        <span class="project-resource-kind-icon"><Bot size={15} /></span>
+                        <span><strong>{resource.label || t("projectResourceSkill")}</strong><small>{resource.location || t("skillLocationMissing")} · {resource.agent_access ? t("agentAccessEnabled") : t("agentAccessDisabled")}</small></span>
+                        <ChevronDown size={15} />
+                      </button>
+                      <button class="icon-button" type="button" aria-label={t("removeSkill")} title={t("removeSkill")} onclick={() => removeProjectResource(resource.id)}><Trash2 size={14} /></button>
+                    </div>
+                    {#if expandedProjectResourceId === resource.id}
+                      <div class="project-resource-details">
+                        <div class="project-resource-fields">
+                          <label><span>{t("skillName")}</span><input value={resource.label} maxlength="120" placeholder={t("skillNamePlaceholder")} oninput={(event) => updateProjectResource(resource.id, { label: event.currentTarget.value })} /></label>
+                          <label class="resource-location"><span>{t("skillLocation")}</span><input value={resource.location} maxlength="2048" placeholder={t("skillLocationPlaceholder")} spellcheck="false" oninput={(event) => updateProjectResource(resource.id, { location: event.currentTarget.value })} /></label>
+                          <label class="resource-notes"><span>{t("resourceNotes")}</span><input value={resource.notes ?? ""} maxlength="4000" placeholder={t("skillNotesPlaceholder")} oninput={(event) => updateProjectResource(resource.id, { notes: event.currentTarget.value || undefined })} /></label>
+                        </div>
+                        <button class:active={resource.agent_access} class="project-resource-access" type="button" role="switch" aria-checked={resource.agent_access} onclick={() => updateProjectResource(resource.id, { agent_access: !resource.agent_access })}>
+                          <FloodGlyph kind={resource.agent_access ? "connected" : "info"} size={18} />
+                          <span><strong>{t("agentSkillAccess")}</strong><small>{resource.agent_access ? t("agentSkillAccessOn") : t("agentSkillAccessOff")}</small></span>
+                          <span class="project-resource-switch" aria-hidden="true"><i></i></span>
+                        </button>
+                      </div>
+                    {/if}
+                  </article>
+                {/each}
+              </div>
+            {/if}
+          </section>
+          {/if}
+          {#if projectWorkspaceSection === "automation"}
+          <section class="project-automation-section" aria-label={t("projectAutomation")}>
+            <div class="project-automation-heading"><span><strong>{t("projectAutomation")}</strong><small>{t("projectAutomationDescription")}</small></span></div>
+            <div class="project-automation-warning"><FloodGlyph kind="important" size={18} /><span><strong>{t("automationExperimental")}</strong><small>{t("automationExperimentalDescription")}</small></span></div>
+            <div class:error={Boolean(projectAutomationStatus?.failed)} class="project-automation-summary" aria-live="polite">
+              <FloodGlyph kind={projectAutomationStatus?.failed ? "urgent" : projectAutomationStatus?.processing ? "brand" : "info"} size={18} />
+              <span><strong>{t("automationStatus")}</strong><small>{projectAutomationStatusLabel()}</small></span>
+            </div>
+            <button class:active={projectAutoRunDraft} class="project-resource-access project-auto-run" type="button" role="switch" aria-checked={projectAutoRunDraft} disabled={projectAutoRunLoading || projectContextSaving} onclick={() => (projectAutoRunDraft = !projectAutoRunDraft)}>
+              <FloodGlyph kind={projectAutoRunDraft ? "brand" : "info"} size={18} />
+              <span><strong>{t("projectAutoRun")}</strong><small>{projectAutoRunLoading ? t("projectAutomationLoading") : projectAutoRunDraft ? (automationSettings.background_ai_triage ? t("projectAutoRunOn") : t("projectAutoRunWaiting")) : t("projectAutoRunOff")}</small></span>
+              <span class="project-resource-switch" aria-hidden="true"><i></i></span>
+            </button>
+          </section>
+          {/if}
+          {#if projectContextConflictRemote}
+            <div class="save-conflict project-context-conflict" role="alert">
+              <span><strong>{t("externalChange")}</strong> {t("chooseVersion")}</span>
+              <div><button type="button" onclick={useDiskProjectContextVersion}>{t("diskVersion")}</button><button type="button" onclick={keepLocalProjectContextVersion}>{t("localVersion")}</button></div>
+            </div>
+          {:else if projectContextError}
             <div class="project-context-error" role="alert"><span>{projectContextError}</span><button type="button" onclick={reloadProjectContext}>{t("reload")}</button></div>
           {/if}
         </div>
-        <footer><button type="button" disabled={projectContextSaving} onclick={closeProjectContext}>{t("cancel")}</button><button class="primary-button" type="submit" disabled={projectContextSaving}>{#if projectContextSaving}<RefreshCw class="spinning" size={14} />{/if}{projectContextSaving ? t("saving") : t("save")}</button></footer>
+        <footer><button type="button" disabled={projectContextSaving} onclick={closeProjectContext}>{t("back")}</button>{#if ["documents", "integrations", "skills", "automation"].includes(projectWorkspaceSection)}<button class="primary-button" type="submit" disabled={projectContextSaving || projectAutoRunLoading || Boolean(projectContextConflictRemote)}>{#if projectContextSaving}<RefreshCw class="spinning" size={14} />{/if}{projectContextSaving ? t("saving") : t("save")}</button>{/if}</footer>
       </form>
+    </section>
+  </div>
+{/if}
+
+{#if projectWorkspaceEditorId}
+  {@const artifactItem = projectWorkspaceItems.find((item) => item.id === projectWorkspaceEditorId)}
+  <div class="artifact-modal-backdrop" role="presentation">
+    <div class="artifact-modal" bind:this={projectWorkspaceDialog} role="dialog" aria-modal="true" aria-labelledby="artifact-modal-title" tabindex="-1" onkeydown={handleProjectWorkspaceModalKeydown}>
+      <header>
+        <span class="artifact-modal-icon" aria-hidden="true">
+          {#if projectWorkspaceEditorKind === "document"}<FileText size={19} />{:else if projectWorkspaceEditorKind === "rule"}<ShieldCheck size={19} />{:else}<Bot size={19} />{/if}
+        </span>
+        <span><strong id="artifact-modal-title">{projectWorkspaceModalTitle()}</strong><small>{t(`projectWorkspaceOwned_${projectWorkspaceEditorKind}` as MessageKey)} · {projectContextProjectTitle}</small></span>
+        <button class="icon-button" type="button" aria-label={t("close")} title={t("close")} onclick={() => closeProjectWorkspaceEditor()}><X size={16} /></button>
+      </header>
+
+      <div class="artifact-modal-body">
+        <div class="artifact-modal-fields">
+          <label><span>{t("resourceName")}</span><input bind:value={projectWorkspaceTitle} maxlength="120" placeholder={t("projectWorkspaceTitlePlaceholder")} /></label>
+          <label><span>{t("projectWorkspaceSummary")}</span><input bind:value={projectWorkspaceSummary} maxlength="300" placeholder={t("projectWorkspaceSummaryPlaceholder")} /></label>
+          <label class="artifact-content-field"><span>{t("projectWorkspaceContent")}</span><textarea bind:value={projectWorkspaceContent} maxlength="80000" spellcheck="true" placeholder={t("projectWorkspaceContentPlaceholder")}></textarea></label>
+        </div>
+
+        <button class:active={projectWorkspaceAgentAccess} class="project-resource-access artifact-agent-access" type="button" role="switch" aria-checked={projectWorkspaceAgentAccess} onclick={() => (projectWorkspaceAgentAccess = !projectWorkspaceAgentAccess)}>
+          <FloodGlyph kind={projectWorkspaceAgentAccess ? "connected" : "info"} size={18} /><span><strong>{t("projectWorkspaceAgentAccess")}</strong><small>{projectWorkspaceAgentAccess ? t("projectWorkspaceAgentAccessOn") : t("projectWorkspaceAgentAccessOff")}</small></span><span class="project-resource-switch" aria-hidden="true"><i></i></span>
+        </button>
+
+        {#if artifactItem?.revisions?.length}
+          <small class="project-workspace-history"><RotateCcw size={13} />{t("projectWorkspaceHistory", { count: artifactItem.revisions.length })}</small>
+        {/if}
+        {#if projectWorkspaceConflictRemote}
+          <div class="artifact-discard-warning" role="alert">
+            <span><strong>{t("externalChange")}</strong><small>{t("chooseVersion")}</small></span>
+            <div><button type="button" onclick={useDiskProjectWorkspaceVersion}>{projectWorkspaceConflictAction === "delete" ? t("keepLatestVersion") : t("diskVersion")}</button><button class:danger-button={projectWorkspaceConflictAction === "delete"} type="button" onclick={keepLocalProjectWorkspaceVersion}>{projectWorkspaceConflictAction === "delete" ? t("deleteLatestVersion") : t("localVersion")}</button></div>
+          </div>
+        {:else if projectWorkspaceError}<p class="artifact-modal-error" role="alert">{projectWorkspaceError}</p>{/if}
+        {#if projectWorkspaceCloseConfirm}
+          <div class="artifact-discard-warning" role="alert">
+            <span><strong>{t("unsavedChanges")}</strong><small>{t("unsavedChangesDescription")}</small></span>
+            <div><button type="button" onclick={keepEditingProjectWorkspaceItem}>{t("continueEditing")}</button><button class="danger-button" type="button" onclick={() => closeProjectWorkspaceEditor(true)}>{t("discardChanges")}</button></div>
+          </div>
+        {/if}
+      </div>
+
+      <footer>
+        <span>{#if projectWorkspaceEditorId !== "new"}<button class:confirming={projectWorkspaceDeleteConfirm} class="artifact-delete" type="button" disabled={projectWorkspaceSaving || Boolean(projectWorkspaceConflictRemote)} onclick={deleteProjectWorkspaceItem}><Trash2 size={14} />{projectWorkspaceDeleteConfirm ? t("confirmDelete") : t("delete")}</button>{/if}</span>
+        <span><button type="button" disabled={projectWorkspaceSaving} onclick={() => closeProjectWorkspaceEditor()}>{t("cancel")}</button><button class="primary-button" type="button" disabled={!projectWorkspaceTitle.trim() || !projectWorkspaceContent.trim() || projectWorkspaceSaving || Boolean(projectWorkspaceConflictRemote)} onclick={saveProjectWorkspaceItem}>{projectWorkspaceSaving ? t("saving") : t("save")}</button></span>
+      </footer>
     </div>
   </div>
+{/if}
+
+{#if projectKnowledgeReviewId}
+  {@const knowledgeProposal = projectKnowledgeProposals.find((item) => item.id === projectKnowledgeReviewId)}
+  {#if knowledgeProposal}
+    <div class="artifact-modal-backdrop" role="presentation">
+      <div class="artifact-modal knowledge-review-modal" bind:this={projectKnowledgeDialog} role="dialog" aria-modal="true" aria-labelledby="knowledge-review-title" tabindex="-1" onkeydown={handleProjectKnowledgeModalKeydown}>
+        <header>
+          <span class="artifact-modal-icon" aria-hidden="true"><GitCompare size={19} /></span>
+          <span><strong id="knowledge-review-title">{t("projectKnowledgeReview")}</strong><small>{projectKnowledgeTargetLabel(knowledgeProposal)} · {projectContextProjectTitle}</small></span>
+          <button class="icon-button" type="button" aria-label={t("close")} title={t("close")} disabled={projectKnowledgeBusy} onclick={closeProjectKnowledgeReview}><X size={16} /></button>
+        </header>
+        <div class="artifact-modal-body knowledge-review-body">
+          <section class="knowledge-review-summary">
+            <strong>{knowledgeProposal.summary}</strong>
+            <small>{t("projectKnowledgeVersion", { version: knowledgeProposal.base_version.slice(0, 8) })}{#if knowledgeProposal.source_run_id} · {t("projectKnowledgeSourceRun")}{/if}</small>
+          </section>
+          <section class="knowledge-review-context">
+            <span><strong>{t("projectKnowledgeReason")}</strong><p>{knowledgeProposal.reason}</p></span>
+            {#if knowledgeProposal.evidence?.length}<span><strong>{t("projectKnowledgeEvidence")}</strong><ul>{#each knowledgeProposal.evidence as evidence}<li>{evidence}</li>{/each}</ul></span>{/if}
+          </section>
+          <section class="knowledge-review-diff" aria-label={t("projectKnowledgeDiff")}>
+            <strong>{t("projectKnowledgeDiff")}</strong>
+            <pre>{#each projectKnowledgeDiff(knowledgeProposal) as line}<span class:add={line.kind === "add"} class:remove={line.kind === "remove"} class:same={line.kind === "same"}><i>{line.kind === "add" ? "+" : line.kind === "remove" ? "−" : " "}</i>{line.text || " "}</span>{/each}</pre>
+          </section>
+          <label class="knowledge-reject-reason"><span>{t("projectKnowledgeRejectReason")}</span><input bind:value={projectKnowledgeDecisionReason} maxlength="500" /></label>
+          {#if projectKnowledgeError}<p class="artifact-modal-error" role="alert">{projectKnowledgeError}</p>{/if}
+        </div>
+        <footer>
+          <span></span>
+          <span><button type="button" disabled={projectKnowledgeBusy} onclick={() => decideProjectKnowledgeProposal("reject")}>{t("projectKnowledgeReject")}</button><button class="primary-button" type="button" disabled={projectKnowledgeBusy} onclick={() => decideProjectKnowledgeProposal("apply")}>{projectKnowledgeBusy ? t("saving") : t("projectKnowledgeApply")}</button></span>
+        </footer>
+      </div>
+    </div>
+  {/if}
 {/if}
 
 {#if telegramConnectionsProject}
@@ -4747,6 +6594,7 @@
       <header><span><Send size={17} /><span><strong>{t("telegramConnectionsTitle")}</strong><small title={telegramConnectionsProject.title}>{telegramConnectionsProject.title}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeTelegramConnections}><X size={16} /></button></header>
       <div class="telegram-connections-body">
         <p>{t("telegramConnectionsDescription")}</p>
+        {#if telegramError}<div class="telegram-connections-error" role="alert">{telegramError}</div>{/if}
         <label class="telegram-chat-search telegram-connections-search"><Search size={15} /><input value={telegramChatSearch} placeholder={t("searchChats")} oninput={(event) => searchTelegramChats(event.currentTarget.value)} />{#if telegramSearchLoading}<RefreshCw class="spinning" size={14} />{/if}</label>
 
         {#if telegramConnectionsProject.telegram_chats.length}

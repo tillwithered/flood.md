@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flood — материалы и границы</title>
+  <link rel="stylesheet" href="materials.css">
+  <style>
+    body { margin: 0; font-size: 14px; line-height: 20px; }
+    main { max-width: 1080px; padding: 32px 24px 48px; margin: auto; }
+    h1 { font-size: 24px; line-height: 32px; margin: 0; }
+    h2 { font-size: 16px; line-height: 24px; margin: 0 0 8px; }
+    p { margin: 0; }
+    .muted { color: var(--muted); }
+    .header { display: flex; gap: 24px; justify-content: space-between; align-items: start; margin-bottom: 32px; }
+    .stack { display: grid; gap: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+    .sample { min-height: 160px; padding: 24px; }
+    .floating-stage { padding: 16px; border-radius: 16px; background: var(--canvas); }
+    .floating-stage .sample { min-height: 128px; padding: 16px; }
+    .section { margin-top: 32px; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .field-group { display: grid; gap: 8px; }
+    .theme { border: 0; padding: 0; margin: 0; display: flex; gap: 12px; flex-wrap: wrap; }
+    .theme legend { margin-bottom: 8px; }
+    .theme label { display: flex; align-items: center; gap: 4px; min-height: 32px; }
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .outline-heavy { border: 1px solid var(--boundary-control); border-radius: 16px; padding: 16px; }
+    .outline-heavy > div { border: 1px solid var(--boundary-control); border-radius: 10px; padding: 12px; }
+    .list { display: grid; gap: 12px; padding: 16px; }
+    .list > div { display: flex; justify-content: space-between; gap: 16px; }
+    .note { margin-top: 8px; color: var(--muted); }
+    #message { min-height: 20px; }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .header { flex-direction: column; } .comparison { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="flood-materials" data-theme="light">
+<main>
+  <header class="header">
+    <div class="stack"><h1>Flood / материалы и границы</h1><p class="muted">Технический образец правил 0.2, не готовый экран приложения.</p></div>
+    <fieldset class="theme"><legend>Тема</legend><label><input name="theme" type="radio" value="light" checked> Светлая</label><label><input name="theme" type="radio" value="dark"> Тёмная</label></fieldset>
+  </header>
+  <section aria-labelledby="materials-title">
+    <h2 id="materials-title">Три роли, а не три одинаковые рамки</h2>
+    <div class="grid">
+      <article class="material material--quiet sample"><h2>Спокойная группа</h2><p>Поверхность и отступы объединяют содержимое. Обводка не нужна.</p></article>
+      <article class="material material--outlined sample"><h2>Тонкая граница</h2><p>Одна линия обозначает самостоятельную область, не каждую строку.</p></article>
+      <div class="floating-stage"><article class="material material--floating material--top-light sample"><h2>Поверх страницы</h2><p>Мягкая тень, тихий край и затухающий верхний блик.</p></article></div>
+    </div>
+  </section>
+  <section class="section" aria-labelledby="comparison-title">
+    <h2 id="comparison-title">Одинаковые данные, разный визуальный шум</h2>
+    <div class="comparison">
+      <div><p class="note">Антипаттерн: рамка вокруг каждой группы и строки.</p><div class="outline-heavy stack"><div>Проект — Flood</div><div>Репозиторий — flood-dev</div><div>Доступ агента — чтение</div></div></div>
+      <div><p class="note">Контракт: одна поверхность, отношения выражены пространством.</p><div class="material material--quiet list"><div><span>Проект</span><strong>Flood</strong></div><div><span>Репозиторий</span><strong>flood-dev</strong></div><hr class="divider"><div><span>Доступ агента</span><strong>Чтение</strong></div></div></div>
+    </div>
+  </section>
+  <section class="section stack" aria-labelledby="controls-title">
+    <h2 id="controls-title">Контролы: нейтральные, focus — явный</h2>
+    <div class="controls"><button class="control control--primary" type="button" data-demo="Изменения сохранены в демонстрации">Сохранить</button><button class="control" type="button" data-demo="Действие отменено в демонстрации">Отмена</button><button class="control" type="button" disabled>Недоступно</button></div>
+    <div class="field-group"><label for="repo">Поиск репозитория</label><input class="control control--field" id="repo" placeholder="Организация или название" autocomplete="off"><p class="muted">Это образец поля; реальный поиск и GitHub не подключены.</p></div>
+    <p id="message" role="status" aria-live="polite"></p>
+  </section>
+  <section class="section stack" aria-labelledby="status-title">
+    <h2 id="status-title">Цвет принадлежит состоянию</h2>
+    <div class="status status--warning"><strong>Внимание.</strong> Доступ к источнику скоро истечёт. Переподключите его.</div>
+    <div class="status status--danger"><strong>Ошибка.</strong> Не удалось сохранить. Ваш черновик сохранён локально.</div>
+    <div class="status status--success"><strong>Успешно.</strong> Репозиторий подключён к проекту.</div>
+    <div class="controls"><button class="control control--danger" type="button" data-demo="Демонстрация: ничего не удалено">Удалить пример</button><span class="muted">Только образец опасного подтверждения.</span></div>
+  </section>
+  <section class="section" aria-labelledby="radius-title">
+    <h2 id="radius-title">Вложенный контур: 16 − 6 = 10</h2>
+    <div class="material material--outlined compound"><div class="compound-inner">Внешний border 1 px + padding 5 px = видимый inset 6 px. Внутренний радиус 10 px.</div></div>
+  </section>
+  <footer class="section muted">Проверьте Tab, обе темы, узкое окно и системный контраст. Блики не заменяют focus. Значения — кандидаты для пилота; production CSS не изменён.</footer>
+</main>
+<script>
+  const root = document.body;
+  root.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.querySelector(`input[name="theme"][value="${root.dataset.theme}"]`).checked = true;
+  document.querySelectorAll('input[name="theme"]').forEach(input => input.addEventListener('change', () => { root.dataset.theme = input.value; }));
+  document.querySelectorAll('button[data-demo]').forEach(button => button.addEventListener('click', () => { document.querySelector('#message').textContent = button.dataset.demo; }));
+</script>
+</body>
+</html>
