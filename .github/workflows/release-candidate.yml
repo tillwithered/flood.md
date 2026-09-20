@@ -22,7 +22,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Validate release contract after clean-main source gate
         shell: pwsh
-        run: pwsh -NoProfile -File scripts/verify-release-contract.ps1
+        run: |
+          npm ci
+          pwsh -NoProfile -File scripts/verify-release-contract.ps1
       - name: Build signed release-candidate bundle without publishing
         shell: pwsh
         env:
