@@ -10,7 +10,29 @@ permissions:
 
 jobs:
   verify:
-    uses: ./.github/workflows/ci.yml
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Require successful main CI for this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          for attempt in $(seq 1 120); do
+            runs=$(gh run list --workflow ci.yml --branch main --commit "$RELEASE_SHA" --limit 20 --json status,conclusion)
+            if echo "$runs" | jq -e 'any(.[]; .conclusion == "success")' > /dev/null; then exit 0; fi
+            if echo "$runs" | jq -e 'length > 0 and all(.[]; .status == "completed")' > /dev/null; then
+              echo "CI failed for the release commit; refusing to publish."
+              exit 1
+            fi
+            sleep 15
+          done
+          echo "No successful main CI for the release commit within 30 minutes."
+          exit 1
   publish:
     needs: verify
     runs-on: windows-latest
