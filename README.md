@@ -1,95 +1,57 @@
-<p align="center"><img src="docs/assets/flood-mark.png" width="128" alt="flood.md logo" /></p>
+<p align="center"><img src="docs/assets/flood-mark.png" width="96" alt="flood.md" /></p>
 <h1 align="center">flood.md</h1>
-<p align="center"><strong>A local task manager for work that starts in chats.</strong></p>
-<p align="center">Turn Telegram discussions into focused Markdown tasks, then give your AI agent the context it needs to help finish them.</p>
+<p align="center"><strong>Your tasks, your files, your agent.</strong></p>
+<p align="center">A quiet desktop workspace for projects and tasks. Keep work in local Markdown and let your agent work with the same context.</p>
 <p align="center"><a href="README.md">English</a> · <a href="README.ru.md">Русский</a></p>
-<p align="center">
-  <a href="https://github.com/tillwithered/flood.md/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/tillwithered/flood.md?style=flat-square"></a>
-  <img alt="Windows" src="https://img.shields.io/badge/Windows-10%2B-111111?style=flat-square">
-  <img alt="Local first" src="https://img.shields.io/badge/data-local--first-111111?style=flat-square">
-  <img alt="MCP" src="https://img.shields.io/badge/MCP-ready-111111?style=flat-square">
-</p>
+<p align="center"><a href="https://github.com/tillwithered/flood.md/releases/latest"><strong>Download for Windows</strong></a> · <a href="CHANGELOG.md">What's new</a> · <a href="docs/mcp.md">MCP guide</a></p>
 
-<p align="center"><strong><a href="https://github.com/tillwithered/flood.md/releases/latest">Download for Windows</a></strong> · <a href="#quick-start">Quick start</a> · <a href="docs/mcp.md">MCP guide</a></p>
+## Less managing. More doing.
 
-> **Stable release: 0.2.2.** The current priority is reliability and bug fixes. New features do not have a fixed release schedule.
+Open a project, see what needs attention, and get back to work. flood.md keeps the everyday interface small: a project switcher, task cards, and a command dock. No dashboard to maintain.
 
-![Telegram inbox in flood.md](docs/assets/flood-telegram-inbox-en.png)
+Use the app to capture and review work, or stay in your agent and manage projects and tasks through MCP. Both use the same local Markdown files.
 
-## From chat to task
+- **A focused workspace.** Dark theme, open/urgent/closed task filters, and a task editor with subtasks and dependency context.
+- **A command dock.** Open it with `Ctrl+K`, use `/` for quick actions, or attach a task and send a message to your selected agent conversation.
+- **Context that stays with the project.** Add notes and optional sources; choose what the agent can read.
+- **Files you own.** Readable Markdown, stable IDs, conflict detection, atomic writes, and recoverable trash. Core task management works offline.
+- **English and Russian.** English is the default for new installations; change it in settings.
 
-A request rarely arrives as a clean ticket. It appears between replies, screenshots, links, and half-finished discussion. flood.md lets an agent inspect a small, relevant part of that conversation instead of loading the entire chat.
+## Get started
 
-1. Link a Telegram chat to a flood.md project.
-2. Add project context: Markdown notes, local folders, a read-only GitHub repository, Figma links, or documentation.
-3. Ask an MCP-capable agent to review new messages, open nearby replies and screenshots when needed, and create concise prioritized tasks.
-4. Later, ask the agent to open a task's work context and help complete it.
+1. Install the [latest Windows release](https://github.com/tillwithered/flood.md/releases/latest).
+2. Create a project with a name and add your first task. No agent or external account is required.
+3. To work with an agent, open **Settings → Agent** and connect Codex. flood.md detects the installed executable; you can select it manually if needed. Sign in when prompted.
+4. Start a conversation in Codex, then select it in flood.md. The project remembers your choice. Open the dock with `Ctrl+K`, attach task context if useful, and send your request.
 
-Example prompt:
+**Current desktop integration: ChatGPT / Codex.** Other built-in agent connections are not included yet. Automatic creation of Codex conversations is not supported: create the conversation in Codex first. Agent requests use your account's limits and require a connection.
 
-> In the “zakup.io” project, check whether Telegram is fresh. Find clear requests from Dima, open nearby messages, screenshots, and permitted GitHub repositories when needed, then create tasks and assign urgency. Do not duplicate existing work.
+## Work from your agent
 
-### Keep the useful discussion
+The Windows installer includes a local MCP server, `flood-mcp.exe`. It gives compatible clients access to projects, tasks, and explicitly permitted project context. The Codex connection flow registers flood.md MCP; other local stdio clients require their own configuration.
 
-The task composer keeps the selected message together with the relevant conversation window, author, time, link, and media.
+For example:
 
-![Create a task from Telegram context](docs/assets/flood-telegram-task-en.png)
+> Show the urgent tasks in my website project. Read the context of the first one and suggest the next step.
 
-### Give the agent project context
+MCP is the integration surface for external agents; the dock's built-in connection currently targets Codex. See the [MCP guide](docs/mcp.md) for protocol details and client setup.
 
-Project instructions and sources are explicit. Access is granted per source; adding a link does not silently grant the agent permission to read it.
+## Optional sources
 
-![Project context and sources](docs/assets/flood-project-context-en.png)
+Telegram discussions, read-only GitHub repositories, local folders, and project notes can provide extra context. They are optional: you can use flood.md entirely as a local project and task workspace. Adding a source does not automatically grant the agent access to it.
 
-## What is included
+## Your data
 
-- **Local Markdown tasks:** readable files remain the source of truth.
-- **Telegram through TDLib:** connect a personal account directly, without a bot.
-- **A reviewable inbox:** collect mentions, replies, selected messages, or all new messages from chosen chats.
-- **Conversation and media context:** preserve discussion windows and Telegram albums; request screenshots only when needed.
-- **Read-only GitHub App:** choose repositories and link them to projects without personal access tokens or write permissions.
-- **Project context:** Markdown notes, local folders, repositories, Figma files, documentation, and websites.
-- **Bundled local MCP server:** manage projects and tasks, triage Telegram, inspect permitted context, and retrieve task work context.
-- **Safe storage:** atomic writes, stable IDs, conflict detection, backups, recoverable trash, and duplicate-safe agent operations.
-- **Offline core:** projects and tasks keep working without Telegram or a network.
+Projects and tasks are stored as Markdown with explicit YAML metadata:
 
-## MCP and AI
+```text
+projects/<project-id>/project.md
+projects/<project-id>/tasks/<task-id>.md
+```
 
-The installer includes <code>flood-mcp.exe</code>, a local stdio MCP server for Codex, Claude Desktop, Cursor, and other clients that can launch a local command. The app provides ready-to-copy configurations and a self-check in **Settings → MCP and AI**.
+The default Windows data directory is `%APPDATA%\io.flood.desktop`; `FLOOD_DATA_DIR` can override it. flood.md does not require its own account or cloud backend. Sending a request or granting access to a connected agent can share the selected context with that provider. Local storage does not make cloud agent processing offline.
 
-![MCP readiness and activity](docs/assets/flood-mcp-readiness-en.png)
-
-The agent can read bounded Telegram updates, inspect a selected conversation or image, search permitted project sources, preview a task plan, and apply it without creating duplicates. It can also retrieve an existing task together with project and source context before helping with implementation.
-
-A regular cloud ChatGPT conversation cannot launch a local executable; it requires a remotely reachable HTTPS MCP server. flood.md intentionally does not ship that cloud bridge in this local-first release.
-
-Read the [MCP setup, workflows, tool map, and safety model](docs/mcp.md). Optional background triage can use local agent CLIs or the [Jev decision adapter](docs/jev-automation.md); MCP remains the independent integration surface for external agents.
-
-## Quick start
-
-1. Download the installer from the [latest release](https://github.com/tillwithered/flood.md/releases/latest). Windows 10 or newer is recommended.
-2. Create a project and open **Settings → Integrations**.
-3. Connect Telegram by QR code or phone number, then link only the chats you need.
-4. Optionally connect the read-only GitHub App and add repositories to the project.
-5. Open **Settings → MCP and AI**, choose your client, copy the configuration, and restart that client.
-
-See [what changed in 0.2.2](CHANGELOG.md).
-
-## Privacy and security
-
-- Tasks, attachments, and Telegram sessions stay on the user's device.
-- flood.md does not require an account or cloud backend.
-- Telegram authorization is stored in TDLib's encrypted local database, outside Markdown and backups.
-- GitHub tokens live in the operating system credential store; access is read-only and limited by both the App installation and the repositories linked to a project.
-- New or retargeted project sources start with agent access disabled.
-- Chat messages, task text, and repository files are untrusted data, not instructions or authority to perform external actions.
-- Irreversible MCP deletion is disabled by default.
-
-See [SECURITY.md](SECURITY.md) for the trust model and vulnerability reporting.
-
-## Local data
-
-Projects live in <code>projects/&lt;project-id&gt;/project.md</code>; tasks live in <code>projects/&lt;project-id&gt;/tasks/&lt;task-id&gt;.md</code>. YAML front matter stores explicit metadata while the body remains ordinary Markdown. The default Windows data directory is <code>%APPDATA%\io.flood.desktop</code>; set <code>FLOOD_DATA_DIR</code> to use another location.
+See [SECURITY.md](SECURITY.md) for credential handling and the trust model.
 
 ## Development
 

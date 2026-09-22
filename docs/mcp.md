@@ -1,5 +1,7 @@
 # flood.md MCP guide
 
+> **0.2.x interface:** the built-in agent connection is under Settings → Agent and currently supports Codex. This guide also covers advanced MCP capabilities and earlier integration workflows; references to the MCP and AI screen describe the 0.1.x interface, not the current navigation. Start with the [README](../README.md) for current onboarding.
+
 flood.md ships a local stdio MCP server with the Windows installer. It gives a compatible AI client controlled access to the same Markdown projects and tasks used by the desktop app.
 
 For the Russian version, see [mcp.ru.md](mcp.ru.md).
