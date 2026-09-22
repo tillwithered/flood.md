@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 — 2026-09-22
+
+- Restore the dock glass material in collapsed and expanded states using a separate translucent blur layer with standard rounded corners.
+- Add an explicit manual release option for user-authorized hotfixes without tests; regular releases retain the CI gate.
+
 ## 0.2.0 — 2026-09-22
 
 ### Desktop workspace

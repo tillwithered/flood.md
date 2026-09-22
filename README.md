@@ -12,7 +12,7 @@
 
 <p align="center"><strong><a href="https://github.com/tillwithered/flood.md/releases/latest">Download for Windows</a></strong> · <a href="#quick-start">Quick start</a> · <a href="docs/mcp.md">MCP guide</a></p>
 
-> **Stable release: 0.2.0.** The current priority is reliability and bug fixes. New features do not have a fixed release schedule.
+> **Stable release: 0.2.1.** The current priority is reliability and bug fixes. New features do not have a fixed release schedule.
 
 ![Telegram inbox in flood.md](docs/assets/flood-telegram-inbox-en.png)
 
@@ -73,7 +73,7 @@ Read the [MCP setup, workflows, tool map, and safety model](docs/mcp.md). Option
 4. Optionally connect the read-only GitHub App and add repositories to the project.
 5. Open **Settings → MCP and AI**, choose your client, copy the configuration, and restart that client.
 
-See [what changed in 0.2.0](CHANGELOG.md).
+See [what changed in 0.2.1](CHANGELOG.md).
 
 ## Privacy and security
 

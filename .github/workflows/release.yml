@@ -1,6 +1,12 @@
 name: Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      skip_checks:
+        description: "Explicitly authorized hotfix: build without running tests"
+        type: boolean
+        default: false
   push:
     tags:
       - "v*"
@@ -10,6 +16,7 @@ permissions:
 
 jobs:
   verify:
+    if: ${{ !inputs.skip_checks }}
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -35,6 +42,7 @@ jobs:
           exit 1
   publish:
     needs: verify
+    if: ${{ !cancelled() && (needs.verify.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.skip_checks)) }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7

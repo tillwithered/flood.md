@@ -5150,9 +5150,9 @@
     if (new URLSearchParams(window.location.search).get("preview") !== "mcp-readiness") return;
     activeSection = "settings";
     settingsSection = "mcp";
-    appVersion = "0.2.0";
+    appVersion = "0.2.1";
     mcpExecutable = "C:\\Program Files\\flood.md\\flood-mcp.exe";
-    mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.2.0", app_version: "0.2.0", compatible: true, source: "bundled" };
+    mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.2.1", app_version: "0.2.1", compatible: true, source: "bundled" };
     automationSettings = { background_ai_triage: false, provider: "auto", updated_at: new Date().toISOString() };
     localAgentProviders = [{ id: "codex", name: "Codex", available: true, version: "codex-cli", supports_images: true }, { id: "claude", name: "Claude Code", available: false, supports_images: false }, { id: "gemini", name: "Gemini CLI", available: false, supports_images: false }];
     localAgentProvidersState = "ready";

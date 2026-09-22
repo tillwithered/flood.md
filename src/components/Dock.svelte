@@ -347,7 +347,10 @@
 </section>
 
 <style>
-  .dock { position:fixed; z-index:60; bottom:24px; left:50%; transform:translateX(-50%); width:min(520px,calc(100vw - 32px)); border:1px solid var(--soft-line); border-radius:24px; color:var(--ink); background:color-mix(in srgb,var(--elevated) 68%,transparent); box-shadow:var(--elevation-overlay); backdrop-filter:blur(40px); -webkit-backdrop-filter:blur(40px); font:400 14px/1.45 var(--font-family-ui); transition:width 180ms ease; }
+  .dock { position:fixed; z-index:60; bottom:24px; left:50%; transform:translateX(-50%); width:min(520px,calc(100vw - 32px)); border:1px solid var(--soft-line); border-radius:24px; corner-shape:round; color:var(--ink); background:transparent; box-shadow:var(--elevation-overlay); font:400 14px/1.45 var(--font-family-ui); transition:width 180ms ease; }
+  /* Keep glass on its own rounded compositor layer: corner-shape masks can
+     suppress backdrop sampling in the Windows WebView. Shared by both modes. */
+  .dock::before { content:""; position:absolute; z-index:-1; inset:0; border-radius:inherit; corner-shape:round; pointer-events:none; background:color-mix(in srgb,var(--elevated) 58%,transparent); -webkit-backdrop-filter:blur(32px); backdrop-filter:blur(32px); }
   .dock[hidden] { display:none; }
   .dock.expanded { width:min(720px,calc(100vw - 32px)); border-radius:20px; }
   .dock button { font:inherit; font-weight:400; border:0; color:inherit; background:transparent; cursor:pointer; }
@@ -405,6 +408,6 @@
   @media(max-width:580px) { .dock { bottom:16px; }.dock-footer{gap:2px}.dock .command-trigger{padding:7px}.dock .destination{max-width:46%}.command-code{flex-basis:60px} }
   @media(max-height:480px) { .dock-popover { bottom:0; z-index:3; max-height:calc(100dvh - 48px); }.dock textarea,.dock textarea:focus-visible { min-height:48px; max-height:64px; }.context-apron { max-height:85px; overflow-y:auto; } }
   @media(prefers-reduced-motion:reduce) { .dock { transition:none; } }
-  @supports not (backdrop-filter:blur(1px)) { .dock { background:var(--elevated); } }
-  @media(forced-colors:active) { .dock,.dock-popover{background:Canvas;border-color:ButtonText;backdrop-filter:none}.dock input:focus-visible{outline:1px solid Highlight}.command-list button.active{outline:1px solid Highlight} }
+  @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) { .dock::before { background:var(--elevated); } }
+  @media(forced-colors:active) { .dock,.dock-popover{background:Canvas;border-color:ButtonText}.dock::before{display:none}.dock input:focus-visible{outline:1px solid Highlight}.command-list button.active{outline:1px solid Highlight} }
 </style>
