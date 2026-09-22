@@ -26,6 +26,46 @@ fn baseline_v1_fixtures_load_through_store() {
     result.unwrap();
 }
 
+#[test]
+fn baseline_crlf_files_keep_raw_bytes_and_conflict_versions() {
+    let fixture_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/baseline-v1");
+    let temp_root = std::env::temp_dir().join(format!("flood-crlf-fixture-{}", Ulid::new()));
+    copy_tree(&fixture_root, &temp_root);
+    let paths = [
+        format!("projects/{PROJECT_ID}/project.md"),
+        format!("projects/{PROJECT_ID}/tasks/{TASK_ID}.md"),
+        format!("projects/{PROJECT_ID}/workspace/rules/{RULE_ID}.md"),
+        format!("projects/{PROJECT_ID}/workspace/skills/{SKILL_ID}.md"),
+    ];
+    for path in &paths {
+        let path = temp_root.join(path);
+        let text = fs::read_to_string(&path).unwrap().replace("\r\n", "\n");
+        fs::write(path, text).unwrap();
+    }
+    let store = Store::new(&temp_root).unwrap();
+    let lf_version = store.get_task(TASK_ID).unwrap().version;
+    let expected: Vec<_> = paths
+        .iter()
+        .map(|path| {
+            let path = temp_root.join(path);
+            let text = fs::read_to_string(&path).unwrap().replace("\n", "\r\n");
+            fs::write(&path, &text).unwrap();
+            (path, text.into_bytes())
+        })
+        .collect();
+    verify_fixture(&temp_root).unwrap();
+    assert_ne!(store.get_task(TASK_ID).unwrap().version, lf_version);
+    for (path, bytes) in expected {
+        assert_eq!(
+            fs::read(path).unwrap(),
+            bytes,
+            "reads must not rewrite CRLF files"
+        );
+    }
+    drop(store);
+    fs::remove_dir_all(temp_root).unwrap();
+}
+
 fn verify_fixture(root: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let store = Store::new(root)?;
 

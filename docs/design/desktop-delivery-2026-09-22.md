@@ -9,6 +9,7 @@ Scope: transfer the accumulated dark desktop interface, task workspace, agent do
 - Project settings have a visible return action and a sticky header with Save when dirty. Dirty-state rendering directly tracks form values.
 - A successful project save no longer closes over newer edits made during the request. Automation changes use the submitted value rather than a later edit.
 - Existing settings simplification, provider-neutral composer wording, slash commands, task context and per-project conversation bindings are included.
+- Clean Windows CI exposed CRLF front-matter parsing failure. The shared reader now accepts LF/CRLF delimiters without rewriting files or normalizing conflict-version bytes. A regression fixture covers project, task, rule and skill reads and verifies byte preservation.
 
 Affected contracts: shell/header C01/C02, settings C17, project-context flow, persistence DAT-01 and agent interaction INT-01/02/03. Current user dark-only and normal-desktop amendments supersede older theme/size matrices.
 

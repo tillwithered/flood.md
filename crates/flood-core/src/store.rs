@@ -6445,20 +6445,32 @@ fn decode<T: DeserializeOwned>(path: &Path) -> Result<(T, String, String), Store
     let version = digest(content.as_bytes());
     let rest = content
         .strip_prefix("---\n")
+        .or_else(|| content.strip_prefix("---\r\n"))
         .ok_or_else(|| {
             invalid(
                 path,
                 "нет начала YAML front matter; восстановите начальный разделитель `---` или совместимую копию файла",
             )
         })?;
-    let (yaml, body) = rest
-        .split_once("\n---\n")
+    // Editors and Windows Git checkouts can use CRLF. Locate the delimiter
+    // without normalizing the body or the raw bytes used for conflict versions.
+    let (yaml_end, delimiter_len) = rest
+        .split_inclusive('\n')
+        .scan(0, |offset, line| {
+            let start = *offset;
+            *offset += line.len();
+            Some((start, line))
+        })
+        .find(|(_, line)| *line == "---\n" || *line == "---\r\n")
+        .map(|(offset, line)| (offset, line.len()))
         .ok_or_else(|| {
             invalid(
                 path,
                 "нет конца YAML front matter; восстановите закрывающий разделитель `---` или совместимую копию файла",
             )
         })?;
+    let yaml = &rest[..yaml_end];
+    let body = &rest[yaml_end + delimiter_len..];
     let metadata = serde_yaml::from_str(yaml).map_err(|error| {
         invalid(
             path,
