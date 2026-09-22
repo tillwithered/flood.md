@@ -6190,7 +6190,7 @@
       </section>
     {/if}
   </div>
-  <Dock bind:this={dock} onheightchange={(height) => dockClearance = height} visible={activeSection === "tasks" && (workspaceView === "project" || workspaceView === "task") && Boolean(dockProject && dockProject.id !== "all")} projectId={dockProject?.id ?? "all"} projectTitle={dockProject?.title ?? ""} viewedTaskId={workspaceView === "task" ? selectedTaskId : undefined} tasks={tasks.filter((task) => !isLocalDraft(task) && task.chatId === dockProject?.id).map((task) => ({ id: task.id, title: task.title, markdown: task.markdown }))} onnewtask={openDockTaskModal} onnewproject={openDockProjectModal} onsettings={() => openSettingsSection("agents")} onconnect={() => (conversationSettingsOpen = true)} />
+  <Dock bind:this={dock} onheightchange={(height) => dockClearance = height} visible={!projectContextOpen && activeSection === "tasks" && (workspaceView === "project" || workspaceView === "task") && Boolean(dockProject && dockProject.id !== "all")} projectId={dockProject?.id ?? "all"} projectTitle={dockProject?.title ?? ""} viewedTaskId={workspaceView === "task" ? selectedTaskId : undefined} tasks={tasks.filter((task) => !isLocalDraft(task) && task.chatId === dockProject?.id).map((task) => ({ id: task.id, title: task.title, markdown: task.markdown }))} onnewtask={openDockTaskModal} onnewproject={openDockProjectModal} onsettings={() => openSettingsSection("agents")} onconnect={() => (conversationSettingsOpen = true)} />
 </main>
 
 <UiModal bind:open={mcpSettingsOpen} title="Конфигурация MCP">
