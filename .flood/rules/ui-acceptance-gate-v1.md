@@ -1,28 +1,19 @@
 # UI acceptance gate v1
 
-UI-изменение не считается готовым, пока не проверено в затронутом объёме:
+For implemented UI, follow docs/design/verification.md and docs/design/skills/flood-ui-review/SKILL.md. Verify the affected scope with realistic content; mark inapplicable cases with a reason.
 
-- light и dark theme;
-- normal и narrow desktop window;
-- populated, empty, loading, recoverable error, conflict и disabled states, если применимы;
-- длинный русский текст, дубли имён, отсутствующие необязательные данные;
-- keyboard order, focus-visible, Enter/Space и Escape;
-- reduced motion и 200% text zoom;
-- отсутствие текста меньше 12 px, color-only states, layout shift и необъяснимого horizontal scroll;
-- сохранение введённых данных при ошибке;
-- before/after на реалистичном наполнении;
-- запуск и визуальная проверка в реальном Tauri-окне. Browser preview годится только для итерации.
+- Light and dark themes; normal and minimum desktop windows.
+- Populated, empty, loading, pending, recoverable error, conflict and disabled states where applicable.
+- Long Russian text, duplicate names, missing optional data, 200% text enlargement and text-spacing overrides.
+- Logical forward/reverse keyboard order, visible focus, Enter/Space, pattern-appropriate arrows, Escape and return focus.
+- Reduced motion and relevant forced-color behavior. No text below 12px, color-only meaning, unexplained layout shift or page-wide horizontal scrolling.
+- Draft preservation through slow save, failure, retry, external change and stale asynchronous reads. Success requires persistence acknowledgement.
+- Comparable before/after evidence and actual visual/interaction inspection in a Tauri window. A browser preview or successful build alone is not desktop acceptance.
 
-Новый общий паттерн сначала доказывается на одном полном сценарии. Переносить его на остальные экраны можно только после прохождения gate и пользовательского подтверждения направления.
+The selected Quiet Workbench direction is already approved. New shared patterns are verified on a full user scenario and the populated project overview, task editor and project context before broader migration. Broad propagation follows this gate and the user's implementation review. Direction selection does not prove implementation quality.
 
-## Проверка крупных row-controls
+For navigation/task rows inspect a compact coherent list, separate completion/open actions, and distinct unclipped focus/current/hover. For independent artifact/action/disclosure rows inspect persistent rounded geometry, matching hit areas, peer gaps, no permanent dividers and expanded content within the same owning container.
 
-Для каждого full-row action проверить resting, hover, focus, active и expanded: radius не исчезает, hit area совпадает с видимой формой, между соседями есть gap, постоянных dividers нет, а expanded content остаётся внутри того же rounded container.
+Inspect control/construct/section/page spacing relationships, parent-owned gaps, open horizontal navigation with one bottom divider and a rounded active item. On narrow windows its internal scrolling must not create page overflow. For genuinely parallel nested rounded contours verify inner radius = max(0, outer radius minus actual visible inset); circles, pills, unrelated contours and focus rings have their own contracts.
 
-## Проверка пространства и tabs
-
-Проверить четыре масштаба: детали control, construct, section и page region. Вложенные уровни не должны иметь одинаковый gap, а child не создаёт внешний margin вместо parent. Horizontal tabs проверяются в wide/narrow: active tab округлена, вся полоса не превращена в capsule, border-block стабильны, scrollbar скрыт и страница не получает horizontal scroll.
-
-## Проверка вложенных радиусов
-
-Для каждой вложенной rounded surface измерить внешний radius `A`, расстояние между видимыми контурами `B` и подтвердить внутренний radius `C = max(0, A − B)`. Проверить resting, hover, focus и expanded: inset и видимый контур не должны меняться так, чтобы ломать геометрию углов. Независимые magic-number radii считаются дефектом foundations.
+For a documentation-only request, validate rule consistency, skill format, references and any generated token outputs. Do not launch the application or require native UI acceptance to deliver rules. Label specification, implementation, browser verification, Tauri verification and user implementation acceptance separately.

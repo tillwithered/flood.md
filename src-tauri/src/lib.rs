@@ -8,13 +8,14 @@ use flood_core::{
     AttachmentCleanupReport, AttachmentCleanupResult, AutomationEventClaim, AutomationEventOutcome,
     AutomationEventState, AutomationProvider, AutomationSettings, ContextBuilder, CreateTask,
     InboxCandidateStatus, PolicyContext, PolicyGate, PolicyVerdict, Project,
-    ProjectAutomationPolicy, ProjectResource, ProjectResourceKind, ProjectWorkspaceItem,
-    ProjectWorkspaceItemKind, SelfCheckResult, SourceMedia, SourceMediaKind, Store,
-    StoreDiagnostics, Task, TaskCheckpointDraft, TaskCheckpointSource, TaskPatch, TaskSummary,
-    TelegramConnectorStatus, TelegramInboxCandidate, TelegramInboxPage, TelegramParticipant,
-    TelegramParticipantRole, TelegramProjectLink, TelegramSyncHealth, TelegramSyncRequest,
-    TelegramSyncStatus, Urgency, WorkAction, WorkDecision, WorkDecisionAction, WorkInitiator,
-    WorkPacket, WorkPurpose, WorkResult, WorkResultStatus, default_data_dir,
+    ProjectAutomationPolicy, ProjectKnowledgeProposal, ProjectKnowledgeProposalTarget,
+    ProjectResource, ProjectResourceKind, ProjectWorkspaceItem, ProjectWorkspaceItemKind,
+    SelfCheckResult, SourceMedia, SourceMediaKind, Store, StoreDiagnostics, Task,
+    TaskCheckpointDraft, TaskCheckpointSource, TaskPatch, TaskSummary, TelegramConnectorStatus,
+    TelegramInboxCandidate, TelegramInboxPage, TelegramParticipant, TelegramParticipantRole,
+    TelegramProjectLink, TelegramSyncHealth, TelegramSyncRequest, TelegramSyncStatus, Urgency,
+    WorkAction, WorkDecision, WorkDecisionAction, WorkInitiator, WorkPacket, WorkPurpose,
+    WorkResult, WorkResultStatus, default_data_dir,
 };
 use flood_github::{
     GitHubAuthorizationResult, GitHubConnector, GitHubDeviceCode, GitHubRepositoryCatalog,
@@ -46,6 +47,9 @@ use tauri::{
 use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
 use tauri_plugin_opener::OpenerExt;
 
+mod agent_adapters;
+mod codex_dock;
+mod jev_adapter;
 mod telegram;
 use telegram::{TelegramChat, TelegramManager, TelegramMessage, TelegramStatus};
 
@@ -311,10 +315,21 @@ const MCP_SELF_CHECK_OUTPUT_LIMIT: usize = 256 * 1024;
 const AUTOMATION_BATCH_LIMIT: usize = 12;
 const AUTOMATION_BATCH_WINDOW: chrono::Duration = chrono::Duration::seconds(45);
 
+#[cfg(windows)]
+fn hide_background_console(command: &mut Command) {
+    use std::os::windows::process::CommandExt;
+    command.creation_flags(0x0800_0000);
+}
+
+#[cfg(not(windows))]
+fn hide_background_console(_command: &mut Command) {}
+
 fn local_agent_command(provider: LocalAgentProvider) -> Command {
     #[cfg(windows)]
     {
-        let resolved = Command::new("where.exe")
+        let mut lookup = Command::new("where.exe");
+        hide_background_console(&mut lookup);
+        let resolved = lookup
             .arg(provider.executable())
             .stdin(Stdio::null())
             .stderr(Stdio::null())
@@ -422,6 +437,7 @@ fn configured_local_agent(settings: &AutomationSettings) -> Result<LocalAgentPro
         AutomationProvider::Codex => Some(LocalAgentProvider::Codex),
         AutomationProvider::Claude => Some(LocalAgentProvider::Claude),
         AutomationProvider::Gemini => Some(LocalAgentProvider::Gemini),
+        AutomationProvider::Jev => return Err("Jev не является локальным CLI-провайдером".into()),
     };
     if let Some(provider) = requested {
         return inspect_local_agent(provider)
@@ -902,6 +918,67 @@ fn delete_project_workspace_item(
 }
 
 #[tauri::command]
+fn list_project_knowledge_proposals(
+    project_id: String,
+    state: State<'_, AppState>,
+) -> Result<Vec<ProjectKnowledgeProposal>, String> {
+    result(state.store.list_project_knowledge_proposals(&project_id))
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ProjectKnowledgeProposalDecision {
+    proposal: ProjectKnowledgeProposal,
+    workspace_item: Option<ProjectWorkspaceItem>,
+    project: Option<Project>,
+}
+
+#[tauri::command]
+fn apply_project_knowledge_proposal(
+    project_id: String,
+    proposal_id: String,
+    state: State<'_, AppState>,
+) -> Result<ProjectKnowledgeProposalDecision, AppCommandError> {
+    let proposal = command_result(
+        state
+            .store
+            .apply_project_knowledge_proposal(&project_id, &proposal_id),
+    )?;
+    let (workspace_item, project) = match &proposal.target {
+        ProjectKnowledgeProposalTarget::WorkspaceItem { item_id, .. } => (
+            Some(command_result(
+                state.store.get_project_workspace_item(&project_id, item_id),
+            )?),
+            None,
+        ),
+        ProjectKnowledgeProposalTarget::ProjectMemory { .. } => (
+            None,
+            Some(command_result(state.store.get_project(&project_id))?),
+        ),
+    };
+    Ok(ProjectKnowledgeProposalDecision {
+        proposal,
+        workspace_item,
+        project,
+    })
+}
+
+#[tauri::command]
+fn reject_project_knowledge_proposal(
+    project_id: String,
+    proposal_id: String,
+    decision_reason: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<ProjectKnowledgeProposal, AppCommandError> {
+    command_result(state.store.reject_project_knowledge_proposal(
+        &project_id,
+        &proposal_id,
+        decision_reason.as_deref(),
+        None,
+    ))
+}
+
+#[tauri::command]
 fn add_project_memory(
     project_id: String,
     text: String,
@@ -1332,7 +1409,9 @@ fn task_agent_images(store: &Store, task: &Task) -> Vec<PathBuf> {
 
 #[cfg(windows)]
 fn stop_process_tree(pid: u32) {
-    let _ = Command::new("taskkill.exe")
+    let mut command = Command::new("taskkill.exe");
+    hide_background_console(&mut command);
+    let _ = command
         .args(["/PID", &pid.to_string(), "/T", "/F"])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -2329,24 +2408,9 @@ fn mcp_runtime_info(app: tauri::AppHandle) -> Result<McpRuntimeInfo, String> {
 
 fn mcp_launch_spec(executable: &Path, source: &str) -> (String, Vec<String>) {
     if source == "development" {
-        let launcher = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")))
-            .join("scripts")
-            .join("run-flood-mcp-dev.ps1");
+        let launcher = executable.with_file_name("flood-mcp-dev-launcher.exe");
         if launcher.is_file() {
-            return (
-                "powershell.exe".into(),
-                vec![
-                    "-NoLogo".into(),
-                    "-NoProfile".into(),
-                    "-NonInteractive".into(),
-                    "-ExecutionPolicy".into(),
-                    "Bypass".into(),
-                    "-File".into(),
-                    launcher.to_string_lossy().into_owned(),
-                ],
-            );
+            return (launcher.to_string_lossy().into_owned(), Vec::new());
         }
     }
     (executable.to_string_lossy().into_owned(), Vec::new())
@@ -2876,6 +2940,24 @@ fn local_agent_providers() -> Vec<LocalAgentProviderStatus> {
 }
 
 #[tauri::command]
+fn jev_status() -> Result<jev_adapter::JevStatus, String> {
+    jev_adapter::status()
+}
+
+#[tauri::command]
+fn set_jev_api_key(api_key: Option<String>) -> Result<jev_adapter::JevStatus, String> {
+    jev_adapter::set_api_key(api_key.as_deref())
+}
+
+fn validate_automation_provider(settings: &AutomationSettings) -> Result<(), String> {
+    if settings.provider == AutomationProvider::Jev {
+        jev_adapter::require_api_key().map(|_| ())
+    } else {
+        configured_local_agent(settings).map(|_| ())
+    }
+}
+
+#[tauri::command]
 fn set_automation_provider(
     provider: AutomationProvider,
     state: State<'_, AppState>,
@@ -2886,7 +2968,7 @@ fn set_automation_provider(
         ..current.clone()
     };
     if current.background_ai_triage {
-        configured_local_agent(&prospective)?;
+        validate_automation_provider(&prospective)?;
     }
     result(state.store.set_automation_provider(provider))
 }
@@ -2909,7 +2991,7 @@ fn set_background_ai_triage(
     let was_enabled = result(state.store.automation_settings())?.background_ai_triage;
     if enabled {
         let settings = result(state.store.automation_settings())?;
-        configured_local_agent(&settings)?;
+        validate_automation_provider(&settings)?;
     }
     if enabled {
         set_os_autostart(&app, true)?;
@@ -3417,7 +3499,6 @@ async fn process_automation_cycle(state: &AppState) -> Result<usize, String> {
     if !automation_settings.background_ai_triage {
         return Ok(0);
     }
-    let provider = configured_local_agent(&automation_settings)?;
     let pending = result(state.store.list_automation_events(
         None,
         Some(AutomationEventState::Pending),
@@ -3427,6 +3508,7 @@ async fn process_automation_cycle(state: &AppState) -> Result<usize, String> {
     if pending.events.is_empty() {
         return Ok(0);
     }
+    validate_automation_provider(&automation_settings)?;
     let oldest_wait = Utc::now().signed_duration_since(pending.events[0].observed_at);
     if pending.total < AUTOMATION_BATCH_LIMIT && oldest_wait < AUTOMATION_BATCH_WINDOW {
         return Ok(0);
@@ -3503,21 +3585,6 @@ async fn process_automation_cycle(state: &AppState) -> Result<usize, String> {
     if candidates.is_empty() {
         return Ok(0);
     }
-    let runtime_dir = state
-        .store
-        .root()
-        .join("runtime")
-        .join("automation")
-        .join(claim_token);
-    if let Err(error) = fs::create_dir_all(&runtime_dir) {
-        fail_automation_claim(&state.store, &claim, &error.to_string()).await;
-        return Err(error.to_string());
-    }
-    let (images, image_labels) = if provider.supports_images() {
-        prepare_automation_images(state, &claim, &candidates, &runtime_dir).await
-    } else {
-        (Vec::new(), Vec::new())
-    };
     let signals = candidates
         .iter()
         .map(|candidate| {
@@ -3548,19 +3615,44 @@ async fn process_automation_cycle(state: &AppState) -> Result<usize, String> {
         Ok(packet) => packet,
         Err(error) => {
             fail_automation_claim(&state.store, &claim, &error.to_string()).await;
-            let _ = fs::remove_dir_all(&runtime_dir);
             return Err(error.to_string());
         }
     };
-    let runner = LocalAutomationRunner {
-        provider,
-        runtime_dir: runtime_dir.clone(),
-        claim: claim.clone(),
-        candidates: candidates.clone(),
-        images,
-        image_labels,
+    let is_jev = automation_settings.provider == AutomationProvider::Jev;
+    let runtime_dir = state
+        .store
+        .root()
+        .join("runtime")
+        .join("automation")
+        .join(claim_token);
+    let runner: Box<dyn FnOnce() -> Result<WorkResult, AgentRunnerError> + Send> = if is_jev {
+        let claim = claim.clone();
+        let candidates = candidates.clone();
+        Box::new(move || {
+            jev_adapter::run(packet, &claim, &candidates).map_err(AgentRunnerError::Failed)
+        })
+    } else {
+        let provider = configured_local_agent(&automation_settings)?;
+        if let Err(error) = fs::create_dir_all(&runtime_dir) {
+            fail_automation_claim(&state.store, &claim, &error.to_string()).await;
+            return Err(error.to_string());
+        }
+        let (images, image_labels) = if provider.supports_images() {
+            prepare_automation_images(state, &claim, &candidates, &runtime_dir).await
+        } else {
+            (Vec::new(), Vec::new())
+        };
+        let local_runner = LocalAutomationRunner {
+            provider,
+            runtime_dir: runtime_dir.clone(),
+            claim: claim.clone(),
+            candidates: candidates.clone(),
+            images,
+            image_labels,
+        };
+        Box::new(move || local_runner.run(packet))
     };
-    let model_result = tauri::async_runtime::spawn_blocking(move || runner.run(packet))
+    let model_result = tauri::async_runtime::spawn_blocking(runner)
         .await
         .map_err(|error| format!("Не удалось дождаться фонового агента: {error}"))?
         .map_err(|error| error.to_string());
@@ -3568,7 +3660,9 @@ async fn process_automation_cycle(state: &AppState) -> Result<usize, String> {
         Ok(plan) => plan,
         Err(error) => {
             fail_automation_claim(&state.store, &claim, &error).await;
-            let _ = fs::remove_dir_all(&runtime_dir);
+            if !is_jev {
+                let _ = fs::remove_dir_all(&runtime_dir);
+            }
             return Err(error);
         }
     };
@@ -3738,12 +3832,14 @@ async fn process_automation_cycle(state: &AppState) -> Result<usize, String> {
             let _ = state.store.fail_automation_event(
                 &event.id,
                 claim_token,
-                "Codex не вернул решение для события",
+                "Провайдер автоматизации не вернул решение для события",
                 true,
             );
         }
     }
-    let _ = fs::remove_dir_all(&runtime_dir);
+    if !is_jev {
+        let _ = fs::remove_dir_all(&runtime_dir);
+    }
     Ok(handled)
 }
 
@@ -4311,6 +4407,8 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            codex_dock::codex_queue_status,
+            codex_dock::queue_codex_message,
             list_projects,
             list_connector_catalog,
             connector_list_sources,
@@ -4323,6 +4421,9 @@ pub fn run() {
             create_project_workspace_item,
             update_project_workspace_item,
             delete_project_workspace_item,
+            list_project_knowledge_proposals,
+            apply_project_knowledge_proposal,
+            reject_project_knowledge_proposal,
             add_project_memory,
             update_project_memory,
             supersede_project_memory,
@@ -4372,12 +4473,16 @@ pub fn run() {
             answer_project_attention,
             project_automation_policy,
             local_agent_providers,
+            jev_status,
+            set_jev_api_key,
             set_automation_provider,
             set_background_ai_triage,
             set_project_auto_run,
             retry_failed_automation,
             list_activity,
             run_mcp_self_check,
+            agent_adapters::list_agent_adapters,
+            agent_adapters::connect_agent_adapter,
             github_status,
             github_configure,
             github_begin_authorization,
@@ -4846,17 +4951,19 @@ mod tests {
 
     #[test]
     fn development_mcp_uses_an_unlocked_temporary_launcher() {
-        let executable = std::path::Path::new(r"C:\workspace\target\debug\flood-mcp.exe");
-        let (command, args) = mcp_launch_spec(executable, "development");
-        assert_eq!(command, "powershell.exe");
-        assert!(args.iter().any(|arg| arg == "-NonInteractive"));
-        let launcher = args.last().expect("launcher path");
-        assert!(launcher.ends_with("run-flood-mcp-dev.ps1"));
-        assert!(std::path::Path::new(launcher).is_file());
+        let root = std::env::temp_dir().join(format!("flood-launcher-test-{}", ulid::Ulid::new()));
+        std::fs::create_dir_all(&root).unwrap();
+        let executable = root.join("flood-mcp.exe");
+        let launcher = root.join("flood-mcp-dev-launcher.exe");
+        std::fs::write(&launcher, []).unwrap();
+        let (command, args) = mcp_launch_spec(&executable, "development");
+        assert_eq!(command, launcher.to_string_lossy());
+        assert!(args.is_empty());
 
-        let (command, args) = mcp_launch_spec(executable, "bundled");
+        let (command, args) = mcp_launch_spec(&executable, "bundled");
         assert_eq!(command, executable.to_string_lossy());
         assert!(args.is_empty());
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

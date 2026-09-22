@@ -1,7 +1,10 @@
 use std::collections::{BTreeMap, HashSet};
 
 use chrono::{DateTime, Utc};
-use flood_core::{Project, ProjectWorkspaceItem, ProjectWorkspaceItemKind, WorkPacketEvidence, WORK_CONTRACT_VERSION};
+use flood_core::{
+    Project, ProjectWorkspaceItem, ProjectWorkspaceItemKind, WORK_CONTRACT_VERSION,
+    WorkPacketEvidence,
+};
 use rmcp::schemars;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -28,7 +31,10 @@ impl ProjectContextSnapshot {
             .map(|item| {
                 (
                     item.id.clone(),
-                    ContextItemVersion { kind: item.kind, version: item.version.clone() },
+                    ContextItemVersion {
+                        kind: item.kind,
+                        version: item.version.clone(),
+                    },
                 )
             })
             .collect::<BTreeMap<_, _>>();
@@ -36,15 +42,36 @@ impl ProjectContextSnapshot {
     }
 
     pub fn from_evidence(evidence: &WorkPacketEvidence) -> Self {
-        let items = evidence.items.iter().map(|item| (
-            item.id.clone(),
-            ContextItemVersion { kind: item.kind, version: item.version.clone() },
-        )).collect();
-        Self::from_versions(&evidence.project_id, evidence.project_version.clone(), items)
+        let items = evidence
+            .items
+            .iter()
+            .map(|item| {
+                (
+                    item.id.clone(),
+                    ContextItemVersion {
+                        kind: item.kind,
+                        version: item.version.clone(),
+                    },
+                )
+            })
+            .collect();
+        Self::from_versions(
+            &evidence.project_id,
+            evidence.project_version.clone(),
+            items,
+        )
     }
 
-    fn from_versions(project_id: &str, project_version: String, items: BTreeMap<String, ContextItemVersion>) -> Self {
-        let mut snapshot = Self { revision: String::new(), project_version, items };
+    fn from_versions(
+        project_id: &str,
+        project_version: String,
+        items: BTreeMap<String, ContextItemVersion>,
+    ) -> Self {
+        let mut snapshot = Self {
+            revision: String::new(),
+            project_version,
+            items,
+        };
         snapshot.refresh_revision(project_id);
         snapshot
     }
@@ -102,7 +129,10 @@ impl ProjectContextSnapshot {
             .filter(|(id, item)| {
                 item.kind == ProjectWorkspaceItemKind::Rule
                     && (pending.contains(*id)
-                        || previous.items.get(*id).is_none_or(|old| old.version != item.version))
+                        || previous
+                            .items
+                            .get(*id)
+                            .is_none_or(|old| old.version != item.version))
             })
             .map(|(id, _)| id.clone())
             .collect()
@@ -130,6 +160,8 @@ pub(super) struct ProjectContextCheckOutput {
     pub project_changed: Option<bool>,
     pub changes: Vec<ProjectContextChange>,
     pub pending_rule_ids: Vec<String>,
+    /// Selected skills whose full current body was not present in the packet.
+    pub pending_skill_ids: Vec<String>,
     pub requires_context_reload: bool,
     pub context_ready: bool,
     pub suggested_tools: Vec<&'static str>,
@@ -157,7 +189,10 @@ pub(super) struct ProjectWorkspaceItemSummary {
 impl ProjectWorkspaceItemSummary {
     pub fn new(item: ProjectWorkspaceItem, include_content: bool) -> Self {
         let revision_count = if item.agent_access {
-            item.revisions.iter().filter(|revision| revision.agent_access).count()
+            item.revisions
+                .iter()
+                .filter(|revision| revision.agent_access)
+                .count()
         } else {
             0
         };

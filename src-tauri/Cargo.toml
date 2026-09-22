@@ -20,6 +20,8 @@ flood-connectors = { path = "../crates/flood-connectors" }
 flood-core = { path = "../crates/flood-core" }
 flood-github = { path = "../crates/flood-github" }
 notify = "8.2.0"
+keyring.workspace = true
+reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tauri = { version = "2.11.5", features = ["tray-icon"] }

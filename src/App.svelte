@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { ArrowRight, Bold, Bot, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Database, Download, ExternalLink, FileText, Folder, FolderOpen, FolderPlus, Heading1, Info, Languages, Link, ListChecks, ListTodo, LogOut, Maximize2, MessageSquareText, Minus, MoreHorizontal, Palette, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Pin, Plus, Plug, QrCode, RefreshCw, RotateCcw, Search, Send, Settings, ShieldCheck, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
+  import { version as packageVersion } from "../package.json";
+  import { ArrowRight, Bold, Bot, CalendarDays, Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Circle, Clipboard, Database, Download, ExternalLink, FileDiff, FileText, Folder, FolderOpen, FolderPlus, Heading1, Home, Info, Languages, Link, ListChecks, ListTodo, LogOut, Maximize2, MessageSquareText, Minus, MoreHorizontal, Palette, PanelLeftClose, PanelLeftOpen, Paperclip, Pencil, Pin, Plus, Plug, QrCode, RefreshCw, RotateCcw, Search, Send, Settings, ShieldCheck, Square, Trash2, Underline, X, ZoomIn, ZoomOut } from "@lucide/svelte";
   import { getVersion } from "@tauri-apps/api/app";
   import { invoke } from "@tauri-apps/api/core";
   import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -10,10 +11,14 @@
   import { onMount, tick } from "svelte";
   import QRCode from "qrcode";
   import FloodGlyph from "./components/FloodGlyph.svelte";
+  import Dock from "./components/Dock.svelte";
+  import AgentConversationSettings from "./components/AgentConversationSettings.svelte";
   import IntegrationCard from "./components/IntegrationCard.svelte";
   import IntegrationModal from "./components/IntegrationModal.svelte";
   import MarkdownInline from "./components/MarkdownInline.svelte";
+  import ProjectKnowledgeReview from "./components/ProjectKnowledgeReview.svelte";
   import TelegramChatIdentity from "./components/TelegramChatIdentity.svelte";
+  import { UiButton, UiIconButton, UiModal, UiSwitch, PageHeader, SectionNav, SegmentedControl, EmptyState, InlineNotice, NoticeAction, TextArea, TextField, SelectField, TaskRow, MaterialRow } from "./components/ui";
   import { translate, type Locale, type MessageKey } from "./i18n";
   import {
     connectorUiRegistry,
@@ -23,24 +28,27 @@
   } from "./integrations/registry";
 
   type Section = "tasks" | "trash" | "settings";
-  type SettingsSection = "general" | "appearance" | "data" | "integrations" | "mcp" | "about";
+  type SettingsSection = "general" | "appearance" | "data" | "integrations" | "agents" | "mcp" | "about";
   type WorkspaceView = "project" | "task" | "context";
   type Urgency = "normal" | "important" | "urgent";
   type TaskRelationKind = "related" | "subtask_of" | "blocked_by";
   type TaskRelation = { task_id: string; kind: TaskRelationKind };
   type TaskCheckpoint = { id: string; created_at: string; source: "user" | "agent"; summary: string; verification?: string[]; remaining?: string[]; blocker?: string; result?: string; agent_run_id?: string };
   type SaveState = "idle" | "saving" | "saved" | "error";
-  type ThemePreference = "system" | "light" | "dark";
   type UpdateState = "idle" | "checking" | "available" | "current" | "downloading" | "error";
   type DataActionState = "idle" | "backing-up" | "restoring" | "success" | "error";
   type AttachmentCleanupState = "idle" | "checking" | "cleaning" | "success" | "error";
   type TelegramInboxMode = "manual" | "mentions_and_replies" | "all";
   type ProjectResourceKind = "repository" | "directory" | "skill" | "figma" | "documentation" | "website" | "other";
   type ProjectResource = { id: string; kind: ProjectResourceKind; label: string; location: string; notes?: string; agent_access: boolean };
-  type ProjectWorkspaceSection = "overview" | "documents" | "memory" | "rules" | "skills" | "integrations" | "automation" | "history";
+  type ProjectWorkspaceSection = "context" | "integrations";
   type ProjectWorkspaceItemKind = "document" | "rule" | "skill";
   type ProjectWorkspaceRevision = { title: string; summary?: string; content: string; agent_access: boolean; changed_at: string };
   type ProjectWorkspaceItem = { id: string; project_id: string; kind: ProjectWorkspaceItemKind; title: string; summary?: string; content: string; agent_access: boolean; created_at: string; updated_at: string; revisions?: ProjectWorkspaceRevision[]; version: string };
+  type ProjectKnowledgeProposalTarget = { kind: "workspace_item"; item_id: string; item_kind: ProjectWorkspaceItemKind } | { kind: "project_memory"; memory_id: string };
+  type ProjectKnowledgeProposalPayload = { kind: "workspace_item"; title: string; summary?: string; content: string; agent_access: boolean } | { kind: "project_memory"; text: string; pinned: boolean };
+  type ProjectKnowledgeProposal = { id: string; project_id: string; target: ProjectKnowledgeProposalTarget; base_version: string; payload: ProjectKnowledgeProposalPayload; summary: string; reason: string; evidence?: string[]; state: "pending" | "applied" | "rejected"; decision_reason?: string; created_at: string; updated_at: string };
+  type ProjectKnowledgeProposalDecision = { proposal: ProjectKnowledgeProposal; workspaceItem?: ProjectWorkspaceItem; project?: ProjectRecord };
   type ProjectMemoryRevision = { text: string; changed_at: string };
   type ProjectMemoryEntry = { id: string; text: string; created_at: string; updated_at?: string; source_task_id?: string; pinned?: boolean; state?: "active" | "superseded"; superseded_by?: string; revisions?: ProjectMemoryRevision[] };
   type ProjectContextPreviewBlock = { kind: "heading" | "paragraph" | "bullets" | "numbers" | "quote" | "code"; level?: number; text?: string; items?: string[] };
@@ -119,6 +127,9 @@
   type McpCheckState = "idle" | "checking" | "success" | "error";
   type McpClient = "codex" | "claude" | "cursor" | "manual";
   type McpRuntimeInfo = { executable_path: string; launch_command: string; launch_args: string[]; available: boolean; version?: string; protocol_version?: string; tool_catalog_revision?: string; tool_count?: number; app_version: string; compatible: boolean; source: "bundled" | "development" };
+  type AgentAdapterClient = "codex" | "claude";
+  type AgentAdapterStatus = { client: AgentAdapterClient; installed: boolean; version?: string; connected: boolean; connection_detail?: string; project_adapter_installed: boolean; project_adapter_current: boolean };
+  type AgentAdapterResult = { status: AgentAdapterStatus; changed: boolean; restart_required: boolean };
   type InstallationRuntimeInfo = { executable_path: string; directory_path: string; kind: "installed" | "development" | "portable"; parallel_installed_copy?: string };
   type ActivityAction = "project_created" | "project_updated" | "project_deleted" | "task_created" | "task_updated" | "task_completed" | "task_moved" | "task_trashed" | "task_restored" | "task_deleted" | "trash_emptied" | "telegram_task_created" | "telegram_candidate_dismissed" | "telegram_candidate_restored" | "telegram_sync_requested" | "mutation_applied";
   type ActivityProvenance = { initiator: { kind: "human" | "agent" | "automation" | "connector" | "system"; id?: string; provider?: string }; run_id?: string; guidance: { kind: "rule" | "skill"; id: string; version: string }[]; sources: { kind: string; id: string; version?: string }[]; approved_plan_id: string; approved_plan_digest: string; operations: { operation_id: string; kind: string; target_id?: string; changed: boolean }[]; result: "applied" | "no_changes"; recovery: "available" | "best_effort" | "unavailable" };
@@ -129,9 +140,10 @@
   type AgentRun = { id: string; task_id: string; project_id: string; provider: string; state: AgentRunState; created_at: string; updated_at: string; started_at?: string; finished_at?: string; thread_id?: string; working_directory: string; progress?: string; result?: string; memory?: string[]; guidance?: AppliedGuidance[]; blocker?: string; last_response?: string; error?: string };
   type ProjectAttention = { kind: "agent_question" | "source_question"; message: string; task_id?: string; event_id?: string; occurred_at: string };
   type ProjectAutomationPolicy = { project_id: string; auto_run_created_tasks: boolean; updated_at?: string };
-  type AutomationProvider = "auto" | "codex" | "claude" | "gemini";
+  type AutomationProvider = "auto" | "codex" | "claude" | "gemini" | "jev";
   type AutomationSettings = { background_ai_triage: boolean; provider: AutomationProvider; projects?: ProjectAutomationPolicy[]; updated_at?: string };
-  type LocalAgentProviderStatus = { id: Exclude<AutomationProvider, "auto">; name: string; available: boolean; version?: string; supports_images: boolean };
+  type LocalAgentProviderStatus = { id: Exclude<AutomationProvider, "auto" | "jev">; name: string; available: boolean; version?: string; supports_images: boolean };
+  type JevStatus = { configured: boolean; source?: "keyring" | "environment"; model: string };
   type AutomationOutcome = "task_created_or_linked" | "task_updated" | "duplicate" | "no_action" | "needs_data" | "agent_queued" | "skipped_while_off";
   type AutomationStatusSummary = { pending: number; processing: number; processed: number; failed: number; last_outcome?: AutomationOutcome; last_activity_at?: string };
   type AcceptedAgentRun = { run: AgentRun; task: TaskRecord };
@@ -146,7 +158,8 @@
   const telegramModes: TelegramInboxMode[] = ["manual", "mentions_and_replies", "all"];
   const projectResourceKinds: ProjectResourceKind[] = ["repository", "directory", "figma", "documentation", "website", "other"];
   const mcpClients: McpClient[] = ["codex", "claude", "cursor", "manual"];
-  const automationProviders: AutomationProvider[] = ["auto", "codex", "claude", "gemini"];
+  const agentAdapterClients: AgentAdapterClient[] = ["codex"];
+  const automationProviders: AutomationProvider[] = ["codex"];
 
   let tasks: TaskItem[] = [];
   let trashedTasks: TaskItem[] = [];
@@ -155,7 +168,7 @@
   type BlockKind = "paragraph" | "heading-1" | "heading-2" | "heading-3" | "bullet" | "number" | "quote" | "code";
 
   let editorRoot: HTMLDivElement;
-  let taskTitleInput: HTMLInputElement;
+  let taskTitleInput: HTMLTextAreaElement;
   let taskTitleDraft = "";
   let attachmentInput: HTMLInputElement;
   let attachmentObjectUrls: string[] = [];
@@ -166,16 +179,29 @@
   let draftTaskId = "";
   let draftDirty = false;
   let selectedChatId = "all";
-  let query = "";
-  let searchInput: HTMLInputElement;
+  let projectTab: "all" | "urgent" | "closed" = "all";
+  let projectPickerOpen = false;
+  let projectPickerButton: HTMLButtonElement;
+  function handleProjectTabsKeydown(event: KeyboardEvent) {
+    const tabs: Array<typeof projectTab> = ["all", "urgent", "closed"];
+    const current = tabs.indexOf(projectTab);
+    const next = event.key === "ArrowRight" ? (current + 1) % tabs.length : event.key === "ArrowLeft" ? (current + tabs.length - 1) % tabs.length : event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : -1;
+    if (next < 0) return;
+    event.preventDefault();
+    projectTab = tabs[next];
+    (event.currentTarget as HTMLElement).querySelectorAll<HTMLButtonElement>('button[role="tab"]')[next]?.focus();
+  }
   let sidebarCollapsed = false;
-  let expandedChatIds: string[] = [];
-  let allTasksExpanded = true;
+  let projectActionsOpen = false;
+  let projectActionsTrigger: HTMLButtonElement | null = null;
+  let projectTaskPendingIds: string[] = [];
+  let projectTaskError = "";
   let locale: Locale = "ru";
-  let themePreference: ThemePreference = "system";
   let reduceMotion = false;
   let settingsSection: SettingsSection = "general";
-  let appVersion = "0.1.0";
+  let mcpSettingsOpen = false;
+  let conversationSettingsOpen = false;
+  let appVersion = packageVersion;
   let dataDirectory = "";
   let dataActionState: DataActionState = "idle";
   let dataActionMessage = "";
@@ -197,11 +223,21 @@
   let mcpActivityRemaining = 0;
   let mcpActivityState: "idle" | "loading" | "error" = "idle";
   let mcpActivityError = "";
-  let automationSettings: AutomationSettings = { background_ai_triage: false, provider: "auto" };
+  let agentAdapters: AgentAdapterStatus[] = [];
+  let agentAdaptersState: "idle" | "loading" | "ready" | "error" = "idle";
+  let agentAdapterPending: AgentAdapterClient | "" = "";
+  let agentAdapterRoot = "";
+  let agentAdapterMessage = "";
+  let agentAdapterError = "";
+  let automationSettings: AutomationSettings = { background_ai_triage: false, provider: "jev" };
   let localAgentProviders: LocalAgentProviderStatus[] = [];
   let localAgentProvidersState: "idle" | "loading" | "ready" | "error" = "idle";
   let automationSettingsState: "idle" | "saving" | "error" = "idle";
   let automationSettingsError = "";
+  let jevStatus: JevStatus = { configured: false, model: "jev-latest" };
+  let jevApiKey = "";
+  let jevKeyState: "idle" | "saving" | "error" = "idle";
+  let jevKeyError = "";
   let automationStatus: AutomationStatusSummary | null = null;
   let automationStatusState: "idle" | "loading" | "retrying" | "error" = "idle";
   let telegramStatus: TelegramStatus = { step: "unconfigured", configured: false, managed_credentials: false };
@@ -280,7 +316,8 @@
   let markdown = "";
   let editorHint: MarkdownHint | null = null;
   let copied = false;
-  let copiedMcpPrompt = "";
+  let mcpCopyPending = false;
+  let mcpCopyError = "";
   let completedGroupOpen = false;
   let loading = true;
   let loadError = "";
@@ -300,6 +337,16 @@
   let urgencyMenuOpen = false;
   let newTaskMenuAnchor: "sidebar" | "workspace" | null = null;
   let createChatOpen = false;
+  let createHubOpen = false;
+  let dockTaskModalOpen = false;
+  let dockProjectModalOpen = false;
+  let dockTaskTitle = "";
+  let dockTaskDetails = "";
+  let dockTaskProjectId = "";
+  let dockTaskUrgency: "normal" | "important" | "urgent" = "normal";
+  let dockProjectTitle = "";
+  let dockModalBusy = false;
+  let dockModalError = "";
   let createChatTitle = "";
   let renameChatOpen = false;
   let renameChatTitle = "";
@@ -323,6 +370,9 @@
   let projectContextVersion = "";
   let projectContextDraft = "";
   let projectContextResources: ProjectResource[] = [];
+  let projectContextSavedDraft = "";
+  let projectContextSavedResources = "";
+  let projectContextDiscardOpen = false;
   let projectAttention: ProjectAttention[] = [];
   let projectAttentionAnswerId = "";
   let projectAttentionAnswer = "";
@@ -330,7 +380,6 @@
   let projectAutoRunDraft = false;
   let projectAutoRunSaved = false;
   let projectAutoRunLoading = false;
-  let projectAutomationStatus: AutomationStatusSummary | null = null;
   let projectGithubOpen = false;
   let projectResourceAddOpen = false;
   let projectContextEditorMode: "edit" | "preview" = "edit";
@@ -350,8 +399,13 @@
   let projectContextDialog: HTMLElement;
   let projectContextTextarea: HTMLTextAreaElement;
   let projectContextReturnFocus: HTMLElement | null = null;
-  let projectWorkspaceSection: ProjectWorkspaceSection = "overview";
+  let projectWorkspaceSection: ProjectWorkspaceSection = "context";
   let projectWorkspaceItems: ProjectWorkspaceItem[] = [];
+  let projectKnowledgeProposals: ProjectKnowledgeProposal[] = [];
+  let projectKnowledgeLoading = false;
+  let projectKnowledgeError = "";
+  let projectKnowledgePendingId = "";
+  let buddyActivityOpen = false;
   let projectWorkspaceLoading = false;
   let projectWorkspaceError = "";
   let projectWorkspaceConflictRemote: ProjectWorkspaceItem | null = null;
@@ -393,6 +447,9 @@
   let imageViewerReturnFocus: HTMLElement | null = null;
   let sidebarProjectHint: { label: string; left: number; top: number } | null = null;
   let commandPaletteOpen = false;
+  let dock: Dock;
+  let dockClearance = 260;
+  let settingsNavElement: HTMLElement | undefined;
   let commandPaletteReturnFocus: HTMLElement | null = null;
   let commandQuery = "";
   let commandActiveIndex = 0;
@@ -438,19 +495,15 @@
 
   function saveUiPreferences() {
     localStorage.setItem(uiPreferencesKey, JSON.stringify({
-      theme: themePreference,
       locale,
       reduceMotion,
-      sidebarCollapsed,
-      expandedChatIds,
-      allTasksExpanded
+      sidebarCollapsed
     }));
   }
 
   function applyTheme() {
-    const dark = themePreference === "dark" || (themePreference === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
-    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", dark ? "#111110" : "#ffffff");
+    document.documentElement.dataset.theme = "dark";
+    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", "#111110");
   }
 
   function applyMotionPreference() {
@@ -460,12 +513,9 @@
   function loadUiPreferences() {
     try {
       const stored = JSON.parse(localStorage.getItem(uiPreferencesKey) ?? "{}") as Record<string, unknown>;
-      if (stored.theme === "system" || stored.theme === "light" || stored.theme === "dark") themePreference = stored.theme;
-      if (stored.locale === "ru" || stored.locale === "en") locale = stored.locale;
+      locale = "ru";
       if (typeof stored.reduceMotion === "boolean") reduceMotion = stored.reduceMotion;
       if (typeof stored.sidebarCollapsed === "boolean") sidebarCollapsed = stored.sidebarCollapsed;
-      if (Array.isArray(stored.expandedChatIds)) expandedChatIds = stored.expandedChatIds.filter((id): id is string => typeof id === "string");
-      if (typeof stored.allTasksExpanded === "boolean") allTasksExpanded = stored.allTasksExpanded;
     } catch {
       localStorage.removeItem(uiPreferencesKey);
     }
@@ -501,12 +551,6 @@
     return t(key, { count });
   }
 
-  function setTheme(theme: ThemePreference) {
-    themePreference = theme;
-    applyTheme();
-    saveUiPreferences();
-  }
-
   function setSidebarCollapsed(collapsed: boolean) {
     sidebarCollapsed = collapsed;
     sidebarProjectHint = null;
@@ -530,22 +574,6 @@
   function toggleMotionPreference() {
     reduceMotion = !reduceMotion;
     applyMotionPreference();
-    saveUiPreferences();
-  }
-
-  function isChatExpanded(chatId: string) {
-    return expandedChatIds.includes(chatId);
-  }
-
-  function setChatExpanded(chatId: string, expanded = true) {
-    expandedChatIds = expanded
-      ? [...new Set([...expandedChatIds, chatId])]
-      : expandedChatIds.filter((id) => id !== chatId);
-    saveUiPreferences();
-  }
-
-  function toggleAllTasks() {
-    allTasksExpanded = !allTasksExpanded;
     saveUiPreferences();
   }
 
@@ -690,7 +718,10 @@
         return converted;
       });
       trashedTasks = trash.map((task) => toTaskItem(task, nextChats));
-      if (!preserveSelection || !nextChats.some((chat) => chat.id === selectedChatId)) selectedChatId = "all";
+      if (!preserveSelection || !nextChats.some((chat) => chat.id === selectedChatId) || selectedChatId === "all") {
+        const savedProjectId = localStorage.getItem("flood.selected-project");
+        selectedChatId = nextChats.find((chat) => chat.id === savedProjectId)?.id ?? nextChats[1]?.id ?? "all";
+      }
       if (selectedTaskId) {
         const current = tasks.find((task) => task.id === selectedTaskId);
         if (current && markdown === lastSavedMarkdown && current.version !== previousSelected?.version) {
@@ -931,7 +962,10 @@
     scheduleSave();
   }
 
-  function syncTaskTitle() {
+  function syncTaskTitle(event: Event) {
+    const field = event.currentTarget as HTMLTextAreaElement;
+    taskTitleDraft = field.value.replace(/[\r\n]+/g, " ");
+    field.value = taskTitleDraft;
     if (selectedTaskId === draftTaskId) draftDirty = true;
     serializeEditor();
   }
@@ -940,6 +974,19 @@
     if (event.key !== "Enter") return;
     event.preventDefault();
     void focusEditor();
+  }
+
+  function fitTaskTitle(node: HTMLTextAreaElement, _value: string) {
+    if (CSS.supports("field-sizing", "content")) return {};
+    const resize = () => {
+      node.style.height = "auto";
+      node.style.height = `${node.scrollHeight}px`;
+    };
+    const observer = new ResizeObserver(resize);
+    observer.observe(node.parentElement!);
+    resize();
+    void document.fonts.ready.then(() => { if (node.isConnected) resize(); });
+    return { update: () => { void tick().then(resize); }, destroy: () => observer.disconnect() };
   }
 
   function scheduleSave() {
@@ -1449,7 +1496,7 @@
     const hintKey = markdownHints[typed];
     if (!block || !hintKey) { editorHint = null; return; }
     const bounds = block.getBoundingClientRect();
-    const sidebarEdge = sidebarCollapsed ? 58 : 304;
+    const sidebarEdge = document.querySelector(".sidebar-panel")?.getBoundingClientRect().right ?? 0;
     const title = t(hintKey);
     const estimatedWidth = Math.min(180, title.length * 7 + 24);
     editorHint = {
@@ -1466,51 +1513,55 @@
   $: currentProjectAgentRuns = visibleAgentQueue.filter((run) => selectedChatId === "all" || run.project_id === selectedChatId);
   $: currentProjectPrimaryRun = currentProjectAgentRuns.find((run) => run.state === "running") ?? currentProjectAgentRuns.find((run) => run.state === "needs_input") ?? currentProjectAgentRuns.find((run) => run.state === "queued");
   $: currentProjectQueuedCount = currentProjectAgentRuns.filter((run) => run.state === "queued").length;
-  function taskMatchesQuery(task: TaskItem) {
-    const haystack = `${task.title}\n${task.markdown}\n${task.sourceAuthor ?? ""}`.toLocaleLowerCase("ru");
-    return haystack.includes(normalizedQuery);
-  }
-
   $: currentChat = chats.find((chat) => chat.id === selectedChatId) ?? allChat(0);
+  $: dockProject = workspaceView === "task" && selectedTask ? chats.find((chat) => chat.id === selectedTask.chatId) : currentChat;
   $: telegramConnectionsProject = chats.find((chat) => chat.id === telegramPickerProjectId && chat.id !== "all");
   $: telegramVisibleChats = telegramChatSearch.trim() ? telegramSearchResults : telegramChats;
-  $: normalizedQuery = query.trim().toLocaleLowerCase("ru");
-  $: searchActive = normalizedQuery.length > 0;
-  // The sidebar is an open-task navigator. Completed tasks stay available in the
-  // project view, but must never leak into its search or expanded project lists.
+  // Navigation owns projects; tasks appear once, in the working list or search.
   $: sidebarOpenTasks = tasks.filter((task) => !isLocalDraft(task) && !task.completed);
-  $: sidebarSearchGroups = searchActive ? chats.slice(1).map((chat) => {
-    const projectMatches = chat.title.toLocaleLowerCase("ru").includes(normalizedQuery);
-    const projectTasks = sidebarOpenTasks.filter((task) => task.chatId === chat.id);
-    return { chat, tasks: projectMatches ? projectTasks : projectTasks.filter(taskMatchesQuery), projectMatches };
-  }).filter((group) => group.projectMatches || group.tasks.length) : [];
   $: currentProjectTasks = tasks
     .filter((task) => !isLocalDraft(task) && (selectedChatId === "all" || task.chatId === selectedChatId))
     .sort((left, right) => ({ urgent: 0, important: 1, normal: 2 })[left.urgency] - ({ urgent: 0, important: 1, normal: 2 })[right.urgency]);
   $: currentOpenTasks = currentProjectTasks.filter((task) => !task.completed);
   $: currentCompletedTasks = currentProjectTasks.filter((task) => task.completed);
+  $: urgentTaskCount = currentOpenTasks.filter((task) => task.urgency === "urgent").length;
+  $: filteredProjectTasks = projectTab === "closed" ? currentCompletedTasks : projectTab === "urgent" ? currentOpenTasks.filter((task) => task.urgency === "urgent") : currentOpenTasks;
   $: commandResults = buildCommandResults(commandQuery, tasks, chats, locale, telegramStatus.step);
   $: setupHasProject = chats.length > 1;
   $: setupHasTask = tasks.some((task) => !isLocalDraft(task)) || trashedTasks.length > 0;
   $: setupCompleted = Number(setupHasProject) + Number(setupHasTask);
-
-  function tasksForChat(chat: ChatItem) {
-    return sidebarOpenTasks.filter((task) => task.chatId === chat.id);
-  }
 
   function openTaskCount(chatId: string) {
     return sidebarOpenTasks.filter((task) => chatId === "all" || task.chatId === chatId).length;
   }
 
   async function selectChat(chat: ChatItem) {
-    if (!await persistCurrentTask()) return;
-    if (projectContextOpen) closeProjectContext();
+    const leavingProjectContext = projectContextOpen;
+    if (leavingProjectContext) {
+      if (!closeProjectContext(false)) return;
+    } else if (!await persistCurrentTask()) return;
+    closeProjectActions();
+    projectTaskError = "";
+    renameChatOpen = false;
     discardLocalDraft();
+    selectedTaskId = "";
+    selectedTaskNavigationScope = "";
+    markdown = "";
+    lastSavedMarkdown = "";
+    saveState = "idle";
     createChatOpen = false;
     createChatTitle = "";
     selectedChatId = chat.id;
+    if (chat.id !== "all") localStorage.setItem("flood.selected-project", chat.id);
+    projectPickerOpen = false;
+    projectTab = "all";
     activeSection = "tasks";
     workspaceView = "project";
+    buddyActivityOpen = false;
+    projectAttention = [];
+    projectWorkspaceItems = [];
+    projectKnowledgeProposals = [];
+    if (chat.id !== "all") void loadProjectActivity(chat.id);
     completedGroupOpen = false;
     deleteChatConfirmOpen = false;
     editorHint = null;
@@ -1520,11 +1571,33 @@
     closeSelectionToolbar();
   }
 
+  async function openHomeProject(projectId: string) {
+    const project = chats.find((chat) => chat.id === projectId);
+    if (project) await selectChat(project);
+  }
+
+  async function openHomeContext(projectId: string) {
+    const project = chats.find((chat) => chat.id === projectId);
+    if (!project) return;
+    await selectChat(project);
+    await openProjectContext();
+  }
+
+  async function openHomeTask(taskId: string) {
+    const task = tasks.find((candidate) => candidate.id === taskId);
+    if (task) await openTask(task, "all");
+  }
+
+  async function completeHomeTask(taskId: string) {
+    const task = tasks.find((candidate) => candidate.id === taskId);
+    if (task) await setListedTaskCompleted(task, true);
+  }
+
   function buildCommandResults(value: string, taskList: TaskItem[], projectList: ChatItem[], _locale: Locale, _telegramStep: string): CommandItem[] {
     const needle = value.trim().toLocaleLowerCase(locale);
     const actions: CommandItem[] = [
       { id: "action:new-task", group: "actions", title: t("newTask"), meta: "Ctrl+N", keywords: `${t("newTask")} создать добавить` },
-      { id: "action:all-tasks", group: "actions", title: t("allTasks"), meta: openTasksLabel(taskList.filter((task) => !task.completed && !isLocalDraft(task)).length), keywords: `${t("allTasks")} список` },
+      { id: "action:all-tasks", group: "actions", title: t("home"), meta: openTasksLabel(taskList.filter((task) => !task.completed && !isLocalDraft(task)).length), keywords: `${t("home")} ${t("allTasks")} список` },
       { id: "action:integrations", group: "actions", title: t("integrations"), meta: "Telegram", keywords: `${t("integrations")} telegram настройки` },
       { id: "action:mcp", group: "actions", title: t("mcpAndAi"), meta: "MCP", keywords: `${t("mcpAndAi")} codex claude cursor агент` },
       { id: "action:data", group: "actions", title: t("data"), meta: t("settings"), keywords: `${t("data")} markdown backup папка` }
@@ -1583,12 +1656,14 @@
 
   async function openSettingsSection(section: SettingsSection) {
     await changeSection("settings");
-    settingsSection = section;
+    if (activeSection !== "settings") return;
+    settingsSection = section === "appearance" || section === "about" ? "general" : section === "mcp" ? "agents" : section;
+    await tick();
+    revealSettingsSection();
+    document.querySelector(".settings-workspace")?.scrollTo({ top: 0 });
     if (section === "data" && !attachmentCleanupReport) void loadAttachmentCleanupReport();
-    if (section === "mcp") {
-      void loadLocalAgentProviders();
-      if (!attachmentCleanupReport) void loadAttachmentCleanupReport();
-      if (!mcpSelfCheck) void runMcpSelfCheck();
+    if (section === "agents" || section === "mcp") {
+      void loadAgentAdapters();
       if (!mcpActivity.length && mcpActivityState === "idle") void loadMcpActivity();
     }
   }
@@ -1597,7 +1672,10 @@
     await changeSection("tasks");
     if (activeSection !== "tasks") return;
     if (!setupHasProject) {
+      projectPickerOpen = true;
       createChatOpen = true;
+      await tick();
+      document.querySelector<HTMLInputElement>("#prototype-project-name")?.focus();
       return;
     }
     const project = chats[1];
@@ -1610,9 +1688,7 @@
     if (!item) return;
     closeCommandPalette();
     if (item.id === "action:new-task") {
-      if (currentChat.id !== "all") await createDraft(currentChat);
-      else if (chats.length > 1) requestNewTask("workspace");
-      else createChatOpen = true;
+      await requestNewTask("workspace");
       return;
     }
     if (item.id === "action:all-tasks") {
@@ -1663,7 +1739,7 @@
     }
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
-    if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog || !dialog.contains(document.activeElement))) {
       event.preventDefault();
       last.focus();
     } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
@@ -1686,11 +1762,19 @@
     return t(group === "actions" ? "quickActions" : group === "projects" ? "projectResults" : "taskResults");
   }
 
-  function toggleChat(chatId: string) {
-    expandedChatIds = isChatExpanded(chatId)
-      ? expandedChatIds.filter((id) => id !== chatId)
-      : [...expandedChatIds, chatId];
-    window.setTimeout(saveUiPreferences, 0);
+  function closeProjectActions(restoreFocus = false) {
+    projectActionsOpen = false;
+    if (restoreFocus) projectActionsTrigger?.focus();
+  }
+
+  async function toggleProjectActions(trigger: HTMLButtonElement) {
+    projectActionsTrigger = trigger;
+    projectActionsOpen = !projectActionsOpen;
+    newTaskMenuAnchor = null;
+    if (projectActionsOpen) {
+      await tick();
+      document.querySelector<HTMLButtonElement>("#project-actions-panel button")?.focus();
+    }
   }
 
   async function openImageViewer(card: HTMLElement) {
@@ -1716,8 +1800,12 @@
   }
 
   async function handleWindowKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape" && event.target instanceof Element && event.target.closest(".dock")) return;
     if (event.key === "Escape") {
-      if (commandPaletteOpen) closeCommandPalette();
+      if (projectPickerOpen) { projectPickerOpen = false; createChatOpen = false; event.preventDefault(); projectPickerButton?.focus(); }
+      else if (projectActionsOpen) { event.preventDefault(); closeProjectActions(true); }
+      else if (projectContextDiscardOpen) projectContextDiscardOpen = false;
+      else if (commandPaletteOpen) closeCommandPalette();
       else if (projectWorkspaceEditorId && !projectWorkspaceSaving) closeProjectWorkspaceEditor();
       else if (projectContextOpen && !projectContextSaving) closeProjectContext();
       else if (telegramConnectionsProject) closeTelegramConnections();
@@ -1726,22 +1814,24 @@
       else if (imageViewer) closeImageViewer();
       else if (sourceViewerOpen) closeSourceViewer();
       else if (newTaskMenuAnchor || urgencyMenuOpen || taskActionMenuOpen || sourceEditorOpen || datePickerOpen) {
+        const returnToTaskActions = sourceEditorOpen;
         newTaskMenuAnchor = null;
         urgencyMenuOpen = false;
         taskActionMenuOpen = false;
         moveMenuOpen = false;
         sourceEditorOpen = false;
         datePickerOpen = false;
+        if (returnToTaskActions) void tick().then(() => document.querySelector<HTMLButtonElement>(".task-actions-trigger")?.focus());
       }
       else if (activeSection === "tasks" && workspaceView === "task") await backToProject();
       return;
     }
-    if (event.ctrlKey && event.key.toLocaleLowerCase() === "k") {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "k" && activeSection === "tasks" && (workspaceView === "project" || workspaceView === "task") && dockProject?.id !== "all" && !dockTaskModalOpen && !dockProjectModalOpen) {
       event.preventDefault();
-      if (commandPaletteOpen) closeCommandPalette();
-      else await openCommandPalette();
+      dock?.focus();
       return;
     }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "k") return;
     if (commandPaletteOpen) return;
     if (event.ctrlKey && event.key.toLocaleLowerCase() === "n") {
       event.preventDefault();
@@ -1919,6 +2009,7 @@
   }
 
   async function openTask(task: TaskItem, navigationScope = task.chatId) {
+    if (projectTaskPendingIds.includes(task.id)) return;
     if (!await persistCurrentTask()) return;
     discardLocalDraft();
     createChatOpen = false;
@@ -1936,7 +2027,6 @@
     const owner = chats.find((chat) => chat.id === fullTask.chatId);
     if (owner) {
       selectedChatId = owner.id;
-      setChatExpanded(owner.id);
     }
     selectedTaskId = fullTask.id;
     selectedTaskNavigationScope = navigationScope;
@@ -2071,7 +2161,7 @@
     if (!item.task_id) return;
     const task = tasks.find((candidate) => candidate.id === item.task_id);
     if (!task) return;
-    closeProjectContext();
+    if (!closeProjectContext()) return;
     void openTask(task, task.chatId);
   }
 
@@ -2097,19 +2187,35 @@
     }
   }
 
-  function requestNewTask(anchor: "sidebar" | "workspace" = "workspace") {
-    if (activeSection === "tasks" && selectedChatId !== "all" && currentChat.id !== "all") {
-      void createDraft(currentChat);
-    } else {
-      newTaskMenuAnchor = newTaskMenuAnchor === anchor ? null : anchor;
+  async function requestNewTask(anchor: "sidebar" | "workspace" = "workspace") {
+    if (projectContextOpen && !closeProjectContext()) return;
+    if (currentChat.id !== "all") {
+      await createDraft(currentChat);
+      return;
     }
+    if (!await persistCurrentTask()) return;
+    activeSection = "tasks";
+    workspaceView = "project";
+    if (chats.length <= 1) {
+      projectPickerOpen = true;
+      createChatOpen = true;
+      await tick();
+      document.querySelector<HTMLInputElement>("#prototype-project-name")?.focus();
+      return;
+    }
+    newTaskMenuAnchor = newTaskMenuAnchor === anchor ? null : anchor;
+    await tick();
+    document.querySelector<HTMLButtonElement>(".new-task-menu button")?.focus();
   }
 
   async function createDraft(chosenChat?: ChatItem) {
+    if (projectContextOpen && !closeProjectContext()) return;
     if (!await persistCurrentTask()) return;
     discardLocalDraft();
     const targetChat = chosenChat ?? (selectedChatId === "all" ? undefined : currentChat);
     if (!targetChat || targetChat.id === "all" || !inTauri()) return;
+    activeSection = "tasks";
+    closeProjectActions();
     newTaskMenuAnchor = null;
     const now = new Date().toISOString();
     const draft: TaskItem = {
@@ -2133,7 +2239,6 @@
     draftDirty = false;
     tasks = [draft, ...tasks];
     selectedChatId = targetChat.id;
-    setChatExpanded(targetChat.id);
     selectedTaskId = draft.id;
     selectedTaskNavigationScope = targetChat.id;
     markdown = draft.markdown;
@@ -2177,9 +2282,11 @@
 
   function startRenameChat() {
     if (currentChat.id === "all") return;
+    closeProjectActions();
     renameChatTitle = currentChat.title;
     renameChatOpen = true;
     formError = "";
+    void tick().then(() => document.querySelector<HTMLInputElement>(".rename-chat-form input")?.focus());
   }
 
   async function submitRenameChat(event: SubmitEvent) {
@@ -2205,18 +2312,23 @@
     projectContextVersion = currentChat.version;
     projectContextDraft = currentChat.context ?? "";
     projectContextResources = (currentChat.resources ?? []).map((resource) => ({ ...resource }));
+    projectContextSavedDraft = projectContextDraft;
+    projectContextSavedResources = JSON.stringify(projectContextResources);
+    projectContextDiscardOpen = false;
     projectAttention = [];
     projectAttentionAnswerId = "";
     projectAttentionAnswer = "";
     projectAutoRunDraft = false;
     projectAutoRunSaved = false;
     projectAutoRunLoading = inTauri();
-    projectAutomationStatus = inTauri() ? null : automationStatus;
     projectResourceAddOpen = false;
     projectGithubOpen = false;
     projectContextEditorMode = "edit";
-    projectWorkspaceSection = "overview";
+    projectWorkspaceSection = "context";
     projectWorkspaceItems = [];
+    projectKnowledgeProposals = [];
+    projectKnowledgeError = "";
+    projectKnowledgePendingId = "";
     projectWorkspaceError = "";
     resetProjectWorkspaceEditor();
     expandedProjectResourceId = "";
@@ -2230,6 +2342,7 @@
     projectContextDialog?.focus();
     if (inTauri()) {
       void loadProjectWorkspaceItems();
+      void loadProjectKnowledgeProposals();
       try {
         const policy = await invoke<ProjectAutomationPolicy>("project_automation_policy", { projectId: currentChat.id });
         projectAutoRunDraft = policy.auto_run_created_tasks;
@@ -2241,17 +2354,90 @@
       }
       try {
         projectAttention = await invoke<ProjectAttention[]>("project_attention", { projectId: currentChat.id });
-        projectAutomationStatus = await invoke<AutomationStatusSummary>("project_automation_status", { projectId: currentChat.id });
       } catch (error) {
         projectContextError ||= String(error);
       }
     }
   }
 
-  function closeProjectContext() {
-    if (projectContextSaving || projectMemorySaving) return;
+  function projectContextIsDirty() {
+    return projectContextDraft !== projectContextSavedDraft
+      || JSON.stringify(projectContextResources) !== projectContextSavedResources
+      || projectAutoRunDraft !== projectAutoRunSaved;
+  }
+
+  function openDockTaskModal(title = "") {
+    dockTaskTitle = title;
+    dockTaskDetails = "";
+    dockTaskProjectId = currentChat.id !== "all" ? currentChat.id : chats.find((chat) => chat.id !== "all")?.id ?? "";
+    dockTaskUrgency = "normal";
+    dockModalError = "";
+    dockTaskModalOpen = true;
+  }
+
+  function openDockProjectModal() {
+    dockProjectTitle = "";
+    dockModalError = "";
+    dockProjectModalOpen = true;
+  }
+
+  async function submitDockTask(event: SubmitEvent) {
+    event.preventDefault();
+    const title = dockTaskTitle.trim().replace(/\s*\r?\n\s*/g, " ");
+    const projectId = dockTaskProjectId;
+    if (!title || !projectId || dockModalBusy || !inTauri()) return;
+    dockModalBusy = true;
+    dockModalError = "";
+    try {
+      const details = dockTaskDetails.trim();
+      const description = `# ${title}${details ? `\n\n${details}` : ""}`;
+      await invoke<TaskRecord>("create_task", { input: { project_id: projectId, description, urgency: dockTaskUrgency, source: null } });
+      await loadData(true);
+      dockTaskModalOpen = false;
+      const project = chats.find((chat) => chat.id === projectId);
+      if (project && selectedChatId !== projectId) await selectChat(project);
+    } catch (error) {
+      dockModalError = commandErrorMessage(error);
+    } finally {
+      dockModalBusy = false;
+    }
+  }
+
+  async function submitDockProject(event: SubmitEvent) {
+    event.preventDefault();
+    const title = dockProjectTitle.trim();
+    if (!title || dockModalBusy || !inTauri()) return;
+    dockModalBusy = true;
+    dockModalError = "";
+    try {
+      const created = await invoke<ProjectRecord>("create_project", { title });
+      await loadData(true);
+      dockProjectModalOpen = false;
+      const project = chats.find((chat) => chat.id === created.id);
+      if (project) await selectChat(project);
+    } catch (error) {
+      dockModalError = commandErrorMessage(error);
+    } finally {
+      dockModalBusy = false;
+    }
+  }
+
+  function handleWindowPointerDown(event: PointerEvent) {
+    if (projectPickerOpen && event.target instanceof Node && !document.querySelector(".prototype-picker-wrap")?.contains(event.target)) {
+      projectPickerOpen = false;
+      createChatOpen = false;
+    }
+  }
+
+  function closeProjectContext(restoreFocus = true, discard = false) {
+    if (projectContextSaving || projectMemorySaving) return false;
+    if (!discard && projectContextIsDirty()) {
+      projectContextDiscardOpen = true;
+      return false;
+    }
     const returnFocus = projectContextReturnFocus;
     projectContextReturnFocus = null;
+    projectContextDiscardOpen = false;
     projectContextOpen = false;
     workspaceView = "project";
     projectContextProjectId = "";
@@ -2259,27 +2445,30 @@
     projectContextVersion = "";
     projectContextDraft = "";
     projectContextResources = [];
-    projectAttention = [];
+    projectContextSavedDraft = "";
+    projectContextSavedResources = "";
     projectAttentionAnswerId = "";
     projectAttentionAnswer = "";
     projectAttentionBusy = false;
     projectAutoRunDraft = false;
     projectAutoRunSaved = false;
     projectAutoRunLoading = false;
-    projectAutomationStatus = null;
     projectResourceAddOpen = false;
     projectGithubOpen = false;
     projectContextEditorMode = "edit";
-    projectWorkspaceSection = "overview";
-    projectWorkspaceItems = [];
+    projectWorkspaceSection = "context";
     projectWorkspaceLoading = false;
     projectWorkspaceError = "";
+    projectKnowledgeLoading = false;
+    projectKnowledgeError = "";
+    projectKnowledgePendingId = "";
     resetProjectWorkspaceEditor();
     expandedProjectResourceId = "";
     projectContextError = "";
     projectContextConflictRemote = null;
     resetProjectMemoryEditor(true);
-    restoreModalFocus(returnFocus);
+    if (restoreFocus) restoreModalFocus(returnFocus);
+    return true;
   }
 
   async function reloadProjectContext() {
@@ -2292,12 +2481,12 @@
     projectContextVersion = project.version;
     projectContextDraft = project.context ?? "";
     projectContextResources = (project.resources ?? []).map((resource) => ({ ...resource }));
+    projectContextSavedDraft = projectContextDraft;
+    projectContextSavedResources = JSON.stringify(projectContextResources);
+    projectContextDiscardOpen = false;
     projectAttention = inTauri()
       ? await invoke<ProjectAttention[]>("project_attention", { projectId: project.id }).catch(() => [])
       : projectAttention;
-    projectAutomationStatus = inTauri()
-      ? await invoke<AutomationStatusSummary>("project_automation_status", { projectId: project.id }).catch(() => null)
-      : automationStatus;
     projectAutoRunLoading = inTauri();
     projectResourceAddOpen = false;
     projectGithubOpen = false;
@@ -2397,18 +2586,93 @@
     trapModalFocus(event);
   }
 
-  async function loadProjectWorkspaceItems() {
-    if (!projectContextProjectId || !inTauri()) return;
+  function activeBuddyProjectId() {
+    if (projectContextOpen && projectContextProjectId) return projectContextProjectId;
+    return selectedChatId === "all" ? "" : selectedChatId;
+  }
+
+  async function loadProjectWorkspaceItems(projectId = activeBuddyProjectId()) {
+    if (!projectId || !inTauri()) return;
     projectWorkspaceLoading = true;
     projectWorkspaceError = "";
     try {
-      projectWorkspaceItems = await invoke<ProjectWorkspaceItem[]>("list_project_workspace_items", {
-        projectId: projectContextProjectId
-      });
+      const items = await invoke<ProjectWorkspaceItem[]>("list_project_workspace_items", { projectId });
+      if (activeBuddyProjectId() === projectId) projectWorkspaceItems = items;
     } catch (error) {
-      projectWorkspaceError = String(error);
+      if (activeBuddyProjectId() === projectId) projectWorkspaceError = String(error);
     } finally {
-      projectWorkspaceLoading = false;
+      if (activeBuddyProjectId() === projectId) projectWorkspaceLoading = false;
+    }
+  }
+
+  async function loadProjectKnowledgeProposals(projectId = activeBuddyProjectId()) {
+    if (!projectId || !inTauri()) return;
+    projectKnowledgeLoading = true;
+    projectKnowledgeError = "";
+    try {
+      const proposals = await invoke<ProjectKnowledgeProposal[]>("list_project_knowledge_proposals", { projectId });
+      if (activeBuddyProjectId() === projectId) projectKnowledgeProposals = proposals;
+    } catch (error) {
+      if (activeBuddyProjectId() === projectId) projectKnowledgeError = commandErrorMessage(error);
+    } finally {
+      if (activeBuddyProjectId() === projectId) projectKnowledgeLoading = false;
+    }
+  }
+
+  async function loadProjectActivity(projectId = activeBuddyProjectId()) {
+    if (!projectId || !inTauri()) return;
+    void loadProjectWorkspaceItems(projectId);
+    void loadProjectKnowledgeProposals(projectId);
+    try {
+      const attention = await invoke<ProjectAttention[]>("project_attention", { projectId });
+      if (activeBuddyProjectId() === projectId) projectAttention = attention;
+    } catch (error) {
+      if (activeBuddyProjectId() === projectId) projectKnowledgeError ||= commandErrorMessage(error);
+    }
+  }
+
+  async function applyProjectKnowledgeProposal(proposal: ProjectKnowledgeProposal) {
+    if (!proposal.project_id || !inTauri() || projectKnowledgePendingId) return false;
+    projectKnowledgePendingId = proposal.id;
+    projectKnowledgeError = "";
+    try {
+      const decision = await invoke<ProjectKnowledgeProposalDecision>("apply_project_knowledge_proposal", {
+        projectId: proposal.project_id,
+        proposalId: proposal.id
+      });
+      projectKnowledgeProposals = projectKnowledgeProposals.map((item) => item.id === decision.proposal.id ? decision.proposal : item);
+      if (decision.workspaceItem) {
+        projectWorkspaceItems = projectWorkspaceItems.map((item) => item.id === decision.workspaceItem!.id ? decision.workspaceItem! : item);
+      }
+      if (decision.project) applyProjectMemoryUpdate(decision.project);
+      return true;
+    } catch (error) {
+      const parsed = parseCommandError(error);
+      projectKnowledgeError = parsed.code === "conflict" ? t("knowledgeProposalConflict") : parsed.message;
+      await loadProjectWorkspaceItems(proposal.project_id);
+      return false;
+    } finally {
+      projectKnowledgePendingId = "";
+    }
+  }
+
+  async function rejectProjectKnowledgeProposal(proposal: ProjectKnowledgeProposal, decisionReason: string) {
+    if (!proposal.project_id || !inTauri() || projectKnowledgePendingId) return false;
+    projectKnowledgePendingId = proposal.id;
+    projectKnowledgeError = "";
+    try {
+      const rejected = await invoke<ProjectKnowledgeProposal>("reject_project_knowledge_proposal", {
+        projectId: proposal.project_id,
+        proposalId: proposal.id,
+        decisionReason: decisionReason.trim() || null
+      });
+      projectKnowledgeProposals = projectKnowledgeProposals.map((item) => item.id === rejected.id ? rejected : item);
+      return true;
+    } catch (error) {
+      projectKnowledgeError = commandErrorMessage(error);
+      return false;
+    } finally {
+      projectKnowledgePendingId = "";
     }
   }
 
@@ -2420,9 +2684,7 @@
     projectWorkspaceSection = section;
     projectWorkspaceError = "";
     resetProjectWorkspaceEditor();
-    if (inTauri() && ["documents", "rules", "skills", "history"].includes(section)) {
-      void loadProjectWorkspaceItems();
-    }
+    if (inTauri() && section === "context") void loadProjectWorkspaceItems();
   }
 
   function beginCreateProjectWorkspaceItem(kind: ProjectWorkspaceItemKind) {
@@ -2452,7 +2714,7 @@
   }
 
   function restoreProjectWorkspaceRevision(item: ProjectWorkspaceItem, revision: ProjectWorkspaceRevision) {
-    projectWorkspaceSection = item.kind === "document" ? "documents" : item.kind === "rule" ? "rules" : "skills";
+    projectWorkspaceSection = "context";
     editProjectWorkspaceItem(item);
     projectWorkspaceTitle = revision.title;
     projectWorkspaceSummary = revision.summary ?? "";
@@ -2723,6 +2985,7 @@
   }
 
   async function saveProjectContextAgainst(expectedVersion: string) {
+    const submittedAutoRun = projectAutoRunDraft;
     try {
       const updated = await invoke<ProjectRecord>("update_project_details", {
         id: projectContextProjectId,
@@ -2734,12 +2997,14 @@
         ? { ...updated, resources: updated.resources ?? [], telegram_chats: updated.telegram_chats ?? [], open: chat.open }
         : chat);
       projectContextVersion = updated.version;
+      projectContextSavedDraft = updated.context ?? "";
+      projectContextSavedResources = JSON.stringify(updated.resources ?? []);
       projectContextConflictRemote = null;
       projectContextError = "";
-      if (projectAutoRunDraft !== projectAutoRunSaved) {
+      if (submittedAutoRun !== projectAutoRunSaved) {
         const policy = await invoke<ProjectAutomationPolicy>("set_project_auto_run", {
           projectId: projectContextProjectId,
-          enabled: projectAutoRunDraft
+          enabled: submittedAutoRun
         });
         projectAutoRunSaved = policy.auto_run_created_tasks;
       }
@@ -2763,7 +3028,7 @@
     }
     const saved = await saveProjectContextAgainst(projectContextVersion);
     projectContextSaving = false;
-    if (saved) closeProjectContext();
+    if (saved && !projectContextIsDirty()) closeProjectContext(true, true);
   }
 
   function useDiskProjectContextVersion() {
@@ -2776,6 +3041,8 @@
     projectContextVersion = remote.version;
     projectContextDraft = remote.context ?? "";
     projectContextResources = (remote.resources ?? []).map((resource) => ({ ...resource }));
+    projectContextSavedDraft = projectContextDraft;
+    projectContextSavedResources = JSON.stringify(projectContextResources);
     projectContextConflictRemote = null;
     projectContextError = "";
     projectResourceAddOpen = false;
@@ -2789,7 +3056,7 @@
     projectContextError = "";
     const saved = await saveProjectContextAgainst(remote.version);
     projectContextSaving = false;
-    if (saved) closeProjectContext();
+    if (saved && !projectContextIsDirty()) closeProjectContext(true, true);
   }
 
   function projectResourceKindLabel(kind: ProjectResourceKind) {
@@ -2906,8 +3173,9 @@
       chats = chats.filter((chat) => chat.id !== deletedId);
       tasks = tasks.filter((task) => task.chatId !== deletedId);
       trashedTasks = trashedTasks.filter((task) => task.chatId !== deletedId);
-      setChatExpanded(deletedId, false);
-      selectedChatId = "all";
+      selectedChatId = chats[1]?.id ?? "all";
+      if (selectedChatId === "all") localStorage.removeItem("flood.selected-project");
+      else localStorage.setItem("flood.selected-project", selectedChatId);
       selectedTaskId = "";
       selectedTaskNavigationScope = "";
       workspaceView = "project";
@@ -3007,6 +3275,13 @@
     datePickerOpen = false;
     sourceEditorOpen = true;
     formError = "";
+    void tick().then(() => document.querySelector<HTMLTextAreaElement>(".source-popover textarea")?.focus());
+  }
+
+  function closeSourceEditor() {
+    sourceEditorOpen = false;
+    datePickerOpen = false;
+    void tick().then(() => document.querySelector<HTMLButtonElement>(".task-actions-trigger")?.focus());
   }
 
   async function saveSource(event: SubmitEvent) {
@@ -3066,7 +3341,6 @@
       tasks = tasks.map((item) => item.id === moved.id ? converted : item);
       selectedChatId = chat.id;
       if (selectedTaskNavigationScope !== "all" && selectedTaskNavigationScope !== "search") selectedTaskNavigationScope = chat.id;
-      setChatExpanded(chat.id);
       lastSavedMarkdown = converted.markdown;
       taskActionMenuOpen = false;
       moveMenuOpen = false;
@@ -3159,6 +3433,43 @@
     }
   }
 
+  async function setListedTaskCompleted(task: TaskItem, completed: boolean) {
+    if (!inTauri() || projectTaskPendingIds.includes(task.id)) return;
+    const previousFocus = focusedElement();
+    const row = previousFocus?.closest(".ui-task-row");
+    const list = row?.parentElement;
+    const rowIndex = list && row ? Array.from(list.children).indexOf(row) : -1;
+    const projectId = selectedChatId;
+    projectTaskPendingIds = [...projectTaskPendingIds, task.id];
+    projectTaskError = "";
+    try {
+      const saved = await invoke<TaskRecord>("update_task", {
+        id: task.id, patch: { status: completed ? "completed" : "open" }, expectedVersion: task.version
+      });
+      tasks = tasks.map((item) => item.id === saved.id ? toTaskItem(saved) : item);
+      await tick();
+      // Completing a row removes it from this list. Keep keyboard progress local,
+      // without stealing focus if the user navigated while the write was pending.
+      if (rowIndex >= 0 && !previousFocus?.isConnected && document.activeElement === document.body && workspaceView === "project" && selectedChatId === projectId) {
+        const nextRow = list?.isConnected ? list.children[Math.min(rowIndex, list.children.length - 1)] : null;
+        const nextControl = nextRow?.querySelector<HTMLElement>('input, button') ?? document.querySelector<HTMLElement>(".completed-toggle, .project-create-task");
+        nextControl?.focus();
+      }
+    } catch (error) {
+      if (selectedChatId === projectId) projectTaskError = isConflictError(error) ? t("taskListConflict") : commandErrorMessage(error);
+      if (isConflictError(error)) {
+        // Refresh only this row: another task may have been opened and edited
+        // while this write was pending. A whole-store refresh would lose its draft.
+        try {
+          const remote = await invoke<TaskRecord>("get_task", { id: task.id });
+          tasks = tasks.map((item) => item.id === remote.id ? toTaskItem(remote) : item);
+        } catch { /* Keep the failed row and the visible error until the next read. */ }
+      }
+    } finally {
+      projectTaskPendingIds = projectTaskPendingIds.filter((id) => id !== task.id);
+    }
+  }
+
   function urgencyTitle(urgency: Urgency) {
     return urgency === "urgent" ? t("urgent") : urgency === "important" ? t("important") : t("normal");
   }
@@ -3239,12 +3550,25 @@
   }
 
   async function changeSection(section: Section) {
+    closeProjectActions();
+    projectPickerOpen = false;
     createChatOpen = false;
     createChatTitle = "";
     newTaskMenuAnchor = null;
-    if (activeSection === section) return;
-    if (!await persistCurrentTask()) return;
+    const leavingProjectContext = projectContextOpen;
+    if (leavingProjectContext) {
+      if (!closeProjectContext(false)) return;
+    } else {
+      if (activeSection === section) return;
+      if (!await persistCurrentTask()) return;
+    }
     discardLocalDraft();
+    selectedTaskId = "";
+    selectedTaskNavigationScope = "";
+    workspaceView = "project";
+    markdown = "";
+    lastSavedMarkdown = "";
+    saveState = "idle";
     activeSection = section;
     deleteChatConfirmOpen = false;
     emptyTrashConfirmOpen = false;
@@ -3255,17 +3579,22 @@
   }
 
   async function copyMcpConfig() {
-    await navigator.clipboard.writeText(mcpConfiguration(mcpClient));
-    copied = true;
-    window.setTimeout(() => (copied = false), 1400);
-  }
-
-  async function copyMcpPrompt(prompt: string) {
-    await navigator.clipboard.writeText(prompt);
-    copiedMcpPrompt = prompt;
-    window.setTimeout(() => {
-      if (copiedMcpPrompt === prompt) copiedMcpPrompt = "";
-    }, 1400);
+    if (mcpCopyPending) return;
+    const client = mcpClient;
+    mcpCopyPending = true;
+    mcpCopyError = "";
+    copied = false;
+    try {
+      await navigator.clipboard.writeText(mcpConfiguration(client));
+      if (mcpClient === client) {
+        copied = true;
+        window.setTimeout(() => (copied = false), 1400);
+      }
+    } catch {
+      mcpCopyError = "Не удалось скопировать. Выделите конфигурацию и нажмите Ctrl+C.";
+    } finally {
+      mcpCopyPending = false;
+    }
   }
 
   function mcpConfiguration(client: McpClient) {
@@ -3284,6 +3613,91 @@
     if (!mcpRuntime.compatible) return t("mcpVersionMismatch");
     if (mcpCheckState === "success") return t("mcpReady");
     return t("mcpAvailable");
+  }
+
+  async function chooseCreateTask() {
+    createHubOpen = false;
+    await requestNewTask("sidebar");
+  }
+
+  async function chooseCreateProject() {
+    createHubOpen = false;
+    await changeSection("tasks");
+    projectPickerOpen = true;
+    createChatOpen = true;
+    await tick();
+    document.querySelector<HTMLInputElement>("#prototype-project-name")?.focus();
+  }
+
+  async function loadAgentAdapters(workspaceRoot = agentAdapterRoot) {
+    if (!inTauri()) return;
+    agentAdaptersState = "loading";
+    agentAdapterError = "";
+    try {
+      agentAdapters = await invoke<AgentAdapterStatus[]>("list_agent_adapters", {
+        workspaceRoot: workspaceRoot || null
+      });
+      agentAdaptersState = "ready";
+    } catch (error) {
+      agentAdaptersState = "error";
+      agentAdapterError = commandErrorMessage(error);
+    }
+  }
+
+  function revealSettingsSection() {
+    if (!settingsNavElement) return;
+    const button = settingsNavElement.querySelector<HTMLButtonElement>(`button[data-settings-section="${settingsSection}"]`);
+    if (!button) return;
+    const container = settingsNavElement.getBoundingClientRect();
+    const item = button.getBoundingClientRect();
+    const delta = item.left < container.left ? item.left - container.left : item.right > container.right ? item.right - container.right : 0;
+    if (delta) settingsNavElement.scrollBy({ left: delta, behavior: "instant" });
+  }
+
+  function agentAdapterStatus(client: AgentAdapterClient) {
+    return agentAdapters.find((adapter) => adapter.client === client);
+  }
+
+  function agentAdapterStatusLabel(adapter: AgentAdapterStatus | undefined) {
+    if (!inTauri()) return "Доступно в desktop-приложении";
+    if (agentAdaptersState === "loading" || agentAdaptersState === "idle") return t("agentAdapterChecking");
+    if (agentAdaptersState === "error") return "Не удалось проверить подключение";
+    if (!adapter?.installed) return t("agentAdapterNotInstalled");
+    if (adapter.connected && adapter.project_adapter_current) return t("agentAdapterReady");
+    if (adapter.connected) return t("agentAdapterMcpReady");
+    return t("agentAdapterAvailable");
+  }
+
+  async function connectAgentAdapter(client: AgentAdapterClient) {
+    if (!inTauri() || agentAdapterPending) return;
+    const selected = await openDialog({
+      directory: true,
+      multiple: false,
+      title: t("agentAdapterChooseProject")
+    });
+    if (typeof selected !== "string") return;
+
+    agentAdapterPending = client;
+    agentAdapterRoot = selected;
+    agentAdapterMessage = "";
+    agentAdapterError = "";
+    try {
+      const result = await invoke<AgentAdapterResult>("connect_agent_adapter", {
+        client,
+        workspaceRoot: selected
+      });
+      agentAdapters = agentAdapters.map((adapter) => adapter.client === client ? result.status : adapter);
+      if (!agentAdapters.some((adapter) => adapter.client === client)) agentAdapters = [...agentAdapters, result.status];
+      agentAdaptersState = "ready";
+      agentAdapterMessage = result.restart_required ? t("agentAdapterConnectedRestart") : t("agentAdapterConnected");
+    } catch (error) {
+      const message = commandErrorMessage(error);
+      await loadAgentAdapters(selected);
+      agentAdaptersState = "error";
+      agentAdapterError = message;
+    } finally {
+      agentAdapterPending = "";
+    }
   }
 
   function telegramAgentReady() {
@@ -3729,16 +4143,48 @@
     }
   }
 
+  async function saveJevApiKey() {
+    if (!inTauri() || jevKeyState === "saving" || !jevApiKey.trim()) return;
+    jevKeyState = "saving";
+    jevKeyError = "";
+    try {
+      jevStatus = await invoke<JevStatus>("set_jev_api_key", { apiKey: jevApiKey.trim() });
+      jevApiKey = "";
+      jevKeyState = "idle";
+    } catch (error) {
+      jevKeyState = "error";
+      jevKeyError = String(error);
+    }
+  }
+
+  async function removeJevApiKey() {
+    if (!inTauri() || jevKeyState === "saving") return;
+    jevKeyState = "saving";
+    jevKeyError = "";
+    try {
+      jevStatus = await invoke<JevStatus>("set_jev_api_key", { apiKey: null });
+      if (automationSettings.provider === "jev" && automationSettings.background_ai_triage) {
+        automationSettings = await invoke<AutomationSettings>("set_background_ai_triage", { enabled: false });
+      }
+      jevKeyState = "idle";
+    } catch (error) {
+      jevKeyState = "error";
+      jevKeyError = String(error);
+    }
+  }
+
   function automationProviderName(provider = automationSettings.provider) {
     if (provider === "auto") {
       return localAgentProviders.find((item) => item.available)?.name ?? t("agentAuto");
     }
+    if (provider === "jev") return "Jev";
     return localAgentProviders.find((item) => item.id === provider)?.name
       ?? (provider === "codex" ? "Codex" : provider === "claude" ? "Claude Code" : "Gemini CLI");
   }
 
   function automationProviderDescription(provider: AutomationProvider) {
     if (provider === "auto") return t("agentAutoDescription");
+    if (provider === "jev") return jevStatus.configured ? t("jevReadyDescription", { model: jevStatus.model }) : t("jevUnavailableDescription");
     const status = localAgentProviders.find((item) => item.id === provider);
     if (localAgentProvidersState === "loading") return t("agentChecking");
     if (!status?.available) return t("agentUnavailable");
@@ -3781,12 +4227,6 @@
     if (status.pending > 0) return t("automationStatusPending", { count: status.pending });
     if (status.last_activity_at) return t("automationStatusQuiet", { action: automationOutcomeLabel(status.last_outcome), date: relativeDate(status.last_activity_at) });
     return t("automationStatusWaiting");
-  }
-
-  function projectAutomationStatusLabel() {
-    return automationSettings.background_ai_triage
-      ? automationSummaryLabel(projectAutomationStatus)
-      : t("automationStatusOff");
   }
 
   function automationOutcomeLabel(outcome?: AutomationOutcome) {
@@ -4673,9 +5113,7 @@
     const params = new URLSearchParams(window.location.search);
     if (!params.has("preview")) return;
     const previewLocale = params.get("locale");
-    const previewTheme = params.get("theme");
     if (previewLocale === "ru" || previewLocale === "en") locale = previewLocale;
-    if (previewTheme === "light" || previewTheme === "dark") themePreference = previewTheme;
     document.documentElement.lang = locale;
     t = translator(locale);
     chats = chats.map((chat) => chat.id === "all" ? { ...chat, title: t("allTasks") } : chat);
@@ -4745,6 +5183,20 @@
     if (preview === "github-connector") void openIntegrationModal("github");
   }
 
+  function applyTrashDevPreview() {
+    if (!import.meta.env.DEV || inTauri()) return;
+    const preview = new URLSearchParams(window.location.search).get("preview");
+    if (preview !== "trash" && preview !== "trash-confirm") return;
+    const now = new Date().toISOString();
+    activeSection = "trash";
+    loading = false;
+    trashedTasks = [
+      { id: "trash-preview-1", title: "Сверить устаревший макет настроек", chat: "flood.md", chatId: "preview-project", updated: t("now"), createdAt: now, updatedAt: now, urgency: "normal", completed: false, relations: [], checkpoints: [], checkpointCount: 0, markdown: "", hasSource: false, trashedAt: new Date(Date.now() - 18 * 60_000).toISOString(), version: "preview" },
+      { id: "trash-preview-2", title: "Удалить дублирующий экран входящих", chat: "flood.md", chatId: "preview-project", updated: t("now"), createdAt: now, updatedAt: now, urgency: "important", completed: false, relations: [], checkpoints: [], checkpointCount: 0, markdown: "", hasSource: false, trashedAt: new Date(Date.now() - 2 * 3_600_000).toISOString(), version: "preview" }
+    ];
+    emptyTrashConfirmOpen = preview === "trash-confirm";
+  }
+
   function applyTelegramDevPreview() {
     if (!import.meta.env.DEV || inTauri()) return;
     const preview = new URLSearchParams(window.location.search).get("preview");
@@ -4805,7 +5257,8 @@
 
   function applyProjectContextDevPreview() {
     if (!import.meta.env.DEV || inTauri()) return;
-    if (new URLSearchParams(window.location.search).get("preview") !== "project-context") return;
+    const preview = new URLSearchParams(window.location.search).get("preview");
+    if (preview !== "project-context" && preview !== "artifact-conflict" && preview !== "knowledge-review") return;
     const now = new Date().toISOString();
     const english = locale === "en";
     const project: ChatItem = {
@@ -4827,7 +5280,18 @@
       version: "preview-version",
       open: 4
     };
-    chats = [allChat(4), project];
+    const otherProject: ChatItem = {
+      id: "preview-other-project",
+      title: "tenebra app",
+      context: "",
+      resources: [],
+      created_at: now,
+      updated_at: now,
+      telegram_chats: [],
+      version: "preview-other-version",
+      open: 0
+    };
+    chats = [allChat(4), project, otherProject];
     selectedChatId = project.id;
     loading = false;
     projectContextProjectId = project.id;
@@ -4835,25 +5299,69 @@
     projectContextVersion = project.version;
     projectContextDraft = project.context ?? "";
     projectContextResources = (project.resources ?? []).map((resource) => ({ ...resource }));
+    projectContextSavedDraft = projectContextDraft;
+    projectContextSavedResources = JSON.stringify(projectContextResources);
     projectWorkspaceItems = [
-      { id: "preview-document", project_id: project.id, kind: "document", title: english ? "Product direction" : "Направление продукта", summary: english ? "What flood.md is building and why" : "Что и зачем строит flood.md", content: project.context ?? "", agent_access: true, created_at: now, updated_at: now, revisions: [], version: "preview-document" },
-      { id: "preview-rule", project_id: project.id, kind: "rule", title: "Visual foundations v1", summary: english ? "Required quality floor for every surface" : "Обязательная база качества для каждой поверхности", content: "# Visual foundations v1", agent_access: true, created_at: now, updated_at: now, revisions: [], version: "preview-rule" },
+      { id: "preview-document", project_id: project.id, kind: "document", title: english ? "Product direction" : "Направление продукта", summary: english ? "What flood.md is building and why" : "Что и зачем строит flood.md", content: project.context ?? "", agent_access: true, created_at: now, updated_at: now, revisions: [
+        { title: english ? "Product direction" : "Направление продукта", summary: english ? "Initial direction" : "Первая версия направления", content: "# Product direction v1", agent_access: true, changed_at: "2026-09-20T10:36:00Z" },
+        { title: english ? "Product direction" : "Направление продукта", summary: english ? "Refined agent context" : "Уточнён контекст для агентов", content: "# Product direction v2", agent_access: true, changed_at: "2026-09-20T14:05:00Z" }
+      ], version: "preview-document" },
+      { id: "preview-rule", project_id: project.id, kind: "rule", title: "Visual foundations v1", summary: english ? "Required quality floor for every surface" : "Обязательная база качества для каждой поверхности", content: "# Visual foundations v1", agent_access: true, created_at: now, updated_at: now, revisions: [
+        { title: "Visual foundations v1", summary: english ? "Initial visual rules" : "Первая версия визуальных правил", content: "# Visual foundations", agent_access: true, changed_at: "2026-09-20T13:36:00Z" }
+      ], version: "preview-rule" },
       { id: "preview-skill-design", project_id: project.id, kind: "skill", title: english ? "flood.md design system" : "Дизайн-система flood.md", summary: english ? "System direction, tokens and contracts" : "Системное направление, токены и контракты", content: "# Design system", agent_access: true, created_at: now, updated_at: now, revisions: [], version: "preview-skill-design" },
       { id: "preview-skill-ui", project_id: project.id, kind: "skill", title: english ? "flood.md UI implementation" : "Реализация UI flood.md", summary: english ? "Implementation and visual verification" : "Реализация и визуальная приёмка", content: "# UI implementation", agent_access: true, created_at: now, updated_at: now, revisions: [], version: "preview-skill-ui" }
     ];
+    projectKnowledgeProposals = preview === "knowledge-review" ? [
+      {
+        id: "preview-proposal",
+        project_id: project.id,
+        target: { kind: "workspace_item", item_id: "preview-rule", item_kind: "rule" },
+        base_version: "preview-rule",
+        payload: {
+          kind: "workspace_item",
+          title: "Visual foundations v2",
+          summary: english ? "Adds the bounded companion surface" : "Добавляет границы companion-панели",
+          content: "# Visual foundations v2\n\n- The companion is transient.\n- Canonical data changes require review.",
+          agent_access: true
+        },
+        summary: english ? "Clarify the flood buddy trust boundary" : "Уточнить trust boundary flood buddy",
+        reason: english ? "The companion must not bypass project knowledge review." : "Companion не должен обходить review знаний проекта.",
+        evidence: ["docs/design/buddy.md", "C25 / R14"],
+        state: "pending",
+        created_at: now,
+        updated_at: now
+      }
+    ] : [];
+    if (preview === "knowledge-review") buddyActivityOpen = true;
     projectAttention = [{ kind: "source_question", message: english ? "Which screen should the new Telegram reference apply to?" : "К какому экрану относится новый референс из Telegram?", event_id: "preview-event", occurred_at: now }];
     projectAutoRunDraft = false;
     projectAutoRunSaved = false;
     projectAutoRunLoading = false;
     resetProjectMemoryEditor(true);
     projectContextOpen = true;
-    void tick().then(() => projectContextDialog?.focus());
+    if (preview === "artifact-conflict") {
+      const item = projectWorkspaceItems[0];
+      editProjectWorkspaceItem(item);
+      projectWorkspaceContent = `${item.content}\n\nЛокальное изменение, которое ещё не сохранено.`;
+      projectWorkspaceConflictRemote = { ...item, content: `${item.content}\n\nВерсия на диске, изменённая другим процессом.`, updated_at: new Date().toISOString(), version: "preview-remote" };
+      projectWorkspaceConflictAction = "save";
+    } else {
+      void tick().then(() => projectContextDialog?.focus());
+    }
+  }
+
+  function applyOverlayDevPreview() {
+    if (!import.meta.env.DEV || inTauri()) return;
+    if (new URLSearchParams(window.location.search).get("preview") !== "command-palette") return;
+    loading = false;
+    void openCommandPalette();
   }
 
   function applyTaskSourceDevPreview() {
     if (!import.meta.env.DEV || inTauri()) return;
     const preview = new URLSearchParams(window.location.search).get("preview");
-    if (preview !== "task-source" && preview !== "agent-question" && preview !== "agent-queue" && preview !== "agent-review") return;
+    if (preview !== "task-source" && preview !== "task-conflict" && preview !== "agent-question" && preview !== "agent-queue" && preview !== "agent-review" && preview !== "agent-failed") return;
     const createdAt = "2026-09-12T01:01:07Z";
     const project: ChatItem = { id: "preview-project", title: "тест", context: "", resources: [], created_at: createdAt, updated_at: createdAt, telegram_chats: [], version: "preview", open: 1 };
     const source: MessageSnapshot = {
@@ -4915,7 +5423,22 @@
     activeSection = "tasks";
     loading = false;
     loadError = "";
-    if (preview === "agent-question") {
+    if (preview === "task-conflict") {
+      conflictRemote = {
+        id: task.id,
+        project_id: project.id,
+        description: "Исправить отображение длинного названия проекта\n\nВерсия на диске была изменена другим процессом.",
+        created_at: createdAt,
+        updated_at: new Date().toISOString(),
+        urgency: "important",
+        status: "open",
+        relations: task.relations,
+        checkpoints: task.checkpoints,
+        checkpoint_count: task.checkpointCount,
+        source,
+        version: "preview-remote"
+      };
+    } else if (preview === "agent-question") {
       selectedTaskRuns = [{
         id: "preview-run", task_id: task.id, project_id: project.id, provider: "codex", state: "needs_input",
         created_at: createdAt, updated_at: createdAt, thread_id: "preview-thread", working_directory: "C:/work/flood.md",
@@ -4932,6 +5455,13 @@
           { kind: "rule", id: "visual-rule", title: "Visual foundations v1", version: "17d85f61a4", reason: "Обязательное правило проекта" },
           { kind: "skill", id: "ui-skill", title: "Реализация UI flood.md", version: "67a0c1b29f", reason: "Совпало с задачей: интерфейс, заголовок" }
         ]
+      }];
+    } else if (preview === "agent-failed") {
+      selectedTaskRuns = [{
+        id: "preview-run", task_id: task.id, project_id: project.id, provider: "codex", state: "failed",
+        created_at: createdAt, updated_at: createdAt, working_directory: "C:/work/flood.md",
+        progress: "Проверка интерфейса остановлена.",
+        error: "Не удалось получить доступ к рабочей папке. Проверьте путь и запустите агента снова."
       }];
     } else if (preview === "agent-queue") {
       selectedTaskId = "";
@@ -4982,6 +5512,7 @@
 
   async function closeWindow() {
     if (!inTauri() || closingWindow) return;
+    if (projectContextOpen && !closeProjectContext()) return;
     if (!await persistCurrentTask()) return;
     closingWindow = true;
     try {
@@ -5001,11 +5532,12 @@
     applyProjectContextDevPreview();
     applyTaskSourceDevPreview();
     applyIntegrationsDevPreview();
-    const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
-    const updateSystemTheme = () => { if (themePreference === "system") applyTheme(); };
-    colorScheme.addEventListener("change", updateSystemTheme);
+    applyTrashDevPreview();
+    applyOverlayDevPreview();
+    void tick().then(revealSettingsSection);
     document.addEventListener("visibilitychange", catchUpTelegramSync);
     window.addEventListener("focus", catchUpTelegramSync);
+    window.addEventListener("resize", revealSettingsSection);
     let unlisten: UnlistenFn | undefined;
     let unlistenClose: UnlistenFn | undefined;
     let unlistenTelegram: UnlistenFn | undefined;
@@ -5013,13 +5545,17 @@
     let disposed = false;
     void (async () => {
       if (inTauri()) {
+        await loadData(false);
+        if (disposed) return;
         appVersion = await getVersion();
         installationRuntime = await invoke<InstallationRuntimeInfo>("installation_runtime_info").catch(() => null);
         reconcilePendingUpdate();
         dataDirectory = await invoke<string>("data_directory");
         mcpRuntime = await invoke<McpRuntimeInfo>("mcp_runtime_info").catch(() => null);
         mcpExecutable = mcpRuntime?.executable_path || await invoke<string>("mcp_executable_path");
+        await loadAgentAdapters();
         automationSettings = await invoke<AutomationSettings>("automation_settings").catch(() => automationSettings);
+        jevStatus = await invoke<JevStatus>("jev_status").catch(() => jevStatus);
         await loadLocalAgentProviders();
         await loadAutomationStatus();
         if (mcpRuntime && (!mcpRuntime.available || !mcpRuntime.compatible)) mcpCheckState = "error";
@@ -5039,8 +5575,9 @@
           event.preventDefault();
           await closeWindow();
         });
+      } else {
+        await loadData(false);
       }
-      await loadData(false);
       if (disposed || !inTauri()) return;
       await invoke<number>("resume_agent_queue").catch(() => 0);
       await loadAgentQueue();
@@ -5095,7 +5632,8 @@
         datePickerOpen = false;
       }
       if (!target?.closest(".date-picker-wrap")) datePickerOpen = false;
-      if (!target?.closest(".new-task-menu") && !target?.closest(".new-task-button") && !target?.closest(".project-add-button")) newTaskMenuAnchor = null;
+      if (!target?.closest(".new-task-menu") && !target?.closest(".new-task-button") && !target?.closest(".project-create-task")) newTaskMenuAnchor = null;
+      if (!target?.closest(".project-actions")) closeProjectActions();
       if (!target?.closest(".task-actions-menu") && !target?.closest(".task-actions-trigger")) {
         taskActionMenuOpen = false;
         moveMenuOpen = false;
@@ -5115,9 +5653,9 @@
       window.clearTimeout(githubAuthTimer);
       window.removeEventListener("blur", flush);
       document.removeEventListener("pointerdown", closeMenus);
-      colorScheme.removeEventListener("change", updateSystemTheme);
       document.removeEventListener("visibilitychange", catchUpTelegramSync);
       window.removeEventListener("focus", catchUpTelegramSync);
+      window.removeEventListener("resize", revealSettingsSection);
       for (const url of attachmentObjectUrls) URL.revokeObjectURL(url);
       clearSourceMediaPreviews();
       unlisten?.();
@@ -5129,7 +5667,7 @@
 </script>
 
 <svelte:head><title>flood.md</title></svelte:head>
-<svelte:window onkeydown={handleWindowKeydown} />
+<svelte:window onkeydown={handleWindowKeydown} onpointerdown={handleWindowPointerDown} />
 
 {#if loading}
   <div class="app-startup" role="status" aria-live="polite" aria-label={t("loading")}>
@@ -5177,7 +5715,7 @@
               {#if item.group === "tasks"}<FloodGlyph kind={item.completed ? "completed" : item.urgency || "normal"} size={15} />
               {:else if item.group === "projects"}<Folder size={16} />
               {:else if item.id === "action:new-task"}<Plus size={16} />
-              {:else if item.id === "action:all-tasks"}<ListTodo size={16} />
+              {:else if item.id === "action:all-tasks"}<Home size={16} />
               {:else if item.id === "action:integrations"}<Plug size={16} />
               {:else if item.id === "action:mcp"}<Bot size={16} />
               {:else}<Database size={16} />{/if}
@@ -5194,28 +5732,20 @@
   </div>
 {/if}
 
-<main class:sidebar-collapsed={sidebarCollapsed} class="app-shell">
+<main class="app-shell prototype-shell" style:--dock-clearance={`${dockClearance}px`}>
   <header class="window-bar" data-tauri-drag-region="deep">
-    <div class="sidebar-titlebar" data-tauri-drag-region="deep">
-      {#if !sidebarCollapsed}<FloodGlyph kind="brand" size={22} /><strong>flood.md</strong>{/if}
-      <button class="icon-button collapse-button" aria-label={sidebarCollapsed ? t("expandSidebar") : t("collapseSidebar")} data-tauri-drag-region="false" onclick={() => setSidebarCollapsed(!sidebarCollapsed)}>
-        {#if sidebarCollapsed}<PanelLeftOpen size={17} />{:else}<PanelLeftClose size={17} />{/if}
-      </button>
-    </div>
+    <div class="sidebar-titlebar" data-tauri-drag-region="deep"><FloodGlyph kind="brand" size={22} /><strong>flood.md</strong></div>
     <div class="window-context" data-tauri-drag-region="deep">
       {#if activeSection === "tasks"}
         {#if workspaceView === "task" && selectedTask}
           <button class="window-context-back" aria-label={t("backToProject", { project: selectedTask.chat })} title={`${t("backToProject", { project: selectedTask.chat })} · Alt+←`} onclick={backToProject}><ChevronLeft size={14} /><span>{selectedTask.chat}</span></button>
         {:else if workspaceView === "context"}
-          <button class="window-context-back" aria-label={t("backToProject", { project: projectContextProjectTitle })} title={t("backToProject", { project: projectContextProjectTitle })} onclick={closeProjectContext}><ChevronLeft size={14} /><span>{projectContextProjectTitle} · {t("projectContext")}</span></button>
-        {:else}
-          <span>{currentChat.title}</span>
+          <button class="window-context-back" aria-label={t("backToProject", { project: projectContextProjectTitle })} title={t("backToProject", { project: projectContextProjectTitle })} onclick={() => closeProjectContext()}><ChevronLeft size={14} /><span>{projectContextProjectTitle} · {t("projectSettings")}</span></button>
         {/if}
-      {:else}
-        <span>{activeSection === "trash" ? t("trash") : t("settings")}</span>
       {/if}
     </div>
     <div class="window-actions" data-tauri-drag-region="false">
+      {#if activeSection !== "settings"}<UiIconButton class="titlebar-settings" label={t("settings")} onclick={() => { settingsSection = "general"; void changeSection("settings"); }}><Settings size={17} /></UiIconButton>{/if}
       {#if activeSection === "tasks" && workspaceView === "task" && selectedTask}
         {#if saveState === "error" && hasUnsavedTaskChanges()}
           <button class="save-state save-retry" title={`${t("retrySave")}: ${saveError}`} aria-label={t("retrySave")} onclick={() => void saveNow()}><RefreshCw size={12} /><span class="save-retry-label">{t("notSaved")}</span></button>
@@ -5233,13 +5763,11 @@
           {/if}
         </div>
         <input class="attachment-input" bind:this={attachmentInput} type="file" multiple accept="image/*,audio/*,video/*,.pdf,.txt,.md" onchange={(event) => void importAttachments([...(event.currentTarget.files ?? [])])} />
-        <button class="topbar-action" aria-label={t("addAttachment")} title={t("attachmentTitle")} onclick={() => attachmentInput.click()}><Paperclip size={15} /><span class="action-label">{t("attachment")}</span></button>
-        <button class:active={sourceEditorOpen} class="topbar-action source-action-button" aria-label={selectedTask.hasSource ? t("source") : t("addSource")} title={selectedTask.hasSource ? t("source") : t("addSource")} aria-expanded={sourceEditorOpen} onclick={openSourceEditor}><MessageSquareText size={15} /><span class="action-label">{selectedTask.hasSource ? t("source") : t("addSource")}</span></button>
         {#if sourceEditorOpen}
           <form class="source-editor source-popover" onsubmit={saveSource}>
-            <div class="source-popover-head"><strong>{selectedTask.hasSource ? t("taskSource") : t("addSource")}</strong><button type="button" class="icon-button" aria-label={t("close")} onclick={() => (sourceEditorOpen = false)}><X size={14} /></button></div>
-            <label class="source-message"><span>{t("message")}</span><textarea bind:value={sourceText} rows="4" placeholder={t("sourcePlaceholder")}></textarea></label>
-            <div class="source-detail-row"><span>{t("author")}</span><input bind:value={sourceAuthor} placeholder={t("notSpecified")} /></div>
+            <div class="source-popover-head"><strong>{selectedTask.hasSource ? t("taskSource") : t("addSource")}</strong><UiIconButton size="sm" label={t("close")} onclick={closeSourceEditor}><X size={14} /></UiIconButton></div>
+            <TextArea class="source-message" label={t("message")} bind:value={sourceText} rows={4} placeholder={t("sourcePlaceholder")} />
+            <TextField size="sm" label={t("author")} bind:value={sourceAuthor} placeholder={t("notSpecified")} />
             <div class="source-detail-row date-picker-wrap">
               <span>{t("date")}</span>
               <button type="button" class="source-date-button" aria-expanded={datePickerOpen} onclick={openDatePicker}><CalendarDays size={15} /><span>{sourceDateLabel(sourceSentAt)}</span><ChevronDown size={12} /></button>
@@ -5256,13 +5784,13 @@
                 </div>
               {/if}
             </div>
-            <div class="source-detail-row"><span>{t("link")}</span><input bind:value={sourceUrl} type="url" placeholder={t("notSpecified")} /></div>
-            {#if formError}<p class="form-error">{formError}</p>{/if}
-            <div class="form-actions">{#if selectedTask.hasSource}<button type="button" class="danger-text" onclick={clearSource}>{t("delete")}</button>{/if}<span></span><button type="button" onclick={() => (sourceEditorOpen = false)}>{t("cancel")}</button><button>{t("save")}</button></div>
+            <TextField size="sm" label={t("link")} bind:value={sourceUrl} type="url" placeholder={t("notSpecified")} />
+            {#if formError}<InlineNotice tone="danger" announce>{formError}</InlineNotice>{/if}
+            <div class="form-actions">{#if selectedTask.hasSource}<UiButton variant="danger" size="sm" onclick={clearSource}>{t("delete")}</UiButton>{/if}<span></span><UiButton size="sm" onclick={closeSourceEditor}>{t("cancel")}</UiButton><UiButton type="submit" variant="primary" size="sm">{t("save")}</UiButton></div>
           </form>
         {/if}
-        <button class:completed={selectedTask.completed} class="complete-button" aria-label={selectedTask.completed ? t("restoreTask") : t("completeTask")} title={selectedTask.completed ? t("restoreTask") : t("completeTask")} onclick={toggleComplete}>{#if selectedTask.completed}<CheckCircle2 size={17} />{:else}<Circle size={17} />{/if}<span class="action-label">{selectedTask.completed ? t("completed") : t("complete")}</span></button>
-        <button class="icon-button task-actions-trigger" aria-label={t("otherActions")} title={t("otherActions")} aria-expanded={taskActionMenuOpen} onclick={() => { taskActionMenuOpen = !taskActionMenuOpen; moveMenuOpen = false; urgencyMenuOpen = false; sourceEditorOpen = false; }}><MoreHorizontal size={18} /></button>
+        <UiButton size="sm" aria-label={selectedTask.completed ? t("restoreTask") : t("completeTask")} onclick={toggleComplete}>{#if selectedTask.completed}<CheckCircle2 size={16} />{:else}<Circle size={16} />{/if}<span class="action-label">{selectedTask.completed ? t("completed") : t("complete")}</span></UiButton>
+        <UiIconButton class="task-actions-trigger" label={t("otherActions")} aria-expanded={taskActionMenuOpen} onclick={() => { taskActionMenuOpen = !taskActionMenuOpen; moveMenuOpen = false; urgencyMenuOpen = false; sourceEditorOpen = false; }}><MoreHorizontal size={18} /></UiIconButton>
         {#if taskActionMenuOpen}
           <div class:move-open={moveMenuOpen} class="task-actions-menu">
             {#if moveMenuOpen}
@@ -5271,6 +5799,8 @@
                 <button disabled={chat.id === selectedTask.chatId} onclick={() => moveSelectedTask(chat)}><Folder size={15} /><span>{chat.title}</span>{#if chat.id === selectedTask.chatId}<Check size={14} />{/if}</button>
               {/each}
             {:else}
+              <button onclick={() => { taskActionMenuOpen = false; attachmentInput.click(); }}><Paperclip size={15} /><span>{t("addAttachment")}</span></button>
+              <button onclick={openSourceEditor}><MessageSquareText size={15} /><span>{selectedTask.hasSource ? t("source") : t("addSource")}</span></button>
               <button onclick={() => (moveMenuOpen = true)}><ArrowRight size={15} /><span>{t("move")}</span><ChevronRight size={14} /></button>
               <button class="danger" onclick={trashSelectedTask}><Trash2 size={15} /><span>{t("moveToTrash")}</span></button>
             {/if}
@@ -5287,101 +5817,10 @@
   </header>
 
   <div class="app-content">
-    <aside class:collapsed={sidebarCollapsed} class="sidebar-panel" aria-label={t("navigation")}>
-      <div class="sidebar-primary">
-        <button class="new-task-button" aria-label={t("newTask")} aria-expanded={newTaskMenuAnchor === "sidebar"} onclick={() => requestNewTask("sidebar")}><Plus size={17} /><span>{t("newTask")}</span></button>
-        {#if newTaskMenuAnchor === "sidebar" && !sidebarCollapsed}
-          <div class="new-task-menu">
-            <small>{t("chooseProject")}</small>
-            {#each chats.slice(1) as chat}<button title={chat.title} onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
-          </div>
-        {/if}
-        {#if sidebarCollapsed}
-          <button class="sidebar-icon" aria-label={t("search")} onclick={() => setSidebarCollapsed(false)}><Search size={17} /></button>
-        {:else}
-          <div class="search-field"><Search size={15} aria-hidden="true" /><input bind:this={searchInput} bind:value={query} aria-label={t("searchTasks")} placeholder={t("search")} />{#if searchActive}<button class="search-clear" aria-label={t("clearSearch")} title={t("clearSearch")} onclick={() => (query = "")}><X size={14} /></button>{:else}<button class="command-shortcut" aria-label={t("openCommandPalette")} title={t("openCommandPalette")} onclick={openCommandPalette}><kbd>Ctrl K</kbd></button>{/if}</div>
-        {/if}
-      </div>
-
-      <nav class="sidebar-navigation" aria-label={t("projectsAndTasks")}>
-        {#if searchActive && !sidebarCollapsed}
-          <div class="sidebar-search-results" aria-label={t("searchResults")}>
-            {#each sidebarSearchGroups as group (group.chat.id)}
-              <section class="sidebar-search-group">
-                <button class="search-project-result" onclick={() => selectChat(group.chat)}><Folder size={15} /><span>{group.chat.title}</span><small>{group.tasks.length}</small></button>
-                {#each group.tasks as task (task.id)}
-                  <button class:selected={workspaceView === "task" && selectedTaskId === task.id && selectedTaskNavigationScope === "search"} class="nested-task" onclick={() => openTask(task, "search")}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
-                {/each}
-              </section>
-            {:else}
-              <div class="sidebar-search-empty"><Search size={15} /><span>{t("nothingFound")}</span></div>
-            {/each}
-          </div>
-        {:else}
-          <div class:active={activeSection === "tasks" && selectedChatId === "all"} class="project-row all-tasks-row">
-            <button class="project-open" onclick={() => chats[0] && selectChat(chats[0])} onmouseenter={(event) => showSidebarProjectHint(event, t("allTasks"))} onmouseleave={hideSidebarProjectHint} onfocus={(event) => showSidebarProjectHint(event, t("allTasks"))} onblur={hideSidebarProjectHint} aria-label={t("openAllTasks")}>
-              <ListTodo size={17} /><span>{t("allTasks")}</span><small>{sidebarOpenTasks.length}</small>
-            </button>
-            {#if !sidebarCollapsed}
-              <button type="button" class:expanded={allTasksExpanded} class="project-expand" aria-expanded={allTasksExpanded} onclick={toggleAllTasks} aria-label={allTasksExpanded ? t("collapseAllTasks") : t("expandAllTasks")}><ChevronRight size={13} /></button>
-            {/if}
-          </div>
-
-          {#if !sidebarCollapsed && allTasksExpanded}
-            <div class="nested-tasks all-task-list">
-              {#each sidebarOpenTasks as task (task.id)}
-                <button class:selected={workspaceView === "task" && selectedTaskId === task.id && selectedTaskNavigationScope === "all"} class="nested-task" onclick={() => openTask(task, "all")}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
-              {/each}
-            </div>
-          {/if}
-
-          {#each chats.slice(1) as chat (chat.id)}
-            <div class="chat-group">
-              <div class:active={activeSection === "tasks" && selectedChatId === chat.id} class="project-row">
-                <button class="project-open" onclick={() => selectChat(chat)} onmouseenter={(event) => showSidebarProjectHint(event, chat.title)} onmouseleave={hideSidebarProjectHint} onfocus={(event) => showSidebarProjectHint(event, chat.title)} onblur={hideSidebarProjectHint} aria-label={t("openProject", { project: chat.title })}>
-                  <Folder size={16} /><span>{chat.title}</span><small>{openTaskCount(chat.id) || ""}</small>
-                </button>
-                {#if !sidebarCollapsed}
-                  <button type="button" class:expanded={expandedChatIds.includes(chat.id)} class="project-expand" aria-expanded={expandedChatIds.includes(chat.id)} onclick={() => toggleChat(chat.id)} aria-label={expandedChatIds.includes(chat.id) ? t("collapseProject", { project: chat.title }) : t("expandProject", { project: chat.title })}><ChevronRight size={13} /></button>
-                {/if}
-              </div>
-              {#if !sidebarCollapsed && expandedChatIds.includes(chat.id)}
-                <div class="nested-tasks">
-                  {#each tasksForChat(chat) as task}
-                    <button class:selected={workspaceView === "task" && selectedTaskId === task.id && selectedTaskNavigationScope === chat.id} class="nested-task" onclick={() => openTask(task, chat.id)}><FloodGlyph kind={task.completed ? "completed" : task.urgency} size={14} /><span>{task.title}</span></button>
-                  {:else}<span class="nested-empty">{t("noOpenTasks")}</span>{/each}
-                </div>
-              {/if}
-            </div>
-          {/each}
-        {/if}
-
-        {#if !sidebarCollapsed}
-          {#if createChatOpen}
-            <form class="create-chat-form" onsubmit={submitCreateChat}>
-              <FolderPlus size={15} />
-              <input bind:value={createChatTitle} aria-label={t("projectName")} placeholder={t("projectName")} />
-              <button aria-label={t("create")}><Check size={14} /></button>
-              <button type="button" aria-label={t("cancel")} onclick={() => { createChatOpen = false; createChatTitle = ""; }}><X size={14} /></button>
-            </form>
-          {:else}
-            <button class="sidebar-row add-chat-row" onclick={() => (createChatOpen = true)}><FolderPlus size={16} /><span>{t("newProject")}</span></button>
-          {/if}
-        {/if}
-
-        <button class:active={activeSection === "trash"} class="sidebar-row trash-row" onclick={() => changeSection("trash")} title={t("trash")}><Trash2 size={16} /><span>{t("trash")}</span><small>{trashedTasks.length || ""}</small></button>
-      </nav>
-
-      <nav class="sidebar-footer" aria-label={t("systemSections")}>
-        <button class:active={activeSection === "settings"} class="sidebar-row" onclick={() => changeSection("settings")} title={t("settings")}><Settings size={17} /><span>{t("settings")}</span></button>
-      </nav>
-    </aside>
-
     {#if activeSection === "tasks" && workspaceView === "task" && selectedTask}
       <section class="workspace">
         <div class="editor-page">
           <div class="task-meta" aria-label={t("taskMetadata")}>
-            <span class="task-project-meta" title={selectedTask.chat}>{selectedTask.chat}</span>
             <span title={fullDate(selectedTask.createdAt)}>{t("created", { date: compactDate(selectedTask.createdAt) })}</span>
             {#if selectedTask.source}
               <button class="source-meta" title={taskSourceLabel(selectedTask)} aria-haspopup="dialog" onclick={openSourceViewer}><FloodGlyph kind="info" size={13} /><span class="source-meta-label">{taskSourceMetaLabel(selectedTask)}</span></button>
@@ -5392,7 +5831,7 @@
           </div>
           <label class="task-title-field">
             <span class="sr-only">{t("taskTitle")}</span>
-            <input bind:this={taskTitleInput} bind:value={taskTitleDraft} maxlength="160" aria-label={t("taskTitle")} placeholder={t("taskTitlePlaceholder")} oninput={syncTaskTitle} onkeydown={handleTaskTitleKeydown} onblur={() => void saveNow()} />
+            <textarea rows="1" bind:this={taskTitleInput} bind:value={taskTitleDraft} use:fitTaskTitle={taskTitleDraft} maxlength="160" aria-label={t("taskTitle")} placeholder={t("taskTitlePlaceholder")} oninput={syncTaskTitle} onkeydown={handleTaskTitleKeydown} onblur={() => void saveNow()}></textarea>
           </label>
           {#if selectedTask.relations.length}
             <div class="task-relations" aria-label={t("taskRelations")}>
@@ -5408,9 +5847,11 @@
             </div>
           {/if}
           {#if conflictRemote}
-            <div class="save-conflict" role="alert">
-              <span><strong>{t("externalChange")}</strong> {t("chooseVersion")}</span>
-              <div><button onclick={useDiskVersion}>{t("diskVersion")}</button><button onclick={keepLocalVersion}>{t("localVersion")}</button></div>
+            <div class="task-save-notice">
+              <InlineNotice tone="attention" title={t("externalChange")} announce>
+                {t("chooseVersion")}
+                {#snippet actions()}<NoticeAction tone="attention" onclick={useDiskVersion}>{t("diskVersion")}</NoticeAction><NoticeAction tone="attention" onclick={keepLocalVersion}>{t("localVersion")}</NoticeAction>{/snippet}
+              </InlineNotice>
             </div>
           {/if}
           <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label={t("taskEditor")} spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={handleEditorBlur}></div>
@@ -5440,9 +5881,9 @@
               <header>
                 <span class="agent-work-title"><FloodGlyph kind="brand" size={20} /><span><strong>{t("agentWork")}</strong>{#if latestAgentRun}<small>{agentRunLabel(latestAgentRun.state)}</small>{:else}<small>{t("agentWorkDescription")}</small>{/if}</span></span>
                 {#if latestAgentRun && ["queued", "running"].includes(latestAgentRun.state)}
-                  <button class="agent-stop" disabled={agentRunBusy} onclick={() => cancelAgentRun(latestAgentRun)}>{t("stopAgent")}</button>
+                  <UiButton size="sm" busy={agentRunBusy} onclick={() => cancelAgentRun(latestAgentRun)}>{t("stopAgent")}</UiButton>
                 {:else if !latestAgentRun || ["failed", "cancelled", "interrupted"].includes(latestAgentRun.state) || (latestAgentRun.state === "accepted" && !selectedTask.completed)}
-                  <button class="agent-start" disabled={agentRunBusy || taskHasOpenBlockers(selectedTask)} onclick={startCodexTask}><Bot size={15} />{latestAgentRun ? t("runAgain") : t("runWithCodex")}</button>
+                  <UiButton size="sm" busy={agentRunBusy} disabled={taskHasOpenBlockers(selectedTask)} onclick={startCodexTask}><Bot size={16} />{latestAgentRun ? t("runAgain") : t("runWithCodex")}</UiButton>
                 {/if}
               </header>
               {#if latestAgentRun?.progress}<p class="agent-progress">{latestAgentRun.progress}</p>{/if}
@@ -5465,7 +5906,7 @@
                   <p>{latestAgentRun.result}</p>
                   {#if latestAgentRun.memory?.length}<span class="agent-memory"><Database size={14} />{t("agentMemorySaved", { count: latestAgentRun.memory.length })}</span>{/if}
                   {#if latestAgentRun.state === "ready_for_review" && !selectedTask.completed}
-                    <button class="agent-accept" disabled={agentRunBusy} onclick={acceptAgentResult}><Check size={15} />{t("acceptAgentResult")}</button>
+                    <UiButton variant="primary" busy={agentRunBusy} onclick={acceptAgentResult}><Check size={16} />{t("acceptAgentResult")}</UiButton>
                   {:else if latestAgentRun.state === "accepted" || selectedTask.completed}
                     <span class="agent-accepted"><FloodGlyph kind="completed" size={15} />{t("agentResultAccepted")}</span>
                   {/if}
@@ -5474,149 +5915,91 @@
               {#if latestAgentRun?.state === "needs_input" && latestAgentRun.blocker}
                 <form class="agent-question" onsubmit={(event) => { event.preventDefault(); void continueCodexTask(); }}>
                   <div><strong>{t("agentQuestion")}</strong><p>{latestAgentRun.blocker}</p></div>
-                  <label><span>{t("yourAnswer")}</span><textarea bind:value={agentResponse} maxlength="4000" rows="2" placeholder={t("agentAnswerPlaceholder")}></textarea></label>
-                  <button disabled={agentRunBusy || !agentResponse.trim()}>{t("continueWork")}</button>
+                  <TextArea class="agent-answer-field" label={t("yourAnswer")} bind:value={agentResponse} maxlength={4000} rows={2} placeholder={t("agentAnswerPlaceholder")} />
+                  <UiButton variant="primary" size="sm" type="submit" busy={agentRunBusy} disabled={!agentResponse.trim()}>{t("continueWork")}</UiButton>
                 </form>
               {/if}
-              {#if latestAgentRun?.error}<p class="agent-error" role="alert">{latestAgentRun.error}</p>{/if}
-              {#if agentRunError}<p class="agent-error" role="alert">{agentRunError}</p>{/if}
+              {#if latestAgentRun?.error}<InlineNotice class="agent-inline-notice" tone="danger" announce>{latestAgentRun.error}</InlineNotice>{/if}
+              {#if agentRunError}<InlineNotice class="agent-inline-notice" tone="danger" announce>{agentRunError}</InlineNotice>{/if}
             </section>
           {/if}
         </div>
       </section>
     {:else if activeSection === "tasks"}
-      <section class="workspace project-workspace">
-        <div class="project-page">
+      <section class="workspace project-workspace" inert={projectContextOpen}>
+        <div class="project-page prototype-project">
           {#if loadError && !devPreviewActive()}<div class="data-error"><strong>{t("dataOpenError")}</strong><span>{loadError}</span></div>{/if}
-          <header class="project-header project-overview-header">
-            <div class="project-heading-main">
-              <span class="project-brand-mark" aria-hidden="true"><FloodGlyph kind="brand" size={28} /></span>
-              <div class="project-heading-copy">
-              {#if renameChatOpen}
-                <form class="rename-chat-form" onsubmit={submitRenameChat}><input bind:value={renameChatTitle} aria-label={t("projectName")} /><button aria-label={t("save")}><Check size={16} /></button><button type="button" aria-label={t("cancel")} onclick={() => (renameChatOpen = false)}><X size={16} /></button></form>
-                {#if formError}<span class="form-error">{formError}</span>{/if}
-              {:else}
-                <div class="project-title-row">
-                  <h1>{currentChat.title}</h1>
-                  {#if currentChat.id !== "all"}
-                    <button class="icon-button" aria-label={t("renameProject")} onclick={startRenameChat}><Pencil size={15} /></button>
-                    <button class="icon-button danger-icon" aria-label={t("deleteProject")} onclick={() => (deleteChatConfirmOpen = true)}><Trash2 size={15} /></button>
+          <div class="prototype-heading">
+            <div class="prototype-picker-wrap">
+              <button bind:this={projectPickerButton} class="prototype-project-picker" aria-label="Выбрать проект" aria-haspopup="menu" aria-expanded={projectPickerOpen} onclick={() => (projectPickerOpen = !projectPickerOpen)}>
+                <h1>{currentChat.title}</h1><ChevronDown size={16} />
+              </button>
+              {#if projectPickerOpen}
+                <div class="prototype-project-menu" role="menu" aria-label="Проекты">
+                  {#each chats.slice(1) as chat (chat.id)}
+                    <button role="menuitem" class:selected={selectedChatId === chat.id} onclick={() => selectChat(chat)}><span>{chat.title}</span>{#if selectedChatId === chat.id}<Check size={15} />{/if}</button>
+                  {/each}
+                  <div class="prototype-menu-divider"></div>
+                  {#if createChatOpen}
+                    <form class="prototype-create-project" onsubmit={submitCreateChat}>
+                      <label class="sr-only" for="prototype-project-name">Название проекта</label>
+                      <input id="prototype-project-name" bind:value={createChatTitle} placeholder="Название проекта" maxlength="100" required />
+                      <button aria-label="Создать проект" type="submit"><Check size={16} /></button>
+                    </form>
+                  {:else}
+                    <button role="menuitem" onclick={() => { createChatOpen = true; void tick().then(() => document.querySelector<HTMLInputElement>("#prototype-project-name")?.focus()); }}><Plus size={15} /><span>Новый проект</span></button>
                   {/if}
                 </div>
               {/if}
-              <p>{loading ? t("loadingTasks") : openTasksLabel(currentOpenTasks.length)}</p>
-              </div>
             </div>
-            <div class="project-header-actions">
-              {#if currentChat.id !== "all"}
-                <button class="project-add-button" onclick={openProjectContext}><FileText size={15} />{t("projectContext")}</button>
-              {/if}
-              <button class="project-add-button primary" aria-expanded={newTaskMenuAnchor === "workspace"} onclick={() => requestNewTask("workspace")}><Plus size={16} />{t("newTask")}</button>
-              {#if newTaskMenuAnchor === "workspace"}
-                <div class="new-task-menu workspace-new-task-menu">
-                  <small>{t("chooseProject")}</small>
-                  {#each chats.slice(1) as chat}<button title={chat.title} onclick={() => createDraft(chat)}><Folder size={15} /><span>{chat.title}</span></button>{/each}
-                </div>
-              {/if}
+          </div>
+          <div class="prototype-controls">
+            <div class="prototype-tabs" role="tablist" tabindex="-1" aria-label="Фильтр задач" onkeydown={handleProjectTabsKeydown}>
+              <button role="tab" tabindex={projectTab === "all" ? 0 : -1} aria-selected={projectTab === "all"} onclick={() => (projectTab = "all")}>Все ({currentOpenTasks.length})</button>
+              <button role="tab" tabindex={projectTab === "urgent" ? 0 : -1} aria-selected={projectTab === "urgent"} onclick={() => (projectTab = "urgent")}>Срочные ({urgentTaskCount})</button>
+              <button role="tab" tabindex={projectTab === "closed" ? 0 : -1} aria-selected={projectTab === "closed"} onclick={() => (projectTab = "closed")}>Закрытые ({currentCompletedTasks.length})</button>
             </div>
-          </header>
-
+            <div class="prototype-control-actions">
+              <UiIconButton label={t("projectSettings")} onclick={openProjectContext}><Settings size={17} /></UiIconButton>
+              <UiButton class="prototype-add-task" onclick={() => requestNewTask("workspace")}><Plus size={16} />Новая задача</UiButton>
+            </div>
+          </div>
+          {#if projectTaskError}<div class="project-task-notice"><InlineNotice tone="attention" announce>{projectTaskError}</InlineNotice></div>{/if}
           {#if currentProjectPrimaryRun}
             {@const agentTask = agentRunTask(currentProjectPrimaryRun)}
             {#if agentTask}
-              <section class="project-flow-section agent-flow" aria-label={currentProjectPrimaryRun.state === "needs_input" || currentProjectPrimaryRun.state === "ready_for_review" ? t("needsDecision") : t("delegatedWork")}>
-                <header class="project-flow-heading">
-                  <span><strong>{currentProjectPrimaryRun.state === "needs_input" || currentProjectPrimaryRun.state === "ready_for_review" ? t("needsDecision") : t("delegatedWork")}</strong><small>{agentRunLabel(currentProjectPrimaryRun.state)}</small></span>
-                  <span class="project-flow-count">1</span>
-                </header>
-                <button class:needs-attention={currentProjectPrimaryRun.state === "needs_input" || currentProjectPrimaryRun.state === "ready_for_review"} class="project-agent-status" onclick={() => openAgentRunTask(currentProjectPrimaryRun)}>
-                  <FloodGlyph kind="brand" size={20} />
-                  <span class="project-agent-identity"><strong>Codex</strong><small>{t("agentRole")}</small></span>
-                  <span class="project-agent-work"><strong>{agentTask.title}</strong><small>{agentRunLabel(currentProjectPrimaryRun.state)}{currentProjectQueuedCount ? ` · ${t("tasksQueued", { count: currentProjectQueuedCount })}` : ""}</small></span>
-                  <ChevronRight size={15} />
-                </button>
-              </section>
-            {/if}
-          {/if}
-
-          {#if deleteChatConfirmOpen}
-            <div class="destructive-confirm project-delete-confirm" role="alert">
-              <span class="confirm-glyph"><FloodGlyph kind="urgent" size={40} motion="pop" label={t("deleteProject")} /></span>
-              <span class="confirm-copy"><strong>{t("deleteProjectQuestion", { project: currentChat.title })}</strong><small>{t("deleteProjectWarning")}</small></span>
-              <div class="confirm-actions"><button onclick={() => (deleteChatConfirmOpen = false)}>{t("cancel")}</button><button class="danger-button" onclick={deleteCurrentChat}>{t("delete")}</button></div>
-            </div>
-          {/if}
-
-          {#if selectedChatId === "all"}
-            {#if currentOpenTasks.length}
-              <div class="project-groups">
-                {#each chats.slice(1) as chat}
-                  {@const chatTasks = currentOpenTasks.filter((task) => task.chatId === chat.id)}
-                  {#if chatTasks.length}
-                    <section class="project-group">
-                      <button class="project-group-title" onclick={() => selectChat(chat)}><span>{chat.title}</span><small>{chatTasks.length}</small><ChevronRight size={14} /></button>
-                      <div class="project-task-list">
-                        {#each chatTasks as task}
-                          <button class="project-task" onclick={() => openTask(task, "all")}>
-                            <FloodGlyph kind={task.urgency} size={14} />
-                            <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}</small></span>
-                            <ChevronRight size={15} />
-                          </button>
-                        {/each}
-                      </div>
-                    </section>
-                  {/if}
-                {/each}
-              </div>
-            {:else}
-              <div class="project-empty"><p>{t("noOpenTasks")}</p></div>
-            {/if}
-          {:else}
-            <section class="project-flow-section focus-flow" aria-label={t("myFocus")}>
-              <header class="project-flow-heading"><span><strong>{t("myFocus")}</strong><small>{t("openWork")}</small></span><span class="project-flow-count">{currentOpenTasks.length}</span></header>
-              <div class="project-task-list standalone">
-                {#each currentOpenTasks as task}
-                  <button class="project-task" onclick={() => openTask(task, currentChat.id)}>
-                    <FloodGlyph kind={task.urgency} size={14} />
-                    <span class="project-task-copy"><strong>{task.title}</strong><small>{task.updated}{task.urgency !== "normal" ? ` · ${t(task.urgency === "urgent" ? "urgentShort" : "importantShort")}` : ""}</small></span>
-                    <ChevronRight size={15} />
-                  </button>
-                {:else}
-                  <div class="project-empty"><p>{t("noOpenTasks")}</p><button onclick={() => requestNewTask("workspace")}>{t("addTask")}</button></div>
-                {/each}
-              </div>
-            </section>
-          {/if}
-
-          {#if currentCompletedTasks.length}
-            <section class="completed-group">
-              <button class="completed-toggle" onclick={() => (completedGroupOpen = !completedGroupOpen)}>
-                {#if completedGroupOpen}<ChevronDown size={14} />{:else}<ChevronRight size={14} />{/if}
-                <span>{t("completedGroup")}</span><small>{currentCompletedTasks.length}</small>
+              <button class="prototype-agent-status" onclick={() => openAgentRunTask(currentProjectPrimaryRun)}>
+                <FloodGlyph kind="brand" size={18} /><span>Codex · {agentTask.title}</span><small>{agentRunLabel(currentProjectPrimaryRun.state)}</small><ChevronRight size={15} />
               </button>
-              {#if completedGroupOpen}
-                <div class="project-task-list completed-list">
-                  {#each currentCompletedTasks as task}
-                    <button class="project-task completed-task" onclick={() => openTask(task, currentChat.id)}><FloodGlyph kind="completed" size={16} motion="pop" /><span class="project-task-copy"><strong>{task.title}</strong><small>{task.chat}</small></span><ChevronRight size={15} /></button>
-                  {/each}
-                </div>
-              {/if}
-            </section>
+            {/if}
           {/if}
+          <div class="prototype-task-panel" role="tabpanel" aria-label={projectTab === "all" ? "Все задачи" : projectTab === "urgent" ? "Срочные задачи" : "Закрытые задачи"}>
+            <div class="prototype-task-list">
+              {#each filteredProjectTasks as task (task.id)}
+                <TaskRow class="prototype-task-row" title={task.title} urgency={task.urgency} urgencyLabel={urgencyTitle(task.urgency)} completed={task.completed} completeLabel={t("completeTask")} completedLabel={t("completed")} reopenLabel={t("restoreTask")} busy={projectTaskPendingIds.includes(task.id)} oncomplete={(completed) => setListedTaskCompleted(task, completed)} onopen={() => openTask(task, currentChat.id)} />
+              {:else}
+                <div class="prototype-empty">
+                  <p>{projectTab === "all" ? "Открытых задач пока нет" : projectTab === "urgent" ? "Срочных задач нет" : "Закрытых задач пока нет"}</p>
+                  {#if projectTab === "all"}<UiButton onclick={() => requestNewTask("workspace")}><Plus size={16} />Новая задача</UiButton>{/if}
+                </div>
+              {/each}
+            </div>
+          </div>
         </div>
       </section>
     {:else if activeSection === "trash"}
       <section class="workspace project-workspace">
         <div class="project-page trash-page">
+          <button class="prototype-back" onclick={() => openSettingsSection("general")}><ChevronLeft size={16} />К настройкам</button>
           <header class="project-header">
             <div><h1>{t("trash")}</h1><p>{t("trashDescription")}</p></div>
-            {#if trashedTasks.length}<button class="quiet-danger-button" onclick={() => (emptyTrashConfirmOpen = true)}><Trash2 size={14} />{t("clear")}</button>{/if}
+            {#if trashedTasks.length}<UiButton variant="danger" size="sm" onclick={() => (emptyTrashConfirmOpen = true)}><Trash2 size={14} />{t("clear")}</UiButton>{/if}
           </header>
           {#if emptyTrashConfirmOpen}
-            <div class="destructive-confirm" role="alert">
-              <span class="confirm-copy"><strong>{t("clearTrashQuestion")}</strong><small>{t("clearTrashWarning")}</small></span>
-              <div class="confirm-actions"><button onclick={() => (emptyTrashConfirmOpen = false)}>{t("cancel")}</button><button class="danger-button" onclick={emptyTrash}>{t("deleteAll")}</button></div>
-            </div>
+            <InlineNotice class="trash-confirm-notice" tone="danger" title={t("clearTrashQuestion")} announce>
+              {t("clearTrashWarning")}
+              {#snippet actions()}<UiButton size="sm" onclick={() => (emptyTrashConfirmOpen = false)}>{t("cancel")}</UiButton><NoticeAction tone="danger" onclick={emptyTrash}>{t("deleteAll")}</NoticeAction>{/snippet}
+            </InlineNotice>
           {/if}
           <div class="project-task-list standalone">
             {#each trashedTasks as task}
@@ -5625,15 +6008,15 @@
                 <span class="project-task-copy"><strong>{task.title}</strong><small>{task.chat}{task.trashedAt ? ` · ${t("deletedAgo", { date: relativeDate(task.trashedAt) })}` : ""}</small></span>
                 <span class="trash-actions">
                   {#if purgeTaskId === task.id}
-                    <button onclick={() => (purgeTaskId = "")}>{t("cancel")}</button><button class="danger-text" onclick={() => deleteTrashedTask(task)}>{t("delete")}</button>
+                    <UiButton size="sm" onclick={() => (purgeTaskId = "")}>{t("cancel")}</UiButton><UiButton variant="danger" size="sm" onclick={() => deleteTrashedTask(task)}>{t("delete")}</UiButton>
                   {:else}
-                    <button class="restore-button" onclick={() => restoreTask(task)}><RotateCcw size={14} />{t("restore")}</button>
-                    <button class="trash-delete-button" aria-label={t("deleteForever")} title={t("deleteForever")} onclick={() => (purgeTaskId = task.id)}><Trash2 size={14} /></button>
+                    <UiButton class="restore-button" size="sm" onclick={() => restoreTask(task)}><RotateCcw size={14} />{t("restore")}</UiButton>
+                    <UiIconButton label={t("deleteForever")} variant="danger" size="sm" onclick={() => (purgeTaskId = task.id)}><Trash2 size={14} /></UiIconButton>
                   {/if}
                 </span>
               </div>
             {:else}
-              <div class="project-empty"><p>{t("emptyTrash")}</p></div>
+              <EmptyState title={t("emptyTrash")} />
             {/each}
           </div>
         </div>
@@ -5641,79 +6024,81 @@
     {:else}
       <section class="workspace settings-workspace">
         <div class="settings-page">
-          <header class="settings-header"><h2>{t("settings")}</h2><p>{t("settingsDescription")}</p></header>
+          <button class="prototype-back" onclick={() => changeSection("tasks")}><ChevronLeft size={16} />К работе</button>
+          <header class="settings-header"><h2>{t("settings")}</h2></header>
           <div class="settings-layout">
-            <nav class="settings-nav" aria-label={t("settingsSections")}>
-              <button class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => openSettingsSection("general")}><Settings size={16} />{t("general")}</button>
-              <button class:active={settingsSection === "appearance"} aria-current={settingsSection === "appearance" ? "page" : undefined} onclick={() => openSettingsSection("appearance")}><Palette size={16} />{t("appearance")}</button>
-              <button class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => openSettingsSection("data")}><Database size={16} />{t("data")}</button>
-              <button class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => openSettingsSection("integrations")}><Plug size={16} />{t("integrations")} <span class:connected={connectedIntegrationCount() > 0} class:error={integrationNeedsAttention()} class="integration-chip">{integrationNeedsAttention() ? "!" : connectedIntegrationCount() || "·"}</span></button>
-              <button class:active={settingsSection === "mcp"} aria-current={settingsSection === "mcp" ? "page" : undefined} onclick={() => openSettingsSection("mcp")}><Bot size={16} />{t("mcpAndAi")} <span class:connected={mcpCheckState === "success"} class:error={mcpCheckState === "error"} class="integration-chip">{mcpCheckState === "success" ? "✓" : "·"}</span></button>
-              <button class:active={settingsSection === "about"} aria-current={settingsSection === "about" ? "page" : undefined} onclick={() => openSettingsSection("about")}><Info size={16} />{t("about")}</button>
+            <nav bind:this={settingsNavElement} class="settings-nav" aria-label={t("settingsSections")}>
+              <button data-settings-section="general" class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => openSettingsSection("general")}><Settings size={16} />Приложение</button>
+
+              <button data-settings-section="agents" class:active={settingsSection === "agents"} aria-current={settingsSection === "agents" ? "page" : undefined} onclick={() => openSettingsSection("agents")}><Bot size={16}/>Агенты и MCP</button>
+              <button data-settings-section="integrations" class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => openSettingsSection("integrations")}><Link size={16}/>Интеграции</button>
+              <button data-settings-section="data" class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => openSettingsSection("data")}><Database size={16} />{t("data")}</button>
+
             </nav>
             <div class="settings-content">
               {#if settingsSection === "general"}
-                <section class="settings-section">
-                  <div class="settings-section-title"><h3>{t("general")}</h3><p>{t("generalDescription")}</p></div>
-                  {#if setupCompleted < 2}
-                    <div class="setup-guide" aria-label={t("gettingStarted")}>
-                      <header><span><strong>{t("gettingStarted")}</strong><small>{t("setupProgress", { completed: setupCompleted, total: 2 })}</small></span><div class="setup-progress" aria-hidden="true"><span class:complete={setupHasProject}></span><span class:complete={setupHasTask}></span></div></header>
-                      <div class="setup-steps">
-                        <span class:complete={setupHasProject}><FloodGlyph kind={setupHasProject ? "completed" : "normal"} size={15} /><span><strong>{t("setupProject")}</strong><small>{t("setupProjectDescription")}</small></span></span>
-                        <span class:complete={setupHasTask}><FloodGlyph kind={setupHasTask ? "completed" : "normal"} size={15} /><span><strong>{t("setupFirstTask")}</strong><small>{t("setupFirstTaskDescription")}</small></span></span>
-                      </div>
-                      <button onclick={continueInitialSetup}>{setupHasProject ? t("addFirstTask") : t("createFirstProject")}<ArrowRight size={14} /></button>
-                    </div>
-                  {/if}
-                  <h4 class="settings-group-label">{t("settingsBehavior")}</h4>
-                  <div class="settings-group">
-                    <div class="setting-static"><span><Languages size={16} /><span><strong>{t("language")}</strong><small>{t("interfaceLanguage")}</small></span></span><div class="language-picker" aria-label={t("interfaceLanguage")}><button class:active={locale === "ru"} aria-pressed={locale === "ru"} onclick={() => setLocale("ru")}>{t("russian")}</button><button class:active={locale === "en"} aria-pressed={locale === "en"} onclick={() => setLocale("en")}>{t("english")}</button></div></div>
-                  </div>
+                <section class="settings-section" aria-label="Настройки приложения">
+                  <div class="settings-section-title"><h3>Приложение</h3></div>
+                  <div class="settings-group"><UiSwitch label={t("reduceMotion")} checked={reduceMotion} onchange={toggleMotionPreference} /></div>
                 </section>
-              {:else if settingsSection === "appearance"}
                 <section class="settings-section">
-                  <div class="settings-section-title"><h3>{t("appearance")}</h3><p>{t("appearanceDescription")}</p></div>
-                  <h4 class="settings-group-label">{t("settingsInterface")}</h4>
-                  <div class="settings-group">
-                    <div class="setting-static"><span><Palette size={16} /><span><strong>{t("theme")}</strong><small>{t("interfaceTheme")}</small></span></span><div class="theme-picker" aria-label={t("interfaceTheme")}><button class:active={themePreference === "system"} aria-pressed={themePreference === "system"} onclick={() => setTheme("system")}>{t("systemTheme")}</button><button class:active={themePreference === "light"} aria-pressed={themePreference === "light"} onclick={() => setTheme("light")}>{t("lightTheme")}</button><button class:active={themePreference === "dark"} aria-pressed={themePreference === "dark"} onclick={() => setTheme("dark")}>{t("darkTheme")}</button></div></div>
-                    <button class:active={reduceMotion} class="setting-row" role="switch" aria-checked={reduceMotion} onclick={toggleMotionPreference}><span><span><strong>{t("reduceMotion")}</strong><small>{t("reduceMotionDescription")}</small></span></span><span class="switch"><span></span></span></button>
+
+
+                  <div class="settings-group about-group">
+                    <div class="about-brand"><FloodGlyph kind="brand" size={42} /><span><strong>flood.md</strong><small>Версия {appVersion}</small></span></div>
+                    {#if installationRuntime}
+                      <div class="installation-runtime">
+                        <span class="installation-runtime-summary"><FloodGlyph kind={installationRuntime.parallel_installed_copy ? "important" : installationRuntime.kind === "installed" ? "connected" : "brand"} size={18} /><span><strong>{t("applicationLaunch")}</strong><small>{installationKindLabel()}</small></span></span>
+                        <div class="installation-path"><code title={installationRuntime.executable_path}>{installationRuntime.executable_path}</code><button onclick={() => openApplicationDirectory(installationRuntime!.directory_path)}><FolderOpen size={14} />{t("openFolder")}</button></div>
+                      </div>
+                      {#if installationRuntime.parallel_installed_copy}
+                        <div class="parallel-install-warning" role="status">
+                          <FloodGlyph kind="important" size={18} />
+                          <span><strong>{t("parallelInstallFound")}</strong><small>{t("parallelInstallDescription")}</small><code title={installationRuntime.parallel_installed_copy}>{installationRuntime.parallel_installed_copy}</code></span>
+                          <button onclick={() => openApplicationDirectory(fileDirectory(installationRuntime!.parallel_installed_copy!))}><FolderOpen size={14} />{t("show")}</button>
+                        </div>
+              {/if}
+                    {/if}
                   </div>
+                  <div class="settings-group"><div class:error={updateState === "error"} class:success={updateState === "current" && Boolean(updateMessage)} class="update-row"><span><strong>{t("updates")}</strong>{#if updateMessage || installationRuntime?.kind === "development"}<small>{updateMessage || t("updateDevelopmentDescription")}</small>{/if}{#if updateState === "downloading"}<progress max="100" value={updateProgress}></progress>{/if}</span>{#if updateState === "available"}<button class="primary-small" onclick={installAvailableUpdate}><Download size={15} />{t("installVersion", { version: availableUpdate?.version ?? "" })}</button>{:else}<button onclick={checkForUpdates} disabled={updateState === "checking" || updateState === "downloading" || installationRuntime?.kind === "development"}><span class:spinning={updateState === "checking"} class="update-icon"><RefreshCw size={15} /></span>{updateState === "checking" ? t("checking") : t("check")}</button>{/if}</div></div>
+                  <button class="settings-action" onclick={() => openUrl("https://github.com/tillwithered/flood.md")}><ExternalLink size={15} />{t("openGithub")}</button>
                 </section>
               {:else if settingsSection === "data"}
                 <section class="settings-section">
-                  <div class="settings-section-title"><h3>{t("data")}</h3><p>{t("dataDescription")}</p></div>
+                  <div class="settings-section-title"><h3>{t("data")}</h3></div>
                   <h4 class="settings-group-label">{t("settingsStorage")}</h4>
                   <div class="settings-group">
-                    <div class="data-location"><span><FolderOpen size={17} /><span><strong>{t("tasksFolder")}</strong><code>{dataDirectory || t("availableInApp")}</code></span></span><button onclick={openDataDirectory} disabled={!dataDirectory}>{t("open")}</button></div>
+                    <div class="data-location"><span><FolderOpen size={17} /><span><strong>{t("tasksFolder")}</strong><code>{dataDirectory || t("availableInApp")}</code></span></span><UiButton size="sm" onclick={openDataDirectory} disabled={!dataDirectory}>{t("open")}</UiButton></div>
                     <div class="data-location attachment-cleanup-row">
                       <span><Paperclip size={17} /><span><strong>{t("unusedAttachments")}</strong><small>{#if attachmentCleanupState === "checking"}{t("checkingAttachments")}{:else if attachmentCleanupReport}{attachmentCleanupReport.orphaned_files ? t("attachmentCleanupSummary", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) }) : t("attachmentsHealthy")}{:else}{t("unusedAttachmentsDescription")}{/if}</small></span></span>
                       {#if attachmentCleanupReport?.orphaned_files}
-                        <button class="danger-text" onclick={() => (attachmentCleanupConfirm = true)} disabled={attachmentCleanupState === "checking" || attachmentCleanupState === "cleaning"}><Trash2 size={14} />{t("cleanAttachments")}</button>
+                        <UiButton size="sm" variant="danger" onclick={() => (attachmentCleanupConfirm = true)} disabled={attachmentCleanupState === "checking" || attachmentCleanupState === "cleaning"}><Trash2 size={14} />{t("cleanAttachments")}</UiButton>
                       {:else}
-                        <button onclick={loadAttachmentCleanupReport} disabled={attachmentCleanupState === "checking" || attachmentCleanupState === "cleaning"}><RefreshCw class={attachmentCleanupState === "checking" ? "spinning" : ""} size={14} />{t("checkAttachments")}</button>
+                        <UiButton size="sm" onclick={loadAttachmentCleanupReport} disabled={attachmentCleanupState === "checking" || attachmentCleanupState === "cleaning"}><RefreshCw class={attachmentCleanupState === "checking" ? "spinning" : ""} size={14} />{t("checkAttachments")}</UiButton>
                       {/if}
                     </div>
                     {#if attachmentCleanupConfirm && attachmentCleanupReport?.orphaned_files}
                       <div class="restore-confirm attachment-cleanup-confirm" role="alert">
                         <FloodGlyph kind="important" size={32} />
                         <span><strong>{t("attachmentCleanupQuestion", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) })}</strong><small>{t("attachmentCleanupWarning")}</small></span>
-                        <div><button onclick={() => (attachmentCleanupConfirm = false)} disabled={attachmentCleanupState === "cleaning"}>{t("cancel")}</button><button class="cleanup-button" onclick={cleanupOrphanedAttachments} disabled={attachmentCleanupState === "cleaning"}>{attachmentCleanupState === "cleaning" ? t("cleaningAttachments") : t("delete")}</button></div>
+                        <div><UiButton size="sm" variant="quiet" onclick={() => (attachmentCleanupConfirm = false)} disabled={attachmentCleanupState === "cleaning"}>{t("cancel")}</UiButton><UiButton size="sm" variant="danger" busy={attachmentCleanupState === "cleaning"} onclick={cleanupOrphanedAttachments}>{t("delete")}</UiButton></div>
                       </div>
                     {/if}
                     {#if attachmentCleanupMessage}<p class:error={attachmentCleanupState === "error"} class:success={attachmentCleanupState === "success"} class="data-action-message" role="status">{attachmentCleanupMessage}</p>{/if}
                   </div>
+                  <button class="settings-trash-row" onclick={() => changeSection("trash")}><span><Trash2 size={16}/>Корзина</span><span>{trashedTasks.length}<ChevronRight size={15}/></span></button>
                   <h4 class="settings-group-label">{t("settingsBackups")}</h4>
                   <div class="settings-group settings-actions-group">
                     <div class="data-actions">
-                      <button onclick={createDataBackup} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><Download size={15} />{dataActionState === "backing-up" ? t("backingUp") : t("createBackup")}</button>
-                      <button onclick={chooseBackupToRestore} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><RotateCcw size={15} />{t("restoreBackup")}</button>
-                      <button onclick={() => loadData(true)} disabled={dataActionState === "restoring"}><RefreshCw size={15} />{t("reload")}</button>
+                      <UiButton size="sm" variant="quiet" busy={dataActionState === "backing-up"} onclick={createDataBackup} disabled={dataActionState === "restoring"}><Download size={15} />{t("createBackup")}</UiButton>
+                      <UiButton size="sm" variant="quiet" onclick={chooseBackupToRestore} disabled={dataActionState === "backing-up" || dataActionState === "restoring"}><RotateCcw size={15} />{t("restoreBackup")}</UiButton>
+                      <UiButton size="sm" variant="quiet" onclick={() => loadData(true)} disabled={dataActionState === "restoring"}><RefreshCw size={15} />{t("reload")}</UiButton>
                     </div>
                     {#if pendingRestorePath}
                       <div class="restore-confirm" role="alert">
                         <FloodGlyph kind="info" size={32} />
                         <span><strong>{t("restoreBackupQuestion", { file: fileName(pendingRestorePath) })}</strong><small>{t("restoreBackupWarning")}</small></span>
-                        <div><button onclick={() => (pendingRestorePath = "")}>{t("cancel")}</button><button class="restore-button" onclick={restoreDataBackup}>{t("restoreBackup")}</button></div>
+                        <div><UiButton size="sm" variant="quiet" onclick={() => (pendingRestorePath = "")}>{t("cancel")}</UiButton><UiButton size="sm" onclick={restoreDataBackup}>{t("restoreBackup")}</UiButton></div>
                       </div>
                     {/if}
                     {#if dataActionMessage}<p class:error={dataActionState === "error"} class="data-action-message" role="status">{dataActionMessage}</p>{/if}
@@ -5721,76 +6106,54 @@
                 </section>
               {:else if settingsSection === "integrations"}
                 <section class="settings-section integrations-settings-section">
-                  <div class="settings-section-title"><h3>{t("integrations")}</h3><p>{t("integrationsDescription")}</p></div>
+                  <div class="settings-section-title"><h3>{t("integrations")}</h3></div>
                   <div class="connector-grid">
                     {#each connectorUiRegistry as connector (connector.id)}
                       {@const card = connectorCardState(connector)}
-                      <IntegrationCard provider={connector.id} title={connector.title} description={t(connector.descriptionKey)} status={card.status} detail={card.detail} tone={card.tone} actionLabel={card.actionLabel} onclick={() => openIntegrationModal(connector.id)} />
+                      <IntegrationCard provider={connector.id} title={connector.title} description={connector.id === "telegram" ? "Чаты и сообщения" : "Репозитории, issues и pull requests"} status={card.status} detail={card.tone === "idle" ? "" : card.detail} tone={card.tone} actionLabel={card.actionLabel} onclick={() => openIntegrationModal(connector.id)} />
                     {/each}
                   </div>
                 </section>
-              {:else if settingsSection === "mcp"}
+              {:else if settingsSection === "agents"}
                 <section class="settings-section mcp-settings-section">
-                  <div class="settings-section-title"><h3>{t("mcpAndAi")}</h3><p>{t("mcpPageDescription")}</p></div>
-                  <h4 class="settings-group-label">{t("automation")}</h4>
-                  <div class="settings-group automation-settings-group">
-                    <div class="project-automation-warning"><FloodGlyph kind="important" size={18} /><span><strong>{t("automationExperimental")}</strong><small>{t("automationExperimentalDescription")}</small></span></div>
-                    <div class="setting-static agent-provider-row">
-                      <span><FloodGlyph kind={localAgentProviders.some((provider) => provider.available) ? "connected" : "info"} size={20} /><span><strong>{t("localAgent")}</strong><small>{t("localAgentDescription")}</small></span></span>
-                      <div class="agent-provider-choices" role="radiogroup" aria-label={t("localAgent")}>
-                        {#each automationProviders as provider}
-                          {@const providerStatus = provider === "auto" ? null : localAgentProviders.find((item) => item.id === provider)}
-                          <button class:active={automationSettings.provider === provider} role="radio" aria-checked={automationSettings.provider === provider} disabled={automationSettingsState === "saving" || (provider !== "auto" && localAgentProvidersState === "ready" && !providerStatus?.available)} title={automationProviderDescription(provider)} onclick={() => chooseAutomationProvider(provider)}>
-                            {provider === "auto" ? t("agentAuto") : provider === "codex" ? "Codex" : provider === "claude" ? "Claude" : "Gemini"}
-                          </button>
-                        {/each}
-                      </div>
+                  <div class="settings-section-title settings-title-with-action"><h3>Агенты и MCP</h3><UiButton variant="quiet" size="sm" disabled={!inTauri() || Boolean(agentAdapterPending) || agentAdaptersState === "loading"} busy={agentAdaptersState === "loading"} onclick={() => loadAgentAdapters()}><RefreshCw size={14}/>Обновить</UiButton></div>
+                  <div class="mcp-block">
+                    <div class="mcp-block-title"><span><strong>Агент</strong></span></div>
+                    <div class="agent-adapter-list">
+                      {#each agentAdapterClients as client (client)}
+                        {@const adapter = agentAdapterStatus(client)}
+                        <div class:ready={Boolean(adapter?.connected && adapter?.project_adapter_current)} class="agent-adapter-row">
+                          <span class="agent-adapter-mark" aria-hidden="true"><Bot size={19}/></span>
+                          <span class="agent-adapter-copy">
+                            <strong>{client === "codex" ? "Codex" : "Claude Code"}</strong>
+                            <small>{agentAdapterStatusLabel(adapter)}</small>
+                            {#if adapter?.version}<small class="agent-adapter-version">{adapter.version}</small>{/if}
+                          </span>
+                          <UiButton size="sm" disabled={!inTauri() || !adapter?.installed || Boolean(agentAdapterPending) || agentAdaptersState === "loading"} busy={agentAdapterPending === client} onclick={() => connectAgentAdapter(client)}>
+                            {adapter?.connected && adapter?.project_adapter_current ? t("agentAdapterUpdate") : t("agentAdapterConnect")}
+                          </UiButton>
+                        </div>
+                      {/each}
                     </div>
-                    <button class:active={automationSettings.background_ai_triage} class="setting-row" role="switch" aria-checked={automationSettings.background_ai_triage} disabled={!inTauri() || automationSettingsState === "saving"} onclick={toggleBackgroundAiTriage}>
-                      <span><FloodGlyph kind={automationSettings.background_ai_triage ? "brand" : "info"} size={20} /><span><strong>{t("backgroundAiTriage")}</strong><small>{t("backgroundAiTriageDescription", { provider: automationProviderName() })}</small></span></span>
-                      <span class="switch"><span></span></span>
+                    {#if agentAdapterRoot}<p class="mcp-hint">{t("agentAdapterProject", { path: agentAdapterRoot })}</p>{/if}
+                    {#if agentAdapterMessage}<InlineNotice tone="success" announce>{agentAdapterMessage}</InlineNotice>{/if}
+                    {#if agentAdapterError}<InlineNotice tone="danger" announce>{agentAdapterError}</InlineNotice>{/if}
+                  </div>
+                  <div class="settings-link-group">
+                    <button class="settings-link-row" onclick={() => { mcpSettingsOpen = true; mcpCopyError = ""; copied = false; }}>
+                      <span><strong>Конфигурация MCP</strong><small>Ручное подключение к клиенту</small></span><ChevronRight size={16}/>
                     </button>
-                    <div class:error={Boolean(automationStatus?.failed) || automationStatusState === "error"} class="setting-static automation-status-row">
-                      <span><FloodGlyph kind={automationStatus?.failed || automationStatusState === "error" ? "urgent" : automationStatus?.processing ? "brand" : "info"} size={20} /><span><strong>{t("automationStatus")}</strong><small aria-live="polite">{automationStatusLabel()}</small></span></span>
-                      {#if automationStatus?.failed}
-                        <button class="automation-retry-button" disabled={automationStatusState === "retrying"} onclick={retryFailedAutomation}><RefreshCw class={automationStatusState === "retrying" ? "spinning" : ""} size={14} />{t("retry")}</button>
-                      {:else if automationStatus?.pending || automationStatus?.processing}
-                        <small class="automation-queue-count">{t("automationQueueCount", { count: (automationStatus.pending || 0) + (automationStatus.processing || 0) })}</small>
-                      {/if}
-                    </div>
                   </div>
-                  {#if automationSettingsState === "error"}<p class="automation-settings-error" role="status">{automationSettingsError || t("backgroundAiTriageFailed")}</p>{/if}
-                  <div class="mcp-readiness" aria-label={t("agentReadiness")}>
-                    <div class="mcp-readiness-head"><span><FloodGlyph kind={mcpCheckState === "error" ? "urgent" : mcpCheckState === "success" ? "connected" : "brand"} size={28} /><span><strong>{t("agentReadiness")}</strong><small>{mcpRuntimeLabel()}</small></span></span><button class="mcp-check-button" disabled={!inTauri() || mcpCheckState === "checking"} onclick={runMcpSelfCheck}><RefreshCw class={mcpCheckState === "checking" ? "spinning" : ""} size={14} />{t("runSelfCheck")}</button></div>
-                    <details class="mcp-readiness-details">
-                      <summary><span><ListChecks size={15} />{t("mcpCheckDetails")}</span><small>{mcpSelfCheck ? t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms }) : t("notChecked")}</small><ChevronDown size={14} /></summary>
-                      <div class="readiness-list">
-                        <span class:done={Boolean(mcpRuntime?.available)}><i>{#if mcpRuntime?.available}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("mcpBinary")}</strong><small>{mcpRuntime?.available ? `${fileName(mcpExecutable)} · ${mcpRuntime.version || "?"}` : t("mcpMissingDescription")}</small></span></span>
-                        <span class:done={Boolean(mcpRuntime?.compatible)}><i>{#if mcpRuntime?.compatible}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("versionCompatibility")}</strong><small>{mcpRuntime ? `${t("appVersionLabel")} ${mcpRuntime.app_version} · MCP ${mcpRuntime.version || "?"}` : t("notChecked")}</small></span></span>
-                        <span class:done={Boolean(mcpRuntime?.tool_catalog_revision)}><i>{#if mcpRuntime?.tool_catalog_revision}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("mcpToolCatalog")}</strong><small>{mcpRuntime?.tool_catalog_revision ? `${mcpRuntime.tool_count ?? "?"} · ${t("mcpProtocolLabel")} ${mcpRuntime.protocol_version ?? "?"} · ${mcpRuntime.tool_catalog_revision.slice(0, 12)}` : t("notChecked")}</small></span></span>
-                        <span class:done={Boolean(storeDiagnostics?.healthy)}><i>{#if storeDiagnostics?.healthy}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("storeDiagnostics")}</strong><small>{storeDiagnostics ? t("storageSummary", { projects: storeDiagnostics.project_count, tasks: storeDiagnostics.open_task_count, inbox: storeDiagnostics.pending_inbox_count }) : t("notChecked")}</small></span></span>
-                        <span class:done={Boolean(mcpSelfCheck?.passed)}><i>{#if mcpSelfCheck?.passed}<Check size={12} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("isolatedSelfCheck")}</strong><small>{mcpSelfCheck ? t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms }) : t("selfCheckDescription")}</small></span></span>
-                        <button class:attention={Boolean(attachmentCleanupReport?.orphaned_files)} class:done={attachmentCleanupReport?.orphaned_files === 0} onclick={() => openSettingsSection("data")}><i>{#if attachmentCleanupReport?.orphaned_files === 0}<Check size={12} />{:else if attachmentCleanupReport?.orphaned_files}<Paperclip size={11} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("unusedAttachments")}</strong><small>{#if attachmentCleanupReport}{attachmentCleanupReport.orphaned_files ? t("attachmentCleanupSummary", { count: attachmentCleanupReport.orphaned_files, size: formatFileSize(attachmentCleanupReport.orphaned_bytes) }) : t("attachmentsHealthy")}{:else}{t("notChecked")}{/if}</small></span><ChevronRight size={13} /></button>
-                        <button class:attention={Boolean(storeDiagnostics && storeDiagnostics.linked_chat_count > 0 && !telegramAgentReady())} class:done={telegramAgentReady()} onclick={() => openSettingsSection("integrations")}><i>{#if telegramAgentReady()}<Check size={12} />{:else if storeDiagnostics?.linked_chat_count}<Send size={11} />{:else}<Circle size={10} />{/if}</i><span><strong>{t("telegramSynchronization")}</strong><small>{telegramAgentReadinessLabel()}</small></span><ChevronRight size={13} /></button>
-                      </div>
-                    </details>
-                    {#if mcpSelfCheck}
-                      <details class:error={!mcpSelfCheck.passed} class="mcp-check-result">
-                        <summary><span>{#if mcpSelfCheck.passed}<CheckCircle2 size={14} />{:else}<X size={14} />{/if}<strong>{mcpSelfCheck.passed ? t("allChecksPassed") : t("someChecksFailed")}</strong></span><small>{t("checksCompleted", { count: mcpSelfCheck.checks.filter((check) => check.passed).length, total: mcpSelfCheck.checks.length, duration: mcpSelfCheck.duration_ms })}</small><ChevronDown size={14} /></summary>
-                        <ul>{#each mcpSelfCheck.checks as check}<li class:passed={check.passed}>{#if check.passed}<Check size={12} />{:else}<X size={12} />{/if}<span>{check.name}{check.detail ? `: ${check.detail}` : ""}</span></li>{/each}</ul>
-                      </details>
-                    {/if}
-                  </div>
-
+                  <details class="settings-advanced"><summary>Журнал MCP<ChevronDown size={14}/></summary>
                   <div class="mcp-block mcp-activity">
                     <div class="mcp-activity-head">
-                      <div class="mcp-block-title"><FloodGlyph kind="info" size={17} /><span><strong>{t("mcpActivity")}</strong><small>{t("mcpActivityDescription")}</small></span></div>
-                      <span><small>{t("mcpActivityCount", { count: mcpActivityTotal })}</small><button class="icon-button" aria-label={t("reload")} title={t("reload")} disabled={mcpActivityState === "loading"} onclick={() => loadMcpActivity()}><RefreshCw class={mcpActivityState === "loading" ? "spinning" : ""} size={14} /></button></span>
+                      <div class="mcp-block-title"><strong>{t("mcpActivity")}</strong></div>
+                      <span><small>{t("mcpActivityCount", { count: mcpActivityTotal })}</small><UiIconButton size="sm" label={t("reload")} disabled={mcpActivityState === "loading"} onclick={() => loadMcpActivity()}><RefreshCw class={mcpActivityState === "loading" ? "spinning" : ""} size={14} /></UiIconButton></span>
                     </div>
                     {#if mcpActivityState === "error"}
                       <div class="mcp-activity-empty error" role="status"><FloodGlyph kind="urgent" size={18} /><span><strong>{t("mcpActivityFailed")}</strong><small>{mcpActivityError}</small></span></div>
                     {:else if !mcpActivity.length}
-                      <div class="mcp-activity-empty"><FloodGlyph kind="brand" size={18} /><span><strong>{t("mcpActivityEmpty")}</strong><small>{t("mcpActivityDescription")}</small></span></div>
+                      <div class="mcp-activity-empty"><FloodGlyph kind="brand" size={18} /><span><strong>{t("mcpActivityEmpty")}</strong></span></div>
                     {:else}
                       <div class="mcp-activity-list">
                         {#each mcpActivity as event (event.id)}
@@ -5811,56 +6174,15 @@
                     {/if}
                   </div>
 
-                  <div class="mcp-block">
-                    <div class="mcp-block-title"><span><strong>{t("connectAgent")}</strong><small>{t("connectAgentDescription")}</small></span></div>
-                    <div class="mcp-client-tabs" role="tablist" aria-label={t("mcpClient")}>
-                      {#each mcpClients as client}
-                        <button class:active={mcpClient === client} role="tab" aria-selected={mcpClient === client} onclick={() => (mcpClient = client)}>{client === "manual" ? t("manual") : client === "codex" ? "Codex" : client === "claude" ? "Claude" : "Cursor"}</button>
-                      {/each}
-                    </div>
-                    <div class="mcp-code" title={mcpExecutable || "flood-mcp.exe"}><pre>{mcpConfiguration(mcpClient)}</pre><button class="icon-button" aria-label={t("copyConfiguration")} title={copied ? t("copied") : t("copyConfiguration")} onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</button></div>
-                    <p class="mcp-hint">{t("restartMcpClient")}</p>
-                    {#if mcpRuntime?.source === "development"}<p class="mcp-hint mcp-dev-hint"><ShieldCheck size={13} />{t("mcpDevLauncherDescription")}</p>{/if}
-                  </div>
-
-                  <div class="mcp-block mcp-examples">
-                    <div class="mcp-block-title"><MessageSquareText size={17} /><span><strong>{t("mcpExampleTitle")}</strong><small>{t("mcpExampleDescription")}</small></span></div>
-                    <div class="mcp-example-list">
-                      {#each [{ icon: ListChecks, prompt: t("mcpPromptProjectTriage") }, { icon: MessageSquareText, prompt: t("mcpPromptTaskWork") }, { icon: ListTodo, prompt: t("mcpPromptPriorities") }, { icon: Search, prompt: t("mcpPromptSearch") }, { icon: ShieldCheck, prompt: t("mcpPromptDiagnostics") }] as example (example.prompt)}
-                        <button onclick={() => copyMcpPrompt(example.prompt)}><svelte:component this={example.icon} size={15} /><span>{example.prompt}</span><small>{copiedMcpPrompt === example.prompt ? t("copied") : t("copyPrompt")}</small></button>
-                      {/each}
-                    </div>
-                  </div>
-
-                  <div class="mcp-block mcp-safety">
-                    <div class="mcp-block-title"><ShieldCheck size={17} /><span><strong>{t("mcpSafety")}</strong><small>{t("mcpSafetyDescription")}</small></span></div>
-                    <div class="mcp-capability-list"><span><Check size={13} />{t("mcpCanRead")}</span><span><Check size={13} />{t("mcpCanSearch")}</span><span><Check size={13} />{t("mcpBoundedTasks")}</span><span><Check size={13} />{t("mcpCanChange")}</span><span><Check size={13} />{t("mcpCanProcessInbox")}</span><span><Check size={13} />{t("mcpBoundedInbox")}</span><span class="protected"><ShieldCheck size={13} />{t("mcpDestructiveProtected")}</span><span class="protected"><ShieldCheck size={13} />{t("mcpHumanConfirmation")}</span></div>
+                  </details>
+                  <div class="settings-automation">
+                    <h4 class="settings-group-label">Автоматизация</h4>
+                    <UiSwitch label="Создавать задачи из новых сообщений" description="Экспериментально. Использует лимиты подключённого провайдера." disabled={!inTauri()} checked={automationSettings.background_ai_triage} pending={automationSettingsState === "saving"} onchange={() => void toggleBackgroundAiTriage()} />
+                    {#if automationSettings.background_ai_triage}<p class="mcp-hint" aria-live="polite">{automationStatusLabel()}</p>{/if}
+                    {#if automationSettingsState === "error"}<p class="automation-settings-error" role="alert">{automationSettingsError || t("backgroundAiTriageFailed")}</p>{/if}
                   </div>
                 </section>
-              {:else}
-                <section class="settings-section">
-                  <div class="settings-section-title"><h3>{t("about")}</h3><p>flood.md {appVersion}</p></div>
-                  <h4 class="settings-group-label">{t("settingsApplication")}</h4>
-                  <div class="settings-group about-group">
-                    <div class="about-brand"><FloodGlyph kind="brand" size={42} /><span><strong>flood.md</strong><small>{t("localTasksNoNoise")}</small></span></div>
-                    {#if installationRuntime}
-                      <div class="installation-runtime">
-                        <span class="installation-runtime-summary"><FloodGlyph kind={installationRuntime.parallel_installed_copy ? "important" : installationRuntime.kind === "installed" ? "connected" : "brand"} size={18} /><span><strong>{t("applicationLaunch")}</strong><small>{installationKindLabel()}</small></span></span>
-                        <div class="installation-path"><code title={installationRuntime.executable_path}>{installationRuntime.executable_path}</code><button onclick={() => openApplicationDirectory(installationRuntime!.directory_path)}><FolderOpen size={14} />{t("openFolder")}</button></div>
-                      </div>
-                      {#if installationRuntime.parallel_installed_copy}
-                        <div class="parallel-install-warning" role="status">
-                          <FloodGlyph kind="important" size={18} />
-                          <span><strong>{t("parallelInstallFound")}</strong><small>{t("parallelInstallDescription")}</small><code title={installationRuntime.parallel_installed_copy}>{installationRuntime.parallel_installed_copy}</code></span>
-                          <button onclick={() => openApplicationDirectory(fileDirectory(installationRuntime!.parallel_installed_copy!))}><FolderOpen size={14} />{t("show")}</button>
-                        </div>
-                      {/if}
-                    {/if}
-                  </div>
-                  <h4 class="settings-group-label">{t("updates")}</h4>
-                  <div class="settings-group"><div class:error={updateState === "error"} class:success={updateState === "current" && Boolean(updateMessage)} class="update-row"><span><strong>{t("updates")}</strong><small>{updateMessage || (installationRuntime?.kind === "development" ? t("updateDevelopmentDescription") : t("updateViaGithub"))}</small>{#if updateState === "downloading"}<progress max="100" value={updateProgress}></progress>{/if}</span>{#if updateState === "available"}<button class="primary-small" onclick={installAvailableUpdate}><Download size={15} />{t("installVersion", { version: availableUpdate?.version ?? "" })}</button>{:else}<button onclick={checkForUpdates} disabled={updateState === "checking" || updateState === "downloading" || installationRuntime?.kind === "development"}><span class:spinning={updateState === "checking"} class="update-icon"><RefreshCw size={15} /></span>{updateState === "checking" ? t("checking") : t("check")}</button>{/if}</div></div>
-                  <button class="settings-action" onclick={() => openUrl("https://github.com/tillwithered/flood.md")}><ExternalLink size={15} />{t("openGithub")}</button>
-                </section>
+
               {/if}
             </div>
           </div>
@@ -5868,85 +6190,154 @@
       </section>
     {/if}
   </div>
+  <Dock bind:this={dock} onheightchange={(height) => dockClearance = height} visible={activeSection === "tasks" && (workspaceView === "project" || workspaceView === "task") && Boolean(dockProject && dockProject.id !== "all")} projectId={dockProject?.id ?? "all"} projectTitle={dockProject?.title ?? ""} viewedTaskId={workspaceView === "task" ? selectedTaskId : undefined} tasks={tasks.filter((task) => !isLocalDraft(task) && task.chatId === dockProject?.id).map((task) => ({ id: task.id, title: task.title, markdown: task.markdown }))} onnewtask={openDockTaskModal} onnewproject={openDockProjectModal} onsettings={() => openSettingsSection("agents")} onconnect={() => (conversationSettingsOpen = true)} />
 </main>
+
+<UiModal bind:open={mcpSettingsOpen} title="Конфигурация MCP">
+                    <div class="mcp-manual-setup">
+                      <div>
+                        <div class="mcp-client-tabs" role="group" aria-label={t("mcpClient")}>
+                          {#each mcpClients as client}
+                            <button class:active={mcpClient === client} aria-pressed={mcpClient === client} onclick={() => { mcpClient = client; copied = false; mcpCopyError = ""; }}>{client === "manual" ? t("manual") : client === "codex" ? "Codex" : client === "claude" ? "Claude" : "Cursor"}</button>
+                          {/each}
+                        </div>
+                        <div class="mcp-code" title={mcpExecutable || "flood-mcp.exe"}><pre>{mcpConfiguration(mcpClient)}</pre><UiIconButton label={copied ? t("copied") : t("copyConfiguration")} busy={mcpCopyPending} onclick={copyMcpConfig}>{#if copied}<Check size={16} />{:else}<Clipboard size={16} />{/if}</UiIconButton></div>
+                        {#if mcpCopyError}<p class="dock-modal-error" role="alert">{mcpCopyError}</p>{/if}
+                        <p class="mcp-hint">{t("restartMcpClient")}</p>
+                        {#if mcpRuntime?.source === "development"}<p class="mcp-hint mcp-dev-hint"><ShieldCheck size={13} />{t("mcpDevLauncherDescription")}</p>{/if}
+                      </div>
+                    </div>
+
+  {#snippet footer()}<UiButton onclick={() => (mcpSettingsOpen = false)}>Готово</UiButton>{/snippet}
+</UiModal>
+
+<UiModal bind:open={conversationSettingsOpen} title="Разговор для проекта">
+  <AgentConversationSettings fixedProject active={conversationSettingsOpen} onsaved={() => { conversationSettingsOpen = false; dock?.refreshRouting(); dock?.focus(); }} showTitle={false} projects={chats.filter(chat => chat.id !== "all")} initialProjectId={dockProject?.id === "all" ? undefined : dockProject?.id} />
+</UiModal>
+
+<UiModal bind:open={dockTaskModalOpen} title="Новая задача" subtitle="Добавьте задачу в нужный проект.">
+  <form id="dock-new-task-form" class="dock-create-form" onsubmit={submitDockTask}>
+    <TextField label="Название" bind:value={dockTaskTitle} placeholder="Что нужно сделать?" maxlength={300} required />
+    <SelectField label="Проект" bind:value={dockTaskProjectId} options={chats.filter((chat) => chat.id !== "all").map((chat) => ({ value: chat.id, label: chat.title }))} />
+    <TextArea label="Описание" bind:value={dockTaskDetails} optional rows={3} placeholder="Подробности задачи" />
+    <SelectField label="Срочность" bind:value={dockTaskUrgency} options={[{ value: "normal", label: "Обычная" }, { value: "important", label: "Важная" }, { value: "urgent", label: "Срочная" }]} />
+    {#if dockModalError}<p class="dock-modal-error" role="alert">{dockModalError}</p>{/if}
+  </form>
+  {#snippet footer()}
+    <UiButton onclick={() => (dockTaskModalOpen = false)} disabled={dockModalBusy}>Отмена</UiButton>
+    <UiButton variant="primary" type="submit" form="dock-new-task-form" busy={dockModalBusy} disabled={!dockTaskTitle.trim() || !dockTaskProjectId}>Создать задачу</UiButton>
+  {/snippet}
+</UiModal>
+
+<UiModal bind:open={dockProjectModalOpen} title="Новый проект" subtitle="Задачи и контекст будут храниться в этом проекте.">
+  <form id="dock-new-project-form" class="dock-create-form" onsubmit={submitDockProject}>
+    <TextField label="Название проекта" bind:value={dockProjectTitle} placeholder="Название проекта" maxlength={100} required />
+    {#if dockModalError}<p class="dock-modal-error" role="alert">{dockModalError}</p>{/if}
+  </form>
+  {#snippet footer()}
+    <UiButton onclick={() => (dockProjectModalOpen = false)} disabled={dockModalBusy}>Отмена</UiButton>
+    <UiButton variant="primary" type="submit" form="dock-new-project-form" busy={dockModalBusy} disabled={!dockProjectTitle.trim()}>Создать проект</UiButton>
+  {/snippet}
+</UiModal>
+
+<UiModal bind:open={projectContextDiscardOpen} title="Несохранённые изменения" subtitle="Изменения контекста проекта ещё не сохранены.">
+  {#snippet footer()}
+    <UiButton onclick={() => (projectContextDiscardOpen = false)}>Продолжить редактирование</UiButton>
+    <UiButton variant="danger" onclick={() => closeProjectContext(true, true)}>Не сохранять</UiButton>
+  {/snippet}
+</UiModal>
+
+<UiModal bind:open={createHubOpen} title={t("create")} subtitle={t("chooseWhatToCreate")}>
+  <div class="create-hub-options">
+    <button type="button" onclick={chooseCreateTask}>
+      <span><ListChecks size={19} /></span>
+      <span><strong>{t("newTask")}</strong><small>{t("chooseProject")}</small></span>
+      <ChevronRight size={16} />
+    </button>
+    <button type="button" onclick={chooseCreateProject}>
+      <span><FolderPlus size={19} /></span>
+      <span><strong>{t("newProject")}</strong><small>{t("projectName")}</small></span>
+      <ChevronRight size={16} />
+    </button>
+  </div>
+</UiModal>
 
 {#if integrationModal === "telegram"}
   <IntegrationModal provider="telegram" title="Telegram" subtitle={telegramStatus.account_name || t("tdlibClient")} closeLabel={t("close")} onclose={closeIntegrationModal} onkeydown={trapModalFocus}>
     <div class="connector-management">
-      <div class="connector-management-status"><FloodGlyph kind={["database_error", "error"].includes(telegramStatus.step) ? "urgent" : telegramStatus.step === "ready" ? "connected" : "info"} size={20} /><span><strong>{telegramStatusLabel()}</strong><small>{t("telegramConnectorDescription")}</small></span></div>
-      {#if telegramSyncRequest && telegramStatus.step !== "ready"}<div class="telegram-sync-request-note"><FloodGlyph kind="important" size={16} /><span><strong>{t("telegramSyncWaiting")}</strong><small>{t("telegramSyncWaitingDescription")}</small></span></div>{/if}
+      <div class="connector-management-status"><FloodGlyph kind={["database_error", "error"].includes(telegramStatus.step) ? "urgent" : telegramStatus.step === "ready" ? "connected" : "info"} size={20} /><span><strong>{telegramStatusLabel()}</strong></span></div>
+      {#if telegramSyncRequest && telegramStatus.step !== "ready"}<InlineNotice tone="attention" title={t("telegramSyncWaiting")}>{t("telegramSyncWaitingDescription")}</InlineNotice>{/if}
       {#if telegramStatus.step === "unconfigured"}
         <p>{t("telegramDescription")}</p>
         <form class="telegram-form credentials" onsubmit={configureTelegram}>
-          <label><span>API ID</span><input bind:value={telegramApiId} inputmode="numeric" autocomplete="off" placeholder="12345678" required /></label>
-          <label><span>API Hash</span><input bind:value={telegramApiHash} type="password" autocomplete="off" placeholder="••••••••••••••••" required /></label>
-          <button class="primary-button" disabled={telegramBusy}>{t("connect")}</button>
+          <TextField label="API ID" bind:value={telegramApiId} inputmode="numeric" autocomplete="off" placeholder="12345678" required />
+          <TextField label="API Hash" bind:value={telegramApiHash} type="password" autocomplete="off" placeholder="••••••••••••••••" required />
+          <UiButton type="submit" variant="primary" disabled={telegramBusy}>{t("connect")}</UiButton>
         </form>
-        <button class="telegram-help" onclick={() => openUrl("https://my.telegram.org/apps")}><ExternalLink size={13} />{t("getTelegramKeys")}</button>
+        <UiButton variant="quiet" size="sm" onclick={() => openUrl("https://my.telegram.org/apps")}><ExternalLink size={13} />{t("getTelegramKeys")}</UiButton>
       {:else if telegramStatus.step === "phone"}
         <p>{t("telegramChooseLogin")}</p>
-        <div class="telegram-login-options"><button class="primary-button" disabled={telegramBusy} onclick={requestTelegramQr}><QrCode size={15} />{t("loginWithQr")}</button><span>{t("or")}</span></div>
-        <form class="telegram-form inline" onsubmit={submitTelegramPhone}><label><span>{t("phoneNumber")}</span><input bind:value={telegramPhone} type="tel" autocomplete="tel" placeholder="+7 700 000 00 00" required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
+        <div class="telegram-login-options"><UiButton variant="secondary" disabled={telegramBusy} onclick={requestTelegramQr}><QrCode size={15} />{t("loginWithQr")}</UiButton><span>{t("or")}</span></div>
+        <form class="telegram-form inline" onsubmit={submitTelegramPhone}><TextField label={t("phoneNumber")} bind:value={telegramPhone} type="tel" autocomplete="tel" placeholder="+7 700 000 00 00" required /><UiButton type="submit" variant="primary" disabled={telegramBusy}>{t("continue")}</UiButton></form>
       {:else if telegramStatus.step === "qr"}
         <div class="telegram-qr">{#if telegramQrDataUrl}<img src={telegramQrDataUrl} alt={t("telegramQrCode")} />{/if}<span><strong>{t("scanQr")}</strong><small>{t("scanQrDescription")}</small></span></div>
-        <button class="telegram-help" onclick={() => openUrl(telegramStatus.qr_link || "tg://login")}><ExternalLink size={13} />{t("openInTelegram")}</button>
+        <UiButton variant="quiet" size="sm" onclick={() => openUrl(telegramStatus.qr_link || "tg://login")}><ExternalLink size={13} />{t("openInTelegram")}</UiButton>
       {:else if telegramStatus.step === "code"}
-        <form class="telegram-form inline" onsubmit={submitTelegramCode}><label><span>{t("telegramCode")}</span><input bind:value={telegramCode} inputmode="numeric" autocomplete="one-time-code" required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
+        <form class="telegram-form inline" onsubmit={submitTelegramCode}><TextField label={t("telegramCode")} bind:value={telegramCode} inputmode="numeric" autocomplete="one-time-code" required /><UiButton type="submit" variant="primary" disabled={telegramBusy}>{t("continue")}</UiButton></form>
       {:else if telegramStatus.step === "password"}
-        <form class="telegram-form inline" onsubmit={submitTelegramPassword}><label><span>{t("telegramPassword")}</span><input bind:value={telegramPassword} type="password" autocomplete="current-password" placeholder={telegramStatus.password_hint || ""} required /></label><button disabled={telegramBusy}>{t("continue")}</button></form>
+        <form class="telegram-form inline" onsubmit={submitTelegramPassword}><TextField label={t("telegramPassword")} bind:value={telegramPassword} type="password" autocomplete="current-password" placeholder={telegramStatus.password_hint || ""} required /><UiButton type="submit" variant="primary" disabled={telegramBusy}>{t("continue")}</UiButton></form>
       {:else if telegramStatus.step === "ready"}
-        <div class:warning={telegramSyncState === "partial"} class:error={telegramSyncState === "error"} class="telegram-sync-row" role="status" title={telegramSyncErrors.join("\n")}><span><RefreshCw class={telegramSyncState === "syncing" ? "spinning" : ""} size={14} /><span><strong>{t("telegramSynchronization")}</strong><small>{telegramSyncLabel()}</small>{#if telegramSyncErrors[0]}<small class="sync-error">{telegramSyncErrors[0]}{telegramSyncErrors.length > 1 ? ` · +${telegramSyncErrors.length - 1}` : ""}</small>{/if}</span></span><button disabled={telegramSyncState === "syncing"} onclick={() => syncTelegram()}>{t("syncNow")}</button></div>
-        <div class="telegram-local-note"><ShieldCheck size={14} /><span><strong>{t("telegramLocalSession")}</strong><small>{t("telegramLocalSessionDescription")}</small></span></div>
-        <button class="telegram-help danger" disabled={telegramBusy} onclick={disconnectTelegram}><LogOut size={13} />{t("disconnect")}</button>
+        <InlineNotice tone={telegramSyncState === "error" ? "danger" : telegramSyncState === "partial" ? "attention" : "info"} title={t("telegramSynchronization")} announce>
+          {telegramSyncLabel()}{#if telegramSyncErrors[0]} · {telegramSyncErrors[0]}{telegramSyncErrors.length > 1 ? ` · +${telegramSyncErrors.length - 1}` : ""}{/if}
+          {#snippet actions()}<NoticeAction tone={telegramSyncState === "error" ? "danger" : telegramSyncState === "partial" ? "attention" : "info"} disabled={telegramSyncState === "syncing"} onclick={() => syncTelegram()}>{t("syncNow")}</NoticeAction>{/snippet}
+        </InlineNotice>
+        <InlineNotice tone="success" title={t("telegramLocalSession")}>{t("telegramLocalSessionDescription")}</InlineNotice>
+        <UiButton variant="danger" size="sm" disabled={telegramBusy} onclick={disconnectTelegram}><LogOut size={13} />{t("disconnect")}</UiButton>
       {:else if telegramStatus.step === "database_error"}
-        <div class="integration-recovery" role="alert"><FloodGlyph kind="urgent" size={32} /><span><strong>{t("telegramDatabaseError")}</strong><small>{t("telegramDatabaseErrorDescription")}</small></span></div>
-        <button class="primary-button recovery-button" disabled={telegramBusy} onclick={resetTelegramDatabase}><RotateCcw size={14} />{t("repairConnection")}</button>
+        <InlineNotice tone="danger" title={t("telegramDatabaseError")} announce>{t("telegramDatabaseErrorDescription")}{#snippet actions()}<NoticeAction tone="danger" disabled={telegramBusy} onclick={resetTelegramDatabase}><RotateCcw size={14} />{t("repairConnection")}</NoticeAction>{/snippet}</InlineNotice>
       {:else}
         <div class="telegram-loading"><RefreshCw class="spinning" size={15} />{t("connecting")}</div>
       {/if}
-      {#if telegramError && telegramStatus.step !== "database_error"}<p class="connector-error" role="alert">{telegramError}</p>{/if}
+      {#if telegramError && telegramStatus.step !== "database_error"}<InlineNotice tone="danger" announce>{telegramError}</InlineNotice>{/if}
     </div>
   </IntegrationModal>
 {:else if integrationModal === "github"}
   <IntegrationModal provider="github" title="GitHub" subtitle={githubStatus.account?.login || t("githubAppConnector")} closeLabel={t("close")} onclose={closeIntegrationModal} onkeydown={trapModalFocus}>
     <div class="connector-management github-management">
-      <div class="connector-management-status"><FloodGlyph kind={githubStatusTone() === "error" ? "urgent" : githubStatus.connected ? "connected" : githubDeviceCode ? "important" : "info"} size={20} /><span><strong>{githubStatusLabel()}</strong><small>{t("githubPermissionSummary")}</small></span>{#if githubStatus.managed_app}<span class="managed-chip">{t("officialConnector")}</span>{/if}</div>
+      <div class="connector-management-status"><FloodGlyph kind={githubStatusTone() === "error" ? "urgent" : githubStatus.connected ? "connected" : githubDeviceCode ? "important" : "info"} size={20} /><span><strong>{githubStatusLabel()}</strong></span>{#if githubStatus.managed_app}<span class="managed-chip">{t("officialConnector")}</span>{/if}</div>
       {#if !githubStatus.configured}
         <div class="connector-empty"><FloodGlyph kind="info" size={30} /><span><strong>{t("githubAppRequired")}</strong><small>{t("githubAppRequiredDescription")}</small></span></div>
         <form class="github-config-form" onsubmit={configureGithub}>
-          <label><span>Client ID</span><input bind:value={githubClientId} autocomplete="off" placeholder="Iv1…" required /></label>
-          <label><span>App slug</span><input bind:value={githubAppSlug} autocomplete="off" placeholder="flood-md" required /></label>
-          <button class="primary-button" disabled={githubBusy}>{t("saveAndContinue")}</button>
+          <TextField label="Client ID" bind:value={githubClientId} autocomplete="off" placeholder="Iv1…" required />
+          <TextField label="App slug" bind:value={githubAppSlug} autocomplete="off" placeholder="flood-md" required />
+          <UiButton type="submit" variant="primary" disabled={githubBusy}>{t("saveAndContinue")}</UiButton>
         </form>
-        <button class="telegram-help" onclick={() => openUrl("https://docs.github.com/apps/creating-github-apps/registering-a-github-app/registering-a-github-app")}><ExternalLink size={13} />{t("githubCreateApp")}</button>
+        <UiButton variant="quiet" size="sm" onclick={() => openUrl("https://docs.github.com/apps/creating-github-apps/registering-a-github-app/registering-a-github-app")}><ExternalLink size={13} />{t("githubCreateApp")}</UiButton>
       {:else if githubDeviceCode}
         <div class="github-device-flow">
           <span><small>{t("githubDeviceCode")}</small><strong>{githubDeviceCode.user_code}</strong></span>
-          <button onclick={copyGithubDeviceCode}>{#if githubCodeCopied}<Check size={14} />{t("copied")}{:else}<Clipboard size={14} />{t("copy")}{/if}</button>
+          <UiButton size="sm" onclick={copyGithubDeviceCode}>{#if githubCodeCopied}<Check size={14} />{t("copied")}{:else}<Clipboard size={14} />{t("copy")}{/if}</UiButton>
         </div>
         <p>{t("githubDeviceInstructions")}</p>
         <div class="github-auth-wait"><RefreshCw class="spinning" size={15} /><span><strong>{t("githubWaiting")}</strong><small>{t("githubWaitingDescription")}</small></span></div>
-        <button class="telegram-help" onclick={() => openUrl(githubDeviceCode!.verification_uri)}><ExternalLink size={13} />{t("openGithub")}</button>
+        <UiButton variant="quiet" size="sm" onclick={() => openUrl(githubDeviceCode!.verification_uri)}><ExternalLink size={13} />{t("openGithub")}</UiButton>
       {:else if githubAuthorizationCompleted}
-        <div class="github-auth-success" role="status">
-          <FloodGlyph kind="connected" size={34} />
-          <span><strong>{t("githubConnectedSuccess")}</strong><small>{t("githubConnectedSuccessDescription", { account: githubAuthorizationCompleted.login })}</small></span>
-        </div>
-        <button class="primary-button connector-primary" onclick={() => (githubAuthorizationCompleted = null)}>{t("continue")}<ChevronRight size={14} /></button>
+        <InlineNotice tone="success" title={t("githubConnectedSuccess")} announce>{t("githubConnectedSuccessDescription", { account: githubAuthorizationCompleted.login })}</InlineNotice>
+        <UiButton variant="primary" onclick={() => (githubAuthorizationCompleted = null)}>{t("continue")}<ChevronRight size={14} /></UiButton>
       {:else if !githubStatus.connected}
         <div class="connector-empty"><FloodGlyph kind="brand" size={30} /><span><strong>{t("githubConnectTitle")}</strong><small>{t("githubConnectDescription")}</small></span></div>
         <div class="github-permissions"><span><Check size={13} />{t("githubReadContents")}</span><span><Check size={13} />{t("githubReadWork")}</span><span><ShieldCheck size={13} />{t("githubNoWrite")}</span></div>
-        <button class="primary-button connector-primary" disabled={githubBusy || !githubStatus.credential_store_available} onclick={beginGithubAuthorization}>{#if githubBusy}<RefreshCw class="spinning" size={14} />{/if}{t("continueWithGithub")}</button>
+        <UiButton variant="primary" busy={githubBusy} disabled={!githubStatus.credential_store_available} onclick={beginGithubAuthorization}>{t("continueWithGithub")}</UiButton>
       {:else}
-        <div class="github-account-row"><FloodGlyph kind="connected" size={26} /><span><strong>{githubStatus.account?.name || githubStatus.account?.login}</strong><small>@{githubStatus.account?.login} · {t("githubSessionStored")}</small></span><button onclick={() => openUrl(githubStatus.account?.html_url || "https://github.com")}><ExternalLink size={14} />{t("profile")}</button></div>
-        <div class="github-installation-row"><span><strong>{t("githubRepositoryAccess")}</strong><small>{t("githubInstallationCount", { count: githubInstallations.length })}</small></span><div><button disabled={githubBusy} onclick={loadGithubRepositories}><RefreshCw class={githubBusy ? "spinning" : ""} size={14} />{t("refresh")}</button><button onclick={installGithubApp}>{t("changeAccess")}</button></div></div>
+        <div class="github-account-row"><FloodGlyph kind="connected" size={26} /><span><strong>{githubStatus.account?.name || githubStatus.account?.login}</strong><small>@{githubStatus.account?.login} · {t("githubSessionStored")}</small></span><UiButton variant="quiet" size="sm" onclick={() => openUrl(githubStatus.account?.html_url || "https://github.com")}><ExternalLink size={14} />{t("profile")}</UiButton></div>
+        <div class="github-installation-row"><span><strong>{t("githubRepositoryAccess")}</strong><small>{t("githubInstallationCount", { count: githubInstallations.length })}</small></span><div><UiButton size="sm" busy={githubBusy} onclick={loadGithubRepositories}>{t("refresh")}</UiButton><UiButton size="sm" onclick={installGithubApp}>{t("changeAccess")}</UiButton></div></div>
         {#if !githubRepositories.length && !githubBusy}
-          <div class="connector-empty"><FloodGlyph kind="important" size={28} /><span><strong>{t("githubNoRepositories")}</strong><small>{t("githubNoRepositoriesDescription")}</small></span><button class="primary-button" onclick={installGithubApp}>{t("installGithubApp")}</button></div>
+          <div class="connector-empty"><FloodGlyph kind="important" size={28} /><span><strong>{t("githubNoRepositories")}</strong><small>{t("githubNoRepositoriesDescription")}</small></span><UiButton size="sm" onclick={installGithubApp}>{t("installGithubApp")}</UiButton></div>
         {/if}
-        <div class="telegram-local-note"><ShieldCheck size={14} /><span><strong>{t("githubSecureStorage")}</strong><small>{t("githubSecureStorageDescription")}</small></span></div>
-        <button class="telegram-help danger" disabled={githubBusy} onclick={disconnectGithub}><LogOut size={13} />{t("disconnect")}</button>
+        <InlineNotice tone="success" title={t("githubSecureStorage")}>{t("githubSecureStorageDescription")}</InlineNotice>
+        <UiButton variant="danger" size="sm" disabled={githubBusy} onclick={disconnectGithub}><LogOut size={13} />{t("disconnect")}</UiButton>
       {/if}
-      {#if githubError}<p class="connector-error" role="alert">{githubError}</p>{/if}
+      {#if githubError}<InlineNotice tone="danger" announce>{githubError}</InlineNotice>{/if}
     </div>
   </IntegrationModal>
 {/if}
@@ -5955,105 +6346,67 @@
   {@const activeMemory = projectMemoryEntries("active")}
   {@const supersededMemory = projectMemoryEntries("superseded")}
   <div class:sidebar-collapsed={sidebarCollapsed} class="project-context-route">
-    <section class="project-context-page" bind:this={projectContextDialog} aria-label={t("projectContext")} tabindex="-1">
+    <section class="project-context-page" bind:this={projectContextDialog} aria-label={t("projectSettings")} tabindex="-1">
       <form class="project-context-form" onsubmit={saveProjectContext}>
-        <header>
-          <span><FloodGlyph kind="info" size={22} /><span><strong>{t("projectContext")}</strong><small title={projectContextProjectTitle}>{projectContextProjectTitle}</small></span></span>
-        </header>
-        <div class="project-context-body">
-          <nav class="project-workspace-nav" aria-label={t("projectWorkspaceSections")}>
-            {#each ["overview", "documents", "memory", "rules", "skills", "integrations", "automation", "history"] as section}
-              <button class:active={projectWorkspaceSection === section} type="button" onclick={() => openProjectWorkspaceSection(section as ProjectWorkspaceSection)}>{t(`projectWorkspace_${section}` as MessageKey)}</button>
-            {/each}
-          </nav>
-
-          {#if projectWorkspaceSection === "overview"}
-            <section class="project-workspace-overview" aria-label={t("projectWorkspace_overview")}>
-              <div class="project-workspace-stats">
-                <button type="button" onclick={() => openProjectWorkspaceSection("documents")}><FileText size={18} /><span><strong>{projectWorkspaceItemsFor("document").length + 1}</strong><small>{t("projectWorkspace_documents")}</small></span></button>
-                <button type="button" onclick={() => openProjectWorkspaceSection("memory")}><Database size={18} /><span><strong>{activeMemory.length}</strong><small>{t("projectWorkspace_memory")}</small></span></button>
-                <button type="button" onclick={() => openProjectWorkspaceSection("rules")}><ShieldCheck size={18} /><span><strong>{projectWorkspaceItemsFor("rule").length}</strong><small>{t("projectWorkspace_rules")}</small></span></button>
-                <button type="button" onclick={() => openProjectWorkspaceSection("skills")}><Bot size={18} /><span><strong>{projectWorkspaceItemsFor("skill").length}</strong><small>{t("projectWorkspace_skills")}</small></span></button>
-              </div>
-            </section>
-          {/if}
-
-          {#if projectWorkspaceSection === "history"}
-            <section class="project-workspace-owned" aria-label={t("projectWorkspace_history")}>
-              <div class="project-resource-heading"><span><strong>{t("projectWorkspace_history")}</strong><small>{t("projectWorkspaceHistoryDescription")}</small></span></div>
-              {#if projectWorkspaceItems.every((item) => (item.revisions?.length ?? 0) === 0)}
-                <div class="project-resource-empty"><RotateCcw size={17} /><span><strong>{t("projectWorkspaceHistoryEmpty")}</strong><small>{t("projectWorkspaceHistoryEmptyDescription")}</small></span></div>
-              {:else}
-                <div class="project-workspace-history-list">
-                  {#each projectWorkspaceItems.filter((item) => item.revisions?.length) as item (item.id)}
-                    {#each [...(item.revisions ?? [])].reverse() as revision, index (revision.changed_at)}
-                      <article><span><strong>{item.title}</strong><small>{t(`projectWorkspaceOwned_${item.kind}` as MessageKey)} · {fullDate(revision.changed_at)} · v{(item.revisions?.length ?? 0) - index}</small></span><button type="button" onclick={() => restoreProjectWorkspaceRevision(item, revision)}>{t("restore")}</button></article>
-                    {/each}
-                  {/each}
-                </div>
+        <div class="project-settings-heading">
+          <button type="button" class="project-settings-back" disabled={projectContextSaving || projectMemorySaving} onclick={() => closeProjectContext()}><ChevronLeft size={16} />К проекту</button>
+          <PageHeader title={t("projectSettings")} description={projectContextProjectTitle}>
+            {#snippet actions()}
+              {#if projectContextDraft !== projectContextSavedDraft || JSON.stringify(projectContextResources) !== projectContextSavedResources || projectAutoRunDraft !== projectAutoRunSaved || projectContextSaving}
+                <UiButton variant="primary" type="submit" busy={projectContextSaving} disabled={projectAutoRunLoading || Boolean(projectContextConflictRemote)}>{projectContextSaving ? t("saving") : t("save")}</UiButton>
               {/if}
-            </section>
-          {/if}
-
-          {#if ["documents", "rules", "skills"].includes(projectWorkspaceSection)}
-            {@const workspaceKind = projectWorkspaceSection === "documents" ? "document" : projectWorkspaceSection === "rules" ? "rule" : "skill"}
+            {/snippet}
+          </PageHeader>
+        </div>
+        <div class="project-context-body">
+          <div class="context-section-nav">
+            <SectionNav class="context-section-tabs" label={t("projectSettingsSections")} activeId={projectWorkspaceSection}
+              items={[{ id: "context", label: t("projectSettingsContext") }, { id: "integrations", label: t("projectSettingsIntegrations") }]}
+              onselect={(id) => openProjectWorkspaceSection(id as ProjectWorkspaceSection)} />
+          </div>
+          {#if projectWorkspaceSection === "context"}
+            {#each (["document", "rule", "skill"] as ProjectWorkspaceItemKind[]) as workspaceKind}
             {@const ownedItems = projectWorkspaceItems.filter((item) => item.kind === workspaceKind)}
-            <section class="project-workspace-owned" aria-label={t(`projectWorkspace_${projectWorkspaceSection}` as MessageKey)}>
+            <section class="project-workspace-owned" aria-label={t(`projectWorkspaceOwned_${workspaceKind}` as MessageKey)}>
               <div class="project-resource-heading">
-                <span><strong>{t(`projectWorkspaceOwned_${workspaceKind}` as MessageKey)}</strong><small>{t(`projectWorkspaceOwned_${workspaceKind}Description` as MessageKey)}</small></span>
-                <button type="button" disabled={projectWorkspaceSaving || projectWorkspaceEditorId === "new"} onclick={() => beginCreateProjectWorkspaceItem(workspaceKind)}><Plus size={14} />{t("create")}</button>
+                <span><strong>{t(`projectWorkspaceOwned_${workspaceKind}` as MessageKey)}</strong></span>
+                <UiButton disabled={projectWorkspaceEditorId === "new"} busy={projectWorkspaceSaving} onclick={() => beginCreateProjectWorkspaceItem(workspaceKind)}><Plus size={16} />{t("create")}</UiButton>
               </div>
               {#if projectWorkspaceLoading}
-                <div class="project-resource-empty"><RefreshCw class="spinning" size={17} /><span><strong>{t("loading")}</strong></span></div>
+                <p class="context-loading" role="status">{t("loading")}</p>
               {:else if ownedItems.length === 0 && projectWorkspaceEditorId !== "new"}
-                <div class="project-resource-empty"><FileText size={17} /><span><strong>{t("projectWorkspaceEmpty")}</strong><small>{t("projectWorkspaceEmptyDescription")}</small></span></div>
+                <EmptyState title={t("projectWorkspaceEmpty")} />
               {:else}
-                <div class="project-workspace-item-list">
+                <div class="context-material-list">
                   {#each ownedItems as item (item.id)}
-                    <button class:active={projectWorkspaceEditorId === item.id} type="button" onclick={() => editProjectWorkspaceItem(item)}><span><strong>{item.title}</strong><small>{item.summary || t("projectWorkspaceNoSummary")} · v{(item.revisions?.length ?? 0) + 1}</small></span>{#if item.agent_access}<FloodGlyph kind="connected" size={16} />{/if}</button>
+                    <MaterialRow title={item.title} description={item.summary || undefined} meta={`v${(item.revisions?.length ?? 0) + 1} · ${item.agent_access ? t("agentAccessEnabled") : t("agentAccessDisabled")}`} selected={projectWorkspaceEditorId === item.id} onclick={() => editProjectWorkspaceItem(item)}>
+                      {#snippet icon()}<FileText size={20} />{/snippet}
+                    </MaterialRow>
                   {/each}
                 </div>
               {/if}
-              {#if projectWorkspaceError}<p class="project-memory-error" role="alert">{projectWorkspaceError}</p>{/if}
+              {#if projectWorkspaceError}<InlineNotice tone="danger" announce>{projectWorkspaceError}</InlineNotice>{/if}
             </section>
-          {/if}
-
-          {#if projectWorkspaceSection === "overview" && projectAttention.length}
-            <section class="project-attention" aria-label={t("projectAttention")}>
-              <div class="project-attention-heading"><span><strong>{t("projectAttention")}</strong><small>{t("projectAttentionDescription")}</small></span><span>{projectAttention.length}</span></div>
-              {#each projectAttention as item (item.kind + item.occurred_at)}
-                <div class="project-attention-item">
-                  <button type="button" disabled={!item.task_id && !item.event_id} aria-expanded={item.event_id ? projectAttentionAnswerId === item.event_id : undefined} onclick={() => openProjectAttentionTask(item)}>
-                    <FloodGlyph kind="important" size={16} />
-                    <span><strong>{item.kind === "agent_question" ? t("agentQuestion") : t("sourceQuestion")}</strong><small>{item.message}</small></span>
-                    {#if item.task_id || item.event_id}<ChevronRight class={projectAttentionAnswerId === item.event_id ? "expanded" : ""} size={14} />{/if}
-                  </button>
-                  {#if item.event_id && projectAttentionAnswerId === item.event_id}
-                    <div class="project-attention-answer">
-                      <input bind:value={projectAttentionAnswer} maxlength="1000" placeholder={t("agentAnswerPlaceholder")} onkeydown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void answerProjectAttention(item); } }} />
-                      <button class="primary-button" type="button" disabled={!projectAttentionAnswer.trim() || projectAttentionBusy} onclick={() => answerProjectAttention(item)}>{t("sendClarification")}</button>
-                    </div>
-                  {/if}
-                </div>
-              {/each}
-            </section>
+            {/each}
           {/if}
           {#if projectWorkspaceSection === "integrations"}
           <section class="project-resource-section" aria-label={t("connectedEnvironments")}>
             <div class="project-resource-heading">
-              <span><strong>{t("connectedEnvironments")}</strong><small>{t("connectedEnvironmentsDescription")}</small></span>
+              <span><strong>{t("connectedEnvironments")}</strong></span>
             </div>
-            <div class="project-context-connector-row">
-              <span><Send size={16} /><span><strong>Telegram</strong><small>{currentChat.telegram_chats.length ? t("linkedChats", { count: currentChat.telegram_chats.length }) : telegramStatus.step === "ready" ? t("notLinked") : t("notConnected")}</small></span></span>
-              {#if telegramStatus.step === "ready"}<button type="button" disabled={projectContextSaving} onclick={() => openTelegramConnections(projectContextProjectId)}>{t("configure")}</button>{:else}<button type="button" onclick={() => { closeProjectContext(); void openSettingsSection("integrations"); }}>{t("connect")}</button>{/if}
-            </div>
-            <div class="project-context-connector-row">
-              <span><FolderOpen size={16} /><span><strong>GitHub</strong><small>{projectContextResources.filter((resource) => resource.kind === "repository" && resource.location.startsWith("https://github.com/")).length ? t("linkedRepositories", { count: projectContextResources.filter((resource) => resource.kind === "repository" && resource.location.startsWith("https://github.com/")).length }) : githubStatus.connected ? t("notLinked") : t("notConnected")}</small></span></span>
-              {#if githubStatus.connected}<button type="button" aria-expanded={projectGithubOpen} disabled={projectContextSaving} onclick={() => { projectGithubOpen = !projectGithubOpen; if (projectGithubOpen && !githubRepositories.length) void loadGithubRepositories(); }}>{t("configure")}</button>{:else}<button type="button" onclick={() => { closeProjectContext(); void openSettingsSection("integrations"); }}>{t("connect")}</button>{/if}
+            <div class="project-settings-group">
+              <div class="project-context-connector-row">
+                <span><Send size={16} /><span><strong>Telegram</strong><small>{currentChat.telegram_chats.length ? t("linkedChats", { count: currentChat.telegram_chats.length }) : telegramStatus.step === "ready" ? t("notLinked") : t("notConnected")}</small></span></span>
+                {#if telegramStatus.step === "ready"}<UiButton variant="quiet" size="sm" disabled={projectContextSaving} onclick={() => openTelegramConnections(projectContextProjectId)}>{t("configure")}</UiButton>{:else}<UiButton variant="quiet" size="sm" onclick={() => { if (closeProjectContext()) void openSettingsSection("integrations"); }}>{t("connect")}</UiButton>{/if}
+              </div>
+              <div class="project-context-connector-row">
+                <span><FolderOpen size={16} /><span><strong>GitHub</strong><small>{projectContextResources.filter((resource) => resource.kind === "repository" && resource.location.startsWith("https://github.com/")).length ? t("linkedRepositories", { count: projectContextResources.filter((resource) => resource.kind === "repository" && resource.location.startsWith("https://github.com/")).length }) : githubStatus.connected ? t("notLinked") : t("notConnected")}</small></span></span>
+                {#if githubStatus.connected}<UiButton variant="quiet" size="sm" aria-expanded={projectGithubOpen} disabled={projectContextSaving} onclick={() => { projectGithubOpen = !projectGithubOpen; if (projectGithubOpen && !githubRepositories.length) void loadGithubRepositories(); }}>{t("configure")}</UiButton>{:else}<UiButton variant="quiet" size="sm" onclick={() => { if (closeProjectContext()) void openSettingsSection("integrations"); }}>{t("connect")}</UiButton>{/if}
+              </div>
             </div>
             {#if projectGithubOpen && githubStatus.connected}
               <div class="project-github-picker">
-                <div class="project-github-picker-heading"><span><strong>{t("projectGithubRepositories")}</strong><small>{t("projectGithubRepositoriesDescription")}</small></span><button type="button" disabled={githubBusy} onclick={loadGithubRepositories}><RefreshCw class={githubBusy ? "spinning" : ""} size={14} />{t("refresh")}</button></div>
+                <div class="project-github-picker-heading"><span><strong>{t("projectGithubRepositories")}</strong></span><UiButton size="sm" busy={githubBusy} onclick={loadGithubRepositories}>{t("refresh")}</UiButton></div>
                 <label class="github-repository-search"><Search size={15} /><input bind:value={githubSearch} placeholder={t("searchRepositories")} /></label>
                 {#if githubRepositories.length}
                   <div class="project-github-list">
@@ -6068,23 +6421,23 @@
                 {:else if !githubBusy}
                   <div class="project-resource-empty"><FolderOpen size={17} /><span><strong>{t("githubNoRepositories")}</strong><small>{t("githubNoRepositoriesDescription")}</small></span></div>
                 {/if}
-                {#if githubError}<p class="connector-error" role="alert">{githubError}</p>{/if}
+                {#if githubError}<InlineNotice tone="danger" announce>{githubError}</InlineNotice>{/if}
               </div>
             {/if}
           </section>
           {/if}
-          {#if projectWorkspaceSection === "memory"}
+          {#if projectWorkspaceSection === "context"}
           <section class="project-memory-section" aria-label={t("projectMemory") }>
             <div class="project-memory-heading">
               <span><strong>{t("projectMemory")}</strong><small>{t("projectMemoryDescription")}</small></span>
-              <button type="button" disabled={projectMemorySaving || projectMemoryEditorId === "new"} onclick={beginAddProjectMemory}><Plus size={14} />{t("addMemory")}</button>
+              <UiButton size="sm" disabled={projectMemorySaving || projectMemoryEditorId === "new"} onclick={beginAddProjectMemory}><Plus size={14} />{t("addMemory")}</UiButton>
             </div>
             <label class="project-memory-search"><Search size={14} /><span class="sr-only">{t("searchMemory")}</span><input bind:value={projectMemorySearch} placeholder={t("searchMemory")} /></label>
             {#if projectMemoryEditorId === "new"}
               <div class="project-memory-editor">
-                <label><span>{t("memoryText")}</span><textarea bind:value={projectMemoryDraft} maxlength="600" placeholder={t("memoryTextPlaceholder")}></textarea></label>
-                <button class:active={projectMemoryPinned} class="project-memory-pin-toggle" type="button" aria-pressed={projectMemoryPinned} onclick={() => (projectMemoryPinned = !projectMemoryPinned)}><Pin size={14} />{projectMemoryPinned ? t("memoryPinned") : t("pinMemory")}</button>
-                <div class="project-memory-editor-actions"><button type="button" onclick={() => resetProjectMemoryEditor(false)}>{t("cancel")}</button><button class="primary-button" type="button" disabled={!projectMemoryDraft.trim() || projectMemorySaving} onclick={saveProjectMemory}>{t("addMemory")}</button></div>
+                <TextArea label={t("memoryText")} bind:value={projectMemoryDraft} maxlength={600} placeholder={t("memoryTextPlaceholder")} />
+                <UiButton size="sm" variant={projectMemoryPinned ? "secondary" : "quiet"} aria-pressed={projectMemoryPinned} onclick={() => (projectMemoryPinned = !projectMemoryPinned)}><Pin size={14} />{projectMemoryPinned ? t("memoryPinned") : t("pinMemory")}</UiButton>
+                <div class="project-memory-editor-actions"><UiButton size="sm" onclick={() => resetProjectMemoryEditor(false)}>{t("cancel")}</UiButton><UiButton size="sm" variant="primary" disabled={!projectMemoryDraft.trim() || projectMemorySaving} onclick={saveProjectMemory}>{t("addMemory")}</UiButton></div>
               </div>
             {/if}
             {#if activeMemory.length === 0 && projectMemoryEditorId !== "new"}
@@ -6096,19 +6449,19 @@
                     <div class="project-memory-summary">
                       <span class="project-memory-mark">{#if entry.pinned}<Pin size={14} />{:else}<Database size={14} />{/if}</span>
                       <span><strong>{entry.text}</strong><small>{entry.updated_at ? t("memoryUpdated", { date: compactDate(entry.updated_at) }) : t("memoryCreated", { date: compactDate(entry.created_at) })}{entry.source_task_id ? ` · ${t("memoryFromTask")}` : ""}</small></span>
-                      <div><button class:active={entry.pinned} class="icon-button" type="button" title={entry.pinned ? t("unpinMemory") : t("pinMemory")} aria-label={entry.pinned ? t("unpinMemory") : t("pinMemory")} disabled={projectMemorySaving} onclick={() => toggleProjectMemoryPin(entry)}><Pin size={14} /></button><button class="icon-button" type="button" title={t("editMemory")} aria-label={t("editMemory")} onclick={() => beginEditProjectMemory(entry)}><Pencil size={14} /></button></div>
+                      <div><UiIconButton class={entry.pinned ? "active" : undefined} size="sm" label={entry.pinned ? t("unpinMemory") : t("pinMemory")} disabled={projectMemorySaving} onclick={() => toggleProjectMemoryPin(entry)}><Pin size={14} /></UiIconButton><UiIconButton size="sm" label={t("editMemory")} onclick={() => beginEditProjectMemory(entry)}><Pencil size={14} /></UiIconButton></div>
                     </div>
                     {#if projectMemoryEditorId === entry.id}
                       <div class="project-memory-editor">
-                        <div class="project-memory-mode" aria-label={t("memoryChangeMode")}><button class:active={projectMemoryEditorMode === "edit"} type="button" onclick={() => beginEditProjectMemory(entry, "edit")}>{t("correctMemory")}</button><button class:active={projectMemoryEditorMode === "supersede"} type="button" onclick={() => beginEditProjectMemory(entry, "supersede")}>{t("replaceMemory")}</button></div>
+                        <SegmentedControl size="sm" label={t("memoryChangeMode")} value={projectMemoryEditorMode} options={[{ value: "edit", label: t("correctMemory") }, { value: "supersede", label: t("replaceMemory") }]} onchange={(value) => beginEditProjectMemory(entry, value as "edit" | "supersede")} />
                         <p>{projectMemoryEditorMode === "edit" ? t("correctMemoryDescription") : t("replaceMemoryDescription")}</p>
-                        <label><span>{projectMemoryEditorMode === "edit" ? t("memoryText") : t("replacementMemoryText")}</span><textarea bind:value={projectMemoryDraft} maxlength="600"></textarea></label>
-                        <button class:active={projectMemoryPinned} class="project-memory-pin-toggle" type="button" aria-pressed={projectMemoryPinned} onclick={() => (projectMemoryPinned = !projectMemoryPinned)}><Pin size={14} />{projectMemoryPinned ? t("memoryPinned") : t("pinMemory")}</button>
+                        <TextArea label={projectMemoryEditorMode === "edit" ? t("memoryText") : t("replacementMemoryText")} bind:value={projectMemoryDraft} maxlength={600} />
+                        <UiButton size="sm" variant={projectMemoryPinned ? "secondary" : "quiet"} aria-pressed={projectMemoryPinned} onclick={() => (projectMemoryPinned = !projectMemoryPinned)}><Pin size={14} />{projectMemoryPinned ? t("memoryPinned") : t("pinMemory")}</UiButton>
                         {#if entry.revisions?.length}<details class="project-memory-revisions"><summary>{t("memoryPreviousVersions", { count: entry.revisions.length })}</summary>{#each [...entry.revisions].reverse() as revision}<div><span>{revision.text}</span><small>{fullDate(revision.changed_at)}</small></div>{/each}</details>{/if}
                         {#if projectMemoryError}<p class="project-memory-error" role="alert">{projectMemoryError}</p>{/if}
                         <div class="project-memory-editor-actions danger-separated">
-                          <button class:confirming={projectMemoryDeleteConfirmId === entry.id} class="memory-delete-button" type="button" disabled={projectMemorySaving} onclick={() => deleteProjectMemory(entry)}><Trash2 size={14} />{projectMemoryDeleteConfirmId === entry.id ? t("confirmDeleteMemory") : t("deleteMemory")}</button>
-                          <span><button type="button" onclick={() => resetProjectMemoryEditor(false)}>{t("cancel")}</button><button class="primary-button" type="button" disabled={!projectMemoryDraft.trim() || projectMemorySaving || (projectMemoryEditorMode === "supersede" && projectMemoryDraft.trim() === entry.text)} onclick={saveProjectMemory}>{projectMemoryEditorMode === "supersede" ? t("replaceMemory") : t("save")}</button></span>
+                          <UiButton size="sm" variant="danger" disabled={projectMemorySaving} onclick={() => deleteProjectMemory(entry)}><Trash2 size={14} />{projectMemoryDeleteConfirmId === entry.id ? t("confirmDeleteMemory") : t("deleteMemory")}</UiButton>
+                          <span><UiButton size="sm" onclick={() => resetProjectMemoryEditor(false)}>{t("cancel")}</UiButton><UiButton size="sm" variant="primary" disabled={!projectMemoryDraft.trim() || projectMemorySaving || (projectMemoryEditorMode === "supersede" && projectMemoryDraft.trim() === entry.text)} onclick={saveProjectMemory}>{projectMemoryEditorMode === "supersede" ? t("replaceMemory") : t("save")}</UiButton></span>
                         </div>
                       </div>
                     {/if}
@@ -6119,20 +6472,17 @@
             {#if supersededMemory.length || projectMemoryShowSuperseded}
               <button class="project-memory-history-toggle" type="button" aria-expanded={projectMemoryShowSuperseded} onclick={() => (projectMemoryShowSuperseded = !projectMemoryShowSuperseded)}><RotateCcw size={14} />{projectMemoryShowSuperseded ? t("hideSupersededMemory") : t("showSupersededMemory", { count: supersededMemory.length })}<ChevronDown size={14} /></button>
               {#if projectMemoryShowSuperseded}
-                <div class="project-memory-superseded">{#each supersededMemory as entry (entry.id)}<article><span><strong>{entry.text}</strong><small>{t("memorySuperseded")} · {compactDate(entry.updated_at ?? entry.created_at)}</small></span><button class="icon-button" type="button" title={t("deleteMemory")} aria-label={t("deleteMemory")} onclick={() => deleteProjectMemory(entry)}><Trash2 size={14} /></button>{#if projectMemoryDeleteConfirmId === entry.id}<button class="memory-delete-confirm" type="button" onclick={() => deleteProjectMemory(entry)}>{t("confirmDeleteMemory")}</button>{/if}</article>{/each}</div>
+                <div class="project-memory-superseded">{#each supersededMemory as entry (entry.id)}<article><span><strong>{entry.text}</strong><small>{t("memorySuperseded")} · {compactDate(entry.updated_at ?? entry.created_at)}</small></span><UiIconButton size="sm" variant="danger" label={t("deleteMemory")} onclick={() => deleteProjectMemory(entry)}><Trash2 size={14} /></UiIconButton>{#if projectMemoryDeleteConfirmId === entry.id}<UiButton variant="danger" size="sm" onclick={() => deleteProjectMemory(entry)}>{t("confirmDeleteMemory")}</UiButton>{/if}</article>{/each}</div>
               {/if}
             {/if}
             {#if projectMemoryError && !projectMemoryEditorId}<p class="project-memory-error" role="alert">{projectMemoryError}</p>{/if}
           </section>
           {/if}
-          {#if projectWorkspaceSection === "documents"}
+          {#if projectWorkspaceSection === "context"}
           <section class="project-context-section project-context-markdown" aria-label={t("projectContextMarkdown")}>
             <div class="project-context-section-heading">
-              <span><strong>{t("projectContextMarkdown")}</strong><small>{t("projectContextMarkdownDescription")}</small></span>
-              <div class="project-context-mode" aria-label={t("projectContextViewMode")}>
-                <button class:active={projectContextEditorMode === "edit"} type="button" onclick={() => (projectContextEditorMode = "edit")}>{t("projectContextEdit")}</button>
-                <button class:active={projectContextEditorMode === "preview"} type="button" onclick={() => (projectContextEditorMode = "preview")}>{t("projectContextPreview")}</button>
-              </div>
+              <span><strong>{t("projectContextMarkdown")}</strong></span>
+              <SegmentedControl size="sm" label={t("projectContextViewMode")} value={projectContextEditorMode} options={[{ value: "edit", label: t("projectContextEdit") }, { value: "preview", label: t("projectContextPreview") }]} onchange={(value) => (projectContextEditorMode = value as "edit" | "preview")} />
             </div>
             {#if projectContextEditorMode === "edit"}
               <textarea class="project-context-editor" bind:this={projectContextTextarea} bind:value={projectContextDraft} maxlength="200000" spellcheck="true" placeholder={t("projectContextPlaceholder")}></textarea>
@@ -6167,8 +6517,8 @@
           {#if projectWorkspaceSection === "integrations"}
           <section class="project-resource-section" aria-label={t("projectResources")}>
             <div class="project-resource-heading">
-              <span><strong>{t("projectResources")}</strong><small>{t("projectResourcesDescription")}</small></span>
-              <button type="button" disabled={projectContextSaving || projectContextResources.length >= 20} aria-expanded={projectResourceAddOpen} onclick={() => (projectResourceAddOpen = !projectResourceAddOpen)}><Plus size={14} />{t("addResource")}</button>
+              <span><strong>{t("projectResources")}</strong></span>
+              <UiButton size="sm" disabled={projectContextSaving || projectContextResources.length >= 20} aria-expanded={projectResourceAddOpen} onclick={() => (projectResourceAddOpen = !projectResourceAddOpen)}><Plus size={14} />{t("addResource")}</UiButton>
             </div>
             {#if projectResourceAddOpen}
               <div class="project-resource-kind-menu" aria-label={t("chooseResourceType")}>
@@ -6181,7 +6531,7 @@
               </div>
             {/if}
             {#if projectContextResources.filter((resource) => resource.kind !== "skill").length === 0}
-              <div class="project-resource-empty"><Link size={17} /><span><strong>{t("noProjectResources")}</strong><small>{t("noProjectResourcesDescription")}</small></span></div>
+              <div class="project-resource-empty"><Link size={17} /><span><strong>{t("noProjectResources")}</strong></span></div>
             {:else}
               <div class="project-resource-list">
                 {#each projectContextResources.filter((resource) => resource.kind !== "skill") as resource (resource.id)}
@@ -6192,20 +6542,16 @@
                         <span><strong>{resource.label || projectResourceKindLabel(resource.kind)}</strong><small>{resource.location || t("resourceLocationMissing")} · {resource.agent_access ? t("agentAccessEnabled") : t("agentAccessDisabled")}</small></span>
                         <ChevronDown size={15} />
                       </button>
-                      <button class="icon-button" type="button" aria-label={t("removeResource")} title={t("removeResource")} onclick={() => removeProjectResource(resource.id)}><Trash2 size={14} /></button>
+                      <UiIconButton class="resource-remove-button" size="sm" label={t("removeResource")} onclick={() => removeProjectResource(resource.id)}><Trash2 size={14} /></UiIconButton>
                     </div>
                     {#if expandedProjectResourceId === resource.id}
                       <div class="project-resource-details">
                         <div class="project-resource-fields">
-                          <label><span>{t("resourceName")}</span><input value={resource.label} maxlength="120" placeholder={t("resourceNamePlaceholder")} oninput={(event) => updateProjectResource(resource.id, { label: event.currentTarget.value })} /></label>
-                          <label class="resource-location"><span>{t("resourceLocation")}</span><input value={resource.location} maxlength="2048" placeholder={t("resourceLocationPlaceholder")} spellcheck="false" oninput={(event) => updateProjectResource(resource.id, { location: event.currentTarget.value })} /></label>
-                          <label class="resource-notes"><span>{t("resourceNotes")}</span><input value={resource.notes ?? ""} maxlength="4000" placeholder={t("resourceNotesPlaceholder")} oninput={(event) => updateProjectResource(resource.id, { notes: event.currentTarget.value || undefined })} /></label>
+                          <TextField label={t("resourceName")} value={resource.label} maxlength={120} placeholder={t("resourceNamePlaceholder")} oninput={(event) => updateProjectResource(resource.id, { label: event.currentTarget.value })} />
+                          <TextField class="resource-location" label={t("resourceLocation")} value={resource.location} maxlength={2048} placeholder={t("resourceLocationPlaceholder")} spellcheck="false" oninput={(event) => updateProjectResource(resource.id, { location: event.currentTarget.value })} />
+                          <TextField class="resource-notes" label={t("resourceNotes")} value={resource.notes ?? ""} maxlength={4000} placeholder={t("resourceNotesPlaceholder")} oninput={(event) => updateProjectResource(resource.id, { notes: event.currentTarget.value || undefined })} />
                         </div>
-                        <button class:active={resource.agent_access} class="project-resource-access" type="button" role="switch" aria-checked={resource.agent_access} onclick={() => updateProjectResource(resource.id, { agent_access: !resource.agent_access })}>
-                          <FloodGlyph kind={resource.agent_access ? "connected" : "info"} size={18} />
-                          <span><strong>{t("agentResourceAccess")}</strong><small>{resource.agent_access ? t("agentResourceAccessOn") : t("agentResourceAccessOff")}</small></span>
-                          <span class="project-resource-switch" aria-hidden="true"><i></i></span>
-                        </button>
+                        <UiSwitch label={t("agentResourceAccess")} description={resource.agent_access ? t("agentResourceAccessOn") : t("agentResourceAccessOff")} checked={resource.agent_access} onchange={(checked) => updateProjectResource(resource.id, { agent_access: checked })} />
                       </div>
                     {/if}
                   </article>
@@ -6214,14 +6560,14 @@
             {/if}
           </section>
           {/if}
-          {#if projectWorkspaceSection === "skills"}
+          {#if projectWorkspaceSection === "integrations"}
           <section class="project-resource-section" aria-label={t("projectSkills")}>
             <div class="project-resource-heading">
-              <span><strong>{t("projectSkills")}</strong><small>{t("projectSkillsDescription")}</small></span>
-              <button type="button" disabled={projectContextSaving || projectContextResources.length >= 20} onclick={() => addProjectResource("skill")}><Plus size={14} />{t("addSkill")}</button>
+              <span><strong>{t("projectSkills")}</strong></span>
+              <UiButton size="sm" disabled={projectContextSaving || projectContextResources.length >= 20} onclick={() => addProjectResource("skill")}><Plus size={14} />{t("addSkill")}</UiButton>
             </div>
             {#if projectContextResources.filter((resource) => resource.kind === "skill").length === 0}
-              <div class="project-resource-empty"><Bot size={17} /><span><strong>{t("noProjectSkills")}</strong><small>{t("noProjectSkillsDescription")}</small></span></div>
+              <div class="project-resource-empty"><Bot size={17} /><span><strong>{t("noProjectSkills")}</strong></span></div>
             {:else}
               <div class="project-resource-list">
                 {#each projectContextResources.filter((resource) => resource.kind === "skill") as resource (resource.id)}
@@ -6232,20 +6578,16 @@
                         <span><strong>{resource.label || t("projectResourceSkill")}</strong><small>{resource.location || t("skillLocationMissing")} · {resource.agent_access ? t("agentAccessEnabled") : t("agentAccessDisabled")}</small></span>
                         <ChevronDown size={15} />
                       </button>
-                      <button class="icon-button" type="button" aria-label={t("removeSkill")} title={t("removeSkill")} onclick={() => removeProjectResource(resource.id)}><Trash2 size={14} /></button>
+                      <UiIconButton class="resource-remove-button" size="sm" label={t("removeSkill")} onclick={() => removeProjectResource(resource.id)}><Trash2 size={14} /></UiIconButton>
                     </div>
                     {#if expandedProjectResourceId === resource.id}
                       <div class="project-resource-details">
                         <div class="project-resource-fields">
-                          <label><span>{t("skillName")}</span><input value={resource.label} maxlength="120" placeholder={t("skillNamePlaceholder")} oninput={(event) => updateProjectResource(resource.id, { label: event.currentTarget.value })} /></label>
-                          <label class="resource-location"><span>{t("skillLocation")}</span><input value={resource.location} maxlength="2048" placeholder={t("skillLocationPlaceholder")} spellcheck="false" oninput={(event) => updateProjectResource(resource.id, { location: event.currentTarget.value })} /></label>
-                          <label class="resource-notes"><span>{t("resourceNotes")}</span><input value={resource.notes ?? ""} maxlength="4000" placeholder={t("skillNotesPlaceholder")} oninput={(event) => updateProjectResource(resource.id, { notes: event.currentTarget.value || undefined })} /></label>
+                          <TextField label={t("skillName")} value={resource.label} maxlength={120} placeholder={t("skillNamePlaceholder")} oninput={(event) => updateProjectResource(resource.id, { label: event.currentTarget.value })} />
+                          <TextField class="resource-location" label={t("skillLocation")} value={resource.location} maxlength={2048} placeholder={t("skillLocationPlaceholder")} spellcheck="false" oninput={(event) => updateProjectResource(resource.id, { location: event.currentTarget.value })} />
+                          <TextField class="resource-notes" label={t("resourceNotes")} value={resource.notes ?? ""} maxlength={4000} placeholder={t("skillNotesPlaceholder")} oninput={(event) => updateProjectResource(resource.id, { notes: event.currentTarget.value || undefined })} />
                         </div>
-                        <button class:active={resource.agent_access} class="project-resource-access" type="button" role="switch" aria-checked={resource.agent_access} onclick={() => updateProjectResource(resource.id, { agent_access: !resource.agent_access })}>
-                          <FloodGlyph kind={resource.agent_access ? "connected" : "info"} size={18} />
-                          <span><strong>{t("agentSkillAccess")}</strong><small>{resource.agent_access ? t("agentSkillAccessOn") : t("agentSkillAccessOff")}</small></span>
-                          <span class="project-resource-switch" aria-hidden="true"><i></i></span>
-                        </button>
+                        <UiSwitch label={t("agentSkillAccess")} description={resource.agent_access ? t("agentSkillAccessOn") : t("agentSkillAccessOff")} checked={resource.agent_access} onchange={(checked) => updateProjectResource(resource.id, { agent_access: checked })} />
                       </div>
                     {/if}
                   </article>
@@ -6254,31 +6596,23 @@
             {/if}
           </section>
           {/if}
-          {#if projectWorkspaceSection === "automation"}
+          {#if projectWorkspaceSection === "integrations" && (projectAutoRunSaved || projectAutoRunDraft)}
           <section class="project-automation-section" aria-label={t("projectAutomation")}>
-            <div class="project-automation-heading"><span><strong>{t("projectAutomation")}</strong><small>{t("projectAutomationDescription")}</small></span></div>
-            <div class="project-automation-warning"><FloodGlyph kind="important" size={18} /><span><strong>{t("automationExperimental")}</strong><small>{t("automationExperimentalDescription")}</small></span></div>
-            <div class:error={Boolean(projectAutomationStatus?.failed)} class="project-automation-summary" aria-live="polite">
-              <FloodGlyph kind={projectAutomationStatus?.failed ? "urgent" : projectAutomationStatus?.processing ? "brand" : "info"} size={18} />
-              <span><strong>{t("automationStatus")}</strong><small>{projectAutomationStatusLabel()}</small></span>
+            <div class="project-automation-heading"><span><strong>{t("projectAutomation")}</strong></span></div>
+            <div class="project-settings-group">
+              <UiSwitch class="project-auto-run" label={t("projectAutoRun")} description={projectAutoRunLoading ? t("projectAutomationLoading") : projectAutoRunDraft ? (automationSettings.background_ai_triage ? t("projectAutoRunOn") : t("projectAutoRunWaiting")) : t("projectAutoRunOff")} bind:checked={projectAutoRunDraft} pending={projectAutoRunLoading || projectContextSaving} />
             </div>
-            <button class:active={projectAutoRunDraft} class="project-resource-access project-auto-run" type="button" role="switch" aria-checked={projectAutoRunDraft} disabled={projectAutoRunLoading || projectContextSaving} onclick={() => (projectAutoRunDraft = !projectAutoRunDraft)}>
-              <FloodGlyph kind={projectAutoRunDraft ? "brand" : "info"} size={18} />
-              <span><strong>{t("projectAutoRun")}</strong><small>{projectAutoRunLoading ? t("projectAutomationLoading") : projectAutoRunDraft ? (automationSettings.background_ai_triage ? t("projectAutoRunOn") : t("projectAutoRunWaiting")) : t("projectAutoRunOff")}</small></span>
-              <span class="project-resource-switch" aria-hidden="true"><i></i></span>
-            </button>
           </section>
           {/if}
           {#if projectContextConflictRemote}
-            <div class="save-conflict project-context-conflict" role="alert">
-              <span><strong>{t("externalChange")}</strong> {t("chooseVersion")}</span>
-              <div><button type="button" onclick={useDiskProjectContextVersion}>{t("diskVersion")}</button><button type="button" onclick={keepLocalProjectContextVersion}>{t("localVersion")}</button></div>
-            </div>
+            <InlineNotice tone="attention" title={t("externalChange")} announce>
+              {t("chooseVersion")}
+              {#snippet actions()}<NoticeAction tone="attention" onclick={useDiskProjectContextVersion}>{t("diskVersion")}</NoticeAction><NoticeAction tone="attention" onclick={keepLocalProjectContextVersion}>{t("localVersion")}</NoticeAction>{/snippet}
+            </InlineNotice>
           {:else if projectContextError}
-            <div class="project-context-error" role="alert"><span>{projectContextError}</span><button type="button" onclick={reloadProjectContext}>{t("reload")}</button></div>
+            <InlineNotice tone="danger" announce>{projectContextError}{#snippet actions()}<NoticeAction tone="danger" onclick={reloadProjectContext}>{t("reload")}</NoticeAction>{/snippet}</InlineNotice>
           {/if}
         </div>
-        <footer><button type="button" disabled={projectContextSaving} onclick={closeProjectContext}>{t("back")}</button>{#if ["documents", "integrations", "skills", "automation"].includes(projectWorkspaceSection)}<button class="primary-button" type="submit" disabled={projectContextSaving || projectAutoRunLoading || Boolean(projectContextConflictRemote)}>{#if projectContextSaving}<RefreshCw class="spinning" size={14} />{/if}{projectContextSaving ? t("saving") : t("save")}</button>{/if}</footer>
       </form>
     </section>
   </div>
@@ -6293,40 +6627,38 @@
           {#if projectWorkspaceEditorKind === "document"}<FileText size={19} />{:else if projectWorkspaceEditorKind === "rule"}<ShieldCheck size={19} />{:else}<Bot size={19} />{/if}
         </span>
         <span><strong id="artifact-modal-title">{projectWorkspaceModalTitle()}</strong><small>{t(`projectWorkspaceOwned_${projectWorkspaceEditorKind}` as MessageKey)} · {projectContextProjectTitle}</small></span>
-        <button class="icon-button" type="button" aria-label={t("close")} title={t("close")} onclick={() => closeProjectWorkspaceEditor()}><X size={16} /></button>
+        <UiIconButton label={t("close")} onclick={() => closeProjectWorkspaceEditor()}><X size={16} /></UiIconButton>
       </header>
 
       <div class="artifact-modal-body">
         <div class="artifact-modal-fields">
-          <label><span>{t("resourceName")}</span><input bind:value={projectWorkspaceTitle} maxlength="120" placeholder={t("projectWorkspaceTitlePlaceholder")} /></label>
-          <label><span>{t("projectWorkspaceSummary")}</span><input bind:value={projectWorkspaceSummary} maxlength="300" placeholder={t("projectWorkspaceSummaryPlaceholder")} /></label>
-          <label class="artifact-content-field"><span>{t("projectWorkspaceContent")}</span><textarea bind:value={projectWorkspaceContent} maxlength="80000" spellcheck="true" placeholder={t("projectWorkspaceContentPlaceholder")}></textarea></label>
+          <TextField label={t("resourceName")} bind:value={projectWorkspaceTitle} maxlength={120} placeholder={t("projectWorkspaceTitlePlaceholder")} />
+          <TextField label={t("projectWorkspaceSummary")} bind:value={projectWorkspaceSummary} maxlength={300} placeholder={t("projectWorkspaceSummaryPlaceholder")} />
+          <TextArea class="artifact-content-field" label={t("projectWorkspaceContent")} bind:value={projectWorkspaceContent} rows={18} maxlength={80000} spellcheck="true" placeholder={t("projectWorkspaceContentPlaceholder")} />
         </div>
 
-        <button class:active={projectWorkspaceAgentAccess} class="project-resource-access artifact-agent-access" type="button" role="switch" aria-checked={projectWorkspaceAgentAccess} onclick={() => (projectWorkspaceAgentAccess = !projectWorkspaceAgentAccess)}>
-          <FloodGlyph kind={projectWorkspaceAgentAccess ? "connected" : "info"} size={18} /><span><strong>{t("projectWorkspaceAgentAccess")}</strong><small>{projectWorkspaceAgentAccess ? t("projectWorkspaceAgentAccessOn") : t("projectWorkspaceAgentAccessOff")}</small></span><span class="project-resource-switch" aria-hidden="true"><i></i></span>
-        </button>
+        <UiSwitch class="artifact-agent-access" label={t("projectWorkspaceAgentAccess")} description={projectWorkspaceAgentAccess ? t("projectWorkspaceAgentAccessOn") : t("projectWorkspaceAgentAccessOff")} bind:checked={projectWorkspaceAgentAccess} />
 
         {#if artifactItem?.revisions?.length}
           <small class="project-workspace-history"><RotateCcw size={13} />{t("projectWorkspaceHistory", { count: artifactItem.revisions.length })}</small>
         {/if}
         {#if projectWorkspaceConflictRemote}
-          <div class="artifact-discard-warning" role="alert">
-            <span><strong>{t("externalChange")}</strong><small>{t("chooseVersion")}</small></span>
-            <div><button type="button" onclick={useDiskProjectWorkspaceVersion}>{projectWorkspaceConflictAction === "delete" ? t("keepLatestVersion") : t("diskVersion")}</button><button class:danger-button={projectWorkspaceConflictAction === "delete"} type="button" onclick={keepLocalProjectWorkspaceVersion}>{projectWorkspaceConflictAction === "delete" ? t("deleteLatestVersion") : t("localVersion")}</button></div>
-          </div>
-        {:else if projectWorkspaceError}<p class="artifact-modal-error" role="alert">{projectWorkspaceError}</p>{/if}
+          <InlineNotice tone="attention" title={t("externalChange")} announce>
+            {t("chooseVersion")}
+            {#snippet actions()}<NoticeAction tone="attention" onclick={useDiskProjectWorkspaceVersion}>{projectWorkspaceConflictAction === "delete" ? t("keepLatestVersion") : t("diskVersion")}</NoticeAction><NoticeAction tone={projectWorkspaceConflictAction === "delete" ? "danger" : "attention"} onclick={keepLocalProjectWorkspaceVersion}>{projectWorkspaceConflictAction === "delete" ? t("deleteLatestVersion") : t("localVersion")}</NoticeAction>{/snippet}
+          </InlineNotice>
+        {:else if projectWorkspaceError}<InlineNotice tone="danger" announce>{projectWorkspaceError}</InlineNotice>{/if}
         {#if projectWorkspaceCloseConfirm}
-          <div class="artifact-discard-warning" role="alert">
-            <span><strong>{t("unsavedChanges")}</strong><small>{t("unsavedChangesDescription")}</small></span>
-            <div><button type="button" onclick={keepEditingProjectWorkspaceItem}>{t("continueEditing")}</button><button class="danger-button" type="button" onclick={() => closeProjectWorkspaceEditor(true)}>{t("discardChanges")}</button></div>
-          </div>
+          <InlineNotice tone="attention" title={t("unsavedChanges")} announce>
+            {t("unsavedChangesDescription")}
+            {#snippet actions()}<NoticeAction tone="attention" onclick={keepEditingProjectWorkspaceItem}>{t("continueEditing")}</NoticeAction><NoticeAction tone="danger" onclick={() => closeProjectWorkspaceEditor(true)}>{t("discardChanges")}</NoticeAction>{/snippet}
+          </InlineNotice>
         {/if}
       </div>
 
       <footer>
-        <span>{#if projectWorkspaceEditorId !== "new"}<button class:confirming={projectWorkspaceDeleteConfirm} class="artifact-delete" type="button" disabled={projectWorkspaceSaving || Boolean(projectWorkspaceConflictRemote)} onclick={deleteProjectWorkspaceItem}><Trash2 size={14} />{projectWorkspaceDeleteConfirm ? t("confirmDelete") : t("delete")}</button>{/if}</span>
-        <span><button type="button" disabled={projectWorkspaceSaving} onclick={() => closeProjectWorkspaceEditor()}>{t("cancel")}</button><button class="primary-button" type="button" disabled={!projectWorkspaceTitle.trim() || !projectWorkspaceContent.trim() || projectWorkspaceSaving || Boolean(projectWorkspaceConflictRemote)} onclick={saveProjectWorkspaceItem}>{projectWorkspaceSaving ? t("saving") : t("save")}</button></span>
+        <span>{#if projectWorkspaceEditorId !== "new"}<UiButton variant="danger" size="sm" type="button" disabled={projectWorkspaceSaving || Boolean(projectWorkspaceConflictRemote)} onclick={deleteProjectWorkspaceItem}><Trash2 size={14} />{projectWorkspaceDeleteConfirm ? t("confirmDelete") : t("delete")}</UiButton>{/if}</span>
+        <span><UiButton size="sm" type="button" disabled={projectWorkspaceSaving} onclick={() => closeProjectWorkspaceEditor()}>{t("cancel")}</UiButton><UiButton variant="primary" size="sm" type="button" busy={projectWorkspaceSaving} disabled={!projectWorkspaceTitle.trim() || !projectWorkspaceContent.trim() || Boolean(projectWorkspaceConflictRemote)} onclick={saveProjectWorkspaceItem}>{projectWorkspaceSaving ? t("saving") : t("save")}</UiButton></span>
       </footer>
     </div>
   </div>
@@ -6335,7 +6667,7 @@
 {#if telegramConnectionsProject}
   <div class="telegram-import-backdrop" role="presentation">
     <div class="telegram-import-panel telegram-connections-panel" bind:this={telegramConnectionsDialog} role="dialog" aria-modal="true" aria-label={t("telegramConnectionsTitle")} tabindex="-1" onkeydown={trapModalFocus}>
-      <header><span><Send size={17} /><span><strong>{t("telegramConnectionsTitle")}</strong><small title={telegramConnectionsProject.title}>{telegramConnectionsProject.title}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeTelegramConnections}><X size={16} /></button></header>
+      <header><span><Send size={17} /><span><strong>{t("telegramConnectionsTitle")}</strong><small title={telegramConnectionsProject.title}>{telegramConnectionsProject.title}</small></span></span><UiIconButton label={t("close")} onclick={closeTelegramConnections}><X size={16} /></UiIconButton></header>
       <div class="telegram-connections-body">
         <p>{t("telegramConnectionsDescription")}</p>
         {#if telegramError}<div class="telegram-connections-error" role="alert">{telegramError}</div>{/if}
@@ -6348,7 +6680,7 @@
               {#each telegramConnectionsProject.telegram_chats as link (link.chat_id)}
                 {@const details = telegramChatDetails(link.chat_id)}
                 <article class="telegram-selected-chat">
-                  <div><TelegramChatIdentity title={link.title} kind={details?.kind} meta={details ? telegramChatMeta(details) : `${t("telegramChatUnknown")} · ID ${link.chat_id}`} avatarDataUrl={details?.avatar_data_url} avatarFileId={details?.avatar_file_id} /><button class="icon-button" disabled={telegramConnectionsSaving} aria-label={t("removeConnection")} title={t("removeConnection")} onclick={() => toggleProjectTelegramChat(telegramConnectionsProject, { id: link.chat_id, title: link.title })}><X size={14} /></button></div>
+                  <div><TelegramChatIdentity title={link.title} kind={details?.kind} meta={details ? telegramChatMeta(details) : `${t("telegramChatUnknown")} · ID ${link.chat_id}`} avatarDataUrl={details?.avatar_data_url} avatarFileId={details?.avatar_file_id} /><UiIconButton size="sm" variant="danger" disabled={telegramConnectionsSaving} label={t("removeConnection")} onclick={() => toggleProjectTelegramChat(telegramConnectionsProject, { id: link.chat_id, title: link.title })}><X size={14} /></UiIconButton></div>
                   <div class="telegram-mode-picker" aria-label={t("collectionMode")}>{#each telegramModes as mode}<button class:active={link.inbox_mode === mode} disabled={telegramConnectionsSaving} onclick={() => setProjectTelegramMode(telegramConnectionsProject, link, mode)}>{telegramModeLabel(mode)}</button>{/each}</div>
                 </article>
               {/each}
@@ -6373,7 +6705,7 @@
 {#if telegramImportOpen}
   <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeTelegramImporter(); }}>
     <div class="telegram-import-panel" bind:this={telegramImportDialog} role="dialog" aria-modal="true" aria-label={t("telegramMessages")} tabindex="-1" onkeydown={trapModalFocus}>
-      <header><span><Send size={17} /><span><strong>Telegram</strong><small>{t("chooseMessageForInbox")}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeTelegramImporter}><X size={16} /></button></header>
+      <header><span><Send size={17} /><span><strong>Telegram</strong><small>{t("chooseMessageForInbox")}</small></span></span><UiIconButton label={t("close")} onclick={closeTelegramImporter}><X size={16} /></UiIconButton></header>
       {#if currentChat.telegram_chats.length > 1}<div class="telegram-import-tabs">{#each currentChat.telegram_chats as link (link.chat_id)}<button class:active={telegramImportChatId === link.chat_id} onclick={() => loadTelegramImportChat(link.chat_id)}>{link.title}</button>{/each}</div>{/if}
       <div class="telegram-message-list">
         {#if telegramMessagesLoading}
@@ -6395,7 +6727,7 @@
 {#if telegramInboxOpen}
   <div class="telegram-import-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeTelegramInbox(); }}>
     <div class="telegram-import-panel telegram-inbox-panel" bind:this={telegramInboxDialog} role="dialog" aria-modal="true" aria-label={t("inbox")} tabindex="-1" onkeydown={trapModalFocus}>
-      <header><span>{#if telegramTaskDraftCandidate}<button class="icon-button" aria-label={t("back")} onclick={closeTelegramTaskDraft}><ChevronLeft size={16} /></button>{:else}<MessageSquareText size={17} />{/if}<span><strong>{telegramTaskDraftCandidate ? t("telegramTaskDraft") : t("inbox")}</strong><small>{telegramTaskDraftCandidate && telegramTriageTotal ? t("triageProgress", { current: telegramTriageTotal - telegramTriageQueue.length + 1, total: telegramTriageTotal }) : telegramTaskDraftCandidate ? t("telegramTaskDraftDescription") : t("inboxDescription")}</small></span></span><div>{#if !telegramTaskDraftCandidate && telegramInboxView === "pending"}<button class="icon-button" title={t("scanMessages")} disabled={telegramInboxLoading || currentChat.id === "all"} onclick={() => openTelegramInbox(true)}><RefreshCw class={telegramInboxLoading ? "spinning" : ""} size={16} /></button>{/if}<button class="icon-button" aria-label={t("close")} onclick={closeTelegramInbox}><X size={16} /></button></div></header>
+      <header><span>{#if telegramTaskDraftCandidate}<UiIconButton label={t("back")} onclick={closeTelegramTaskDraft}><ChevronLeft size={16} /></UiIconButton>{:else}<MessageSquareText size={17} />{/if}<span><strong>{telegramTaskDraftCandidate ? t("telegramTaskDraft") : t("inbox")}</strong><small>{telegramTaskDraftCandidate && telegramTriageTotal ? t("triageProgress", { current: telegramTriageTotal - telegramTriageQueue.length + 1, total: telegramTriageTotal }) : telegramTaskDraftCandidate ? t("telegramTaskDraftDescription") : t("inboxDescription")}</small></span></span><div>{#if !telegramTaskDraftCandidate && telegramInboxView === "pending"}<UiIconButton label={t("scanMessages")} disabled={telegramInboxLoading || currentChat.id === "all"} onclick={() => openTelegramInbox(true)}><RefreshCw class={telegramInboxLoading ? "spinning" : ""} size={16} /></UiIconButton>{/if}<UiIconButton label={t("close")} onclick={closeTelegramInbox}><X size={16} /></UiIconButton></div></header>
       {#if telegramTaskDraftCandidate}
         <form class="telegram-task-composer" onsubmit={(event) => { event.preventDefault(); createTaskFromCandidate(); }}>
           <div class="telegram-task-scroll">
@@ -6424,7 +6756,7 @@
             {/if}
             {#if telegramInboxError}<p class="telegram-composer-error">{telegramInboxError}</p>{/if}
           </div>
-          <footer>{#if telegramTriageQueue.length}<button type="button" onclick={skipTelegramTriageCandidate} disabled={Boolean(telegramInboxProcessingId)}>{t("keepInInbox")}</button>{:else}<button type="button" onclick={closeTelegramTaskDraft} disabled={Boolean(telegramInboxProcessingId)}>{t("cancel")}</button>{/if}<button class="primary-button" type="submit" disabled={!telegramTaskDraftTitle.trim() || Boolean(telegramInboxProcessingId)}>{#if telegramInboxProcessingId}<RefreshCw class="spinning" size={14} />{:else}<Plus size={14} />{/if}{telegramTriageQueue.length > 1 ? t("createAndContinue") : t("createTask")}</button></footer>
+          <footer>{#if telegramTriageQueue.length}<UiButton onclick={skipTelegramTriageCandidate} disabled={Boolean(telegramInboxProcessingId)}>{t("keepInInbox")}</UiButton>{:else}<UiButton onclick={closeTelegramTaskDraft} disabled={Boolean(telegramInboxProcessingId)}>{t("cancel")}</UiButton>{/if}<UiButton type="submit" variant="primary" disabled={!telegramTaskDraftTitle.trim() || Boolean(telegramInboxProcessingId)}>{#if telegramInboxProcessingId}<RefreshCw class="spinning" size={14} />{:else}<Plus size={14} />{/if}{telegramTriageQueue.length > 1 ? t("createAndContinue") : t("createTask")}</UiButton></footer>
         </form>
       {:else}<div class="telegram-inbox-body">
         <div class="telegram-inbox-view-tabs" role="tablist" aria-label={t("telegramInboxViews")}>
@@ -6442,13 +6774,13 @@
               <article class:history={telegramInboxView === "history"} class:selected={telegramInboxSelection.includes(candidate.id)} class="inbox-candidate">
                 {#if telegramInboxView === "pending"}<button class:active={telegramInboxSelection.includes(candidate.id)} class="inbox-select" disabled={Boolean(candidate.linked_task)} aria-label={telegramInboxSelection.includes(candidate.id) ? t("removeFromSelection") : t("addToSelection")} aria-pressed={telegramInboxSelection.includes(candidate.id)} onclick={() => toggleTelegramInboxCandidate(candidate.id)}><span class="picker-check">{#if telegramInboxSelection.includes(candidate.id)}<Check size={12} />{/if}</span></button>{:else}<span class:imported={candidate.status === "imported"} class="inbox-history-state" title={candidate.status === "imported" ? t("telegramStatusImported") : t("telegramStatusDismissed")}>{#if candidate.status === "imported"}<Check size={14} />{:else}<RotateCcw size={14} />{/if}</span>{/if}
                 <div class="inbox-candidate-content"><div class="inbox-candidate-meta"><strong>{candidate.author}</strong><span title={candidate.chat_title}>{candidate.chat_title}</span><small>{telegramInboxView === "history" ? (candidate.status === "imported" ? t("telegramStatusImported") : t("telegramStatusDismissed")) : telegramReasonLabel(candidate.reason)} · {fullDate(candidate.processed_at ?? candidate.sent_at)}</small></div>{#if candidate.text}<p>{candidate.text}</p>{/if}<div class="inbox-candidate-notes">{#if candidate.context && candidate.context.length > 1}<small><MessageSquareText size={12} />{t("contextMessages", { count: candidate.context.length })}</small>{/if}{#if candidate.media?.length}<small class="telegram-media-note"><Paperclip size={12} />{t("mediaCount", { count: candidate.media.length })}</small>{/if}</div></div>
-                <div class="inbox-candidate-actions">{#if candidate.linked_task}<button class="inbox-linked-task" disabled={candidate.linked_task.trashed} title={candidate.linked_task.title} onclick={() => openTelegramLinkedTask(candidate.linked_task!)}><FloodGlyph kind={candidate.linked_task.status === "completed" ? "completed" : candidate.linked_task.urgency} size={13} /><span>{candidate.linked_task.title}</span><small>{telegramLinkedTaskState(candidate.linked_task)}</small><ChevronRight size={13} /></button>{:else if telegramInboxView === "history" && candidate.status === "dismissed"}<button disabled={Boolean(telegramInboxProcessingId)} onclick={() => restoreTelegramCandidate(candidate)}><RotateCcw size={13} />{t("restoreToInbox")}</button>{:else if telegramInboxView === "history"}<span class="inbox-missing-task">{t("linkedTaskUnavailable")}</span>{:else}<button disabled={Boolean(telegramInboxProcessingId)} onclick={() => dismissTelegramCandidate(candidate)}>{t("dismiss")}</button><button class="primary-button" disabled={Boolean(telegramInboxProcessingId)} aria-label={t("prepareTask")} title={t("prepareTask")} onclick={() => beginTaskFromCandidate(candidate)}><Plus size={14} />{t("prepareTaskShort")}</button>{/if}</div>
+                <div class="inbox-candidate-actions">{#if candidate.linked_task}<button class="inbox-linked-task" disabled={candidate.linked_task.trashed} title={candidate.linked_task.title} onclick={() => openTelegramLinkedTask(candidate.linked_task!)}><FloodGlyph kind={candidate.linked_task.status === "completed" ? "completed" : candidate.linked_task.urgency} size={13} /><span>{candidate.linked_task.title}</span><small>{telegramLinkedTaskState(candidate.linked_task)}</small><ChevronRight size={13} /></button>{:else if telegramInboxView === "history" && candidate.status === "dismissed"}<UiButton size="sm" disabled={Boolean(telegramInboxProcessingId)} onclick={() => restoreTelegramCandidate(candidate)}><RotateCcw size={13} />{t("restoreToInbox")}</UiButton>{:else if telegramInboxView === "history"}<span class="inbox-missing-task">{t("linkedTaskUnavailable")}</span>{:else}<UiButton size="sm" variant="quiet" disabled={Boolean(telegramInboxProcessingId)} onclick={() => dismissTelegramCandidate(candidate)}>{t("dismiss")}</UiButton><UiButton size="sm" variant="primary" disabled={Boolean(telegramInboxProcessingId)} aria-label={t("prepareTask")} title={t("prepareTask")} onclick={() => beginTaskFromCandidate(candidate)}><Plus size={14} />{t("prepareTaskShort")}</UiButton>{/if}</div>
               </article>
             {:else}<div class="telegram-import-state">{telegramInboxView === "history" ? t("telegramHistoryEmpty") : t("inboxEmpty")}</div>{/each}
             {#if telegramInboxRemaining > 0}<button class="telegram-load-more" disabled={telegramInboxLoadingMore} onclick={loadMoreTelegramInbox}>{#if telegramInboxLoadingMore}<RefreshCw class="spinning" size={13} />{/if}{t("showMoreMessages", { count: telegramInboxRemaining })}</button>{/if}
           {/if}
         </div>
-        {#if telegramInboxView === "pending" && telegramInboxSelection.length}<div class="telegram-triage-island" aria-label={t("selectedMessages", { count: telegramInboxSelection.length })}><span><ListChecks size={15} />{t("selectedMessages", { count: telegramInboxSelection.length })}</span><button class="primary-button" onclick={beginSelectedTelegramTriage}><span>{t("reviewSelected")}</span><ArrowRight size={14} /></button></div>{/if}
+        {#if telegramInboxView === "pending" && telegramInboxSelection.length}<div class="telegram-triage-island" aria-label={t("selectedMessages", { count: telegramInboxSelection.length })}><span><ListChecks size={15} />{t("selectedMessages", { count: telegramInboxSelection.length })}</span><UiButton variant="primary" onclick={beginSelectedTelegramTriage}><span>{t("reviewSelected")}</span><ArrowRight size={14} /></UiButton></div>{/if}
       </div>{/if}
     </div>
   </div>
@@ -6457,7 +6789,7 @@
 {#if sourceViewerOpen && selectedTask?.source}
   <div class="telegram-import-backdrop source-viewer-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeSourceViewer(); }}>
     <div class="telegram-import-panel source-viewer-panel" bind:this={sourceViewerDialog} role="dialog" aria-modal="true" aria-label={t("taskSource")} tabindex="-1" onkeydown={trapModalFocus}>
-      <header><span><FloodGlyph kind="info" size={22} /><span><strong>{selectedTask.source.provider === "telegram" ? taskSourceMetaLabel(selectedTask) : t("taskSource")}</strong><small>{selectedTask.source.chat_title || t("sourceMessage")}{selectedTask.source.sent_at ? ` · ${fullDate(selectedTask.source.sent_at)}` : ""}</small></span></span><button class="icon-button" aria-label={t("close")} onclick={closeSourceViewer}><X size={16} /></button></header>
+      <header><span><FloodGlyph kind="info" size={22} /><span><strong>{selectedTask.source.provider === "telegram" ? taskSourceMetaLabel(selectedTask) : t("taskSource")}</strong><small>{selectedTask.source.chat_title || t("sourceMessage")}{selectedTask.source.sent_at ? ` · ${fullDate(selectedTask.source.sent_at)}` : ""}</small></span></span><UiIconButton label={t("close")} onclick={closeSourceViewer}><X size={16} /></UiIconButton></header>
       <div class="source-viewer-body">
         {#if selectedTask.source.context?.length === 1}
           {@const message = selectedTask.source.context[0]}

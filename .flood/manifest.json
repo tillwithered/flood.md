@@ -4,8 +4,8 @@
     {
       "id": "7JJ4KYNDGA1AV92PBBR9GH9MXN",
       "kind": "rule",
-      "title": "Visual foundations v1",
-      "version": "f632302f5ca281afa4f22f522d761e7bc3c3f083b8b0e18635bc210f3aaf7aad",
+      "title": "Visual foundations v2",
+      "version": "d59cf74f4884d3b1201f0036ced7ba93f2b7454af04cde96a9a0a29d22b3ff92",
       "path": "rules/visual-foundations-v1.md",
       "agent_access": true
     },
@@ -13,7 +13,7 @@
       "id": "2QFDS93B1B878PDQECJQCZW47Y",
       "kind": "rule",
       "title": "UI acceptance gate v1",
-      "version": "232e4cc3f110e612678562aafeffc6fcc4eb3f9b03658e3ed50eb3ccf8c91ed2",
+      "version": "4795a7c90d61c90161b70b2502882bee7f9ab1beb5a298b02518a671ff62a632",
       "path": "rules/ui-acceptance-gate-v1.md",
       "agent_access": true
     },
@@ -21,15 +21,15 @@
       "id": "4QFGED9H6928STGPBRYJQDF5AS",
       "kind": "rule",
       "title": "Project agent route v1",
-      "version": "02d9a17783469c685926f87ba5aa635e0661e890aa6e5fda70c65e7cef948c1d",
+      "version": "e36050cf7506a011e8fd9ed83f7da3c805183d8dff23503150bd79bfa51e4419",
       "path": "rules/project-agent-route-v1.md",
       "agent_access": true
     },
     {
       "id": "7HMA95E9E9H5BSC3VMKVM1XXE5",
       "kind": "rule",
-      "title": "Soft Utility quality bar v1",
-      "version": "a23c21ccc8b83c2989ced8beb2abd0a8dd172d974a7cf8f779b5af1af97d5067",
+      "title": "Quiet Workbench quality bar v2",
+      "version": "576af4755eaf5d14a198285987d1f5e50db3092f66aa310d35e0fbb5b43e5265",
       "path": "rules/soft-utility-quality-bar-v1.md",
       "agent_access": true
     },
@@ -37,7 +37,7 @@
       "id": "7JX2T0NH6GKBZS347S8QKCK7GS",
       "kind": "rule",
       "title": "Human–agent trust contract v1",
-      "version": "7dd8890d9da32831be3603e1d67f0fd1e3531934ce039971da57ff950178e849",
+      "version": "30c516c7e8ed3602e483cb191496d6b5e13d243d090b8411bf82ae3eb3d9104b",
       "path": "rules/human-agent-trust-contract-v1.md",
       "agent_access": true
     },
@@ -45,7 +45,7 @@
       "id": "5GYP0WCTRTHE89CHGAHWQTK0S8",
       "kind": "skill",
       "title": "Дизайн-система flood.md",
-      "version": "b70b4825b5ffbeee1be38248ef56b1aee4aa16c9bfbc2b2f5a55c0a096a5975d",
+      "version": "14f3f383da6f0af59634ee4fbcd2c9a5b06568e81f4b4f7ff576984b801681d7",
       "path": "skills/design-system/SKILL.md",
       "agent_access": true
     },
@@ -53,7 +53,7 @@
       "id": "2Z88329MMK92VEBTBRAMFQVPJA",
       "kind": "skill",
       "title": "Human–agent interaction",
-      "version": "e79fa370f76b2d63d85a671c53221e7cf7d2dc61d97d96f45bf143eedf9e306d",
+      "version": "e777f06ca3a8d700a69aa62ffee62935bbc3d0a5e1554895385e22865172fbcd",
       "path": "skills/human-agent-interaction/SKILL.md",
       "agent_access": true
     },
@@ -61,7 +61,7 @@
       "id": "0S756Q34A489FS33RKXN16Q1SZ",
       "kind": "skill",
       "title": "Композиция экранов и UI-паттерны",
-      "version": "3bee0de1dd8521bb9d7bb55b10dd0ca73845cb87c748e0179ed07f650aee008f",
+      "version": "729a45d0190ae09fe1bb36469b2b632f57d6c2ec8e0ace39df012dd03640e78a",
       "path": "skills/screen-composition-ui-patterns/SKILL.md",
       "agent_access": true
     },
@@ -69,7 +69,7 @@
       "id": "0T4GYGK13FD478KNB2W53MQJ2B",
       "kind": "skill",
       "title": "Реализация UI flood.md",
-      "version": "81e6faaf063f9f92c7e002ef412f27ae5737f8684ac23439fd9f1b276351c6f0",
+      "version": "419a4ff225b72af8130d0942ebfe2326748661d7a6982c83285ac33c764cc3eb",
       "path": "skills/ui-implementation/SKILL.md",
       "agent_access": true
     },
@@ -77,7 +77,7 @@
       "id": "4YQT4JP3E1B3RSM4N1MBNDT7EB",
       "kind": "skill",
       "title": "Информационная архитектура и владение",
-      "version": "8649f08b8413ebe3cff71b2d49e8cf7016d316cb6edab0f1765ded5eca844d4d",
+      "version": "6e04b1cb93936a5e0f4fe2514e7d211eb7c9ab322a1150cfecb099b531943d7c",
       "path": "skills/information-architecture-ownership/SKILL.md",
       "agent_access": true
     },
@@ -85,9 +85,11 @@
       "id": "6SCGSSP63KGXBBPKA9J50XQ279",
       "kind": "skill",
       "title": "Контекстная редактура UI",
-      "version": "5d24a682a0afc86064655a2b7b8ab3c0ba7daf78c32e1d697a58c3996a2c62dc",
+      "version": "ec192d6347978719ad5e5037e3ab29a9f90c15e795cf62aa3515d3abea68ba9f",
       "path": "skills/contextual-ui-copy/SKILL.md",
       "agent_access": true
     }
-  ]
+  ],
+  "exported_at": "2026-09-20T09:05:46.386Z",
+  "context_revision": "19ecea8c36011865ad9faa55a05d4fa9b12b588097e3c307e02bb076799534ce"
 }

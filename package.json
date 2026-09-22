@@ -6,9 +6,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build:mcp:dev": "cargo build -p flood-mcp --bin flood-mcp",
+    "build:mcp:dev": "cargo build -p flood-mcp --bins",
     "build": "vite build",
-    "check": "node scripts/check-font-size-floor.mjs && svelte-check --tsconfig ./tsconfig.json",
+    "design:generate": "node scripts/design-contract.mjs --write",
+    "design:check": "node scripts/design-contract.mjs --check",
+    "check": "npm run design:check && node scripts/check-font-size-floor.mjs && svelte-check --tsconfig ./tsconfig.json",
     "tauri": "tauri"
   },
   "dependencies": {

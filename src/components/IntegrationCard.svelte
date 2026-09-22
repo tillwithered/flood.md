@@ -2,6 +2,7 @@
   import { ChevronRight } from "@lucide/svelte";
   import ConnectorLogo from "./ConnectorLogo.svelte";
   import FloodGlyph from "./FloodGlyph.svelte";
+  import { UiButton } from "./ui";
   import type { ConnectorLogoProvider, ConnectorTone } from "../integrations/registry";
 
   let {
@@ -32,7 +33,7 @@
   <div class="connector-copy">
     <span class="connector-title"><strong>{title}</strong><span class="connector-status"><FloodGlyph kind={tone === "error" ? "urgent" : tone === "attention" ? "important" : tone === "connected" ? "connected" : "info"} size={13} />{status}</span></span>
     <p>{description}</p>
-    <small>{detail}</small>
+    {#if detail}<small>{detail}</small>{/if}
   </div>
-  <button type="button" onclick={onclick}>{actionLabel}<ChevronRight size={15} /></button>
+  <UiButton size="sm" onclick={onclick}>{actionLabel}<ChevronRight size={15} /></UiButton>
 </article>

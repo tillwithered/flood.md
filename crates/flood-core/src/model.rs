@@ -709,7 +709,7 @@ impl Default for AutomationSettings {
     fn default() -> Self {
         Self {
             background_ai_triage: false,
-            provider: AutomationProvider::Auto,
+            provider: AutomationProvider::Jev,
             projects: Vec::new(),
             updated_at: None,
         }
@@ -719,11 +719,12 @@ impl Default for AutomationSettings {
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum AutomationProvider {
-    #[default]
     Auto,
     Codex,
     Claude,
     Gemini,
+    #[default]
+    Jev,
 }
 
 impl AutomationProvider {
@@ -733,6 +734,7 @@ impl AutomationProvider {
             Self::Codex => "codex",
             Self::Claude => "claude",
             Self::Gemini => "gemini",
+            Self::Jev => "jev",
         }
     }
 }

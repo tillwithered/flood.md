@@ -69,6 +69,18 @@ fn command_line_reports_version_and_runs_isolated_self_check() {
     }
 }
 
+#[cfg(windows)]
+#[test]
+fn windowless_development_launcher_preserves_mcp_stdio() {
+    let output = Command::new(env!("CARGO_BIN_EXE_flood-mcp-dev-launcher"))
+        .arg("--self-check")
+        .output()
+        .expect("launch MCP through the windowless development launcher");
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let value: Value = serde_json::from_slice(&output.stdout).expect("MCP self-check JSON");
+    assert_eq!(value["passed"], true);
+}
+
 fn send(stdin: &mut impl Write, message: Value) {
     writeln!(stdin, "{message}").unwrap();
     stdin.flush().unwrap();
@@ -140,6 +152,7 @@ fn stdio_server_supports_2026_07_28_discovery_and_tools_flow() {
     );
     assert!(discovered["result"]["capabilities"]["tools"].is_object());
     assert!(discovered["result"]["capabilities"]["prompts"].is_object());
+    assert!(discovered["result"]["capabilities"]["resources"].is_object());
     assert!(discovered["result"]["capabilities"].get("tasks").is_none());
     assert_eq!(discovered["result"]["ttlMs"], 0);
     assert_eq!(discovered["result"]["cacheScope"], "private");
@@ -204,6 +217,20 @@ fn stdio_server_supports_2026_07_28_discovery_and_tools_flow() {
         runtime["result"]["structuredContent"]["supported_protocol_versions"],
         json!(["2025-06-18", "2025-11-25", "2026-07-28"])
     );
+
+    request_id += 1;
+    send(
+        &mut stdin,
+        json!({
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "method": "resources/list",
+            "params": { "_meta": modern_request_meta() }
+        }),
+    );
+    let resources = receive(&mut stdout, request_id);
+    assert_eq!(resources["result"]["resultType"], "complete");
+    assert!(resources["result"]["resources"].is_array());
 
     let manifest = Command::new(env!("CARGO_BIN_EXE_flood-mcp"))
         .arg("--manifest")

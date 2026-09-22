@@ -1,124 +1,35 @@
-# Композиция экранов и UI-паттерны
+# Flood screen design
 
-Используй этот skill при создании или перестройке экранов, компонентов и взаимодействий flood.md. Он определяет, какую поверхность выбрать и как собрать её из общих паттернов.
+Complete the [project bootstrap](docs/design/agent-contract.md#bootstrap). Read [ownership and disclosure](docs/design/principles.md), the matching R01–R13 [recipe](docs/design/flows.md) and its referenced C01–C24 [components](docs/design/components.md).
 
-## Сначала объект, затем контейнер
+## Compose from the user job
 
-Перед разметкой определи:
+Write one brief: owner → user question → primary action → result → return location. Keep application accounts, project source scope, tasks, artifacts and agent runs distinct. Each editable object has one canonical home; other views link to it.
 
-- что является главным объектом работы;
-- насколько он содержателен: одна команда, короткая настройка или самостоятельный артефакт;
-- нужно ли сохранять контекст предыдущего экрана;
-- есть ли редактирование, validation, history, preview или destructive action;
-- как часто пользователь переключается между соседними объектами;
-- что происходит на узком окне.
+Use the selected projects-only sidebar and dominant task list. Task detail and project context are separate pages. One project heading/count and one New task action suffice; Context is quiet and rare management actions use overflow. Preserve completion as a separate task-row control. Normal urgency and repeated metadata do not fill empty row space.
 
-Не выбирай card, accordion или modal только потому, что их проще добавить в текущую разметку.
+For every proposed region classify it as **default**, **on demand** or **omitted**, using the disclosure matrix. An empty optional region does not reserve space. Errors, unsaved work and pending human decisions remain visible when present. Do not achieve minimalism by hiding the next action, requiring hover or shrinking text.
 
-## Матрица поверхностей
+## Select the surface
 
-### Отдельная страница
+| Need | Surface and boundary |
+| --- | --- |
+| Persistent project/task/context/settings workspace | Dedicated page; predictable return to parent/list |
+| Substantial project document/rule/skill with content, history, access and explicit save | Shared artifact modal with stable header/footer and one scrolling body; near full window when narrow |
+| Temporary source inspection that benefits from neighboring context | Modal or transient drawer; never a permanent task-detail/chat column |
+| Short local choice or rare commands | Popover/menu with complete keyboard behavior; move search, multiple selection or a substantial form to a focused dialog |
+| Brief optional explanation or diagnostics of an existing object | Inline disclosure; never an entire artifact editor between list rows |
+| Indexed object | Compact row leading to its working surface; no nested editor or nested buttons |
 
-Используй для постоянного рабочего пространства с собственной навигацией или несколькими самостоятельными секциями: обзор проекта, задача, контекст проекта, настройки.
+## Specify before rendering
 
-Не создавай отдельную страницу для короткого выбора или одного подтверждения.
+1. Define reading order and action order. Use semantic type/space roles and the bounded list/reader widths from foundations. Keep the parent responsible for outer gaps.
+2. Define populated, empty, loading, partial/unavailable, validation, pending, failure and conflict states where meaningful. Write `not applicable` with a reason for irrelevant states.
+3. Define trigger, acknowledged result, retry/cancel behavior, preserved data and next focus. For navigation, record list position and the originating object to return to. A dirty draft cannot disappear on route or window changes.
+4. Describe minimum-window behavior and long Russian content at 200% text enlargement. Do not squeeze competing panes or truncate essential decision text without a way to read it.
+5. For new compound compositions use [the reference procedure](docs/design/research.md); established Quiet Workbench recipes can proceed from the existing study.
 
-### Modal
+Deliver a concrete screen contract: brief, element/disclosure decisions, component IDs, state/transition table, copy and acceptance scenarios. In design-only mode stop here. Implementation and review use their respective skills; a mockup does not verify interactions.
 
-Используй для одного содержательного объекта, который принадлежит текущему пространству, но требует сфокусированной работы: чтение и редактирование документа, правила или skill; diff; подключение источника; создание артефакта.
 
-Modal нужен, если есть хотя бы несколько признаков:
-
-- содержимое длиннее пары коротких строк;
-- есть несколько полей или большой editor;
-- нужны preview, revisions, agent access или metadata;
-- пользователь должен принять, сохранить или отменить результат;
-- inline-раскрытие ломает ритм списка.
-
-Modal имеет стабильные header, scrollable body и footer. Он закрывается через Escape и явное действие, возвращает focus, не исчезает от выделения текста. Несохранённые изменения нельзя потерять молча. На узком окне modal становится почти полноэкранным.
-
-### Drawer
-
-Используй для контекстной детали, когда список или исходный экран должен оставаться видимым и пользователь часто переходит между соседними объектами. Drawer подходит для просмотра источника, lightweight inspection и последовательного triage.
-
-Не используй drawer для глубокого редактора, требующего полной концентрации, если соседний контекст не участвует в решении.
-
-### Popover или dropdown
-
-Используй только для короткого локального выбора или набора быстрых команд:
-
-- примерно до 5–7 простых вариантов;
-- без длинного текста, поиска, многошаговости и сложной validation;
-- выбор сразу применим или легко отменим;
-- содержимое помещается во viewport.
-
-Если нужно вводить данные, выбирать много сущностей, сравнивать варианты или объяснять последствия — используй modal или drawer.
-
-### Inline disclosure / accordion
-
-Используй для краткой необязательной детали уже видимого объекта: diagnostics, secondary metadata, короткий список проверок.
-
-Disclosure не является контейнером для самостоятельного документа, rule, skill, большого editor, history или сложного действия. Если раскрытие меняет структуру всего списка или создаёт второй экран внутри страницы, выбран неправильный паттерн.
-
-### Row
-
-Row представляет объект в индексе. Он показывает identity, одну полезную secondary line, состояние и локальное действие. Нажатие открывает подходящую рабочую поверхность.
-
-Не помещай весь editor внутрь строки и не повторяй тип объекта, если его уже задаёт секция.
-
-### Card
-
-Card обозначает один самостоятельный объект, режим или решение. Не превращай каждую секцию, setting и строку в card. Внутри card предпочитай структуру, строки и разделители, а не вложенные cards.
-
-## Контракт артефактов проекта
-
-Documents, Rules и Skills — полноценные project artifacts, а не accordion content.
-
-Индекс секции:
-
-- компактные rows с названием, summary, version и agent-access signal;
-- одно действие создания;
-- поиск или фильтр только когда объём действительно требует;
-- никакого постоянно раскрытого editor под списком.
-
-Нажатие на row открывает общий Artifact Modal:
-
-- header: тип, название, version, close;
-- body: content editor или read/preview mode; metadata и revisions доступны рядом, но не конкурируют с содержимым;
-- agent access показан как отдельное понятное разрешение;
-- footer: delete в безопасно отделённой зоне, Cancel и Save;
-- создание использует тот же modal с пустым состоянием;
-- переключение типа не меняет базовую анатомию, но copy и доступные действия соответствуют Document, Rule или Skill.
-
-Project context Markdown может оставаться отдельной системной сущностью, но созданные пользователем документы используют Artifact Modal.
-
-## Сборка экрана
-
-1. Назови главное действие и главный объект.
-2. Раздели постоянную навигацию, индекс объектов и рабочую поверхность.
-3. Выбери surface по матрице выше.
-4. Собери reading order до стилизации.
-5. Примени skill «Контекстная редактура UI»: структура должна нести контекст вместо поясняющих абзацев.
-6. Используй существующие component contracts и tokens; новый паттерн появляется только если старый не выражает сценарий.
-7. Проверь populated, empty, loading, error, disabled, conflict и unsaved states.
-8. Проверь клавиатуру, focus return, Escape, narrow window и длинный русский контент.
-
-## Красные флаги
-
-- editor раскрывается прямо между строками индекса;
-- popover содержит форму, поиск, скролл и подтверждение одновременно;
-- modal используется для одной мгновенной команды;
-- drawer или правая колонка становятся постоянным складом несвязанных функций;
-- весь экран собран из одинаковых cards без выраженной иерархии;
-- новый компонент отличается от существующего только случайным radius, shadow или padding;
-- поясняющий текст пытается компенсировать неверно выбранную поверхность.
-
-В результате укажи: главный объект, выбранную поверхность, почему соседние паттерны не подходят, состояния и поведение на узком окне.
-
-## Rounded row contract
-
-Full-row action выбирай вместо table row, когда нажатие открывает отдельный объект или disclosure. Это самостоятельный control с постоянным radius 8–10 px, neutral surface, padding 8–12 px и gap 8–12 px между peers. Постоянные dividers между такими controls запрещены. Table-style rows с линиями допустимы только для плотных неинтерактивных данных или единой таблицы, где строка не маскируется под отдельную кнопку.
-
-## Spacing hierarchy и tab navigation
-
-Перед композицией разложи экран на region → section → cluster → construct → control. Назначай 48 → 32 → 24 → 12–16 → 4–8 px соответственно; пропускай ненужные уровни, но не делай разные отношения визуально одинаковыми. Compound construct владеет внутренним gap, его parent — наружным. Horizontal peer sections переключаются settings-style tab bar: открытая полоса, single bottom divider, rounded active tab, без внешней capsule.
+Repository workflow: `docs/design/skills/flood-screen-design/SKILL.md`. Relative repository paths in this project material resolve from the flood.md repository root. Read the local source through an authorized repository resource; missing access is not permission to guess its contents.

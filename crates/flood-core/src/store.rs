@@ -6445,20 +6445,131 @@ fn decode<T: DeserializeOwned>(path: &Path) -> Result<(T, String, String), Store
     let version = digest(content.as_bytes());
     let rest = content
         .strip_prefix("---\n")
-        .ok_or_else(|| invalid(path, "нет начала YAML front matter"))?;
+        .ok_or_else(|| {
+            invalid(
+                path,
+                "нет начала YAML front matter; восстановите начальный разделитель `---` или совместимую копию файла",
+            )
+        })?;
     let (yaml, body) = rest
         .split_once("\n---\n")
-        .ok_or_else(|| invalid(path, "нет конца YAML front matter"))?;
-    let metadata = serde_yaml::from_str(yaml).map_err(|error| invalid(path, error.to_string()))?;
+        .ok_or_else(|| {
+            invalid(
+                path,
+                "нет конца YAML front matter; восстановите закрывающий разделитель `---` или совместимую копию файла",
+            )
+        })?;
+    let metadata = serde_yaml::from_str(yaml).map_err(|error| {
+        invalid(
+            path,
+            format!(
+                "некорректный YAML front matter: {error}; исправьте YAML вручную или восстановите совместимую копию файла"
+            ),
+        )
+    })?;
     Ok((metadata, body.trim().to_owned(), version))
+}
+
+fn ensure_format_version(path: &Path, actual: u8) -> Result<(), StoreError> {
+    if actual == FORMAT_VERSION {
+        return Ok(());
+    }
+    Err(invalid(
+        path,
+        format!(
+            "неподдерживаемая версия формата {actual}; обновите flood.md до версии, которая поддерживает этот файл, или восстановите совместимую копию"
+        ),
+    ))
+}
+
+fn path_component(path: &Path, message: &str) -> Result<String, StoreError> {
+    path.file_name()
+        .and_then(|value| value.to_str())
+        .map(str::to_owned)
+        .ok_or_else(|| invalid(path, message))
+}
+
+fn file_stem(path: &Path) -> Result<String, StoreError> {
+    path.file_stem()
+        .and_then(|value| value.to_str())
+        .map(str::to_owned)
+        .ok_or_else(|| invalid(path, "не удалось определить идентификатор из имени файла"))
+}
+
+fn project_id_from_project_path(path: &Path) -> Result<String, StoreError> {
+    let project_dir = path
+        .parent()
+        .ok_or_else(|| invalid(path, "не удалось определить каталог проекта"))?;
+    path_component(
+        project_dir,
+        "не удалось определить идентификатор каталога проекта",
+    )
+}
+
+fn project_id_from_task_path(path: &Path) -> Result<String, StoreError> {
+    let tasks_dir = path
+        .parent()
+        .ok_or_else(|| invalid(path, "не удалось определить каталог задач"))?;
+    let project_dir = tasks_dir
+        .parent()
+        .ok_or_else(|| invalid(path, "не удалось определить каталог проекта задачи"))?;
+    path_component(
+        project_dir,
+        "не удалось определить идентификатор проекта задачи",
+    )
+}
+
+fn workspace_identity_from_path(
+    path: &Path,
+) -> Result<(String, String, ProjectWorkspaceItemKind), StoreError> {
+    let item_id = file_stem(path)?;
+    let kind_dir = path
+        .parent()
+        .ok_or_else(|| invalid(path, "не удалось определить каталог типа элемента проекта"))?;
+    let kind_name = path_component(
+        kind_dir,
+        "не удалось определить тип элемента проекта из каталога",
+    )?;
+    let kind = match kind_name.as_str() {
+        "documents" => ProjectWorkspaceItemKind::Document,
+        "rules" => ProjectWorkspaceItemKind::Rule,
+        "skills" => ProjectWorkspaceItemKind::Skill,
+        _ => {
+            return Err(invalid(
+                path,
+                format!(
+                    "неизвестный каталог элемента проекта `{kind_name}`; верните файл в `documents`, `rules` или `skills`"
+                ),
+            ));
+        }
+    };
+    let workspace_dir = kind_dir
+        .parent()
+        .ok_or_else(|| invalid(path, "не удалось определить каталог workspace"))?;
+    let project_dir = workspace_dir
+        .parent()
+        .ok_or_else(|| invalid(path, "не удалось определить каталог проекта элемента"))?;
+    let project_id = path_component(
+        project_dir,
+        "не удалось определить идентификатор проекта элемента",
+    )?;
+    Ok((item_id, project_id, kind))
 }
 
 fn read_project(path: &Path) -> Result<Project, StoreError> {
     let (doc, body, version): (ProjectDocument, _, _) = decode(path)?;
-    if doc.format_version != FORMAT_VERSION {
-        return Err(invalid(path, "неподдерживаемая версия формата"));
+    ensure_format_version(path, doc.format_version)?;
+    validate_id(&doc.id).map_err(|error| invalid(path, error.to_string()))?;
+    let path_project_id = project_id_from_project_path(path)?;
+    if doc.id != path_project_id {
+        return Err(invalid(
+            path,
+            format!(
+                "id проекта `{}` не совпадает с каталогом `{path_project_id}`; восстановите исходный id в YAML front matter или верните файл в каталог своего проекта",
+                doc.id
+            ),
+        ));
     }
-    validate_id(&doc.id)?;
     validate_project_resources(&doc.resources).map_err(|error| invalid(path, error.to_string()))?;
     validate_project_memory(&doc.memory).map_err(|error| invalid(path, error.to_string()))?;
     let mut telegram_chats = doc.telegram_chats;
@@ -6483,8 +6594,35 @@ fn read_project(path: &Path) -> Result<Project, StoreError> {
 
 fn read_project_workspace_item(path: &Path) -> Result<ProjectWorkspaceItem, StoreError> {
     let (doc, body, version): (ProjectWorkspaceItemDocument, _, _) = decode(path)?;
-    if doc.format_version != FORMAT_VERSION {
-        return Err(invalid(path, "неподдерживаемая версия формата"));
+    ensure_format_version(path, doc.format_version)?;
+    let (path_item_id, path_project_id, path_kind) = workspace_identity_from_path(path)?;
+    if doc.id != path_item_id {
+        return Err(invalid(
+            path,
+            format!(
+                "id элемента `{}` не совпадает с именем файла `{path_item_id}.md`; восстановите исходный id в YAML front matter или имя файла",
+                doc.id
+            ),
+        ));
+    }
+    if doc.project_id != path_project_id {
+        return Err(invalid(
+            path,
+            format!(
+                "project_id элемента `{}` не совпадает с каталогом проекта `{path_project_id}`; восстановите project_id в YAML front matter или верните файл в каталог своего проекта",
+                doc.project_id
+            ),
+        ));
+    }
+    if doc.kind != path_kind {
+        return Err(invalid(
+            path,
+            format!(
+                "тип элемента `{:?}` не совпадает с каталогом `{}`; восстановите kind в YAML front matter или верните файл в каталог соответствующего типа",
+                doc.kind,
+                project_workspace_kind_directory(path_kind)
+            ),
+        ));
     }
     let item = ProjectWorkspaceItem {
         id: doc.id,
@@ -6527,11 +6665,29 @@ fn project_context_from_body(body: &str, title: &str) -> String {
 
 fn read_task(path: &Path) -> Result<Task, StoreError> {
     let (doc, description, version): (TaskDocument, _, _) = decode(path)?;
-    if doc.format_version != FORMAT_VERSION {
-        return Err(invalid(path, "неподдерживаемая версия формата"));
+    ensure_format_version(path, doc.format_version)?;
+    validate_id(&doc.id).map_err(|error| invalid(path, error.to_string()))?;
+    validate_id(&doc.project_id).map_err(|error| invalid(path, error.to_string()))?;
+    let path_task_id = file_stem(path)?;
+    if doc.id != path_task_id {
+        return Err(invalid(
+            path,
+            format!(
+                "id задачи `{}` не совпадает с именем файла `{path_task_id}.md`; восстановите исходный id в YAML front matter или имя файла",
+                doc.id
+            ),
+        ));
     }
-    validate_id(&doc.id)?;
-    validate_id(&doc.project_id)?;
+    let path_project_id = project_id_from_task_path(path)?;
+    if doc.project_id != path_project_id {
+        return Err(invalid(
+            path,
+            format!(
+                "project_id задачи `{}` не совпадает с каталогом проекта `{path_project_id}`; восстановите project_id в YAML front matter или верните файл в каталог своего проекта",
+                doc.project_id
+            ),
+        ));
+    }
     validate_task_relations(&doc.id, &doc.relations)?;
     validate_task_checkpoints(&doc.checkpoints)?;
     Ok(Task {
@@ -7823,12 +7979,22 @@ mod tests {
         Store::new(root).unwrap()
     }
 
+    fn assert_invalid_file_contains(error: StoreError, expected: &str) {
+        match error {
+            StoreError::InvalidFile { message, .. } => assert!(
+                message.contains(expected),
+                "ожидали `{expected}` в сообщении об ошибке, получили `{message}`"
+            ),
+            other => panic!("ожидалась ошибка повреждённого Markdown-файла, получили {other}"),
+        }
+    }
+
     #[test]
     fn background_ai_triage_requires_an_explicit_persisted_choice() {
         let store = temp_store();
         let defaults = store.automation_settings().unwrap();
         assert!(!defaults.background_ai_triage);
-        assert_eq!(defaults.provider, AutomationProvider::Auto);
+        assert_eq!(defaults.provider, AutomationProvider::Jev);
 
         let provider = store
             .set_automation_provider(AutomationProvider::Gemini)
@@ -8372,11 +8538,192 @@ mod tests {
         let path = store.task_path(&task.project_id, &task.id);
         let original = fs::read_to_string(&path).unwrap();
         assert!(original.contains("Позвонить заказчику"));
-        fs::write(&path, original.replace("Позвонить", "Написать")).unwrap();
+        let edited = original.replace("Позвонить", "Написать");
+        fs::write(&path, &edited).unwrap();
+        let reread = store.get_task(&task.id).unwrap();
+        assert_eq!(reread.description, "Написать заказчику");
+        assert_ne!(reread.version, task.version);
+        assert_eq!(fs::read_to_string(&path).unwrap(), edited);
         assert!(matches!(
             store.complete_task(&task.id, &task.version),
             Err(StoreError::Conflict)
         ));
+    }
+
+    #[test]
+    fn valid_manual_metadata_edit_is_read_without_hidden_migration() {
+        let store = temp_store();
+        let project = store.create_project("Ручное редактирование").unwrap();
+        let task = store
+            .create_task(CreateTask {
+                project_id: project.id,
+                description: "Проверить Markdown".into(),
+                urgency: Urgency::Normal,
+                source: None,
+            })
+            .unwrap();
+        let path = store.task_path(&task.project_id, &task.id);
+        let original = fs::read_to_string(&path).unwrap();
+        let edited = original.replacen("urgency: normal", "urgency: important", 1);
+        assert_ne!(edited, original);
+        fs::write(&path, &edited).unwrap();
+
+        let reread = store.get_task(&task.id).unwrap();
+        assert_eq!(reread.id, task.id);
+        assert_eq!(reread.project_id, task.project_id);
+        assert_eq!(reread.urgency, Urgency::Important);
+        assert_eq!(fs::read_to_string(path).unwrap(), edited);
+    }
+
+    #[test]
+    fn project_metadata_identity_must_match_project_directory() {
+        let store = temp_store();
+        let project = store.create_project("Identity проекта").unwrap();
+        let path = store.project_path(&project.id);
+        let original = fs::read_to_string(&path).unwrap();
+        let other_id = Ulid::new().to_string();
+        let mismatched = original.replacen(
+            &format!("id: {}", project.id),
+            &format!("id: {other_id}"),
+            1,
+        );
+        fs::write(&path, mismatched).unwrap();
+
+        assert_invalid_file_contains(
+            store.get_project(&project.id).unwrap_err(),
+            "не совпадает с каталогом",
+        );
+    }
+
+    #[test]
+    fn task_metadata_identity_must_match_filename_and_project_directory() {
+        let store = temp_store();
+        let first = store.create_project("Первый проект").unwrap();
+        let second = store.create_project("Второй проект").unwrap();
+        let task = store
+            .create_task(CreateTask {
+                project_id: first.id.clone(),
+                description: "Identity задачи".into(),
+                urgency: Urgency::Normal,
+                source: None,
+            })
+            .unwrap();
+        let path = store.task_path(&first.id, &task.id);
+        let original = fs::read_to_string(&path).unwrap();
+        let other_task_id = Ulid::new().to_string();
+        let mismatched_id = original.replacen(
+            &format!("id: {}", task.id),
+            &format!("id: {other_task_id}"),
+            1,
+        );
+        fs::write(&path, mismatched_id).unwrap();
+        assert_invalid_file_contains(
+            store.get_task(&task.id).unwrap_err(),
+            "не совпадает с именем файла",
+        );
+
+        fs::write(&path, &original).unwrap();
+        let mismatched_project = original.replacen(
+            &format!("project_id: {}", first.id),
+            &format!("project_id: {}", second.id),
+            1,
+        );
+        fs::write(&path, mismatched_project).unwrap();
+        assert_invalid_file_contains(
+            store.get_task(&task.id).unwrap_err(),
+            "не совпадает с каталогом проекта",
+        );
+    }
+
+    #[test]
+    fn workspace_metadata_identity_must_match_filename_project_and_kind_directory() {
+        let store = temp_store();
+        let first = store.create_project("Первый workspace").unwrap();
+        let second = store.create_project("Второй workspace").unwrap();
+        let item = store
+            .create_project_workspace_item_idempotent(
+                &first.id,
+                ProjectWorkspaceItemKind::Skill,
+                "Identity workspace",
+                None,
+                "Проверить identity.",
+                true,
+                "workspace-identity-test",
+            )
+            .unwrap()
+            .value;
+        let path =
+            store.project_workspace_item_path(&first.id, ProjectWorkspaceItemKind::Skill, &item.id);
+        let original = fs::read_to_string(&path).unwrap();
+        let other_item_id = Ulid::new().to_string();
+        let mismatched_id = original.replacen(
+            &format!("id: {}", item.id),
+            &format!("id: {other_item_id}"),
+            1,
+        );
+        fs::write(&path, mismatched_id).unwrap();
+        assert_invalid_file_contains(
+            store
+                .get_project_workspace_item(&first.id, &item.id)
+                .unwrap_err(),
+            "не совпадает с именем файла",
+        );
+
+        fs::write(&path, &original).unwrap();
+        let mismatched_project = original.replacen(
+            &format!("project_id: {}", first.id),
+            &format!("project_id: {}", second.id),
+            1,
+        );
+        fs::write(&path, mismatched_project).unwrap();
+        assert_invalid_file_contains(
+            store
+                .get_project_workspace_item(&first.id, &item.id)
+                .unwrap_err(),
+            "не совпадает с каталогом проекта",
+        );
+
+        fs::write(&path, &original).unwrap();
+        let mismatched_kind = original.replacen("kind: skill", "kind: rule", 1);
+        fs::write(&path, mismatched_kind).unwrap();
+        assert_invalid_file_contains(
+            store
+                .get_project_workspace_item(&first.id, &item.id)
+                .unwrap_err(),
+            "не совпадает с каталогом `skills`",
+        );
+    }
+
+    #[test]
+    fn incompatible_or_malformed_markdown_is_rejected_without_rewriting_the_file() {
+        let store = temp_store();
+        let project = store.create_project("Ошибки Markdown").unwrap();
+        let task = store
+            .create_task(CreateTask {
+                project_id: project.id,
+                description: "Проверить восстановление".into(),
+                urgency: Urgency::Normal,
+                source: None,
+            })
+            .unwrap();
+        let path = store.task_path(&task.project_id, &task.id);
+        let original = fs::read_to_string(&path).unwrap();
+
+        let unsupported = original.replacen("format_version: 1", "format_version: 99", 1);
+        fs::write(&path, &unsupported).unwrap();
+        assert_invalid_file_contains(
+            store.get_task(&task.id).unwrap_err(),
+            "восстановите совместимую копию",
+        );
+        assert_eq!(fs::read_to_string(&path).unwrap(), unsupported);
+
+        let malformed = original.replacen("format_version: 1", "format_version: [", 1);
+        fs::write(&path, &malformed).unwrap();
+        assert_invalid_file_contains(
+            store.get_task(&task.id).unwrap_err(),
+            "исправьте YAML вручную",
+        );
+        assert_eq!(fs::read_to_string(path).unwrap(), malformed);
     }
 
     #[test]
@@ -8386,6 +8733,7 @@ mod tests {
         let renamed = store
             .update_project(&project.id, "Переименованный проект", &project.version)
             .unwrap();
+        assert_eq!(renamed.id, project.id);
         assert_eq!(renamed.title, "Переименованный проект");
         let now = Utc::now();
         let source = crate::MessageSnapshot {
@@ -9350,8 +9698,10 @@ mod tests {
         let moved = store
             .move_task(&task.id, &second.id, &task.version)
             .unwrap();
+        assert_eq!(moved.id, task.id);
         assert_eq!(moved.project_id, second.id);
         assert!(!store.task_path(&first.id, &task.id).exists());
+        assert!(store.task_path(&second.id, &task.id).exists());
 
         let trashed = store.trash_task(&moved.id, &moved.version).unwrap();
         assert!(trashed.trashed_at.is_some());
@@ -10122,6 +10472,7 @@ mod tests {
                 &created.value.version,
             )
             .unwrap();
+        assert_eq!(updated.id, created.value.id);
         assert_eq!(updated.revisions.len(), 1);
         assert!(
             updated

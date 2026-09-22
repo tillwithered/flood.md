@@ -8,7 +8,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-pub const WORK_CONTRACT_VERSION: u16 = 3;
+pub const WORK_CONTRACT_VERSION: u16 = 4;
 pub const DEFAULT_WORK_PACKET_CHAR_BUDGET: usize = 32_000;
 pub const MIN_WORK_PACKET_CHAR_BUDGET: usize = 8_000;
 pub const MAX_WORK_PACKET_CHAR_BUDGET: usize = 64_000;
@@ -258,6 +258,13 @@ impl From<Project> for WorkProjectContext {
 pub struct WorkPacket {
     pub contract_version: u16,
     pub purpose: WorkPurpose,
+    /// Human-readable objective supplied by the client. It is routing context,
+    /// not an authorization grant and never expands `allowed_actions`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub intent: Option<String>,
+    /// Repository-relative or absolute paths that help route project skills.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub target_paths: Vec<String>,
     pub project: WorkProjectContext,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub task: Option<Task>,
@@ -298,6 +305,8 @@ pub struct ContextBuilder<'a> {
     store: &'a Store,
     char_budget: usize,
     open_task_limit: usize,
+    intent: Option<String>,
+    target_paths: Vec<String>,
 }
 
 impl<'a> ContextBuilder<'a> {
@@ -306,7 +315,25 @@ impl<'a> ContextBuilder<'a> {
             store,
             char_budget: DEFAULT_WORK_PACKET_CHAR_BUDGET,
             open_task_limit: DEFAULT_PACKET_OPEN_TASKS,
+            intent: None,
+            target_paths: Vec::new(),
         }
+    }
+
+    pub fn with_intent(mut self, intent: impl Into<String>) -> Self {
+        let intent = truncate_chars(intent.into().trim(), 2_000);
+        self.intent = (!intent.is_empty()).then_some(intent);
+        self
+    }
+
+    pub fn with_target_paths(mut self, paths: Vec<String>) -> Self {
+        self.target_paths = paths
+            .into_iter()
+            .map(|path| truncate_chars(path.trim(), 500))
+            .filter(|path| !path.is_empty())
+            .take(20)
+            .collect();
+        self
     }
 
     pub fn with_char_budget(mut self, char_budget: usize) -> Self {
@@ -340,7 +367,12 @@ impl<'a> ContextBuilder<'a> {
     ) -> Result<(WorkPacket, WorkPacketEvidence), StoreError> {
         let (mut packet, evidence) =
             self.project_packet(project_id, purpose, signals, allowed_actions)?;
-        defer_all_project_skills(&mut packet);
+        let routing_context = self.routing_context(None);
+        if routing_context.is_empty() {
+            defer_all_project_skills(&mut packet);
+        } else {
+            route_project_skills(&mut packet, &routing_context);
+        }
         apply_work_packet_budget(&mut packet, self.char_budget);
         Ok((packet, evidence))
     }
@@ -420,6 +452,8 @@ impl<'a> ContextBuilder<'a> {
         let packet = WorkPacket {
             contract_version: WORK_CONTRACT_VERSION,
             purpose,
+            intent: self.intent.clone(),
+            target_paths: self.target_paths.clone(),
             project: project_context,
             task: None,
             open_tasks,
@@ -467,10 +501,27 @@ impl<'a> ContextBuilder<'a> {
         let task = self.store.get_task(task_id)?;
         let (mut packet, evidence) =
             self.project_packet(&task.project_id, purpose, Vec::new(), allowed_actions)?;
-        route_project_skills(&mut packet, &task);
+        let routing_context = self.routing_context(Some(&task.description));
+        route_project_skills(&mut packet, &routing_context);
         packet.task = Some(task);
         apply_work_packet_budget(&mut packet, self.char_budget);
         Ok((packet, evidence))
+    }
+}
+
+impl ContextBuilder<'_> {
+    fn routing_context(&self, task: Option<&str>) -> String {
+        let mut parts = Vec::new();
+        if let Some(task) = task.filter(|value| !value.trim().is_empty()) {
+            parts.push(task.trim());
+        }
+        if let Some(intent) = self.intent.as_deref() {
+            parts.push(intent);
+        }
+        for path in &self.target_paths {
+            parts.push(path);
+        }
+        parts.join("\n")
     }
 }
 
@@ -495,8 +546,8 @@ fn defer_all_project_skills(packet: &mut WorkPacket) {
         .collect();
 }
 
-fn route_project_skills(packet: &mut WorkPacket, task: &Task) {
-    let task_terms = routing_terms(&task.description);
+fn route_project_skills(packet: &mut WorkPacket, routing_context: &str) {
+    let task_terms = routing_terms(routing_context);
     let mut ranked = packet
         .project
         .project_skills
@@ -600,8 +651,19 @@ fn routing_terms(value: &str) -> std::collections::BTreeSet<String> {
         "вы",
         "нужно",
         "сделать",
+        "проверить",
+        "провести",
+        "создать",
+        "обновить",
+        "изменить",
+        "работа",
         "задача",
         "проект",
+        "check",
+        "create",
+        "update",
+        "change",
+        "work",
         "project",
         "task",
     ];
@@ -1027,7 +1089,7 @@ mod tests {
             packet.task.as_ref().map(|task| task.id.as_str()),
             Some(task.id.as_str())
         );
-        assert_eq!(packet.contract_version, 3);
+        assert_eq!(packet.contract_version, 4);
         assert_eq!(packet.budget.limit_chars, DEFAULT_WORK_PACKET_CHAR_BUDGET);
         assert!(packet.budget.included_text_chars <= packet.budget.limit_chars);
         assert!(
@@ -1083,6 +1145,65 @@ mod tests {
         assert!(packet.project.project_skills.is_empty());
         assert_eq!(packet.project.deferred_project_skills.len(), 1);
         assert!(packet.guidance.is_empty());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn project_intent_routes_relevant_skills_before_a_task_exists() {
+        let root = std::env::temp_dir().join(format!(
+            "flood-project-intent-routing-test-{}",
+            ulid::Ulid::new()
+        ));
+        let store = Store::new(&root).unwrap();
+        let project = store.create_project("Routing").unwrap();
+        let ui = store
+            .create_project_workspace_item_idempotent(
+                &project.id,
+                ProjectWorkspaceItemKind::Skill,
+                "Визуальный аудит UI",
+                Some("Интерфейс, типографика и отступы"),
+                "Проверить экран в обеих темах",
+                true,
+                "routing-ui-skill-with-intent",
+            )
+            .unwrap()
+            .value;
+        store
+            .create_project_workspace_item_idempotent(
+                &project.id,
+                ProjectWorkspaceItemKind::Skill,
+                "Публикация релиза",
+                Some("Сборка установщика"),
+                "Проверить подпись",
+                true,
+                "routing-release-skill-with-intent",
+            )
+            .unwrap();
+
+        let packet = ContextBuilder::new(&store)
+            .with_intent("Провести визуальный аудит интерфейса и типографики")
+            .with_target_paths(vec!["src/components/ProjectView.svelte".into()])
+            .for_project(
+                &project.id,
+                WorkPurpose::Execute,
+                Vec::new(),
+                vec![WorkAction::ReadProjectContext],
+            )
+            .unwrap();
+
+        assert_eq!(
+            packet.intent.as_deref(),
+            Some("Провести визуальный аудит интерфейса и типографики")
+        );
+        assert_eq!(packet.project.project_skills.len(), 1);
+        assert_eq!(packet.project.project_skills[0].id, ui.id);
+        assert_eq!(packet.project.deferred_project_skills.len(), 1);
+        assert!(
+            packet
+                .guidance
+                .iter()
+                .any(|guidance| guidance.reference.id == ui.id)
+        );
         std::fs::remove_dir_all(root).unwrap();
     }
 }

@@ -63,7 +63,7 @@ The agent can read bounded Telegram updates, inspect a selected conversation or 
 
 A regular cloud ChatGPT conversation cannot launch a local executable; it requires a remotely reachable HTTPS MCP server. flood.md intentionally does not ship that cloud bridge in this local-first release.
 
-Read the [MCP setup, workflows, tool map, and safety model](docs/mcp.md).
+Read the [MCP setup, workflows, tool map, and safety model](docs/mcp.md). Optional background triage can use local agent CLIs or the [Jev decision adapter](docs/jev-automation.md); MCP remains the independent integration surface for external agents.
 
 ## Quick start
 
@@ -92,6 +92,8 @@ See [SECURITY.md](SECURITY.md) for the trust model and vulnerability reporting.
 Projects live in <code>projects/&lt;project-id&gt;/project.md</code>; tasks live in <code>projects/&lt;project-id&gt;/tasks/&lt;task-id&gt;.md</code>. YAML front matter stores explicit metadata while the body remains ordinary Markdown. The default Windows data directory is <code>%APPDATA%\io.flood.desktop</code>; set <code>FLOOD_DATA_DIR</code> to use another location.
 
 ## Development
+
+For product UI work, start with the [English design contract](docs/design/README.md) after obtaining current Project Work Context. Its rules, tokens, 24 component contracts, 13 screen recipes and seven project skills define the selected Quiet Workbench direction. Use the [agent handoff](docs/design/handoff.md) for a ready-to-use starting prompt. The contract is ready; current UI implementation and native acceptance remain separate.
 
 Requirements: Node.js 22, stable Rust, and the [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/).
 

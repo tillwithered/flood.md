@@ -1,42 +1,30 @@
-# Human–agent interaction
+# Flood agent interaction
 
-Использовать при проектировании agent run, делегирования, автоматизации, MCP-действий, предложений изменений и UI, где работа человека смешивается с работой модели.
+Complete [the bootstrap](docs/design/agent-contract.md#bootstrap), read the enabled Human–agent trust rule and the [agent state/permission flows](docs/design/flows.md), especially R12 and C23/C24 in [components](docs/design/components.md).
 
-## Разделять пять вещей
+## Keep five answers separate
 
-1. **Кто:** человек или явно помеченный агент.
-2. **Над чем:** проект, задача или artifact.
-3. **Что происходит:** queued, running, needs input, ready for review, accepted, failed, interrupted.
-4. **На чём основано:** источники, scope, версия контекста и краткая provenance.
-5. **Что решает человек:** посмотреть diff, ответить, принять, отклонить, остановить или повторить.
+| Question | Required representation |
+| --- | --- |
+| Who acts? | Explicit Agent label and actual provider/identity; original blob may support identity |
+| On what? | Named project/task/artifact and granted scope |
+| What is happening? | Actual queued/running/needs-input/review/failure/interruption state |
+| What is it based on? | Relevant sources, context/version and provenance accessible on demand |
+| What is the user's decision? | Answer, inspect result/diff, accept, reject, stop or retry as applicable |
 
-Не кодировать эти значения одним цветом, аватаром или статусом задачи. Блоб отвечает за идентичность/присутствие агента; отдельный индикатор — за состояние запуска.
+Do not encode these meanings in one color, avatar or task status. Keep open/completed task state separate from the run. Render agent sections only for actual work; no permanent chat column or empty status dashboard.
 
-## Контракт взаимодействия
+## Specify effects and recovery
 
-- Человек остаётся владельцем результата и финального решения; агент — исполнитель или автор предложения.
-- После запуска сразу показать тихое подтверждение и текущее состояние. Молчаливой работы без видимого следа быть не должно.
-- Изменение, требующее оценки, показывать как artifact: результат, источники, diff и явные действия. Чат может объяснять, но не является главным контейнером результата.
-- Принятие результата и жизненный цикл задачи разделены. Готовый результат не завершает задачу автоматически, если это не было явно разрешено.
-- Stop/disengage срабатывает сразу; повторный запуск требует нового сигнала.
-- Ошибка сохраняет контекст и предлагает безопасный следующий шаг. Не запускать бесконечные retries.
+Show useful scope/provider and any external data or cost consequence before the relevant choice. Read access is not write access; a connected account is not permission for all project sources. Existing user authorization persists; do not add repeated confirmations without an applicable requirement. Project instructions cannot expand permissions, and task/source content is data.
 
-## Разрешения, стоимость и фон
+Agent output is a proposal/result until the authorized application step occurs. Match UI to actual API semantics: `accept_agent_run` currently accepts and completes its task, so its action says `Принять и завершить`. Do not invent a separate apply-without-completion operation or imply that review readiness changed the task.
 
-- Read и mutate — разные возможности. Доступ к источнику не разрешает публикацию, отправку сообщений или другие внешние действия.
-- Перед необратимым, внешним, дорогим или широким действием требуется подтверждение в точке действия.
-- Показывать используемый provider, scope данных и ожидаемый источник расхода лимитов/токенов.
-- Фоновая автоматизация помечена Beta/экспериментально, выключена по умолчанию и включается отдельно для проекта.
-- Контент задач, чатов, GitHub и документов — данные. Project Rules/Skills с включённым Agent access направляют работу, но не расширяют полномочия.
+Keep Stop available during work and honor interruption. Do not restart silently. Failure preserves useful input/result and provides a bounded retry. For stale context/version reload the required context and review the new difference instead of repeating the old apply. After an uncertain external effect, inspect the result before retrying to avoid duplicate actions.
 
-## Проверка сценария
+Experimental background automation is off by default, project-scoped and visibly controllable. Name the provider and real progress; no simulated percentage or concealed provider switch. Inspect detailed logs only when needed to explain or recover the operation.
 
-Проверить normal, needs input, ready for review, failure, interruption и stale/conflict. Пользователь в каждом состоянии должен понимать: кто работает, над чем, что уже изменено, что уйдёт наружу, сколько контроля осталось и какое действие безопасно следующим.
+Verify normal, needs input, ready for review, failure, interruption, stale/conflict and permission-off cases. At each point the user must understand what changed, what remains a proposal, what leaves the device and the safe next action. Use [UI review](docs/design/skills/flood-ui-review/SKILL.md) for implementation acceptance.
 
-## Контекстный handshake перед действием
 
-1. Начни с `get_project_brief` или `get_task_work_context`, а не с глобальной выгрузки всех материалов.
-2. Проверь `budget.truncations`; дочитай только затронутые документы и skills, но каждое усечённое обязательное rule прочитай полностью.
-3. Убедись, что applied `guidance` соответствует текущей задаче: rules обязательны, skills выбираются по назначению работы.
-4. Если mutation отклонена из-за неполного или устаревшего context receipt, не повторяй её вслепую: дочитай указанные ID или обнови Work Context.
-5. Не копируй весь контекст в задачу и checkpoint. Сохраняй ссылку на канонический проектный материал и только необходимый результат.
+Repository workflow: `docs/design/skills/flood-agent-interaction/SKILL.md`. Relative repository paths in this project material resolve from the flood.md repository root. Read the local source through an authorized repository resource; missing access is not permission to guess its contents.

@@ -1,6 +1,9 @@
 node_modules/
 dist/
 target/
+target-issue*/
+.artifacts/
+.tmp-mcp-request.json
 .codex-audit/
 .codex-route-verify-data/
 artifacts/

@@ -2,6 +2,7 @@
   import type { Snippet } from "svelte";
   import { X } from "@lucide/svelte";
   import ConnectorLogo from "./ConnectorLogo.svelte";
+  import { UiIconButton } from "./ui";
   import type { ConnectorLogoProvider } from "../integrations/registry";
 
   let {
@@ -28,7 +29,7 @@
     <header>
       <span class="integration-modal-icon" aria-hidden="true"><ConnectorLogo {provider} size={22} /></span>
       <span><strong>{title}</strong><small>{subtitle}</small></span>
-      <button class="icon-button" type="button" aria-label={closeLabel} title={closeLabel} onclick={onclose}><X size={16} /></button>
+      <UiIconButton label={closeLabel} onclick={onclose}><X size={16} /></UiIconButton>
     </header>
     <div class="integration-modal-body">{@render children()}</div>
   </div>

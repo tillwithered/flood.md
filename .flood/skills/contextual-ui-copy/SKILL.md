@@ -1,57 +1,15 @@
-# Контекстная редактура UI
+# Flood UI copy
 
-Используй этот skill при создании или проверке интерфейсного текста flood.md: заголовков, пояснений, секций, строк, действий, пустых состояний, ошибок и настроек.
+Complete [the bootstrap](docs/design/agent-contract.md#bootstrap). Read [the content contract](docs/design/content.md), the owning [flow](docs/design/flows.md) and its actual backend consequence.
 
-## Принцип
+1. Identify what the surrounding page/section already tells the user. Remove repeated object types, introductory prose and technical implementation details that do not help a decision. Keep necessary scope, consequences and recovery.
+2. Use the established Russian vocabulary: project, task, normal/important/urgent, open/completed. Use sentence case and concrete action verbs. Do not introduce “workspace,” “channel” or another workflow state as a synonym for a project/task.
+3. Label the operation the system really performs. For the existing compound `accept_agent_run` operation, use `Принять и завершить`; readiness for review alone does not mean completion. Save/apply/publish/grant access are distinct actions.
+4. Distinguish no data, no matches, loading, offline/unavailable and failed read. Do not invite the user to recreate an object merely because it could not be loaded.
+5. For errors state what failed, whether the input was preserved, and one safe next action. Put raw technical details behind an optional diagnostic view. For permissions name the source, scope and read/write consequence at the decision point.
+6. Review labels in context, including long Cyrillic names, plurals/counts, missing names, accessible names for icon-only controls and narrow/200% layouts. A tooltip must not be the only place essential meaning exists.
 
-Каждый уровень интерфейса задаёт контекст один раз. Дочерний уровень наследует его и не повторяет родительское существительное без необходимости.
+Deliver the affected strings with location and reason when useful. Keep the surrounding instruction/specification English. Preserve all explicit user decisions and implementation scope; copy work does not authorize new features.
 
-Если страница называется «Skills», внутри не нужны вводный абзац «Skills — это…» и секции «Локальные skills», «Глобальные skills», «Другие skills», когда достаточно «Проекта», «Подключённые», «Доступные».
 
-## Метод
-
-1. Прочитай экран сверху вниз: название страницы → назначение → секция → объект → действие.
-2. Для каждой фразы спроси: что она добавляет сверх уже видимого контекста?
-3. Удали фразу, если без неё смысл, действие и последствия остаются ясными.
-4. Если пояснение необходимо, сообщи только новое: ограничение, происхождение, последствие или следующий шаг.
-5. Используй progressive disclosure: подробность открывается рядом с объектом по запросу, а не повторяется на основном экране.
-6. После сокращения проверь экран без знания продукта: пользователь всё ещё должен понимать, что это, что доступно и что произойдёт после действия.
-
-## Контракты текста
-
-- Заголовок страницы называет пространство. Не дублируй его первым предложением.
-- Подзаголовок допустим, только если объясняет назначение, которое нельзя вывести из заголовка и содержимого.
-- Заголовок секции называет различие внутри страницы, а не повторяет её название.
-- Строка называет конкретный объект или результат. Тип объекта уже может быть понятен из секции.
-- Кнопка описывает результат: «Подключить», «Посмотреть изменения», «Сохранить правило». Не добавляй «Нажмите, чтобы…».
-- Метаданные отвечают на один полезный вопрос: кто, откуда, когда или в каком состоянии.
-- Пустое состояние содержит одну причину и одно следующее действие; не объясняет всю модель продукта.
-- Ошибка сохраняет причину и следующий шаг. Краткость не должна скрывать восстановление.
-
-## Что не сокращать
-
-- постоянные labels у важных полей;
-- подписи, различающие человека и агента;
-- состояние выполнения, источник и последствия подтверждения;
-- предупреждения о расходе токенов, отправке данных, удалении и других значимых эффектах;
-- доступные имена и aria-label у icon-only controls;
-- текст, необходимый для понимания ошибки и восстановления.
-
-## Анти-паттерны
-
-- заголовок, подзаголовок и первая карточка повторяют одну мысль;
-- слово страницы повторяется в каждом названии секции;
-- абзац объясняет очевидное содержимое списка;
-- несколько соседних labels различаются только прилагательным;
-- служебные фразы: «Здесь вы можете», «Этот раздел позволяет», «Используйте эту страницу для»;
-- маркетинговая или учебная copy внутри повседневного рабочего экрана;
-- текст компенсирует слабую иерархию, вместо того чтобы исправить композицию.
-
-## Проверка
-
-Сделай два прохода:
-
-1. **Наследование:** отметь, какой контекст уже задан каждым родителем.
-2. **Удаление:** убери каждую фразу по очереди и верни только ту, без которой появляется реальная неоднозначность или риск.
-
-Итоговый текст должен быть коротким не сам по себе, а потому что структура интерфейса уже несёт часть смысла.
+Repository workflow: `docs/design/skills/flood-ui-copy/SKILL.md`. Relative repository paths in this project material resolve from the flood.md repository root. Read the local source through an authorized repository resource; missing access is not permission to guess its contents.

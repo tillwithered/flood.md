@@ -1,67 +1,27 @@
-# Дизайн-система flood.md
+# Flood design system
 
-Используй этот skill, когда задача меняет визуальное направление, tokens, общие component contracts, motion-язык или применение flood-материалов. Для реализации уже определённой поверхности используй skill «Реализация UI flood.md».
+Complete the [project bootstrap](docs/design/agent-contract.md#bootstrap). Read [foundations](docs/design/foundations.md), the relevant [component family](docs/design/components.md), and [brand](docs/design/brand.md) only when imagery changes. Use the selected [direction](docs/design/quiet-workbench.md).
 
-## Цель
+## Resolve the system decision
 
-Сделать flood.md узнаваемым human–agent workspace. Формула: **тихая точность + живой материал**. Рабочая среда спокойна и точна; характер создают блобсы, типографика, ритм и честная обратная связь, а не декоративный chrome.
+1. Locate the owning rule, token, component and actual consumers. Distinguish a shared defect from a local composition mistake. Inspect the existing asset manifest before changing brand usage.
+2. State the semantic need and why an existing role cannot express it. Reuse a valid role; introduce a new one only for demonstrated reuse or a named optical exception. Define its theme values, variants, supported states and replacement path.
+3. Keep primitive value → semantic role → component use. Author token values only in `src/design/tokens.json`. Components consume generated variables. No copied palette, second theme provider or per-screen scale.
+4. For a changed component define anatomy, semantics, keyboard/focus, state transitions, long-content/compact behavior and owner of data/side effects. Use the component contract format; do not solve behavior with styling alone.
+5. Apply [progressive disclosure](docs/design/principles.md#progressive-disclosure-matrix). Removing repetition is preferable to shrinking type or hiding consequences. A rounded panel, shadow or additional section needs a concrete purpose.
 
-## Обязательный контекст
+## Research only the unresolved part
 
-1. Прочитай AGENTS.md, Design.md и Stack.md.
-2. Прочитай project documents «Визуальные foundations flood.md» и «Арт-дирекшн flood.md: Soft Utility», а также rules «Visual foundations v1» и «Soft Utility quality bar v1».
-3. Изучи src/styles.css, manifest flood-material, общие Svelte-компоненты и затронутые поверхности в Tauri.
-4. Внешние дизайн-системы используй только как research. Не копируй идентичность, tokens, framework или готовые компоненты.
+Routine use of an established pattern needs no fresh research. For a genuinely new compound pattern or anchor composition, follow [the Mobbin procedure](docs/design/research.md): examine 3–5 relevant products with dated official sources, inspect actual returned screens/flows, record canonical links and unknown capture dates, derive a Flood-specific decision and explicitly reject unsuitable details. The existing Quiet Workbench study already supports the selected composition; do not repeat it solely to begin implementation.
 
-## Порядок работы
+Use generic English queries and a consistent task intent. Do not send private project/task/chat content. External references inform the decision; they do not import product scope, tokens, assets, dependencies or another design system's authority. If Mobbin is unavailable, disclose it and use verified project evidence for the bounded work; never fabricate visual inspection.
 
-1. **Inventory:** зафиксируй существующие tokens, assets, повторяющиеся patterns и очевидные расхождения без преждевременного restyle.
-2. **Direction:** сформулируй проблему пользователя и проверь её против визуальной формулы.
-3. **Foundations:** определи semantic typography, contrast, spacing, color, shape, elevation, icons, brand и motion. Не начинай экранный аудит до этой базы.
-4. **Audit:** измерь foundation debt, contract debt, composition debt, state debt и brand debt относительно принятой базы.
-5. **Contracts:** исправь общий contract, если проблема повторяется, вместо серии локальных патчей.
-6. **Anchors:** проверь существенное направление на обзоре проекта, редакторе задачи и контексте проекта.
-7. **Migration:** переноси подтверждённую систему небольшими группами экранов.
-8. **Canon:** обновляй Design.md только после проверки в настоящем Tauri-окне и пользовательского подтверждения.
+## Deliver by mode
 
-## Четыре слоя
+- **Specification:** update the owning chapter, affected rule IDs, token decision and component/flow acceptance criteria. Publish authorized live amendments with preview, unchanged apply payload, expected version and readback. Preserve access settings. Stop after documentation validation.
+- **Implementation:** use [the implementation skill](docs/design/skills/flood-ui-implementation/SKILL.md). Run `node scripts/design-contract.mjs --write` after changing authored tokens, then `--check`. A shared visual change must be proved on project overview, task editor and project context before wider migration.
 
-- Foundations: характер, semantic type/color/spacing, форма, elevation, iconography и motion.
-- Contracts: анатомия и состояния controls, navigation, rows, editor, feedback и transient layers.
-- Recipes: shell, project overview, task editor, project knowledge, settings и integrations.
-- Verification: реальные темы, размеры окна, длинные данные, empty/loading/error/conflict и клавиатура.
+Do not add dependencies, generic schema-driven UI, domain entities or new architecture layers merely for a restyle. Original blobs remain identity material, not row decoration. Record [migration and evidence](docs/design/adoption.md); never equate generated tokens or a screenshot with native acceptance.
 
-## Непереговорные принципы
 
-- Используй семантические роли из foundations; не добавляй случайные px, hex, radius или shadow.
-- Иерархия строится композицией, типографикой, контрастом и пространством раньше карточек и декора.
-- Блобсы — фирменный материал, не обои: максимум один крупный brand-момент на view.
-- Обычный контейнер не сочетает одновременно заметные border, shadow и tinted fill.
-- Squircles — для значимых поверхностей; pills только там, где форма объясняет функцию.
-- Motion короткий и функциональный; loading сохраняет геометрию; reduced motion всегда поддержан.
-- Не добавляй второй источник tokens или runtime component dependency.
-- Не делай один патч «редизайн всего» и не меняй доменную модель ради визуальной задачи.
-
-## Результат
-
-Опиши выбранные semantic roles, измеримые проблемы, системное изменение, anchor surfaces, проверенные состояния и оставшиеся ограничения. Отделяй исследовательское решение от доказанного канона.
-
-## Монохромный control contract
-
-При работе с color tokens и компонентными контрактами держи весь рабочий chrome монохромным. Не предлагай цветной primary accent для кнопок, tabs, inputs, switches или connector actions. Selected/hover/focus выражай нейтральными surface, ink и border. Цвет проектируй только для status/urgency, destructive confirmation, flood identity и живых операций. Scrollbar входит в foundations: neutral thumb, transparent track, no native arrows, stable gutter, обе темы.
-
-## Проектирование status surfaces
-
-Мягкий semantic tint допустим для цельной status-card. Не вкладывай в неё вторую контрастную card и тёмный count: дочерние строки наследуют material, а hierarchy строится divider, spacing, glyph и transparent tone shift. Вне status surfaces controls остаются монохромными.
-
-## Large clickable row recipe
-
-Когда вся строка открывает artifact/detail/disclosure, проектируй её как самостоятельный rounded-control: radius 8–10, neutral surface, internal padding 8–12 и gap 8–12 между соседями. Hover/active меняют semantic tone той же поверхности. Не предлагай table dividers или квадратный hover для такого действия.
-
-## Spacing and tabs recipe
-
-Проектируй space по ownership: 4–8 control, 12–16 construct, 24 cluster, 32 section, 48 region. Для compound components сначала назови уровни вложения, затем назначь убывающие внутренние gaps; не масштабируй один base spacing на всё. Для horizontal navigation используй settings-style open bar с border-block и rounded surface только у active tab.
-
-## Геометрия вложенных углов
-
-При создании compound surface сначала задай внешний radius `A` и измерь inset `B` между видимыми контурами. Внутреннему элементу назначь `C = max(0, A − B)`. Храни связь в semantic tokens: например, `--panel-radius: 16px`, `--panel-inset: 6px`, `--panel-inner-radius: calc(var(--panel-radius) - var(--panel-inset))`. Не исправляй оптическую ошибку случайным увеличением внутреннего radius; сначала проверь реальный контур, border и padding.
+Repository workflow: `docs/design/skills/flood-design-system/SKILL.md`. Relative repository paths in this project material resolve from the flood.md repository root. Read the local source through an authorized repository resource; missing access is not permission to guess its contents.

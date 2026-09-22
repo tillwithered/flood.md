@@ -1,0 +1,12 @@
+{
+  "version": "1.2.0",
+  "status": "generated-compatibility-pointer",
+  "source": "../../src/design/tokens.json",
+  "generatedBy": "scripts/design-contract.mjs",
+  "migration": "The former candidate token source was adopted into the initial runtime UI-kit slice. Values are authored only in src/design/tokens.json; this file intentionally contains no token values.",
+  "outputs": [
+    "../../src/design/tokens.css",
+    "generated/tokens.css",
+    "generated/token-reference.md"
+  ]
+}
