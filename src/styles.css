@@ -1765,6 +1765,28 @@ body:has(.dock[aria-hidden="false"]) .buddy-activity-panel { bottom: 198px; max-
 .prototype-shell .window-bar { grid-template-columns: auto minmax(0, 1fr) auto; background: var(--background); }
 .prototype-shell .sidebar-titlebar { grid-column: 1; gap: 9px; padding-inline: 18px; }
 .prototype-shell .sidebar-titlebar strong { font-size: 14px; font-weight: 600; letter-spacing: 0; }
+.brand-divider { width: 1px; height: 18px; margin-inline: 7px; background: var(--soft-line); }
+.prototype-project-menu .project-task-count { margin-left: auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.prototype-shell .task-detail-workspace { position: relative; display: flex; }
+.task-summary-rail { position: absolute; z-index: 2; top: 24px; right: 16px; width: clamp(220px, calc((100% - var(--content-reading)) / 2 - 32px), 304px); max-height: calc(100% - 48px); overflow-y: auto; padding: 20px; border: 1px solid var(--soft-line); border-radius: var(--radius-panel); background: var(--surface); }
+.task-summary-rail .task-checkpoint, .task-summary-rail .agent-work { width: 100%; margin: 0; padding: 0; border: 0; background: transparent; }
+.task-summary-rail .task-checkpoint > header { align-items: flex-start; flex-direction: column; gap: 8px; }
+.task-summary-rail .task-checkpoint-columns { display: grid; grid-template-columns: 1fr; gap: 18px; }
+.task-summary-rail p, .task-summary-rail li { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.task-summary-rail .agent-work { margin-top: 24px; }
+.task-link-sections { width: min(var(--content-reading), calc(100% - (var(--page-gutter) * 2))); margin: 0 auto; }
+.task-link-group { margin-block: 20px; }
+.task-link-group h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.task-link-group h3 span { font-size: 12px; color: var(--faint); }
+.task-link-row { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 8px 0; border: 0; border-bottom: 1px solid var(--soft-line); background: transparent; text-align: left; color: var(--ink); }
+.task-link-row > span { flex: 1; font-size: 13px; overflow-wrap: anywhere; }
+.task-link-row > svg { flex-shrink: 0; color: var(--muted); }
+.task-link-row small { font-size: 12px; color: var(--muted); }
+.task-link-row small.unresolved { color: var(--danger-ink); }
+.subtask-complete { display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; margin: -4px -6px; padding: 0; border: 0; border-radius: 6px; background: transparent; }
+.subtask-complete:hover:not(:disabled), .task-link-row:hover:not(:disabled) { background: var(--hover); }
+.subtask-complete:disabled { opacity: .5; cursor: wait; }
+.subtask-title { display: flex; justify-content: space-between; align-items: center; flex: 1; padding: 0; border: 0; background: transparent; text-align: left; font-size: 13px; }
 .prototype-shell .window-context { grid-column: 2; }
 .prototype-shell .window-context:empty { display: none; }
 .prototype-shell .window-actions { grid-column: 3; }
@@ -1909,3 +1931,19 @@ body:has(.prototype-shell) .project-context-route, body:has(.prototype-shell) .p
   .prototype-task-row .ui-task-urgency { margin: 0; }
   .prototype-settings-group > button { align-items: flex-start; flex-direction: column; gap: 4px; }
 }
+
+/* Project setup keeps optional connections folded until they are needed. */
+.project-setup-form { gap: 18px; }
+.project-setup-section { border-top: 1px solid var(--soft-line); padding-top: 4px; }
+.project-setup-section > summary { display: flex; align-items: center; gap: 12px; min-height: 44px; cursor: pointer; list-style: none; }
+.project-setup-section > summary::after { content: "›"; color: var(--muted); font-size: 18px; transition: transform 120ms ease; }
+.project-setup-section[open] > summary::after { transform: rotate(90deg); }
+.project-setup-section > summary small { margin-left: auto; color: var(--muted); font-size: 12px; font-weight: 400; }
+.project-setup-section > :not(summary) { margin-top: 12px; }
+.project-setup-options { display: grid; gap: 16px; max-height: 200px; overflow-y: auto; padding: 4px 2px; }
+.project-setup-options p { margin: 0; color: var(--muted); font-size: 13px; }
+.task-summary-rail .agent-work > header { flex-wrap: wrap; gap: 12px; }
+
+.project-folder-choice { display: flex; align-items: center; gap: 12px; padding-block: 12px; border-top: 1px solid var(--soft-line); }
+.project-folder-choice > span { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+.project-sources-setup > .project-setup-section { margin-top: 0; }

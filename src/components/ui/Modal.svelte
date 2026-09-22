@@ -6,6 +6,7 @@
   type Props = {
     open?: boolean;
     size?: "md" | "lg";
+    preventClose?: boolean;
     title: string;
     subtitle?: string;
     closeLabel?: string;
@@ -14,7 +15,7 @@
     onclose?: () => void;
   };
 
-  let { open = $bindable(false), size = "md", title, subtitle, closeLabel = "Закрыть", children, footer, onclose }: Props = $props();
+  let { open = $bindable(false), size = "md", preventClose = false, title, subtitle, closeLabel = "Закрыть", children, footer, onclose }: Props = $props();
   let dialog: HTMLDialogElement;
   let returnFocus: HTMLElement | null = null;
   const titleId = `ui-modal-${Math.random().toString(36).slice(2)}`;
@@ -28,7 +29,7 @@
     } else if (!open && dialog.open) dialog.close();
   });
 
-  function requestClose() { open = false; }
+  function requestClose() { if (!preventClose) open = false; }
   function handleClose() {
     open = false;
     onclose?.();
@@ -43,7 +44,7 @@
         <h2 id={titleId}>{title}</h2>
         {#if subtitle}<p>{subtitle}</p>{/if}
       </div>
-      <UiIconButton label={closeLabel} onclick={requestClose}><X size={17} /></UiIconButton>
+      <UiIconButton label={closeLabel} disabled={preventClose} onclick={requestClose}><X size={17} /></UiIconButton>
     </header>
     <div class="ui-modal-body">{#if children}{@render children()}{/if}</div>
     {#if footer}<footer class="ui-modal-footer">{@render footer()}</footer>{/if}

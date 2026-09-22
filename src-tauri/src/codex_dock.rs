@@ -24,7 +24,7 @@ fn codex_command() -> Command {
     command
 }
 
-fn is_uuid(value: &str) -> bool {
+pub(super) fn is_uuid(value: &str) -> bool {
     value.len() == 36 && value.char_indices().all(|(index, ch)| {
         if [8, 13, 18, 23].contains(&index) { ch == '-' } else { ch.is_ascii_hexdigit() }
     })

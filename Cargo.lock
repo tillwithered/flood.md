@@ -1282,7 +1282,7 @@ dependencies = [
 
 [[package]]
 name = "flood-connectors"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "schemars 1.2.2",
@@ -1292,7 +1292,7 @@ dependencies = [
 
 [[package]]
 name = "flood-core"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "atomic-write-file",
  "chrono",
@@ -1311,7 +1311,7 @@ dependencies = [
 
 [[package]]
 name = "flood-desktop"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "atomic-write-file",
  "base64 0.22.1",
@@ -1338,7 +1338,7 @@ dependencies = [
 
 [[package]]
 name = "flood-github"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "atomic-write-file",
  "base64 0.22.1",
@@ -1355,7 +1355,7 @@ dependencies = [
 
 [[package]]
 name = "flood-mcp"
-version = "0.1.6"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",

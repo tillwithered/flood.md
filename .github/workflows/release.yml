@@ -9,7 +9,10 @@ permissions:
   contents: write
 
 jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
   publish:
+    needs: verify
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -19,8 +22,10 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: release
+          cache-workspace-crates: true
       - run: npm ci
-      - run: npm run check
       - name: Validate protected release credentials
         shell: pwsh
         env:
@@ -46,22 +51,11 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "flood.md ${{ github.ref_name }}"
           releaseBody: |
-            ## flood.md ${{ github.ref_name }}
+            Dark desktop workspace with a simplified project flow, floating task summary and command dock.
 
-            Stable flood.md hotfix release: a local-first task workspace where an MCP agent can review bounded Telegram discussions, inspect attached images and permitted project context, and create concise prioritized tasks.
+            Connect an installed Codex CLI, sign in with ChatGPT when needed, and choose an existing conversation by name. New conversations must first be started in Codex.
 
-            Стабильный hotfix-релиз flood.md: локальный задачник, в котором MCP-агент может разобрать ограниченный контекст Telegram, посмотреть приложенные изображения и разрешённый контекст проекта, а затем создать компактные задачи с приоритетами.
-
-            ### Highlights
-
-            - Fixed the Windows release-only crash after Telegram two-factor authentication while preserving the existing local session and data.
-            - Local Markdown tasks with conflict-safe editing, attachments, urgency, completion, trash, backup, and recovery.
-            - Telegram through TDLib: linked chats, mentions and replies, albums, media, human-sized context windows, inbox triage, and duplicate-safe task creation.
-            - Read-only GitHub App connector with repository selection and bounded MCP access to files, search, README, issues, and pull requests.
-            - MCP workflows for project/task management, project-aware Telegram triage, image inspection, task execution context, confirmation-safe writes, and diagnostics.
-            - Refined light/dark desktop UI, 720 px reading zones, accessible 12 px minimum text, and clear source/media views.
-
-            Full details: [CHANGELOG.md](https://github.com/tillwithered/flood.md/blob/${{ github.ref_name }}/CHANGELOG.md).
-          releaseDraft: false
+            Полное описание изменений — в CHANGELOG.md для этой версии.
+          releaseDraft: true
           prerelease: false
           updaterJsonPreferNsis: true

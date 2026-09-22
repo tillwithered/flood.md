@@ -11,6 +11,19 @@ use tauri::AppHandle;
 use super::{hide_background_console, mcp_launch_spec, resolve_mcp_executable};
 
 const SERVER_NAME: &str = "flood-md";
+
+pub(super) fn codex_connected(app: &AppHandle) -> Result<bool, String> {
+    Ok(adapter_status(app, AgentClient::Codex, None)?.connected)
+}
+
+pub(super) fn connect_codex_globally(app: &AppHandle) -> Result<(), String> {
+    let (binary, source) = resolve_mcp_executable(app)?;
+    verify_mcp_binary(&binary)?;
+    let (command, args) = mcp_launch_spec(&binary, source);
+    ensure_mcp_registration(AgentClient::Codex, &command, &args)?;
+    if !codex_connected(app)? { return Err("Не удалось проверить подключение flood.md к Codex.".into()); }
+    Ok(())
+}
 const BLOCK_START: &str = "<!-- flood.md:agent-workspace:start -->";
 const BLOCK_END: &str = "<!-- flood.md:agent-workspace:end -->";
 const SKILL_MARKER: &str = "<!-- flood.md:managed-skill -->";

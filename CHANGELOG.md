@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.0 — 2026-09-22
+
+### Desktop workspace
+
+- Simplified dark desktop interface, project task filters and quieter task cards.
+- Centered task editor with a floating summary, subtasks and dependency context.
+- Translucent command dock with slash commands, task context and Ctrl+K support across keyboard layouts.
+- Project creation now starts with a name; Telegram, GitHub and local folders remain optional sources with explicit agent access.
+- Refined application and project settings, dialog focus and draft preservation.
+
+### Codex connection
+
+- Detect the installed Codex CLI and its ChatGPT authorization; offer browser sign-in when needed.
+- Register flood.md MCP through the connection flow and select existing conversations by name instead of entering IDs.
+- Send explicitly submitted dock messages to the selected Codex conversation, preserving uncertain-delivery handling.
+- Creating a new Codex conversation automatically is not supported yet; start it in Codex first.
+
+### Maintenance
+
+- Preserve conflict-safe local Markdown editing and Windows line-ending compatibility.
+- Scope CI checks to affected application layers, with full checks for shared dependencies and CI changes.
+- Keep internal design documents and development skills out of the application source distribution.
+
 ## 0.1.6 — 2026-09-12
 
 ### Telegram hotfix

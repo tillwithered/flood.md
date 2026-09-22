@@ -1,32 +1,56 @@
 name: CI
-
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
-
+    branches: [main]
+  workflow_call:
+  workflow_dispatch:
 permissions:
   contents: read
-
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
 jobs:
   quality:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: npm ci
-      - run: npm run check
-      - run: cargo build --release --bin flood-mcp
-      - run: cargo test --workspace
+      - name: Verify CI routing
+        run: node --test scripts/ci-scope.test.mjs
+      - name: Verify version and source distribution
+        run: node scripts/verify-release.mjs
+      - name: Select affected checks
+        id: scope
+        run: node scripts/ci-scope.mjs
+      - if: steps.scope.outputs.frontend == 'true'
+        run: npm ci
+      - if: steps.scope.outputs.frontend == 'true'
+        run: npm run check
+      - if: steps.scope.outputs.frontend == 'true'
+        run: npm run build
+      - if: steps.scope.outputs.rust == 'true'
+        uses: dtolnay/rust-toolchain@stable
+      - if: steps.scope.outputs.rust == 'true'
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: checks
+      - name: Prepare bundled MCP for desktop checks
+        if: contains(steps.scope.outputs.packages, 'flood-desktop')
+        run: cargo build --locked --release -p flood-mcp --bin flood-mcp
+      - name: Test affected Rust packages and consumers
+        if: steps.scope.outputs.rust == 'true'
+        shell: pwsh
+        env:
+          PACKAGES: ${{ steps.scope.outputs.packages }}
+        run: |
+          $testArgs = @('test', '--locked')
+          foreach ($package in $env:PACKAGES.Split(',')) { $testArgs += @('-p', $package) }
+          & cargo @testArgs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

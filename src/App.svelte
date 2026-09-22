@@ -12,6 +12,7 @@
   import QRCode from "qrcode";
   import FloodGlyph from "./components/FloodGlyph.svelte";
   import Dock from "./components/Dock.svelte";
+  import CodexConnection from './components/CodexConnection.svelte';
   import AgentConversationSettings from "./components/AgentConversationSettings.svelte";
   import IntegrationCard from "./components/IntegrationCard.svelte";
   import IntegrationModal from "./components/IntegrationModal.svelte";
@@ -345,6 +346,12 @@
   let dockTaskProjectId = "";
   let dockTaskUrgency: "normal" | "important" | "urgent" = "normal";
   let dockProjectTitle = "";
+  let projectSetupChats: number[] = [];
+  let projectSetupRepositories: number[] = [];
+  let projectSetupFolder = "";
+  let projectSetupCreated: ProjectRecord | null = null;
+  let projectSetupResume = false;
+  let projectSetupSearch = "";
   let dockModalBusy = false;
   let dockModalError = "";
   let createChatTitle = "";
@@ -1672,10 +1679,7 @@
     await changeSection("tasks");
     if (activeSection !== "tasks") return;
     if (!setupHasProject) {
-      projectPickerOpen = true;
-      createChatOpen = true;
-      await tick();
-      document.querySelector<HTMLInputElement>("#prototype-project-name")?.focus();
+      openDockProjectModal();
       return;
     }
     const project = chats[1];
@@ -1800,6 +1804,7 @@
   }
 
   async function handleWindowKeydown(event: KeyboardEvent) {
+    if (event.target instanceof Element && event.target.closest("dialog[open], .integration-modal")) return;
     if (event.key === "Escape" && event.target instanceof Element && event.target.closest(".dock")) return;
     if (event.key === "Escape") {
       if (projectPickerOpen) { projectPickerOpen = false; createChatOpen = false; event.preventDefault(); projectPickerButton?.focus(); }
@@ -1826,12 +1831,12 @@
       else if (activeSection === "tasks" && workspaceView === "task") await backToProject();
       return;
     }
-    if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "k" && activeSection === "tasks" && (workspaceView === "project" || workspaceView === "task") && dockProject?.id !== "all" && !dockTaskModalOpen && !dockProjectModalOpen) {
+    if ((event.ctrlKey || event.metaKey) && (event.code === "KeyK" || event.key.toLocaleLowerCase() === "k") && activeSection === "tasks" && !projectContextOpen && !integrationModal && (workspaceView === "project" || workspaceView === "task") && dockProject && dockProject.id !== "all" && !dockTaskModalOpen && !dockProjectModalOpen) {
       event.preventDefault();
       dock?.focus();
       return;
     }
-    if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "k") return;
+    if ((event.ctrlKey || event.metaKey) && (event.code === "KeyK" || event.key.toLocaleLowerCase() === "k")) return;
     if (commandPaletteOpen) return;
     if (event.ctrlKey && event.key.toLocaleLowerCase() === "n") {
       event.preventDefault();
@@ -2197,10 +2202,7 @@
     activeSection = "tasks";
     workspaceView = "project";
     if (chats.length <= 1) {
-      projectPickerOpen = true;
-      createChatOpen = true;
-      await tick();
-      document.querySelector<HTMLInputElement>("#prototype-project-name")?.focus();
+      openDockProjectModal();
       return;
     }
     newTaskMenuAnchor = newTaskMenuAnchor === anchor ? null : anchor;
@@ -2376,9 +2378,15 @@
   }
 
   function openDockProjectModal() {
-    dockProjectTitle = "";
+    if (!projectSetupCreated) {
+      dockProjectTitle = "";
+      projectSetupChats = []; projectSetupRepositories = [];
+      projectSetupFolder = "";
+    }
+    projectPickerOpen = false; createChatOpen = false; projectSetupSearch = "";
     dockModalError = "";
     dockProjectModalOpen = true;
+    if (githubStatus.connected && !githubRepositories.length) void loadGithubRepositories();
   }
 
   async function submitDockTask(event: SubmitEvent) {
@@ -2403,23 +2411,41 @@
     }
   }
 
+  async function openProjectSetupConnection(provider: ConnectorProvider) {
+    projectSetupResume = true;
+    dockProjectModalOpen = false;
+    await tick();
+    await openIntegrationModal(provider);
+  }
+
   async function submitDockProject(event: SubmitEvent) {
     event.preventDefault();
     const title = dockProjectTitle.trim();
-    if (!title || dockModalBusy || !inTauri()) return;
+    if (!title || dockModalBusy) return;
+    if (projectSetupRepositories.length + Number(Boolean(projectSetupFolder.trim())) > 20) { dockModalError = "Можно подключить не больше 20 источников."; return; }
+    if (!inTauri()) { dockModalError = "Создание проекта доступно в приложении."; return; }
     dockModalBusy = true;
     dockModalError = "";
     try {
-      const created = await invoke<ProjectRecord>("create_project", { title });
+      if (!projectSetupCreated) projectSetupCreated = await invoke<ProjectRecord>("create_project", { title });
+      let created = projectSetupCreated;
+      const resources: ProjectResource[] = githubRepositories.filter(repo => projectSetupRepositories.includes(repo.id)).map(repo => ({
+        id: `github-${repo.id}`, kind: "repository", label: repo.full_name, location: repo.html_url, agent_access: false
+      }));
+      if (projectSetupFolder.trim()) resources.push({ id: "workspace", kind: "directory", label: "Рабочая папка", location: projectSetupFolder.trim(), agent_access: false });
+      created = await invoke<ProjectRecord>("update_project_details", { id: created.id, context: created.context ?? "", resources, expectedVersion: created.version });
+      projectSetupCreated = created;
+      created = await invoke<ProjectRecord>("set_project_telegram_chats", { id: created.id, telegramChats: telegramChats.filter(chat => projectSetupChats.includes(chat.id)).map(chat => ({ chat_id: chat.id, title: chat.title, inbox_mode: "manual" })), expectedVersion: created.version });
+      projectSetupCreated = created;
       await loadData(true);
-      dockProjectModalOpen = false;
-      const project = chats.find((chat) => chat.id === created.id);
+      const project = chats.find(chat => chat.id === created.id);
       if (project) await selectChat(project);
+      dockProjectModalOpen = false;
+      projectSetupCreated = null;
     } catch (error) {
-      dockModalError = commandErrorMessage(error);
-    } finally {
-      dockModalBusy = false;
-    }
+      dockModalError = projectSetupCreated ? `Проект создан, но настройка не завершена. ${commandErrorMessage(error)}` : commandErrorMessage(error);
+      if (projectSetupCreated) await loadData(true);
+    } finally { dockModalBusy = false; }
   }
 
   function handleWindowPointerDown(event: PointerEvent) {
@@ -3623,10 +3649,7 @@
   async function chooseCreateProject() {
     createHubOpen = false;
     await changeSection("tasks");
-    projectPickerOpen = true;
-    createChatOpen = true;
-    await tick();
-    document.querySelector<HTMLInputElement>("#prototype-project-name")?.focus();
+    openDockProjectModal();
   }
 
   async function loadAgentAdapters(workspaceRoot = agentAdapterRoot) {
@@ -3826,9 +3849,11 @@
     const returnFocus = integrationModalReturnFocus;
     integrationModalReturnFocus = null;
     integrationModal = null;
+    const resumeProjectSetup = projectSetupResume;
+    if (resumeProjectSetup) { projectSetupResume = false; dockProjectModalOpen = true; if (githubStatus.connected) void loadGithubRepositories(); }
     githubAuthorizationCompleted = null;
     githubCodeCopied = false;
-    restoreModalFocus(returnFocus);
+    if (!resumeProjectSetup) restoreModalFocus(returnFocus);
   }
 
   async function configureGithub(event: SubmitEvent) {
@@ -5125,9 +5150,9 @@
     if (new URLSearchParams(window.location.search).get("preview") !== "mcp-readiness") return;
     activeSection = "settings";
     settingsSection = "mcp";
-    appVersion = "0.1.6";
+    appVersion = "0.2.0";
     mcpExecutable = "C:\\Program Files\\flood.md\\flood-mcp.exe";
-    mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.1.6", app_version: "0.1.6", compatible: true, source: "bundled" };
+    mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.2.0", app_version: "0.2.0", compatible: true, source: "bundled" };
     automationSettings = { background_ai_triage: false, provider: "auto", updated_at: new Date().toISOString() };
     localAgentProviders = [{ id: "codex", name: "Codex", available: true, version: "codex-cli", supports_images: true }, { id: "claude", name: "Claude Code", available: false, supports_images: false }, { id: "gemini", name: "Gemini CLI", available: false, supports_images: false }];
     localAgentProvidersState = "ready";
@@ -5361,7 +5386,7 @@
   function applyTaskSourceDevPreview() {
     if (!import.meta.env.DEV || inTauri()) return;
     const preview = new URLSearchParams(window.location.search).get("preview");
-    if (preview !== "task-source" && preview !== "task-conflict" && preview !== "agent-question" && preview !== "agent-queue" && preview !== "agent-review" && preview !== "agent-failed") return;
+    if (preview !== "task-source" && preview !== "task-relations" && preview !== "task-conflict" && preview !== "agent-question" && preview !== "agent-queue" && preview !== "agent-review" && preview !== "agent-failed") return;
     const createdAt = "2026-09-12T01:01:07Z";
     const project: ChatItem = { id: "preview-project", title: "тест", context: "", resources: [], created_at: createdAt, updated_at: createdAt, telegram_chats: [], version: "preview", open: 1 };
     const source: MessageSnapshot = {
@@ -5415,6 +5440,19 @@
       sourceAuthor: undefined
     };
     tasks = [task, completedTask];
+    if (preview === "task-relations") {
+      const child = (id: string, title: string, completed = false): TaskItem => ({
+        ...task, id, title, markdown: title, completed, source: undefined, hasSource: false,
+        relations: [{ task_id: task.id, kind: "subtask_of" }], checkpoints: [], checkpointCount: 0
+      });
+      task.relations = [{ task_id: "preview-parent", kind: "subtask_of" }, { task_id: "preview-blocker", kind: "blocked_by" }, { task_id: completedTask.id, kind: "blocked_by" }];
+      tasks = [task, { ...completedTask, relations: [] },
+        { ...child("preview-parent", "Обновить интерфейс приложения"), relations: [] },
+        { ...child("preview-blocker", "Согласовать поведение заголовка"), relations: [] },
+        child("preview-child-1", "Исправить отступы заголовка", true),
+        child("preview-child-2", "Проверить переключение проектов")];
+      chats = [allChat(4), { ...project, open: 4 }];
+    }
     selectedChatId = project.id;
     selectedTaskId = task.id;
     markdown = task.markdown;
@@ -5734,7 +5772,7 @@
 
 <main class="app-shell prototype-shell" style:--dock-clearance={`${dockClearance}px`}>
   <header class="window-bar" data-tauri-drag-region="deep">
-    <div class="sidebar-titlebar" data-tauri-drag-region="deep"><FloodGlyph kind="brand" size={22} /><strong>flood.md</strong></div>
+    <div class="sidebar-titlebar" data-tauri-drag-region="deep"><FloodGlyph kind="brand" size={22} /><strong>flood.md</strong><span class="brand-divider" aria-hidden="true"></span><UiIconButton class="titlebar-settings" label={t("settings")} onclick={() => { settingsSection = "general"; void changeSection("settings"); }}><Settings size={17} /></UiIconButton></div>
     <div class="window-context" data-tauri-drag-region="deep">
       {#if activeSection === "tasks"}
         {#if workspaceView === "task" && selectedTask}
@@ -5745,7 +5783,6 @@
       {/if}
     </div>
     <div class="window-actions" data-tauri-drag-region="false">
-      {#if activeSection !== "settings"}<UiIconButton class="titlebar-settings" label={t("settings")} onclick={() => { settingsSection = "general"; void changeSection("settings"); }}><Settings size={17} /></UiIconButton>{/if}
       {#if activeSection === "tasks" && workspaceView === "task" && selectedTask}
         {#if saveState === "error" && hasUnsavedTaskChanges()}
           <button class="save-state save-retry" title={`${t("retrySave")}: ${saveError}`} aria-label={t("retrySave")} onclick={() => void saveNow()}><RefreshCw size={12} /><span class="save-retry-label">{t("notSaved")}</span></button>
@@ -5818,7 +5855,7 @@
 
   <div class="app-content">
     {#if activeSection === "tasks" && workspaceView === "task" && selectedTask}
-      <section class="workspace">
+      <section class="workspace task-detail-workspace">
         <div class="editor-page">
           <div class="task-meta" aria-label={t("taskMetadata")}>
             <span title={fullDate(selectedTask.createdAt)}>{t("created", { date: compactDate(selectedTask.createdAt) })}</span>
@@ -5833,19 +5870,6 @@
             <span class="sr-only">{t("taskTitle")}</span>
             <textarea rows="1" bind:this={taskTitleInput} bind:value={taskTitleDraft} use:fitTaskTitle={taskTitleDraft} maxlength="160" aria-label={t("taskTitle")} placeholder={t("taskTitlePlaceholder")} oninput={syncTaskTitle} onkeydown={handleTaskTitleKeydown} onblur={() => void saveNow()}></textarea>
           </label>
-          {#if selectedTask.relations.length}
-            <div class="task-relations" aria-label={t("taskRelations")}>
-              <Link size={14} aria-hidden="true" />
-              {#each selectedTask.relations as relation (`${relation.kind}:${relation.task_id}`)}
-                {@const target = relationTarget(relation)}
-                <button class:blocked={relation.kind === "blocked_by" && !target?.completed} class:completed={Boolean(target?.completed)} disabled={!target} title={target ? t("openRelatedTask", { task: target.title }) : relation.task_id} onclick={() => target && openTask(target, target.chatId)}>
-                  <small>{taskRelationLabel(relation.kind)}</small>
-                  <span>{target?.title ?? relation.task_id}</span>
-                  {#if target?.completed}<Check size={13} aria-hidden="true" />{/if}
-                </button>
-              {/each}
-            </div>
-          {/if}
           {#if conflictRemote}
             <div class="task-save-notice">
               <InlineNotice tone="attention" title={t("externalChange")} announce>
@@ -5855,10 +5879,47 @@
             </div>
           {/if}
           <div class:draft-editor={selectedTaskId === draftTaskId} class="editor" bind:this={editorRoot} contenteditable="true" role="textbox" tabindex="0" aria-multiline="true" aria-label={t("taskEditor")} spellcheck="true" oninput={syncEditor} onkeydown={handleEditorKeydown} onpaste={handleEditorPaste} ondrop={handleEditorDrop} ondragover={(event) => event.preventDefault()} onpointerup={updateSelectionToolbar} onkeyup={() => { updateHint(currentBlock()); updateSelectionToolbar(); }} onclick={handleEditorClick} onblur={handleEditorBlur}></div>
+          {#if projectTaskError}<div class="task-save-notice"><InlineNotice tone="danger" announce>{projectTaskError}</InlineNotice></div>{/if}
+          <div class="task-link-sections">
+            {#each (["subtask_of", "blocked_by", "related"] as TaskRelationKind[]) as kind}
+              {@const group = selectedTask.relations.filter(relation => relation.kind === kind)}
+              {#if group.length}
+                <section class="task-link-group" aria-label={kind === 'subtask_of' ? 'Родительская задача' : kind === 'blocked_by' ? 'Зависимости' : 'Связанные задачи'}>
+                  <h3>{kind === 'subtask_of' ? 'Родительская задача' : kind === 'blocked_by' ? 'Зависимости' : 'Связанные задачи'} <span>{group.length}</span></h3>
+                  {#each group as relation (`${kind}:${relation.task_id}`)}
+                    {@const target = relationTarget(relation)}
+                    <button class="task-link-row" disabled={!target} onclick={() => target && openTask(target, target.chatId)}>
+                      {#if target?.completed}<CheckCircle2 size={15} />{:else}<Circle size={15} />{/if}
+                      <span>{target?.title ?? 'Задача недоступна'}</span>
+                      {#if kind === 'blocked_by'}<small class:unresolved={!target?.completed}>{target?.completed ? 'Выполнена' : 'Блокирует'}</small>{/if}
+                      <ChevronRight size={14} />
+                    </button>
+                  {/each}
+                </section>
+              {/if}
+            {/each}
+            {#if selectedTask}
+            {@const children = tasks.filter(task => task.relations.some(relation => relation.kind === 'subtask_of' && relation.task_id === selectedTask.id))}
+            {#if children.length}
+              <section class="task-link-group" aria-label="Подзадачи">
+                <h3>Подзадачи <span>{children.filter(task => task.completed).length}/{children.length}</span></h3>
+                {#each children as child (child.id)}
+                  <div class="task-link-row">
+                    <button class="subtask-complete" disabled={projectTaskPendingIds.includes(child.id)} aria-busy={projectTaskPendingIds.includes(child.id)} aria-label={child.completed ? 'Открыть подзадачу заново' : 'Завершить подзадачу'} onclick={() => setListedTaskCompleted(child, !child.completed)}>{#if child.completed}<CheckCircle2 size={15} />{:else}<Circle size={15} />{/if}</button>
+                    <button class="subtask-title" onclick={() => openTask(child, child.chatId)}>{child.title}<ChevronRight size={14} /></button>
+                  </div>
+                {/each}
+              </section>
+            {/if}
+            {/if}
+          </div>
+        </div>
+        {#if latestCheckpoint || latestAgentRun}
+        <aside class="task-summary-rail" aria-label="Сводка задачи">
           {#if latestCheckpoint && !checkpointIsRepresentedByLatestRun(latestCheckpoint, latestAgentRun)}
             <section class="task-checkpoint" aria-label={t("latestCheckpoint")}>
               <header>
-                <span><CheckCircle2 size={17} /><strong>{t("latestCheckpoint")}</strong></span>
+                <span><CheckCircle2 size={17} /><strong>Сводка</strong></span>
                 <small>{fullDate(latestCheckpoint.created_at)}</small>
               </header>
               <p>{latestCheckpoint.summary}</p>
@@ -5876,7 +5937,7 @@
               {#if latestCheckpoint.blocker}<p class="task-checkpoint-blocker"><strong>{t("checkpointBlocker")}</strong><span>{latestCheckpoint.blocker}</span></p>{/if}
             </section>
           {/if}
-          {#if selectedTaskId !== draftTaskId}
+          {#if selectedTaskId !== draftTaskId && latestAgentRun}
             <section class="agent-work" aria-label={t("agentWork")}>
               <header>
                 <span class="agent-work-title"><FloodGlyph kind="brand" size={20} /><span><strong>{t("agentWork")}</strong>{#if latestAgentRun}<small>{agentRunLabel(latestAgentRun.state)}</small>{:else}<small>{t("agentWorkDescription")}</small>{/if}</span></span>
@@ -5923,7 +5984,8 @@
               {#if agentRunError}<InlineNotice class="agent-inline-notice" tone="danger" announce>{agentRunError}</InlineNotice>{/if}
             </section>
           {/if}
-        </div>
+        </aside>
+        {/if}
       </section>
     {:else if activeSection === "tasks"}
       <section class="workspace project-workspace" inert={projectContextOpen}>
@@ -5937,18 +5999,11 @@
               {#if projectPickerOpen}
                 <div class="prototype-project-menu" role="menu" aria-label="Проекты">
                   {#each chats.slice(1) as chat (chat.id)}
-                    <button role="menuitem" class:selected={selectedChatId === chat.id} onclick={() => selectChat(chat)}><span>{chat.title}</span>{#if selectedChatId === chat.id}<Check size={15} />{/if}</button>
+                    {@const count = tasks.filter(task => task.chatId === chat.id && !task.completed && !isLocalDraft(task)).length}
+                    <button role="menuitem" class:selected={selectedChatId === chat.id} onclick={() => selectChat(chat)}><span>{chat.title}</span><small class="project-task-count" aria-label={`${count} открытых задач`}>{count}</small>{#if selectedChatId === chat.id}<Check size={15} />{/if}</button>
                   {/each}
                   <div class="prototype-menu-divider"></div>
-                  {#if createChatOpen}
-                    <form class="prototype-create-project" onsubmit={submitCreateChat}>
-                      <label class="sr-only" for="prototype-project-name">Название проекта</label>
-                      <input id="prototype-project-name" bind:value={createChatTitle} placeholder="Название проекта" maxlength="100" required />
-                      <button aria-label="Создать проект" type="submit"><Check size={16} /></button>
-                    </form>
-                  {:else}
-                    <button role="menuitem" onclick={() => { createChatOpen = true; void tick().then(() => document.querySelector<HTMLInputElement>("#prototype-project-name")?.focus()); }}><Plus size={15} /><span>Новый проект</span></button>
-                  {/if}
+                  <button role="menuitem" onclick={() => { projectPickerOpen = false; openDockProjectModal(); }}><Plus size={15} /><span>Новый проект</span></button>
                 </div>
               {/if}
             </div>
@@ -6030,7 +6085,7 @@
             <nav bind:this={settingsNavElement} class="settings-nav" aria-label={t("settingsSections")}>
               <button data-settings-section="general" class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => openSettingsSection("general")}><Settings size={16} />Приложение</button>
 
-              <button data-settings-section="agents" class:active={settingsSection === "agents"} aria-current={settingsSection === "agents" ? "page" : undefined} onclick={() => openSettingsSection("agents")}><Bot size={16}/>Агенты и MCP</button>
+              <button data-settings-section="agents" class:active={settingsSection === "agents"} aria-current={settingsSection === "agents" ? "page" : undefined} onclick={() => openSettingsSection("agents")}><Bot size={16}/>Агент</button>
               <button data-settings-section="integrations" class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => openSettingsSection("integrations")}><Link size={16}/>Интеграции</button>
               <button data-settings-section="data" class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => openSettingsSection("data")}><Database size={16} />{t("data")}</button>
 
@@ -6116,29 +6171,9 @@
                 </section>
               {:else if settingsSection === "agents"}
                 <section class="settings-section mcp-settings-section">
-                  <div class="settings-section-title settings-title-with-action"><h3>Агенты и MCP</h3><UiButton variant="quiet" size="sm" disabled={!inTauri() || Boolean(agentAdapterPending) || agentAdaptersState === "loading"} busy={agentAdaptersState === "loading"} onclick={() => loadAgentAdapters()}><RefreshCw size={14}/>Обновить</UiButton></div>
-                  <div class="mcp-block">
-                    <div class="mcp-block-title"><span><strong>Агент</strong></span></div>
-                    <div class="agent-adapter-list">
-                      {#each agentAdapterClients as client (client)}
-                        {@const adapter = agentAdapterStatus(client)}
-                        <div class:ready={Boolean(adapter?.connected && adapter?.project_adapter_current)} class="agent-adapter-row">
-                          <span class="agent-adapter-mark" aria-hidden="true"><Bot size={19}/></span>
-                          <span class="agent-adapter-copy">
-                            <strong>{client === "codex" ? "Codex" : "Claude Code"}</strong>
-                            <small>{agentAdapterStatusLabel(adapter)}</small>
-                            {#if adapter?.version}<small class="agent-adapter-version">{adapter.version}</small>{/if}
-                          </span>
-                          <UiButton size="sm" disabled={!inTauri() || !adapter?.installed || Boolean(agentAdapterPending) || agentAdaptersState === "loading"} busy={agentAdapterPending === client} onclick={() => connectAgentAdapter(client)}>
-                            {adapter?.connected && adapter?.project_adapter_current ? t("agentAdapterUpdate") : t("agentAdapterConnect")}
-                          </UiButton>
-                        </div>
-                      {/each}
-                    </div>
-                    {#if agentAdapterRoot}<p class="mcp-hint">{t("agentAdapterProject", { path: agentAdapterRoot })}</p>{/if}
-                    {#if agentAdapterMessage}<InlineNotice tone="success" announce>{agentAdapterMessage}</InlineNotice>{/if}
-                    {#if agentAdapterError}<InlineNotice tone="danger" announce>{agentAdapterError}</InlineNotice>{/if}
-                  </div>
+                  <div class="settings-section-title"><h3>Агент</h3></div>
+                  <div class="mcp-block"><CodexConnection /></div>
+                  <details class="settings-advanced"><summary>Дополнительно<ChevronDown size={14}/></summary>
                   <div class="settings-link-group">
                     <button class="settings-link-row" onclick={() => { mcpSettingsOpen = true; mcpCopyError = ""; copied = false; }}>
                       <span><strong>Конфигурация MCP</strong><small>Ручное подключение к клиенту</small></span><ChevronRight size={16}/>
@@ -6174,6 +6209,7 @@
                     {/if}
                   </div>
 
+                  </details>
                   </details>
                   <div class="settings-automation">
                     <h4 class="settings-group-label">Автоматизация</h4>
@@ -6212,7 +6248,7 @@
 </UiModal>
 
 <UiModal bind:open={conversationSettingsOpen} title="Разговор для проекта">
-  <AgentConversationSettings fixedProject active={conversationSettingsOpen} onsaved={() => { conversationSettingsOpen = false; dock?.refreshRouting(); dock?.focus(); }} showTitle={false} projects={chats.filter(chat => chat.id !== "all")} initialProjectId={dockProject?.id === "all" ? undefined : dockProject?.id} />
+  <AgentConversationSettings active={conversationSettingsOpen} onsaved={() => { conversationSettingsOpen = false; dock?.refreshRouting(); dock?.focus(); }} showTitle={false} projects={chats.filter(chat => chat.id !== "all")} initialProjectId={dockProject?.id === "all" ? undefined : dockProject?.id} />
 </UiModal>
 
 <UiModal bind:open={dockTaskModalOpen} title="Новая задача" subtitle="Добавьте задачу в нужный проект.">
@@ -6229,14 +6265,48 @@
   {/snippet}
 </UiModal>
 
-<UiModal bind:open={dockProjectModalOpen} title="Новый проект" subtitle="Задачи и контекст будут храниться в этом проекте.">
-  <form id="dock-new-project-form" class="dock-create-form" onsubmit={submitDockProject}>
-    <TextField label="Название проекта" bind:value={dockProjectTitle} placeholder="Название проекта" maxlength={100} required />
-    {#if dockModalError}<p class="dock-modal-error" role="alert">{dockModalError}</p>{/if}
+<UiModal bind:open={dockProjectModalOpen} preventClose={dockModalBusy} title={projectSetupCreated ? "Настройка проекта" : "Новый проект"}>
+  <form id="dock-new-project-form" class="dock-create-form project-setup-form" onsubmit={submitDockProject}>
+    <TextField label="Название проекта" bind:value={dockProjectTitle} placeholder="Например, сайт студии" maxlength={100} required disabled={dockModalBusy || Boolean(projectSetupCreated)} />
+    <details class="project-setup-section project-sources-setup">
+      <summary><span>Добавить источники</span></summary>
+    <details class="project-setup-section">
+      <summary><span>Telegram</span><small>{projectSetupChats.length ? `${projectSetupChats.length} чатов` : 'Не подключён к проекту'}</small></summary>
+      {#if telegramStatus.step === 'ready'}
+        <TextField label="Найти чат" bind:value={projectSetupSearch} placeholder="Название чата" />
+        <div class="project-setup-options">
+          {#each telegramChats.filter(chat => chat.title.toLocaleLowerCase().includes(projectSetupSearch.toLocaleLowerCase())) as chat (chat.id)}
+            <UiSwitch label={chat.title} checked={projectSetupChats.includes(chat.id)} disabled={dockModalBusy} onchange={(checked) => { projectSetupChats = checked ? [...projectSetupChats, chat.id] : projectSetupChats.filter(id => id !== chat.id); }} />
+          {:else}<p>Чаты не найдены</p>{/each}
+        </div>
+      {:else}<UiButton size="sm" disabled={dockModalBusy} onclick={() => openProjectSetupConnection('telegram')}>Подключить Telegram</UiButton>{/if}
+    </details>
+    <details class="project-setup-section">
+      <summary><span>GitHub</span><small>{projectSetupRepositories.length ? `${projectSetupRepositories.length} репозиториев` : 'Не подключён к проекту'}</small></summary>
+      {#if githubStatus.connected}
+        <div class="project-setup-options">
+          {#each githubRepositories as repo (repo.id)}
+            <UiSwitch label={repo.full_name} checked={projectSetupRepositories.includes(repo.id)} disabled={dockModalBusy || (!projectSetupRepositories.includes(repo.id) && projectSetupRepositories.length >= 19)} onchange={(checked) => { projectSetupRepositories = checked ? [...projectSetupRepositories, repo.id] : projectSetupRepositories.filter(id => id !== repo.id); }} />
+          {:else}<p>{githubBusy ? 'Загружаем репозитории…' : 'Нет доступных репозиториев'}</p>{/each}
+        </div>
+        {#if githubError}<InlineNotice tone="danger">{githubError}</InlineNotice>{/if}
+      {:else}<UiButton size="sm" disabled={dockModalBusy} onclick={() => openProjectSetupConnection('github')}>Подключить GitHub</UiButton>{/if}
+    </details>
+    <div class="project-folder-choice">
+      <span>{projectSetupFolder ? fileName(projectSetupFolder) : 'Папка проекта'}</span>
+      <UiButton size="sm" disabled={dockModalBusy} onclick={async () => {
+        if (!inTauri()) { dockModalError = 'Выбор папки доступен в приложении.'; return; }
+        const folder = await openDialog({ directory: true, multiple: false, title: 'Выберите папку проекта' });
+        if (typeof folder === 'string') projectSetupFolder = folder;
+      }}>{projectSetupFolder ? 'Изменить' : 'Выбрать папку'}</UiButton>
+      {#if projectSetupFolder}<UiButton size="sm" variant="quiet" disabled={dockModalBusy} onclick={() => projectSetupFolder = ''}>Убрать</UiButton>{/if}
+    </div>
+    </details>
+    {#if dockModalError}<InlineNotice tone="danger" announce>{dockModalError}</InlineNotice>{/if}
   </form>
   {#snippet footer()}
-    <UiButton onclick={() => (dockProjectModalOpen = false)} disabled={dockModalBusy}>Отмена</UiButton>
-    <UiButton variant="primary" type="submit" form="dock-new-project-form" busy={dockModalBusy} disabled={!dockProjectTitle.trim()}>Создать проект</UiButton>
+    <UiButton onclick={() => (dockProjectModalOpen = false)} disabled={dockModalBusy}>Закрыть</UiButton>
+    <UiButton variant="primary" type="submit" form="dock-new-project-form" busy={dockModalBusy} disabled={!dockProjectTitle.trim()}>{projectSetupCreated ? 'Завершить настройку' : 'Создать проект'}</UiButton>
   {/snippet}
 </UiModal>
 

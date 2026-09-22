@@ -49,6 +49,7 @@ use tauri_plugin_opener::OpenerExt;
 
 mod agent_adapters;
 mod codex_dock;
+mod codex_connection;
 mod jev_adapter;
 mod telegram;
 use telegram::{TelegramChat, TelegramManager, TelegramMessage, TelegramStatus};
@@ -4408,6 +4409,11 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             codex_dock::codex_queue_status,
+            codex_connection::codex_connection_status,
+            codex_connection::connect_codex_integration,
+            codex_connection::begin_codex_login,
+            codex_connection::cancel_codex_login,
+            codex_connection::list_codex_conversations,
             codex_dock::queue_codex_message,
             list_projects,
             list_connector_catalog,

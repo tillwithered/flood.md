@@ -1,12 +1,10 @@
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const designRoot = path.join(root, "docs/design");
 const sourcePath = path.join(root, "src/design/tokens.json");
 const runtimeCssPath = path.join(root, "src/design/tokens.css");
-const generatedRoot = path.join(designRoot, "generated");
 const mode = process.argv[2] ?? "--check";
 const errors = [];
 const tokenName = /^--[a-z][a-z0-9-]*$/;
@@ -14,7 +12,6 @@ const hexColor = /^#[\da-f]{6}$/i;
 const directAlias = /^var\(\s*(--[a-z][a-z0-9-]*)\s*\)$/;
 const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const relative = (file) => path.relative(root, file).replaceAll("\\", "/");
-const escapeCell = (value) => String(value).replaceAll("|", "\\|").replaceAll("\n", " ");
 
 function isRgbColor(value) {
   const number = "(\\d+(?:\\.\\d+)?%?)";
@@ -183,99 +180,7 @@ ${declarations(contract.themes.light)}
 ${declarations(contract.themes.dark)}
 }
 `;
-  const rows = (tokens, themed) => Object.entries(tokens).map(([name, value]) => {
-    const values = themed ? `${escapeCell(value)}\` | \`${escapeCell(contract.themes.dark[name])}` : escapeCell(value);
-    return `| \`${name}\` | \`${values}\` | ${escapeCell(contract.notes[name] ?? "—")} |`;
-  }).join("\n");
-  const markdown = `# Generated runtime token reference
-
-Version: **${escapeCell(contract.version)}**. Status: **${escapeCell(contract.status)}**.
-
-Generated from [the single authored token source](../../../src/design/tokens.json); edit that source and run \`node scripts/design-contract.mjs --write\`.
-The application imports [generated runtime CSS](../../../src/design/tokens.css) through \`src/styles.css\`. The documentation specimen receives the same generated values. The former candidate path is a [compatibility pointer](../tokens.target.json), not a second token source.
-This initial foundation migration preserves current page gutters, content widths and desktop sidebar geometry. Native visual and interaction acceptance is separate from token validation.
-
-## Semantic colors
-
-| Token | Light | Dark | Purpose |
-| --- | --- | --- | --- |
-${rows(contract.themes.light, true)}
-
-## Common scales
-
-| Token | Value | Purpose |
-| --- | --- | --- |
-${rows(contract.scales, false)}
-
-## Registered legacy brand exceptions
-
-These existing gradient values are retained for compatibility. They are not ordinary interface color roles and must not replace supplied raster blobs. New consumers require a brand-contract decision.
-
-| Token | Value | Purpose |
-| --- | --- | --- |
-${rows(contract.brand, false)}
-
-## Declared contrast pairs
-
-Ratios use opaque sRGB colors. Alpha compositing, rendered states, images, overlays and focus geometry require separate UI verification.
-
-| Theme | Foreground | Background | Measured | Minimum |
-| --- | --- | --- | --- | --- |
-${contract.measurements.map((pair) => `| ${pair.theme} | \`${pair.foreground}\` | \`${pair.background}\` | ${pair.ratio.toFixed(2)}:1 | ${pair.minimum}:1 |`).join("\n")}
-`;
-  const compatibility = {
-    version: contract.version,
-    status: "generated-compatibility-pointer",
-    source: "../../src/design/tokens.json",
-    generatedBy: "scripts/design-contract.mjs",
-    migration: "The former candidate token source was adopted into the initial runtime UI-kit slice. Values are authored only in src/design/tokens.json; this file intentionally contains no token values.",
-    outputs: ["../../src/design/tokens.css", "generated/tokens.css", "generated/token-reference.md"]
-  };
-  return new Map([
-    [runtimeCssPath, css],
-    [path.join(generatedRoot, "tokens.css"), css],
-    [path.join(generatedRoot, "token-reference.md"), markdown],
-    [path.join(designRoot, "tokens.target.json"), JSON.stringify(compatibility, null, 2) + "\n"]
-  ]);
-}
-
-async function markdownFiles(directory) {
-  const files = [];
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
-    const file = path.join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...await markdownFiles(file));
-    else if (entry.isFile() && entry.name.endsWith(".md")) files.push(file);
-  }
-  return files;
-}
-
-async function checkLocalLinks() {
-  let count = 0;
-  for (const file of await markdownFiles(designRoot)) {
-    const markdown = (await readFile(file, "utf8"))
-      .replace(/^\s*(`{3,}|~{3,})[^\n]*\n[\s\S]*?^\s*\1\s*$/gm, "")
-      .replace(/`[^`\n]*`/g, "");
-    const destinations = [
-      ...markdown.matchAll(/!?\[[^\]\n]*\]\(\s*(?:<([^>\n]+)>|([^\s)]+))(?:\s+["'][^\n]*?["'])?\s*\)/g),
-      ...markdown.matchAll(/^\s{0,3}\[[^\]\n]+\]:\s*(?:<([^>\n]+)>|(\S+))/gm)
-    ];
-    for (const match of destinations) {
-      const destination = match[1] ?? match[2];
-      const windowsPath = /^[a-z]:[\\/]/i.test(destination);
-      if (!windowsPath && (/^[a-z][a-z\d+.-]*:/i.test(destination) || destination.startsWith("//"))) continue;
-      const withoutFragment = destination.split(/[?#]/, 1)[0];
-      if (!withoutFragment) continue;
-      let decoded;
-      try { decoded = decodeURIComponent(withoutFragment); }
-      catch { fail(`${relative(file)}: malformed local link ${destination}.`); continue; }
-      const target = windowsPath ? path.resolve(decoded) : decoded.startsWith("/")
-        ? path.resolve(root, decoded.slice(1)) : path.resolve(path.dirname(file), decoded);
-      count++;
-      try { await stat(target); }
-      catch { fail(`${relative(file)}: local link does not exist: ${destination}.`); }
-    }
-  }
-  return count;
+  return new Map([[runtimeCssPath, css]]);
 }
 
 async function checkRuntimeOwnership(contract) {
@@ -320,7 +225,6 @@ try {
   if (!errors.length) {
     const outputs = generate(contract);
     if (mode === "--write") {
-      await mkdir(generatedRoot, { recursive: true });
       await mkdir(path.dirname(runtimeCssPath), { recursive: true });
     }
     for (const [file, expected] of outputs) {
@@ -332,10 +236,8 @@ try {
       }
     }
     await checkRuntimeOwnership(contract);
-    const linkCount = await checkLocalLinks();
     if (!errors.length) {
       console.log(`Runtime token contract ${mode === "--write" ? "generated" : "checked"}: ${contract.measurements.length} declared contrast pairs pass; generated runtime and specimen files share one authored source.`);
-      console.log(`${linkCount} local Markdown link paths checked (fragments and external URLs excluded). Native appearance and interaction still require Tauri verification.`);
     }
   }
   await reportCurrentCssDebt();

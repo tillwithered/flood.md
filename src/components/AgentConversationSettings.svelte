@@ -1,64 +1,74 @@
 <script lang="ts">
-  import TextField from './ui/TextField.svelte';
-  import SelectField from './ui/SelectField.svelte';
-  import UiButton from './ui/Button.svelte';
+  import { invoke } from '@tauri-apps/api/core';
   import { untrack } from 'svelte';
-
-  let { projects, initialProjectId = '', showTitle = true, active = true, fixedProject = false, onsaved }: { projects: { id: string; title: string }[]; initialProjectId?: string; showTitle?: boolean; active?: boolean; fixedProject?: boolean; onsaved?: () => void } = $props();
-  let projectId = $state(untrack(() => initialProjectId || projects[0]?.id || ''));
-  let link = $state('');
-  let error = $state('');
-  let saved = $state(false);
-  let locked = $state(false);
-  let dirty = false;
-  let loadedProjectId = '';
+  import { Check, RefreshCw } from '@lucide/svelte';
+  import TextField from './ui/TextField.svelte';
+  import UiButton from './ui/Button.svelte';
+  import InlineNotice from './ui/InlineNotice.svelte';
+  type Conversation = { id: string; title: string; updated_at: number };
+  type Page = { conversations: Conversation[]; next_cursor?: string };
+  let { projects, initialProjectId = '', showTitle = true, active = true, onsaved }: { projects: { id: string; title: string }[]; initialProjectId?: string; showTitle?: boolean; active?: boolean; onsaved?: () => void } = $props();
+  let conversations = $state<Conversation[]>([]);
+  let nextCursor = $state<string>();
+  let selected = $state(''), search = $state(''), error = $state(''), loading = $state(false), locked = $state(false);
+  let generation = 0;
   const key = (id: string) => `flood.codex.dock.${id}`;
-  $effect(() => { if (active && initialProjectId) projectId = initialProjectId; });
-  $effect(() => {
-    if (!projectId && projects.length) projectId = initialProjectId || projects[0].id;
-  });
+  let projectId = $derived(initialProjectId || projects[0]?.id || '');
+  async function load(append = false) {
+    const current = ++generation;
+    loading = true; error = '';
+    if (!('__TAURI_INTERNALS__' in window)) { loading = false; error = 'Список разговоров доступен в установленном приложении.'; return; }
+    try {
+      const page = await invoke<Page>('list_codex_conversations', { cursor: append ? nextCursor : null });
+      if (current !== generation) return;
+      conversations = append ? [...conversations, ...page.conversations.filter(c => !conversations.some(existing => existing.id === c.id))] : page.conversations;
+      nextCursor = page.next_cursor;
+    } catch { if (current === generation) error = 'Не удалось загрузить разговоры. Проверьте подключение Codex.'; }
+    finally { if (current === generation) loading = false; }
+  }
   $effect(() => {
     const id = projectId;
-    if (!active || !id) return;
-    try {
-      const value = JSON.parse(localStorage.getItem(key(id)) || '{}');
-      if (id !== loadedProjectId || !dirty) {
-        link = value.threadId || '';
-        dirty = false;
-        error = ''; saved = false;
-      }
-      loadedProjectId = id;
-      locked = ['submitting', 'unknown'].includes(value.delivery);
-    } catch { error = 'Не удалось прочитать настройки разговора.'; }
+    if (!active || !id) { generation++; return; }
+    untrack(() => {
+      search = ''; conversations = []; nextCursor = undefined;
+      try { const state = JSON.parse(localStorage.getItem(key(id)) || '{}'); selected = state.threadId || ''; locked = ['submitting','unknown'].includes(state.delivery); }
+      catch { selected = ''; locked = true; error = 'Не удалось прочитать связь проекта.'; return; }
+      void load();
+    });
+    return () => { generation++; };
   });
-  function save(event: SubmitEvent) {
-    event.preventDefault();
-    const id = link.trim().match(/^(?:[a-z][a-z0-9+.-]*:\/\/[^\s]*\/)?([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})(?:[?#][^\s]*)?$/i)?.[1];
-    if (!id) { error = 'Укажите ссылку на разговор или его ID.'; return; }
+  function choose(chat: Conversation) {
+    if (locked || !projectId) return;
     try {
-      const value = JSON.parse(localStorage.getItem(key(projectId)) || '{}');
-      if (['submitting', 'unknown'].includes(value.delivery)) { error = 'Сначала проверьте доставку последнего сообщения в Dock.'; return; }
-      localStorage.setItem(key(projectId), JSON.stringify({ ...value, threadId: id, threadTitle: projects.find(p => p.id === projectId)?.title || 'Разговор', delivery: '', receipt: '' }));
-      error = ''; saved = true; dirty = false;
-      onsaved?.();
-    } catch { error = 'Не удалось сохранить настройки. Повторите попытку.'; }
+      const state = JSON.parse(localStorage.getItem(key(projectId)) || '{}');
+      if (['submitting','unknown'].includes(state.delivery)) { locked = true; error = 'Сначала проверьте доставку последнего сообщения.'; return; }
+      localStorage.setItem(key(projectId), JSON.stringify({ ...state, threadId:chat.id, threadTitle:chat.title, delivery:'', receipt:'' }));
+      selected = chat.id; onsaved?.();
+    } catch { error = 'Не удалось сохранить выбор. Повторите попытку.'; }
   }
 </script>
-
-<form class="agent-conversation-settings" class:without-title={!showTitle} onsubmit={save}>
-  {#if showTitle}<h4>Разговоры проектов</h4>{/if}
-  {#if projects.length}
-    {#if !fixedProject}<SelectField label="Проект" bind:value={projectId} options={projects.map(p => ({ value: p.id, label: p.title }))}/>{/if}
-    <TextField label="Разговор Codex" bind:value={link} oninput={() => { dirty = true; saved = false; error = ''; }} placeholder="Ссылка или ID разговора" disabled={locked} error={error}/>
-    {#if locked}<p role="status">Сначала проверьте доставку сообщения в Dock.</p>{/if}
-    <div class="actions">{#if saved}<span role="status">Сохранено</span>{/if}<UiButton type="submit" size="sm" disabled={locked || !link.trim()}>Сохранить</UiButton></div>
-  {:else}<p>Сначала создайте проект.</p>{/if}
-</form>
-
+<section class="conversation-picker" aria-label="Разговор Codex">
+  {#if showTitle}<h4>Разговор проекта</h4>{/if}
+  <p>Выберите разговор один раз — следующие сообщения проекта попадут туда же.</p>
+  <TextField label="Найти разговор" bind:value={search} placeholder="Название разговора"/>
+  {#if locked}<InlineNotice tone="attention">Сначала проверьте доставку последнего сообщения в доке.</InlineNotice>{/if}
+  {#if error}<InlineNotice tone="danger" announce>{error}</InlineNotice>{/if}
+  <div class="conversation-list" aria-busy={loading}>
+    {#each conversations.filter(chat => chat.title.toLocaleLowerCase().includes(search.toLocaleLowerCase())) as chat (chat.id)}
+      <button type="button" disabled={locked} onclick={() => choose(chat)}><span>{chat.title}<small>{new Date(chat.updated_at * 1000).toLocaleDateString('ru')}</small></span>{#if selected === chat.id}<Check size={16}/>{/if}</button>
+    {:else}{#if !loading && !error}<p>{search ? 'В загруженных разговорах ничего не найдено.' : 'Создайте разговор в Codex и отправьте первое сообщение, затем обновите список.'}</p>{/if}{/each}
+    {#if loading}<p role="status">Загружаем разговоры…</p>{/if}
+  </div>
+  <div class="actions">{#if nextCursor}<UiButton size="sm" disabled={loading} onclick={() => load(true)}>Показать ещё</UiButton>{/if}<UiButton variant="quiet" size="sm" busy={loading} onclick={() => load()}><RefreshCw size={14}/>Обновить</UiButton></div>
+</section>
 <style>
-  .agent-conversation-settings { display:grid; gap:16px; padding:20px 0; border-top:1px solid var(--soft-line); }
-  .agent-conversation-settings.without-title { padding:0; border:0; }
-  h4 { margin:0; font-size:14px; font-weight:500; }
-  p,.actions span { margin:0; font-size:13px; color:var(--muted); }
-  .actions { display:flex; justify-content:flex-end; align-items:center; gap:12px; }
+  .conversation-picker { display:grid; gap:16px; }
+  h4,p { margin:0; }
+  p { font-size:13px; line-height:1.5; color:var(--muted); }
+  .conversation-list { max-height:320px; overflow-y:auto; display:grid; gap:4px; }
+  .conversation-list button { display:flex; align-items:center; gap:12px; min-height:56px; padding:10px 12px; border:0; border-radius:8px; text-align:left; background:transparent; color:var(--ink); cursor:pointer; }
+  .conversation-list button:hover:not(:disabled) { background:var(--hover); }
+  .conversation-list button > span { display:grid; flex:1; gap:4px; font-size:14px; overflow-wrap:anywhere; }
+  small { color:var(--muted); font-size:12px; }
+  .actions { display:flex; justify-content:flex-end; gap:8px; }
 </style>

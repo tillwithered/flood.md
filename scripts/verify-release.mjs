@@ -1,0 +1,13 @@
+import fs from 'node:fs';
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+const json = file => JSON.parse(fs.readFileSync(file, 'utf8'));
+const version = json('package.json').version;
+assert.match(version, /^\d+\.\d+\.\d+$/);
+for (const value of [json('package-lock.json').version, json('package-lock.json').packages[''].version, json('src-tauri/tauri.conf.json').version]) assert.equal(value, version);
+assert.equal(fs.readFileSync('Cargo.toml','utf8').match(/\[workspace.package\][\s\S]*?version = "([^"]+)"/)[1], version);
+for (const match of fs.readFileSync('Cargo.lock','utf8').matchAll(/name = "flood-[^"]+"\r?\nversion = "([^"]+)"/g)) assert.equal(match[1], version);
+if (process.env.GITHUB_REF_TYPE === 'tag') assert.equal(process.env.GITHUB_REF_NAME, `v${version}`);
+const files = execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split(/\r?\n/);
+assert.deepEqual(files.filter(file => /^(\.flood\/|docs\/design\/|AGENTS\.md$|Design\.md$|Stack\.md$|design-qa\.md$)/.test(file)), [], 'Internal development files must remain local');
+console.log(`Release ${version}: versions and source distribution verified`);

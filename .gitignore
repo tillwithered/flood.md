@@ -12,6 +12,17 @@ src-tauri/gen/
 *.log
 .DS_Store
 
+# Local development guidance and design evidence (not application sources)
+/.flood/
+/AGENTS.md
+/Design.md
+/Stack.md
+/design-qa.md
+/docs/design/
+/docs/*-0.2.0.md
+/docs/next-stable-goal.ru.md
+/.github/workflows/release-candidate.yml
+
 # Local credentials and signing material
 .env
 .env.*
