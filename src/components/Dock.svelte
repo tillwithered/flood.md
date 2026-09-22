@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { currentLocale, translateCopy } from "../i18n";
+  const tx = $derived((text: string) => translateCopy($currentLocale, text));
   import { invoke } from "@tauri-apps/api/core";
   import { ArrowUp, Check, ChevronDown, Folder, Paperclip, X } from "@lucide/svelte";
   import { tick, untrack } from "svelte";
@@ -45,7 +47,7 @@
     { id: 'settings', title: 'Настройки агента', search: 'агент настройки' }
   ];
   let slashQuery = $derived(dockState.draft.match(/^\/([^\s]*)/)?.[1].toLocaleLowerCase() ?? null);
-  let filteredCommands = $derived(commands.filter(c => slashQuery === null || `${c.id} ${c.title} ${c.search}`.toLocaleLowerCase().includes(slashQuery)));
+  let filteredCommands = $derived(commands.filter(c => slashQuery === null || `${c.id} ${tx(c.title)} ${c.title} ${c.search}`.toLocaleLowerCase().includes(slashQuery)));
   function executeCommand(id: string) {
     const command = commands.find(c => c.id === id);
     if (!command) return;
@@ -284,63 +286,63 @@
 <section bind:this={dockElement} class="dock" class:expanded={mode === 'codex'} style:--dock-height={`${dockHeight}px`} hidden={!visible} aria-label="Dock flood.md" aria-hidden={!visible}>
   {#if visible}
     {#if mode === 'actions'}
-      <button bind:this={launcher} class="dock-launcher" type="button" aria-label="Открыть ввод" aria-keyshortcuts="Control+k Meta+k" onclick={openComposer}><span>{dockState.delivery === 'unknown' ? 'Проверьте доставку сообщения' : pending ? 'Отправляем сообщение…' : dockState.delivery === 'rejected' ? 'Не удалось отправить' : dockState.draft ? 'Продолжить черновик' : 'Что нужно сделать?'}</span><kbd>Ctrl K</kbd></button>
+      <button bind:this={launcher} class="dock-launcher" type="button" aria-label={tx("Открыть ввод")} aria-keyshortcuts="Control+k Meta+k" onclick={openComposer}><span>{dockState.delivery === 'unknown' ? tx("Проверьте доставку сообщения") : pending ? tx("Отправляем сообщение…") : dockState.delivery === 'rejected' ? tx("Не удалось отправить") : dockState.draft ? tx("Продолжить черновик") : tx("Что нужно сделать?")}</span><kbd>Ctrl K</kbd></button>
     {:else}
       <div bind:this={composerElement} class="dock-compose">
         <div class="context-apron">
-          <div class="location-row"><Folder size={14} /><span title={projectTitle}>{projectTitle}</span><button class="icon-button" type="button" aria-label="Свернуть док" onclick={() => { setMode('actions'); void tick().then(() => launcher?.focus()); }}><ChevronDown size={16}/></button></div>
+          <div class="location-row"><Folder size={14} /><span title={projectTitle}>{projectTitle}</span><button class="icon-button" type="button" aria-label={tx("Свернуть док")} onclick={() => { setMode('actions'); void tick().then(() => launcher?.focus()); }}><ChevronDown size={16}/></button></div>
           {#if activeTask}
-            <div class="attachment"><Paperclip size={14}/><button bind:this={contextTrigger} type="button" class="attachment-title" title={activeTask.title} onclick={() => { contextOpen=true; bindingOpen=false; taskPickerOpen=false; actionsOpen=false; focusPopover('.context-preview .close'); }}>{activeTask.title}</button><button type="button" class="icon-button" aria-label="Убрать задачу из сообщения" onclick={removeTask}><X size={14}/></button></div>
+            <div class="attachment"><Paperclip size={14}/><button bind:this={contextTrigger} type="button" class="attachment-title" title={activeTask.title} onclick={() => { contextOpen=true; bindingOpen=false; taskPickerOpen=false; actionsOpen=false; focusPopover('.context-preview .close'); }}>{activeTask.title}</button><button type="button" class="icon-button" aria-label={tx("Убрать задачу из сообщения")} onclick={removeTask}><X size={14}/></button></div>
           {:else if missingTask}
-            <div class="notice warning">Прикреплённая задача недоступна<button type="button" onclick={removeTask}>Убрать</button></div>
+            <div class="notice warning">{tx("Прикреплённая задача недоступна")}<button type="button" onclick={removeTask}>{tx("Убрать")}</button></div>
           {:else if viewedTask}
-            <button class="attach-viewed" type="button" onclick={() => selectTask(viewedTask.id)}><Paperclip size={14}/><span>Добавить: {viewedTask.title}</span></button>
+            <button class="attach-viewed" type="button" onclick={() => selectTask(viewedTask.id)}><Paperclip size={14}/><span>{tx("Добавить:")} {viewedTask.title}</span></button>
           {/if}
         </div>
         <div class="composer-body">
-          {#if storageError}<p class="notice warning" role="alert">Не удалось сохранить черновик. Не закрывайте приложение.</p>{/if}
+          {#if storageError}<p class="notice warning" role="alert">{tx("Не удалось сохранить черновик. Не закрывайте приложение.")}</p>{/if}
           {#if dockState.delivery === 'unknown'}
-            <div class="notice warning" role="alert"><span>{dockState.receipt}</span><button type="button" onclick={() => { dockState.delivery=''; dockState.receipt=''; persist(projectId,dockState); }}>Я проверил разговор</button></div>
+            <div class="notice warning" role="alert"><span>{dockState.receipt}</span><button type="button" onclick={() => { dockState.delivery=''; dockState.receipt=''; persist(projectId,dockState); }}>{tx("Я проверил разговор")}</button></div>
           {:else if dockState.receipt}<p class="notice" role="status">{dockState.receipt}</p>{/if}
-          <label class="sr-only" for="dock-message">Сообщение агенту или команда</label>
-          <textarea bind:this={textarea} id="dock-message" rows="2" value={dockState.draft} oninput={(event) => editDraft(event.currentTarget.value)} onfocus={() => { bindingOpen=false; taskPickerOpen=false; contextOpen=false; }} placeholder="Что нужно сделать?" maxlength="32000" aria-controls={commandsOpen ? 'dock-command-list' : undefined} aria-activedescendant={commandsOpen && filteredCommands[commandIndex] ? `dock-command-${filteredCommands[commandIndex].id}` : undefined}></textarea>
+          <label class="sr-only" for="dock-message">{tx("Сообщение агенту или команда")}</label>
+          <textarea bind:this={textarea} id="dock-message" rows="2" value={dockState.draft} oninput={(event) => editDraft(event.currentTarget.value)} onfocus={() => { bindingOpen=false; taskPickerOpen=false; contextOpen=false; }} placeholder={tx("Что нужно сделать?")} maxlength="32000" aria-controls={commandsOpen ? 'dock-command-list' : undefined} aria-activedescendant={commandsOpen && filteredCommands[commandIndex] ? `dock-command-${filteredCommands[commandIndex].id}` : undefined}></textarea>
           <div class="dock-footer">
-            <button bind:this={quickActionsTrigger} class="command-trigger" type="button" aria-label="Команды" aria-expanded={commandsOpen} aria-controls="dock-command-list" onclick={toggleCommands}><kbd aria-hidden="true">/</kbd><span>Команды</span></button>
-            <button bind:this={attachTrigger} class="icon-button" type="button" aria-label="Прикрепить задачу" title="Прикрепить задачу" aria-expanded={taskPickerOpen} onclick={openTasks}><Paperclip size={17}/></button>
+            <button bind:this={quickActionsTrigger} class="command-trigger" type="button" aria-label={tx("Команды")} aria-expanded={commandsOpen} aria-controls="dock-command-list" onclick={toggleCommands}><kbd aria-hidden="true">/</kbd><span>{tx("Команды")}</span></button>
+            <button bind:this={attachTrigger} class="icon-button" type="button" aria-label={tx("Прикрепить задачу")} title={tx("Прикрепить задачу")} aria-expanded={taskPickerOpen} onclick={openTasks}><Paperclip size={17}/></button>
             <span class="footer-spacer"></span>
-            <button bind:this={destinationTrigger} class="destination" type="button" aria-label="Выбрать агента" aria-expanded={bindingOpen} disabled={pending || dockState.delivery === 'unknown'} onclick={openBinding}><span>Codex</span><ChevronDown size={13}/></button>
-            <button class="send-button" type="button" aria-label={dockState.draft.startsWith('/') ? 'Выполнить команду' : 'Отправить сообщение'} title={dockState.draft.startsWith('/') ? 'Выполнить команду' : 'Отправить · Ctrl+Enter'} disabled={!dockState.draft.trim() || pending || dockState.delivery === 'unknown' || (!dockState.draft.startsWith('/') && (missingTask || codexAvailable === null))} onclick={send}><ArrowUp size={18}/></button>
+            <button bind:this={destinationTrigger} class="destination" type="button" aria-label={tx("Выбрать агента")} aria-expanded={bindingOpen} disabled={pending || dockState.delivery === 'unknown'} onclick={openBinding}><span>Codex</span><ChevronDown size={13}/></button>
+            <button class="send-button" type="button" aria-label={dockState.draft.startsWith('/') ? tx("Выполнить команду") : tx("Отправить сообщение")} title={dockState.draft.startsWith('/') ? tx("Выполнить команду") : tx("Отправить · Ctrl+Enter")} disabled={!dockState.draft.trim() || pending || dockState.delivery === 'unknown' || (!dockState.draft.startsWith('/') && (missingTask || codexAvailable === null))} onclick={send}><ArrowUp size={18}/></button>
           </div>
-          {#if pending}<p class="notice" role="status">Отправляем…</p>{:else if codexAvailable === null}<p class="notice" role="status">Проверяем подключение…</p>{:else if dockState.threadId && codexAvailable === false}<div class="notice" role="status">Подключите Codex<button type="button" onclick={() => onsettings?.()}>Подключить</button></div>{/if}
+          {#if pending}<p class="notice" role="status">{tx("Отправляем…")}</p>{:else if codexAvailable === null}<p class="notice" role="status">{tx("Проверяем подключение…")}</p>{:else if dockState.threadId && codexAvailable === false}<div class="notice" role="status">{tx("Подключите Codex")}<button type="button" onclick={() => onsettings?.()}>{tx("Подключить")}</button></div>{/if}
         </div>
       </div>
     {/if}
     {#if commandsOpen}
-      <div class="dock-popover commands" aria-label="Команды flood.md">
-        <header><strong>Команды</strong><button class="icon-button close" type="button" aria-label="Закрыть команды" onclick={() => {actionsOpen=false; commandDismissed=true; textarea?.focus();}}><X size={16}/></button></header>
-        <div class="panel-body command-list" id="dock-command-list" role="listbox" aria-label="Команды">
+      <div class="dock-popover commands" aria-label={tx("Команды flood.md")}>
+        <header><strong>{tx("Команды")}</strong><button class="icon-button close" type="button" aria-label={tx("Закрыть команды")} onclick={() => {actionsOpen=false; commandDismissed=true; textarea?.focus();}}><X size={16}/></button></header>
+        <div class="panel-body command-list" id="dock-command-list" role="listbox" aria-label={tx("Команды")}>
           {#each filteredCommands as command, i (command.id)}
-            <button id={`dock-command-${command.id}`} type="button" role="option" aria-selected={i === commandIndex} class:active={i === commandIndex} onclick={() => executeCommand(command.id)}><span class="command-code">/{command.id}</span><span class="command-description"><strong>{command.title}</strong></span></button>
-          {:else}<p class="empty-state">Команда не найдена. Введите / для списка.</p>{/each}
+            <button id={`dock-command-${command.id}`} type="button" role="option" aria-selected={i === commandIndex} class:active={i === commandIndex} onclick={() => executeCommand(command.id)}><span class="command-code">/{command.id}</span><span class="command-description"><strong>{tx(command.title)}</strong></span></button>
+          {:else}<p class="empty-state">{tx("Команда не найдена. Введите / для списка.")}</p>{/each}
         </div>
       </div>
     {:else if taskPickerOpen}
-      <div class="dock-popover task-picker" role="dialog" aria-label="Прикрепить задачу">
-        <header><strong>Прикрепить задачу</strong><button class="icon-button close" type="button" aria-label="Закрыть выбор задач" onclick={() => {taskPickerOpen=false; attachTrigger?.focus();}}><X size={16}/></button></header>
-        <div class="panel-search"><input aria-label="Найти задачу" bind:value={taskSearch} placeholder="Название задачи…"/></div>
-        <div class="panel-body task-options">{#each filteredTasks as task (task.id)}<button type="button" onclick={() => selectTask(task.id)}><span>{task.title}</span>{#if dockState.taskId === task.id}<Check size={16}/>{/if}</button>{:else}<p class="empty-state">{tasks.length ? 'Ничего не найдено' : 'В проекте пока нет задач'}</p>{/each}</div>
+      <div class="dock-popover task-picker" role="dialog" aria-label={tx("Прикрепить задачу")}>
+        <header><strong>{tx("Прикрепить задачу")}</strong><button class="icon-button close" type="button" aria-label={tx("Закрыть выбор задач")} onclick={() => {taskPickerOpen=false; attachTrigger?.focus();}}><X size={16}/></button></header>
+        <div class="panel-search"><input aria-label={tx("Найти задачу")} bind:value={taskSearch} placeholder={tx("Название задачи…")}/></div>
+        <div class="panel-body task-options">{#each filteredTasks as task (task.id)}<button type="button" onclick={() => selectTask(task.id)}><span>{task.title}</span>{#if dockState.taskId === task.id}<Check size={16}/>{/if}</button>{:else}<p class="empty-state">{tasks.length ? tx("Ничего не найдено") : tx("В проекте пока нет задач")}</p>{/each}</div>
       </div>
     {:else if bindingOpen}
-      <div class="dock-popover agent-picker" role="dialog" aria-label="Выбрать агента">
-        <header><strong>Агент</strong><button class="icon-button close" type="button" aria-label="Закрыть выбор агента" onclick={() => {bindingOpen=false;destinationTrigger?.focus();}}><X size={16}/></button></header>
+      <div class="dock-popover agent-picker" role="dialog" aria-label={tx("Выбрать агента")}>
+        <header><strong>{tx("Агент")}</strong><button class="icon-button close" type="button" aria-label={tx("Закрыть выбор агента")} onclick={() => {bindingOpen=false;destinationTrigger?.focus();}}><X size={16}/></button></header>
         <div class="panel-body task-options"><button type="button" aria-pressed="true" onclick={() => {bindingOpen=false;destinationTrigger?.focus();}}><span>Codex</span><Check size={16}/></button></div>
-        <footer><button class="quiet-action" type="button" onclick={() => {bindingOpen=false;onconnect?.();}}>Сменить разговор</button><button class="quiet-action" type="button" onclick={() => {bindingOpen=false;onsettings?.();}}>Настройки агента</button></footer>
+        <footer><button class="quiet-action" type="button" onclick={() => {bindingOpen=false;onconnect?.();}}>{tx("Сменить разговор")}</button><button class="quiet-action" type="button" onclick={() => {bindingOpen=false;onsettings?.();}}>{tx("Настройки агента")}</button></footer>
       </div>
     {:else if contextOpen && activeTask}
-      <div class="dock-popover context-preview" role="dialog" aria-label="Контекст сообщения">
-        <header><strong>Контекст сообщения</strong><button class="icon-button close" type="button" aria-label="Закрыть контекст" onclick={() => {contextOpen=false;contextTrigger?.focus();}}><X size={16}/></button></header>
+      <div class="dock-popover context-preview" role="dialog" aria-label={tx("Контекст сообщения")}>
+        <header><strong>{tx("Контекст сообщения")}</strong><button class="icon-button close" type="button" aria-label={tx("Закрыть контекст")} onclick={() => {contextOpen=false;contextTrigger?.focus();}}><X size={16}/></button></header>
         <div class="panel-body"><pre>{payload('',activeTask,projectTitle).trim()}</pre></div>
-        <footer><button class="quiet-action" type="button" onclick={() => {removeTask();contextOpen=false;attachTrigger?.focus();}}>Убрать из сообщения</button></footer>
+        <footer><button class="quiet-action" type="button" onclick={() => {removeTask();contextOpen=false;attachTrigger?.focus();}}>{tx("Убрать из сообщения")}</button></footer>
       </div>
     {/if}
   {/if}

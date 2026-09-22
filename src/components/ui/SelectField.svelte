@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { currentLocale, translateCopy } from "../../i18n";
+  const tx = $derived((text: string) => translateCopy($currentLocale, text));
   import { Check, ChevronDown } from "@lucide/svelte";
   import { tick } from "svelte";
 
@@ -145,7 +147,7 @@
 <svelte:window onpointerdown={handleOutside} onresize={() => { if (open) closeSelect(); }} />
 
 <div bind:this={root} class={["ui-select", className]} data-size={size}>
-  <span class="ui-select-label" id={labelId}>{label}{#if optional}<small>Необязательно</small>{/if}</span>
+  <span class="ui-select-label" id={labelId}>{label}{#if optional}<small>{tx("Необязательно")}</small>{/if}</span>
   <button
     bind:this={trigger}
     type="button"
@@ -160,7 +162,7 @@
     onclick={() => open ? closeSelect() : void openSelect()}
     onkeydown={handleTriggerKeydown}
   >
-    <span id={valueId}>{selectedOption?.label ?? "Выберите"}</span>
+    <span id={valueId}>{selectedOption?.label ?? tx("Выберите")}</span>
     <span class="ui-select-chevron" aria-hidden="true"><ChevronDown size={16} /></span>
   </button>
 

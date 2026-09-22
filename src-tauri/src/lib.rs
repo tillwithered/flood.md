@@ -325,7 +325,26 @@ fn hide_background_console(command: &mut Command) {
 #[cfg(not(windows))]
 fn hide_background_console(_command: &mut Command) {}
 
+#[cfg(windows)]
+fn codex_desktop_executable() -> Option<PathBuf> {
+    let root = PathBuf::from(std::env::var_os("LOCALAPPDATA")?)
+        .join("OpenAI").join("Codex").join("bin");
+    let mut candidates: Vec<_> = fs::read_dir(root).ok()?.filter_map(Result::ok)
+        .map(|entry| entry.path().join("codex.exe"))
+        .filter(|path| path.is_file())
+        .collect();
+    candidates.sort_by_key(|path| std::cmp::Reverse(
+        fs::metadata(path).and_then(|metadata| metadata.modified()).ok()
+    ));
+    candidates.into_iter().next()
+}
+
 fn local_agent_command(provider: LocalAgentProvider) -> Command {
+    if matches!(provider, LocalAgentProvider::Codex) {
+        if let Some(path) = codex_connection::manual_executable() {
+            return Command::new(path);
+        }
+    }
     #[cfg(windows)]
     {
         let mut lookup = Command::new("where.exe");
@@ -343,7 +362,10 @@ fn local_agent_command(provider: LocalAgentProvider) -> Command {
                     .map(str::trim)
                     .find(|line| !line.is_empty())
                     .map(PathBuf::from)
-            });
+            })
+            .filter(|path| path.is_file())
+            .or_else(|| matches!(provider, LocalAgentProvider::Codex)
+                .then(codex_desktop_executable).flatten());
         if let Some(path) = resolved {
             let extension = path
                 .extension()
@@ -361,7 +383,10 @@ fn local_agent_command(provider: LocalAgentProvider) -> Command {
 }
 
 fn inspect_local_agent(provider: LocalAgentProvider) -> LocalAgentProviderStatus {
-    let mut command = local_agent_command(provider);
+    inspect_local_agent_command(provider, local_agent_command(provider))
+}
+
+fn inspect_local_agent_command(provider: LocalAgentProvider, mut command: Command) -> LocalAgentProviderStatus {
     command
         .arg("--version")
         .stdin(Stdio::null())
@@ -1621,7 +1646,7 @@ enum CodexInvocation {
 }
 
 fn isolated_codex_command(invocation: CodexInvocation) -> Command {
-    let mut command = Command::new("codex.exe");
+    let mut command = local_agent_command(LocalAgentProvider::Codex);
     command.arg("exec");
     if matches!(invocation, CodexInvocation::Resume) {
         command.arg("resume");
@@ -4414,6 +4439,7 @@ pub fn run() {
             codex_connection::begin_codex_login,
             codex_connection::cancel_codex_login,
             codex_connection::list_codex_conversations,
+            codex_connection::set_codex_executable,
             codex_dock::queue_codex_message,
             list_projects,
             list_connector_catalog,

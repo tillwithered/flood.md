@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { currentLocale, translateCopy } from "../i18n";
+  const tx = $derived((text: string) => translateCopy($currentLocale, text));
   import { invoke } from '@tauri-apps/api/core';
   import { untrack } from 'svelte';
   import { Check, RefreshCw } from '@lucide/svelte';
@@ -47,19 +49,19 @@
     } catch { error = 'Не удалось сохранить выбор. Повторите попытку.'; }
   }
 </script>
-<section class="conversation-picker" aria-label="Разговор Codex">
-  {#if showTitle}<h4>Разговор проекта</h4>{/if}
-  <p>Выберите разговор один раз — следующие сообщения проекта попадут туда же.</p>
-  <TextField label="Найти разговор" bind:value={search} placeholder="Название разговора"/>
-  {#if locked}<InlineNotice tone="attention">Сначала проверьте доставку последнего сообщения в доке.</InlineNotice>{/if}
-  {#if error}<InlineNotice tone="danger" announce>{error}</InlineNotice>{/if}
+<section class="conversation-picker" aria-label={tx("Разговор Codex")}>
+  {#if showTitle}<h4>{tx("Разговор проекта")}</h4>{/if}
+  <p>{tx("Выберите разговор один раз — следующие сообщения проекта попадут туда же.")}</p>
+  <TextField label={tx("Найти разговор")} bind:value={search} placeholder={tx("Название разговора")}/>
+  {#if locked}<InlineNotice tone="attention">{tx("Сначала проверьте доставку последнего сообщения в доке.")}</InlineNotice>{/if}
+  {#if error}<InlineNotice tone="danger" announce>{tx(error)}</InlineNotice>{/if}
   <div class="conversation-list" aria-busy={loading}>
     {#each conversations.filter(chat => chat.title.toLocaleLowerCase().includes(search.toLocaleLowerCase())) as chat (chat.id)}
-      <button type="button" disabled={locked} onclick={() => choose(chat)}><span>{chat.title}<small>{new Date(chat.updated_at * 1000).toLocaleDateString('ru')}</small></span>{#if selected === chat.id}<Check size={16}/>{/if}</button>
-    {:else}{#if !loading && !error}<p>{search ? 'В загруженных разговорах ничего не найдено.' : 'Создайте разговор в Codex и отправьте первое сообщение, затем обновите список.'}</p>{/if}{/each}
-    {#if loading}<p role="status">Загружаем разговоры…</p>{/if}
+      <button type="button" disabled={locked} onclick={() => choose(chat)}><span>{chat.title}<small>{new Date(chat.updated_at * 1000).toLocaleDateString($currentLocale)}</small></span>{#if selected === chat.id}<Check size={16}/>{/if}</button>
+    {:else}{#if !loading && !error}<p>{search ? tx("В загруженных разговорах ничего не найдено.") : tx("Создайте разговор в Codex и отправьте первое сообщение, затем обновите список.")}</p>{/if}{/each}
+    {#if loading}<p role="status">{tx("Загружаем разговоры…")}</p>{/if}
   </div>
-  <div class="actions">{#if nextCursor}<UiButton size="sm" disabled={loading} onclick={() => load(true)}>Показать ещё</UiButton>{/if}<UiButton variant="quiet" size="sm" busy={loading} onclick={() => load()}><RefreshCw size={14}/>Обновить</UiButton></div>
+  <div class="actions">{#if nextCursor}<UiButton size="sm" disabled={loading} onclick={() => load(true)}>{tx("Показать ещё")}</UiButton>{/if}<UiButton variant="quiet" size="sm" busy={loading} onclick={() => load()}><RefreshCw size={14}/>{tx("Обновить")}</UiButton></div>
 </section>
 <style>
   .conversation-picker { display:grid; gap:16px; }

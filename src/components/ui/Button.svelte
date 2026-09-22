@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { currentLocale, translateCopy } from "../../i18n";
+  const tx = $derived((text: string) => translateCopy($currentLocale, text));
   import type { Snippet } from "svelte";
   import type { HTMLButtonAttributes } from "svelte/elements";
 
@@ -35,7 +37,7 @@
 >
   {#if busy}<span class="ui-button-spinner" aria-hidden="true"></span>{/if}
   {#if children}{@render children()}{/if}
-  {#if busy}<span class="ui-visually-hidden">{busyLabel}</span>{/if}
+  {#if busy}<span class="ui-visually-hidden">{tx(busyLabel)}</span>{/if}
 </button>
 
 <style>

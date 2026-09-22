@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { currentLocale, translateCopy } from "../../i18n";
+  const tx = $derived((text: string) => translateCopy($currentLocale, text));
   import type { Snippet } from "svelte";
 
   type Props = {
@@ -35,7 +37,7 @@
     </div>
     {#if description}<p class="ui-page-description">{description}</p>{/if}
   </div>
-  {#if actions}<div class="ui-page-actions" role="group" aria-label={actionsLabel}>{@render actions()}</div>{/if}
+  {#if actions}<div class="ui-page-actions" role="group" aria-label={tx(actionsLabel)}>{@render actions()}</div>{/if}
 </header>
 
 <style>

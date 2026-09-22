@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { currentLocale, translateCopy } from "../../i18n";
+  const tx = $derived((text: string) => translateCopy($currentLocale, text));
   import type { Snippet } from "svelte";
   import { Check, CircleAlert } from "@lucide/svelte";
 
@@ -39,7 +41,7 @@
         checked={completed}
         {disabled}
         aria-disabled={busy || undefined}
-        aria-label={`${completed ? reopenLabel : completeLabel}: ${title}`}
+        aria-label={`${tx(completed ? reopenLabel : completeLabel)}: ${title}`}
         onchange={(event) => {
           const requested = event.currentTarget.checked;
           // A native toggle is only a request; the owning persisted state confirms it.
@@ -55,13 +57,13 @@
   <button type="button" class="ui-task-open" aria-current={selected ? "page" : undefined} aria-disabled={busy || undefined} {disabled} onclick={() => { if (!busy) onopen(); }}>
     <span class="ui-task-copy">
       <span class="ui-task-title">{title}</span>
-      {#if completed}<span class="ui-task-sr-only">{completedLabel}</span>{/if}
+      {#if completed}<span class="ui-task-sr-only">{tx(completedLabel)}</span>{/if}
       {#if showMeta && meta}<span class="ui-task-meta">{meta}</span>{/if}
     </span>
     {#if !completed && (urgency !== "normal" || showNormalUrgency)}
       <span class="ui-task-urgency" data-urgency={urgency}>
         {#if urgency !== "normal"}<CircleAlert size={14} aria-hidden="true" />{/if}
-        <span>{urgencyLabel ?? urgencyLabels[urgency]}</span>
+        <span>{urgencyLabel ?? tx(urgencyLabels[urgency])}</span>
       </span>
     {/if}
   </button>

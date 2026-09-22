@@ -20,7 +20,7 @@
   import ProjectKnowledgeReview from "./components/ProjectKnowledgeReview.svelte";
   import TelegramChatIdentity from "./components/TelegramChatIdentity.svelte";
   import { UiButton, UiIconButton, UiModal, UiSwitch, PageHeader, SectionNav, SegmentedControl, EmptyState, InlineNotice, NoticeAction, TextArea, TextField, SelectField, TaskRow, MaterialRow } from "./components/ui";
-  import { translate, type Locale, type MessageKey } from "./i18n";
+  import { currentLocale, translateCopy, translate, type Locale, type MessageKey } from "./i18n";
   import {
     connectorUiRegistry,
     type ConnectorProvider,
@@ -197,7 +197,7 @@
   let projectActionsTrigger: HTMLButtonElement | null = null;
   let projectTaskPendingIds: string[] = [];
   let projectTaskError = "";
-  let locale: Locale = "ru";
+  let locale: Locale = "en";
   let reduceMotion = false;
   let settingsSection: SettingsSection = "general";
   let mcpSettingsOpen = false;
@@ -469,6 +469,9 @@
   }
 
   let t = translator(locale);
+  let tx = (text: string) => translateCopy(locale, text);
+  $: tx = ((language: Locale) => (text: string) => translateCopy(language, text))(locale);
+  $: currentLocale.set(locale);
 
   function parseCommandError(error: unknown): CommandError {
     const fromObject = (value: unknown): CommandError | null => {
@@ -520,7 +523,7 @@
   function loadUiPreferences() {
     try {
       const stored = JSON.parse(localStorage.getItem(uiPreferencesKey) ?? "{}") as Record<string, unknown>;
-      locale = "ru";
+      locale = stored.locale === "ru" ? "ru" : "en";
       if (typeof stored.reduceMotion === "boolean") reduceMotion = stored.reduceMotion;
       if (typeof stored.sidebarCollapsed === "boolean") sidebarCollapsed = stored.sidebarCollapsed;
     } catch {
@@ -5150,9 +5153,9 @@
     if (new URLSearchParams(window.location.search).get("preview") !== "mcp-readiness") return;
     activeSection = "settings";
     settingsSection = "mcp";
-    appVersion = "0.2.1";
+    appVersion = "0.2.2";
     mcpExecutable = "C:\\Program Files\\flood.md\\flood-mcp.exe";
-    mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.2.1", app_version: "0.2.1", compatible: true, source: "bundled" };
+    mcpRuntime = { executable_path: mcpExecutable, launch_command: mcpExecutable, launch_args: [], available: true, version: "0.2.2", app_version: "0.2.2", compatible: true, source: "bundled" };
     automationSettings = { background_ai_triage: false, provider: "auto", updated_at: new Date().toISOString() };
     localAgentProviders = [{ id: "codex", name: "Codex", available: true, version: "codex-cli", supports_images: true }, { id: "claude", name: "Claude Code", available: false, supports_images: false }, { id: "gemini", name: "Gemini CLI", available: false, supports_images: false }];
     localAgentProvidersState = "ready";
@@ -5884,14 +5887,14 @@
             {#each (["subtask_of", "blocked_by", "related"] as TaskRelationKind[]) as kind}
               {@const group = selectedTask.relations.filter(relation => relation.kind === kind)}
               {#if group.length}
-                <section class="task-link-group" aria-label={kind === 'subtask_of' ? 'Родительская задача' : kind === 'blocked_by' ? 'Зависимости' : 'Связанные задачи'}>
-                  <h3>{kind === 'subtask_of' ? 'Родительская задача' : kind === 'blocked_by' ? 'Зависимости' : 'Связанные задачи'} <span>{group.length}</span></h3>
+                <section class="task-link-group" aria-label={kind === 'subtask_of' ? tx("Родительская задача") : kind === 'blocked_by' ? tx("Зависимости") : tx("Связанные задачи")}>
+                  <h3>{kind === 'subtask_of' ? tx("Родительская задача") : kind === 'blocked_by' ? tx("Зависимости") : tx("Связанные задачи")} <span>{group.length}</span></h3>
                   {#each group as relation (`${kind}:${relation.task_id}`)}
                     {@const target = relationTarget(relation)}
                     <button class="task-link-row" disabled={!target} onclick={() => target && openTask(target, target.chatId)}>
                       {#if target?.completed}<CheckCircle2 size={15} />{:else}<Circle size={15} />{/if}
-                      <span>{target?.title ?? 'Задача недоступна'}</span>
-                      {#if kind === 'blocked_by'}<small class:unresolved={!target?.completed}>{target?.completed ? 'Выполнена' : 'Блокирует'}</small>{/if}
+                      <span>{target?.title ?? tx("Задача недоступна")}</span>
+                      {#if kind === 'blocked_by'}<small class:unresolved={!target?.completed}>{target?.completed ? tx("Выполнена") : tx("Блокирует")}</small>{/if}
                       <ChevronRight size={14} />
                     </button>
                   {/each}
@@ -5901,11 +5904,11 @@
             {#if selectedTask}
             {@const children = tasks.filter(task => task.relations.some(relation => relation.kind === 'subtask_of' && relation.task_id === selectedTask.id))}
             {#if children.length}
-              <section class="task-link-group" aria-label="Подзадачи">
-                <h3>Подзадачи <span>{children.filter(task => task.completed).length}/{children.length}</span></h3>
+              <section class="task-link-group" aria-label={tx("Подзадачи")}>
+                <h3>{tx("Подзадачи")} <span>{children.filter(task => task.completed).length}/{children.length}</span></h3>
                 {#each children as child (child.id)}
                   <div class="task-link-row">
-                    <button class="subtask-complete" disabled={projectTaskPendingIds.includes(child.id)} aria-busy={projectTaskPendingIds.includes(child.id)} aria-label={child.completed ? 'Открыть подзадачу заново' : 'Завершить подзадачу'} onclick={() => setListedTaskCompleted(child, !child.completed)}>{#if child.completed}<CheckCircle2 size={15} />{:else}<Circle size={15} />{/if}</button>
+                    <button class="subtask-complete" disabled={projectTaskPendingIds.includes(child.id)} aria-busy={projectTaskPendingIds.includes(child.id)} aria-label={child.completed ? tx("Открыть подзадачу заново") : tx("Завершить подзадачу")} onclick={() => setListedTaskCompleted(child, !child.completed)}>{#if child.completed}<CheckCircle2 size={15} />{:else}<Circle size={15} />{/if}</button>
                     <button class="subtask-title" onclick={() => openTask(child, child.chatId)}>{child.title}<ChevronRight size={14} /></button>
                   </div>
                 {/each}
@@ -5915,11 +5918,11 @@
           </div>
         </div>
         {#if latestCheckpoint || latestAgentRun}
-        <aside class="task-summary-rail" aria-label="Сводка задачи">
+        <aside class="task-summary-rail" aria-label={tx("Сводка задачи")}>
           {#if latestCheckpoint && !checkpointIsRepresentedByLatestRun(latestCheckpoint, latestAgentRun)}
             <section class="task-checkpoint" aria-label={t("latestCheckpoint")}>
               <header>
-                <span><CheckCircle2 size={17} /><strong>Сводка</strong></span>
+                <span><CheckCircle2 size={17} /><strong>{tx("Сводка")}</strong></span>
                 <small>{fullDate(latestCheckpoint.created_at)}</small>
               </header>
               <p>{latestCheckpoint.summary}</p>
@@ -5993,30 +5996,30 @@
           {#if loadError && !devPreviewActive()}<div class="data-error"><strong>{t("dataOpenError")}</strong><span>{loadError}</span></div>{/if}
           <div class="prototype-heading">
             <div class="prototype-picker-wrap">
-              <button bind:this={projectPickerButton} class="prototype-project-picker" aria-label="Выбрать проект" aria-haspopup="menu" aria-expanded={projectPickerOpen} onclick={() => (projectPickerOpen = !projectPickerOpen)}>
+              <button bind:this={projectPickerButton} class="prototype-project-picker" aria-label={tx("Выбрать проект")} aria-haspopup="menu" aria-expanded={projectPickerOpen} onclick={() => (projectPickerOpen = !projectPickerOpen)}>
                 <h1>{currentChat.title}</h1><ChevronDown size={16} />
               </button>
               {#if projectPickerOpen}
-                <div class="prototype-project-menu" role="menu" aria-label="Проекты">
+                <div class="prototype-project-menu" role="menu" aria-label={tx("Проекты")}>
                   {#each chats.slice(1) as chat (chat.id)}
                     {@const count = tasks.filter(task => task.chatId === chat.id && !task.completed && !isLocalDraft(task)).length}
                     <button role="menuitem" class:selected={selectedChatId === chat.id} onclick={() => selectChat(chat)}><span>{chat.title}</span><small class="project-task-count" aria-label={`${count} открытых задач`}>{count}</small>{#if selectedChatId === chat.id}<Check size={15} />{/if}</button>
                   {/each}
                   <div class="prototype-menu-divider"></div>
-                  <button role="menuitem" onclick={() => { projectPickerOpen = false; openDockProjectModal(); }}><Plus size={15} /><span>Новый проект</span></button>
+                  <button role="menuitem" onclick={() => { projectPickerOpen = false; openDockProjectModal(); }}><Plus size={15} /><span>{tx("Новый проект")}</span></button>
                 </div>
               {/if}
             </div>
           </div>
           <div class="prototype-controls">
-            <div class="prototype-tabs" role="tablist" tabindex="-1" aria-label="Фильтр задач" onkeydown={handleProjectTabsKeydown}>
+            <div class="prototype-tabs" role="tablist" tabindex="-1" aria-label={tx("Фильтр задач")} onkeydown={handleProjectTabsKeydown}>
               <button role="tab" tabindex={projectTab === "all" ? 0 : -1} aria-selected={projectTab === "all"} onclick={() => (projectTab = "all")}>Все ({currentOpenTasks.length})</button>
               <button role="tab" tabindex={projectTab === "urgent" ? 0 : -1} aria-selected={projectTab === "urgent"} onclick={() => (projectTab = "urgent")}>Срочные ({urgentTaskCount})</button>
               <button role="tab" tabindex={projectTab === "closed" ? 0 : -1} aria-selected={projectTab === "closed"} onclick={() => (projectTab = "closed")}>Закрытые ({currentCompletedTasks.length})</button>
             </div>
             <div class="prototype-control-actions">
               <UiIconButton label={t("projectSettings")} onclick={openProjectContext}><Settings size={17} /></UiIconButton>
-              <UiButton class="prototype-add-task" onclick={() => requestNewTask("workspace")}><Plus size={16} />Новая задача</UiButton>
+              <UiButton class="prototype-add-task" onclick={() => requestNewTask("workspace")}><Plus size={16} />{tx("Новая задача")}</UiButton>
             </div>
           </div>
           {#if projectTaskError}<div class="project-task-notice"><InlineNotice tone="attention" announce>{projectTaskError}</InlineNotice></div>{/if}
@@ -6028,14 +6031,14 @@
               </button>
             {/if}
           {/if}
-          <div class="prototype-task-panel" role="tabpanel" aria-label={projectTab === "all" ? "Все задачи" : projectTab === "urgent" ? "Срочные задачи" : "Закрытые задачи"}>
+          <div class="prototype-task-panel" role="tabpanel" aria-label={projectTab === "all" ? tx("Все задачи") : projectTab === "urgent" ? tx("Срочные задачи") : tx("Закрытые задачи")}>
             <div class="prototype-task-list">
               {#each filteredProjectTasks as task (task.id)}
                 <TaskRow class="prototype-task-row" title={task.title} urgency={task.urgency} urgencyLabel={urgencyTitle(task.urgency)} completed={task.completed} completeLabel={t("completeTask")} completedLabel={t("completed")} reopenLabel={t("restoreTask")} busy={projectTaskPendingIds.includes(task.id)} oncomplete={(completed) => setListedTaskCompleted(task, completed)} onopen={() => openTask(task, currentChat.id)} />
               {:else}
                 <div class="prototype-empty">
-                  <p>{projectTab === "all" ? "Открытых задач пока нет" : projectTab === "urgent" ? "Срочных задач нет" : "Закрытых задач пока нет"}</p>
-                  {#if projectTab === "all"}<UiButton onclick={() => requestNewTask("workspace")}><Plus size={16} />Новая задача</UiButton>{/if}
+                  <p>{projectTab === "all" ? tx("Открытых задач пока нет") : projectTab === "urgent" ? tx("Срочных задач нет") : tx("Закрытых задач пока нет")}</p>
+                  {#if projectTab === "all"}<UiButton onclick={() => requestNewTask("workspace")}><Plus size={16} />{tx("Новая задача")}</UiButton>{/if}
                 </div>
               {/each}
             </div>
@@ -6045,7 +6048,7 @@
     {:else if activeSection === "trash"}
       <section class="workspace project-workspace">
         <div class="project-page trash-page">
-          <button class="prototype-back" onclick={() => openSettingsSection("general")}><ChevronLeft size={16} />К настройкам</button>
+          <button class="prototype-back" onclick={() => openSettingsSection("general")}><ChevronLeft size={16} />{tx("К настройкам")}</button>
           <header class="project-header">
             <div><h1>{t("trash")}</h1><p>{t("trashDescription")}</p></div>
             {#if trashedTasks.length}<UiButton variant="danger" size="sm" onclick={() => (emptyTrashConfirmOpen = true)}><Trash2 size={14} />{t("clear")}</UiButton>{/if}
@@ -6079,28 +6082,29 @@
     {:else}
       <section class="workspace settings-workspace">
         <div class="settings-page">
-          <button class="prototype-back" onclick={() => changeSection("tasks")}><ChevronLeft size={16} />К работе</button>
+          <button class="prototype-back" onclick={() => changeSection("tasks")}><ChevronLeft size={16} />{tx("К работе")}</button>
           <header class="settings-header"><h2>{t("settings")}</h2></header>
           <div class="settings-layout">
             <nav bind:this={settingsNavElement} class="settings-nav" aria-label={t("settingsSections")}>
-              <button data-settings-section="general" class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => openSettingsSection("general")}><Settings size={16} />Приложение</button>
+              <button data-settings-section="general" class:active={settingsSection === "general"} aria-current={settingsSection === "general" ? "page" : undefined} onclick={() => openSettingsSection("general")}><Settings size={16} />{tx("Приложение")}</button>
 
-              <button data-settings-section="agents" class:active={settingsSection === "agents"} aria-current={settingsSection === "agents" ? "page" : undefined} onclick={() => openSettingsSection("agents")}><Bot size={16}/>Агент</button>
-              <button data-settings-section="integrations" class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => openSettingsSection("integrations")}><Link size={16}/>Интеграции</button>
+              <button data-settings-section="agents" class:active={settingsSection === "agents"} aria-current={settingsSection === "agents" ? "page" : undefined} onclick={() => openSettingsSection("agents")}><Bot size={16}/>{tx("Агент")}</button>
+              <button data-settings-section="integrations" class:active={settingsSection === "integrations"} aria-current={settingsSection === "integrations" ? "page" : undefined} onclick={() => openSettingsSection("integrations")}><Link size={16}/>{tx("Интеграции")}</button>
               <button data-settings-section="data" class:active={settingsSection === "data"} aria-current={settingsSection === "data" ? "page" : undefined} onclick={() => openSettingsSection("data")}><Database size={16} />{t("data")}</button>
 
             </nav>
             <div class="settings-content">
               {#if settingsSection === "general"}
-                <section class="settings-section" aria-label="Настройки приложения">
-                  <div class="settings-section-title"><h3>Приложение</h3></div>
+                <section class="settings-section" aria-label={tx("Настройки приложения")}>
+                  <div class="settings-section-title"><h3>{tx("Приложение")}</h3></div>
+                  <div class="settings-group"><div class="setting-row"><span>{t("language")}</span><div class="language-picker" role="group" aria-label={t("language")}><button type="button" class:active={locale === "en"} aria-pressed={locale === "en"} onclick={() => setLocale("en")}>English</button><button type="button" class:active={locale === "ru"} aria-pressed={locale === "ru"} onclick={() => setLocale("ru")}>Русский</button></div></div></div>
                   <div class="settings-group"><UiSwitch label={t("reduceMotion")} checked={reduceMotion} onchange={toggleMotionPreference} /></div>
                 </section>
                 <section class="settings-section">
 
 
                   <div class="settings-group about-group">
-                    <div class="about-brand"><FloodGlyph kind="brand" size={42} /><span><strong>flood.md</strong><small>Версия {appVersion}</small></span></div>
+                    <div class="about-brand"><FloodGlyph kind="brand" size={42} /><span><strong>flood.md</strong><small>{tx("Версия")} {appVersion}</small></span></div>
                     {#if installationRuntime}
                       <div class="installation-runtime">
                         <span class="installation-runtime-summary"><FloodGlyph kind={installationRuntime.parallel_installed_copy ? "important" : installationRuntime.kind === "installed" ? "connected" : "brand"} size={18} /><span><strong>{t("applicationLaunch")}</strong><small>{installationKindLabel()}</small></span></span>
@@ -6141,7 +6145,7 @@
                     {/if}
                     {#if attachmentCleanupMessage}<p class:error={attachmentCleanupState === "error"} class:success={attachmentCleanupState === "success"} class="data-action-message" role="status">{attachmentCleanupMessage}</p>{/if}
                   </div>
-                  <button class="settings-trash-row" onclick={() => changeSection("trash")}><span><Trash2 size={16}/>Корзина</span><span>{trashedTasks.length}<ChevronRight size={15}/></span></button>
+                  <button class="settings-trash-row" onclick={() => changeSection("trash")}><span><Trash2 size={16}/>{tx("Корзина")}</span><span>{trashedTasks.length}<ChevronRight size={15}/></span></button>
                   <h4 class="settings-group-label">{t("settingsBackups")}</h4>
                   <div class="settings-group settings-actions-group">
                     <div class="data-actions">
@@ -6165,21 +6169,21 @@
                   <div class="connector-grid">
                     {#each connectorUiRegistry as connector (connector.id)}
                       {@const card = connectorCardState(connector)}
-                      <IntegrationCard provider={connector.id} title={connector.title} description={connector.id === "telegram" ? "Чаты и сообщения" : "Репозитории, issues и pull requests"} status={card.status} detail={card.tone === "idle" ? "" : card.detail} tone={card.tone} actionLabel={card.actionLabel} onclick={() => openIntegrationModal(connector.id)} />
+                      <IntegrationCard provider={connector.id} title={connector.title} description={connector.id === "telegram" ? tx("Чаты и сообщения") : tx("Репозитории, issues и pull requests")} status={card.status} detail={card.tone === "idle" ? "" : card.detail} tone={card.tone} actionLabel={card.actionLabel} onclick={() => openIntegrationModal(connector.id)} />
                     {/each}
                   </div>
                 </section>
               {:else if settingsSection === "agents"}
                 <section class="settings-section mcp-settings-section">
-                  <div class="settings-section-title"><h3>Агент</h3></div>
+                  <div class="settings-section-title"><h3>{tx("Агент")}</h3></div>
                   <div class="mcp-block"><CodexConnection /></div>
-                  <details class="settings-advanced"><summary>Дополнительно<ChevronDown size={14}/></summary>
+                  <details class="settings-advanced"><summary>{tx("Дополнительно")}<ChevronDown size={14}/></summary>
                   <div class="settings-link-group">
                     <button class="settings-link-row" onclick={() => { mcpSettingsOpen = true; mcpCopyError = ""; copied = false; }}>
-                      <span><strong>Конфигурация MCP</strong><small>Ручное подключение к клиенту</small></span><ChevronRight size={16}/>
+                      <span><strong>{tx("Конфигурация MCP")}</strong><small>{tx("Ручное подключение к клиенту")}</small></span><ChevronRight size={16}/>
                     </button>
                   </div>
-                  <details class="settings-advanced"><summary>Журнал MCP<ChevronDown size={14}/></summary>
+                  <details class="settings-advanced"><summary>{tx("Журнал MCP")}<ChevronDown size={14}/></summary>
                   <div class="mcp-block mcp-activity">
                     <div class="mcp-activity-head">
                       <div class="mcp-block-title"><strong>{t("mcpActivity")}</strong></div>
@@ -6212,8 +6216,8 @@
                   </details>
                   </details>
                   <div class="settings-automation">
-                    <h4 class="settings-group-label">Автоматизация</h4>
-                    <UiSwitch label="Создавать задачи из новых сообщений" description="Экспериментально. Использует лимиты подключённого провайдера." disabled={!inTauri()} checked={automationSettings.background_ai_triage} pending={automationSettingsState === "saving"} onchange={() => void toggleBackgroundAiTriage()} />
+                    <h4 class="settings-group-label">{tx("Автоматизация")}</h4>
+                    <UiSwitch label={tx("Создавать задачи из новых сообщений")} description={tx("Экспериментально. Использует лимиты подключённого провайдера.")} disabled={!inTauri()} checked={automationSettings.background_ai_triage} pending={automationSettingsState === "saving"} onchange={() => void toggleBackgroundAiTriage()} />
                     {#if automationSettings.background_ai_triage}<p class="mcp-hint" aria-live="polite">{automationStatusLabel()}</p>{/if}
                     {#if automationSettingsState === "error"}<p class="automation-settings-error" role="alert">{automationSettingsError || t("backgroundAiTriageFailed")}</p>{/if}
                   </div>
@@ -6229,7 +6233,7 @@
   <Dock bind:this={dock} onheightchange={(height) => dockClearance = height} visible={!projectContextOpen && activeSection === "tasks" && (workspaceView === "project" || workspaceView === "task") && Boolean(dockProject && dockProject.id !== "all")} projectId={dockProject?.id ?? "all"} projectTitle={dockProject?.title ?? ""} viewedTaskId={workspaceView === "task" ? selectedTaskId : undefined} tasks={tasks.filter((task) => !isLocalDraft(task) && task.chatId === dockProject?.id).map((task) => ({ id: task.id, title: task.title, markdown: task.markdown }))} onnewtask={openDockTaskModal} onnewproject={openDockProjectModal} onsettings={() => openSettingsSection("agents")} onconnect={() => (conversationSettingsOpen = true)} />
 </main>
 
-<UiModal bind:open={mcpSettingsOpen} title="Конфигурация MCP">
+<UiModal bind:open={mcpSettingsOpen} title={tx("Конфигурация MCP")}>
                     <div class="mcp-manual-setup">
                       <div>
                         <div class="mcp-client-tabs" role="group" aria-label={t("mcpClient")}>
@@ -6244,76 +6248,76 @@
                       </div>
                     </div>
 
-  {#snippet footer()}<UiButton onclick={() => (mcpSettingsOpen = false)}>Готово</UiButton>{/snippet}
+  {#snippet footer()}<UiButton onclick={() => (mcpSettingsOpen = false)}>{tx("Готово")}</UiButton>{/snippet}
 </UiModal>
 
-<UiModal bind:open={conversationSettingsOpen} title="Разговор для проекта">
+<UiModal bind:open={conversationSettingsOpen} title={tx("Разговор для проекта")}>
   <AgentConversationSettings active={conversationSettingsOpen} onsaved={() => { conversationSettingsOpen = false; dock?.refreshRouting(); dock?.focus(); }} showTitle={false} projects={chats.filter(chat => chat.id !== "all")} initialProjectId={dockProject?.id === "all" ? undefined : dockProject?.id} />
 </UiModal>
 
-<UiModal bind:open={dockTaskModalOpen} title="Новая задача" subtitle="Добавьте задачу в нужный проект.">
+<UiModal bind:open={dockTaskModalOpen} title={tx("Новая задача")} subtitle={tx("Добавьте задачу в нужный проект.")}>
   <form id="dock-new-task-form" class="dock-create-form" onsubmit={submitDockTask}>
-    <TextField label="Название" bind:value={dockTaskTitle} placeholder="Что нужно сделать?" maxlength={300} required />
-    <SelectField label="Проект" bind:value={dockTaskProjectId} options={chats.filter((chat) => chat.id !== "all").map((chat) => ({ value: chat.id, label: chat.title }))} />
-    <TextArea label="Описание" bind:value={dockTaskDetails} optional rows={3} placeholder="Подробности задачи" />
-    <SelectField label="Срочность" bind:value={dockTaskUrgency} options={[{ value: "normal", label: "Обычная" }, { value: "important", label: "Важная" }, { value: "urgent", label: "Срочная" }]} />
+    <TextField label={tx("Название")} bind:value={dockTaskTitle} placeholder={tx("Что нужно сделать?")} maxlength={300} required />
+    <SelectField label={tx("Проект")} bind:value={dockTaskProjectId} options={chats.filter((chat) => chat.id !== "all").map((chat) => ({ value: chat.id, label: chat.title }))} />
+    <TextArea label={tx("Описание")} bind:value={dockTaskDetails} optional rows={3} placeholder={tx("Подробности задачи")} />
+    <SelectField label={tx("Срочность")} bind:value={dockTaskUrgency} options={[{ value: "normal", label: tx("Обычная") }, { value: "important", label: tx("Важная") }, { value: "urgent", label: tx("Срочная") }]} />
     {#if dockModalError}<p class="dock-modal-error" role="alert">{dockModalError}</p>{/if}
   </form>
   {#snippet footer()}
-    <UiButton onclick={() => (dockTaskModalOpen = false)} disabled={dockModalBusy}>Отмена</UiButton>
-    <UiButton variant="primary" type="submit" form="dock-new-task-form" busy={dockModalBusy} disabled={!dockTaskTitle.trim() || !dockTaskProjectId}>Создать задачу</UiButton>
+    <UiButton onclick={() => (dockTaskModalOpen = false)} disabled={dockModalBusy}>{tx("Отмена")}</UiButton>
+    <UiButton variant="primary" type="submit" form="dock-new-task-form" busy={dockModalBusy} disabled={!dockTaskTitle.trim() || !dockTaskProjectId}>{tx("Создать задачу")}</UiButton>
   {/snippet}
 </UiModal>
 
-<UiModal bind:open={dockProjectModalOpen} preventClose={dockModalBusy} title={projectSetupCreated ? "Настройка проекта" : "Новый проект"}>
+<UiModal bind:open={dockProjectModalOpen} preventClose={dockModalBusy} title={projectSetupCreated ? tx("Настройка проекта") : tx("Новый проект")}>
   <form id="dock-new-project-form" class="dock-create-form project-setup-form" onsubmit={submitDockProject}>
-    <TextField label="Название проекта" bind:value={dockProjectTitle} placeholder="Например, сайт студии" maxlength={100} required disabled={dockModalBusy || Boolean(projectSetupCreated)} />
+    <TextField label={tx("Название проекта")} bind:value={dockProjectTitle} placeholder={tx("Например, сайт студии")} maxlength={100} required disabled={dockModalBusy || Boolean(projectSetupCreated)} />
     <details class="project-setup-section project-sources-setup">
-      <summary><span>Добавить источники</span></summary>
+      <summary><span>{tx("Добавить источники")}</span></summary>
     <details class="project-setup-section">
-      <summary><span>Telegram</span><small>{projectSetupChats.length ? `${projectSetupChats.length} чатов` : 'Не подключён к проекту'}</small></summary>
+      <summary><span>Telegram</span><small>{projectSetupChats.length ? `${projectSetupChats.length} ${locale === "en" ? "chats" : "чатов"}` : tx("Не подключён к проекту")}</small></summary>
       {#if telegramStatus.step === 'ready'}
-        <TextField label="Найти чат" bind:value={projectSetupSearch} placeholder="Название чата" />
+        <TextField label={tx("Найти чат")} bind:value={projectSetupSearch} placeholder={tx("Название чата")} />
         <div class="project-setup-options">
           {#each telegramChats.filter(chat => chat.title.toLocaleLowerCase().includes(projectSetupSearch.toLocaleLowerCase())) as chat (chat.id)}
             <UiSwitch label={chat.title} checked={projectSetupChats.includes(chat.id)} disabled={dockModalBusy} onchange={(checked) => { projectSetupChats = checked ? [...projectSetupChats, chat.id] : projectSetupChats.filter(id => id !== chat.id); }} />
-          {:else}<p>Чаты не найдены</p>{/each}
+          {:else}<p>{tx("Чаты не найдены")}</p>{/each}
         </div>
-      {:else}<UiButton size="sm" disabled={dockModalBusy} onclick={() => openProjectSetupConnection('telegram')}>Подключить Telegram</UiButton>{/if}
+      {:else}<UiButton size="sm" disabled={dockModalBusy} onclick={() => openProjectSetupConnection('telegram')}>{tx("Подключить Telegram")}</UiButton>{/if}
     </details>
     <details class="project-setup-section">
-      <summary><span>GitHub</span><small>{projectSetupRepositories.length ? `${projectSetupRepositories.length} репозиториев` : 'Не подключён к проекту'}</small></summary>
+      <summary><span>GitHub</span><small>{projectSetupRepositories.length ? `${projectSetupRepositories.length} репозиториев` : tx("Не подключён к проекту")}</small></summary>
       {#if githubStatus.connected}
         <div class="project-setup-options">
           {#each githubRepositories as repo (repo.id)}
             <UiSwitch label={repo.full_name} checked={projectSetupRepositories.includes(repo.id)} disabled={dockModalBusy || (!projectSetupRepositories.includes(repo.id) && projectSetupRepositories.length >= 19)} onchange={(checked) => { projectSetupRepositories = checked ? [...projectSetupRepositories, repo.id] : projectSetupRepositories.filter(id => id !== repo.id); }} />
-          {:else}<p>{githubBusy ? 'Загружаем репозитории…' : 'Нет доступных репозиториев'}</p>{/each}
+          {:else}<p>{githubBusy ? tx("Загружаем репозитории…") : tx("Нет доступных репозиториев")}</p>{/each}
         </div>
         {#if githubError}<InlineNotice tone="danger">{githubError}</InlineNotice>{/if}
-      {:else}<UiButton size="sm" disabled={dockModalBusy} onclick={() => openProjectSetupConnection('github')}>Подключить GitHub</UiButton>{/if}
+      {:else}<UiButton size="sm" disabled={dockModalBusy} onclick={() => openProjectSetupConnection('github')}>{tx("Подключить GitHub")}</UiButton>{/if}
     </details>
     <div class="project-folder-choice">
-      <span>{projectSetupFolder ? fileName(projectSetupFolder) : 'Папка проекта'}</span>
+      <span>{projectSetupFolder ? fileName(projectSetupFolder) : tx("Папка проекта")}</span>
       <UiButton size="sm" disabled={dockModalBusy} onclick={async () => {
-        if (!inTauri()) { dockModalError = 'Выбор папки доступен в приложении.'; return; }
-        const folder = await openDialog({ directory: true, multiple: false, title: 'Выберите папку проекта' });
+        if (!inTauri()) { dockModalError = tx("Выбор папки доступен в приложении."); return; }
+        const folder = await openDialog({ directory: true, multiple: false, title: tx("Выберите папку проекта") });
         if (typeof folder === 'string') projectSetupFolder = folder;
-      }}>{projectSetupFolder ? 'Изменить' : 'Выбрать папку'}</UiButton>
-      {#if projectSetupFolder}<UiButton size="sm" variant="quiet" disabled={dockModalBusy} onclick={() => projectSetupFolder = ''}>Убрать</UiButton>{/if}
+      }}>{projectSetupFolder ? tx("Изменить") : tx("Выбрать папку")}</UiButton>
+      {#if projectSetupFolder}<UiButton size="sm" variant="quiet" disabled={dockModalBusy} onclick={() => projectSetupFolder = ''}>{tx("Убрать")}</UiButton>{/if}
     </div>
     </details>
     {#if dockModalError}<InlineNotice tone="danger" announce>{dockModalError}</InlineNotice>{/if}
   </form>
   {#snippet footer()}
-    <UiButton onclick={() => (dockProjectModalOpen = false)} disabled={dockModalBusy}>Закрыть</UiButton>
-    <UiButton variant="primary" type="submit" form="dock-new-project-form" busy={dockModalBusy} disabled={!dockProjectTitle.trim()}>{projectSetupCreated ? 'Завершить настройку' : 'Создать проект'}</UiButton>
+    <UiButton onclick={() => (dockProjectModalOpen = false)} disabled={dockModalBusy}>{tx("Закрыть")}</UiButton>
+    <UiButton variant="primary" type="submit" form="dock-new-project-form" busy={dockModalBusy} disabled={!dockProjectTitle.trim()}>{projectSetupCreated ? tx("Завершить настройку") : tx("Создать проект")}</UiButton>
   {/snippet}
 </UiModal>
 
-<UiModal bind:open={projectContextDiscardOpen} title="Несохранённые изменения" subtitle="Изменения контекста проекта ещё не сохранены.">
+<UiModal bind:open={projectContextDiscardOpen} title="Несохранённые изменения" subtitle={tx("Изменения контекста проекта ещё не сохранены.")}>
   {#snippet footer()}
-    <UiButton onclick={() => (projectContextDiscardOpen = false)}>Продолжить редактирование</UiButton>
-    <UiButton variant="danger" onclick={() => closeProjectContext(true, true)}>Не сохранять</UiButton>
+    <UiButton onclick={() => (projectContextDiscardOpen = false)}>{tx("Продолжить редактирование")}</UiButton>
+    <UiButton variant="danger" onclick={() => closeProjectContext(true, true)}>{tx("Не сохранять")}</UiButton>
   {/snippet}
 </UiModal>
 
@@ -6419,7 +6423,7 @@
     <section class="project-context-page" bind:this={projectContextDialog} aria-label={t("projectSettings")} tabindex="-1">
       <form class="project-context-form" onsubmit={saveProjectContext}>
         <div class="project-settings-heading">
-          <button type="button" class="project-settings-back" disabled={projectContextSaving || projectMemorySaving} onclick={() => closeProjectContext()}><ChevronLeft size={16} />К проекту</button>
+          <button type="button" class="project-settings-back" disabled={projectContextSaving || projectMemorySaving} onclick={() => closeProjectContext()}><ChevronLeft size={16} />{tx("К проекту")}</button>
           <PageHeader title={t("projectSettings")} description={projectContextProjectTitle}>
             {#snippet actions()}
               {#if projectContextDraft !== projectContextSavedDraft || JSON.stringify(projectContextResources) !== projectContextSavedResources || projectAutoRunDraft !== projectAutoRunSaved || projectContextSaving}

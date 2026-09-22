@@ -1,11 +1,14 @@
 <script lang="ts">
+  import { currentLocale, translateCopy } from "../i18n";
+  const tx = $derived((text: string) => translateCopy($currentLocale, text));
   import { invoke } from '@tauri-apps/api/core';
   import { openUrl } from '@tauri-apps/plugin-opener';
+  import { open as openFile } from '@tauri-apps/plugin-dialog';
   import { onMount, onDestroy } from 'svelte';
   import { Bot, Check } from '@lucide/svelte';
   import UiButton from './ui/Button.svelte';
   import InlineNotice from './ui/InlineNotice.svelte';
-  type Status = { installed: boolean; authenticated: boolean; connected: boolean; signing_in: boolean; message?: string };
+  type Status = { installed: boolean; authenticated: boolean; connected: boolean; signing_in: boolean; message?: string; manual_path?: string };
   let status = $state<Status | null>(null);
   let busy = $state(false), loading = $state(true), error = $state('');
   let connectedNow = $state(false);
@@ -14,6 +17,18 @@
   let loginAttempt = 0;
   const native = '__TAURI_INTERNALS__' in window;
   let ready = $derived(Boolean(status?.authenticated && status?.connected));
+  async function chooseExecutable(reset = false) {
+    if (!native || busy || loading) return;
+    error = '';
+    try {
+      const selected = reset ? null : await openFile({ title: tx('Выбрать файл Codex'), multiple: false, directory: false, filters: [{ name: 'Codex', extensions: ['exe'] }] });
+      if (!reset && typeof selected !== 'string') return;
+      busy = true;
+      const result = await invoke<Status>('set_codex_executable', { path: selected });
+      if (!disposed) status = result;
+    } catch (cause) { if (!disposed) error = typeof cause === 'string' ? cause : 'Не удалось изменить путь Codex.'; }
+    finally { if (!disposed) busy = false; }
+  }
   async function refresh() {
     if (!native) { loading = false; return; }
     loading = true; error = '';
@@ -58,18 +73,19 @@
   onMount(refresh);
   onDestroy(() => { disposed = true; loginAttempt++; if (polling) clearTimeout(polling); if (signingInHere) void invoke('cancel_codex_login').catch(() => {}); });
 </script>
-<section class="codex-connection" aria-label="Подключение Codex">
+<section class="codex-connection" aria-label={tx("Подключение Codex")}>
   <div class="connection-row">
-    <Bot size={24}/><div class="connection-copy"><strong>ChatGPT / Codex</strong><span>{loading ? 'Проверяем подключение…' : !native ? 'Подключение доступно в приложении' : ready ? 'Подключён' : !status?.installed ? 'Codex не установлен' : status.authenticated ? 'Готов к подключению' : 'Войдите через ChatGPT'}</span></div>
-    {#if ready}<Check size={18} aria-label="Подключён"/>
-    {:else if native && status && !status.installed}<UiButton size="sm" onclick={() => openUrl('https://chatgpt.com/codex')}>Установить Codex</UiButton>
-    {:else}<UiButton size="sm" busy={busy} disabled={!native || loading || !status} onclick={connect}>{status?.authenticated ? 'Подключить' : 'Войти через ChatGPT'}</UiButton>{/if}
+    <Bot size={24}/><div class="connection-copy"><strong>ChatGPT / Codex</strong><span>{loading ? tx("Проверяем подключение…") : !native ? tx("Подключение доступно в приложении") : ready ? tx("Подключён") : !status?.installed ? tx("Codex не установлен") : status.authenticated ? tx("Готов к подключению") : tx("Войдите через ChatGPT")}</span></div>
+    {#if ready}<Check size={18} aria-label={tx("Подключён")}/>
+    {:else if native && status && !status.installed}<UiButton size="sm" onclick={() => openUrl('https://chatgpt.com/codex')}>{tx("Установить Codex")}</UiButton>
+    {:else}<UiButton size="sm" busy={busy} disabled={!native || loading || !status} onclick={connect}>{status?.authenticated ? tx("Подключить") : tx("Войти через ChatGPT")}</UiButton>{/if}
   </div>
-  {#if !ready}<p>Подключение позволит Codex работать с проектами и задачами flood.md. Сообщения используют лимиты вашего аккаунта ChatGPT.</p>{/if}
-  {#if connectedNow}<InlineNotice tone="success" announce>Подключено. Перезапустите Codex, чтобы он увидел подключение flood.md.</InlineNotice>{/if}
-  {#if busy}<div class="connection-actions"><span role="status">{status?.authenticated ? 'Подключаем flood.md…' : 'Завершите вход в браузере'}</span><UiButton variant="quiet" size="sm" disabled={Boolean(status?.authenticated)} onclick={cancel}>Отмена</UiButton></div>{/if}
-  {#if error || status?.message}<InlineNotice tone="danger" announce>{error || status?.message}</InlineNotice>{/if}
-  <div class="connection-actions"><UiButton variant="quiet" size="sm" disabled={!native || busy} busy={loading} onclick={refresh}>Проверить подключение</UiButton></div>
+  {#if !ready}<p>{tx("Подключение позволит Codex работать с проектами и задачами flood.md. Сообщения используют лимиты вашего аккаунта ChatGPT.")}</p>{/if}
+  {#if connectedNow}<InlineNotice tone="success" announce>{tx("Подключено. Перезапустите Codex, чтобы он увидел подключение flood.md.")}</InlineNotice>{/if}
+  {#if busy}<div class="connection-actions"><span role="status">{status?.authenticated ? tx("Подключаем flood.md…") : tx("Завершите вход в браузере")}</span><UiButton variant="quiet" size="sm" disabled={Boolean(status?.authenticated)} onclick={cancel}>{tx("Отмена")}</UiButton></div>{/if}
+  {#if error || status?.message}<InlineNotice tone="danger" announce>{tx(error || status?.message || "")}</InlineNotice>{/if}
+  <div class="connection-actions"><UiButton variant="quiet" size="sm" disabled={!native || busy || loading} onclick={() => chooseExecutable()}>{tx('Выбрать файл Codex')}</UiButton>{#if status?.manual_path}<UiButton variant="quiet" size="sm" disabled={busy || loading} onclick={() => chooseExecutable(true)}>{tx('Автоматический поиск')}</UiButton>{/if}<UiButton variant="quiet" size="sm" disabled={!native || busy} busy={loading} onclick={refresh}>{tx("Проверить подключение")}</UiButton></div>
+  {#if status?.manual_path}<code class="executable-path" title={status.manual_path}>{status.manual_path}</code>{/if}
 </section>
 <style>
   .codex-connection { display:grid; gap:16px; }
@@ -79,4 +95,5 @@
   span,p { font-size:13px; color:var(--muted); line-height:1.5; }
   p { margin:0; }
   .connection-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; }
+  .executable-path { color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
 </style>

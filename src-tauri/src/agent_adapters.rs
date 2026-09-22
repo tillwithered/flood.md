@@ -239,7 +239,7 @@ fn ensure_mcp_registration(
                 return Ok(());
             }
             previous_codex = Some((registered_command.to_owned(), old_args));
-            let mut remove = Command::new(client.executable());
+            let mut remove = agent_command(client.executable());
             hide_background_console(&mut remove);
             let output = remove.args(["mcp", "remove", SERVER_NAME]).output()
                 .map_err(|error| format!("Не удалось обновить регистрацию MCP Codex: {error}"))?;
@@ -268,7 +268,7 @@ fn ensure_mcp_registration(
 }
 
 fn add_mcp_registration(client: AgentClient, launch_command: &str, launch_args: &[String]) -> Result<(), String> {
-    let mut command = Command::new(client.executable());
+    let mut command = agent_command(client.executable());
     command.args(["mcp", "add"]);
     if matches!(client, AgentClient::Claude) {
         command.args(["--scope", "user", "--transport", "stdio"]);
@@ -383,8 +383,16 @@ fn validated_workspace_root(value: &str) -> Result<PathBuf, String> {
     path.canonicalize().map_err(|error| error.to_string())
 }
 
+fn agent_command(executable: &str) -> Command {
+    if executable == "codex" {
+        super::local_agent_command(super::LocalAgentProvider::Codex)
+    } else {
+        Command::new(executable)
+    }
+}
+
 fn command_output(executable: &str, args: &[&str]) -> Option<String> {
-    let mut command = Command::new(executable);
+    let mut command = agent_command(executable);
     hide_background_console(&mut command);
     let output = command.args(args).output().ok()?;
     if !output.status.success() {

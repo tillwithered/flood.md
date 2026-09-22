@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { currentLocale, translateCopy } from "../../i18n";
+  const tx = $derived((text: string) => translateCopy($currentLocale, text));
   import type { Snippet } from "svelte";
   import { X } from "@lucide/svelte";
   import UiIconButton from "./IconButton.svelte";
@@ -44,7 +46,7 @@
         <h2 id={titleId}>{title}</h2>
         {#if subtitle}<p>{subtitle}</p>{/if}
       </div>
-      <UiIconButton label={closeLabel} disabled={preventClose} onclick={requestClose}><X size={17} /></UiIconButton>
+      <UiIconButton label={tx(closeLabel)} disabled={preventClose} onclick={requestClose}><X size={17} /></UiIconButton>
     </header>
     <div class="ui-modal-body">{#if children}{@render children()}{/if}</div>
     {#if footer}<footer class="ui-modal-footer">{@render footer()}</footer>{/if}

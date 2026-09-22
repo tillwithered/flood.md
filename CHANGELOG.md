@@ -1,7 +1,9 @@
 # Changelog
 
-## 0.2.1 — 2026-09-22
+## 0.2.2 — 2026-09-22
 
+- Default to English for new installations, preserve the saved locale and provide English/Russian settings. Localize the dock, task controls and settings.
+- Discover the Codex desktop CLI outside PATH and allow choosing a validated executable manually. Use the same resolver for MCP registration and execution.
 - Restore the dock glass material in collapsed and expanded states using a separate translucent blur layer with standard rounded corners.
 - Add an explicit manual release option for user-authorized hotfixes without tests; regular releases retain the CI gate.
 

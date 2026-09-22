@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { currentLocale, translateCopy } from "../../i18n";
+  const tx = $derived((text: string) => translateCopy($currentLocale, text));
   import type { HTMLTextareaAttributes } from "svelte/elements";
 
   type Props = Omit<HTMLTextareaAttributes, "value"> & {
@@ -21,7 +23,7 @@
 </script>
 
 <label class={["ui-text-area", className]}>
-  <span class="ui-text-area-label">{label}{#if optional}<small>Необязательно</small>{/if}</span>
+  <span class="ui-text-area-label">{label}{#if optional}<small>{tx("Необязательно")}</small>{/if}</span>
   <textarea {...rest} id={inputId} {rows} bind:value aria-invalid={error ? "true" : undefined} aria-describedby={describedBy}></textarea>
   {#if error}<small id={descriptionId} class="ui-text-area-error">{error}</small>{:else if help}<small id={descriptionId}>{help}</small>{/if}
 </label>

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { currentLocale, translateCopy } from "../../i18n";
+  const tx = $derived((text: string) => translateCopy($currentLocale, text));
   import type { HTMLInputAttributes } from "svelte/elements";
 
   type Props = Omit<HTMLInputAttributes, "value" | "size"> & {
@@ -22,7 +24,7 @@
 </script>
 
 <label class={["ui-text-field", className]} data-size={size}>
-  <span class="ui-text-field-label">{label}{#if optional}<small>Необязательно</small>{/if}</span>
+  <span class="ui-text-field-label">{label}{#if optional}<small>{tx("Необязательно")}</small>{/if}</span>
   <input {...rest} id={inputId} bind:value aria-invalid={error ? "true" : undefined} aria-describedby={describedBy} />
   {#if error}<small id={descriptionId} class="ui-text-field-error">{error}</small>{:else if help}<small id={descriptionId}>{help}</small>{/if}
 </label>

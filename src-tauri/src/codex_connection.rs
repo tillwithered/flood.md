@@ -12,6 +12,38 @@ use tauri::AppHandle;
 
 static LOGIN: Mutex<Option<(Child, Instant)>> = Mutex::new(None);
 
+fn executable_config() -> std::path::PathBuf {
+    super::default_data_dir().join("integrations").join("codex-executable.json")
+}
+
+pub(super) fn manual_executable() -> Option<std::path::PathBuf> {
+    serde_json::from_slice::<Option<std::path::PathBuf>>(&std::fs::read(executable_config()).ok()?).ok().flatten()
+}
+
+#[tauri::command]
+pub async fn set_codex_executable(app: AppHandle, path: Option<String>) -> Result<ConnectionStatus, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let selected = if let Some(value) = path {
+            let candidate = std::path::PathBuf::from(value);
+            if !candidate.is_absolute() || !candidate.is_file() || candidate.extension().and_then(|v| v.to_str()).is_none_or(|v| !v.eq_ignore_ascii_case("exe")) {
+                return Err("Выберите исполняемый файл Codex (.exe).".to_string());
+            }
+            let candidate = candidate.canonicalize().map_err(|_| "Не удалось открыть выбранный файл.".to_string())?;
+            let detected = super::inspect_local_agent_command(super::LocalAgentProvider::Codex, std::process::Command::new(&candidate));
+            if !detected.available || !detected.version.as_deref().is_some_and(|version| version.to_ascii_lowercase().contains("codex")) {
+                return Err("Выбранный файл не отвечает как Codex CLI. Выберите codex.exe.".to_string());
+            }
+            Some(candidate)
+        } else { None };
+        let config = executable_config();
+        std::fs::create_dir_all(config.parent().unwrap()).map_err(|_| "Не удалось сохранить путь Codex.".to_string())?;
+        let mut file = atomic_write_file::AtomicWriteFile::open(&config).map_err(|_| "Не удалось сохранить путь Codex.".to_string())?;
+        file.write_all(&serde_json::to_vec(&selected).map_err(|e| e.to_string())?).map_err(|_| "Не удалось сохранить путь Codex.".to_string())?;
+        file.commit().map_err(|_| "Не удалось сохранить путь Codex.".to_string())?;
+        Ok(status(&app))
+    }).await.map_err(|_| "Не удалось изменить путь Codex.".to_string())?
+}
+
 struct Client {
     child: Child,
     input: ChildStdin,
@@ -107,6 +139,7 @@ impl Client {
 
 #[derive(Serialize)]
 pub struct ConnectionStatus {
+    manual_path: Option<String>,
     installed: bool,
     authenticated: bool,
     connected: bool,
@@ -132,6 +165,7 @@ fn status(app: &AppHandle) -> ConnectionStatus {
         .unwrap_or(false);
     let installed = super::inspect_local_agent(super::LocalAgentProvider::Codex).available;
     let mut result = ConnectionStatus {
+        manual_path: manual_executable().map(|path| path.to_string_lossy().into_owned()),
         installed,
         authenticated: false,
         connected: false,
