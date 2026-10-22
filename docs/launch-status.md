@@ -7,8 +7,8 @@
   flood.md-web archived. Verified mirror backups are local in ignored .backups/.
 - Original React/TypeScript components, semantic tokens, CLI and agent packages.
 - React build, TypeScript checks, 10 unit/contract tests, clean tarball installation,
-  Next.js production build, and 6 desktop/mobile browser tests passed locally.
-- GitHub CI passed at commit 141e24d.
+  Next.js production build, and 8 desktop/mobile browser tests passed locally.
+- GitHub CI passed at commit cdea4c8.
 - Free npm organization flood-md belongs to tillwithered.
 - Four 0.1.0 packages submitted to npm staged publishing; not publicly installable yet.
 - Railway web source switched to this repository, main branch. Typed infrastructure
@@ -16,9 +16,9 @@
 
 ## Publication still pending
 
-npm requires a completed security-key/passkey 2FA setup. Email login approval alone
-does not satisfy publication requirements. The user must complete credential setup
-on npm; never collect a password, OTP or recovery codes in project files or chat.
+npm security-key 2FA is configured. Trusted publishers have been saved for tokens
+and React. Agent and CLI still require per-operation owner authentication. Never
+collect a password, OTP or recovery codes in project files or chat.
 
 Staged release IDs:
 
@@ -35,14 +35,13 @@ Configure trusted publishers for release.yml and npm-release, then set
 apps/website/src/release.json published=true and deploy. Do not announce the command
 as available before those checks pass.
 
-## Hosting still pending
+## Hosting verified
 
-Railway reports a platform outage: https://status.railway.com . Latest website
-deployment at this checkpoint: cfe00184-5f20-4f23-9f0c-bffc1e2dae57, queued for
-commit 141e24d. Do not keep submitting identical deployments. Domain flood.md and
+Railway deployment cfe00184-5f20-4f23-9f0c-bffc1e2dae57 succeeded for commit 141e24d.
+https://flood.md/health and /llms.txt respond successfully. Domain flood.md and
 generated web-staging-2548.up.railway.app remain attached to web in staging, port 3000.
-Verify actual deployment and endpoints after the queue clears. The new site has
-not been verified live; existing backend services/volumes have not been deleted.
+Deploy the latest main to include the release-availability guard added after that
+commit. Existing backend services/volumes have not been deleted.
 
 This is a dated checkpoint, not live service state. Re-read GitHub, npm and Railway
 before continuing external mutations.
