@@ -6,10 +6,10 @@ coding agents. No third-party UI component library or Tailwind dependency.
 
 ## Connect
 
-After the first npm release:
+Verified public release (see [launch status](docs/launch-status.md) for 0.1.1 rollout):
 
 ```sh
-npx @flood-md/cli@0.1.1 init
+npx @flood-md/cli@0.1.0 init
 ```
 
 Run in an existing npm-based React or Next.js project. Use `init --dry-run` to see

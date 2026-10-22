@@ -17,7 +17,7 @@ export default defineRailway(() => {
     build: {
       builder: "DOCKERFILE",
       dockerfilePath: "Dockerfile",
-      watchPatterns: ["/**"],
+      watchPatterns: [],
     },
     healthcheck: "/health",
     healthcheckTimeout: 30,
