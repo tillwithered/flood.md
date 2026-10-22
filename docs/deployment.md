@@ -4,8 +4,8 @@ The Docker image builds the site and runs a dependency-free Node HTTP server as
 an unprivileged user. It honors PORT, exposes /health and returns real 404s for
 missing machine-readable files. No database or volume is required.
 
-Connect `tillwithered/flood.md`, branch `main`, repository root, with railway.json.
-Enable Wait for CI. Attach the existing flood.md custom domain after verifying
+Connect `tillwithered/flood.md`, branch `main`, repository root, with
+`.railway/railway.ts` (see its README). Enable Wait for CI. Attach the existing flood.md custom domain after verifying
 the new service on its generated domain. Inspect existing service/domain ownership
 before replacing anything. Preserve the old deployment until the new one passes.
 
