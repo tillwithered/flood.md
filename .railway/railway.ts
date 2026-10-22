@@ -5,7 +5,10 @@ export const partial = "flood-design-web";
 
 export default defineRailway(() => {
   const web = service("web", {
-    source: github("tillwithered/flood.md", { branch: "main", checkSuites: true }),
+    source: github("tillwithered/flood.md", {
+      branch: "main",
+      checkSuites: true,
+    }),
     env: {
       PORT: preserve(),
       FLOOD_CORE_API_URL: preserve(),

@@ -39,5 +39,12 @@ await copyFile(
   "apps/website/public/agent/DESIGN.md",
 );
 await copyFile("packages/agent/SKILL.md", "apps/website/public/agent/SKILL.md");
-await copyFile("docs/llms.txt", "apps/website/public/llms.txt");
+const release = JSON.parse(
+  await readFile("apps/website/src/release.json", "utf8"),
+);
+const guide = await readFile("docs/llms.txt", "utf8");
+await writeFile(
+  "apps/website/public/llms.txt",
+  `${release.published ? "Release status: published." : "Release status: PREVIEW. Packages are staged on npm; do not run the installation command until the release is published."}\n\n${guide}`,
+);
 console.log("Built Flood packages and agent endpoints.");

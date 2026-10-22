@@ -12,8 +12,9 @@ import {
 } from "@flood-md/react";
 import "@flood-md/react/styles.css";
 import "./site.css";
+import release from "./release.json";
 
-const command = "npx @flood-md/cli@0.1.0 init";
+const command = `npx @flood-md/cli@${release.version} init`;
 function App() {
   const [dark, setDark] = useState(false);
   const [tab, setTab] = useState("button");
@@ -87,18 +88,26 @@ function App() {
               variant="ghost"
               size="sm"
               onClick={copy}
+              disabled={!release.published}
               aria-label="Copy installation command"
             >
               Copy <span aria-hidden="true">⧉</span>
             </Button>
           </div>
           <p className="install-help" role="status">
-            {copyStatus || (
+            {!release.published ? (
               <>
-                Or give your agent{" "}
-                <Link href="/llms.txt">flood.md/llms.txt</Link>. It knows the
-                way.
+                Preview · npm release is being prepared.{" "}
+                <Link href="/llms.txt">Agent guide</Link>
               </>
+            ) : (
+              copyStatus || (
+                <>
+                  Or give your agent{" "}
+                  <Link href="/llms.txt">flood.md/llms.txt</Link>. It knows the
+                  way.
+                </>
+              )
             )}
           </p>
         </div>

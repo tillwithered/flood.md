@@ -18,6 +18,15 @@ After a partially completed publication, rerun the same workflow: it skips alrea
 published versions only after comparing package integrity with the local tarball.
 Different existing bytes fail the release instead of silently accepting a collision.
 
+For an interactive first release, npm 12 staged publishing can submit tarballs
+without bypass tokens: `npx npm@12.2.1 stage publish <tarball> --access public`.
+After automated review, the owner approves each staged version with 2FA on npm.
+Existing staged versions are listed in docs/launch-status.md. Configure OIDC
+after the packages exist; do not upload a duplicate staged version just to retry.
+
+The website's src/release.json published flag must remain false until all public
+package versions and a real CLI installation have been verified.
+
 Later releases bump all four package versions, CLI VERSION and shipped docs/site
 command together, update CHANGELOG.md and test the migration. `release:check`
 checks package versions and internal dependency pins; reviewers must check docs.
