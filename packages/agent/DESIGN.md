@@ -1,4 +1,4 @@
-# Flood design system · 0.1.0
+# Flood design system · 0.1.1
 
 React + TypeScript. Next.js App Router is supported. Flood owns its components,
 tokens, CSS and installer. Do not introduce another UI library or copy external components.

@@ -7,7 +7,7 @@
    `tillwithered/flood.md`, workflow `release.yml`, environment `npm-release`.
    Staged package placeholders allow trust to be configured before the first
    public version. No long-lived npm token is required for this OIDC path.
-5. Create a GitHub Release with tag `v0.1.0`; the release workflow verifies tag and
+5. Create a GitHub Release with tag `v0.1.1`; the release workflow verifies tag and
    package versions and publishes tokens → React → agent → CLI.
 6. Configure required reviewers for GitHub environment `npm-release` if desired.
 7. Verify the actual registry versions, install into a clean React project, and

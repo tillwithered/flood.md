@@ -22,8 +22,10 @@
 npm security-key 2FA is configured. All four packages trust GitHub repository
 tillwithered/flood.md, workflow release.yml and environment npm-release. Initial
 staged uploads were individually approved by the owner. The first GitHub publish
-attempt authenticated but encountered the staged-version lock; rerunning skips
-public versions after comparing tarball integrity.
+attempt authenticated but encountered the staged-version lock. On retry, tokens,
+React and agent matched exactly; CLI differed only in the executable file mode
+between the Windows-staged archive and Linux build. Version 0.1.1 is prepared for
+publication entirely from Linux GitHub Actions with provenance.
 
 Approved staged release IDs (historical):
 
@@ -35,7 +37,8 @@ Approved staged release IDs (historical):
 | @flood-md/cli    | 4dd82fa5-e5b7-49ae-b49e-f4898911719d |
 
 All four 0.1.0 versions and a clean public-registry installation are verified.
-The website's release availability flag is now enabled. First release:
+The website's release availability flag remains disabled for 0.1.1 until the new
+registry versions and installation are checked. First release:
 https://github.com/tillwithered/flood.md/releases/tag/v0.1.0 .
 
 ## Hosting verified

@@ -58,7 +58,7 @@ function App() {
           flood<span>.md</span>
         </a>
         <div className="header-right">
-          <span className="release">v0.1.0 · first foundations</span>
+          <span className="release">v{release.version} · first foundations</span>
           <Link href="https://github.com/tillwithered/flood.md">
             GitHub <span aria-hidden="true">↗</span>
           </Link>

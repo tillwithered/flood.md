@@ -7,8 +7,8 @@ packages; scope ownership must be confirmed on the npm account first.
 After publication, in an existing React or Next.js npm project:
 
 ```sh
-npx @flood-md/cli@0.1.0 init --dry-run
-npx @flood-md/cli@0.1.0 init
+npx @flood-md/cli@0.1.1 init --dry-run
+npx @flood-md/cli@0.1.1 init
 ```
 
 Import `@flood-md/react/styles.css` once at the application root. For Next.js use
@@ -20,7 +20,7 @@ client does not discover `.agents/skills`. Existing AGENTS.md is never replaced.
 ## Manual
 
 ```sh
-npm install --save-exact @flood-md/tokens@0.1.0 @flood-md/react@0.1.0 @flood-md/agent@0.1.0
+npm install --save-exact @flood-md/tokens@0.1.1 @flood-md/react@0.1.1 @flood-md/agent@0.1.1
 ```
 
 Use guide files from the installed agent package. `flood doctor` requires the CLI
