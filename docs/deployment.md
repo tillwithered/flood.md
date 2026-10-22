@@ -1,19 +1,39 @@
-# Railway deployment
+# Hosting the public website
 
-The Docker image builds the site and runs a dependency-free Node HTTP server as
-an unprivileged user. It honors PORT, exposes /health and returns real 404s for
-missing machine-readable files. No database or volume is required.
+The website is a static React application with public agent guides and a JSON
+schema. The production container serves only its built dist directory through a
+dependency-free Node HTTP server. It runs as an unprivileged user and needs no
+database, account system, volume or application secrets.
 
-Connect `tillwithered/flood.md`, branch `main`, repository root, with
-`.railway/railway.ts` (see its README). Enable Wait for CI. Attach the existing flood.md custom domain after verifying
-the new service on its generated domain. Inspect existing service/domain ownership
-before replacing anything. Preserve the old deployment until the new one passes.
+## Local production build
 
-Check /, /health, /llms.txt, /agent/DESIGN.md and /schema/config.json. Test the
-installation command against published npm packages before announcing the site.
+```sh
+npm ci
+npm run build
+npm start
+```
 
-Existing Railway project: `flood-md` (`d77af5a1-bd0e-4a80-aaae-cce206a48bf9`).
-The custom domain currently belongs to `web` in **staging**, not production.
-Preserve that domain attachment while replacing the web source and Dockerfile
-configuration. Legacy backend services and their data are outside this migration.
-Do not treat local build success as evidence of a public deployment.
+The server listens on PORT, defaulting to 4173. The root Dockerfile builds the same
+output in a Node 24 image and starts the server. Container runtime contents are
+limited to the built website and server entry; source and build dependencies stay
+in the build stage.
+
+## Hosting contract
+
+- Build from the repository root using the Dockerfile.
+- Set the hosting platform's port to match PORT and configure /health as the probe.
+- Wait for the required verify check before deploying a public source commit.
+- Keep credentials in service secret stores, never source or build assets.
+- Configure TLS and domain routing in the hosting platform.
+
+Account-specific infrastructure and operational records are maintained separately
+from this repository. Contributors do not need access to those records to build
+or test the site. Do not deploy a private operations checkout as website source.
+
+## Verification
+
+Check /, /health, /llms.txt, /agent/DESIGN.md, /agent/SKILL.md and
+/schema/config.json. Missing paths should return 404. Verify the installed npm
+packages and real CLI installation before enabling the site's installation command
+in apps/website/src/release.json. A successful local build is not proof of a live
+deployment; inspect the deployed endpoints after the rollout.

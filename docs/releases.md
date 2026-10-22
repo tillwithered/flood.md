@@ -21,8 +21,8 @@ Different existing bytes fail the release instead of silently accepting a collis
 For an interactive first release, npm 12 staged publishing can submit tarballs
 without bypass tokens: `npx npm@12.2.1 stage publish <tarball> --access public`.
 After automated review, the owner approves each staged version with 2FA on npm.
-Existing staged versions are listed in docs/launch-status.md. Configure OIDC
-after the packages exist; do not upload a duplicate staged version just to retry.
+Configure OIDC after a new package exists; do not upload a duplicate staged
+version just to retry. Account-specific setup records belong outside this repo.
 
 The website's src/release.json published flag must remain false until all public
 package versions and a real CLI installation have been verified.

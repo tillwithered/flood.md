@@ -12,5 +12,5 @@
     "noEmit": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["packages/react/src", "apps/website/src", ".railway/railway.ts"]
+  "include": ["packages/react/src", "apps/website/src"]
 }
