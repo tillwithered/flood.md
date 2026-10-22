@@ -1,10 +1,8 @@
 # Installation
 
-Before the initial npm publication, use a local checkout (`npm ci && npm run build`)
-and `node packages/cli/bin/flood.mjs --help`. Public commands require published npm
-packages; scope ownership must be confirmed on the npm account first.
-
-After publication, in an existing React or Next.js npm project:
+Use Node.js 22.12 or newer and an existing React or Next.js npm project. React
+18.3/19 is accepted by peer dependencies; React 19 and Next.js App Router are
+the current CI integration targets.
 
 ```sh
 npx @flood-md/cli@0.1.1 init --dry-run
@@ -28,8 +26,13 @@ generated configuration, and does not inspect your stylesheet imports.
 
 ## Updates
 
-Read the changelog, upgrade the three core packages to the same exact release,
-review updated agent docs, and update `flood.json` after successful migration.
+Read the changelog and choose a published target version. Upgrade tokens, React
+and agent to that same exact version with npm install --save-exact. Use the CLI
+for that target version when running doctor. Compare the installed agent package's
+DESIGN.md and SKILL.md with your customized copies, apply relevant changes, and
+update flood.json's version after a successful migration. Keep existing framework,
+paths and project-specific instruction changes.
 The CLI deliberately has no destructive `update` command in v0.1. Major changes
 need explicit migration notes. `add` is unnecessary: all eight core components
-ship in the React package and are imported by name.
+ship in the React package and are imported by name. Run doctor and your project's
+build/tests after upgrading. Do not rerun init to replace existing instructions.

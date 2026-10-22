@@ -27,9 +27,19 @@ export function Example() {
 }
 ```
 
-Give an agent `https://flood.md/llms.txt` after deploying the new site. The guide
+Give an agent `https://flood.md/llms.txt`. The guide
 uses the same CLI as a manual installation. `npx @flood-md/cli doctor` checks
-installed versions and owned instruction files. See [installation](docs/installation.md).
+installed versions and owned instruction files.
+
+## Documentation
+
+Start with the [documentation index](docs/README.md):
+
+- [Installation and updates](docs/installation.md)
+- [Component API and examples](docs/components.md)
+- [Tokens and themes](docs/theming.md)
+- [Agent setup](docs/agents.md)
+- [Frequently asked questions](docs/faq.md)
 
 ## First foundations
 
@@ -69,15 +79,10 @@ The site is one screen; `/playground` is the component verification surface.
 | `apps/website`    | Landing page and plain-text agent endpoints |
 | `examples/next`   | Server/client boundary integration fixture  |
 
-Read [architecture](docs/architecture.md), [releases](docs/releases.md), and
-[deployment](docs/deployment.md). The previous desktop application is preserved
-separately as `tillwithered/flood-desktop`; this repository is a new product.
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [architecture](docs/architecture.md),
+[releases](docs/releases.md), and [deployment](docs/deployment.md).
+Report vulnerabilities using the [security policy](SECURITY.md).
 
-## License and commercial direction
+## License
 
-The core is MIT licensed. Future premium screen packs, project customization
-tools and services can be separate products. No billing or account infrastructure
-is required by this core.
-
-The original Flood mark was preserved from the author's desktop repository; no
-desktop application code is included in this new implementation.
+Flood is [MIT licensed](LICENSE).

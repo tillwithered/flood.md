@@ -8,6 +8,7 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 .env*
+.npmrc
 !.env.example
 .DS_Store
 apps/website/public/agent/

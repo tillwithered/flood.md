@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Add component, theme, agent and FAQ guides with a documentation index.
+- Add contribution and private vulnerability reporting guidance.
+- Move account-specific hosting configuration and operational journals outside
+  the public repository; use npm trusted publishing without a token fallback.
+
 ## 0.1.1 — Reproducible release
 
 - Publish all four packages from Linux GitHub Actions with provenance.
@@ -15,5 +22,5 @@
 - One-screen landing page and Railway container configuration.
 - Package-consumer tests and Next.js App Router integration fixture.
 
-Registry and hosting status are tracked in docs/launch-status.md; this changelog
-is not a publication receipt.
+Published versions are listed in GitHub Releases and npm. Documentation on main
+may include unreleased changes; use the matching release tag for stable guidance.
