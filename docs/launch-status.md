@@ -10,17 +10,22 @@
   Next.js production build, and 8 desktop/mobile browser tests passed locally.
 - GitHub CI passed at commit cdea4c8.
 - Free npm organization flood-md belongs to tillwithered.
-- Four 0.1.0 packages submitted to npm staged publishing; not publicly installable yet.
+- All four packages publicly published at 0.1.0: @flood-md/tokens, @flood-md/react,
+  @flood-md/agent and @flood-md/cli.
+- Clean public-registry consumer passed CLI dry-run, real init, doctor, exact
+  package versions, preservation of host AGENTS.md and component SSR.
 - Railway web source switched to this repository, main branch. Typed infrastructure
   applied as partial flood-design-web: only web, no resource deletions.
 
-## Publication still pending
+## Publication verified
 
-npm security-key 2FA is configured. Trusted publishers have been saved for tokens
-and React. Agent and CLI still require per-operation owner authentication. Never
-collect a password, OTP or recovery codes in project files or chat.
+npm security-key 2FA is configured. All four packages trust GitHub repository
+tillwithered/flood.md, workflow release.yml and environment npm-release. Initial
+staged uploads were individually approved by the owner. The first GitHub publish
+attempt authenticated but encountered the staged-version lock; rerunning skips
+public versions after comparing tarball integrity.
 
-Staged release IDs:
+Approved staged release IDs (historical):
 
 | Package          | Stage ID                             |
 | ---------------- | ------------------------------------ |
@@ -29,19 +34,17 @@ Staged release IDs:
 | @flood-md/agent  | 55317230-f515-4d23-85e2-ae099434fbf0 |
 | @flood-md/cli    | 4dd82fa5-e5b7-49ae-b49e-f4898911719d |
 
-After npm automated review and owner approval, verify all four 0.1.0 versions on
-the public registry and test `npx @flood-md/cli@0.1.0 init` in a clean consumer.
-Configure trusted publishers for release.yml and npm-release, then set
-apps/website/src/release.json published=true and deploy. Do not announce the command
-as available before those checks pass.
+All four 0.1.0 versions and a clean public-registry installation are verified.
+The website's release availability flag is now enabled. First release:
+https://github.com/tillwithered/flood.md/releases/tag/v0.1.0 .
 
 ## Hosting verified
 
 Railway deployment cfe00184-5f20-4f23-9f0c-bffc1e2dae57 succeeded for commit 141e24d.
 https://flood.md/health and /llms.txt respond successfully. Domain flood.md and
 generated web-staging-2548.up.railway.app remain attached to web in staging, port 3000.
-Deploy the latest main to include the release-availability guard added after that
-commit. Existing backend services/volumes have not been deleted.
+Deploy this launch update to replace the initial deployment with latest verified
+source. Existing backend services/volumes have not been deleted.
 
 This is a dated checkpoint, not live service state. Re-read GitHub, npm and Railway
 before continuing external mutations.
