@@ -10,7 +10,7 @@
   Next.js production build, and 8 desktop/mobile browser tests passed locally.
 - GitHub CI passed at commit e974c09 (run 39777348689).
 - Free npm organization flood-md belongs to tillwithered.
-- All four packages publicly published at 0.1.0: @flood-md/tokens, @flood-md/react,
+- All four packages publicly published at 0.1.1: @flood-md/tokens, @flood-md/react,
   @flood-md/agent and @flood-md/cli.
 - Clean public-registry consumer passed CLI dry-run, real init, doctor, exact
   package versions, preservation of host AGENTS.md and component SSR.
@@ -28,10 +28,11 @@ between the Windows-staged archive and Linux build. Version 0.1.1 was accepted b
 npm entirely from Linux GitHub Actions with provenance. Release workflow passed:
 https://github.com/tillwithered/flood.md/actions/runs/39777351243 .
 
-At this checkpoint the public registry still returns 404 for 0.1.1. npm reports
-degraded publishing, package views and installation: https://status.npmjs.org/ .
-Do not submit duplicate versions. Recheck actual public availability before
-enabling the 0.1.1 website command and repeat the clean registry consumer check.
+Public availability of all four 0.1.1 packages is verified. A clean consumer passed
+real CLI dry-run, init, doctor, exact dependency versions, preserved AGENTS.md and
+SSR. Registry visibility lagged the accepted publication during npm's reported
+incident, then recovered for these packages. CLI provenance is available in its
+registry dist.attestations metadata.
 
 Approved staged release IDs (historical):
 
@@ -42,10 +43,8 @@ Approved staged release IDs (historical):
 | @flood-md/agent  | 55317230-f515-4d23-85e2-ae099434fbf0 |
 | @flood-md/cli    | 4dd82fa5-e5b7-49ae-b49e-f4898911719d |
 
-All four 0.1.0 versions and a clean public-registry installation are verified.
-The website's release availability flag remains disabled for 0.1.1 until the new
-registry versions and installation are checked. First release:
-https://github.com/tillwithered/flood.md/releases/tag/v0.1.0 .
+The website's release availability flag is enabled for verified version 0.1.1.
+Release: https://github.com/tillwithered/flood.md/releases/tag/v0.1.1 .
 
 ## Hosting verified
 
