@@ -1,0 +1,191 @@
+@import "@flood-md/tokens/tokens.css";
+
+:where(.flood-button, .flood-input, .flood-choice, .flood-field, .flood-link) {
+  box-sizing: border-box;
+  font-family: var(--flood-font-sans);
+  font-size: var(--flood-text-sm);
+  line-height: 1.45;
+}
+:where(
+  .flood-button,
+  .flood-input,
+  .flood-check,
+  .flood-switch-input,
+  .flood-link
+):focus-visible {
+  outline: 2px solid var(--flood-focus);
+  outline-offset: 3px;
+}
+.flood-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--flood-space-2);
+  min-height: var(--flood-control-height);
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--flood-radius-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity var(--flood-duration);
+}
+.flood-button--solid {
+  background: var(--flood-action);
+  color: var(--flood-action-text);
+}
+.flood-button--outline {
+  border-color: var(--flood-border);
+  background: var(--flood-surface);
+  color: var(--flood-text);
+}
+.flood-button--ghost {
+  background: transparent;
+  color: var(--flood-text);
+}
+.flood-button--sm {
+  min-height: 32px;
+  padding: 4px 12px;
+}
+.flood-button--solid:hover:not(:disabled) {
+  opacity: 0.86;
+}
+.flood-button--outline:hover:not(:disabled),
+.flood-button--ghost:hover:not(:disabled) {
+  background: var(--flood-surface-hover);
+}
+.flood-button:disabled {
+  cursor: not-allowed;
+  background: var(--flood-disabled);
+  color: var(--flood-disabled-text);
+}
+.flood-input {
+  width: 100%;
+  min-height: var(--flood-control-height);
+  padding: 9px 12px;
+  border: 1px solid var(--flood-border);
+  border-radius: var(--flood-radius-md);
+  background: var(--flood-surface);
+  color: var(--flood-text);
+}
+.flood-input::placeholder {
+  color: var(--flood-muted);
+}
+.flood-input[aria-invalid="true"] {
+  border-color: var(--flood-danger);
+}
+.flood-input:disabled {
+  background: var(--flood-disabled);
+  color: var(--flood-disabled-text);
+  cursor: not-allowed;
+}
+.flood-textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+.flood-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--flood-space-2);
+  min-height: var(--flood-control-height);
+  color: var(--flood-text);
+  cursor: pointer;
+}
+.flood-choice:has(input:disabled) {
+  cursor: not-allowed;
+  color: var(--flood-disabled-text);
+}
+.flood-check {
+  margin: 0;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--flood-action);
+  cursor: inherit;
+}
+.flood-switch {
+  justify-content: space-between;
+  gap: var(--flood-space-6);
+}
+.flood-switch-input {
+  appearance: none;
+  flex-shrink: 0;
+  width: 36px;
+  height: 22px;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--flood-border);
+  border-radius: 999px;
+  background: var(--flood-surface-hover);
+  cursor: inherit;
+}
+.flood-switch-input::before {
+  content: "";
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--flood-muted);
+  transition: transform var(--flood-duration);
+}
+.flood-switch-input:checked {
+  background: var(--flood-action);
+  border-color: var(--flood-action);
+}
+.flood-switch-input:checked::before {
+  transform: translateX(14px);
+  background: var(--flood-action-text);
+}
+.flood-switch-input:disabled {
+  opacity: 0.6;
+}
+.flood-field {
+  display: grid;
+  gap: var(--flood-space-2);
+}
+.flood-label {
+  font-weight: 500;
+  color: var(--flood-text);
+}
+.flood-hint {
+  color: var(--flood-muted);
+  font-size: var(--flood-text-xs);
+}
+.flood-error {
+  color: var(--flood-danger);
+  font-size: var(--flood-text-xs);
+}
+.flood-link {
+  color: var(--flood-text);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+.flood-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: flood-spin 0.7s linear infinite;
+}
+@keyframes flood-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flood-spinner {
+    animation: none;
+  }
+  .flood-switch-input::before,
+  .flood-button {
+    transition: none;
+  }
+}
+@media (forced-colors: active) {
+  .flood-switch-input {
+    appearance: auto;
+  }
+  .flood-switch-input::before {
+    display: none;
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "@flood-md/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Connect Flood to React and Next.js projects.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tillwithered/flood.md.git",
+    "directory": "packages/cli"
+  },
+  "bin": {
+    "flood": "./bin/flood.mjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "dependencies": {
+    "@flood-md/agent": "0.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

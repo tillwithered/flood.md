@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://flood.md/schema/config.json",
+  "title": "Flood project configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "framework",
+    "packageManager",
+    "components",
+    "stylesheet",
+    "instructions"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "framework": { "enum": ["react", "next"] },
+    "packageManager": { "const": "npm" },
+    "components": { "const": "@flood-md/react" },
+    "stylesheet": { "const": "@flood-md/react/styles.css" },
+    "instructions": { "const": "flood/DESIGN.md" }
+  }
+}

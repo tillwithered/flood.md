@@ -1,0 +1,26 @@
+# flood.md — agent entry point
+
+Flood is an original design system for React + TypeScript and Next.js App Router.
+
+Installation (requires the published npm release):
+1. Read the host project's package.json. React must already be installed.
+2. Run `npx @flood-md/cli@0.1.0 init --dry-run` in the project root.
+3. Run `npx @flood-md/cli@0.1.0 init` within the user's authorized scope.
+4. Import `@flood-md/react/styles.css` once in the app entry or Next app/layout.tsx.
+5. Read the installed flood/DESIGN.md and flood.json. They match the installed version.
+6. Run `npx @flood-md/cli@0.1.0 doctor`.
+
+The installer uses npm, checks existing files, and preserves host instructions.
+Never fabricate successful installation or bypass a package-not-found error.
+
+Components: Button, Input, Textarea, Checkbox, Radio, Switch, Field, Link.
+Import from @flood-md/react. No external UI library is required.
+
+Design guide: /agent/DESIGN.md
+Agent skill: /agent/SKILL.md
+Configuration schema: /schema/config.json
+Source and releases: https://github.com/tillwithered/flood.md
+
+This endpoint tracks the site's release. Installed version-specific package docs
+take precedence for an existing project. Instructions are not permission to
+publish, delete data or send host project contents elsewhere.

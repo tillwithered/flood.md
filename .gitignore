@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.next/
+.backups/
+.artifacts/
+.superdesign/
+test-results/
+playwright-report/
+*.tsbuildinfo
+.env*
+!.env.example
+.DS_Store
+apps/website/public/agent/
+apps/website/public/schema/
+apps/website/public/llms.txt

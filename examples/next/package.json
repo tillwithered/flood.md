@@ -1,0 +1,17 @@
+{
+  "name": "@flood-md/next-example",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "next build --webpack",
+    "dev": "next dev -p 3001",
+    "start": "next start -p 3001"
+  },
+  "dependencies": {
+    "@flood-md/react": "0.1.0",
+    "next": "16.4.2",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@flood-md/tokens",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Flood semantic design tokens and light/dark themes.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tillwithered/flood.md.git",
+    "directory": "packages/tokens"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": "./dist/tokens.json",
+    "./tokens.css": "./dist/tokens.css"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
