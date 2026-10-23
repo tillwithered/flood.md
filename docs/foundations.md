@@ -14,7 +14,7 @@ import "@flood-md/tokens/foundations.css";
 
 <section data-flood-foundations="neutral" data-flood-theme="dark">
   <p className="example">Content</p>
-</section>
+</section>;
 ```
 
 ```css

@@ -3,51 +3,92 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { compileTokens } from "../scripts/token-compiler.mjs";
 
-const source = JSON.parse(await readFile("packages/tokens/src/tokens.json", "utf8"));
-const compile = value => compileTokens(value, "test-build");
+const source = JSON.parse(
+  await readFile("packages/tokens/src/tokens.json", "utf8"),
+);
+const compile = (value) => compileTokens(value, "test-build");
 const clone = () => structuredClone(source);
-const dark = value => value.sets.theme.dark.sys.color;
-const meta = token => token.$extensions["md.flood"];
+const dark = (value) => value.sets.theme.dark.sys.color;
+const meta = (token) => token.$extensions["md.flood"];
 
 test("foundation output is deterministic and preserves the legacy JSON contract", async () => {
-  const a = compile(source), b = compile(source);
+  const a = compile(source),
+    b = compile(source);
   assert.deepEqual(a, b);
-  assert.deepEqual(JSON.parse(await readFile("packages/tokens/dist/tokens.json", "utf8")), source.legacy);
+  assert.deepEqual(
+    JSON.parse(await readFile("packages/tokens/dist/tokens.json", "utf8")),
+    source.legacy,
+  );
   assert.deepEqual(Object.keys(a.legacy.json), ["shared", "light", "dark"]);
   assert.equal(a.contexts.length, 1);
-  assert.deepEqual(a.contexts.map(x => [x.preset, x.theme]), [["neutral", "dark"]]);
+  assert.deepEqual(
+    a.contexts.map((x) => [x.preset, x.theme]),
+    [["neutral", "dark"]],
+  );
 });
 
 test("semantic values resolve while CSS retains editable aliases", () => {
   const result = compile(source);
-  const token = result.contexts[0].catalog.find(x => x.id === "sys.color.content.default");
+  const token = result.contexts[0].catalog.find(
+    (x) => x.id === "sys.color.content.default",
+  );
   assert.deepEqual(token.value.components, [1, 1, 1]);
   assert.deepEqual(token.dependencies, ["ref.color.neutral.0"]);
-  assert.match(result.css, /--flood-sys-color-content-default: var\(--flood-ref-color-neutral-0\)/);
-  assert.equal(result.tokenNames["sys.color.content.default"], "--flood-sys-color-content-default");
+  assert.match(
+    result.css,
+    /--flood-sys-color-content-default: var\(--flood-ref-color-neutral-0\)/,
+  );
+  assert.equal(
+    result.tokenNames["sys.color.content.default"],
+    "--flood-sys-color-content-default",
+  );
   assert.equal(result.tokenNames["ref.color.neutral.0"], undefined);
-  assert.ok(result.manifest.contexts[0].tokens.every(x => x.visibility === "public"));
-  assert.deepEqual(result.contexts[0].definitions.sys.color.content.default.$value, token.value);
-  assert.ok(result.contexts[0].catalog.find(x => x.id === "ref.color.neutral.0").dependents.includes("sys.color.content.default"));
+  assert.ok(
+    result.manifest.contexts[0].tokens.every((x) => x.visibility === "public"),
+  );
+  assert.deepEqual(
+    result.contexts[0].definitions.sys.color.content.default.$value,
+    token.value,
+  );
+  assert.ok(
+    result.contexts[0].catalog
+      .find((x) => x.id === "ref.color.neutral.0")
+      .dependents.includes("sys.color.content.default"),
+  );
 });
 
 test("missing references and cycles fail with token-specific errors", () => {
-  let value = clone(); dark(value).surface.canvas.$value = "{ref.color.neutral.999}";
-  assert.throws(() => compile(value), /missing reference ref.color.neutral.999/);
-  value = clone(); dark(value).surface.canvas.$value = "{sys.color.surface.default}";
+  let value = clone();
+  dark(value).surface.canvas.$value = "{ref.color.neutral.999}";
+  assert.throws(
+    () => compile(value),
+    /missing reference ref.color.neutral.999/,
+  );
+  value = clone();
+  dark(value).surface.canvas.$value = "{sys.color.surface.default}";
   dark(value).surface.default.$value = "{sys.color.surface.canvas}";
   assert.throws(() => compile(value), /alias cycle/);
 });
 
 test("alias types and layer boundaries are enforced", () => {
-  let value = clone(); dark(value).surface.canvas.$value = "{ref.stroke.width.2}";
+  let value = clone();
+  dark(value).surface.canvas.$value = "{ref.stroke.width.2}";
   assert.throws(() => compile(value), /type mismatch/);
-  value = clone(); value.sets.palette.neutral.ref.color.neutral["0"].$value = "{sys.color.content.default}";
+  value = clone();
+  value.sets.palette.neutral.ref.color.neutral["0"].$value =
+    "{sys.color.content.default}";
   assert.throws(() => compile(value), /forbidden layer dependency/);
   value = clone();
   const width = structuredClone(value.sets.shared.sys.focus.width);
   width.$value = "{sys.focus.width}";
-  value.sets.shared.comp = { input: { root: { width } }, button: { root: { width: { ...structuredClone(width), $value: "{comp.input.root.width}" } } } };
+  value.sets.shared.comp = {
+    input: { root: { width } },
+    button: {
+      root: {
+        width: { ...structuredClone(width), $value: "{comp.input.root.width}" },
+      },
+    },
+  };
   assert.throws(() => compile(value), /cross-component alias/);
 });
 
@@ -63,49 +104,81 @@ test("stable tokens cannot hide experimental dependencies behind deprecated alia
 });
 
 test("invalid names, alias syntax and flattening collisions are rejected", () => {
-  let value = clone(); dark(value).surface["bad_name"] = dark(value).surface.canvas;
+  let value = clone();
+  dark(value).surface["bad_name"] = dark(value).surface.canvas;
   assert.throws(() => compile(value), /invalid name/);
-  value = clone(); dark(value).surface.canvas.$value = "{ref.color.neutral.0} extra";
+  value = clone();
+  dark(value).surface.canvas.$value = "{ref.color.neutral.0} extra";
   assert.throws(() => compile(value), /malformed alias/);
-  value = clone(); value.sets.theme.dark.sys["color-content"] = { default: structuredClone(dark(value).content.default) };
+  value = clone();
+  value.sets.theme.dark.sys["color-content"] = {
+    default: structuredClone(dark(value).content.default),
+  };
   assert.throws(() => compile(value), /CSS name collision/);
 });
 
 test("set ownership and complete public contracts are checked across themes", () => {
-  let value = clone(); value.sets.shared.sys.color = structuredClone(dark(value));
+  let value = clone();
+  value.sets.shared.sys.color = structuredClone(dark(value));
   assert.throws(() => compile(value), /overlapping set ownership/);
-  value = clone(); value.sets.theme.light = structuredClone(value.sets.theme.dark);
+  value = clone();
+  value.sets.theme.light = structuredClone(value.sets.theme.dark);
   delete value.sets.theme.light.sys.color.divider;
   value.presets.neutral.themes.push("light");
   assert.throws(() => compile(value), /public roles\/types differ/);
-  value = clone(); value.sets.theme.light = structuredClone(value.sets.theme.dark);
+  value = clone();
+  value.sets.theme.light = structuredClone(value.sets.theme.dark);
   assert.throws(() => compile(value), /unused palette or theme/);
 });
 
 test("metadata and supported value types reject unsafe or ambiguous input", () => {
-  let value = clone(); dark(value).content.default.$description = "";
+  let value = clone();
+  dark(value).content.default.$description = "";
   assert.throws(() => compile(value), /description required/);
-  value = clone(); meta(dark(value).content.default).status = "ready";
+  value = clone();
+  meta(dark(value).content.default).status = "ready";
   assert.throws(() => compile(value), /invalid status/);
-  value = clone(); value.sets.palette.neutral.ref.color.neutral["0"].$value.alpha = 2;
+  value = clone();
+  value.sets.palette.neutral.ref.color.neutral["0"].$value.alpha = 2;
   assert.throws(() => compile(value), /alpha outside/);
-  value = clone(); value.sets.shared.ref.stroke.width["2"].$value.unit = "em";
+  value = clone();
+  value.sets.shared.ref.stroke.width["2"].$value.unit = "em";
   assert.throws(() => compile(value), /invalid dimension/);
-  value = clone(); value.sets.shared.ref.stroke.width["2"].$type = "shadow";
+  value = clone();
+  value.sets.shared.ref.stroke.width["2"].$type = "shadow";
   assert.throws(() => compile(value), /unsupported type shadow/);
-  value = clone(); value.legacy.dark.text = "white; color:red";
+  value = clone();
+  value.legacy.dark.text = "white; color:red";
   assert.throws(() => compile(value), /unsafe declaration/);
-  value = clone(); value.formatVersion = 99;
+  value = clone();
+  value.formatVersion = 99;
   assert.throws(() => compile(value), /unsupported source formatVersion/);
 });
 
 test("a component alias chain resolves without exposing internal reference names", () => {
   const value = clone();
-  value.sets.shared.comp = { text: { label: { color: { ...structuredClone(dark(value).content.default), $value: "{sys.color.content.default}" } } } };
+  value.sets.shared.comp = {
+    text: {
+      label: {
+        color: {
+          ...structuredClone(dark(value).content.default),
+          $value: "{sys.color.content.default}",
+        },
+      },
+    },
+  };
   const result = compile(value);
-  const token = result.contexts[0].catalog.find(x => x.id === "comp.text.label.color");
-  assert.deepEqual(token.dependencies, ["sys.color.content.default", "ref.color.neutral.0"]);
-  assert.match(result.css, /--flood-comp-text-label-color: var\(--flood-sys-color-content-default\)/);
+  const token = result.contexts[0].catalog.find(
+    (x) => x.id === "comp.text.label.color",
+  );
+  assert.deepEqual(token.dependencies, [
+    "sys.color.content.default",
+    "ref.color.neutral.0",
+  ]);
+  assert.match(
+    result.css,
+    /--flood-comp-text-label-color: var\(--flood-sys-color-content-default\)/,
+  );
 });
 
 test("all supported scalar types serialize through the same validated pipeline", () => {
@@ -116,31 +189,50 @@ test("all supported scalar types serialize through the same validated pipeline",
     ["fontWeight", 500, "500"],
     ["fontFamily", ["Arial", "sans-serif"], '"Arial", sans-serif'],
     ["cubicBezier", [0.2, -1, 0.3, 2], "cubic-bezier(0.2, -1, 0.3, 2)"],
-    ["color", { colorSpace: "srgb", components: [1, 0, 0], alpha: 0.5 }, "rgb(255 0 0 / 0.5)"],
+    [
+      "color",
+      { colorSpace: "srgb", components: [1, 0, 0], alpha: 0.5 },
+      "rgb(255 0 0 / 0.5)",
+    ],
   ]) {
     const value = clone();
     const sample = structuredClone(value.sets.shared.ref.stroke.width["2"]);
-    sample.$type = type; sample.$value = input;
+    sample.$type = type;
+    sample.$value = input;
     value.sets.shared.ref.test = { sample };
     const result = compile(value);
-    assert.ok(result.css.includes(`--flood-ref-test-sample: ${expected};`), type);
+    assert.ok(
+      result.css.includes(`--flood-ref-test-sample: ${expected};`),
+      type,
+    );
   }
 });
 
 test("unsupported scalar values, literal semantic values and changing identity fail", () => {
   for (const [type, input] of [
-    ["dimension", { value: -1, unit: "px" }], ["duration", { value: 1, unit: "frames" }],
-    ["number", Infinity], ["fontWeight", 1001], ["fontFamily", 'Arial"; color:red'],
+    ["dimension", { value: -1, unit: "px" }],
+    ["duration", { value: 1, unit: "frames" }],
+    ["number", Infinity],
+    ["fontWeight", 1001],
+    ["fontFamily", 'Arial"; color:red'],
     ["cubicBezier", [2, 0, 0.5, 1]],
   ]) {
-    const value = clone(); const token = value.sets.shared.ref.stroke.width["2"];
-    token.$type = type; token.$value = input;
+    const value = clone();
+    const token = value.sets.shared.ref.stroke.width["2"];
+    token.$type = type;
+    token.$value = input;
     assert.throws(() => compile(value), /Tokens:/, type);
   }
-  let value = clone(); dark(value).content.default.$value = { colorSpace: "srgb", components: [1, 1, 1] };
+  let value = clone();
+  dark(value).content.default.$value = {
+    colorSpace: "srgb",
+    components: [1, 1, 1],
+  };
   assert.throws(() => compile(value), /require aliases/);
-  value = clone(); value.sets.theme.light = structuredClone(value.sets.theme.dark);
-  meta(value.sets.theme.light.sys.color.content.default).owner = "another-owner";
+  value = clone();
+  value.sets.theme.light = structuredClone(value.sets.theme.dark);
+  meta(value.sets.theme.light.sys.color.content.default).owner =
+    "another-owner";
   value.presets.neutral.themes.push("light");
   assert.throws(() => compile(value), /identity differs across contexts/);
 });

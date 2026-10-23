@@ -5,17 +5,28 @@ import { compileTokens } from "./token-compiler.mjs";
 const tokens = JSON.parse(
   await readFile("packages/tokens/src/tokens.json", "utf8"),
 );
-const { version } = JSON.parse(await readFile("packages/tokens/package.json", "utf8"));
+const { version } = JSON.parse(
+  await readFile("packages/tokens/package.json", "utf8"),
+);
 const compiled = compileTokens(tokens, version);
 await mkdir("packages/tokens/dist", { recursive: true });
 await writeFile("packages/tokens/dist/tokens.css", compiled.legacy.css);
-await writeFile("packages/tokens/dist/tokens.json", JSON.stringify(compiled.legacy.json, null, 2) + "\n");
+await writeFile(
+  "packages/tokens/dist/tokens.json",
+  JSON.stringify(compiled.legacy.json, null, 2) + "\n",
+);
 await writeFile("packages/tokens/dist/foundations.css", compiled.css);
 await writeFile("packages/tokens/dist/foundations.js", compiled.js);
 await writeFile("packages/tokens/dist/foundations.d.ts", compiled.dts);
-await writeFile("packages/tokens/dist/foundations.manifest.json", JSON.stringify(compiled.manifest, null, 2) + "\n");
+await writeFile(
+  "packages/tokens/dist/foundations.manifest.json",
+  JSON.stringify(compiled.manifest, null, 2) + "\n",
+);
 for (const context of compiled.contexts) {
-  await writeFile(`packages/tokens/dist/${context.preset}.${context.theme}.tokens.json`, JSON.stringify(context.definitions, null, 2) + "\n");
+  await writeFile(
+    `packages/tokens/dist/${context.preset}.${context.theme}.tokens.json`,
+    JSON.stringify(context.definitions, null, 2) + "\n",
+  );
 }
 const result = spawnSync(
   process.execPath,

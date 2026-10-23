@@ -59,17 +59,35 @@ try {
     encoding: "utf8",
   });
   assert.equal(result.status, 0, result.stderr);
-  await writeFile(join(root, "foundation-types.mts"), `import { tokenNames, type TokenName } from '@flood-md/tokens/foundations';
+  await writeFile(
+    join(root, "foundation-types.mts"),
+    `import { tokenNames, type TokenName } from '@flood-md/tokens/foundations';
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 // @ts-expect-error Unknown roles must be rejected rather than widened to string.
 const typo: TokenName = 'sys.color.content.defalt';
 void css; void typo;
-`);
-  const types = spawnSync(process.execPath, [
-    resolve("node_modules/typescript/bin/tsc"), join(root, "foundation-types.mts"),
-    "--noEmit", "--strict", "--skipLibCheck", "--module", "NodeNext", "--moduleResolution", "NodeNext", "--types", "node", "--typeRoots", resolve("node_modules/@types"),
-  ], { cwd: root, encoding: "utf8" });
+`,
+  );
+  const types = spawnSync(
+    process.execPath,
+    [
+      resolve("node_modules/typescript/bin/tsc"),
+      join(root, "foundation-types.mts"),
+      "--noEmit",
+      "--strict",
+      "--skipLibCheck",
+      "--module",
+      "NodeNext",
+      "--moduleResolution",
+      "NodeNext",
+      "--types",
+      "node",
+      "--typeRoots",
+      resolve("node_modules/@types"),
+    ],
+    { cwd: root, encoding: "utf8" },
+  );
   assert.equal(types.status, 0, types.stdout || types.stderr);
   const cli = spawnSync(
     process.execPath,
