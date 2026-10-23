@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add an experimental, opt-in foundations token profile with typed aliases,
+  CSS/JSON generation, a public catalog and TypeScript names. Existing token
+  imports retain their contract. The new exports require the next aligned minor
+  release; they are not published as part of npm 0.1.1.
 - Add component, theme, agent and FAQ guides with a documentation index.
 - Add contribution and private vulnerability reporting guidance.
 - Move account-specific hosting configuration and operational journals outside

@@ -52,13 +52,43 @@ try {
   await doctor(root);
   await writeFile(
     join(root, "check.mjs"),
-    `import {createElement} from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {Button} from '@flood-md/react'; import {readFileSync} from 'node:fs'; if(!renderToStaticMarkup(createElement(Button,null,'Ready')).includes('Ready')) throw Error('render failed'); const css=readFileSync(new URL(import.meta.resolve('@flood-md/react/styles.css')),'utf8'); if(!css.includes('@flood-md/tokens/tokens.css')) throw Error('missing token import');`,
+    `import {createElement} from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {Button} from '@flood-md/react'; import {tokenNames} from '@flood-md/tokens/foundations'; import {readFileSync} from 'node:fs'; if(!renderToStaticMarkup(createElement(Button,null,'Ready')).includes('Ready')) throw Error('render failed'); const css=readFileSync(new URL(import.meta.resolve('@flood-md/react/styles.css')),'utf8'); if(!css.includes('@flood-md/tokens/tokens.css')) throw Error('missing token import'); if(tokenNames['sys.color.content.default']!=='--flood-sys-color-content-default') throw Error('foundation import failed'); for(const name of ['foundations.css','foundations.manifest.json','neutral.dark.tokens.json']) readFileSync(new URL(import.meta.resolve('@flood-md/tokens/'+name)));`,
   );
   const result = spawnSync(process.execPath, ["check.mjs"], {
     cwd: root,
     encoding: "utf8",
   });
   assert.equal(result.status, 0, result.stderr);
+  await writeFile(
+    join(root, "foundation-types.mts"),
+    `import { tokenNames, type TokenName } from '@flood-md/tokens/foundations';
+const name: TokenName = 'sys.color.content.default';
+const css: '--flood-sys-color-content-default' = tokenNames[name];
+// @ts-expect-error Unknown roles must be rejected rather than widened to string.
+const typo: TokenName = 'sys.color.content.defalt';
+void css; void typo;
+`,
+  );
+  const types = spawnSync(
+    process.execPath,
+    [
+      resolve("node_modules/typescript/bin/tsc"),
+      join(root, "foundation-types.mts"),
+      "--noEmit",
+      "--strict",
+      "--skipLibCheck",
+      "--module",
+      "NodeNext",
+      "--moduleResolution",
+      "NodeNext",
+      "--types",
+      "node",
+      "--typeRoots",
+      resolve("node_modules/@types"),
+    ],
+    { cwd: root, encoding: "utf8" },
+  );
+  assert.equal(types.status, 0, types.stdout || types.stderr);
   const cli = spawnSync(
     process.execPath,
     [join(root, "node_modules/@flood-md/cli/bin/flood.mjs"), "doctor"],

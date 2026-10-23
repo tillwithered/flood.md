@@ -8,6 +8,7 @@ instructions for coding agents. Start with the guide for your task:
 | [Installation](installation.md) | React, Next.js, CLI setup and manual installation |
 | [Components](components.md) | Available controls, props and form composition |
 | [Theming](theming.md) | Semantic tokens, light/dark mode and project overrides |
+| [Experimental foundations](foundations.md) | Typed reference/semantic tokens and the opt-in neutral dark profile (unreleased) |
 | [Agents](agents.md) | Installing and using the matching agent instructions |
 | [FAQ](faq.md) | Compatibility, customization, updates and common problems |
 

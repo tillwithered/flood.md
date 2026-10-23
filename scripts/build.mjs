@@ -1,20 +1,33 @@
 import { readFile, writeFile, mkdir, copyFile, cp } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
+import { compileTokens } from "./token-compiler.mjs";
 
 const tokens = JSON.parse(
   await readFile("packages/tokens/src/tokens.json", "utf8"),
 );
-const rules = (values) =>
-  Object.entries(values)
-    .map(([key, value]) => `  --flood-${key}: ${value};`)
-    .join("\n");
-const css = `/* Generated from packages/tokens/src/tokens.json. */\n:root {\n${rules({ ...tokens.shared, ...tokens.light })}\n  color-scheme: light;\n}\n@media (prefers-color-scheme: dark) { :root:not([data-flood-theme="light"]) {\n${rules(tokens.dark)}\n  color-scheme: dark;\n} }\n[data-flood-theme="light"] {\n${rules(tokens.light)}\n  color-scheme: light;\n}\n[data-flood-theme="dark"] {\n${rules(tokens.dark)}\n  color-scheme: dark;\n}\n`;
-await mkdir("packages/tokens/dist", { recursive: true });
-await writeFile("packages/tokens/dist/tokens.css", css);
-await copyFile(
-  "packages/tokens/src/tokens.json",
-  "packages/tokens/dist/tokens.json",
+const { version } = JSON.parse(
+  await readFile("packages/tokens/package.json", "utf8"),
 );
+const compiled = compileTokens(tokens, version);
+await mkdir("packages/tokens/dist", { recursive: true });
+await writeFile("packages/tokens/dist/tokens.css", compiled.legacy.css);
+await writeFile(
+  "packages/tokens/dist/tokens.json",
+  JSON.stringify(compiled.legacy.json, null, 2) + "\n",
+);
+await writeFile("packages/tokens/dist/foundations.css", compiled.css);
+await writeFile("packages/tokens/dist/foundations.js", compiled.js);
+await writeFile("packages/tokens/dist/foundations.d.ts", compiled.dts);
+await writeFile(
+  "packages/tokens/dist/foundations.manifest.json",
+  JSON.stringify(compiled.manifest, null, 2) + "\n",
+);
+for (const context of compiled.contexts) {
+  await writeFile(
+    `packages/tokens/dist/${context.preset}.${context.theme}.tokens.json`,
+    JSON.stringify(context.definitions, null, 2) + "\n",
+  );
+}
 const result = spawnSync(
   process.execPath,
   [

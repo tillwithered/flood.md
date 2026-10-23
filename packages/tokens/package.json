@@ -18,7 +18,14 @@
   ],
   "exports": {
     ".": "./dist/tokens.json",
-    "./tokens.css": "./dist/tokens.css"
+    "./tokens.css": "./dist/tokens.css",
+    "./foundations": {
+      "types": "./dist/foundations.d.ts",
+      "import": "./dist/foundations.js"
+    },
+    "./foundations.css": "./dist/foundations.css",
+    "./foundations.manifest.json": "./dist/foundations.manifest.json",
+    "./neutral.dark.tokens.json": "./dist/neutral.dark.tokens.json"
   },
   "publishConfig": {
     "access": "public"
