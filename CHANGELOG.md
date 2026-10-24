@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2 — Marketing composition
+
+- Add opt-in display typography and a selectable CodeSnippet primitive with a
+  host-owned action slot. Preserve existing heading metrics and component APIs.
+- Add display and monospace semantic roles to the single token source.
+- Compose the one-page website from actual Flood components with an editable
+  workspace form and interactive ideas list. Keep all demo data local.
+
 ## 0.2.1 — Icon geometry
 
 - Center contents inside IconSlot without changing public APIs or token values.

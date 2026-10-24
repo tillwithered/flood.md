@@ -41,6 +41,32 @@
 .flood-root .flood-tone--info { color: var(--flood-sys-color-feedback-info); }
 .flood-root .flood-stack { display: flex; flex-direction: column; gap: var(--flood-layout-gap); min-inline-size: 0; }
 .flood-root .flood-inline { display: flex; flex-wrap: wrap; gap: var(--flood-layout-gap); min-inline-size: 0; }
+.flood-root .flood-code-snippet {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--flood-sys-space-2);
+  min-inline-size: 0;
+  padding: var(--flood-sys-space-3) var(--flood-sys-space-4);
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-radius: var(--flood-sys-radius-field);
+  background: var(--flood-sys-color-surface-default);
+  color: var(--flood-sys-color-content-default);
+}
+.flood-root .flood-code-snippet__code {
+  flex: 1;
+  min-inline-size: 0;
+  font-family: var(--flood-sys-font-mono);
+  font-size: var(--flood-sys-type-compact-size);
+  font-weight: var(--flood-sys-type-compact-weight);
+  line-height: var(--flood-sys-type-compact-line-height);
+  letter-spacing: normal;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.flood-root .flood-code-snippet__action { flex: none; }
 .flood-root .flood-surface {
   box-sizing: border-box;
   border-radius: var(--flood-sys-radius-block);
@@ -151,6 +177,18 @@
 }
 
 /* Role recipes keep every value in the authored token source. */
+.flood-root .flood-type--lead {
+  --flood-type-size: var(--flood-sys-type-lead-size);
+  --flood-type-line: var(--flood-sys-type-lead-line-height);
+  --flood-type-tracking: var(--flood-sys-type-lead-tracking);
+  --flood-type-weight: var(--flood-sys-type-lead-weight);
+}
+.flood-root .flood-type--display {
+  --flood-type-size: var(--flood-sys-type-display-size);
+  --flood-type-line: var(--flood-sys-type-display-line-height);
+  --flood-type-tracking: var(--flood-sys-type-display-tracking);
+  --flood-type-weight: var(--flood-sys-type-display-weight);
+}
 .flood-root .flood-type--large {
   --flood-type-size: var(--flood-sys-type-large-size);
   --flood-type-line: var(--flood-sys-type-large-line-height);

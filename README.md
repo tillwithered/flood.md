@@ -4,10 +4,10 @@ An independent design system for **React, TypeScript and Next.js**. Original
 components, semantic tokens, a small installer, and versioned instructions for
 coding agents. No third-party UI component library or Tailwind dependency.
 
-## Base dark design system · 0.2.1
+## Base dark design system · 0.2.2
 
-Flood 0.2.1 provides a dark foundations profile, 154 semantic token roles and
-[17 original primitives and controls](docs/base-components.md).
+Flood 0.2.2 provides a dark foundations profile, 163 semantic token roles and
+[18 original primitives and controls](docs/base-components.md).
 
 ```tsx
 import "@flood-md/react/styles.css";
@@ -27,14 +27,14 @@ export function Example() {
 
 FloodRoot explicitly selects neutral/dark, with local Inter, semantic tokens,
 relative typography and layout, filled actions, native forms and keyboard focus.
-New primitives include Text/Heading, Stack/Inline/Surface, IconSlot/IconButton
+Primitives include Text/Heading, Stack/Inline/Surface, CodeSnippet, IconSlot/IconButton
 and Divider. The new foundations profile starts with dark only; the older theme
 contract remains compatible outside FloodRoot.
 
 ## Connect
 
 ```sh
-npx @flood-md/cli@0.2.1 init
+npx @flood-md/cli@0.2.2 init
 ```
 
 Run in an existing npm-based React or Next.js project. Use `init --dry-run` to see
@@ -53,7 +53,7 @@ export function Example() {
 ```
 
 Give an agent `https://flood.md/llms.txt`. The guide
-uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.1 doctor` checks
+uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.2 doctor` checks
 installed versions and owned instruction files.
 
 ## Documentation
@@ -78,7 +78,7 @@ variables; host application owns layout, data fetching and side effects.
 ## Develop
 
 See [foundations](docs/foundations.md) and the [component guide](docs/components.md)
-for 0.2.1. Existing 0.1.1 projects should follow their matching guides. The Next.js
+for 0.2.2. Existing 0.1.1 projects should follow their matching guides. The Next.js
 example includes `/foundations` and `/team` for reviewing the current source.
 
 Node.js 22.12+ (Node 24 recommended), npm 11.

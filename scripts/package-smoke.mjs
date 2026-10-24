@@ -69,8 +69,13 @@ try {
     `import { tokenNames, type TokenName } from '@flood-md/tokens/foundations';
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
-import { type HeadingProps, type InputProps, type IconButtonProps } from '@flood-md/react';
+import { type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
 const heading: HeadingProps = {level: 3, size: 'large'};
+const display: HeadingProps = {level: 1, size: 'display'};
+const lead: TextProps = {as: 'p', size: 'lead'};
+const snippet: CodeSnippetProps = {code: 'npm install example', id: 'command'};
+// @ts-expect-error CodeSnippet requires literal code content.
+const badSnippet: CodeSnippetProps = {id: 'missing-code'};
 const input: InputProps = {size: 30, controlSize: 'xl'};
 const icon: IconButtonProps = {label: 'Add item', size: '2xl'};
 // @ts-expect-error Visual size must not replace the native input size attribute.
@@ -80,7 +85,7 @@ const badIcon: IconButtonProps = {size: 'md'};
 // @ts-expect-error Unknown roles must be rejected rather than widened to string.
 const typo: TokenName = 'sys.color.content.defalt';
 void css; void typo;
-void heading; void input; void icon; void badInput; void badIcon;
+void heading; void display; void lead; void snippet; void badSnippet; void input; void icon; void badInput; void badIcon;
 `,
   );
   const types = spawnSync(

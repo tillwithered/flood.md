@@ -1,8 +1,8 @@
 # Components
 
-## Dark foundations · 0.2.1
+## Dark foundations · 0.2.2
 
-This guide describes the **0.2.1** API. See the [base component inventory](base-components.md)
+This guide describes the **0.2.2** API. See the [base component inventory](base-components.md)
 for the complete set. Existing 0.1.1 installs follow their version-specific guides.
 
 Import the same stylesheet and wrap new compositions in `FloodRoot` to select
@@ -56,14 +56,15 @@ may render from server components; the React entry retains its client boundary.
 | Component | Props and defaults | Contract |
 | --- | --- | --- |
 | FloodRoot | Native div props | Explicit neutral/dark scope; does not mutate document theme |
-| Text | `as`: span / p / div (span); `size`: body / compact / label / helper (body); `tone`: default / subtle / error / success / warning / info (default) | Typography; label size alone does not associate a control |
-| Heading | `level`: 1–6 (2); `size`: large / page / section (page) | Semantic level is independent of visual size |
+| Text | `as`: span / p / div (span); `size`: lead / body / compact / label / helper (body); `tone`: default / subtle / error / success / warning / info (default) | Typography; label size alone does not associate a control |
+| Heading | `level`: 1–6 (2); `size`: display / large / page / section (page) | Semantic level is independent of visual size; reserve display for marketing |
 | Stack | `gap` (4), native div props | Vertical composition |
 | Inline | `gap` (2); `align`: start / center / end / baseline (center) | Wrapping horizontal composition |
 | Surface | `elevation`: default / raised / overlay (default); `padding` (6) | Visual container; overlay is not a dialog, portal, or focus trap |
 | Divider | Native hr props | Semantic separator; grouping must not rely on its faint line alone |
 | IconSlot | `size` (md); optional `label` | Host SVG adapter; decorative without label |
 | IconButton | Required `label`; Button props; subtle by default | Names the action; child icon stays decorative |
+| CodeSnippet | Required `code` string; optional `action`; native div props/ref | Selectable wrapping code; host owns copy behavior and feedback |
 
 Space keys are strings `"0"`, `"1"`, `"2"`, `"3"`, `"4"`, `"6"`, `"8"`, `"12"`:
 0/4/8/12/16/24/32/48px equivalents at a 16px reference root. Actual dimensions

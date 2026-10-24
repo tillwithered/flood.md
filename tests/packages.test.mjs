@@ -15,7 +15,25 @@ import {
   Inline,
   Surface,
   IconButton,
+  CodeSnippet,
 } from "../packages/react/dist/index.js";
+
+test("display heading and code snippet retain native semantics and escaped content", () => {
+  const code = '<script>alert("example")</script>\nnpx example';
+  const html = renderToStaticMarkup(createElement(FloodRoot, null,
+    createElement(Heading, { level: 1, size: "display" }, "A foundation"),
+    createElement(Text, { as: "p", size: "lead" }, "A calm introduction"),
+    createElement(CodeSnippet, { code, id: "install", "aria-describedby": "copy-status", action: createElement(Button, { "aria-label": "Copy command" }, "Copy") }),
+  ));
+  assert.match(html, /<h1 class="flood-heading flood-type--display">A foundation<\/h1>/);
+  assert.match(html, /<p class="flood-text flood-type--lead flood-tone--default">A calm introduction<\/p>/);
+  assert.match(html, /id="install" aria-describedby="copy-status"/);
+  assert.match(html, /<code class="flood-code-snippet__code">&lt;script&gt;/);
+  assert.doesNotMatch(html, /<script>/);
+  assert.match(html, /aria-label="Copy command"/);
+  const withoutAction = renderToStaticMarkup(createElement(CodeSnippet, { code: "npm install example" }));
+  assert.doesNotMatch(withoutAction, /flood-code-snippet__action|<button/);
+});
 
 test("published React entry preserves Next client boundary", async () => {
   assert.match(

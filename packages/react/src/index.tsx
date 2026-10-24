@@ -209,7 +209,7 @@ export const FloodRoot = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElemen
 
 export interface TextProps extends HTMLAttributes<HTMLElement> {
   as?: "span" | "p" | "div";
-  size?: "body" | "compact" | "label" | "helper";
+  size?: "lead" | "body" | "compact" | "label" | "helper";
   tone?: "default" | "subtle" | "error" | "success" | "warning" | "info";
 }
 export const Text = forwardRef<HTMLElement, TextProps>(function Text(
@@ -220,7 +220,7 @@ export const Text = forwardRef<HTMLElement, TextProps>(function Text(
 
 export interface HeadingProps extends HTMLAttributes<HTMLHeadingElement> {
   level?: 1 | 2 | 3 | 4 | 5 | 6;
-  size?: "large" | "page" | "section";
+  size?: "display" | "large" | "page" | "section";
 }
 export const Heading = forwardRef<HTMLHeadingElement, HeadingProps>(function Heading(
   { level = 2, size = "page", className, ...props }, ref,
@@ -279,3 +279,19 @@ export const Divider = forwardRef<HTMLHRElement, HTMLAttributes<HTMLHRElement>>(
     return <hr {...props} ref={ref} className={classes("flood-divider", className)} />;
   },
 );
+
+export interface CodeSnippetProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  code: string;
+  action?: ReactNode;
+}
+/** Selectable code with an optional host-owned action; no clipboard side effects. */
+export const CodeSnippet = forwardRef<HTMLDivElement, CodeSnippetProps>(function CodeSnippet(
+  { code, action, className, ...props }, ref,
+) {
+  return (
+    <div {...props} ref={ref} className={classes("flood-code-snippet", className)}>
+      <code className="flood-code-snippet__code">{code}</code>
+      {action != null && <div className="flood-code-snippet__action">{action}</div>}
+    </div>
+  );
+});
