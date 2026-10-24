@@ -191,7 +191,7 @@
     "slug": "select",
     "name": "Select",
     "group": "Forms",
-    "description": "A styled native choice field with keyboard and form semantics.",
+    "description": "A Flood choice field with its own popup and native form integration.",
     "code": "<Field label=\"Visibility\">\n  {(control) => (\n    <Select {...control} name=\"visibility\" defaultValue=\"private\">\n      <option value=\"private\">Private</option>\n      <option value=\"team\">Team</option>\n    </Select>\n  )}\n</Field>",
     "imports": [
       "Field",
@@ -199,9 +199,10 @@
     ],
     "notes": [
       "Unreleased local source addition. Select is not part of the published 0.2.2 package; the next release is pending review.",
-      "Use native option and optgroup children. The operating system owns the open picker, including keyboard navigation and touch interaction.",
-      "Select fills its Field; constrain the form or field wrapper rather than giving every control a fixed pixel width.",
-      "Native name, value/defaultValue, required, disabled, onChange and HTMLSelectElement ref are preserved."
+      "Single selection uses a Flood trigger and listbox, including the popup. Native options and optgroups supply the choices; disabled choices cannot be selected.",
+      "Use arrows, Home/End and typing to navigate; Enter or Space confirms, Escape cancels. The popup scrolls active choices into view.",
+      "Select fills its Field; constrain the form or field wrapper. Multiple and numeric size greater than one use a native inline listbox rather than a popup.",
+      "A native form bridge preserves name, value/defaultValue, required, disabled, onChange and HTMLSelectElement ref. Inspect the matching guide for the visible focus contract."
     ]
   },
   {

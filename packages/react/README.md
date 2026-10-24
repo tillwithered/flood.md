@@ -54,14 +54,22 @@ required and displays a marker; describedBy merges external IDs with hint/error
 associations. Checkbox/Radio/Switch require a visible label. IconSlot accepts
 host SVG artwork without bundling an icon pack.
 
-## Current source additions: native Select and choice layout
+## Current source additions: Select and choice layout
 
 The repository source adds **Select**; it is not an export of the existing
 published 0.2.2 package. It accepts native select props/ref, options and optgroups,
 plus `invalid` and `controlSize="sm" | "md" | "lg" | "xl"` (md by default).
 Use Field's callback props on Select to associate the label and descriptions.
-Native numeric `size` and `multiple` retain listbox behavior, without a dropdown
-chevron; the native options popup remains browser/platform controlled.
+Single selection uses a custom Flood trigger/listbox popup with a native select
+bridge for form values and the HTMLSelectElement ref. Native numeric `size` and
+`multiple` retain an inline listbox without a dropdown chevron or OS popup.
+For single selection, arrows/Home/End highlight without committing; Enter,
+Space or Tab commits, and Escape closes without changing the value. Typeahead
+matches option labels. Focus stays on the trigger; `ref.current.focus()` targets
+it while the ref itself remains the native select. Read changes from
+`event.currentTarget.value` and keep required/disabled/form props on Select.
+Use ordinary option/optgroup children with text labels; an option is not an
+arbitrary interactive slot. See the usage guide for reset and controlled values.
 
 Inside FloodRoot, Checkbox/Radio use Flood's custom tick/dot appearance on real
 native inputs. Values, checked/defaultChecked, keyboard, forms and refs remain
@@ -70,7 +78,7 @@ with a .5rem label gap and centered alignment. Switch also keeps its label close
 Use `Inline gap="4"` for a 1rem gap between separate choices; Inline's default
 gap="2" is unchanged. Buttons retain intrinsic width; full width is a deliberate
 host opt-in. See [layout rules](../../docs/layout.md) and
-[Select usage](../../docs/components.md#current-source-native-select).
+[Select usage](../../docs/components.md#current-source-select).
 
 Import CSS once in Next app/layout.tsx. Add "use client" to host components
 using state/callbacks or Field's function child. Override semantic --flood-sys-*

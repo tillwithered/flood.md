@@ -108,8 +108,9 @@ text-field defaults.
 ### Boundaries, focus and motion
 
 The quiet `color.field.border` (#4a4a4a) is insufficient as the sole necessary
-boundary. `color.field.boundary` (#8a8a8a) supplies a stronger recognition signal;
-a recipe can use it along one edge while retaining the quiet outline elsewhere.
+boundary. `color.field.boundary` (#8a8a8a) supplies a stronger recognition signal.
+The current field recipe uses it as one uniform perimeter rather than an
+emphasized bottom edge or a second inset contour.
 Decorative borders never substitute for this signal. Error, selected and focus
 states need semantic markup and a visible cue beyond color where applicable.
 

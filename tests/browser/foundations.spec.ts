@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { chooseSelectOption, selectBridge } from "./select-helpers";
 
 const url = "http://127.0.0.1:3001/foundations";
 
@@ -29,8 +30,8 @@ test("foundation form retains native values, keyboard choices and reset", async 
   const checkbox = page.getByRole("checkbox", { name: "Email updates" });
   const toggle = page.getByRole("switch", { name: "Public preview" });
   const region = page.getByRole("combobox", { name: "Project region" });
-  await expect(region).toHaveValue("global");
-  await region.selectOption("europe");
+  await expect(selectBridge(region)).toHaveValue("global");
+  await chooseSelectOption(region, "europe");
   await expect(name).toHaveValue("Flood");
   await expect(checkbox).toBeChecked();
   await expect(toggle).not.toBeChecked();
@@ -53,7 +54,8 @@ test("foundation form retains native values, keyboard choices and reset", async 
   expect(data.region).toBe("europe");
   await page.getByRole("button", { name: "Reset form", exact: true }).click();
   await expect(name).toHaveValue("Flood");
-  await expect(region).toHaveValue("global");
+  await expect(selectBridge(region)).toHaveValue("global");
+  await expect(region).toContainText("Global");
   await expect(checkbox).toBeChecked();
   await expect(toggle).not.toBeChecked();
   await expect(page.getByRole("radio", { name: "Team", exact: true })).toBeChecked();

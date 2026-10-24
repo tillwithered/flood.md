@@ -1,18 +1,18 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { chooseSelectOption, selectBridge } from "./select-helpers";
 
-test("Select retains native keyboard, options, form ownership and reset", async ({ page }) => {
+test("custom Select preserves its native form bridge and validation", async ({ page }) => {
   await page.goto("/components/select");
   const select = page.locator(".preview-stage").getByRole("combobox", { name: "Project visibility" });
-  await expect(select).toHaveJSProperty("tagName", "SELECT");
-  await expect(select).toHaveValue("private");
-  await expect(select.locator("option")).toHaveText(["Private", "Team", "Public"]);
+  const bridge = selectBridge(select);
+  await expect(select).toHaveJSProperty("tagName", "BUTTON");
+  await expect(bridge).toHaveValue("private");
+  await expect(bridge.locator("option")).toHaveText(["Private", "Team", "Public"]);
   await page.getByRole("button", { name: "Focus control", exact: true }).click();
   await expect(select).toBeFocused();
-  await page.keyboard.press("ArrowDown");
-  await expect(select).toHaveValue("team");
-  await select.selectOption("public");
-  const submitted = await select.evaluate((node: HTMLSelectElement) => {
+  await chooseSelectOption(select, "public");
+  const submitted = await bridge.evaluate((node: HTMLSelectElement) => {
     const form = document.createElement("form");
     form.id = "native-select-owner";
     node.closest(".preview-stage")!.append(form);
@@ -22,14 +22,14 @@ test("Select retains native keyboard, options, form ownership and reset", async 
     return { value, reset: node.value, owner: node.form === form };
   });
   expect(submitted).toEqual({ value: "public", reset: "private", owner: true });
-  await select.evaluate((node: HTMLSelectElement) => {
+  await bridge.evaluate((node: HTMLSelectElement) => {
     node.add(new Option("Choose visibility", ""), 0);
     node.required = true;
     node.value = "";
   });
-  expect(await select.evaluate((node: HTMLSelectElement) => node.checkValidity())).toBe(false);
-  await select.selectOption("team");
-  expect(await select.evaluate((node: HTMLSelectElement) => node.checkValidity())).toBe(true);
+  expect(await bridge.evaluate((node: HTMLSelectElement) => node.checkValidity())).toBe(false);
+  await chooseSelectOption(select, "team");
+  expect(await bridge.evaluate((node: HTMLSelectElement) => node.checkValidity())).toBe(true);
   await expect(page.locator("#usage .site-code-block code")).toContainText("Select");
 });
 
@@ -40,18 +40,24 @@ test("Select sizing, invalid, focus and disabled states share the field geometry
   for (const rootSize of [16, 20, 24]) {
     await page.evaluate((value) => { document.documentElement.style.fontSize = `${value}px`; }, rootSize);
     for (const [key, height] of Object.entries({ sm: 32, md: 40, lg: 44, xl: 48 })) {
-      await size.selectOption(key);
+      await chooseSelectOption(size, key);
       expect((await select.boundingBox())!.height).toBeCloseTo(height * rootSize / 16, 1);
     }
-    const before = await select.boundingBox();
+    const layoutBox = () => select.evaluate(node => {
+      const rect = node.getBoundingClientRect();
+      return { x: rect.x + scrollX, y: rect.y + scrollY, width: rect.width, height: rect.height };
+    });
+    const before = await layoutBox();
+    await page.keyboard.press("Tab");
     await select.focus();
     await expect(select).toHaveCSS("border-width", "2px");
     await expect(select).toHaveCSS("outline-offset", "0px");
-    expect(await select.boundingBox()).toEqual(before);
+    expect(await layoutBox()).toEqual(before);
   }
   await page.getByRole("checkbox", { name: "Select prop invalid", exact: true }).check();
   await expect(select).toHaveAttribute("aria-invalid", "true");
   await expect(select).toHaveCSS("border-color", "rgb(255, 138, 138)");
+  await page.keyboard.press("Tab");
   await select.focus();
   await expect(select).toHaveCSS("border-color", "rgb(255, 92, 168)");
   await page.getByRole("checkbox", { name: "Select prop disabled", exact: true }).check();
@@ -59,7 +65,7 @@ test("Select sizing, invalid, focus and disabled states share the field geometry
   await expect(select).toHaveCSS("opacity", "1");
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(select).toBeEnabled();
-  await expect(select).toHaveValue("private");
+  await expect(selectBridge(select)).toHaveValue("private");
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
@@ -115,10 +121,10 @@ test("buttons stay intrinsic as direct Stack children while sibling actions shar
   await expect(page.locator(".preview-stage").getByRole("status")).toHaveText("Action completed locally.");
 });
 
-test("workbench knobs use native Flood controls with 8px inner and 16px group rhythm", async ({ page }) => {
+test("workbench knobs use Flood controls with 8px inner and 16px group rhythm", async ({ page }) => {
   await page.goto("/components/button");
   const controls = page.locator(".workbench-controls").first();
-  await expect(controls.locator("select")).toHaveCount(2);
+  await expect(controls.getByRole("combobox")).toHaveCount(2);
   for (const rootSize of [16, 20]) {
     await page.evaluate((size) => { document.documentElement.style.fontSize = `${size}px`; }, rootSize);
     await expect(controls).toHaveCSS("column-gap", `${rootSize}px`);
@@ -144,15 +150,19 @@ test("workbench knobs use native Flood controls with 8px inner and 16px group rh
   await expect(page.locator(".preview-stage").getByRole("button", { name: "Save changes" })).toBeDisabled();
 });
 
-test("forced colors restore native Select and choice rendering with visible focus", async ({ page }) => {
+test("forced colors keep custom Select usable and restore native choice rendering", async ({ page }) => {
   await page.emulateMedia({ forcedColors: "active" });
   for (const kind of ["select", "checkbox", "radio"] as const) {
     await page.goto(`/components/${kind}`);
     const control = page.locator(".preview-stage").getByRole(kind === "select" ? "combobox" : kind).first();
-    await expect(control).toHaveCSS("appearance", "auto");
+    if (kind !== "select") await expect(control).toHaveCSS("appearance", "auto");
     await control.focus();
     await expect(control).toBeFocused();
     await expect(control).toHaveCSS(kind === "select" ? "border-width" : "outline-width", "2px");
     if (kind !== "select") expect(await control.evaluate(node => getComputedStyle(node, "::before").display)).toBe("none");
+    else {
+      await chooseSelectOption(control, "team");
+      await expect(selectBridge(control)).toHaveValue("team");
+    }
   }
 });

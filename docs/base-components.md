@@ -1,7 +1,7 @@
 # Base component inventory
 
-The current source exports **19 components: ten primitives and nine native
-controls**, including the unreleased native Select addition. Published 0.2.2
+The current source exports **19 components: ten primitives and nine
+controls**, including the unreleased Select addition. Published 0.2.2
 exports 18 components and does not include Select. They use original Flood implementations, React 18.3/19 APIs
 and TypeScript declarations. Import `@flood-md/react/styles.css` once and place
 new compositions inside `FloodRoot`.
@@ -32,7 +32,7 @@ than glyph artwork. Preserve the license of any icon pack used by the host.
 | `Button` | Native action, explicit submit/reset, loading and disabled behavior |
 | `Input` | Native input props/ref and independent visual control sizing |
 | `Textarea` | Native multiline input, scrolling and validation styling |
-| `Select` (unreleased source) | Native options/optgroups, dropdown or listbox, form props and ref |
+| `Select` (unreleased source) | Custom single-select popup; native options/forms/ref bridge or inline native listbox |
 | `Checkbox` | Native checkbox with a required visible label |
 | `Radio` | Native radio with a visible label; the host owns group name and legend |
 | `Switch` | Native checkbox behavior exposed with switch semantics |
@@ -48,9 +48,10 @@ Dimensions use rem; the host controls root sizing. Input/Textarea/source Select 
 `size` prop retains its HTML meaning. Small visual controls still need adequate
 non-overlapping touch targets; wrapping labels can increase their height.
 
-Source Select also preserves native numeric `size` and `multiple`; listboxes do
-not show the dropdown chevron. Supply ordinary option/optgroup children. This
-native addition is not a custom select menu engine or a published 0.2.2 export.
+Source Select provides a custom single-choice trigger/listbox popup and preserves
+native values/forms/ref through a select bridge. Numeric `size` and `multiple`
+remain inline native listboxes without a dropdown chevron. Supply ordinary
+option/optgroup children. This addition is not a published 0.2.2 export.
 
 In current source, Checkbox/Radio draw Flood indicators on real native inputs;
 forced colors restores native appearance. Glyphs keep a 1.125rem footprint and
@@ -104,7 +105,7 @@ keyboard use, forced colors, reduced motion, narrow widths and enlarged text.
 The [foundations guide](foundations.md) records APCA and small-text limitations.
 
 Surface's overlay appearance does not implement a dialog or focus trap. This
-base release supplies no custom menu/select/dialog engine, new light profile, material
+base release supplies no general menu/searchable-combobox/dialog engine, new light profile, material
 effects or backend operations. The `/foundations` and `/team` Next.js examples
 demonstrate local composition and form behavior without saving data or sending
 invitations to a service. See [component API details](components.md).

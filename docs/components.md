@@ -91,7 +91,7 @@ that override slot sizing.
 | Button | `variant`: solid / subtle / outline / ghost; `size`: 2xs / xs / sm / md / lg / xl / 2xl; `loading` | Solid/md by default; native type defaults to button |
 | Input | `invalid`; `controlSize`: sm / md / lg / xl (md) | Native name/type/required/autoComplete/ref and size remain available |
 | Textarea | `invalid`; `controlSize`: sm / md / lg / xl (md) | Native rows/maxLength/form props and ref remain available |
-| Select (current source) | `invalid`; `controlSize`: sm / md / lg / xl (md) | Native select/options/optgroups, numeric size, multiple, forms and ref |
+| Select (current source) | `invalid`; `controlSize`: sm / md / lg / xl (md) | Custom single-select popup; native options, values/forms/ref and inline multiple listbox |
 | Field | `label`, `hint`, `error`, `id`, `required`, `describedBy`, function child | Spread supplied props onto one Input/Textarea or source Select |
 | Checkbox | Required `label` | Native checkbox and visible label |
 | Radio | Required `label` | Shared name and host fieldset/legend for a group |
@@ -109,11 +109,13 @@ indicator/label gap is .5rem; separate choices usually use `Inline gap="4"`
 (1rem) with centered row alignment. Inline's default remains gap="2". See the
 [layout guide](layout.md) for full-width opt-in, form widths and grouping examples.
 
-### Current source: native Select
+### Current source: Select
 
 Select is an unreleased source addition beyond the published 0.2.2 exports.
-Use it only with matching package declarations. It wraps a real native select;
-the application supplies its option and optgroup children:
+Use it only with matching package declarations. Single selection uses a Flood
+trigger and listbox popup rather than the operating system's dropdown. A native
+select remains the form-value/ref bridge. The application supplies ordinary
+option and optgroup children:
 
 ```tsx
 "use client";
@@ -140,12 +142,34 @@ export function NotificationPreference() {
 ```
 
 `controlSize` is visual sizing; native numeric `size` is the number of visible
-options. `multiple` and `size` greater than one preserve native listbox behavior
-and hide the single-select chevron. Controlled value/onChange, defaultValue,
-name, required, disabled, form and ref target the actual select. The options popup
-uses the browser/platform UI; this is not a custom menu or combobox engine.
+options. `multiple` and `size` greater than one render an inline native listbox,
+without a dropdown arrow or operating-system popup. Controlled value/onChange,
+defaultValue, name, required, disabled, form and the HTMLSelectElement ref retain
+their native form contract through the bridge. The custom popup is a single-choice
+listbox, not a general menu or searchable combobox engine.
 Select has no native readOnly state. Do not invent a readOnly interaction by
 preventing keyboard events; use a suitable non-editable presentation when needed.
+
+The visible trigger carries Field's label, descriptions, required and invalid
+states. Keyboard focus stays on that trigger while the active option is exposed
+through `aria-activedescendant`:
+
+- Arrow Up/Down opens the popup, then moves among available options. Home/End
+  highlights the first/last available option. Navigation alone does not commit.
+- Enter or Space opens the popup or commits its active option. Tab commits an
+  active option and continues to the next focusable element.
+- Escape, another trigger click or an outside click closes without committing.
+  Scrolling outside the listbox or resizing the viewport also closes it.
+- Typing an option's label highlights a match. Disabled options and disabled
+  optgroups cannot be selected. Long lists scroll within the popup.
+
+The public ref points to the native select bridge; `ref.current.focus()` focuses
+the visible trigger. Read selected values from `onChange`'s native select
+`currentTarget` or from FormData. Uncontrolled `defaultValue` participates in
+form reset; controlled `value` remains the host's responsibility. Required
+validation focuses the trigger and associates its validation message. Keep the
+ordinary option/optgroup children and explicit option values; the popup displays
+their text labels rather than arbitrary interactive option content.
 
 ### Current source: custom choice appearance
 

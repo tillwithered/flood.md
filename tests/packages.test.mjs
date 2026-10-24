@@ -19,6 +19,23 @@ import {
   Select,
 } from "../packages/react/dist/index.js";
 
+test("single Select renders an accessible custom trigger and a native form bridge", () => {
+  const html = renderToStaticMarkup(createElement(Field,
+    { id: "visibility", label: "Visibility", required: true, hint: "Choose a team" },
+    (props) => createElement(Select, { ...props, name: "visibility", defaultValue: "team" },
+      createElement("option", { value: "private" }, "Private"),
+      createElement("optgroup", { label: "Teams" }, createElement("option", { value: "team" }, "Team")),
+    ),
+  ));
+  assert.match(html, /<button\b[^>]*role="combobox"/);
+  assert.match(html, /aria-expanded="false"/);
+  assert.match(html, /aria-haspopup="listbox"/);
+  assert.match(html, /aria-describedby="visibility-hint"/);
+  assert.match(html, /<label[^>]*for="visibility"/);
+  assert.match(html, /<select\b[^>]*name="visibility"/);
+  assert.match(html, /<option value="team" selected="">Team<\/option>/);
+});
+
 test("Select keeps native options, multiple size and Field associations", () => {
   const html = renderToStaticMarkup(createElement(Field,
     { id: "visibility", label: "Visibility", required: true, hint: "Choose a team", error: "Required" },

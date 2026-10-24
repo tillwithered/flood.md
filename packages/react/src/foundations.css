@@ -161,6 +161,38 @@
 .flood-root .flood-select:has(select:disabled) { color: var(--flood-sys-color-field-disabled-content); }
 .flood-root .flood-select--listbox .flood-select__control { appearance: auto; padding-inline-end: calc(var(--flood-control-padding) - var(--flood-sys-stroke-width)); }
 .flood-root .flood-select--listbox .flood-select__control:focus-visible { padding-inline-end: calc(var(--flood-control-padding) - var(--flood-sys-focus-width)); }
+.flood-root .flood-select--custom::after { display: none; }
+.flood-root .flood-select[hidden] { display: none; }
+.flood-root .flood-select--custom .flood-select__control { position: relative; text-align: start; font-family: inherit; }
+.flood-root .flood-select--custom .flood-select__control::after { content: ""; box-sizing: border-box; position: absolute; pointer-events: none; inset-inline-end: var(--flood-control-padding); inset-block-start: 50%; inline-size: var(--flood-sys-space-2); block-size: var(--flood-sys-space-2); border-right: var(--flood-sys-focus-width) solid currentColor; border-bottom: var(--flood-sys-focus-width) solid currentColor; transform: translateY(-75%) rotate(45deg); }
+.flood-root .flood-select__value { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flood-root .flood-select__native[hidden] { display: none; }
+.flood-root .flood-select__menu {
+  box-sizing: border-box;
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: var(--flood-sys-space-1);
+  max-block-size: calc(var(--flood-sys-control-md-height) * 8);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-radius: var(--flood-sys-radius-field);
+  background: var(--flood-sys-color-surface-overlay);
+  color: var(--flood-sys-color-content-default);
+  font-family: var(--flood-sys-font-sans);
+  font-size: var(--flood-control-text);
+  line-height: var(--flood-control-line);
+  letter-spacing: var(--flood-sys-type-compact-tracking);
+  z-index: var(--flood-sys-layer-popover);
+}
+.flood-root .flood-select__menu::backdrop { background: transparent; pointer-events: none; }
+.flood-root .flood-select__option { display: flex; align-items: center; justify-content: space-between; gap: var(--flood-sys-space-2); min-block-size: var(--flood-sys-control-md-height); padding: var(--flood-sys-space-2) var(--flood-sys-space-3); border-radius: var(--flood-sys-radius-indicator); cursor: pointer; box-sizing: border-box; overflow-wrap: anywhere; }
+.flood-root .flood-select__option[data-active="true"] { background: var(--flood-sys-color-selection-background); }
+.flood-root .flood-select__option[aria-disabled="true"] { color: var(--flood-sys-color-field-disabled-content); cursor: not-allowed; }
+.flood-root .flood-select__selected { flex: none; inline-size: var(--flood-sys-control-sm-icon-size); text-align: center; }
+.flood-root .flood-select__group, .flood-root .flood-select__empty { padding: var(--flood-sys-space-2) var(--flood-sys-space-3); font-size: var(--flood-sys-type-label-size); color: var(--flood-sys-color-content-helper); }
+.flood-root .flood-select__validation { display: block; margin-block-start: var(--flood-sys-space-2); color: var(--flood-sys-color-content-helper); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); }
 .flood-root .flood-textarea { min-block-size: calc(var(--flood-control-height) * 3); resize: none; overflow: auto; }
 .flood-root .flood-field { display: grid; gap: var(--flood-sys-space-2); }
 .flood-root .flood-label { color: var(--flood-sys-color-content-helper); font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); font-weight: var(--flood-sys-type-label-weight); letter-spacing: var(--flood-sys-type-label-tracking); }
@@ -208,6 +240,7 @@
 .flood-root :where(.flood-button, .flood-check, .flood-switch-input, .flood-link):focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: var(--flood-sys-focus-offset); }
 .flood-root .flood-spinner { inline-size: var(--flood-control-icon); block-size: var(--flood-control-icon); border-width: var(--flood-sys-focus-width); }
 @media (pointer: coarse) {
+  .flood-root .flood-select__option { min-block-size: max(var(--flood-sys-control-md-height), var(--flood-sys-size-touch)); }
   .flood-root .flood-button, .flood-root .flood-choice, .flood-root .flood-input { min-block-size: max(var(--flood-control-height, var(--flood-sys-control-md-height)), var(--flood-sys-size-touch)); }
   .flood-root .flood-icon-button { min-inline-size: var(--flood-sys-size-touch); }
   .flood-root .flood-input { font-size: max(var(--flood-control-text), var(--flood-sys-type-body-size)); }
@@ -226,6 +259,9 @@
   .flood-root .flood-check::before { display: none; }
   .flood-root .flood-select__control { appearance: auto; }
   .flood-root .flood-select::after { display: none; }
+  .flood-root .flood-select__menu { background: Canvas; color: CanvasText; border-color: CanvasText; }
+  .flood-root .flood-select__option[data-active="true"] { background: Highlight; color: HighlightText; }
+  .flood-root .flood-select--custom .flood-select__control::after { border-color: ButtonText; }
 }
 
 /* Role recipes keep every value in the authored token source. */

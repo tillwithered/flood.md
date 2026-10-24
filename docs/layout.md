@@ -151,7 +151,7 @@ form semantics, forced colors and reduced motion while changing composition.
 
 ## Source additions and compatibility
 
-Native Select and the refined intrinsic sizing/custom choice appearance are
+Select's custom single-choice popup and the refined intrinsic sizing/custom choice appearance are
 current repository source changes, not a claim that published npm `0.2.2` was
 modified. Use the guide matching your installed declarations. The examples with
 Input, Button, Inline and native form props also work without Select; wrapping

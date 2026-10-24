@@ -2,12 +2,13 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
 import { componentSlugs, docPages } from "../../apps/website/routes.mjs";
+import { chooseSelectOption } from "./select-helpers";
 
 test("component props, preview, highlighted code and Markdown stay aligned", async ({ page }, info) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/components/button");
-  await page.getByRole("combobox", { name: "Button prop variant", exact: true }).selectOption("subtle");
-  await page.getByRole("combobox", { name: "Button prop size", exact: true }).selectOption("lg");
+  await chooseSelectOption(page.getByRole("combobox", { name: "Button prop variant", exact: true }), "subtle");
+  await chooseSelectOption(page.getByRole("combobox", { name: "Button prop size", exact: true }), "lg");
   const button = page.locator(".preview-stage").getByRole("button", { name: "Save changes" });
   await expect(button).toHaveClass(/flood-button--subtle/);
   await expect(button).toHaveClass(/flood-button--lg/);

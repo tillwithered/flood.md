@@ -13,6 +13,7 @@ import {
   type HTMLAttributes,
   type CSSProperties,
 } from "react";
+import { SingleSelect } from "./select.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -102,6 +103,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   ref,
 ) {
   const listbox = multiple || (size !== undefined && size > 1);
+  if (!listbox) return <SingleSelect {...props} invalid={invalid} controlSize={controlSize} className={className} size={size} ref={ref} />;
   return (
     <span className={classes("flood-select", `flood-control--${controlSize}`, listbox && "flood-select--listbox")}>
       <select

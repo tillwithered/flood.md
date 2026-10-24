@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Add Select with native form semantics and styled dark field geometry.
+- Add Select with a custom Flood single-choice trigger/listbox popup, styled
+  dark geometry and a native form-value/ref bridge. Multiple/size listboxes
+  remain inline native controls without an operating-system dropdown.
 - Custom checkbox/radio visuals retain native inputs, keyboard behavior and refs.
 - Actions use intrinsic widths, choice glyphs keep fixed dimensions, and playground
   controls use the DS with close labels and separated groups. Layout guidance

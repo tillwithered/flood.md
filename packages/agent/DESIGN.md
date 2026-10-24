@@ -4,7 +4,7 @@ React + TypeScript and Next.js App Router. Use this guide with matching installe
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-Repository-source note: this guide also marks the unreleased native Select
+Repository-source note: this guide also marks the unreleased Select
 addition and layout refinements. Published 0.2.2 does not export Select. Confirm
 the matching installed declarations before using source-only additions.
 
@@ -40,8 +40,15 @@ child. Keep server data fetching in server components.
   retain meaningful visible text and let the host announce completion.
 - Input/Textarea and source Select use controlSize sm/md/lg/xl. Preserve native
   numeric size props. Select accepts native option/optgroup children and an
-  HTMLSelectElement ref; multiple or size>1 remains a native listbox without a
-  dropdown arrow. Its popup belongs to the browser, not a custom menu engine.
+  HTMLSelectElement ref. Single selection uses Flood's custom trigger/listbox,
+  with a native select form-value/ref bridge; never replace it with the OS popup.
+  Multiple or size>1 remains an inline native listbox, without a dropdown arrow.
+  For single selection, arrows/Home/End highlight, Enter/Space/Tab commits, and
+  Escape cancels; typeahead matches option labels. Preserve trigger focus and
+  aria-activedescendant rather than moving focus into each option. The ref remains
+  HTMLSelectElement; its focus() targets the trigger. In onChange, read the event's
+  currentTarget as the native select; retain name/required/defaultValue/form reset.
+  Supply ordinary text-labeled options/optgroups, not interactive option content.
   Field required forwards native required and adds a visible marker. Spread all
   callback props to preserve id, aria-describedby and aria-invalid. describedBy
   merges external description IDs with hint/error IDs.
