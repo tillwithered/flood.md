@@ -4,9 +4,9 @@ Start with the host's instructions, package.json, flood.json and installed
 flood/DESIGN.md. Use matching package/CLI versions and declarations. A newer
 website example does not add APIs to an older installation.
 
-The expanded bundle described here is an **unreleased source addition** beyond
-published 0.2.2's DESIGN.md and SKILL.md. Source guides and previews must not be
-presented as a completed npm release. Existing projects keep their matching files.
+Version 0.2.3 includes the expanded skill, rules and reference bundle, including
+spacing guidance. Existing projects keep their installed files; compare new
+guidance before updating customized instructions.
 
 For discovery, give an agent [flood.md/llms.txt](https://flood.md/llms.txt).
 It identifies deployed status and entry points. Follow [installation](installation.md);

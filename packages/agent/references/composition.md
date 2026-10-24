@@ -44,7 +44,7 @@ offsets. Do not hide native scrolling as a CSS-only
 substitute for an overlay engine. Check wheel, touch, keyboard, thumb drag, resize
 and RTL; preserve the native forced-colors fallback.
 
-## Current source: label and group foundations
+## label and group foundations
 
 Field already composes Label. Use standalone Label when assembling an associated
 control outside Field; its required marker does not set native required. Keep IDs
@@ -54,7 +54,7 @@ disables descendants except controls in its first legend. Fieldset does not own
 selected values or replace a RadioGroup/CheckboxGroup selection contract. Preserve
 these semantics in nested groups and native form submission.
 
-## Current source: selection groups
+## selection groups
 
 Use RadioGroup for one string value and CheckboxGroup for a string array. Supply
 name, legend and options with unique values; disable individual options when
@@ -65,7 +65,7 @@ The group forwards Fieldset descriptions/status and native form ownership.
 Form reset restores uncontrolled defaults and preserves controlled values;
 canceled reset is ignored and reset does not emit onValueChange.
 
-## Current source: connected controls
+## connected controls
 
 ButtonGroup contains direct Button/IconButton actions with compatible sizes and
 an accessible group label. Tab navigation is ordinary; do not invent toolbar
@@ -74,7 +74,7 @@ props and ref target that input. start/end slots provide host-owned text/icons/
 actions; they are not submitted values or labels. className/style own the wrapper.
 Disable addon actions explicitly when the task needs it. Preserve a single field
 perimeter and distinguish input focus from action focus. Use supported installed
-exports; these constructs are source additions beyond published 0.2.2.
+exports; these constructs are available in 0.2.3.
 
 Nested actions in InputGroup use the group's height and equal space-1 optical
 insets, with inner radius = field radius minus inset. Button size still controls
@@ -93,7 +93,7 @@ and string-array values in both single/multiple modes; single can be cleared.
 Arrow/Home/End navigate focus; Enter/Space activate; ordinary Tab order remains.
 Do not use these as form inputs, required radios or tabs. No automatic native
 form reset/submission is provided. Default props initialize only; host state owns
-controlled values. Current source only, pending 0.2.3, not published 0.2.2.
+controlled values. Available in 0.2.3.
 
 SegmentedControl composes native RadioGroup for one value/mode: label, unique form
 name and string-label options, with optional artwork. Use value/onValueChange or
@@ -102,7 +102,7 @@ select, Home/End select endpoints, Space checks; Enter keeps native form behavio
 Native form/required/disabled/reset behavior remains. Use actual tabs for panels,
 not SegmentedControl. Choose short labels, icons or vertical orientation for
 constrained widths; fullWidth distributes segments equally. iconOnly retains
-accessible option labels. Pending source-only 0.2.3, not published 0.2.2.
+accessible option labels. Available in 0.2.3.
 
 Collapsible: title + children, open/onOpenChange or defaultOpen. Accordion composes
 Collapsible via unique value/title/content items; string-array selection in single
@@ -112,9 +112,9 @@ not nested disclosures. Panels stay mounted and hidden, so form values and nativ
 constraints persist. Disabled only prevents trigger activation. Programmatic
 closing returns panel focus to an enabled trigger if focus has not moved elsewhere;
 host owns focus for removed/disabled triggers. Only chevron motion, reduced-motion
-aware; no height animation or per-panel landmark flood. Pending source-only 0.2.3.
+aware; no height animation or per-panel landmark flood. Available in 0.2.3.
 
-Tooltip/Popover/Dialog (source-only): trigger is a render function; forward every
+Tooltip/Popover/Dialog: trigger is a render function; forward every
 supplied prop/ref to one connected visible Button in the same document. Tooltip
 content is text only. Use Popover for interactive contextual UI and Dialog for a
 modal task. Controlled open/onOpenChange needs host updates; initial defaults are
@@ -122,12 +122,12 @@ not synchronization. Closed Popover/Dialog children unmount, so keep persistent
 form values in host state. initialFocusRef chooses a safe element in the panel;
 closeLabel localizes the explicit close action. Native top-layer APIs preserve
 FloodRoot theme scope without body portals. Avoid overriding positioning fields.
-Native Popover/dialog support is required, no legacy polyfill. Pending 0.2.3.
+Native Popover/dialog support is required, no legacy polyfill. Available in 0.2.3.
 
 Link defaults to text; opt-in solid/subtle/outline/ghost and
 Button sizes share the button recipe without changing native anchor semantics.
 Use href/target for navigation, Button for actions; never nest the two or add
-role=button. Link has no disabled/loading contract. Pending 0.2.3.
+role=button. Link has no disabled/loading contract. Available in 0.2.3.
 Tabs switches linked content panels (not modes or radio values) on a shared
 contained surface. Avoid a second enclosing card inside the panel; selected fill
 joins the panel without an additional underline. Arrows activate by default,
@@ -138,5 +138,4 @@ available; host reconciles values. Breadcrumb is an ordered native link hierarch
 last item current. Pagination is controlled page/pageCount with onPageChange or
 getHref; host owns data/routes and empty states. Counts must be positive safe
 integers in range; siblingCount 0/1/2 bounds window size. Native modifier navigation,
-localized names, unavailable endpoints and narrow wrapping stay intact. Pending
-source-only 0.2.3, not published 0.2.2.
+localized names, unavailable endpoints and narrow wrapping stay intact. Available in 0.2.3.

@@ -11,7 +11,7 @@ internal padding. Its width is a separate layout decision. The root font size
 is a user or host preference, not a density setting.
 
 - Buttons normally fit their content. Put sibling actions in `Inline`; do not
-  make every action fill a form or grid cell. Current source styles keep Button
+  make every action fill a form or grid cell. Flood 0.2.3 styles keep Button
   width intrinsic and cap it at the available width.
 - Input, Textarea and Select fill the width their parent assigns. Give their
   form or Field a responsive width; do not size each field independently.
@@ -170,7 +170,6 @@ pill token. For unequal insets, derive each corner/axis from its actual inset.
 ## Source additions and compatibility
 
 Select's custom single-choice popup and the refined intrinsic sizing/custom choice appearance are
-current repository source changes, not a claim that published npm `0.2.2` was
-modified. Use the guide matching your installed declarations. The examples with
+included in 0.2.3; older immutable npm releases are unchanged. Use the guide matching your installed declarations. The examples with
 Input, Button, Inline and native form props also work without Select; wrapping
 actions in Inline provides an explicit composition boundary for earlier installs.

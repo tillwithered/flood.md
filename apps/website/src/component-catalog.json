@@ -198,7 +198,6 @@
       "Select"
     ],
     "notes": [
-      "Unreleased local source addition. Select is not part of the published 0.2.2 package; the next release is pending review.",
       "Single selection uses a Flood trigger and listbox, including the popup. Native options and optgroups supply the choices; disabled choices cannot be selected.",
       "Use arrows, Home/End and typing to navigate; Enter or Space confirms, Escape cancels. The popup scrolls active choices into view.",
       "Select fills its Field; constrain the form or field wrapper. Multiple and numeric size greater than one use a native inline listbox rather than a popup.",
@@ -307,7 +306,6 @@
       "Text"
     ],
     "notes": [
-      "Unreleased source export. ScrollArea is not part of the published 0.2.2 package; use matching installed declarations.",
       "Scrollbars overlay the viewport with an inset; they do not reserve a content gutter. Give the viewport an explicit height or maxHeight to produce vertical overflow.",
       "The forwarded ref, className, style and native div props belong to the scrollable viewport. Supply a visible context or accessible label for keyboard users.",
       "Wheel, touch and keyboard scrolling remain native. Default contentInset=\"scrollbar\" keeps text and full-width rows clear of rails with inner padding, without shrinking the viewport. Explicit none allows edge-to-edge content when the host already provides safe padding. Rails automatically avoid rounded clipping corners.",
@@ -326,7 +324,6 @@
       "Input"
     ],
     "notes": [
-      "Unreleased source export beyond published 0.2.2.",
       "htmlFor connects the label to a matching control ID; implicit nested controls also retain native behavior.",
       "required adds a decorative marker only. Set required on the actual control as well. Field already composes Label."
     ]
@@ -342,7 +339,6 @@
       "Checkbox"
     ],
     "notes": [
-      "Unreleased source export beyond published 0.2.2.",
       "Uses a real fieldset and legend, with a ref to HTMLFieldSetElement. Disabled descendants retain native form semantics.",
       "The browser exempts controls in the first legend from inherited disabling. Avoid interactive legend contents unless this is intentional.",
       "hint, message, error and external aria-describedby IDs are merged without duplicates. Error takes precedence over an advisory status.",
@@ -359,7 +355,6 @@
       "RadioGroup"
     ],
     "notes": [
-      "Unreleased source export beyond published 0.2.2.",
       "Composes Fieldset and existing native choice controls. The ref targets HTMLFieldSetElement; options need unique values and visible labels.",
       "value/onValueChange is controlled; defaultValue initializes an uncontrolled group. Native form reset restores uncontrolled defaults without firing onValueChange; controlled values remain owned by the host.",
       "name belongs to the inputs. The form prop associates every input with an external form. Disabled options and groups follow native submission rules.",
@@ -376,7 +371,6 @@
       "CheckboxGroup"
     ],
     "notes": [
-      "Unreleased source export beyond published 0.2.2.",
       "Composes Fieldset and existing native choice controls. The ref targets HTMLFieldSetElement; options need unique values and visible labels.",
       "value/onValueChange is controlled; defaultValue initializes an uncontrolled group. Native form reset restores uncontrolled defaults without firing onValueChange; controlled values remain owned by the host.",
       "name belongs to the inputs. The form prop associates every input with an external form. Disabled options and groups follow native submission rules.",
@@ -394,7 +388,6 @@
       "Button"
     ],
     "notes": [
-      "Unreleased source export beyond published 0.2.2.",
       "Use direct Button/IconButton children with compatible sizes. The group owns connected radii and single separators; actions keep their props and handlers.",
       "label names the group. Tab follows normal button order; this is not a toolbar, menu or selection group.",
       "Horizontal is default; vertical stacks actions. Content can wrap within a button. Conditional/hidden actions preserve the visible end corners. No clipping masks focus."
@@ -411,7 +404,6 @@
       "Field"
     ],
     "notes": [
-      "Unreleased source export beyond published 0.2.2.",
       "Ref, id, name, value, events and ARIA attributes target the real input. className/style customize the outer layout wrapper.",
       "start/end are logical content slots. Adornments do not become the submitted value or an accessible label; use Field or Label and explain prefixes when needed.",
       "The input has one shared field perimeter and accent focus. Interactive adornments keep their own focus indication and accessible names.",
@@ -425,7 +417,6 @@
     "description": "A native button with a persistent pressed state.",
     "code": "<Toggle defaultPressed>Bold</Toggle>",
     "notes": [
-      "Current source only, beyond published 0.2.2.",
       "Keep the accessible name stable; Enter/Space toggle pressed. Supports controlled pressed/onPressedChange or defaultPressed."
     ],
     "imports": [
@@ -439,7 +430,6 @@
     "description": "Optional single or multiple selections exposed as pressed buttons.",
     "code": "<ToggleGroup label=\"Text formatting\" defaultValue={[\"bold\"]} options={[{value: \"bold\", label: \"Bold\"}, {value: \"italic\", label: \"Italic\"}]} />",
     "notes": [
-      "Current source only, beyond published 0.2.2.",
       "Tab reaches each enabled action. Arrows/Home/End move focus without selecting. Single selection can be cleared.",
       "Use RadioGroup for form choices and tabs for switching panels. ToggleGroup does not submit form values."
     ],
@@ -454,7 +444,7 @@
     "description": "A compact single-value choice with native radio semantics and a shared inset surface.",
     "code": "<SegmentedControl label=\"Time range\" name=\"period\" defaultValue=\"day\" options={[{value: \"day\", label: \"Day\"}, {value: \"week\", label: \"Week\"}, {value: \"month\", label: \"Month\"}]} />",
     "notes": [
-      "Unreleased source beyond published 0.2.2. Uses original RadioGroup behavior and native inputs.",
+      "Uses original RadioGroup behavior and native inputs.",
       "Arrow keys move focus and select; Home/End select endpoints, skipping disabled segments. Selecting the current value does not clear it.",
       "Native name/form/required, reset and controlled values are preserved. Use actual tabs for tab panels, ToggleGroup for optional pressed actions."
     ],
@@ -469,7 +459,6 @@
     "description": "A named disclosure button and retained show/hide panel.",
     "code": "<Collapsible title=\"Advanced settings\">Additional project settings.</Collapsible>",
     "notes": [
-      "Source-only addition beyond published 0.2.2.",
       "Use open/onOpenChange or defaultOpen. The panel stays mounted and hidden when closed; hidden form controls keep native form semantics.",
       "Title is plain text for a stable button name. Content may be interactive. Disabled prevents trigger activation, not interaction inside an open panel."
     ],
@@ -484,7 +473,6 @@
     "description": "Related disclosure sections with optional single or multiple expansion.",
     "code": "<Accordion label=\"Questions\" items={[{value:\"install\",title:\"How do I install Flood?\",content:\"Install the packages and import the stylesheet.\"}]} />",
     "notes": [
-      "Source-only addition beyond published 0.2.2.",
       "Headings contain native disclosure buttons. Set headingLevel for the surrounding document.",
       "Enter/Space toggle. Tab visits available triggers and open panel contents. ArrowUp/Down and Home/End move among enabled top-level triggers without opening panels."
     ],
@@ -499,7 +487,7 @@
     "description": "Brief text help on hover or focus, with collision-aware placement.",
     "code": "<Tooltip content=\"Additional context\" trigger={trigger => <Button {...trigger}>Hover or focus</Button>} />",
     "notes": [
-      "Source-only addition beyond published 0.2.2. Requires native Popover API.",
+      "Requires native Popover API.",
       "Forward trigger props and ref to one actual button. Tooltip is text-only; interactive content belongs in Popover.",
       "Escape dismisses. Hover can move onto the tooltip; focus stays on the trigger. Do not use it as the only accessible name or essential instruction."
     ],
@@ -515,7 +503,7 @@
     "description": "A nonmodal contextual dialog in the native top layer.",
     "code": "<Popover title=\"Project settings\" trigger={trigger => <Button {...trigger}>Settings</Button>}>Project details.</Popover>",
     "notes": [
-      "Source-only addition beyond published 0.2.2. Forward all trigger props and ref.",
+      "Forward all trigger props and ref.",
       "Escape, outside pointer and focus leaving dismiss. Focus enters content and returns when appropriate; Tab is not trapped.",
       "Closed content unmounts; keep persistent data in the host. Uses native Popover API within the existing DOM/theme scope."
     ],
@@ -531,7 +519,7 @@
     "description": "A named native modal dialog with inert background and managed focus.",
     "code": "<Dialog title=\"Create a project\" trigger={trigger => <Button {...trigger}>Open dialog</Button>}>Project details.</Dialog>",
     "notes": [
-      "Source-only addition beyond published 0.2.2. Uses native showModal, not a simulated modal div.",
+      "Uses native showModal, not a simulated modal div.",
       "Escape closes the top layer; outside closing can be disabled independently. Tab remains inside the dialog.",
       "Closed content unmounts. Forward trigger props/ref; initialFocusRef can select a safe initial control. Modern native dialog support is required."
     ],
@@ -547,7 +535,6 @@
     "description": "Connected tab buttons and retained content panels with roving keyboard focus.",
     "code": "<Tabs label=\"Project sections\" items={[{value:\"overview\",label:\"Overview\",content:\"Project context.\"},{value:\"activity\",label:\"Activity\",content:\"Recent updates.\"}]} />",
     "notes": [
-      "Source-only addition beyond published 0.2.2.",
       "Arrow keys navigate enabled tabs; automatic activation is default, manual needs Enter/Space. Tab leaves the tablist. Horizontal direction follows RTL.",
       "Inactive panels remain mounted but hidden. Keep form validation and persistent selection under host control. Invalid, missing or disabled selected values fall back to the first available item."
     ],
@@ -562,7 +549,6 @@
     "description": "A wrapping hierarchy of native links with an explicit current page.",
     "code": "<Breadcrumb items={[{label:\"Workspace\",href:\"/\"},{label:\"Projects\",href:\"/projects\"},{label:\"Flood\"}]} />",
     "notes": [
-      "Source-only addition beyond published 0.2.2.",
       "The last item is current, with or without an href. Separators are decorative and not focusable.",
       "Links keep browser navigation semantics. The host owns actual routes and client routing."
     ],
@@ -577,7 +563,6 @@
     "description": "Controlled page navigation with bounded page windows, buttons or native links.",
     "code": "<Pagination page={1} pageCount={20} getHref={page => `?page=${page}`} />",
     "notes": [
-      "Source-only addition beyond published 0.2.2.",
       "Use getHref for native route links, onPageChange for local controlled data, or both for a navigation notification. Modifier clicks retain browser behavior.",
       "Page and pageCount must be positive safe integers within range. Empty datasets can omit Pagination. siblingCount 0/1/2 controls compactness; endpoints are noninteractive when unavailable."
     ],

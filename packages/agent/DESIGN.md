@@ -1,19 +1,18 @@
-# Flood design system · 0.2.2
+# Flood design system · 0.2.3
 
 Read project-root flood.json and installed declarations with this contract.
 The source bundle's SKILL.md routes to focused composition, accessibility,
 customization and verification references. Its routing matrix names prerequisites
 and sources of truth; flood/rules.json indexes observable checks. Read only the
-relevant reference. This expanded bundle is unreleased beyond published 0.2.2;
-existing installations keep their matching guide set.
+relevant reference. This expanded bundle belongs to 0.2.3; existing installations
+keep their matching guide set.
 
 React + TypeScript and Next.js App Router. Use this guide with matching installed
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-Repository-source note: this guide also marks the unreleased Label/Fieldset/RadioGroup/CheckboxGroup/ButtonGroup/InputGroup/Toggle/ToggleGroup/SegmentedControl/Collapsible/Accordion/Tooltip/Popover/Dialog/Tabs/Breadcrumb/Pagination/Select/ScrollArea
-additions and layout refinements. Published 0.2.2 exports neither. Confirm
-the matching installed declarations before using source-only additions.
+This guide covers all 37 exports in 0.2.3 and their layout refinements. Confirm
+the matching installed declarations before using APIs absent from older versions.
 
 ## Connect
 

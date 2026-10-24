@@ -4,16 +4,13 @@ An independent design system for **React, TypeScript and Next.js**. Original
 components, semantic tokens, a small installer, and versioned instructions for
 coding agents. No third-party UI component library or Tailwind dependency.
 
-## Base dark design system · 0.2.2
+## Base dark design system · 0.2.3
 
-Flood 0.2.2 provides a dark foundations profile, 163 semantic token roles and
-[18 original primitives and controls](docs/base-components.md).
-
-Current unreleased source extends this to 37 exports and 168 semantic roles,
-including Label, Fieldset, selection groups, Select, overlay ScrollArea and a focused agent
-skill/rules bundle.
-Use the guide matching your installed version; these additions do not modify
-the existing npm release.
+Flood 0.2.3 provides a dark foundations profile, 168 semantic token roles and
+[37 original primitives and controls](docs/base-components.md), including forms,
+selection groups, disclosures, overlays and navigation. A versioned agent bundle
+includes portable spacing and composition guidance. Use the matching installed
+guide and declarations when upgrading.
 
 ```tsx
 import "@flood-md/react/styles.css";
@@ -40,7 +37,7 @@ contract remains compatible outside FloodRoot.
 ## Connect
 
 ```sh
-npx @flood-md/cli@0.2.2 init
+npx @flood-md/cli@0.2.3 init
 ```
 
 Run in an existing npm-based React or Next.js project. Use `init --dry-run` to see
@@ -59,7 +56,7 @@ export function Example() {
 ```
 
 Give an agent `https://flood.md/llms.txt`. The guide
-uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.2 doctor` checks
+uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.3 doctor` checks
 installed versions and owned instruction files.
 
 ## Documentation
@@ -84,7 +81,7 @@ variables; host application owns layout, data fetching and side effects.
 ## Develop
 
 See [foundations](docs/foundations.md) and the [component guide](docs/components.md)
-for 0.2.2. Existing 0.1.1 projects should follow their matching guides. The Next.js
+for 0.2.3. Existing 0.1.1 projects should follow their matching guides. The Next.js
 example includes `/foundations` and `/team` for reviewing the current source.
 
 Node.js 22.12+ (Node 24 recommended), npm 11.
@@ -103,7 +100,8 @@ npm run test:browser
 `verify` builds the library/site, checks types, tests installer behavior, installs
 real package tarballs into a clean consumer, and builds the Next.js App Router
 example. The browser suite checks keyboard use, themes, forms and accessibility.
-The site is one screen; `/playground` is the component verification surface.
+The site has a focused home page, documentation and a component catalog with
+live previews. `/playground` is an additional composition verification surface.
 
 ## Workspace
 

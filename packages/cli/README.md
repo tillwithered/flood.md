@@ -6,8 +6,8 @@
 Requires Node 22.12+. Installs matching tokens, React and agent packages; creates
 flood.json and every owned guide listed in the matching agent manifest: DESIGN.md,
 rules.json and manifest.json under flood/, plus SKILL.md and focused references
-under .agents/skills/flood-ui/. This expanded bundle is an unreleased source
-addition beyond published 0.2.2. Refuses existing owned files or linked destinations.
+under .agents/skills/flood-ui/. Version 0.2.3 includes the expanded bundle and
+spacing reference. Refuses existing owned files or linked destinations.
 Does not rewrite source code, client settings or AGENTS.md.
 After init, import @flood-md/react/styles.css once at the application root.
 Wrap new interfaces in FloodRoot from @flood-md/react to select the dark

@@ -30,7 +30,7 @@ Test keyboard start-to-finish, focus visibility, labels and descriptions,
 validation, native form reset, long text, 320px layout and root text enlargement.
 An automated scanner alone cannot establish application accessibility or WCAG 3
 conformance. Record what was actually checked; see [verification](verification.md).
-## Field status and read-only values (current source)
+## Field status and read-only values
 
 Use status on Field/Input/Textarea/Select for error, warning, success or info.
 With Field, provide message and spread its callback props onto the Flood control.
@@ -49,7 +49,7 @@ CheckboxGroup and SegmentedControl inherit it. Keep label/legend supplied and
 textual; do not hide interactive label content. Use it only where surrounding
 context supplies the visible meaning. Input/Textarea/Select/InputGroup configure
 this on their Field wrapper, not the control. Placeholder never replaces naming;
-choice option labels and button names have separate contracts. Pending 0.2.3.
+choice option labels and button names have separate contracts. Available in 0.2.3.
 
 Overlay source APIs: forward trigger render props/ref onto one actual button;
 keep trigger mounted/visible. Tooltip is noninteractive text help, not the only
@@ -60,4 +60,4 @@ and opener. Escape dismisses the top layer; outside closing is independently
 configurable. Provide a visible title and safe initialFocusRef when needed. Closed
 Popover/Dialog children unmount; host owns persistent values and controlled open.
 Modern native APIs required. DOM/theme scope stays intact; no body portal needed.
-Pending source-only 0.2.3, beyond installed/published 0.2.2.
+Available in 0.2.3.

@@ -1,28 +1,26 @@
 # Base component inventory
 
-The current source exports **37 components**, including the unreleased Select, ScrollArea,
-Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb and Pagination additions. Published 0.2.2
-exports 18 components and does not include these nineteen exports. They use original Flood implementations, React 18.3/19 APIs
-and TypeScript declarations. Import `@flood-md/react/styles.css` once and place
-new compositions inside `FloodRoot`.
+Flood 0.2.3 exports **37 components**, using original Flood implementations,
+React 18.3/19 APIs and TypeScript declarations. Import
+`@flood-md/react/styles.css` once and place new compositions inside `FloodRoot`.
 
 ## Structure and presentation
 
 | Export | Responsibility |
 | --- | --- |
-| `Label` (unreleased source) | Native label association and an optional required marker |
+| `Label`  | Native label association and an optional required marker |
 | `FloodRoot` | Explicit neutral/dark scope; local Inter and semantic roles |
 | `Text` | Lead, body, compact, label and helper typography with semantic tone |
 | `Heading` | Independent semantic heading level and display/large/page/section appearance |
 | `Stack` | Vertical layout with token spacing |
 | `Inline` | Wrapping horizontal layout and alignment |
 | `Surface` | Default/raised/overlay visual surface with token padding |
-| `ScrollArea` (unreleased source) | Native viewport with inset overlay scrollbars; no content gutter |
+| `ScrollArea`  | Native viewport with inset overlay scrollbars; no content gutter |
 | `Divider` | Semantic separator with a quiet decorative line |
 | `IconSlot` | Sized adapter for a host-supplied SVG; optional accessible label |
 | `IconButton` | Button composition with a required action label and decorative icon |
-| `Collapsible` (unreleased source) | One accessible disclosure with retained panel content |
-| `Accordion` (unreleased source) | Related disclosure headings with single/multiple expansion |
+| `Collapsible`  | One accessible disclosure with retained panel content |
+| `Accordion`  | Related disclosure headings with single/multiple expansion |
 | `CodeSnippet` | Selectable wrapping code and an optional host-owned action slot |
 
 IconButton composes the Button control; this grouping describes how the base
@@ -33,21 +31,21 @@ than glyph artwork. Preserve the license of any icon pack used by the host.
 
 | Export | Responsibility |
 | --- | --- |
-| `Toggle` (unreleased source) | Native pressed action with controlled/local state |
-| `SegmentedControl` (unreleased source) | Native single choice in a shared inset surface, preserving forms and reset |
-| `ToggleGroup` (unreleased source) | Optional single/multiple pressed actions with keyboard focus navigation |
-| `ButtonGroup` (unreleased source) | Connected independent actions with ordinary Tab navigation |
-| `InputGroup` (unreleased source) | One native input with host-owned start/end adornments |
+| `Toggle`  | Native pressed action with controlled/local state |
+| `SegmentedControl`  | Native single choice in a shared inset surface, preserving forms and reset |
+| `ToggleGroup`  | Optional single/multiple pressed actions with keyboard focus navigation |
+| `ButtonGroup`  | Connected independent actions with ordinary Tab navigation |
+| `InputGroup`  | One native input with host-owned start/end adornments |
 | `Button` | Native action, explicit submit/reset, loading and disabled behavior |
 | `Input` | Native input props/ref and independent visual control sizing |
 | `Textarea` | Native multiline input, scrolling and validation styling |
-| `Select` (unreleased source) | Custom single-select popup; native options/forms/ref bridge or inline native listbox |
+| `Select`  | Custom single-select popup; native options/forms/ref bridge or inline native listbox |
 | `Checkbox` | Native checkbox with a required visible label |
 | `Radio` | Native radio with a visible label; the host owns group name and legend |
 | `Switch` | Native checkbox behavior exposed with switch semantics |
-| `RadioGroup` (unreleased source) | Single choice with group state and native radio semantics |
-| `CheckboxGroup` (unreleased source) | Multiple choices with an array value and native checkbox semantics |
-| `Fieldset` (unreleased source) | Native fieldset/legend, inherited disabled and group descriptions |
+| `RadioGroup`  | Single choice with group state and native radio semantics |
+| `CheckboxGroup`  | Multiple choices with an array value and native checkbox semantics |
+| `Fieldset`  | Native fieldset/legend, inherited disabled and group descriptions |
 | `Field` | Associates one input with label, required marker, hints and errors |
 | `Link` | Native anchor for navigation |
 
@@ -63,7 +61,7 @@ non-overlapping touch targets; wrapping labels can increase their height.
 Source Select provides a custom single-choice trigger/listbox popup and preserves
 native values/forms/ref through a select bridge. Numeric `size` and `multiple`
 remain inline native listboxes without a dropdown chevron. Supply ordinary
-option/optgroup children. This addition is not a published 0.2.2 export.
+option/optgroup children. Select is available in 0.2.3.
 
 In current source, Checkbox/Radio draw Flood indicators on real native inputs;
 forced colors restores native appearance. Glyphs keep a 1.125rem footprint and
@@ -104,7 +102,7 @@ documentation and checks. Breaking changes require a separate version decision.
 
 ## Scope and customization
 
-The base profile is dark only and contains 168 current-source public semantic token roles (163 in published 0.2.2).
+The base profile is dark only and contains 168 public semantic token roles.
 Override `--flood-sys-*` variables on the foundation scope. The bundled Inter
 font retains its OFL license. Legacy controls outside FloodRoot keep their
 earlier light/dark contract; legacy variables do not automatically override the
@@ -117,13 +115,13 @@ keyboard use, forced colors, reduced motion, narrow widths and enlarged text.
 The [foundations guide](foundations.md) records APCA and small-text limitations.
 
 Surface's overlay appearance does not implement a dialog or focus trap. This
-base release supplies no general menu/searchable-combobox/dialog engine, new light profile, material
+base release supplies no general menu/searchable-combobox engine, new light profile, material
 effects or backend operations. The `/foundations` and `/team` Next.js examples
 demonstrate local composition and form behavior without saving data or sending
 invitations to a service. See [component API details](components.md).
 
 
-## Contextual overlays (unreleased source)
+## Contextual overlays
 
 | Export | Responsibility |
 | --- | --- |
@@ -137,7 +135,7 @@ host: closed Popover/Dialog contents unmount. See package and agent guides for
 controlled ownership, initial focus, nesting and contextual-help semantics.
 
 
-## Navigation (unreleased source)
+## Navigation
 
 | Export | Responsibility |
 | --- | --- |

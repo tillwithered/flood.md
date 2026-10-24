@@ -3,8 +3,7 @@
 Original React 18.3/19 components for TypeScript and Next.js App Router. Native
 HTML semantics and refs, no third-party component library or Tailwind dependency.
 
-This package documents the **0.2.2** API and clearly marked current-source
-additions. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.3** API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
 ```tsx
@@ -31,19 +30,19 @@ included. Legacy controls outside FloodRoot keep their earlier theme behavior.
 
 Exports: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot,
 IconButton, CodeSnippet, Button, Input, Textarea, Checkbox, Radio, Switch, Field and Link,
-plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb, Pagination, Select
-and ScrollArea beyond published 0.2.2. Button variants are solid/subtle/outline/ghost;
+plus TypeScript prop types. Version 0.2.3 also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb, Pagination, Select
+and ScrollArea. Button variants are solid/subtle/outline/ghost;
 sizes are 2xs/xs/sm/md/lg/xl/2xl. Prefer subtle for standalone secondary actions;
 ghost belongs in a clear parent context. Loading disables activation.
 
-Current source adds LinkProps with `variant="text" | "solid" | "subtle" |
+Version 0.2.3 adds LinkProps with `variant="text" | "solid" | "subtle" |
 "outline" | "ghost"` and the same seven `size` values as Button. The default
 text link keeps its existing appearance and inherits text size; size affects
 only button variants. These variants reuse Button's geometry, tokens and states
 while retaining a real anchor, href, ref, target and browser modifier navigation.
 Use Button for actions; do not add role=button or nest a Button in a Link.
 There is no disabled/loading navigation API. This compatible opt-in extension
-is planned for 0.2.3 and is not present in published 0.2.2.
+is available in 0.2.3.
 
 Heading adds `size="display"` for large marketing headings: 5.5rem / 1.12,
 weight 500, tracking -.04em. Existing heading sizes retain their metrics.
@@ -55,7 +54,7 @@ font stack; the host owns copy actions and status messages. Both additions are
 compatible extensions in 0.2.2; they do not replace existing defaults.
 
 Input/Textarea controlSize is sm/md/lg/xl; native Input size is preserved.
-Current source adds `status="error" | "warning" | "success" | "info"` to Input,
+Version 0.2.3 adds `status="error" | "warning" | "success" | "info"` to Input,
 Textarea, Select and Field. Use Field's `message` for a description associated
 with the control; spreading its callback props forwards status too. Existing
 `error`, `invalid` or affirmative `aria-invalid` override positive statuses.
@@ -78,10 +77,9 @@ required and displays a marker; describedBy merges external IDs with hint/error
 associations. Checkbox/Radio/Switch require a visible label. IconSlot accepts
 host SVG artwork without bundling an icon pack.
 
-## Current source additions: Select and choice layout
+## Select and choice layout
 
-The repository source adds **Select**; it is not an export of the existing
-published 0.2.2 package. It accepts native select props/ref, options and optgroups,
+Version 0.2.3 adds **Select**. It accepts native select props/ref, options and optgroups,
 plus `invalid` and `controlSize="sm" | "md" | "lg" | "xl"` (md by default).
 Use Field's callback props on Select to associate the label and descriptions.
 Single selection uses a custom Flood trigger/listbox popup with a native select
@@ -102,7 +100,7 @@ with a .5rem label gap and centered alignment. Switch also keeps its label close
 Use `Inline gap="4"` for a 1rem gap between separate choices; Inline's default
 gap="2" is unchanged. Buttons retain intrinsic width; full width is a deliberate
 host opt-in. See [layout rules](../../docs/layout.md) and
-[Select usage](../../docs/components.md#current-source-select).
+[Select usage](../../docs/components.md#select).
 
 Import CSS once in Next app/layout.tsx. Add "use client" to host components
 using state/callbacks or Field's function child. Override semantic --flood-sys-*
@@ -114,7 +112,7 @@ and [Inter provenance](src/fonts/README.md). Verify contrast, focus, keyboard,
 narrow layouts and text scaling in your actual application.
 
 
-## Current source: Label and Fieldset
+## Label and Fieldset
 
 Label forwards native label attributes and an HTMLLabelElement ref. Connect its
 htmlFor to a unique control ID, or nest one labelable control. Its required marker
@@ -136,7 +134,7 @@ It does not own choice values, implement a selection model or validate children.
 </Fieldset>
 ```
 
-## Current source: ButtonGroup and InputGroup
+## ButtonGroup and InputGroup
 
 ButtonGroup requires a label and direct Button/IconButton children of compatible
 sizes. It joins visible edges with finite field radii and one full separator along the joined edge, supports
@@ -157,7 +155,7 @@ controls text, icon and horizontal padding. Coarse pointers grow the shell to
 preserve the nested action's touch target. Arbitrary addon content can grow it too.
 Input focus uses the shared perimeter, while an addon action keeps its own focus.
 Use scoped host layout for group width. Textarea/Select require other compositions.
-Both exports are unreleased beyond published 0.2.2.
+Both exports are available in 0.2.3.
 
 ```tsx
 <Field label="Website">
@@ -165,13 +163,13 @@ Both exports are unreleased beyond published 0.2.2.
 </Field>
 ```
 
-## Current source: RadioGroup and CheckboxGroup
+## RadioGroup and CheckboxGroup
 
 Both compose Fieldset and the existing native Radio/Checkbox controls. Supply a
 legend, a name for the inputs and an options array with unique string values,
 visible labels and optional disabled flags. The ref targets HTMLFieldSetElement.
 Orientation is vertical by default; horizontal wraps. Disabled, hint, status,
-message and error follow Fieldset. These exports are unreleased beyond 0.2.2.
+message and error follow Fieldset. These exports are available in 0.2.3.
 Choice groups use compact sm-height rows without an additional vertical gap.
 Coarse pointers retain the touch-target minimum. Wrapping labels can grow a row;
 the indicator remains explicitly sized. Horizontal groups keep space-4 between
@@ -197,7 +195,7 @@ need a host decision about whether submission is meaningful.
   options={[{ value: "private", label: "Private" }, { value: "team", label: "Team" }]} />
 ```
 
-## Current source: overlay ScrollArea
+## overlay ScrollArea
 
 ScrollArea keeps native wheel, touch and keyboard scrolling while drawing inset
 tracks above content. Set height/maxHeight on its viewport through style; choose
@@ -223,7 +221,7 @@ fallback scrollbars retain their platform behavior.
 </ScrollArea>
 ```
 
-This export is an unreleased source addition beyond published 0.2.2. The website
+This export is available in 0.2.3. The website
 uses the same component for code, tables and navigation; Select reuses its internal
 scroll viewport. See [layout](../../docs/layout.md) for constrained compositions.
 
@@ -237,7 +235,7 @@ interactive addon from assistive technology. ButtonGroup supports text buttons,
 IconButton or a mixture; every icon-only action needs its own accessible name.
 
 
-## Current source: Toggle and ToggleGroup
+## Toggle and ToggleGroup
 
 Toggle uses a native button with aria-pressed and type=button. Use defaultPressed
 for local state or pressed/onPressedChange for controlled state. Keep its visible
@@ -263,10 +261,8 @@ accessible names. Text+icon and text-only options are supported too.
 
 These are pressed action buttons, not tabs, radio inputs or switches. No hidden
 inputs, automatic form submission or native form-reset behavior is added. For
-form fields use RadioGroup/CheckboxGroup; for panels use a future tabs component.
-Uncontrolled default props initialize state only. Both exports are unreleased
-additions planned for the next 0.2.3 patch; all package manifests remain 0.2.2
-until the release is explicitly prepared and verified.
+form fields use RadioGroup/CheckboxGroup; for panels use Tabs.
+Uncontrolled default props initialize state only. Both exports are available in 0.2.3.
 
 ```tsx
 <Toggle defaultPressed onPressedChange={active => console.log(active)}>Bold</Toggle>
@@ -275,7 +271,7 @@ until the release is explicitly prepared and verified.
 ```
 
 
-## Current source: SegmentedControl
+## SegmentedControl
 
 SegmentedControl is a segmented presentation of Flood RadioGroup with native
 radio inputs, a visible label/legend and shared inset surface. Supply label,
@@ -305,8 +301,7 @@ HTMLFieldSetElement. Hint/message/error/status follow Fieldset.
 
 Use SegmentedControl for one value/mode, ToggleGroup for optional pressed actions
 and actual tabs for associated tab panels. This does not implement tab panels.
-Source-only addition planned for 0.2.3; manifests remain aligned at 0.2.2 until
-release preparation. No publication is implied by the current source.
+Available in 0.2.3. Use matching installed declarations.
 
 ```tsx
 <SegmentedControl label="Time range" name="period" defaultValue="day"
@@ -315,7 +310,7 @@ release preparation. No publication is implied by the current source.
 ```
 
 
-## Current source: visually hidden external labels
+## visually hidden external labels
 
 Field and Fieldset accept hideLabel (false by default). It visually hides the real
 Label or legend, preserving its association and accessible name, while removing
@@ -340,11 +335,10 @@ Switch. Standalone icon actions still need an accessible name.
   options={[{value:"day",label:"Day"},{value:"week",label:"Week"}]} />
 ```
 
-This compatible prop addition is source-only for the pending 0.2.3 patch; it is
-not available in the existing published 0.2.2 package. It requires Flood CSS.
+This compatible prop addition is available in 0.2.3. It requires Flood CSS.
 
 
-## Current source: Collapsible and Accordion
+## Collapsible and Accordion
 
 Collapsible takes a plain-text title, React children and open/onOpenChange or
 local defaultOpen. Default closed; native Enter/Space activate its named button.
@@ -385,8 +379,7 @@ that transition. No extra landmark regions are created per panel.
 ]} />
 ```
 
-Source-only additions planned for 0.2.3; manifests remain aligned at 0.2.2 until
-release preparation. Import Flood CSS and use FloodRoot for dark foundations.
+Available in 0.2.3. Import Flood CSS and use FloodRoot for dark foundations.
 
 Disclosure corner geometry: Accordion headers have square internal seams. Only
 the first header has upper shell corners, and only a closed last header has lower
@@ -394,7 +387,7 @@ shell corners. An open Collapsible header has square lower corners where its
 panel begins. Hover backgrounds follow that same shape without clipping focus.
 
 
-## Current source: Tooltip, Popover and Dialog
+## Tooltip, Popover and Dialog
 
 All three use a trigger render function: `trigger={props => <Button {...props}>Open</Button>}`.
 Forward every supplied prop and ref to one actual Button/native button in the same
@@ -455,12 +448,11 @@ implied by Popover. No opening/closing animation is applied in this first slice.
 </Dialog>
 ```
 
-Source-only additions planned for the pending 0.2.3 patch; package manifests
-remain aligned at 0.2.2. Use Flood CSS and FloodRoot. These are original native
+Available in 0.2.3. Use Flood CSS and FloodRoot. These are original native
 implementations, without a third-party component/positioning library.
 
 
-## Current source: Tabs, Breadcrumb and Pagination
+## Tabs, Breadcrumb and Pagination
 
 Tabs connects unique-value items (label, content, optional icon/disabled) to a
 named tablist and retained panels. Use defaultValue for local state or
@@ -514,5 +506,4 @@ The native nav ref is HTMLElement. This component does not fetch data or own URL
 <Pagination page={1} pageCount={20} getHref={page => `?page=${page}`} />
 ```
 
-All three are source-only additions for the pending 0.2.3 patch; manifests remain
-aligned at 0.2.2. Use Flood styles and FloodRoot for the neutral dark profile.
+All three are available in 0.2.3. Use Flood styles and FloodRoot for the neutral dark profile.

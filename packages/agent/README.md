@@ -1,8 +1,8 @@
 # @flood-md/agent
 
 Version-matched guidance for Flood React/Next.js projects. Read the installed
-contract before composing screens. This expanded reference bundle is unreleased
-beyond 0.2.2; source alone does not establish npm availability. These files grant
+contract before composing screens. The 0.2.3 reference bundle includes spacing
+guidance, routing and observable rules. These files grant
 no authority to modify external services.
 
 | Source | Role |
@@ -26,9 +26,8 @@ govern available APIs. See [the human guide](../../docs/agents.md).
 
 DESIGN.md includes concrete composition rules: intrinsic action widths,
 responsive form parents, a close indicator/label pair, spacing between choices,
-and keyboard/native form requirements. Repository-only Select additions are
-marked separately from the published 0.2.2 guide contract. Always check the
-declarations of the installed package before using a source-only export.
+and keyboard/native form requirements. Always check the declarations of the
+installed package before using APIs introduced by a later version.
 See the user-facing [layout guide](../../docs/layout.md) for complete examples.
 
 Manifest entry/rule guide paths identify package sources; manifest.files maps

@@ -1,14 +1,14 @@
-# Foundations tokens · 0.2.2
+# Foundations tokens · 0.2.3
 
-This guide describes the **0.2.2** foundation exports. Keep Flood packages at
+This guide describes the **0.2.3** foundation exports. Keep Flood packages at
 matching exact versions. Existing 0.1.1 installs use their earlier token contract.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).
 The compiler also supports component aliases (`comp`) and isolated experiments
 (`exp`); no component-specific tokens are shipped in this first profile.
 
-The current-source neutral dark profile has 168 public semantic roles; published
-0.2.2 has 163. The five source additions define scrollbar size, inset, minimum
+The 0.2.3 neutral dark profile has 168 public semantic roles. Five roles added
+since 0.2.2 define scrollbar size, inset, minimum
 thumb length and thumb/rest-hover colors. Geometry uses rem; the viewport stays
 natively scrollable and overlay tracks reserve no layout gutter. Version 0.2.2 adds
 `sys.type.display.*` (5.5rem size, 1.12 line height, 500 weight, -.04em tracking)
@@ -110,7 +110,7 @@ text-field defaults.
 
 ### Boundaries, focus and motion
 
-Current source uses the quiet `color.field.border` (#383838), matching the
+Version 0.2.3 uses the quiet `color.field.border` (#383838), matching the
 container-outline tone, for ordinary Input, Textarea, Select, unchecked choices,
 Switch and outline Button borders. It is one uniform perimeter, with no extra
 bottom edge or inset contour. The stronger `color.field.boundary` (#8a8a8a)

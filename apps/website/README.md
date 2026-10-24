@@ -12,9 +12,8 @@ content rather than pretending to be library components. Document scrollbars use
 the same foundation tokens through the explicit dark scope on the HTML root;
 page scrolling remains native with forced-color fallback and a stable gutter.
 It has a focused home page, eight documentation guides and an overview plus a
-detail page for each of the 37 current-source exported components. The current local changes are
-unreleased. Published npm remains at 0.2.2; see the changelog before preparing a
-release of the documentation lab and corrected dark field styles.
+detail page for each of the 37 exports in 0.2.3. Installation availability follows
+the verified publication gate in src/release.json.
 
 ## Content
 

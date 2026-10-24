@@ -1,10 +1,10 @@
 # Components
 
-## Dark foundations · 0.2.2
+## Dark foundations · 0.2.3
 
-This guide describes the **0.2.2** API. See the [base component inventory](base-components.md)
-for the complete set. Current-source additions below are explicitly marked and
-do not imply a change to published 0.2.2. Existing 0.1.1 installs follow their
+This guide describes the **0.2.3** API. See the [base component inventory](base-components.md)
+for the complete set. The 0.2.3 APIs extend earlier 0.2 releases; they do not
+modify older npm versions. Existing 0.1.1 installs follow their
 version-specific guides.
 
 Import the same stylesheet and wrap new compositions in `FloodRoot` to select
@@ -91,7 +91,7 @@ that override slot sizing.
 | Button | `variant`: solid / subtle / outline / ghost; `size`: 2xs / xs / sm / md / lg / xl / 2xl; `loading` | Solid/md by default; native type defaults to button |
 | Input | `invalid`; `controlSize`: sm / md / lg / xl (md) | Native name/type/required/autoComplete/ref and size remain available |
 | Textarea | `invalid`; `controlSize`: sm / md / lg / xl (md) | Native rows/maxLength/form props and ref remain available |
-| Select (current source) | `invalid`; `controlSize`: sm / md / lg / xl (md) | Custom single-select popup; native options, values/forms/ref and inline multiple listbox |
+| Select | `invalid`; `controlSize`: sm / md / lg / xl (md) | Custom single-select popup; native options, values/forms/ref and inline multiple listbox |
 | Field | `label`, `hint`, `error`, `id`, `required`, `describedBy`, function child | Spread supplied props onto one Input/Textarea or source Select |
 | Checkbox | Required `label` | Native checkbox and visible label |
 | Radio | Required `label` | Shared name and host fieldset/legend for a group |
@@ -109,9 +109,9 @@ indicator/label gap is .5rem; separate choices usually use `Inline gap="4"`
 (1rem) with centered row alignment. Inline's default remains gap="2". See the
 [layout guide](layout.md) for full-width opt-in, form widths and grouping examples.
 
-### Current source: Select
+### Select
 
-Select is an unreleased source addition beyond the published 0.2.2 exports.
+Select is available in 0.2.3.
 Use it only with matching package declarations. Single selection uses a Flood
 trigger and listbox popup rather than the operating system's dropdown. A native
 select remains the form-value/ref bridge. The application supplies ordinary
@@ -171,7 +171,7 @@ validation focuses the trigger and associates its validation message. Keep the
 ordinary option/optgroup children and explicit option values; the popup displays
 their text labels rather than arbitrary interactive option content.
 
-### Current source: custom choice appearance
+### custom choice appearance
 
 Checkbox and Radio use custom Flood indicators inside the dark scope while
 retaining real native inputs. The indicator is a fixed 1.125rem square within
@@ -234,7 +234,7 @@ and `/team` for a composed team-settings screen with contextual actions. These
 are runnable fixtures, not backend services.
 
 
-## Current source: ScrollArea
+## ScrollArea
 
 Rails avoid rounded corners on the viewport and clipping ancestors automatically.
 Default `contentInset="scrollbar"` keeps text and full-width row backgrounds clear
@@ -251,10 +251,10 @@ Keep the default safety padding unless host spacing already protects text/action
 
 Wheel/touch/keyboard scrolling stays native. The overlay thumb supports dragging
 and track clicks; it follows resizing, content changes and RTL. Forced colors
-restores a visible native bar as a deliberate accessibility fallback. This current
-source export is not available in the published 0.2.2 package.
+restores a visible native bar as a deliberate accessibility fallback. ScrollArea
+is available in 0.2.3.
 
-## Current source: field status and read-only values
+## Field status and read-only values
 
 Input, Textarea, Select and Field accept `status="error" | "warning" | "success" | "info"`.
 Use no status for the neutral default. Field associates its `message` with the
@@ -279,8 +279,8 @@ resting border and canvas background; its focused border remains solid accent.
 Disabled fields have different semantics. Select, Checkbox and Radio have no
 native read-only state. The playground includes a short read-only explanation.
 
-These API additions belong to unreleased source beyond published 0.2.2.
-## Visually hidden external labels (current source)
+These API additions are available in 0.2.3.
+## Visually hidden external labels
 
 `Field` and `Fieldset` accept `hideLabel`, inherited by `RadioGroup`,
 `CheckboxGroup` and `SegmentedControl`. The actual label/legend remains available
@@ -300,9 +300,9 @@ For Input, Textarea, Select and InputGroup, apply this to the enclosing Field:
 Do not use placeholder as a replacement name, hide interactive label content,
 or remove the individual labels of choices. ButtonGroup/ToggleGroup already
 have accessible group names without a visible heading. `hideLabel` is a
-source-only addition for the pending 0.2.3 patch, beyond published 0.2.2.
+compatible addition in 0.2.3.
 
-## Disclosure components (current source)
+## Disclosure components
 
 `Collapsible` combines a native named button and a retained panel. Use `title`,
 children and `defaultOpen`, or controlled `open`/`onOpenChange`. `Accordion`
@@ -320,11 +320,10 @@ the enabled trigger if focus has not already moved elsewhere. Removed or disable
 triggers require host focus management.
 
 Panels change visibility immediately. Only the chevron animates, and reduced
-motion disables that transition. Both APIs are source-only additions planned
-for 0.2.3, beyond published 0.2.2.
+motion disables that transition. Both APIs are available in 0.2.3.
 
 
-## Contextual overlays (current source)
+## Contextual overlays
 
 Tooltip, Popover and Dialog take a trigger render function. Forward all supplied
 props and ref onto one actual button: `trigger={p => <Button {...p}>Open</Button>}`.
@@ -343,18 +342,18 @@ button and configurable closeLabel/initialFocusRef.
 Popover/Dialog use open/onOpenChange or defaultOpen. Closed children unmount, so
 persistent form state belongs in the host. Owners must update controlled state
 and keep triggers connected/visible. Positioning flips/clamps at viewport edges
-and follows logical RTL alignment. They are source-only APIs for pending 0.2.3,
-beyond the published 0.2.2 package. See the React package guide for full contracts.
+and follows logical RTL alignment. These APIs are available in 0.2.3.
+See the React package guide for full contracts.
 
 
-## Navigation components (current source)
+## Navigation components
 
 Link remains a native anchor. Its optional `variant` (solid/subtle/outline/ghost)
 and `size` use the same recipes as Button for navigation that looks like an
 action. The default `variant="text"` inherits typography and stays underlined;
 size only applies to button variants. Keep href/target and ordinary browser
 navigation; use Button for state changes. No nested buttons, role=button,
-disabled or loading behavior. This opt-in extension is planned for 0.2.3.
+disabled or loading behavior. This opt-in extension is available in 0.2.3.
 
 Tabs owns a named tablist and linked panels; use unique-value items, controlled
 value/onValueChange or defaultValue. Arrows select by default; manual activation
@@ -372,5 +371,5 @@ validates positive safe-integer ranges, bounds visible page slots via siblingCou
 0/1/2 and disables unavailable endpoints. Localized names and sizes are configurable.
 Use compact counts on narrow hosts; wrapping preserves navigation without clipping.
 
-These three source APIs are planned for 0.2.3, beyond published 0.2.2. See the
+These three APIs are available in 0.2.3. See the
 package guide for detailed ownership, fallback and keyboard contracts.
