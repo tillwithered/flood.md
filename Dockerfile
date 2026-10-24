@@ -8,6 +8,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build --chown=node:node /app/apps/website/dist ./apps/website/dist
 COPY --from=build --chown=node:node /app/apps/website/server.mjs ./apps/website/server.mjs
+COPY --from=build --chown=node:node /app/apps/website/routes.mjs ./apps/website/routes.mjs
 USER node
 EXPOSE 4173
 CMD ["node", "apps/website/server.mjs"]

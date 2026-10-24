@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 const release = JSON.parse(await readFile("apps/website/src/release.json", "utf8")) as { version: string; published: boolean };
 
 test("icon-only action scales its SVG and keeps it centered", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/components/icon-button");
   const button = page.getByRole("button", { name: "Add idea", exact: true });
   const icon = button.locator(".flood-icon");
   const svg = icon.locator("svg.lucide-plus");
@@ -43,17 +43,19 @@ test("selected landing renders real dark components and validates its workspace 
     return faces.length > 0 && faces.every((face) => face.status === "loaded");
   })).toBe(true);
   await page.screenshot({
-    path: `.artifacts/landing-selected-${testInfo.project.name}.png`,
+    path: `.artifacts/docs-home-${testInfo.project.name}.png`,
     fullPage: true,
   });
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await expect(page.getByRole("form", { name: "Workspace settings" })).toHaveCount(0);
+  await page.goto("/playground");
   const workspace = page.getByRole("textbox", { name: "Workspace name" });
   const note = page.getByRole("textbox", { name: "Project note" });
   await expect(workspace).toHaveValue("My project");
   await expect(note).toHaveAttribute("maxlength", "500");
   await workspace.fill("");
   await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Give your workspace a name.");
+  await expect(page.getByRole("form", { name: "Workspace settings" }).getByRole("alert")).toHaveText("Give your workspace a name.");
   await expect(workspace).toHaveAttribute(
     "aria-invalid",
     "true",
@@ -71,7 +73,7 @@ test("selected landing renders real dark components and validates its workspace 
 });
 
 test("idea showcase uses keyboard-operable choices and adds visible ideas", async ({ page }) => {
-  await page.goto("/");
+  await page.goto("/playground");
   const onboarding = page.getByRole("checkbox", { name: /^Onboarding flow/ });
   await expect(onboarding).not.toBeChecked();
   await onboarding.focus();
@@ -98,7 +100,7 @@ test("installation follows the publication gate and exposes real documentation l
   } else {
     await expect(copy).toBeDisabled();
   }
-  await expect(page.getByRole("link", { name: "Components", exact: true }).first()).toHaveAttribute("href", "https://github.com/tillwithered/flood.md/blob/main/docs/base-components.md");
+  await expect(page.getByRole("link", { name: "Components", exact: true }).first()).toHaveAttribute("href", "/components");
   await expect(page.getByRole("link", { name: /For your agent/i })).toHaveAttribute("href", "/agent/DESIGN.md");
 });
 
@@ -109,6 +111,8 @@ test("landing reflows at 320px with larger text and respects reduced motion", as
   await page.evaluate(() => { document.documentElement.style.fontSize = "24px"; });
   await page.addStyleTag({ content: ".site-root * { line-height:1.5!important; letter-spacing:.12em!important; word-spacing:.16em!important; } .site-root p { margin-bottom:2em!important; }" });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.goto("/playground");
+  await page.evaluate(() => { document.documentElement.style.fontSize = "24px"; });
   const workspace = page.getByRole("textbox", { name: "Workspace name" });
   await workspace.fill("Длинное название рабочего пространства");
   await expect(workspace).toHaveValue("Длинное название рабочего пространства");
