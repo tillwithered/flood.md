@@ -70,7 +70,17 @@ try {
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
-import { Tooltip, Popover, Dialog, type TooltipProps, type PopoverProps, type DialogProps, type OverlayTriggerProps, Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { Tabs, Breadcrumb, Pagination, type TabsProps, type BreadcrumbProps, type PaginationProps, Tooltip, Popover, Dialog, type TooltipProps, type PopoverProps, type DialogProps, type OverlayTriggerProps, Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+const tabs: TabsProps = {label:'Sections',items:[{value:'a',label:'Alpha',content:'Content'}],value:'a',onValueChange:value=>value satisfies string};
+const crumbs: BreadcrumbProps = {items:[{label:'Home',href:'/'},{label:'Current'}]};
+const pages: PaginationProps = {page:1,pageCount:20,siblingCount:1,getHref:page=>'?page='+page,onPageChange:page=>page satisfies number};
+createElement(Tabs,{...tabs,ref:createRef<HTMLDivElement>()});
+createElement(Breadcrumb,{...crumbs,ref:createRef<HTMLElement>()});
+createElement(Pagination,{...pages,ref:createRef<HTMLElement>()});
+// @ts-expect-error Tabs selection is a single string.
+const badTabs: TabsProps = {...tabs,value:['a']};
+// @ts-expect-error Pagination has a bounded sibling window.
+const badPages: PaginationProps = {...pages,siblingCount:10};
 const overlayTrigger = (props: OverlayTriggerProps) => createElement('button',props,'Open');
 const tooltip: TooltipProps = {content:'Help',trigger:overlayTrigger,side:'top'};
 const popover: PopoverProps = {title:'Settings',trigger:overlayTrigger,open:true,onOpenChange:value=>value satisfies boolean};
@@ -178,10 +188,13 @@ void scroll; void scrollElement; void badScroll; void scrollRole;
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog} from '@flood-md/react';
+import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb, Pagination} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
   h(Toggle,{defaultPressed:true},'Bold'),
+  h(Tabs,{label:'Sections',items:[{value:'a',label:'Alpha',content:'Content'}]}),
+  h(Breadcrumb,{items:[{label:'Home',href:'/'},{label:'Current'}]}),
+  h(Pagination,{page:1,pageCount:20,getHref:page=>'?page='+page}),
   h(Tooltip,{content:'Help',trigger:props=>h('button',props,'Help')}),
   h(Popover,{title:'Settings',trigger:props=>h('button',props,'Settings')}),
   h(Dialog,{title:'Create',trigger:props=>h('button',props,'Create')}),
@@ -193,7 +206,7 @@ const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Field,{label:'Name',hideLabel:true,required:true},p=>h(Input,{...p,name:'name'})),
   h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
-if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')||!html.includes('aria-expanded=')||!html.includes('flood-accordion')||!html.includes('flood-dialog')||!html.includes('role="tooltip"')) throw Error('React compatibility render');
+if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')||!html.includes('aria-expanded=')||!html.includes('flood-accordion')||!html.includes('flood-dialog')||!html.includes('role="tooltip"')||!html.includes('role="tablist"')||!html.includes('flood-pagination')||!html.includes('flood-breadcrumb')) throw Error('React compatibility render');
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")

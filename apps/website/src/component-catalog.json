@@ -539,5 +539,50 @@
       "Dialog",
       "Button"
     ]
+  },
+  {
+    "slug": "tabs",
+    "name": "Tabs",
+    "group": "navigation",
+    "description": "Connected tab buttons and retained content panels with roving keyboard focus.",
+    "code": "<Tabs label=\"Project sections\" items={[{value:\"overview\",label:\"Overview\",content:\"Project context.\"},{value:\"activity\",label:\"Activity\",content:\"Recent updates.\"}]} />",
+    "notes": [
+      "Source-only addition beyond published 0.2.2.",
+      "Arrow keys navigate enabled tabs; automatic activation is default, manual needs Enter/Space. Tab leaves the tablist. Horizontal direction follows RTL.",
+      "Inactive panels remain mounted but hidden. Keep form validation and persistent selection under host control. Invalid, missing or disabled selected values fall back to the first available item."
+    ],
+    "imports": [
+      "Tabs"
+    ]
+  },
+  {
+    "slug": "breadcrumb",
+    "name": "Breadcrumb",
+    "group": "navigation",
+    "description": "A wrapping hierarchy of native links with an explicit current page.",
+    "code": "<Breadcrumb items={[{label:\"Workspace\",href:\"/\"},{label:\"Projects\",href:\"/projects\"},{label:\"Flood\"}]} />",
+    "notes": [
+      "Source-only addition beyond published 0.2.2.",
+      "The last item is current, with or without an href. Separators are decorative and not focusable.",
+      "Links keep browser navigation semantics. The host owns actual routes and client routing."
+    ],
+    "imports": [
+      "Breadcrumb"
+    ]
+  },
+  {
+    "slug": "pagination",
+    "name": "Pagination",
+    "group": "navigation",
+    "description": "Controlled page navigation with bounded page windows, buttons or native links.",
+    "code": "<Pagination page={1} pageCount={20} getHref={page => `?page=${page}`} />",
+    "notes": [
+      "Source-only addition beyond published 0.2.2.",
+      "Use getHref for native route links, onPageChange for local controlled data, or both for a navigation notification. Modifier clicks retain browser behavior.",
+      "Page and pageCount must be positive safe integers within range. Empty datasets can omit Pagination. siblingCount 0/1/2 controls compactness; endpoints are noninteractive when unavailable."
+    ],
+    "imports": [
+      "Pagination"
+    ]
   }
 ]

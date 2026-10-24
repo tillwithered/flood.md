@@ -1,8 +1,8 @@
 # Base component inventory
 
-The current source exports **34 components**, including the unreleased Select, ScrollArea,
-Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover and Dialog additions. Published 0.2.2
-exports 18 components and does not include these sixteen exports. They use original Flood implementations, React 18.3/19 APIs
+The current source exports **37 components**, including the unreleased Select, ScrollArea,
+Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb and Pagination additions. Published 0.2.2
+exports 18 components and does not include these nineteen exports. They use original Flood implementations, React 18.3/19 APIs
 and TypeScript declarations. Import `@flood-md/react/styles.css` once and place
 new compositions inside `FloodRoot`.
 
@@ -135,3 +135,17 @@ Forward each trigger render function's props/ref onto one actual button. These
 APIs require modern native Popover/dialog support. Keep persistent values in the
 host: closed Popover/Dialog contents unmount. See package and agent guides for
 controlled ownership, initial focus, nesting and contextual-help semantics.
+
+
+## Navigation (unreleased source)
+
+| Export | Responsibility |
+| --- | --- |
+| Tabs | Roving tab buttons and associated retained content panels |
+| Breadcrumb | Native hierarchy links and current-page text/link |
+| Pagination | Controlled page buttons or links with a bounded page window |
+
+Tabs changes panels rather than form values; use SegmentedControl for modes.
+Breadcrumb/Pagination retain native link semantics and host route ownership.
+See the React package guide for selection fallback, keyboard, retained form state,
+localization, count validation and compactness contracts.

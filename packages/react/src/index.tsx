@@ -24,6 +24,7 @@ import { OverlayScrollArea } from "./scroll-area.js";
 import { ChoiceGroup } from "./choice-group.js";
 import { Disclosure } from "./disclosure.js";
 import { AnchoredOverlay, ModalOverlay } from "./overlays.js";
+import { TabNavigation, BreadcrumbNavigation, PageNavigation } from "./navigation.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -70,6 +71,54 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 export type FieldStatus = "error" | "warning" | "success" | "info";
+
+export interface TabItem {
+  value: string;
+  label: string;
+  content: ReactNode;
+  icon?: ReactNode;
+  disabled?: boolean;
+}
+export interface TabsProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "defaultValue" | "onChange"> {
+  label: string;
+  items: readonly TabItem[];
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  activationMode?: "automatic" | "manual";
+  orientation?: "horizontal" | "vertical";
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  disabled?: boolean;
+  iconOnly?: boolean;
+}
+export const Tabs = forwardRef<HTMLDivElement, TabsProps>(function Tabs(
+  {activationMode="automatic",orientation="horizontal",controlSize="md",disabled=false,iconOnly=false,...props},ref,
+){return <TabNavigation {...props} ref={ref} activationMode={activationMode} orientation={orientation} controlSize={controlSize} disabled={disabled} iconOnly={iconOnly} />;});
+export interface BreadcrumbItem {label:string;href?:string;}
+export interface BreadcrumbProps extends Omit<HTMLAttributes<HTMLElement>, "children"> {
+  items: readonly BreadcrumbItem[];
+  label?: string;
+  separator?: string;
+}
+export const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
+  {label="Breadcrumb",separator="/",...props},ref,
+){return <BreadcrumbNavigation {...props} ref={ref} label={label} separator={separator} />;});
+export interface PaginationProps extends Omit<HTMLAttributes<HTMLElement>, "children" | "onChange"> {
+  page: number;
+  pageCount: number;
+  onPageChange?: (page: number) => void;
+  getHref?: (page: number) => string;
+  siblingCount?: 0 | 1 | 2;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  disabled?: boolean;
+  label?: string;
+  previousLabel?: string;
+  nextLabel?: string;
+  pageLabel?: (page: number) => string;
+}
+export const Pagination = forwardRef<HTMLElement, PaginationProps>(function Pagination(
+  {siblingCount=1,controlSize="sm",disabled=false,label="Pagination",previousLabel="Previous page",nextLabel="Next page",...props},ref,
+){return <PageNavigation {...props} ref={ref} siblingCount={siblingCount} controlSize={controlSize} disabled={disabled} label={label} previousLabel={previousLabel} nextLabel={nextLabel} />;});
 
 export interface OverlayTriggerProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   ref: RefCallback<HTMLButtonElement>;

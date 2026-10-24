@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add original Tabs, Breadcrumb and Pagination with panel semantics, native route
+  links, bounded page windows and keyboard support; planned for 0.2.3.
+
 - Use named IconButton close actions with centered crosses in Popover and Dialog.
 
 - Add original Tooltip, Popover and native Dialog with shared collision placement,

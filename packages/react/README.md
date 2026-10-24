@@ -31,7 +31,7 @@ included. Legacy controls outside FloodRoot keep their earlier theme behavior.
 
 Exports: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot,
 IconButton, CodeSnippet, Button, Input, Textarea, Checkbox, Radio, Switch, Field and Link,
-plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Select
+plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb, Pagination, Select
 and ScrollArea beyond published 0.2.2. Button variants are solid/subtle/outline/ghost;
 sizes are 2xs/xs/sm/md/lg/xl/2xl. Prefer subtle for standalone secondary actions;
 ghost belongs in a clear parent context. Loading disables activation.
@@ -449,3 +449,57 @@ implied by Popover. No opening/closing animation is applied in this first slice.
 Source-only additions planned for the pending 0.2.3 patch; package manifests
 remain aligned at 0.2.2. Use Flood CSS and FloodRoot. These are original native
 implementations, without a third-party component/positioning library.
+
+
+## Current source: Tabs, Breadcrumb and Pagination
+
+Tabs connects unique-value items (label, content, optional icon/disabled) to a
+named tablist and retained panels. Use defaultValue for local state or
+value/onValueChange for controlled state. Missing, invalid or individually disabled
+selection derives the first available item without a change callback. Reconcile
+host values when changing items. Global disabled disables tab controls while
+leaving the selected panel visible. iconOnly requires all icons and keeps labels
+as accessible names. Native div props/ref target the root.
+
+One enabled tab is in the Tab sequence. Orientation-aware arrows, Home/End move
+focus, wrapping and skipping disabled tabs; horizontal start/end follows RTL.
+activationMode is automatic (arrow navigation activates) or manual (Enter/Space
+activate). Manual focus resets to active tab on leaving the list. Panels are
+focusable, labelled by their tabs and retained with hidden when inactive, preserving
+state and native form constraints. Hosts own inactive-field validation. External
+selection changes return focus from a hidden panel to the selected tab if needed.
+Horizontal overflow uses Flood ScrollArea; vertical layout wraps its tab labels.
+Sizes are controlSize sm/md/lg/xl. There is no tab deletion/loading/fetch model.
+
+Breadcrumb uses an accessible nav label (Breadcrumb by default), an ordered items
+array of label/optional href, and a decorative separator (/ by default). The last
+item always has aria-current=page, as a native link or text. Parent links preserve
+browser navigation; host routes and client interception remain host-owned. It
+wraps and supports long labels. Native nav props/ref target HTMLElement.
+
+Pagination is controlled: page/pageCount are required positive safe integers,
+1 <= page <= pageCount; omit the component for empty datasets. Host must reconcile
+page when count changes. onPageChange requests local updates; getHref renders
+native route links instead of buttons. In link mode onPageChange is notification,
+not navigation cancellation; modifier clicks retain native behavior. Host routing
+can intercept the bubbling nav click. Current page uses aria-current, and boundary
+Previous/Next controls have no active href or disabled native buttons. disabled
+makes every control noninteractive. No callback fires for the current page.
+
+siblingCount 0/1/2 gives at most 5/7/9 numeric/ellipsis slots plus Previous/Next,
+independent of pageCount magnitude. Ellipses are decorative. controlSize matches
+field sizes; wrapping prevents narrow-width overflow and touch controls retain
+44px targets. label, previousLabel, nextLabel and pageLabel localize naming.
+The native nav ref is HTMLElement. This component does not fetch data or own URLs.
+
+```tsx
+<Tabs label="Project sections" items={[
+  {value:"overview",label:"Overview",content:"Project context."},
+  {value:"activity",label:"Activity",content:"Recent updates."},
+]} />
+<Breadcrumb items={[{label:"Projects",href:"/projects"},{label:"Flood"}]} />
+<Pagination page={1} pageCount={20} getHref={page => `?page=${page}`} />
+```
+
+All three are source-only additions for the pending 0.2.3 patch; manifests remain
+aligned at 0.2.2. Use Flood styles and FloodRoot for the neutral dark profile.

@@ -123,3 +123,14 @@ form values in host state. initialFocusRef chooses a safe element in the panel;
 closeLabel localizes the explicit close action. Native top-layer APIs preserve
 FloodRoot theme scope without body portals. Avoid overriding positioning fields.
 Native Popover/dialog support is required, no legacy polyfill. Pending 0.2.3.
+
+Tabs switches linked content panels (not modes or radio values). Arrows activate
+by default, or focus only with activationMode=manual; Enter/Space commit. One tab
+stop, RTL/orientation aware, disabled skip. Panels stay mounted/hidden and retain
+native form constraints. Controlled/missing/disabled selected values derive first
+available; host reconciles values. Breadcrumb is an ordered native link hierarchy,
+last item current. Pagination is controlled page/pageCount with onPageChange or
+getHref; host owns data/routes and empty states. Counts must be positive safe
+integers in range; siblingCount 0/1/2 bounds window size. Native modifier navigation,
+localized names, unavailable endpoints and narrow wrapping stay intact. Pending
+source-only 0.2.3, not published 0.2.2.

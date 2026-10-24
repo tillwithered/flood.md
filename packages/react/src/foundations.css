@@ -4,6 +4,36 @@
 .flood-visually-hidden { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .flood-field[data-hide-label="true"], .flood-fieldset[data-hide-label="true"] { position: relative; }
 
+.flood-root .flood-tabs { display: grid; align-content: start; gap: var(--flood-sys-space-3); min-inline-size: 0; }
+.flood-root .flood-tabs[data-orientation="vertical"] { grid-template-columns: minmax(0, min(10rem, 40%)) minmax(0, 1fr); align-items: start; }
+.flood-root .flood-tabs__list { display: flex; inline-size: max-content; min-inline-size: 100%; box-sizing: border-box; gap: var(--flood-sys-space-1); padding: var(--flood-sys-focus-width); border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
+.flood-root .flood-tabs[data-orientation="vertical"] .flood-tabs__list { flex-direction: column; inline-size: 100%; min-inline-size: 0; border-block-end: 0; border-inline-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
+.flood-root .flood-tabs .flood-tab { flex: none; white-space: nowrap; border-radius: var(--flood-sys-radius-field) var(--flood-sys-radius-field) 0 0; }
+.flood-root .flood-tabs .flood-tab[aria-selected="true"] { color: var(--flood-sys-color-selection-content); background: var(--flood-sys-color-selection-background); box-shadow: inset 0 calc(-1 * var(--flood-sys-focus-width)) var(--flood-sys-color-content-default); }
+.flood-root .flood-tabs .flood-tab:disabled { color: var(--flood-sys-color-field-disabled-content); }
+.flood-root .flood-tabs[data-orientation="vertical"] .flood-tab { inline-size: 100%; white-space: normal; border-radius: var(--flood-sys-radius-field); }
+.flood-root .flood-tabs__panel { min-inline-size: 0; padding: var(--flood-sys-space-4); border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-field); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); overflow-wrap: anywhere; }
+.flood-root .flood-tabs__panel[hidden] { display: none; }
+.flood-root .flood-tabs__panel:focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: 0; }
+.flood-root :is(.flood-breadcrumb, .flood-pagination) { min-inline-size: 0; max-inline-size: 100%; font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
+.flood-root :is(.flood-breadcrumb ol, .flood-pagination ul) { display: flex; flex-wrap: wrap; align-items: center; padding: 0; margin: 0; list-style: none; gap: var(--flood-sys-space-2); }
+.flood-root .flood-breadcrumb li { display: inline-flex; align-items: center; gap: var(--flood-sys-space-2); min-inline-size: 0; max-inline-size: 100%; overflow-wrap: anywhere; }
+.flood-root .flood-breadcrumb a { display: inline-flex; align-items: center; min-block-size: var(--flood-sys-control-sm-height); color: var(--flood-sys-color-content-subtle); text-decoration: none; }
+.flood-root .flood-breadcrumb a:hover { text-decoration: underline; }
+.flood-root .flood-breadcrumb [aria-current="page"] { color: var(--flood-sys-color-content-default); }
+.flood-root .flood-breadcrumb__separator { flex: none; color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-pagination ul { gap: var(--flood-sys-space-1); }
+.flood-root .flood-pagination .flood-page { min-inline-size: var(--flood-control-height); padding-inline: var(--flood-sys-space-1); text-decoration: none; }
+.flood-root .flood-pagination:dir(rtl) .flood-page > svg { transform: scaleX(-1); }
+.flood-root .flood-page > svg { flex: none; inline-size: var(--flood-control-icon); block-size: var(--flood-control-icon); }
+.flood-root .flood-pagination .flood-page[aria-current="page"] { background: var(--flood-sys-color-selection-background); color: var(--flood-sys-color-selection-content); }
+.flood-root .flood-pagination .flood-page:is(:disabled, [aria-disabled="true"]) { color: var(--flood-sys-color-field-disabled-content); cursor: default; }
+.flood-root .flood-page-gap { padding-inline: var(--flood-sys-space-1); color: var(--flood-sys-color-content-subtle); }
+@media (pointer: coarse) { .flood-root .flood-pagination .flood-page { min-inline-size: var(--flood-sys-size-touch); } .flood-root .flood-breadcrumb a { min-block-size: var(--flood-sys-size-touch); min-inline-size: var(--flood-sys-size-touch); } }
+@media (forced-colors: active) {
+  .flood-root .flood-tabs .flood-tab[aria-selected="true"]:not(:disabled), .flood-root .flood-pagination .flood-page[aria-current="page"]:not(:disabled):not([aria-disabled="true"]) { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
+}
+
 .flood-root :is(.flood-overlay-panel, .flood-dialog) { box-sizing: border-box; color: var(--flood-sys-color-content-default); background: var(--flood-sys-color-surface-overlay); border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-field); font: inherit; text-align: start; }
 .flood-root .flood-overlay-panel { position: fixed; inset: auto; margin: 0; max-inline-size: var(--flood-overlay-available-width, calc(100vw - 1rem)); max-block-size: var(--flood-overlay-available-height, calc(100dvh - 1rem)); padding: var(--flood-sys-space-4); gap: var(--flood-sys-space-2); overflow: auto; }
 .flood-root .flood-overlay-panel[popover]:not(:popover-open) { display: none; }

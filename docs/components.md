@@ -345,3 +345,23 @@ persistent form state belongs in the host. Owners must update controlled state
 and keep triggers connected/visible. Positioning flips/clamps at viewport edges
 and follows logical RTL alignment. They are source-only APIs for pending 0.2.3,
 beyond the published 0.2.2 package. See the React package guide for full contracts.
+
+
+## Navigation components (current source)
+
+Tabs owns a named tablist and linked panels; use unique-value items, controlled
+value/onValueChange or defaultValue. Arrows select by default; manual activation
+uses Enter/Space. Tab leaves the roving tablist. Inactive panels stay mounted and
+hidden, so form constraints remain native; manage inactive fields in the host.
+Missing/disabled values fall back to the first available item. Vertical, icon-only
+and four control sizes are supported; horizontal overflow uses Flood ScrollArea.
+
+Breadcrumb renders an ordered path of native links; the last item is current,
+with or without a link. Separators are decorative. Pagination takes a controlled
+page/pageCount and onPageChange for local lists or getHref for real links. It
+validates positive safe-integer ranges, bounds visible page slots via siblingCount
+0/1/2 and disables unavailable endpoints. Localized names and sizes are configurable.
+Use compact counts on narrow hosts; wrapping preserves navigation without clipping.
+
+These three source APIs are planned for 0.2.3, beyond published 0.2.2. See the
+package guide for detailed ownership, fallback and keyboard contracts.
