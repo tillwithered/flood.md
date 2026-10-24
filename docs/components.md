@@ -237,17 +237,17 @@ are runnable fixtures, not backend services.
 ## Current source: ScrollArea
 
 Rails avoid rounded corners on the viewport and clipping ancestors automatically.
-For full-width navigation rows, set `contentInset="scrollbar"` to keep their
-content and backgrounds clear of overlay rails. Default `"none"` adds no padding.
-The opt-in padding affects content wrapping, not viewport width, and is applied
-only on overflowing axes while overlay scrolling is enhanced.
+Default `contentInset="scrollbar"` keeps text and full-width row backgrounds clear
+of overlay rails. Explicit `contentInset="none"` adds no padding; use it when the
+host already provides enough space. Safety padding affects wrapping, not viewport
+width, and is applied only on overflowing axes while overlay scrolling is enhanced.
 
 Use ScrollArea for a constrained scroll region, not every arbitrary wrapper.
 Orientation is vertical by default, with horizontal/both alternatives. Its ref,
 style, className and native div props target the actual native scroll viewport.
 Set a height/maxHeight for vertical overflow and an accessible label when needed.
 Tracks overlay content with token-defined insets; they do not take a layout gutter.
-The host owns padding and should keep essential text/actions out of the rail zone.
+Keep the default safety padding unless host spacing already protects text/actions.
 
 Wheel/touch/keyboard scrolling stays native. The overlay thumb supports dragging
 and track clicks; it follows resizing, content changes and RTL. Forced colors

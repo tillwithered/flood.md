@@ -3,7 +3,8 @@
 ## Unreleased
 
 - Keep ScrollArea rails clear of rounded clipping corners automatically; add
-  opt-in contentInset="scrollbar" safety padding and use it for website navigation.
+  default contentInset="scrollbar" safety padding. Explicit none allows host-managed
+  padding; code blocks retain their existing inner spacing.
 
 - Add native ScrollArea with inset overlay rails, orientation choices, touch/wheel/
   keyboard scrolling, drag/track interactions and forced-colors fallback; use

@@ -37,7 +37,9 @@ child. Keep server data fetching in server components.
 - Use source ScrollArea for deliberately constrained overflow, with a named
   viewport and explicit height/maxHeight for vertical content. Ref/style/native
   div props target the native viewport. Overlay rails sit above content without
-  a gutter; the host owns padding. Keep wheel/touch/keyboard behavior and native
+  a gutter; default contentInset="scrollbar" protects text with inner padding.
+  Use explicit "none" only with adequate host padding or intentional overlap.
+  Keep wheel/touch/keyboard behavior and native
   forced-colors fallback. Confirm this export exists in installed declarations.
 - Use Stack and wrapping Inline. Gap and Surface padding keys are strings
   0/1/2/3/4/6/8/12. Parent layout owns spacing; avoid redundant cards and borders.

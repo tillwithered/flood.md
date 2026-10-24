@@ -33,8 +33,9 @@ not only isolated controls. See [verification](verification.md).
 For constrained overflow, use installed ScrollArea when available. Set height or
 maxHeight on its viewport, choose the needed axis, and provide a useful accessible
 name. Rails overlay content with insets; keep essential content out of the rail
-zone through `contentInset="scrollbar"` for full-width navigation rows or host
-padding where needed. Default `"none"` preserves edge-to-edge content. The engine
+zone through the default `contentInset="scrollbar"`. Use explicit `"none"` only
+when host padding already protects essential content, or overlap is intentional.
+The engine
 shortens rails near rounded clipping corners; do not add ad-hoc per-page rail
 offsets. Do not hide native scrolling as a CSS-only
 substitute for an overlay engine. Check wheel, touch, keyboard, thumb drag, resize

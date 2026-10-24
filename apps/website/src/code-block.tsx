@@ -172,7 +172,7 @@ export function CodeBlock({ code, language = "plaintext", filename, label = "Cod
         </span>
         <CopyButton value={code} text="Copy code" />
       </figcaption>
-      <ScrollArea className="site-code-block__scroll" style={{ maxHeight: "38rem" }} role="group" aria-label={filename ? `${filename} source code` : `${displayLanguage} source code`}>
+      <ScrollArea contentInset="none" className="site-code-block__scroll" style={{ maxHeight: "38rem" }} role="group" aria-label={filename ? `${filename} source code` : `${displayLanguage} source code`}>
       <pre className="site-code-block__pre">
         <code className="site-code-block__code">{tokens ? tokens.map((line, lineIndex) => (
           <Fragment key={lineIndex}>

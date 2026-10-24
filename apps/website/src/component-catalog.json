@@ -310,7 +310,7 @@
       "Unreleased source export. ScrollArea is not part of the published 0.2.2 package; use matching installed declarations.",
       "Scrollbars overlay the viewport with an inset; they do not reserve a content gutter. Give the viewport an explicit height or maxHeight to produce vertical overflow.",
       "The forwarded ref, className, style and native div props belong to the scrollable viewport. Supply a visible context or accessible label for keyboard users.",
-      "Wheel, touch and keyboard scrolling remain native. Use contentInset=\"scrollbar\" for full-width navigation rows; the optional inner padding keeps content clear of rails without shrinking the viewport. Default none preserves edge-to-edge content. Rails automatically avoid rounded clipping corners.",
+      "Wheel, touch and keyboard scrolling remain native. Default contentInset=\"scrollbar\" keeps text and full-width rows clear of rails with inner padding, without shrinking the viewport. Explicit none allows edge-to-edge content when the host already provides safe padding. Rails automatically avoid rounded clipping corners.",
       "Forced colors restores native scrollbars as an accessibility fallback. Verify horizontal and RTL content, resizing and zoom in the host composition."
     ]
   }

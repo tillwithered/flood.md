@@ -332,7 +332,7 @@ export interface ScrollAreaProps extends HTMLAttributes<HTMLDivElement> {
 }
 /** Native scrolling with inset overlay tracks; the ref targets the scrollable viewport. */
 export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function ScrollArea(
-  { orientation = "vertical", contentInset = "none", ...props }, ref,
+  { orientation = "vertical", contentInset = "scrollbar", ...props }, ref,
 ) {
   return <OverlayScrollArea {...props} orientation={orientation} contentInset={contentInset} ref={ref} />;
 });

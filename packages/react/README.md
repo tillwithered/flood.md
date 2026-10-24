@@ -97,16 +97,17 @@ tracks above content. Set height/maxHeight on its viewport through style; choose
 orientation vertical (default), horizontal or both. The HTMLDivElement ref and
 native div props/className/style target that actual scroll viewport. Supply an
 accessible label when it is a standalone scroll region. Tracks do not reserve
-layout width; the host chooses any content padding. Forced colors and unavailable
+layout width; inner content padding keeps text clear of them by default. Forced colors and unavailable
 enhancement restore native scrollbars rather than hide scrolling access.
 
 Rails automatically shorten near rounded corners on the viewport or a clipping
-ancestor, including asymmetric corners. This does not add a gutter. Use
-`contentInset="scrollbar"` for navigation or full-width interactive rows: while
+ancestor, including asymmetric corners. This does not add a gutter. The default
+`contentInset="scrollbar"` protects text and full-width interactive rows: while
 an overlay rail is present, the inner content receives logical end padding for
 that axis (rail size plus two insets). The viewport keeps its full width; row
-backgrounds and text stop before the rail. Default `"none"` preserves edge-to-edge
-content. This opt-in padding can wrap text and change content height. Native
+backgrounds and text stop before the rail. Explicit `contentInset="none"` preserves
+edge-to-edge content when the host already provides safe padding. The default
+padding can wrap text and change content height. Native
 fallback scrollbars retain their platform behavior.
 
 ```tsx

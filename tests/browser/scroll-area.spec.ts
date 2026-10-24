@@ -15,7 +15,7 @@ const h=React.createElement;
 function Example(){const[rows,setRows]=useState(30),[height,setHeight]=useState(160),[rtl,setRtl]=useState(false);
 const controls=h(Inline,null,h(Button,{onClick:()=>setRows(60)},'Add content'),h(Button,{onClick:()=>setRows(2)},'Short content'),h(Button,{onClick:()=>setHeight(240)},'Enlarge viewport'),h(Button,{onClick:()=>setRtl(v=>!v)},'Toggle direction'));
 const content=h('div',{style:{width:560}},...Array.from({length:rows},(_,i)=>h('div',{key:i,style:{height:30}},'Activity row '+(i+1))));
-const navigation=h(ScrollArea,{'aria-label':'Navigation',contentInset:'scrollbar',dir:rtl?'rtl':'ltr',style:{width:280,height}},
+const navigation=h(ScrollArea,{'aria-label':'Navigation',dir:rtl?'rtl':'ltr',style:{width:280,height}},
 ...Array.from({length:rows},(_,i)=>h('button',{key:i,style:{display:'block',width:'100%',height:30}},'Navigation row '+(i+1))));
 return h(FloodRoot,{style:{padding:'1rem'}},h('h1',null,'Overlay scrollbar fixture'),
 h(Stack,null,controls,h(ScrollArea,{'aria-label':'Activity',orientation:'both',dir:rtl?'rtl':'ltr',style:{width:280,height}},content),navigation));}
@@ -170,6 +170,20 @@ test("explorer orientation choices demonstrate the selected axes without clippin
   await page.goto("/components/scroll-area");
   const viewport = page.locator(".preview-stage").getByRole("region", { name: "Project notes" });
   await expect(viewport).toHaveAttribute("data-scrollbars", "overlay");
+  const inset = page.getByRole("combobox", { name: "ScrollArea prop contentInset", exact: true });
+  const content = viewport.locator(".flood-scroll-area__content");
+  await expect(content).toHaveCSS("padding-inline-end", "14px");
+  expect(await viewport.evaluate(node => {
+    const rail = node.parentElement!.querySelector(".flood-scroll-area__track--vertical")!.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(node.querySelector("p")!);
+    return [...range.getClientRects()].every(line => line.right <= rail.left - 3.9);
+  })).toBe(true);
+  await expect(page.locator("#usage .site-code-block code")).toContainText('contentInset="scrollbar"');
+  await chooseSelectOption(inset, "none");
+  await expect(content).toHaveCSS("padding-inline-end", "0px");
+  await chooseSelectOption(inset, "scrollbar");
+  await expect(content).toHaveCSS("padding-inline-end", "14px");
   const orientation = page.getByRole("combobox", { name: "ScrollArea prop orientation", exact: true });
   for (const axis of ["horizontal", "both", "vertical"]) {
     await chooseSelectOption(orientation, axis);
@@ -210,7 +224,7 @@ test("rails avoid viewport and ancestor corner curves without adding a gutter", 
   await expect.poll(async () => (await gap()).bottom).toBeCloseTo(14, 1);
 });
 
-test("opt-in content inset keeps full-width rows clear of the rail in LTR and RTL", async ({ page }) => {
+test("default content inset keeps full-width rows clear of the rail in LTR and RTL", async ({ page }) => {
   await open(page);
   const viewport = page.getByRole("region", { name: "Navigation" });
   const rail = viewport.locator("..").locator(".flood-scroll-area__track--vertical");

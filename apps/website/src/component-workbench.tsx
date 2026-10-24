@@ -19,7 +19,7 @@ const variants = ["solid", "subtle", "outline", "ghost"];
 const select = (name: string, options: string[], initial: string): Knob => ({ name, options, initial });
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
-  "scroll-area": [select("orientation", ["vertical", "horizontal", "both"], "vertical"), select("contentInset", ["none", "scrollbar"], "none")],
+  "scroll-area": [select("orientation", ["vertical", "horizontal", "both"], "vertical"), select("contentInset", ["scrollbar", "none"], "scrollbar")],
   button: [select("variant", variants, "solid"), select("size", sizes, "md"), toggle("disabled"), toggle("loading")],
   "icon-button": [select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled"), toggle("loading")],
   input: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("invalid"), toggle("disabled"), toggle("readOnly")],
