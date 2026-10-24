@@ -223,7 +223,10 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
     ><span className="flood-select__value">{displayed}</span></button>
     <select {...nativeAttributes} ref={native} id={`${triggerId}-native`} className="flood-select__native" hidden aria-hidden="true" tabIndex={-1}
       disabled={disabled} required={required} value={value} defaultValue={defaultValue} onChange={change}
-      onFocus={onFocus} onBlur={onBlur} onKeyDown={onKeyDown} onKeyUp={onKeyUp} onClick={onClick}
+      onFocus={onFocus} onBlur={onBlur}
+      // This bridge exists only to give the callback its native select target.
+      // Ancestors must receive the original trigger event after Select handles it.
+      onKeyDown={(event) => { onKeyDown?.(event); event.stopPropagation(); }} onKeyUp={onKeyUp} onClick={onClick}
       onInvalid={(event) => { onInvalid?.(event); const prevented = event.defaultPrevented; event.preventDefault(); if (!prevented) { setValidation(event.currentTarget.validationMessage); trigger.current?.focus(); } }}
     >{children}</select>
     {open && <div ref={menu} id={menuId} role="listbox" aria-label={ariaLabel} aria-labelledby={ariaLabel ? undefined : labelledBy ?? triggerId} popover="manual"

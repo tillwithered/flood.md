@@ -11,7 +11,7 @@ async function fixture(){
 import{createRoot}from ${file("node_modules/react-dom/client.js")};
 import{FloodRoot,Button,Input,Select,Tooltip,Popover,Dialog}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};
 const h=React.createElement,trigger=label=>props=>h(Button,{...props,variant:'subtle'},label);
-function App(){const[modal,setModal]=useState(false),[frozen,setFrozen]=useState(false),[outside,setOutside]=useState(true),[owned,setOwned]=useState(false),[holdPopup,setHoldPopup]=useState(false),[mountOpen,setMountOpen]=useState(false);
+function App(){const[modal,setModal]=useState(false),[frozen,setFrozen]=useState(false),[outside,setOutside]=useState(true),[owned,setOwned]=useState(false),[holdPopup,setHoldPopup]=useState(false),[mountOpen,setMountOpen]=useState(false),[selectKeys,setSelectKeys]=useState(0),[preventSelectKeys,setPreventSelectKeys]=useState(false);
 useEffect(()=>{window.closeFloodModal=()=>setModal(false)},[]);
 return h(FloodRoot,{style:{'--flood-sys-color-surface-overlay':'rgb(35, 36, 37)'}},
 h(Button,{id:'before'},'Before'),h(Tooltip,{content:'Helpful context',delay:120,trigger:trigger('Help')}),
@@ -20,7 +20,8 @@ h(Popover,{title:'Frozen popup',open:false,trigger:trigger('Frozen popup')},'Fro
 h(Popover,{title:'Owned popup',open:owned,onOpenChange:value=>{if(value||!holdPopup)setOwned(value)},trigger:trigger('Owned popup')},h('label',null,h('input',{type:'checkbox',checked:holdPopup,onChange:e=>setHoldPopup(e.target.checked)}),'Freeze popup')),
 h(Button,{onClick:()=>setMountOpen(true)},'Mount open dialog'),mountOpen&&h(Dialog,{title:'Default dialog',defaultOpen:true,trigger:trigger('Default trigger')},h(Popover,{title:'Default nested popup',defaultOpen:true,trigger:trigger('Default nested trigger')},h(Input,{'aria-label':'Default nested input'}))),
 h(Dialog,{title:'Edit project',description:'Project details',open:modal,onOpenChange:value=>{if(value||!frozen)setModal(value)},closeOnOutsideClick:outside,trigger:trigger('Open modal')},
-h(Input,{'aria-label':'Dialog value',defaultValue:'Project'}),h(Select,{'aria-label':'Access',defaultValue:'private'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team')),
+h(Input,{'aria-label':'Dialog value',defaultValue:'Project'}),h(Select,{'aria-label':'Access',defaultValue:'private',onKeyDown:event=>{if(event.key==='Escape')setSelectKeys(n=>n+1);if(preventSelectKeys)event.preventDefault()}},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team')),
+h('output',{'aria-label':'Select key callbacks'},String(selectKeys)),h('label',null,h('input',{type:'checkbox',checked:preventSelectKeys,onChange:event=>setPreventSelectKeys(event.target.checked)}),'Prevent select keys'),
 h('label',null,h('input',{type:'checkbox',checked:frozen,onChange:e=>setFrozen(e.target.checked)}),'Freeze closing'),
 h('label',null,h('input',{type:'checkbox',checked:outside,onChange:e=>setOutside(e.target.checked)}),'Outside closing'),
 h(Popover,{title:'Nested settings',trigger:trigger('Nested popup')},h(Input,{'aria-label':'Nested value'})),
@@ -34,6 +35,21 @@ createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>${css}body{min-height:2000px}</style></head><body><main id="app"></main><script>${js.replace(/<\/script/gi,"<\\/script")}</script></body></html>`;
 }
 async function open(page:Page){bundle??=fixture();const html=await bundle;await page.route("**/__overlays.html",route=>route.fulfill({contentType:"text/html",body:html}));await page.goto("/__overlays.html")}
+
+test("Select key callbacks preserve nested Escape ownership and cancellation",async({page})=>{
+  await open(page);await page.getByRole("button",{name:"Open modal",exact:true}).click();
+  const dialog=page.getByRole("dialog",{name:"Edit project",exact:true}),select=dialog.getByRole("combobox",{name:"Access",exact:true});
+  await select.click();await page.keyboard.press("Escape");
+  await expect(page.getByRole("listbox")).toBeHidden();await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Select key callbacks")).toHaveText("1");
+  await page.keyboard.press("Escape");await expect(dialog).toBeHidden();
+  await page.getByRole("button",{name:"Open modal",exact:true}).click();
+  await expect(dialog.getByLabel("Select key callbacks")).toHaveText("2");
+  await dialog.getByRole("checkbox",{name:"Prevent select keys",exact:true}).check();
+  await select.click();await page.keyboard.press("Escape");
+  await expect(page.getByRole("listbox")).toBeVisible();await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel("Select key callbacks")).toHaveText("3");
+});
 
 test("Tooltip uses hover/focus, retains hoverable content and dismisses without stealing focus",async({page})=>{
   await open(page);const help=page.getByRole("button",{name:"Help",exact:true});
