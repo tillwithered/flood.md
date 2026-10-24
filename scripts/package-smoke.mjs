@@ -70,7 +70,16 @@ try {
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
-import { Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { Tooltip, Popover, Dialog, type TooltipProps, type PopoverProps, type DialogProps, type OverlayTriggerProps, Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+const overlayTrigger = (props: OverlayTriggerProps) => createElement('button',props,'Open');
+const tooltip: TooltipProps = {content:'Help',trigger:overlayTrigger,side:'top'};
+const popover: PopoverProps = {title:'Settings',trigger:overlayTrigger,open:true,onOpenChange:value=>value satisfies boolean};
+const modal: DialogProps = {title:'Create',trigger:overlayTrigger,initialFocusRef:createRef<HTMLInputElement>()};
+createElement(Tooltip,{...tooltip,ref:createRef<HTMLDivElement>()});
+createElement(Popover,{...popover,ref:createRef<HTMLDivElement>()});
+createElement(Dialog,{...modal,ref:createRef<HTMLDialogElement>()});
+// @ts-expect-error Tooltip content is text, not interactive React elements.
+const badTooltip: TooltipProps = {...tooltip,content:createElement('button',null,'Action')};
 const disclosure: CollapsibleProps = {title:'Advanced',open:true,onOpenChange:value=>value satisfies boolean};
 const accordion: AccordionProps = {label:'FAQ',items:[{value:'a',title:'Question',content:'Answer'}],value:['a'],headingLevel:2};
 createElement(Collapsible,{...disclosure,ref:createRef<HTMLDivElement>()});
@@ -169,10 +178,13 @@ void scroll; void scrollElement; void badScroll; void scrollRole;
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion} from '@flood-md/react';
+import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
   h(Toggle,{defaultPressed:true},'Bold'),
+  h(Tooltip,{content:'Help',trigger:props=>h('button',props,'Help')}),
+  h(Popover,{title:'Settings',trigger:props=>h('button',props,'Settings')}),
+  h(Dialog,{title:'Create',trigger:props=>h('button',props,'Create')}),
   h(Collapsible,{title:'Advanced',defaultOpen:true},'Details'),
   h(Accordion,{label:'FAQ',items:[{value:'a',title:'Question',content:'Answer'}]}),
   h(SegmentedControl,{label:'Period',hideLabel:true,name:'period',defaultValue:'day',options:[{value:'day',label:'Day'}]}),
@@ -181,7 +193,7 @@ const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Field,{label:'Name',hideLabel:true,required:true},p=>h(Input,{...p,name:'name'})),
   h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
-if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')||!html.includes('aria-expanded=')||!html.includes('flood-accordion')) throw Error('React compatibility render');
+if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')||!html.includes('aria-expanded=')||!html.includes('flood-accordion')||!html.includes('flood-dialog')||!html.includes('role="tooltip"')) throw Error('React compatibility render');
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")

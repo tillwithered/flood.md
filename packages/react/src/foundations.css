@@ -4,6 +4,20 @@
 .flood-visually-hidden { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .flood-field[data-hide-label="true"], .flood-fieldset[data-hide-label="true"] { position: relative; }
 
+.flood-root :is(.flood-overlay-panel, .flood-dialog) { box-sizing: border-box; color: var(--flood-sys-color-content-default); background: var(--flood-sys-color-surface-overlay); border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-field); font: inherit; text-align: start; }
+.flood-root .flood-overlay-panel { position: fixed; inset: auto; margin: 0; max-inline-size: var(--flood-overlay-available-width, calc(100vw - 1rem)); max-block-size: var(--flood-overlay-available-height, calc(100dvh - 1rem)); padding: var(--flood-sys-space-4); gap: var(--flood-sys-space-2); overflow: auto; }
+.flood-root .flood-overlay-panel[popover]:not(:popover-open) { display: none; }
+.flood-root .flood-tooltip { inline-size: max-content; max-inline-size: min(20rem, var(--flood-overlay-available-width, calc(100vw - 1rem))); padding: var(--flood-sys-space-2) var(--flood-sys-space-3); border-radius: var(--flood-sys-radius-field); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); overflow-wrap: anywhere; }
+.flood-root .flood-popover { inline-size: 20rem; }
+.flood-root .flood-overlay-header { display: flex; align-items: center; justify-content: space-between; gap: var(--flood-sys-space-4); }
+.flood-root .flood-overlay-title { margin: 0; min-inline-size: 0; font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); font-weight: var(--flood-sys-type-label-weight); overflow-wrap: anywhere; }
+.flood-root .flood-overlay-body { margin-block-start: var(--flood-sys-space-3); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
+.flood-root .flood-overlay-description { margin: var(--flood-sys-space-2) 0 0; color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
+.flood-root .flood-dialog { padding: var(--flood-sys-space-6); inline-size: min(32rem, calc(100% - var(--flood-sys-space-8))); max-inline-size: calc(100% - var(--flood-sys-space-8)); max-block-size: calc(100dvh - var(--flood-sys-space-8)); overflow: auto; }
+.flood-root .flood-dialog:not([open]) { display: none; }
+.flood-root .flood-dialog::backdrop { background: color-mix(in srgb, var(--flood-sys-color-surface-canvas) 72%, transparent); }
+.flood-root .flood-popover:focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: 0; }
+
 .flood-root :is(.flood-disclosure, .flood-accordion) { box-sizing: border-box; min-inline-size: 0; border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-field); background: var(--flood-sys-color-surface-default); }
 .flood-root .flood-disclosure__heading { margin: 0; padding: 0; font: inherit; }
 .flood-root .flood-disclosure .flood-disclosure__trigger { inline-size: 100%; max-inline-size: none; justify-content: space-between; text-align: start; border-radius: calc(var(--flood-sys-radius-field) - var(--flood-sys-stroke-width)); }

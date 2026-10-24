@@ -31,7 +31,7 @@ included. Legacy controls outside FloodRoot keep their earlier theme behavior.
 
 Exports: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot,
 IconButton, CodeSnippet, Button, Input, Textarea, Checkbox, Radio, Switch, Field and Link,
-plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Select
+plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Select
 and ScrollArea beyond published 0.2.2. Button variants are solid/subtle/outline/ghost;
 sizes are 2xs/xs/sm/md/lg/xl/2xl. Prefer subtle for standalone secondary actions;
 ghost belongs in a clear parent context. Loading disables activation.
@@ -383,3 +383,67 @@ Disclosure corner geometry: Accordion headers have square internal seams. Only
 the first header has upper shell corners, and only a closed last header has lower
 shell corners. An open Collapsible header has square lower corners where its
 panel begins. Hover backgrounds follow that same shape without clipping focus.
+
+
+## Current source: Tooltip, Popover and Dialog
+
+All three use a trigger render function: `trigger={props => <Button {...props}>Open</Button>}`.
+Forward every supplied prop and ref to one actual Button/native button in the same
+document. Keep it mounted and visible while its overlay is open. Compose any host
+handlers with the supplied ones, rather than replacing them; merge existing
+aria-describedby with Tooltip's supplied value if adding another description.
+These client interactions require modern native Popover API / dialog showModal
+support. No older-browser polyfill is bundled. Native top-layer placement keeps
+the panel in its original DOM/theme scope and avoids overflow clipping.
+
+Tooltip takes text-only content, side (top default), align (center default),
+delay in milliseconds (300 default) and disabled. Keyboard focus shows immediately;
+mouse/pen hover uses the delay. Moving onto the tooltip keeps it visible. Escape
+dismisses until a new focus/hover interaction. It never moves focus; content is
+associated via aria-describedby. disabled suppresses the tooltip, not its trigger
+action. Touch hover is not relied on; essential instructions belong in visible
+content. Use Popover for interactive content; tooltip text is not a button's name.
+
+Popover takes a visible title, children, trigger, side (bottom), align (start),
+open/onOpenChange or local defaultOpen. It is a nonmodal dialog: focus enters its
+content, but Tab is not trapped. Escape, outside pointer and focus leaving request
+closing. Close button text is configurable with closeLabel. initialFocusRef can
+choose an enabled element inside the panel; otherwise content gets initial focus.
+Disabled prevents trigger activation. The div ref/className/style/native props
+target the actual panel. Side flips and coordinates clamp near viewport edges;
+scroll, viewport resize and layout changes reposition it. Native hidePopover requests state changes and a controlled owner can refuse
+closure. Engine owns top/left,
+position and available-size variables. Logical start/end alignment follows RTL.
+
+Dialog uses native showModal for backdrop, inert background and nested modal
+behavior. It takes title, optional plain description, children, trigger and the
+same controlled/local state, disabled trigger, closeLabel and initialFocusRef.
+Escape requests closure of the topmost layer. closeOnOutsideClick defaults true;
+turning it off preserves Escape and the explicit close action. Tab/Shift+Tab cycle
+inside the modal, including nested nonmodal content; background scrolling is
+locked without changing layout width and restored when the last modal closes.
+Root props/style and HTMLDialogElement ref target the actual dialog. Native
+close/method=dialog requests state changes; a controlled owner can refuse them.
+
+Popover/Dialog children mount while open and unmount when closed. Keep persistent
+form data in the host. Defaults initialize once; controlled owners must update
+open. On closing, focus returns to the connected enabled trigger when appropriate;
+focus deliberately moved elsewhere is preserved for nonmodal dismissal. Hosts own
+fallback focus if a trigger disappears or is disabled. Choose safe initial focus
+for consequential actions. Complex dialog content need not be flattened into a
+single description; use its visible structure. No menu/listbox semantics are
+implied by Popover. No opening/closing animation is applied in this first slice.
+
+```tsx
+<Tooltip content="Additional context" trigger={p => <Button {...p}>Help</Button>} />
+<Popover title="Settings" trigger={p => <Button {...p}>Settings</Button>}>
+  <Input aria-label="Project name" />
+</Popover>
+<Dialog title="Create a project" trigger={p => <Button {...p}>Open dialog</Button>}>
+  <Field label="Project name">{p => <Input {...p} />}</Field>
+</Dialog>
+```
+
+Source-only additions planned for the pending 0.2.3 patch; package manifests
+remain aligned at 0.2.2. Use Flood CSS and FloodRoot. These are original native
+implementations, without a third-party component/positioning library.

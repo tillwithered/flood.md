@@ -1,8 +1,8 @@
 # Base component inventory
 
-The current source exports **31 components**, including the unreleased Select, ScrollArea,
-Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible and Accordion additions. Published 0.2.2
-exports 18 components and does not include these thirteen exports. They use original Flood implementations, React 18.3/19 APIs
+The current source exports **34 components**, including the unreleased Select, ScrollArea,
+Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover and Dialog additions. Published 0.2.2
+exports 18 components and does not include these sixteen exports. They use original Flood implementations, React 18.3/19 APIs
 and TypeScript declarations. Import `@flood-md/react/styles.css` once and place
 new compositions inside `FloodRoot`.
 
@@ -121,3 +121,17 @@ base release supplies no general menu/searchable-combobox/dialog engine, new lig
 effects or backend operations. The `/foundations` and `/team` Next.js examples
 demonstrate local composition and form behavior without saving data or sending
 invitations to a service. See [component API details](components.md).
+
+
+## Contextual overlays (unreleased source)
+
+| Export | Responsibility |
+| --- | --- |
+| Tooltip | Text-only contextual help on hover/focus without moving focus |
+| Popover | Anchored nonmodal dialog, collision handling and outside/Escape dismissal |
+| Dialog | Native modal dialog, inert background, focus cycle and scroll ownership |
+
+Forward each trigger render function's props/ref onto one actual button. These
+APIs require modern native Popover/dialog support. Keep persistent values in the
+host: closed Popover/Dialog contents unmount. See package and agent guides for
+controlled ownership, initial focus, nesting and contextual-help semantics.

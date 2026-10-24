@@ -113,3 +113,13 @@ constraints persist. Disabled only prevents trigger activation. Programmatic
 closing returns panel focus to an enabled trigger if focus has not moved elsewhere;
 host owns focus for removed/disabled triggers. Only chevron motion, reduced-motion
 aware; no height animation or per-panel landmark flood. Pending source-only 0.2.3.
+
+Tooltip/Popover/Dialog (source-only): trigger is a render function; forward every
+supplied prop/ref to one connected visible Button in the same document. Tooltip
+content is text only. Use Popover for interactive contextual UI and Dialog for a
+modal task. Controlled open/onOpenChange needs host updates; initial defaults are
+not synchronization. Closed Popover/Dialog children unmount, so keep persistent
+form values in host state. initialFocusRef chooses a safe element in the panel;
+closeLabel localizes the explicit close action. Native top-layer APIs preserve
+FloodRoot theme scope without body portals. Avoid overriding positioning fields.
+Native Popover/dialog support is required, no legacy polyfill. Pending 0.2.3.

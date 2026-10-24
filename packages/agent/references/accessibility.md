@@ -50,3 +50,14 @@ textual; do not hide interactive label content. Use it only where surrounding
 context supplies the visible meaning. Input/Textarea/Select/InputGroup configure
 this on their Field wrapper, not the control. Placeholder never replaces naming;
 choice option labels and button names have separate contracts. Pending 0.2.3.
+
+Overlay source APIs: forward trigger render props/ref onto one actual button;
+keep trigger mounted/visible. Tooltip is noninteractive text help, not the only
+name/instruction; hover/focus opens, Escape dismisses, focus stays. Popover is a
+named nonmodal dialog; outside/focus-leave/Escape close without trapping Tab.
+Dialog uses native showModal and inert background, cycles focus, restores scroll
+and opener. Escape dismisses the top layer; outside closing is independently
+configurable. Provide a visible title and safe initialFocusRef when needed. Closed
+Popover/Dialog children unmount; host owns persistent values and controlled open.
+Modern native APIs required. DOM/theme scope stays intact; no body portal needed.
+Pending source-only 0.2.3, beyond installed/published 0.2.2.

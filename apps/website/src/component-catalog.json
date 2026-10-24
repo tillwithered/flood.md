@@ -491,5 +491,53 @@
     "imports": [
       "Accordion"
     ]
+  },
+  {
+    "slug": "tooltip",
+    "name": "Tooltip",
+    "group": "overlays",
+    "description": "Brief text help on hover or focus, with collision-aware placement.",
+    "code": "<Tooltip content=\"Additional context\" trigger={trigger => <Button {...trigger}>Hover or focus</Button>} />",
+    "notes": [
+      "Source-only addition beyond published 0.2.2. Requires native Popover API.",
+      "Forward trigger props and ref to one actual button. Tooltip is text-only; interactive content belongs in Popover.",
+      "Escape dismisses. Hover can move onto the tooltip; focus stays on the trigger. Do not use it as the only accessible name or essential instruction."
+    ],
+    "imports": [
+      "Tooltip",
+      "Button"
+    ]
+  },
+  {
+    "slug": "popover",
+    "name": "Popover",
+    "group": "overlays",
+    "description": "A nonmodal contextual dialog in the native top layer.",
+    "code": "<Popover title=\"Project settings\" trigger={trigger => <Button {...trigger}>Settings</Button>}>Project details.</Popover>",
+    "notes": [
+      "Source-only addition beyond published 0.2.2. Forward all trigger props and ref.",
+      "Escape, outside pointer and focus leaving dismiss. Focus enters content and returns when appropriate; Tab is not trapped.",
+      "Closed content unmounts; keep persistent data in the host. Uses native Popover API within the existing DOM/theme scope."
+    ],
+    "imports": [
+      "Popover",
+      "Button"
+    ]
+  },
+  {
+    "slug": "dialog",
+    "name": "Dialog",
+    "group": "overlays",
+    "description": "A named native modal dialog with inert background and managed focus.",
+    "code": "<Dialog title=\"Create a project\" trigger={trigger => <Button {...trigger}>Open dialog</Button>}>Project details.</Dialog>",
+    "notes": [
+      "Source-only addition beyond published 0.2.2. Uses native showModal, not a simulated modal div.",
+      "Escape closes the top layer; outside closing can be disabled independently. Tab remains inside the dialog.",
+      "Closed content unmounts. Forward trigger props/ref; initialFocusRef can select a safe initial control. Modern native dialog support is required."
+    ],
+    "imports": [
+      "Dialog",
+      "Button"
+    ]
   }
 ]

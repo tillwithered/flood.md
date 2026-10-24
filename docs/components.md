@@ -322,3 +322,26 @@ triggers require host focus management.
 Panels change visibility immediately. Only the chevron animates, and reduced
 motion disables that transition. Both APIs are source-only additions planned
 for 0.2.3, beyond published 0.2.2.
+
+
+## Contextual overlays (current source)
+
+Tooltip, Popover and Dialog take a trigger render function. Forward all supplied
+props and ref onto one actual button: `trigger={p => <Button {...p}>Open</Button>}`.
+Modern native Popover API and dialog showModal are required; the panels remain
+in their DOM/theme scope while appearing in the browser top layer.
+
+Tooltip provides text-only hover/focus help through aria-describedby and never
+moves focus. Escape dismisses; hovering the tooltip keeps it visible. Do not put
+interactive or essential instructions only in Tooltip. Popover is a named,
+nonmodal dialog with interactive children; outside pointer, focus leaving and
+Escape dismiss it without trapping Tab. Dialog is modal: native inert background,
+focus entry/cycle/return, nested layers and scroll restoration. Its outside
+closing can be disabled independently of Escape. Both provide an explicit close
+button and configurable closeLabel/initialFocusRef.
+
+Popover/Dialog use open/onOpenChange or defaultOpen. Closed children unmount, so
+persistent form state belongs in the host. Owners must update controlled state
+and keep triggers connected/visible. Positioning flips/clamps at viewport edges
+and follows logical RTL alignment. They are source-only APIs for pending 0.2.3,
+beyond the published 0.2.2 package. See the React package guide for full contracts.

@@ -15,12 +15,15 @@ import {
   type CSSProperties,
   type LabelHTMLAttributes,
   type FieldsetHTMLAttributes,
+  type RefCallback,
+  type RefObject,
 } from "react";
 import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-state.js";
 import { SingleSelect } from "./select.js";
 import { OverlayScrollArea } from "./scroll-area.js";
 import { ChoiceGroup } from "./choice-group.js";
 import { Disclosure } from "./disclosure.js";
+import { AnchoredOverlay, ModalOverlay } from "./overlays.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -67,6 +70,53 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 export type FieldStatus = "error" | "warning" | "success" | "info";
+
+export interface OverlayTriggerProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  ref: RefCallback<HTMLButtonElement>;
+}
+export interface TooltipProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "content" | "title" | "role"> {
+  content: string;
+  trigger: (props: OverlayTriggerProps) => ReactNode;
+  side?: "top" | "bottom" | "left" | "right";
+  align?: "start" | "center" | "end";
+  delay?: number;
+  disabled?: boolean;
+}
+export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>(function Tooltip(
+  {side = "top", align = "center", delay = 300, disabled = false, ...props}, ref,
+) { return <AnchoredOverlay {...props} ref={ref} kind="tooltip" side={side} align={align} delay={delay} disabled={disabled} />; });
+export interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title" | "role"> {
+  title: string;
+  trigger: (props: OverlayTriggerProps) => ReactNode;
+  children?: ReactNode;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  side?: "top" | "bottom" | "left" | "right";
+  align?: "start" | "center" | "end";
+  closeLabel?: string;
+  initialFocusRef?: RefObject<HTMLElement | null>;
+}
+export const Popover = forwardRef<HTMLDivElement, PopoverProps>(function Popover(
+  {side = "bottom", align = "start", defaultOpen = false, disabled = false, closeLabel = "Close", ...props}, ref,
+) { return <AnchoredOverlay {...props} ref={ref} kind="popover" side={side} align={align} defaultOpen={defaultOpen} disabled={disabled} closeLabel={closeLabel} />; });
+export interface DialogProps extends Omit<HTMLAttributes<HTMLDialogElement>, "children" | "title" | "role"> {
+  title: string;
+  description?: string;
+  trigger: (props: OverlayTriggerProps) => ReactNode;
+  children?: ReactNode;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  closeLabel?: string;
+  closeOnOutsideClick?: boolean;
+  initialFocusRef?: RefObject<HTMLElement | null>;
+}
+export const Dialog = forwardRef<HTMLDialogElement, DialogProps>(function Dialog(
+  {defaultOpen = false, disabled = false, closeLabel = "Close", closeOnOutsideClick = true, ...props}, ref,
+) { return <ModalOverlay {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} closeLabel={closeLabel} closeOnOutsideClick={closeOnOutsideClick} />; });
 
 export interface CollapsibleProps extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "onChange"> {
   title: string;

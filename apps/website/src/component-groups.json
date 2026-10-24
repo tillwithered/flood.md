@@ -1,9 +1,42 @@
 [
-  { "id": "setup", "label": "Setup", "description": "Apply Flood's foundations to a part of your application." },
-  { "id": "layout", "label": "Layout", "description": "Arrange, separate and contain interface elements." },
-  { "id": "typography", "label": "Typography", "description": "Set readable text and a clear heading hierarchy." },
-  { "id": "actions", "label": "Actions", "description": "Trigger actions with named, accessible controls." },
-  { "id": "forms", "label": "Forms", "description": "Collect values, make choices and explain validation." },
-  { "id": "navigation", "label": "Navigation", "description": "Move between destinations and resources." },
-  { "id": "content", "label": "Content", "description": "Present icons, code and supporting information." }
+  {
+    "id": "setup",
+    "label": "Setup",
+    "description": "Apply Flood's foundations to a part of your application."
+  },
+  {
+    "id": "layout",
+    "label": "Layout",
+    "description": "Arrange, separate and contain interface elements."
+  },
+  {
+    "id": "typography",
+    "label": "Typography",
+    "description": "Set readable text and a clear heading hierarchy."
+  },
+  {
+    "id": "actions",
+    "label": "Actions",
+    "description": "Trigger actions with named, accessible controls."
+  },
+  {
+    "id": "forms",
+    "label": "Forms",
+    "description": "Collect values, make choices and explain validation."
+  },
+  {
+    "id": "navigation",
+    "label": "Navigation",
+    "description": "Move between destinations and resources."
+  },
+  {
+    "id": "content",
+    "label": "Content",
+    "description": "Present icons, code and supporting information."
+  },
+  {
+    "id": "overlays",
+    "label": "Overlays",
+    "description": "Provide contextual help, floating content and modal tasks."
+  }
 ]

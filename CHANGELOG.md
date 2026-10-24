@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add original Tooltip, Popover and native Dialog with shared collision placement,
+  layer dismissal and focus/scroll ownership; add the Overlays catalog category.
+  These source APIs are planned for the next aligned 0.2.3 patch.
+
 - Align disclosure hover corners with Accordion outer edges and open panels,
   removing rounded internal row seams.
 
