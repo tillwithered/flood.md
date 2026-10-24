@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add ButtonGroup for connected independent actions and InputGroup for a native
+  text field with logical start/end adornments and one shared field perimeter.
+
 - Include portable spacing/density guidance in the versioned agent bundle, with
   task routing, a stable rule and the same safe CLI/website delivery contract.
 

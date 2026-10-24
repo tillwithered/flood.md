@@ -382,5 +382,40 @@
       "name belongs to the inputs. The form prop associates every input with an external form. Disabled options and groups follow native submission rules.",
       "CheckboxGroup has no required/min/max shortcut: a required checkbox means that specific checkbox. Validate the selected array in the host and use group status/message."
     ]
+  },
+  {
+    "slug": "button-group",
+    "name": "ButtonGroup",
+    "group": "actions",
+    "description": "Connected actions with shared edges and ordinary keyboard focus.",
+    "code": "<ButtonGroup label=\"Editing actions\">\n  <Button variant=\"subtle\">Undo</Button>\n  <Button variant=\"subtle\">Redo</Button>\n</ButtonGroup>",
+    "imports": [
+      "ButtonGroup",
+      "Button"
+    ],
+    "notes": [
+      "Unreleased source export beyond published 0.2.2.",
+      "Use direct Button/IconButton children with compatible sizes. The group owns connected radii and single separators; actions keep their props and handlers.",
+      "label names the group. Tab follows normal button order; this is not a toolbar, menu or selection group.",
+      "Horizontal is default; vertical stacks actions. Content can wrap within a button. Conditional/hidden actions preserve the visible end corners. No clipping masks focus."
+    ]
+  },
+  {
+    "slug": "input-group",
+    "name": "InputGroup",
+    "group": "forms",
+    "description": "One native text input with logical start/end content inside a shared perimeter.",
+    "code": "<Field label=\"Website\">\n  {control => <InputGroup {...control} start=\"https://\" placeholder=\"example.com\" />}\n</Field>",
+    "imports": [
+      "InputGroup",
+      "Field"
+    ],
+    "notes": [
+      "Unreleased source export beyond published 0.2.2.",
+      "Ref, id, name, value, events and ARIA attributes target the real input. className/style customize the outer layout wrapper.",
+      "start/end are logical content slots. Adornments do not become the submitted value or an accessible label; use Field or Label and explain prefixes when needed.",
+      "The input has one shared field perimeter and accent focus. Interactive adornments keep their own focus indication and accessible names.",
+      "disabled/readOnly affect the input; host-owned addon actions need their own disabled policy. Use compatible action sizes. Text-like input types are supported; Textarea/Select are separate constructs."
+    ]
   }
 ]

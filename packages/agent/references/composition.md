@@ -64,3 +64,14 @@ selection counts in the host. Read repeated checkbox form values with getAll.
 The group forwards Fieldset descriptions/status and native form ownership.
 Form reset restores uncontrolled defaults and preserves controlled values;
 canceled reset is ignored and reset does not emit onValueChange.
+
+## Current source: connected controls
+
+ButtonGroup contains direct Button/IconButton actions with compatible sizes and
+an accessible group label. Tab navigation is ordinary; do not invent toolbar
+arrow-key behavior. InputGroup wraps one native text-like Input; Field callback
+props and ref target that input. start/end slots provide host-owned text/icons/
+actions; they are not submitted values or labels. className/style own the wrapper.
+Disable addon actions explicitly when the task needs it. Preserve a single field
+perimeter and distinguish input focus from action focus. Use supported installed
+exports; these constructs are source additions beyond published 0.2.2.

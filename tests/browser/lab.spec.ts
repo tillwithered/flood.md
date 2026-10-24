@@ -66,15 +66,15 @@ test("component props, preview, highlighted code and Markdown stay aligned", asy
   await page.screenshot({ path: `.artifacts/lab-button-${info.project.name}.png`, fullPage: true });
 });
 
-test("every component has accessible default content and a meaningful live recipe", async ({ page }) => {
-  for (const slug of componentSlugs) {
+for (const slug of componentSlugs) {
+  test(`every component has accessible default content and a meaningful live recipe: ${slug}`, async ({ page }) => {
     await page.goto(`/components/${slug}`);
     await expect(page.locator(".component-workbench")).toBeVisible();
     await expect(page.locator("#usage .site-code-block code")).toContainText("export function Example()");
     const results = await new AxeBuilder({ page }).analyze();
     expect(results.violations, slug).toEqual([]);
-  }
-});
+  });
+}
 
 test("fields have a single contour and state controls preserve native interaction", async ({ page }, info) => {
   await page.goto("/components/input");

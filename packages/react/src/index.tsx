@@ -66,6 +66,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
 export type FieldStatus = "error" | "warning" | "success" | "info";
 
+export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "role"> {
+  label: string;
+  orientation?: "horizontal" | "vertical";
+}
+/** Connected actions keep their ordinary Tab order; this is not a toolbar. */
+export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(function ButtonGroup(
+  { label, orientation = "horizontal", className, ...props }, ref,
+) {
+  return <div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} className={classes("flood-button-group", className)} />;
+});
+
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   status?: FieldStatus;
   invalid?: boolean;
@@ -84,6 +95,22 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       className={classes("flood-input", `flood-control--${controlSize}`, className)}
     />
   );
+});
+export interface InputGroupProps extends Omit<InputProps, "children" | "type"> {
+  type?: "text" | "email" | "password" | "search" | "tel" | "url" | "number";
+  start?: ReactNode;
+  end?: ReactNode;
+}
+/** One real Input with host-owned logical start/end adornments. Ref and native attributes target the input. */
+export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function InputGroup(
+  { start, end, controlSize = "md", className, style, invalid, status, disabled, readOnly, ...props }, ref,
+) {
+  return <div hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-input-group", `flood-control--${controlSize}`, className)} style={style}
+    data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])} data-disabled={disabled || undefined} data-readonly={readOnly || undefined}>
+    {hasFieldContent(start) && <div className="flood-input-group__addon">{start}</div>}
+    <Input {...props} ref={ref} controlSize={controlSize} invalid={invalid} status={status} disabled={disabled} readOnly={readOnly} />
+    {hasFieldContent(end) && <div className="flood-input-group__addon">{end}</div>}
+  </div>;
 });
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   status?: FieldStatus;

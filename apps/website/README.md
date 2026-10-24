@@ -2,7 +2,7 @@
 
 The website uses the current Flood packages and original page compositions.
 It has a focused home page, eight documentation guides and an overview plus a
-detail page for each of the 24 current-source exported components. The current local changes are
+detail page for each of the 26 current-source exported components. The current local changes are
 unreleased. Published npm remains at 0.2.2; see the changelog before preparing a
 release of the documentation lab and corrected dark field styles.
 

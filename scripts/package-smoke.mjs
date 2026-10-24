@@ -70,7 +70,13 @@ try {
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
-import { RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+const actions: ButtonGroupProps = {label: 'Editing', orientation: 'vertical'};
+const connectedField: InputGroupProps = {name: 'website', start: 'https://', type: 'url', required: true};
+const actionsElement = createElement(ButtonGroup, {...actions, ref: createRef<HTMLDivElement>()});
+const connectedFieldElement = createElement(InputGroup, {...connectedField, ref: createRef<HTMLInputElement>()});
+// @ts-expect-error Adorned input supports text-like controls, not file pickers.
+const fileGroup: InputGroupProps = {type: 'file'};
 const radioGroup: RadioGroupProps = {name: 'visibility', legend: 'Visibility', options: [{value: 'private', label: 'Private'}], value: 'private', required: true};
 const checkboxGroup: CheckboxGroupProps = {name: 'updates', legend: 'Updates', options: [{value: 'news', label: 'News'}], value: ['news']};
 const radioGroupElement = createElement(RadioGroup, {...radioGroup, ref: createRef<HTMLFieldSetElement>()});
