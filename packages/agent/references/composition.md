@@ -86,3 +86,11 @@ full separators follow its orientation. InputGroup start/end independently accep
 short text, decorative icons or named actions. Plain addons are subtle; actions
 keep action colors. Explain units in the label/description. Prefixes are not masks
 or automatically submitted value fragments; compose complete values in the host.
+
+Toggle is a pressed native action: keep its name stable, use pressed/onPressedChange
+or defaultPressed, and label iconOnly artwork. ToggleGroup uses unique options
+and string-array values in both single/multiple modes; single can be cleared.
+Arrow/Home/End navigate focus; Enter/Space activate; ordinary Tab order remains.
+Do not use these as form inputs, required radios or tabs. No automatic native
+form reset/submission is provided. Default props initialize only; host state owns
+controlled values. Current source only, pending 0.2.3, not published 0.2.2.

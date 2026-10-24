@@ -31,7 +31,7 @@ included. Legacy controls outside FloodRoot keep their earlier theme behavior.
 
 Exports: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot,
 IconButton, CodeSnippet, Button, Input, Textarea, Checkbox, Radio, Switch, Field and Link,
-plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Select
+plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, Select
 and ScrollArea beyond published 0.2.2. Button variants are solid/subtle/outline/ghost;
 sizes are 2xs/xs/sm/md/lg/xl/2xl. Prefer subtle for standalone secondary actions;
 ghost belongs in a clear parent context. Loading disables activation.
@@ -226,3 +226,41 @@ Prefixes are not masks and are not prepended to submitted values automatically;
 normalization and complete phone/URL values belong to the host. Do not hide an
 interactive addon from assistive technology. ButtonGroup supports text buttons,
 IconButton or a mixture; every icon-only action needs its own accessible name.
+
+
+## Current source: Toggle and ToggleGroup
+
+Toggle uses a native button with aria-pressed and type=button. Use defaultPressed
+for local state or pressed/onPressedChange for controlled state. Keep its visible
+or accessible name stable across changes. Native onClick runs first; calling
+preventDefault cancels the state change. Disabled/loading prevent activation.
+iconOnly wraps host artwork in IconSlot; supply aria-label for that action.
+Sizes and variants follow Button. The ref targets HTMLButtonElement.
+
+ToggleGroup takes a label and unique-value options with label, optional icon and
+disabled. selectionMode is multiple by default; single permits at most one value
+and allows clearing it. Both modes use string arrays: defaultValue for local
+state, value/onValueChange for host state. Controlled values do not update unless
+the host updates them. Keep the selection mode stable, or remount/reset state
+when changing it. Missing-option values remain in host/local state; trim them in
+the host if needed. Empty options render an empty named group.
+
+Tab visits each enabled toggle. Orientation-aware arrows (including RTL), Home
+and End move focus, skip disabled options and do not select. Enter/Space activate.
+The group retains intrinsic action widths rather than breaking words or compressing
+icons. In constrained layouts use an enclosing horizontal ScrollArea, icon-only
+actions or vertical orientation. The ref targets HTMLDivElement. iconOnly requires icons and uses option labels as
+accessible names. Text+icon and text-only options are supported too.
+
+These are pressed action buttons, not tabs, radio inputs or switches. No hidden
+inputs, automatic form submission or native form-reset behavior is added. For
+form fields use RadioGroup/CheckboxGroup; for panels use a future tabs component.
+Uncontrolled default props initialize state only. Both exports are unreleased
+additions planned for the next 0.2.3 patch; all package manifests remain 0.2.2
+until the release is explicitly prepared and verified.
+
+```tsx
+<Toggle defaultPressed onPressedChange={active => console.log(active)}>Bold</Toggle>
+<ToggleGroup label="Text formatting" defaultValue={["bold"]}
+  options={[{value: "bold", label: "Bold"}, {value: "italic", label: "Italic"}]} />
+```

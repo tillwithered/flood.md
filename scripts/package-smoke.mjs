@@ -70,7 +70,13 @@ try {
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
-import { ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+const toggleProps: ToggleProps = {pressed: true, iconOnly: true, 'aria-label': 'Bold', onPressedChange: value => value satisfies boolean};
+const toggleGroupProps: ToggleGroupProps = {label: 'Formatting', selectionMode: 'single', value: ['bold'], options: [{value: 'bold', label: 'Bold'}], onValueChange: value => value satisfies string[]};
+createElement(Toggle, {...toggleProps, ref: createRef<HTMLButtonElement>()});
+createElement(ToggleGroup, {...toggleGroupProps, ref: createRef<HTMLDivElement>()});
+// @ts-expect-error Toggle owns aria-pressed; use pressed.
+const invalidToggle: ToggleProps = {'aria-pressed': true};
 const actions: ButtonGroupProps = {label: 'Editing', orientation: 'vertical'};
 const connectedField: InputGroupProps = {name: 'website', start: 'https://', type: 'url', required: true};
 const actionsElement = createElement(ButtonGroup, {...actions, ref: createRef<HTMLDivElement>()});
@@ -153,14 +159,16 @@ void scroll; void scrollElement; void badScroll; void scrollRole;
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton} from '@flood-md/react';
+import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
+  h(Toggle,{defaultPressed:true},'Bold'),
+  h(ToggleGroup,{label:'Formatting',options:[{value:'bold',label:'Bold'}],defaultValue:['bold']}),
   h(ScrollArea,{'aria-label':'History',style:{maxHeight:'12rem'}},'Local activity'),
   h(Field,{label:'Name',required:true},p=>h(Input,{...p,name:'name'})),
   h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
-if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')) throw Error('React compatibility render');
+if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')) throw Error('React compatibility render');
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")

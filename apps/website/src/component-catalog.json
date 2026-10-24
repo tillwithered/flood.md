@@ -417,5 +417,34 @@
       "The input has one shared field perimeter and accent focus. Interactive adornments keep their own focus indication and accessible names.",
       "disabled/readOnly affect the input; host-owned addon actions need their own disabled policy. Use compatible action sizes. Text-like input types are supported; Textarea/Select are separate constructs."
     ]
+  },
+  {
+    "slug": "toggle",
+    "name": "Toggle",
+    "group": "actions",
+    "description": "A native button with a persistent pressed state.",
+    "code": "<Toggle defaultPressed>Bold</Toggle>",
+    "notes": [
+      "Current source only, beyond published 0.2.2.",
+      "Keep the accessible name stable; Enter/Space toggle pressed. Supports controlled pressed/onPressedChange or defaultPressed."
+    ],
+    "imports": [
+      "Toggle"
+    ]
+  },
+  {
+    "slug": "toggle-group",
+    "name": "ToggleGroup",
+    "group": "actions",
+    "description": "Optional single or multiple selections exposed as pressed buttons.",
+    "code": "<ToggleGroup label=\"Text formatting\" defaultValue={[\"bold\"]} options={[{value: \"bold\", label: \"Bold\"}, {value: \"italic\", label: \"Italic\"}]} />",
+    "notes": [
+      "Current source only, beyond published 0.2.2.",
+      "Tab reaches each enabled action. Arrows/Home/End move focus without selecting. Single selection can be cleared.",
+      "Use RadioGroup for form choices and tabs for switching panels. ToggleGroup does not submit form values."
+    ],
+    "imports": [
+      "ToggleGroup"
+    ]
   }
 ]

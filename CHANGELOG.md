@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add Toggle and ToggleGroup pressed actions with original state, icon and keyboard
+  behavior, source documentation and live recipes; planned for the next 0.2.3 patch.
+
 - Refine InputGroup nested action insets, sizing and radii; support independent InputGroup addons and full ButtonGroup separators with mixed icon actions.
 
 - Add ButtonGroup for connected independent actions and InputGroup for a native

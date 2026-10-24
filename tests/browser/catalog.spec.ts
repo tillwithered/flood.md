@@ -6,7 +6,7 @@ test("catalog categories, search and canonical Markdown agree", async ({ page, r
   if (info.project.name === "mobile") await page.getByText("Browse documentation", { exact: true }).click();
   const sidebar = page.locator(info.project.name === "mobile" ? ".mobile-navigation" : ".desktop-sidebar");
   const search = sidebar.getByRole("searchbox", { name: "Search components" });
-  await expect(page.locator(".catalog-card")).toHaveCount(26);
+  await expect(page.locator(".catalog-card")).toHaveCount(28);
   await expect(page.getByRole("navigation", { name: "Component categories" }).getByRole("link")).toHaveCount(7);
   await search.fill("forms");
   await expect(page.locator(".catalog-card")).toHaveCount(12);
@@ -18,7 +18,7 @@ test("catalog categories, search and canonical Markdown agree", async ({ page, r
   await expect(page.locator(".catalog-card")).toHaveCount(0);
   await expect(page.locator(".component-catalog")).toContainText("No components found");
   await search.press("Escape");
-  await expect(page.locator(".catalog-card")).toHaveCount(26);
+  await expect(page.locator(".catalog-card")).toHaveCount(28);
   const markdown = await (await request.get("/components.md")).text();
   for (const name of ["Setup", "Layout", "Typography", "Actions", "Forms", "Navigation", "Content"]) expect(markdown).toContain(`## ${name}`);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);

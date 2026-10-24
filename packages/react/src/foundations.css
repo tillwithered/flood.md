@@ -469,6 +469,10 @@
 .flood-root .flood-button-group > .flood-icon-button { min-inline-size: var(--flood-control-height); }
 @media (pointer: coarse) { .flood-root .flood-button-group > .flood-icon-button { min-inline-size: max(var(--flood-control-height), var(--flood-sys-size-touch)); } }
 .flood-root .flood-button-group > .flood-button:focus-visible { z-index: 1; }
+.flood-root .flood-toggle[aria-pressed="true"]:not(:disabled) { background: var(--flood-sys-color-selection-background); color: var(--flood-sys-color-selection-content); }
+.flood-root .flood-toggle-group { inline-size: max-content; max-inline-size: none; }
+.flood-root .flood-toggle-group > .flood-toggle { flex-shrink: 0; white-space: nowrap; }
+@media (forced-colors: active) { .flood-root .flood-toggle[aria-pressed="true"]:not(:disabled) { background: Highlight; color: HighlightText; } }
 .flood-root .flood-button-group[data-orientation="horizontal"] > .flood-button:not([hidden]):not(:nth-last-child(1 of .flood-button:not([hidden]))) { border-inline-end-width: 0; }
 .flood-root .flood-button-group[data-orientation="horizontal"] > .flood-button:not([hidden]) ~ .flood-button:not([hidden]) { border-inline-start-color: var(--flood-sys-color-field-border); }
 .flood-root .flood-button-group[data-orientation="horizontal"] > .flood-button:nth-child(1 of .flood-button:not([hidden])) { border-start-start-radius: var(--flood-sys-radius-field); border-end-start-radius: var(--flood-sys-radius-field); }

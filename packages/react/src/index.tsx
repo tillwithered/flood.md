@@ -4,6 +4,7 @@ import {
   forwardRef,
   createElement,
   useId,
+  useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type TextareaHTMLAttributes,
@@ -65,6 +66,77 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 export type FieldStatus = "error" | "warning" | "success" | "info";
+
+export interface ToggleProps extends Omit<ButtonProps, "aria-pressed" | "type" | "role" | "defaultValue"> {
+  pressed?: boolean;
+  defaultPressed?: boolean;
+  onPressedChange?: (pressed: boolean) => void;
+  iconOnly?: boolean;
+}
+/** A native toggle button; its accessible name stays stable when pressed. */
+export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(function Toggle(
+  { pressed, defaultPressed = false, onPressedChange, iconOnly = false, size = "md", variant = "subtle", onClick, className, children, disabled, loading, ...props }, ref,
+) {
+  const [local, setLocal] = useState(defaultPressed);
+  const selected = pressed ?? local;
+  return <Button {...props} ref={ref} type="button" aria-pressed={selected} size={size} variant={variant} disabled={disabled} loading={loading}
+    className={classes("flood-toggle", iconOnly && "flood-icon-button", className)} onClick={event => {
+      onClick?.(event);
+      if (event.defaultPrevented || disabled || loading) return;
+      if (pressed === undefined) setLocal(!selected);
+      onPressedChange?.(!selected);
+    }}>{iconOnly ? <IconSlot size={size}>{children}</IconSlot> : children}</Button>;
+});
+
+export interface ToggleOption {
+  value: string;
+  label: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+}
+export interface ToggleGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "role" | "children" | "defaultValue" | "onChange"> {
+  label: string;
+  options: readonly ToggleOption[];
+  selectionMode?: "single" | "multiple";
+  value?: readonly string[];
+  defaultValue?: readonly string[];
+  onValueChange?: (value: string[]) => void;
+  orientation?: "horizontal" | "vertical";
+  size?: ControlSize;
+  variant?: "solid" | "subtle" | "outline" | "ghost";
+  disabled?: boolean;
+  iconOnly?: boolean;
+}
+/** Optional selections exposed as pressed buttons, not radios, tabs or a toolbar. */
+export const ToggleGroup = forwardRef<HTMLDivElement, ToggleGroupProps>(function ToggleGroup(
+  { label, options, selectionMode = "multiple", value, defaultValue = [], onValueChange, orientation = "horizontal", size = "md", variant = "subtle", disabled = false, iconOnly = false, className, onKeyDown, ...props }, ref,
+) {
+  const [local, setLocal] = useState(() => [...new Set(defaultValue)]);
+  const selected = value ?? local;
+  if (new Set(options.map(option => option.value)).size !== options.length) throw new Error("Flood toggle option values must be unique");
+  if (selectionMode === "single" && new Set(selected).size > 1) throw new Error("Flood single ToggleGroup accepts at most one value");
+  if (iconOnly && options.some(option => !option.icon)) throw new Error("Flood icon-only toggle options require icons");
+  return <div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} data-selection-mode={selectionMode}
+    className={classes("flood-button-group", "flood-toggle-group", className)} onKeyDown={event => {
+      onKeyDown?.(event);
+      if (event.defaultPrevented) return;
+      const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(":scope > .flood-toggle:not(:disabled)"));
+      const index = buttons.indexOf(event.target as HTMLButtonElement);
+      if (index < 0) return;
+      const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+      const nextKey = orientation === "vertical" ? "ArrowDown" : rtl ? "ArrowLeft" : "ArrowRight";
+      const previousKey = orientation === "vertical" ? "ArrowUp" : rtl ? "ArrowRight" : "ArrowLeft";
+      const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : event.key === nextKey ? (index + 1) % buttons.length : event.key === previousKey ? (index - 1 + buttons.length) % buttons.length : -1;
+      if (next >= 0) { event.preventDefault(); buttons[next].focus(); }
+    }}>
+    {options.map(option => <Toggle key={option.value} size={size} variant={variant} disabled={disabled || option.disabled} pressed={selected.includes(option.value)} iconOnly={iconOnly}
+      aria-label={iconOnly ? option.label : undefined} onPressedChange={active => {
+        const next = active ? selectionMode === "single" ? [option.value] : [...new Set([...selected, option.value])] : selected.filter(item => item !== option.value);
+        if (value === undefined) setLocal(next);
+        onValueChange?.([...next]);
+      }}>{iconOnly ? option.icon : <>{option.icon && <IconSlot size={size}>{option.icon}</IconSlot>}{option.label}</>}</Toggle>)}
+  </div>;
+});
 
 export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "role"> {
   label: string;

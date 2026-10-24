@@ -1,5 +1,5 @@
 import { Fragment, createElement, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Copy, Plus, Undo2, Redo2, History } from "lucide-react";
+import { ArrowRight, Copy, Plus, Undo2, Redo2, History, Bold, Italic, Underline } from "lucide-react";
 import * as Flood from "@flood-md/react";
 import type { ComponentPage } from "./component-catalog";
 import "./component-workbench.css";
@@ -20,6 +20,8 @@ const select = (name: string, options: string[], initial: string): Knob => ({ na
 const statusKnob = () => select("status", ["none", "error", "warning", "success", "info"], "none");
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
+  toggle: [select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("defaultPressed"), toggle("iconOnly"), toggle("disabled"), toggle("loading")],
+  "toggle-group": [select("selectionMode", ["single", "multiple"], "multiple"), select("content", ["text", "icons", "mixed"], "mixed"), select("orientation", ["horizontal", "vertical"], "horizontal"), select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled"), toggle("disableLast")],
   "scroll-area": [select("orientation", ["vertical", "horizontal", "both"], "vertical"), select("contentInset", ["scrollbar", "none"], "scrollbar")],
   "button-group": [select("content", ["text", "icons", "mixed"], "text"), select("orientation", ["horizontal", "vertical"], "horizontal"), select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled")],
   "input-group": [select("start", ["https://", "+7", "@", "$", "icon", "action", "none"], "https://"), select("end", ["action", "icon-action", "kg", "USD", "%", "@company.com", "none"], "action"), select("controlSize", ["sm", "md", "lg", "xl"], "md"), statusKnob(), toggle("disabled"), toggle("readOnly")],
@@ -55,7 +57,7 @@ function componentKnobs(component: ComponentPage): Knob[] {
   });
 }
 const initialValues = (component: ComponentPage): Values => Object.fromEntries(componentKnobs(component).map(knob => [knob.name, knob.initial]));
-const registry = { ...Flood, Plus, ArrowRight, Copy, Undo2, Redo2, History } as unknown as Record<string, Parameters<typeof createElement>[0]>;
+const registry = { ...Flood, Plus, ArrowRight, Copy, Undo2, Redo2, History, Bold, Italic, Underline } as unknown as Record<string, Parameters<typeof createElement>[0]>;
 const isBinding = (value: unknown): value is Binding => Boolean(value && typeof value === "object" && "expression" in value && "value" in value);
 
 function renderRecipe(node: ElementRecipe, extraProps: Record<string, unknown> = {}): ReactNode {
@@ -69,7 +71,7 @@ function renderRecipe(node: ElementRecipe, extraProps: Record<string, unknown> =
 
 function printRecipe(node: ElementRecipe, imports: Set<string>, icons: Set<string>, depth = 0): string {
   if (node.tag in Flood) imports.add(node.tag);
-  if (["Plus", "ArrowRight", "Copy", "Undo2", "Redo2", "History"].includes(node.tag)) icons.add(node.tag);
+  if (["Plus", "ArrowRight", "Copy", "Undo2", "Redo2", "History", "Bold", "Italic", "Underline"].includes(node.tag)) icons.add(node.tag);
   const pad = "  ".repeat(depth);
   const props = Object.entries(node.props ?? {}).filter(([key, value]) => value !== undefined && !(value === false && ["disabled", "loading", "invalid", "readOnly", "required"].includes(key))).map(([key, value]) => {
     if (isBinding(value)) return `${key}={${value.expression}}`;
@@ -106,6 +108,21 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     onChange: binding("(event) => setChecked(event.currentTarget.checked)", (event: { currentTarget: { checked: boolean } }) => actions.checked(event.currentTarget.checked)),
   };
   switch (slug) {
+    case "toggle": return element("Stack", { gap: "4" }, element("Toggle", {
+      key: String(v.defaultPressed), defaultPressed: v.defaultPressed, iconOnly: v.iconOnly, "aria-label": v.iconOnly ? "Bold" : undefined,
+      variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading,
+      onPressedChange: binding('(pressed) => setStatus(pressed ? "Bold enabled." : "Bold disabled.")', (pressed: boolean) => actions.setStatus(pressed ? "Bold enabled." : "Bold disabled.")),
+    }, v.iconOnly ? element("Bold") : "Bold"), status);
+    case "toggle-group": {
+      const names = ["Bold", "Italic", "Underline"], glyphs = [Bold, Italic, Underline];
+      const options = names.map((label, index) => ({ value: label.toLowerCase(), label, ...(v.content !== "text" ? { icon: createElement(glyphs[index]) } : {}), disabled: Boolean(v.disableLast) && index === 2 }));
+      const source = `[${names.map((label, index) => `{value: ${JSON.stringify(label.toLowerCase())}, label: ${JSON.stringify(label)}${v.content !== "text" ? `, icon: <${label} />` : ""}${v.disableLast && index === 2 ? ", disabled: true" : ""}}`).join(", ")}]`;
+      return element("Stack", { gap: "4" }, element("ToggleGroup", {
+        key: String(v.selectionMode), label: "Text formatting", selectionMode: v.selectionMode, orientation: v.orientation,
+        size: v.size, variant: v.variant, disabled: v.disabled, iconOnly: v.content === "icons", defaultValue: ["bold"], options: binding(source, options),
+        onValueChange: binding('(value) => setStatus(value.length ? value.join(", ") : "No formatting selected.")', (value: string[]) => actions.setStatus(value.length ? value.join(", ") : "No formatting selected.")),
+      }), status);
+    }
     case "scroll-area": {
       const horizontal = v.orientation === "horizontal";
       return element("Surface", { padding: "4", style: { width: "100%", maxWidth: "26rem" } },
@@ -198,9 +215,10 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
     if (values.start === "icon") { imports.add("IconSlot"); icons.add("Copy"); }
     if (values.end === "icon-action") { imports.add("IconButton"); icons.add("ArrowRight"); }
   }
+  if (component.slug === "toggle-group" && values.content !== "text") { icons.add("Bold"); icons.add("Italic"); icons.add("Underline"); }
   let preamble = "";
   const usesChecked = ["checkbox", "radio", "switch"].includes(component.slug);
-  const usesStatus = ["button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
+  const usesStatus = ["toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
   if (usesChecked) preamble += `  const [checked, setChecked] = useState(${JSON.stringify(Boolean(values.checked))});\n`;
   if (usesStatus) preamble += '  const [status, setStatus] = useState("");\n';
   if (component.slug === "code-snippet" && values.copyAction) preamble += `  async function copy() {\n    try {\n      await navigator.clipboard.writeText(${JSON.stringify(String(values.code))});\n      setStatus("Copied command.");\n    } catch {\n      setStatus("Select the code and copy it manually.");\n    }\n  }\n`;
