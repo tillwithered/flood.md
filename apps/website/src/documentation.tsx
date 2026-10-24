@@ -97,7 +97,21 @@ export default function Documentation({ path }: { path: string }) {
   const pageMarkdown = doc ? raw : component
     ? `# ${component.name}\n\n${component.description}\n\n## Installation\n\n\`\`\`sh\n${install}\n\`\`\`\n\n## Usage\n\n\`\`\`tsx\n${exampleCode}\n\`\`\`\n\n${component.notes.join("\n\n")}\n\n## API reference\n\n| Prop | Values | Default |\n| --- | --- | --- |\n${component.api.map(row => `| ${row.map(value => value.replaceAll("|", "\\|")).join(" | ")} |`).join("\n")}`
     : `# Components\n\n${componentPages.map(page => `- [${page.name}](https://flood.md/components/${page.slug}): ${page.description}`).join("\n")}`;
-  useEffect(() => { document.title = `${title} — flood.md`; }, [title]);
+  useEffect(() => {
+    document.title = `${title} — flood.md`;
+    let cancelled = false;
+    // A deep link can arrive before the lazy article exists. Resolve it after
+    // the article and local font are ready, without a global navigation handler.
+    if (window.location.hash) {
+      const hash = window.location.hash;
+      void document.fonts.ready.then(() => {
+        if (cancelled) return;
+        try { document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ behavior: "instant" }); }
+        catch { /* A malformed fragment does not prevent reading the page. */ }
+      });
+    }
+    return () => { cancelled = true; };
+  }, [title]);
   return <div className="docs-layout">
     <aside className="desktop-sidebar" aria-label="Documentation navigation"><Sidebar path={path} /></aside>
     <div className="doc-center">
