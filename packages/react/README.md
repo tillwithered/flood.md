@@ -36,6 +36,15 @@ and ScrollArea beyond published 0.2.2. Button variants are solid/subtle/outline/
 sizes are 2xs/xs/sm/md/lg/xl/2xl. Prefer subtle for standalone secondary actions;
 ghost belongs in a clear parent context. Loading disables activation.
 
+Current source adds LinkProps with `variant="text" | "solid" | "subtle" |
+"outline" | "ghost"` and the same seven `size` values as Button. The default
+text link keeps its existing appearance and inherits text size; size affects
+only button variants. These variants reuse Button's geometry, tokens and states
+while retaining a real anchor, href, ref, target and browser modifier navigation.
+Use Button for actions; do not add role=button or nest a Button in a Link.
+There is no disabled/loading navigation API. This compatible opt-in extension
+is planned for 0.2.3 and is not present in published 0.2.2.
+
 Heading adds `size="display"` for large marketing headings: 5.5rem / 1.12,
 weight 500, tracking -.04em. Existing heading sizes retain their metrics.
 Text adds `size="lead"` for introductory copy: 1.375rem / 1.45, weight 400,

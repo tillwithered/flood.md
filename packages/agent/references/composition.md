@@ -124,11 +124,14 @@ closeLabel localizes the explicit close action. Native top-layer APIs preserve
 FloodRoot theme scope without body portals. Avoid overriding positioning fields.
 Native Popover/dialog support is required, no legacy polyfill. Pending 0.2.3.
 
+Link defaults to text; opt-in solid/subtle/outline/ghost and
+Button sizes share the button recipe without changing native anchor semantics.
+Use href/target for navigation, Button for actions; never nest the two or add
+role=button. Link has no disabled/loading contract. Pending 0.2.3.
 Tabs switches linked content panels (not modes or radio values) on a shared
-contained surface. Avoid a second enclosing card
-inside the panel; selected fill joins the panel without an additional underline.
-Arrows activate
-by default, or focus only with activationMode=manual; Enter/Space commit. One tab
+contained surface. Avoid a second enclosing card inside the panel; selected fill
+joins the panel without an additional underline. Arrows activate by default,
+or focus only with activationMode=manual; Enter/Space commit. One tab
 stop, RTL/orientation aware, disabled skip. Panels stay mounted/hidden and retain
 native form constraints. Controlled/missing/disabled selected values derive first
 available; host reconciles values. Breadcrumb is an ordered native link hierarchy,

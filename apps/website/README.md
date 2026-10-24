@@ -1,6 +1,16 @@
 # Flood website
 
 The website uses the current Flood packages and original page compositions.
+Home, guides, component pages and /playground share one SiteHeader composition.
+Its navigation uses Flood Link button variants and IconSlot; only brand and
+page layout remain website styles. Header dimensions are shared across routes.
+The reader composes Breadcrumb, SegmentedControl (import mode), Collapsible
+(mobile navigation and adapter source), Surface/Stack/Inline/Text (catalog cards),
+Link button variants (sidebar, categories and previous/next), and Label (lab
+controls). Markdown prose, semantic HTML tables and page grids remain website
+content rather than pretending to be library components. Document scrollbars use
+the same foundation tokens through the explicit dark scope on the HTML root;
+page scrolling remains native with forced-color fallback and a stable gutter.
 It has a focused home page, eight documentation guides and an overview plus a
 detail page for each of the 37 current-source exported components. The current local changes are
 unreleased. Published npm remains at 0.2.2; see the changelog before preparing a

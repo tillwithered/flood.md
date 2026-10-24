@@ -340,6 +340,8 @@
 .flood-root .flood-switch-input:disabled { opacity: 1; border-color: var(--flood-sys-color-field-border); background: var(--flood-sys-color-field-disabled); }
 .flood-root .flood-switch-input:disabled::before { background: var(--flood-sys-color-field-disabled-content); }
 .flood-root .flood-link { font-size: inherit; color: var(--flood-sys-color-content-default); text-underline-offset: var(--flood-sys-space-1); }
+.flood-root .flood-link--button { font-size: var(--flood-control-text); color: var(--flood-action-content); text-decoration: none; }
+.flood-root .flood-link--button[aria-current="page"] { background: var(--flood-sys-color-selection-background); color: var(--flood-sys-color-selection-content); }
 .flood-root :where(.flood-button, .flood-check, .flood-switch-input, .flood-link):focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: var(--flood-sys-focus-offset); }
 .flood-root .flood-spinner { inline-size: var(--flood-control-icon); block-size: var(--flood-control-icon); border-width: var(--flood-sys-focus-width); }
 @media (pointer: coarse) {

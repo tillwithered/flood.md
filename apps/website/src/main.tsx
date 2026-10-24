@@ -5,6 +5,7 @@ import { Button, CodeSnippet, FloodRoot, Heading, IconSlot, Inline, Link, Text }
 import "@flood-md/react/styles.css";
 import "./site.css";
 import release from "./release.json";
+import { SiteHeader } from "./site-header";
 
 const Documentation = lazy(() => import("./documentation"));
 const Examples = lazy(() => import("./examples"));
@@ -48,21 +49,7 @@ function App() {
   return <FloodRoot className={`site-root ${home ? "home-site" : "docs-site"}`}>
     <a className="skip-link" href="#main-content">Skip to content</a>
     <div className="site-shell">
-      <header className="site-header">
-        <a href="/" className="wordmark" aria-label="flood.md home">
-          <img src="/flood-mark.png" alt="" width="34" height="34" />
-          <span>flood<span className="wordmark-suffix">.md</span></span>
-        </a>
-        <nav aria-label="Main navigation" className="header-nav">
-          <Inline gap="6" className="header-links">
-            <Link href="/docs" aria-current={path.startsWith("/docs") ? "page" : undefined}>Docs</Link>
-            <Link href="/components" aria-current={path.startsWith("/components") ? "page" : undefined}>Components</Link>
-            <Link href={repository} className="github-button">
-              <IconSlot size="sm"><img src="/github-mark.svg" alt="" width="20" height="20" /></IconSlot>GitHub
-            </Link>
-          </Inline>
-        </nav>
-      </header>
+      <SiteHeader path={path} />
       {home ? <Home /> : <Suspense fallback={<main id="main-content" className="doc-loading">Loading documentation…</main>}><Documentation path={path} /></Suspense>}
       <footer className="site-footer">
         <Text size="helper" tone="subtle">A growing collection, made with care.</Text>

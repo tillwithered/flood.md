@@ -2,7 +2,7 @@ import { isValidElement, useEffect, useRef, useState, type ReactNode } from "rea
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
-import { Button, Heading, IconSlot, Inline, Input, Link, ScrollArea, Text } from "@flood-md/react";
+import { Breadcrumb, Button, Collapsible, Heading, IconSlot, Inline, Input, Link, ScrollArea, SegmentedControl, Stack, Surface, Text } from "@flood-md/react";
 import { docPages } from "../routes.mjs";
 import { componentPages, componentGroups, matchesComponent } from "./component-catalog";
 import { ComponentWorkbench } from "./component-workbench";
@@ -76,7 +76,7 @@ function Sidebar({ path, query, onQueryChange, visible = true }: { path: string;
   return <nav ref={nav} aria-label="Documentation sections" className="side-nav">
     {inComponents && <>
       <div className="catalog-nav-tools">
-        <Link href="/components" className="side-link catalog-link" aria-current={path === "/components" ? "page" : undefined}>All components <span>{componentPages.length}</span></Link>
+        <Link href="/components" variant="ghost" size="sm" className="side-link catalog-link" aria-current={path === "/components" ? "page" : undefined}>All components <span>{componentPages.length}</span></Link>
         <Input type="search" controlSize="sm" aria-label="Search components" placeholder="Find a component…" value={query} onChange={event => onQueryChange(event.currentTarget.value)} onKeyDown={event => { if (event.key === "Escape") onQueryChange(""); }} />
         {query && <Inline gap="2" className="catalog-search-summary"><Text size="helper" tone="subtle" role="status">{results.length} results</Text><Button variant="ghost" size="sm" onClick={() => onQueryChange("")}>Clear search</Button></Inline>}
       </div>
@@ -84,15 +84,15 @@ function Sidebar({ path, query, onQueryChange, visible = true }: { path: string;
         const entries = group.components.filter(page => matchesComponent(page, query));
         return entries.length > 0 && <div className="side-group" key={group.id} role="group" aria-label={group.label}>
           <Text size="helper" tone="subtle" className="side-label">{group.label}</Text>
-          {entries.map(page => <Link key={page.slug} className="side-link" href={`/components/${page.slug}`} aria-current={path === `/components/${page.slug}` ? "page" : undefined}>{page.name}</Link>)}
+          {entries.map(page => <Link key={page.slug} variant="ghost" size="sm" className="side-link" href={`/components/${page.slug}`} aria-current={path === `/components/${page.slug}` ? "page" : undefined}>{page.name}</Link>)}
         </div>;
       })}
       {results.length === 0 && <Text as="p" size="compact" tone="subtle" className="catalog-empty">No components found.</Text>}
     </>}
     <div className="side-group"><Text size="helper" tone="subtle" className="side-label">Documentation</Text>
-      {docPages.map(page => <Link key={page.path} href={page.path} className="side-link" aria-current={path === page.path ? "page" : undefined}>{page.label}</Link>)}
+      {docPages.map(page => <Link key={page.path} href={page.path} variant="ghost" size="sm" className="side-link" aria-current={path === page.path ? "page" : undefined}>{page.label}</Link>)}
     </div>
-    {!inComponents && <div className="side-group"><Link href="/components" className="side-link catalog-link">All components <span>{componentPages.length}</span></Link></div>}
+    {!inComponents && <div className="side-group"><Link href="/components" variant="ghost" size="sm" className="side-link catalog-link">All components <span>{componentPages.length}</span></Link></div>}
   </nav>;
 }
 
@@ -140,9 +140,9 @@ export default function Documentation({ path }: { path: string }) {
   return <div className="docs-layout">
     <aside className="desktop-sidebar" aria-label="Documentation navigation"><ScrollArea contentInset="scrollbar" aria-label="Documentation sections scroll" style={{ maxHeight: "calc(100svh - 4rem)" }}><Sidebar path={path} query={query} onQueryChange={setQuery} /></ScrollArea></aside>
     <div className="doc-center">
-      <details className="mobile-navigation" onToggle={event => setMobileOpen(event.currentTarget.open)}><summary>Browse documentation</summary><ScrollArea aria-label="Mobile documentation sections" style={{ maxHeight: "60svh" }}><Sidebar path={path} query={query} onQueryChange={setQuery} visible={mobileOpen} /></ScrollArea></details>
+      <Collapsible className="mobile-navigation" title="Browse documentation" open={mobileOpen} onOpenChange={setMobileOpen} controlSize="sm"><ScrollArea aria-label="Mobile documentation sections" style={{ maxHeight: "60svh" }}><Sidebar path={path} query={query} onQueryChange={setQuery} visible={mobileOpen} /></ScrollArea></Collapsible>
       <main id="main-content" className="doc-article">
-        <div className="doc-breadcrumb"><Link href={component || catalog ? "/components" : "/docs"}>{component || catalog ? "Components" : "Documentation"}</Link><span aria-hidden="true">/</span>{component && <><Link href={`/components#${component.group}`}>{componentGroups.find(group => group.id === component.group)?.label}</Link><span aria-hidden="true">/</span></>}<span>{title}</span><span className="doc-version">v{content.version}</span>{["localhost", "127.0.0.1"].includes(location.hostname) && <span className="local-preview-label">Local preview</span>}</div>
+        <div className="doc-breadcrumb"><Breadcrumb label="Page breadcrumb" items={catalog ? [{label:title}] : [{label:component ? "Components" : "Documentation",href:component ? "/components" : "/docs"}, ...(component ? [{label:componentGroups.find(group=>group.id===component.group)?.label??component.group,href:`/components#${component.group}`}] : []), {label:title}]} /><Text size="helper" tone="subtle" className="doc-version">v{content.version}</Text>{localPreview && <Text size="helper" tone="subtle" className="local-preview-label">Local preview</Text>}</div>
         <header className="doc-heading">
           <Heading level={1} size="large">{title}</Heading>
           <Text as="p" tone="subtle" className="doc-description">{description}</Text>
@@ -156,13 +156,15 @@ export default function Documentation({ path }: { path: string }) {
           table: ({ children }) => <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label="Documentation table"><table>{children}</table></ScrollArea>,
         }}>{markdown}</Markdown></div>}
         {catalog && <div className="component-catalog">
-          {!query && <nav className="catalog-jumps" aria-label="Component categories">{componentGroups.map(group => <Link key={group.id} href={`#${group.id}`}>{group.label}<span>{group.components.length}</span></Link>)}</nav>}
+          {!query && <nav className="catalog-jumps" aria-label="Component categories">{componentGroups.map(group => <Link key={group.id} variant="outline" size="sm" href={`#${group.id}`}>{group.label}<Text size="helper" tone="subtle">{group.components.length}</Text></Link>)}</nav>}
           {visibleGroups.map(group => <section id={group.id} key={group.id}>
             <Heading level={2} size="section">{group.label}</Heading>
             <Text as="p" size="compact" tone="subtle" className="catalog-description">{group.description}</Text>
             <div className="catalog-grid">{group.components.map(page => <Link className="catalog-card" key={page.slug} href={`/components/${page.slug}`}>
-              <span className="catalog-card-title">{page.name}<IconSlot size="sm"><ArrowUpRight /></IconSlot></span>
-              <Text size="compact" tone="subtle">{page.description}</Text>
+              <Surface padding="4" className="catalog-card-surface"><Stack gap="2">
+                <Inline gap="4" className="catalog-card-title"><Text size="label">{page.name}</Text><IconSlot size="sm"><ArrowUpRight /></IconSlot></Inline>
+                <Text size="compact" tone="subtle">{page.description}</Text>
+              </Stack></Surface>
             </Link>)}</div>
           </section>)}
           {visibleGroups.length === 0 && <Text as="p" tone="subtle">No components found. Try another name or category.</Text>}
@@ -175,10 +177,10 @@ export default function Documentation({ path }: { path: string }) {
           <section id="usage" className="doc-section"><Heading level={2} size="section">Use {component.name}</Heading>
             <Text as="p" size="compact" tone="subtle">{component.name} is a named export of <code>@flood-md/react</code>. Connect the package once, then import what you use.</Text>
             <Link href="/docs/installation">First time here? Connect Flood <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
-            <div role="group" aria-label="Example import style" className="reader-modes import-modes"><Button variant="ghost" size="sm" aria-pressed={importMode === "package"} onClick={() => setImportMode("package")}>Package</Button><Button variant="ghost" size="sm" aria-pressed={importMode === "project"} onClick={() => setImportMode("project")}>Project UI</Button></div>
+            <ScrollArea orientation="horizontal" className="import-modes-scroll" aria-label="Example import choices" tabIndex={-1}><SegmentedControl label="Example import style" name="example-import-style" hideLabel className="import-modes" controlSize="sm" value={importMode} onValueChange={value=>setImportMode(value as "package"|"project")} options={[{value:"package",label:"Package"},{value:"project",label:"Project UI"}]} /></ScrollArea>
             {importMode === "project" && <Text as="p" size="compact" tone="subtle">These paths belong to your project. <Link href="/docs/project-ui">Create the UI adapters and alias first.</Link></Text>}
             <CodeBlock code={exampleCode} language="tsx" filename={`${component.slug}.tsx`} />
-            {importMode === "project" && <details className="adapter-instructions"><summary>Project UI adapter files</summary><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{ a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>, pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock> }}>{projectAdapters(exampleImports)}</Markdown></details>}
+            {importMode === "project" && <Collapsible title="Project UI adapter files" className="adapter-instructions" controlSize="sm"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{ a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>, pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock> }}>{projectAdapters(exampleImports)}</Markdown></Collapsible>}
           </section>
           <section id="design-notes" className="doc-section"><Heading level={2} size="section">Design notes</Heading>
             <ul className="usage-notes">{component.notes.map(note => <li key={note}>{note}</li>)}</ul>
@@ -192,8 +194,8 @@ export default function Documentation({ path }: { path: string }) {
         </div>
         <Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link><Link href="/agent/SKILL.md">Agent skill</Link></Inline>
         <nav className="doc-pagination" aria-label="Previous and next page">
-          {previous ? <Link href={previous.path}><IconSlot size="sm"><ArrowLeft /></IconSlot>{previous.name}</Link> : <span />}
-          {next && <Link href={next.path}>{next.name}<IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
+          {previous ? <Link href={previous.path} variant="subtle" size="sm"><IconSlot size="sm"><ArrowLeft /></IconSlot>{previous.name}</Link> : <span />}
+          {next && <Link href={next.path} variant="subtle" size="sm">{next.name}<IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
         </nav>
       </main>
     </div>

@@ -54,7 +54,7 @@ const knobs: Record<string, Knob[]> = {
   "checkbox-group": [select("orientation", ["vertical", "horizontal"], "vertical"), statusKnob(), toggle("disabled")],
   fieldset: [statusKnob(), toggle("disabled"), toggle("hint", true)],
   field: [statusKnob(), toggle("required", true), toggle("error", true), toggle("hint", true)],
-  link: [], divider: [], "flood-root": [],
+  link: [select("variant", ["text", ...variants], "text"), select("size", sizes, "md")], divider: [], "flood-root": [],
 };
 function componentKnobs(component: ComponentPage): Knob[] {
   const labelHosts = ["field", "fieldset", "radio-group", "checkbox-group", "segmented-control", "input", "input-group", "textarea", "select"];
@@ -233,7 +233,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     case "field": return { tag: "Field", props: { label: "Project name", hideLabel: v.hideLabel, status: fieldStatus, message: v.error ? undefined : message, required: v.required, hint: v.hint ? "Visible to your team." : undefined, error: v.error ? "Enter a project name." : undefined }, field: element("Input", { name: "project", defaultValue: "" }) };
     case "divider": return element("Stack", { gap: "4" }, text("Workspace"), element("Divider"), text("Account"));
     case "flood-root": return element("Surface", { padding: "6" }, element("Stack", { gap: "2" }, element("Heading", { size: "section", level: 2 }, "Neutral. Dark. Local."), text("This composition uses FloodRoot without changing the document theme.")));
-    case "link": return element("Link", { href: "/docs/installation" }, "Read the installation guide");
+    case "link": return element("Link", { href: "/docs/installation", variant: v.variant, size: v.size }, "Read the installation guide");
     default: return text("Choose a component to explore.");
   }
 }
@@ -293,10 +293,10 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
         <div className="workbench-control workbench-control--toggle" key={knob.name}>
           <Flood.Checkbox id={`${id}-${knob.name}`} label={labelFor(knob)} aria-label={`${component.name} ${knob.name === "hideLabel" && ["input", "input-group", "textarea", "select"].includes(component.slug) ? "Field wrapper" : "prop"} ${knob.name}`} checked={Boolean(values[knob.name])} onChange={(event) => change(knob.name, event.currentTarget.checked)} />
         </div> :
-        <label className="workbench-control" htmlFor={`${id}-${knob.name}`} key={knob.name}>
+        <Flood.Label className="workbench-control" htmlFor={`${id}-${knob.name}`} key={knob.name}>
           <span>{labelFor(knob)}</span>
           {knob.options ? <Flood.Select controlSize="sm" id={`${id}-${knob.name}`} aria-label={`${component.name} prop ${knob.name}`} value={String(values[knob.name])} onChange={(event) => change(knob.name, event.currentTarget.value)}>{knob.options.map((option) => <option value={option} key={option}>{option}</option>)}</Flood.Select> : <Flood.Input controlSize="sm" id={`${id}-${knob.name}`} aria-label={`${component.name} prop ${knob.name}`} type="text" value={String(values[knob.name])} placeholder={knob.name === "label" ? "Decorative without a label" : undefined} onChange={(event) => change(knob.name, event.currentTarget.value)} />}
-        </label>)}
+        </Flood.Label>)}
       {hasFocusAction && <Flood.Button className="workbench-focus" variant="subtle" size="sm" aria-label="Focus control" disabled={Boolean(values.disabled)} onClick={() => stage.current?.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select")?.focus()}>Focus</Flood.Button>}
     </div>}
 

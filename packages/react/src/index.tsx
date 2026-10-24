@@ -606,12 +606,13 @@ export function Field({
   );
 }
 
-export const Link = forwardRef<
-  HTMLAnchorElement,
-  AnchorHTMLAttributes<HTMLAnchorElement>
->(function Link({ className, ...props }, ref) {
+export interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
+  variant?: "text" | "solid" | "subtle" | "outline" | "ghost";
+  size?: ControlSize;
+}
+export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link({ variant = "text", size = "md", className, ...props }, ref) {
   return (
-    <a {...props} ref={ref} className={classes("flood-link", className)} />
+    <a {...props} ref={ref} className={classes("flood-link", variant !== "text" && "flood-link--button", variant !== "text" && "flood-button", variant !== "text" && `flood-button--${variant}`, variant !== "text" && `flood-button--${size}`, className)} />
   );
 });
 

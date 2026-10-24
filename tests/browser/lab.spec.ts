@@ -17,7 +17,7 @@ test("component props, preview, highlighted code and Markdown stay aligned", asy
   await expect(source.locator("code")).toContainText('variant="subtle"');
   await expect(source.locator("code")).toContainText('size="lg"');
   await expect(source).toHaveAttribute("data-highlighted", "true");
-  await page.getByRole("button", { name: "Project UI", exact: true }).click();
+  await page.getByRole("radio", { name: "Project UI", exact: true }).check();
   await expect(source.locator("code")).toContainText('from "@/ui/button"');
   await expect(source.locator("code")).toContainText('import "@/ui/styles.css"');
   await page.getByText("Project UI adapter files", { exact: true }).click();
@@ -30,7 +30,7 @@ test("component props, preview, highlighted code and Markdown stay aligned", asy
   await page.screenshot({ path: `.artifacts/lab-project-ui-${info.project.name}.png` });
   await page.getByRole("button", { name: "Copy for agent" }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("## Optional project UI boundary");
-  await page.getByRole("button", { name: "Package", exact: true }).click();
+  await page.getByRole("radio", { name: "Package", exact: true }).check();
   await expect(source.locator("code")).toContainText('from "@flood-md/react"');
   const colors = await source.locator(".site-code-block__token").evaluateAll(nodes => [...new Set(nodes.map(node => getComputedStyle(node).color))]);
   expect(colors.length).toBeGreaterThan(2);

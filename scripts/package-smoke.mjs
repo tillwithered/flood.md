@@ -71,6 +71,11 @@ const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
 import { Tabs, Breadcrumb, Pagination, type TabsProps, type BreadcrumbProps, type PaginationProps, Tooltip, Popover, Dialog, type TooltipProps, type PopoverProps, type DialogProps, type OverlayTriggerProps, Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { Link, type LinkProps } from '@flood-md/react';
+const navigationLink: LinkProps = {href:'/docs',variant:'subtle',size:'sm',target:'_blank',rel:'noopener'};
+createElement(Link,{...navigationLink,ref:createRef<HTMLAnchorElement>()});
+// @ts-expect-error Navigation has no button disabled contract.
+const disabledLink: LinkProps = {href:'/docs',disabled:true};
 const tabs: TabsProps = {label:'Sections',items:[{value:'a',label:'Alpha',content:'Content'}],value:'a',onValueChange:value=>value satisfies string};
 const crumbs: BreadcrumbProps = {items:[{label:'Home',href:'/'},{label:'Current'}]};
 const pages: PaginationProps = {page:1,pageCount:20,siblingCount:1,getHref:page=>'?page='+page,onPageChange:page=>page satisfies number};
@@ -188,9 +193,11 @@ void scroll; void scrollElement; void badScroll; void scrollRole;
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
+import {Link} from '@flood-md/react';
 import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb, Pagination} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
+  h(Link,{href:'/docs',variant:'subtle',size:'sm'},'Documentation'),
   h(Toggle,{defaultPressed:true},'Bold'),
   h(Tabs,{label:'Sections',items:[{value:'a',label:'Alpha',content:'Content'}]}),
   h(Breadcrumb,{items:[{label:'Home',href:'/'},{label:'Current'}]}),

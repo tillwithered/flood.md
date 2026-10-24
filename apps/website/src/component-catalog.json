@@ -148,7 +148,7 @@
     "code": "<Link href=\"/docs/installation\">Install Flood</Link>",
     "notes": [
       "Use a button for state-changing actions and a link for navigation.",
-      "Link forwards anchor attributes. It does not provide Button variants or an asChild API."
+      "Link forwards native anchor attributes. Its optional solid/subtle/outline/ghost variants share Flood Button geometry; text is the unchanged default. No asChild API."
     ],
     "imports": [
       "Link"

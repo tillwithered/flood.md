@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Compose documentation and catalog with Flood Breadcrumb, SegmentedControl,
+  Collapsible, Surface, layout and navigation recipes. Theme the native document
+  scrollbar with foundation tokens and preserve forced-color behavior.
+
+- Unify the website header across home, documentation and examples. Add opt-in
+  Button appearances and sizes to native Link without changing text-link defaults;
+  reuse Flood recipes instead of website-specific button styling. Planned 0.2.3.
+
 - Add original Tabs, Breadcrumb and Pagination with panel semantics, native route
   links, bounded page windows and keyboard support; planned for 0.2.3.
 

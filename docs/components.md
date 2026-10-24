@@ -349,6 +349,13 @@ beyond the published 0.2.2 package. See the React package guide for full contrac
 
 ## Navigation components (current source)
 
+Link remains a native anchor. Its optional `variant` (solid/subtle/outline/ghost)
+and `size` use the same recipes as Button for navigation that looks like an
+action. The default `variant="text"` inherits typography and stays underlined;
+size only applies to button variants. Keep href/target and ordinary browser
+navigation; use Button for state changes. No nested buttons, role=button,
+disabled or loading behavior. This opt-in extension is planned for 0.2.3.
+
 Tabs owns a named tablist and linked panels; use unique-value items, controlled
 value/onValueChange or defaultValue. Arrows select by default; manual activation
 uses Enter/Space. Tab leaves the roving tablist. Inactive panels stay mounted and
