@@ -1,7 +1,8 @@
-# Experimental foundations tokens
+# Foundations tokens · 0.2.0 release candidate
 
-Unreleased API. These subpaths are not in npm release 0.1.1. The next publication
-containing them requires an aligned minor release of the Flood packages.
+This source describes the **0.2.0 release candidate**, not a verified npm
+publication. These subpaths are absent from npm 0.1.1. Candidate consumers use
+matching repository-built packages; all internal versions remain aligned.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).
 The compiler also supports component aliases (`comp`) and isolated experiments
@@ -170,5 +171,5 @@ using those tokens; old custom overrides continue to apply there. Inside
 `FloodRoot`, the dark foundation roles control the component recipe. Legacy
 overrides do not automatically override separately scoped foundation roles.
 
-Adding these exports is an unreleased additive change. All package versions
-remain aligned until release preparation; no existing npm version is replaced.
+The 0.2.0 candidate adds these exports without replacing an existing npm version.
+Publication must be verified separately; source version numbers are not proof.

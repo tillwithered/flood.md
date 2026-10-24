@@ -8,6 +8,17 @@ const npm = (args) =>
     encoding: "utf8",
     maxBuffer: 8 * 1024 * 1024,
   });
+for (const path of ["package.json", "apps/website/package.json", "examples/next/package.json"]) {
+  const manifest = JSON.parse(await readFile(path, "utf8"));
+  if (manifest.version !== VERSION) throw new Error(`${path}: workspace version differs from CLI ${VERSION}`);
+  for (const [name, version] of Object.entries(manifest.dependencies ?? {}))
+    if (name.startsWith("@flood-md/") && version !== VERSION)
+      throw new Error(`${path}: ${name} must be pinned to ${VERSION}`);
+}
+const websiteRelease = JSON.parse(await readFile("apps/website/src/release.json", "utf8"));
+if (websiteRelease.version !== VERSION) throw new Error("Website command version differs from release train");
+const design = await readFile("packages/agent/DESIGN.md", "utf8");
+if (!design.split(/\r?\n/, 1)[0].includes(VERSION)) throw new Error("Agent guide version differs from release train");
 for (const name of names) {
   const manifest = JSON.parse(
     await readFile(`packages/${name}/package.json`, "utf8"),

@@ -1,27 +1,11 @@
 # @flood-md/react
 
-Original Flood components for React 18.3/19 and Next.js.
+Original React 18.3/19 components for TypeScript and Next.js App Router. Native
+HTML semantics and refs, no third-party component library or Tailwind dependency.
 
-```tsx
-import "@flood-md/react/styles.css";
-import { Button, Field, Input } from "@flood-md/react";
-```
-
-Exports: Button, Input, Textarea, Checkbox, Radio, Switch, Field, Link and their
-TypeScript prop types. Button variants: solid/outline/ghost; sizes: sm/md.
-Loading buttons disable activation. Choice components require a visible label.
-Field uses a function child: `{props => <Input {...props} />}` to wire label and
-description associations. Compose Field in a client component in Next.js.
-
-Import CSS once in Next app/layout.tsx. Add `"use client"` to host components with
-callbacks/state. Override semantic --flood-* variables after the CSS import.
-Native HTML props and refs are forwarded. No Tailwind or third-party UI dependency.
-
-## Unreleased next minor: dark foundations
-
-The following source additions target the next aligned `0.2.0` release.
-Manifests remain `0.1.1`; these additions have not been published to npm.
-The API described above remains the published 0.1.1 contract.
+This source documents the **0.2.0 release candidate**, not a verified npm
+publication. The last verified public version is 0.1.1; use matching installed
+documentation until the candidate is published.
 
 ```tsx
 import "@flood-md/react/styles.css";
@@ -32,7 +16,7 @@ export function Welcome() {
     <FloodRoot>
       <Stack gap="4">
         <Heading level={1}>Welcome</Heading>
-        <Text as="p" size="compact" tone="subtle">Your workspace is ready.</Text>
+        <Text as="p" size="compact">Your workspace is ready.</Text>
         <Button>Open workspace</Button>
       </Stack>
     </FloodRoot>
@@ -40,19 +24,28 @@ export function Welcome() {
 }
 ```
 
-FloodRoot explicitly selects neutral/dark. The new profile bundles local Inter
-with its original SIL OFL license, uses rem geometry and supplies semantic colors,
-typography, spacing, radii and control/icon sizes. It has no new light variant;
-existing controls outside FloodRoot retain legacy theme behavior.
+FloodRoot selects the neutral dark foundations profile: locally bundled Inter
+with its original SIL OFL notice, semantic colors, relative typography/spacing,
+radii, control sizes and state recipes. No new light foundations profile is
+included. Legacy controls outside FloodRoot keep their earlier theme behavior.
 
-New exports: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot
-and IconButton. Button adds subtle and seven sizes 2xs/xs/sm/md/lg/xl/2xl.
-Inputs/Textareas add controlSize sm/md/lg/xl without replacing Input's native size.
-Field required forwards native required and adds a marker; describedBy merges
-external IDs with the generated hint/error associations. Keep spreading the
-function-child props. IconSlot adapts host SVG icons without a glyph dependency.
+Exports: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot,
+IconButton, Button, Input, Textarea, Checkbox, Radio, Switch, Field and Link,
+plus TypeScript prop types. Button variants are solid/subtle/outline/ghost;
+sizes are 2xs/xs/sm/md/lg/xl/2xl. Prefer subtle for standalone secondary actions;
+ghost belongs in a clear parent context. Loading disables activation.
 
-See [component usage and accessibility constraints](../../docs/components.md),
-[architecture](../../docs/architecture.md) and [Inter provenance](src/fonts/README.md).
-The focus accent is provisional and configurable. Verify field boundaries,
-text contrast, touch targets and keyboard behavior in actual host layouts.
+Input/Textarea controlSize is sm/md/lg/xl; native Input size is preserved.
+Field uses `{props => <Input {...props} />}`. Its required prop forwards native
+required and displays a marker; describedBy merges external IDs with hint/error
+associations. Checkbox/Radio/Switch require a visible label. IconSlot accepts
+host SVG artwork without bundling an icon pack.
+
+Import CSS once in Next app/layout.tsx. Add "use client" to host components
+using state/callbacks or Field's function child. Override semantic --flood-sys-*
+variables on the scope after the import. Surface overlay is visual elevation,
+not dialog behavior. The focus accent remains configurable and provisional.
+
+See [components](../../docs/components.md), [foundations](../../docs/foundations.md)
+and [Inter provenance](src/fonts/README.md). Verify contrast, focus, keyboard,
+narrow layouts and text scaling in your actual application.

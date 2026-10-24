@@ -1,5 +1,16 @@
 {
-  "name": "@flood-md/website", "private": true, "version": "0.1.1", "type": "module",
-  "scripts": { "dev": "vite --host 127.0.0.1", "build": "vite build", "start": "node server.mjs" },
-  "dependencies": { "@flood-md/react": "0.1.1", "react": "19.3.1", "react-dom": "19.3.1" }
+  "name": "@flood-md/website",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@flood-md/react": "0.2.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  }
 }

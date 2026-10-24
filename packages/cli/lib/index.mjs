@@ -3,7 +3,7 @@ import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-export const VERSION = "0.1.1";
+export const VERSION = "0.2.0";
 const packages = ["@flood-md/tokens", "@flood-md/react", "@flood-md/agent"];
 const json = async (path) => JSON.parse(await readFile(path, "utf8"));
 const exists = async (path) => {
@@ -105,7 +105,7 @@ export async function initProject(
     flag: "wx",
   });
   log(
-    `\nConnected. Import '@flood-md/react/styles.css' in ${framework === "next" ? "app/layout.tsx" : "your app entry"}.\nRead flood/DESIGN.md for component APIs. Run npx @flood-md/cli doctor to verify.`,
+    `\nConnected. Import '@flood-md/react/styles.css' in ${framework === "next" ? "app/layout.tsx" : "your app entry"}.\nWrap your interface in <FloodRoot> from '@flood-md/react' to use the dark foundations.\nRead flood/DESIGN.md for component APIs. Run npx @flood-md/cli doctor to verify.`,
   );
 }
 

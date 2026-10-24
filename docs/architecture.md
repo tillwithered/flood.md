@@ -1,4 +1,4 @@
-# Flood v0.1 architecture
+# Flood architecture
 
 ## Scope
 
@@ -36,17 +36,18 @@ component, as demonstrated by the Next fixture.
 
 ## Customization
 
-Use semantic tokens first. Default follows OS theme; root data-flood-theme chooses
-an explicit theme. Host overrides come after the Flood stylesheet. No project
-theme editor or fine-tuning service exists in v0.1; tokens and public props are
-the intended extension boundary. No implicit downloads or remote configuration.
+Use semantic tokens first. `FloodRoot` opts into the neutral/dark foundations
+profile. Outside this root, the legacy default follows OS theme and
+data-flood-theme selects an explicit legacy theme. Host overrides come after the
+Flood stylesheet. Tokens and public props are the extension boundary; there is
+no project theme editor, implicit download or remote configuration.
 
 ## Versioning
 
-### Unreleased dark foundations profile
+### Dark foundations in the 0.2.0 candidate
 
-The next aligned minor is planned as `0.2.0`; manifests remain `0.1.1` until
-release preparation. This source change is not a published npm release.
+The aligned version is `0.2.0`, prepared as a release candidate. Registry
+publication is not implied by the manifests or source branch.
 `FloodRoot` explicitly selects `data-flood-foundations="neutral"` and
 `data-flood-theme="dark"`. New foundation styles are scoped to that root;
 legacy controls outside it keep their existing light/dark behavior. A new light
@@ -67,8 +68,8 @@ the 2px focus accent is configurable and provisional. These choices do not
 constitute a claim of complete accessibility across host compositions.
 
 New public APIs require declaration output, user and agent guidance and an
-aligned release decision. The installed `0.1.1` agent contract stays explicitly
-separate from the unreleased next-minor additions.
+aligned release decision. The 0.2.0 agent contract leads with dark foundations;
+users of 0.1.1 should continue reading their matching installed guide.
 
 One release train for tokens, React, agent and CLI. Release checks enforce exact
 versions and required artifacts. Publish dependency-first. Never mutate an npm

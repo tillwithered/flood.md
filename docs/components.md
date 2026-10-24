@@ -1,10 +1,10 @@
 # Components
 
-## Dark foundations — unreleased next minor
+## Dark foundations · 0.2.0 release candidate
 
-The source additions below target the next aligned `0.2.0` release. Manifests
-still read `0.1.1`; this does not mean these additions are available from npm.
-Use the documentation matching the installed version.
+This source documents the **0.2.0 release candidate**. npm publication is not
+yet verified. Use matching locally built packages for candidate evaluation;
+existing 0.1.1 installs follow their version-specific guides.
 
 Import the same stylesheet and wrap new compositions in `FloodRoot` to select
 neutral/dark. Existing controls outside it retain legacy light/dark behavior.
@@ -52,7 +52,7 @@ Import `@flood-md/react/styles.css` once in Next `app/layout.tsx`. Field's funct
 child and state/callbacks belong in client components. Serializable compositions
 may render from server components; the React entry retains its client boundary.
 
-### New primitives
+### Primitives
 
 | Component | Props and defaults | Contract |
 | --- | --- | --- |
@@ -82,17 +82,24 @@ remain decorative. IconButton requires a nonempty action label; an icon-only
 button should not be named after the glyph. Avoid fixed inline SVG dimensions
 that override slot sizing.
 
-### Additions to existing controls
+### Controls
 
-- Button adds `variant="subtle"` and sizes `2xs/xs/sm/md/lg/xl/2xl`, with solid/md
-  defaults. Reference minimum heights are 24/28/32/40/44/48/56px, implemented in
-  rem. Wrapped content can grow; touch targets need contextual verification.
-- Input/Textarea add `controlSize="sm|md|lg|xl"` with md default and reference
-  heights 32/40/44/48px. Input's native `size` prop remains available.
-- Field adds `required`, which shows a marker and forwards native required, and
-  `describedBy` for external description IDs merged with hint/error IDs. Spread
-  its supplied props onto exactly one Input/Textarea to preserve associations.
-- Checkbox/Radio/Switch preserve native form semantics and visible labels.
+| Component | Flood-specific props | Contract |
+| --- | --- | --- |
+| Button | `variant`: solid / subtle / outline / ghost; `size`: 2xs / xs / sm / md / lg / xl / 2xl; `loading` | Solid/md by default; native type defaults to button |
+| Input | `invalid`; `controlSize`: sm / md / lg / xl (md) | Native name/type/required/autoComplete/ref and size remain available |
+| Textarea | `invalid`; `controlSize`: sm / md / lg / xl (md) | Native rows/maxLength/form props and ref remain available |
+| Field | `label`, `hint`, `error`, `id`, `required`, `describedBy`, function child | Spread supplied props onto one Input/Textarea |
+| Checkbox | Required `label` | Native checkbox and visible label |
+| Radio | Required `label` | Shared name and host fieldset/legend for a group |
+| Switch | Required `label` | Native checkbox with switch semantics |
+| Link | Native anchor props | Navigation rather than state-changing actions |
+
+Reference Button minimum heights are 24/28/32/40/44/48/56px, implemented in rem.
+Input/Textarea sizes use 32/40/44/48px equivalents. Wrapped content can grow;
+touch targets need contextual verification. Field required shows a marker and
+forwards native required. describedBy merges external description IDs with
+hint/error IDs; preserve the supplied associations when composing the control.
 
 Prefer subtle for standalone secondary actions. Ghost needs a clear parent
 context, such as a toolbar. Selected is persistent state, not transient pressed.
@@ -120,52 +127,19 @@ translations, text enlargement/spacing, forced colors and reduced motion in the
 actual application. Fixture checks do not establish complete application
 accessibility or WCAG 3 conformance.
 
-## Published 0.1.1 contract
+## Native controls and compatibility
 
-Import controls from `@flood-md/react` and import `@flood-md/react/styles.css`
-once at the application root. Components forward native HTML props and refs,
-except Field, which provides associations through its function child.
+Checkbox, Radio and Switch require a visible label prop. Radios in a group share
+a name and belong in a host fieldset/legend. Link forwards native anchor props;
+use it for navigation. Native refs and form props are forwarded by the controls.
+Flood does not fetch data, choose validation rules or persist application state.
 
-| Component | Flood-specific props | Notes |
-| --- | --- | --- |
-| Button | `variant`: solid / outline / ghost; `size`: sm / md; `loading` | Defaults to `type="button"`; loading disables activation |
-| Input | `invalid` | Native input props such as name, type, required and autoComplete |
-| Textarea | `invalid` | Native textarea props such as rows and maxLength |
-| Checkbox | required `label` | Native checkbox with its visible label |
-| Radio | required `label` | Use a shared name and a fieldset/legend for a group |
-| Switch | required `label` | Native checkbox with switch semantics |
-| Field | `label`, `hint`, `error`, `id`, function child | Pass the supplied props to one Input or Textarea |
-| Link | native anchor props | Use for navigation; Button is for actions |
+The published 0.1.1 controls remain compatible outside FloodRoot with their older
+theme variables. Their original API did not include the new primitives or the
+seven-size foundations scale. Use 0.2 scoped roles inside FloodRoot rather than
+expecting legacy theme overrides to change the new profile automatically.
 
-## A form field
-
-This example belongs in a Next.js client component because Field takes a function
-child. Server components may render Flood components with serializable props.
-
-```tsx
-"use client";
-import { Button, Field, Input } from "@flood-md/react";
-
-export function ProfileForm() {
-  return (
-    <form>
-      <Field label="Name" hint="Shown on your profile">
-        {(control) => (
-          <Input {...control} name="name" autoComplete="name" required />
-        )}
-      </Field>
-      <Button type="submit">Save</Button>
-    </form>
-  );
-}
-```
-
-Supply `error` on Field when validation fails. It connects the error text and
-invalid state to the control. Flood does not submit data or perform validation
-requests: your application owns those behaviors. A controlled input should use
-React's normal value/onChange or checked/onChange pair.
-
-The shipped [TypeScript interfaces](../packages/react/src/index.tsx) are the full
-API reference. See the [Next.js example](../examples/next/app/profile-form.tsx)
-for client interaction. Automated accessibility checks cover the fixtures; check
-keyboard use, labels, focus and contrast in your actual composition as well.
+The [TypeScript interfaces](../packages/react/src/index.tsx) define exact native
+prop/ref types. Next.js examples include `/foundations` for form/state behavior
+and `/team` for a composed team-settings screen with contextual actions. These
+are runnable fixtures, not backend services.

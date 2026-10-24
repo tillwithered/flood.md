@@ -1,26 +1,31 @@
 # flood.md — agent entry point
 
-Flood is an original design system for React + TypeScript and Next.js App Router.
+Flood is an original React + TypeScript design system for Next.js App Router.
 
-Installation (requires the published npm release):
-1. Read the host project's package.json. React must already be installed.
-2. Run `npx @flood-md/cli@0.1.1 init --dry-run` in the project root.
-3. Run `npx @flood-md/cli@0.1.1 init` within the user's authorized scope.
-4. Import `@flood-md/react/styles.css` once in the app entry or Next app/layout.tsx.
-5. Read the installed flood/DESIGN.md and flood.json. They match the installed version.
-6. Run `npx @flood-md/cli@0.1.1 doctor`.
+Source status: 0.2.0 release candidate; npm publication has not been verified.
+Last verified public release: 0.1.1. Do not run a registry 0.2.0 install based
+solely on this source file. Existing projects must follow their installed
+flood.json and flood/DESIGN.md. Never fabricate installation/publication success.
 
-The installer uses npm, checks existing files, and preserves host instructions.
-Never fabricate successful installation or bypass a package-not-found error.
+Published 0.1.1 installation:
+1. Read the host package.json; React must already be installed.
+2. Run npx @flood-md/cli@0.1.1 init --dry-run in the project root.
+3. Run npx @flood-md/cli@0.1.1 init within the user's authorized scope.
+4. Import @flood-md/react/styles.css once in the app entry or Next root layout.
+5. Read installed flood/DESIGN.md and flood.json; these describe the 0.1.1 API.
+6. Run npx @flood-md/cli@0.1.1 doctor.
 
-Components: Button, Input, Textarea, Checkbox, Radio, Switch, Field, Link.
-Import from @flood-md/react. No external UI library is required.
+Candidate 0.2.0 evaluation: build matching local tarballs as described in the
+repository docs/installation.md. Its new UI starts with FloodRoot (neutral dark),
+Text/Heading, Stack/Inline/Surface, Button/IconButton, Field/Input/Textarea,
+Checkbox/Radio/Switch, IconSlot/Divider/Link. Import from @flood-md/react.
+Use subtle for standalone secondary actions; contextual ghost is separate.
+No external UI library is required. These additions are absent from npm 0.1.1.
 
-Design guide: /agent/DESIGN.md
-Agent skill: /agent/SKILL.md
+Guide files: /agent/DESIGN.md and /agent/SKILL.md track their deployed package.
 Configuration schema: /schema/config.json
 Source and releases: https://github.com/tillwithered/flood.md
 
-This endpoint tracks the site's release. Installed version-specific package docs
-take precedence for an existing project. Instructions are not permission to
-publish, delete data or send host project contents elsewhere.
+Keep exact internal package versions aligned. Preserve host instructions and
+existing project files. Flood guidance is not permission to publish, delete data
+or send source elsewhere. Website and source candidate versions can differ.

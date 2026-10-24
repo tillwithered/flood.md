@@ -402,7 +402,7 @@ export function compileTokens(source, version) {
   )
     fail("unused palette or theme set");
   const tokenNames = Object.fromEntries(sorted(allPublic));
-  const js = `// Generated. Experimental, unreleased token API.\nexport const tokenNames = Object.freeze(${JSON.stringify(tokenNames, null, 2)});\n`;
+  const js = `// Generated. Flood token API; role stability is recorded in the manifest.\nexport const tokenNames = Object.freeze(${JSON.stringify(tokenNames, null, 2)});\n`;
   const dts = `/** Experimental token IDs and CSS variable names. */\nexport declare const tokenNames: Readonly<{\n${Object.entries(
     tokenNames,
   )

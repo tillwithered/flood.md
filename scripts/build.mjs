@@ -60,6 +60,6 @@ const release = JSON.parse(
 const guide = await readFile("docs/llms.txt", "utf8");
 await writeFile(
   "apps/website/public/llms.txt",
-  `${release.published ? "Release status: published." : "Release status: PREVIEW. Packages are staged on npm; do not run the installation command until the release is published."}\n\n${guide}`,
+  `${release.published ? "Release status: published." : "Release status: PREVIEW. Source release candidate; do not run the installation command until npm publication is verified."}\n\n${guide}`,
 );
 console.log("Built Flood packages and agent endpoints.");
