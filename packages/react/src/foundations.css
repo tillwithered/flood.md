@@ -4,6 +4,18 @@
 .flood-visually-hidden { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .flood-field[data-hide-label="true"], .flood-fieldset[data-hide-label="true"] { position: relative; }
 
+.flood-root :is(.flood-disclosure, .flood-accordion) { box-sizing: border-box; min-inline-size: 0; border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-field); background: var(--flood-sys-color-surface-default); }
+.flood-root .flood-disclosure__heading { margin: 0; padding: 0; font: inherit; }
+.flood-root .flood-disclosure .flood-disclosure__trigger { inline-size: 100%; max-inline-size: none; justify-content: space-between; text-align: start; border-radius: calc(var(--flood-sys-radius-field) - var(--flood-sys-stroke-width)); }
+.flood-root .flood-disclosure__title { min-inline-size: 0; }
+.flood-root .flood-disclosure__indicator { flex: none; inline-size: calc(var(--flood-control-icon) * .4); block-size: calc(var(--flood-control-icon) * .4); border-right: var(--flood-sys-stroke-width) solid currentColor; border-block-end: var(--flood-sys-stroke-width) solid currentColor; transform: rotate(45deg); transition: transform var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing); margin-inline: var(--flood-sys-space-1); }
+.flood-root .flood-disclosure[data-open="true"] > .flood-disclosure__heading .flood-disclosure__indicator { transform: rotate(225deg); }
+.flood-root .flood-disclosure__panel { padding: 0 var(--flood-control-padding) var(--flood-control-padding); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); overflow-wrap: anywhere; }
+.flood-root .flood-disclosure__panel[hidden] { display: none; }
+.flood-root .flood-accordion > .flood-disclosure { border: 0; border-radius: 0; background: transparent; }
+.flood-root .flood-accordion > .flood-disclosure + .flood-disclosure { border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
+@media (prefers-reduced-motion: reduce) { .flood-root .flood-disclosure__indicator { transition: none; } }
+
 @font-face {
   font-family: "Inter";
   font-style: normal;

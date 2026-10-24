@@ -31,7 +31,7 @@ included. Legacy controls outside FloodRoot keep their earlier theme behavior.
 
 Exports: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot,
 IconButton, CodeSnippet, Button, Input, Textarea, Checkbox, Radio, Switch, Field and Link,
-plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Select
+plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Select
 and ScrollArea beyond published 0.2.2. Button variants are solid/subtle/outline/ghost;
 sizes are 2xs/xs/sm/md/lg/xl/2xl. Prefer subtle for standalone secondary actions;
 ghost belongs in a clear parent context. Loading disables activation.
@@ -333,3 +333,48 @@ Switch. Standalone icon actions still need an accessible name.
 
 This compatible prop addition is source-only for the pending 0.2.3 patch; it is
 not available in the existing published 0.2.2 package. It requires Flood CSS.
+
+
+## Current source: Collapsible and Accordion
+
+Collapsible takes a plain-text title, React children and open/onOpenChange or
+local defaultOpen. Default closed; native Enter/Space activate its named button.
+The trigger owns aria-expanded and aria-controls with stable instance IDs. Its
+optional headingLevel adds a native h2–h6 around the button. Disabled affects the
+trigger only; content inside an open panel remains interactive. controlSize is
+sm/md/lg/xl. Native div props, className/style and HTMLDivElement ref target the
+root; title names the trigger rather than the root's HTML title attribute.
+
+Accordion takes an accessible group label and unique-value items with title,
+content and optional disabled. expansionMode is single by default (one or none
+open), or multiple. Both use string-array value/onValueChange or defaultValue.
+The default headingLevel is 3; choose 2–6 to match surrounding headings. Up/Down,
+Home/End focus enabled top-level triggers without changing expansion. Tab reaches
+triggers and open panel controls normally; Enter/Space open/close. Nested accordions
+keep their own keyboard navigation. The ref targets the group div. There is no
+visible group caption to hide; headings and trigger titles remain visible.
+
+Defaults initialize local state only. Controlled state needs host updates; keep
+expansionMode stable or reconcile/remount when switching. Duplicate item values
+and multiple expanded values in single mode are rejected. Missing-item values
+remain in state until the host removes them. Disabled does not force panels shut.
+
+Both share the same original disclosure anatomy. Panels stay mounted with native
+hidden when closed, preserving local content state while removing hidden content
+from focus/navigation. Existing form values and constraints remain native even
+when hidden; manage inactive form fields in the host. If programmatic closing
+hides focused content, focus returns to the enabled trigger unless already moved
+elsewhere. Hosts own focus if the trigger is disabled or its whole item is removed.
+There is no built-in Escape-to-close, form reset or persistence. Panels change
+visibility immediately; only the chevron animates, with reduced motion disabling
+that transition. No extra landmark regions are created per panel.
+
+```tsx
+<Collapsible title="Advanced settings"><Input aria-label="Project prefix" /></Collapsible>
+<Accordion label="Questions" headingLevel={2} items={[
+  {value:"install",title:"How do I install Flood?",content:"Install the packages."},
+]} />
+```
+
+Source-only additions planned for 0.2.3; manifests remain aligned at 0.2.2 until
+release preparation. Import Flood CSS and use FloodRoot for dark foundations.

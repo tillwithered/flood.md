@@ -20,6 +20,8 @@ const select = (name: string, options: string[], initial: string): Knob => ({ na
 const statusKnob = () => select("status", ["none", "error", "warning", "success", "info"], "none");
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
+  collapsible: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("defaultOpen"), toggle("disabled")],
+  accordion: [select("expansionMode", ["single", "multiple"], "single"), select("controlSize", ["sm", "md", "lg", "xl"], "md"), select("headingLevel", ["2", "3", "4", "5", "6"], "3"), toggle("disabled"), toggle("disableLast")],
   "segmented-control": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), select("content", ["text", "icons", "mixed"], "text"), select("orientation", ["horizontal", "vertical"], "horizontal"), toggle("fullWidth"), toggle("disabled"), toggle("disableLast")],
   toggle: [select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("defaultPressed"), toggle("iconOnly"), toggle("disabled"), toggle("loading")],
   "toggle-group": [select("selectionMode", ["single", "multiple"], "multiple"), select("content", ["text", "icons", "mixed"], "mixed"), select("orientation", ["horizontal", "vertical"], "horizontal"), select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled"), toggle("disableLast")],
@@ -54,7 +56,7 @@ function componentKnobs(component: ComponentPage): Knob[] {
   return source.map(knob => {
     const prop = component.contract?.props.find(item => item.name === knob.name);
     const options = knob.options && prop?.options?.length ? (knob.name === "status" ? ["none", ...prop.options.map(String)] : prop.options.map(String)) : knob.options;
-    const value = prop?.defaultLiteral;
+    const value = component.slug === "accordion" && knob.name === "headingLevel" ? 2 : prop?.defaultLiteral;
     const initial = value === undefined ? knob.initial : typeof knob.initial === "boolean" ? (typeof value === "boolean" ? value : knob.initial) : String(value);
     return { ...knob, options, initial };
   });
@@ -111,6 +113,17 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     onChange: binding("(event) => setChecked(event.currentTarget.checked)", (event: { currentTarget: { checked: boolean } }) => actions.checked(event.currentTarget.checked)),
   };
   switch (slug) {
+    case "collapsible": return element("Collapsible", {
+      key: String(v.defaultOpen), title: "Advanced settings", defaultOpen: v.defaultOpen, controlSize: v.controlSize, disabled: v.disabled,
+    }, element("Stack", {gap: "3"}, text("Keep additional settings close, without crowding the main flow."), element("Input", {"aria-label":"Project prefix", defaultValue:"flood"})));
+    case "accordion": {
+      const items = [
+        {value:"install", title:"How do I install Flood?", content:"Install the matching packages, import the stylesheet and add FloodRoot."},
+        {value:"agents", title:"Can my agent use Flood?", content:"Yes. The versioned agent guide describes components, tokens and composition rules."},
+        {value:"customize", title:"Can I customize the theme?", content:"Override semantic tokens within your project scope.", disabled:Boolean(v.disableLast)},
+      ];
+      return element("Accordion", {key:String(v.expansionMode), label:"Flood questions", items, expansionMode:v.expansionMode, controlSize:v.controlSize, headingLevel:Number(v.headingLevel), disabled:v.disabled});
+    }
     case "segmented-control": {
       const names = ["Day", "Week", "Month"], glyphs = [CalendarDays, CalendarRange, Calendar], iconNames = ["CalendarDays", "CalendarRange", "Calendar"];
       const options = names.map((label, index) => ({ value: label.toLowerCase(), label, ...(v.content !== "text" ? { icon: createElement(glyphs[index]) } : {}), disabled: Boolean(v.disableLast) && index === 2 }));
@@ -242,7 +255,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
 
   const controls = componentKnobs(component);
   const hasFocusAction = ["input", "input-group", "textarea", "select"].includes(component.slug);
-  const spacious = ["input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
+  const spacious = ["accordion", "input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
   const labelFor = (knob: Knob) => knob.label ?? ({ controlSize: "Size", contentInset: "Content clearance", readOnly: "Read only", copyAction: "Copy button", label: "Accessible name" } as Record<string, string>)[knob.name] ?? knob.name[0].toUpperCase() + knob.name.slice(1);
   return <section className="component-workbench" aria-label={`${component.name} live playground`}>
     <div className="workbench-title"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setResetKey((key) => key + 1); }}>Reset</Flood.Button></Flood.Inline></div>

@@ -11,7 +11,7 @@ React + TypeScript and Next.js App Router. Use this guide with matching installe
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-Repository-source note: this guide also marks the unreleased Label/Fieldset/RadioGroup/CheckboxGroup/ButtonGroup/InputGroup/Toggle/ToggleGroup/SegmentedControl/Select/ScrollArea
+Repository-source note: this guide also marks the unreleased Label/Fieldset/RadioGroup/CheckboxGroup/ButtonGroup/InputGroup/Toggle/ToggleGroup/SegmentedControl/Collapsible/Accordion/Select/ScrollArea
 additions and layout refinements. Published 0.2.2 exports neither. Confirm
 the matching installed declarations before using source-only additions.
 

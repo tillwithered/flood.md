@@ -103,3 +103,13 @@ Native form/required/disabled/reset behavior remains. Use actual tabs for panels
 not SegmentedControl. Choose short labels, icons or vertical orientation for
 constrained widths; fullWidth distributes segments equally. iconOnly retains
 accessible option labels. Pending source-only 0.2.3, not published 0.2.2.
+
+Collapsible: title + children, open/onOpenChange or defaultOpen. Accordion composes
+Collapsible via unique value/title/content items; string-array selection in single
+(one or none) or multiple expansionMode. Choose headingLevel for host structure.
+Enter/Space activate; Accordion Up/Down/Home/End focus enabled top-level headers,
+not nested disclosures. Panels stay mounted and hidden, so form values and native
+constraints persist. Disabled only prevents trigger activation. Programmatic
+closing returns panel focus to an enabled trigger if focus has not moved elsewhere;
+host owns focus for removed/disabled triggers. Only chevron motion, reduced-motion
+aware; no height animation or per-panel landmark flood. Pending source-only 0.2.3.

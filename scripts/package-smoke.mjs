@@ -70,7 +70,13 @@ try {
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
-import { SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+const disclosure: CollapsibleProps = {title:'Advanced',open:true,onOpenChange:value=>value satisfies boolean};
+const accordion: AccordionProps = {label:'FAQ',items:[{value:'a',title:'Question',content:'Answer'}],value:['a'],headingLevel:2};
+createElement(Collapsible,{...disclosure,ref:createRef<HTMLDivElement>()});
+createElement(Accordion,{...accordion,ref:createRef<HTMLDivElement>()});
+// @ts-expect-error Accordion uses an array even in single expansion mode.
+const badAccordion: AccordionProps = {...accordion,value:'a'};
 const segments: SegmentedControlProps = {label:'Time range',hideLabel:true,name:'period',value:'day',options:[{value:'day',label:'Day'}],onValueChange:value=>value satisfies string};
 createElement(SegmentedControl,{...segments,ref:createRef<HTMLFieldSetElement>()});
 // @ts-expect-error SegmentedControl owns one string value, not an array.
@@ -163,17 +169,19 @@ void scroll; void scrollElement; void badScroll; void scrollRole;
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl} from '@flood-md/react';
+import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
   h(Toggle,{defaultPressed:true},'Bold'),
+  h(Collapsible,{title:'Advanced',defaultOpen:true},'Details'),
+  h(Accordion,{label:'FAQ',items:[{value:'a',title:'Question',content:'Answer'}]}),
   h(SegmentedControl,{label:'Period',hideLabel:true,name:'period',defaultValue:'day',options:[{value:'day',label:'Day'}]}),
   h(ToggleGroup,{label:'Formatting',options:[{value:'bold',label:'Bold'}],defaultValue:['bold']}),
   h(ScrollArea,{'aria-label':'History',style:{maxHeight:'12rem'}},'Local activity'),
   h(Field,{label:'Name',hideLabel:true,required:true},p=>h(Input,{...p,name:'name'})),
   h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
-if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')) throw Error('React compatibility render');
+if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')||!html.includes('aria-expanded=')||!html.includes('flood-accordion')) throw Error('React compatibility render');
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")

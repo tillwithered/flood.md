@@ -20,6 +20,7 @@ import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-
 import { SingleSelect } from "./select.js";
 import { OverlayScrollArea } from "./scroll-area.js";
 import { ChoiceGroup } from "./choice-group.js";
+import { Disclosure } from "./disclosure.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -66,6 +67,65 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 export type FieldStatus = "error" | "warning" | "success" | "info";
+
+export interface CollapsibleProps extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "onChange"> {
+  title: string;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+}
+export const Collapsible = forwardRef<HTMLDivElement, CollapsibleProps>(function Collapsible(
+  {open, defaultOpen = false, onOpenChange, disabled = false, controlSize = "md", ...props}, ref,
+) {
+  const [local, setLocal] = useState(defaultOpen);
+  return <Disclosure {...props} ref={ref} expanded={open ?? local} disabled={disabled} controlSize={controlSize} onExpandedChange={next => {
+    if (open === undefined) setLocal(next);
+    onOpenChange?.(next);
+  }} />;
+});
+export interface AccordionItem {
+  value: string;
+  title: string;
+  content: ReactNode;
+  disabled?: boolean;
+}
+export interface AccordionProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "defaultValue" | "onChange"> {
+  label: string;
+  items: readonly AccordionItem[];
+  expansionMode?: "single" | "multiple";
+  value?: readonly string[];
+  defaultValue?: readonly string[];
+  onValueChange?: (value: string[]) => void;
+  disabled?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+}
+export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(function Accordion(
+  {label, items, expansionMode = "single", value, defaultValue = [], onValueChange, disabled = false, controlSize = "md", headingLevel = 3, className, onKeyDown, ...props}, ref,
+) {
+  const [local, setLocal] = useState(() => [...new Set(defaultValue)]);
+  const expanded = value ?? local;
+  if (new Set(items.map(item => item.value)).size !== items.length) throw new Error("Flood accordion item values must be unique");
+  if (expansionMode === "single" && new Set(expanded).size > 1) throw new Error("Flood single Accordion accepts at most one value");
+  return <div {...props} ref={ref} role="group" aria-label={label} className={classes("flood-accordion", className)} onKeyDown={event => {
+    onKeyDown?.(event);
+    if (event.defaultPrevented) return;
+    const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(":scope > .flood-disclosure > .flood-disclosure__heading > .flood-disclosure__trigger:not(:disabled)"));
+    const index = buttons.indexOf(event.target as HTMLButtonElement);
+    if (index < 0) return;
+    const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : event.key === "ArrowDown" ? (index + 1) % buttons.length : event.key === "ArrowUp" ? (index - 1 + buttons.length) % buttons.length : -1;
+    if (next >= 0) {event.preventDefault(); buttons[next].focus();}
+  }}>
+    {items.map(item => <Collapsible key={item.value} title={item.title} open={expanded.includes(item.value)} disabled={disabled || item.disabled} controlSize={controlSize} headingLevel={headingLevel} onOpenChange={active => {
+      const next = active ? expansionMode === "single" ? [item.value] : [...new Set([...expanded, item.value])] : expanded.filter(value => value !== item.value);
+      if (value === undefined) setLocal(next);
+      onValueChange?.([...next]);
+    }}>{item.content}</Collapsible>)}
+  </div>;
+});
 
 export interface ToggleProps extends Omit<ButtonProps, "aria-pressed" | "type" | "role" | "defaultValue"> {
   pressed?: boolean;

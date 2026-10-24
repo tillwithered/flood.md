@@ -461,5 +461,35 @@
     "imports": [
       "SegmentedControl"
     ]
+  },
+  {
+    "slug": "collapsible",
+    "name": "Collapsible",
+    "group": "content",
+    "description": "A named disclosure button and retained show/hide panel.",
+    "code": "<Collapsible title=\"Advanced settings\">Additional project settings.</Collapsible>",
+    "notes": [
+      "Source-only addition beyond published 0.2.2.",
+      "Use open/onOpenChange or defaultOpen. The panel stays mounted and hidden when closed; hidden form controls keep native form semantics.",
+      "Title is plain text for a stable button name. Content may be interactive. Disabled prevents trigger activation, not interaction inside an open panel."
+    ],
+    "imports": [
+      "Collapsible"
+    ]
+  },
+  {
+    "slug": "accordion",
+    "name": "Accordion",
+    "group": "content",
+    "description": "Related disclosure sections with optional single or multiple expansion.",
+    "code": "<Accordion label=\"Questions\" items={[{value:\"install\",title:\"How do I install Flood?\",content:\"Install the packages and import the stylesheet.\"}]} />",
+    "notes": [
+      "Source-only addition beyond published 0.2.2.",
+      "Headings contain native disclosure buttons. Set headingLevel for the surrounding document.",
+      "Enter/Space toggle. Tab visits available triggers and open panel contents. ArrowUp/Down and Home/End move among enabled top-level triggers without opening panels."
+    ],
+    "imports": [
+      "Accordion"
+    ]
   }
 ]

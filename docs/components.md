@@ -301,3 +301,24 @@ Do not use placeholder as a replacement name, hide interactive label content,
 or remove the individual labels of choices. ButtonGroup/ToggleGroup already
 have accessible group names without a visible heading. `hideLabel` is a
 source-only addition for the pending 0.2.3 patch, beyond published 0.2.2.
+
+## Disclosure components (current source)
+
+`Collapsible` combines a native named button and a retained panel. Use `title`,
+children and `defaultOpen`, or controlled `open`/`onOpenChange`. `Accordion`
+groups unique-value items with plain-text titles and React content; its
+`expansionMode` is `single` (one or none) or `multiple`, using string-array
+`value`/`onValueChange` or `defaultValue`. Set `headingLevel` for the surrounding
+document; Accordion defaults to 3. Native div props/ref target each root.
+
+Enter/Space toggle; Accordion Up/Down/Home/End focus available top-level headers
+without opening panels. Tab also reaches open panel controls. Disabled affects
+the trigger, not the contents of an already open panel. Panel content stays
+mounted with native `hidden`, so native form values and constraints remain;
+manage inactive fields in the host. Programmatic closing returns panel focus to
+the enabled trigger if focus has not already moved elsewhere. Removed or disabled
+triggers require host focus management.
+
+Panels change visibility immediately. Only the chevron animates, and reduced
+motion disables that transition. Both APIs are source-only additions planned
+for 0.2.3, beyond published 0.2.2.

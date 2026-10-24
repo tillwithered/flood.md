@@ -10,6 +10,7 @@
 .workbench-stage > .flood-root:has(> .flood-stack .flood-code-snippet) { inline-size: min(100%, 28rem); }
 .workbench-stage[data-component="label"] > .flood-root { inline-size: min(100%, 26rem); }
 .component-workbench .workbench-stage[data-component="segmented-control"] > .flood-root { inline-size: fit-content; max-inline-size: 100%; }
+.component-workbench .workbench-stage:is([data-component="collapsible"], [data-component="accordion"]) > .flood-root { inline-size: min(100%, 28rem); }
 .workbench-stage .flood-type--display { overflow-wrap: anywhere; }
 .workbench-stage .workbench-feedback { position: absolute; inset-inline: var(--flood-sys-space-4); inset-block-end: var(--flood-sys-space-4); margin: 0; text-align: center; pointer-events: none; font-size: var(--flood-sys-type-helper-size); color: var(--flood-sys-color-content-subtle); }
 .workbench-stage[data-component="input-group"] .flood-field,

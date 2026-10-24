@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add Collapsible and Accordion with original shared disclosure behavior, stable
+  ARIA relationships, controlled/local state and keyboard support; pending 0.2.3.
+
 - Add hideLabel to Field/Fieldset and derived selection groups, retaining native
   accessible names and removing the external label row; planned for 0.2.3.
 
