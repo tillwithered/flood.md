@@ -14,3 +14,8 @@ playwright-report/
 apps/website/public/agent/
 apps/website/public/schema/
 apps/website/public/llms.txt
+apps/website/public/docs.md
+apps/website/public/components.md
+apps/website/public/docs/
+apps/website/public/components/
+apps/website/src/generated/

@@ -101,7 +101,7 @@ test("installation follows the publication gate and exposes real documentation l
     await expect(copy).toBeDisabled();
   }
   await expect(page.getByRole("link", { name: "Components", exact: true }).first()).toHaveAttribute("href", "/components");
-  await expect(page.getByRole("link", { name: /For your agent/i })).toHaveAttribute("href", "/agent/DESIGN.md");
+  await expect(page.getByRole("link", { name: /For your agent/i })).toHaveAttribute("href", "/agent/SKILL.md");
 });
 
 test("landing reflows at 320px with larger text and respects reduced motion", async ({ page }) => {

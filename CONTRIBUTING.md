@@ -24,7 +24,7 @@ npm run release:check
 ```
 
 Add focused tests for changed behavior. UI changes should cover keyboard use,
-labels, focus, narrow screens and both themes. Update component and agent guides
+labels, focus, narrow screens and the supported dark profile. Update component and agent guides
 when the public API changes. Match Flood package versions in releases and preserve
 Next.js client boundaries. See the [release process](docs/releases.md).
 

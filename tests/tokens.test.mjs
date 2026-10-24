@@ -36,6 +36,7 @@ test("dark foundations publish coherent role metrics and accessible boundary col
     assert.ok(ratio(metric("color.focus.ring"), metric(`color.surface.${surface}`)) >= 3);
   }
   assert.ok(ratio(metric("color.field.border"), metric("color.field.background")) < 3, "quiet outline is not misrepresented as a required boundary");
+  assert.deepEqual(metric("color.field.border"), metric("color.border.decorative"), "default control outline matches the quiet container tone; stronger boundary stays distinct");
   assert.equal(metric("motion.duration-reduced").value, 0);
   assert.equal(metric("color.action.ghost.rest").alpha, 0);
   for (const [state, byte] of Object.entries({ rest: 48, hover: 56, pressed: 74, content: 255, disabled: 48, "disabled-content": 122 })) {

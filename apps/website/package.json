@@ -1,19 +1,20 @@
 {
   "name": "@flood-md/website",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
+    "build": "vite build && node ../../scripts/site-contract.mjs metadata",
     "start": "node server.mjs"
   },
   "dependencies": {
-    "@flood-md/react": "0.2.2",
+    "@flood-md/react": "0.2.3",
     "lucide-react": "1.61.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-markdown": "10.1.0",
-    "remark-gfm": "4.0.1"
+    "remark-gfm": "4.0.1",
+    "shiki": "4.5.0"
   }
 }

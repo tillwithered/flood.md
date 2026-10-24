@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+No unreleased changes.
+
+## 0.2.3 · 2026-10-25
+
+- Expand the base library to 37 original components: Select, ScrollArea, Label,
+  Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup,
+  SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs,
+  Breadcrumb and Pagination join the existing primitives.
+- Add consistent field feedback and read-only presentation, hidden-label options,
+  quiet control boundaries, coherent nested corners and protected scroll rails.
+- Add native Link button appearances/sizes while retaining ordinary anchor behavior.
+- Deliver a versioned agent router, observable rules and focused references,
+  including portable spacing, density and nested-geometry guidance.
+- Organize docs and the searchable component catalog around shared source-derived
+  API contracts, live recipes, matching TSX and canonical Markdown endpoints.
+- Stabilize playground geometry, use Flood components across the website shell
+  and reader, and theme native document scrolling from foundation tokens.
+- Verify isolated website artifacts and deployed source metadata alongside
+  React 18/19 packages, Next.js integration and desktop/mobile browser behavior.
+
 ## 0.2.2 — Marketing composition
 
 - Add opt-in display typography and a selectable CodeSnippet primitive with a

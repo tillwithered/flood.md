@@ -1,5 +1,6 @@
 import { readFile, writeFile, mkdir, copyFile, cp } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
+import { dirname } from "node:path";
 import { compileTokens } from "./token-compiler.mjs";
 
 const tokens = JSON.parse(
@@ -49,11 +50,12 @@ for (const name of ["tokens", "react", "agent", "cli"])
 await mkdir("apps/website/public/schema", { recursive: true });
 await mkdir("apps/website/public/agent", { recursive: true });
 await cp("schema", "apps/website/public/schema", { recursive: true });
-await copyFile(
-  "packages/agent/DESIGN.md",
-  "apps/website/public/agent/DESIGN.md",
-);
-await copyFile("packages/agent/SKILL.md", "apps/website/public/agent/SKILL.md");
+const agentManifest = JSON.parse(await readFile("packages/agent/manifest.json", "utf8"));
+for (const { source } of agentManifest.files) {
+  const destination = `apps/website/public/agent/${source}`;
+  await mkdir(dirname(destination), { recursive: true });
+  await copyFile(`packages/agent/${source}`, destination);
+}
 const release = JSON.parse(
   await readFile("apps/website/src/release.json", "utf8"),
 );
@@ -63,3 +65,4 @@ await writeFile(
   `${release.published ? "Release status: published." : "Release status: PREVIEW. Source release candidate; do not run the installation command until npm publication is verified."}\n\n${guide}`,
 );
 console.log("Built Flood packages and agent endpoints.");
+await import("./build-website-content.mjs");

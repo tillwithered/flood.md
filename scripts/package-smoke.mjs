@@ -69,14 +69,87 @@ try {
     `import { tokenNames, type TokenName } from '@flood-md/tokens/foundations';
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
-import { type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { createElement, createRef, type ComponentPropsWithRef } from 'react';
+import { Tabs, Breadcrumb, Pagination, type TabsProps, type BreadcrumbProps, type PaginationProps, Tooltip, Popover, Dialog, type TooltipProps, type PopoverProps, type DialogProps, type OverlayTriggerProps, Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { Link, type LinkProps } from '@flood-md/react';
+const navigationLink: LinkProps = {href:'/docs',variant:'subtle',size:'sm',target:'_blank',rel:'noopener'};
+createElement(Link,{...navigationLink,ref:createRef<HTMLAnchorElement>()});
+// @ts-expect-error Navigation has no button disabled contract.
+const disabledLink: LinkProps = {href:'/docs',disabled:true};
+const tabs: TabsProps = {label:'Sections',items:[{value:'a',label:'Alpha',content:'Content'}],value:'a',onValueChange:value=>value satisfies string};
+const crumbs: BreadcrumbProps = {items:[{label:'Home',href:'/'},{label:'Current'}]};
+const pages: PaginationProps = {page:1,pageCount:20,siblingCount:1,getHref:page=>'?page='+page,onPageChange:page=>page satisfies number};
+createElement(Tabs,{...tabs,ref:createRef<HTMLDivElement>()});
+createElement(Breadcrumb,{...crumbs,ref:createRef<HTMLElement>()});
+createElement(Pagination,{...pages,ref:createRef<HTMLElement>()});
+// @ts-expect-error Tabs selection is a single string.
+const badTabs: TabsProps = {...tabs,value:['a']};
+// @ts-expect-error Pagination has a bounded sibling window.
+const badPages: PaginationProps = {...pages,siblingCount:10};
+const overlayTrigger = (props: OverlayTriggerProps) => createElement('button',props,'Open');
+const tooltip: TooltipProps = {content:'Help',trigger:overlayTrigger,side:'top'};
+const popover: PopoverProps = {title:'Settings',trigger:overlayTrigger,open:true,onOpenChange:value=>value satisfies boolean};
+const modal: DialogProps = {title:'Create',trigger:overlayTrigger,initialFocusRef:createRef<HTMLInputElement>()};
+createElement(Tooltip,{...tooltip,ref:createRef<HTMLDivElement>()});
+createElement(Popover,{...popover,ref:createRef<HTMLDivElement>()});
+createElement(Dialog,{...modal,ref:createRef<HTMLDialogElement>()});
+// @ts-expect-error Tooltip content is text, not interactive React elements.
+const badTooltip: TooltipProps = {...tooltip,content:createElement('button',null,'Action')};
+const disclosure: CollapsibleProps = {title:'Advanced',open:true,onOpenChange:value=>value satisfies boolean};
+const accordion: AccordionProps = {label:'FAQ',items:[{value:'a',title:'Question',content:'Answer'}],value:['a'],headingLevel:2};
+createElement(Collapsible,{...disclosure,ref:createRef<HTMLDivElement>()});
+createElement(Accordion,{...accordion,ref:createRef<HTMLDivElement>()});
+// @ts-expect-error Accordion uses an array even in single expansion mode.
+const badAccordion: AccordionProps = {...accordion,value:'a'};
+const segments: SegmentedControlProps = {label:'Time range',hideLabel:true,name:'period',value:'day',options:[{value:'day',label:'Day'}],onValueChange:value=>value satisfies string};
+createElement(SegmentedControl,{...segments,ref:createRef<HTMLFieldSetElement>()});
+// @ts-expect-error SegmentedControl owns one string value, not an array.
+const badSegments: SegmentedControlProps = {...segments,value:['day']};
+const toggleProps: ToggleProps = {pressed: true, iconOnly: true, 'aria-label': 'Bold', onPressedChange: value => value satisfies boolean};
+const toggleGroupProps: ToggleGroupProps = {label: 'Formatting', selectionMode: 'single', value: ['bold'], options: [{value: 'bold', label: 'Bold'}], onValueChange: value => value satisfies string[]};
+createElement(Toggle, {...toggleProps, ref: createRef<HTMLButtonElement>()});
+createElement(ToggleGroup, {...toggleGroupProps, ref: createRef<HTMLDivElement>()});
+// @ts-expect-error Toggle owns aria-pressed; use pressed.
+const invalidToggle: ToggleProps = {'aria-pressed': true};
+const actions: ButtonGroupProps = {label: 'Editing', orientation: 'vertical'};
+const connectedField: InputGroupProps = {name: 'website', start: 'https://', type: 'url', required: true};
+const actionsElement = createElement(ButtonGroup, {...actions, ref: createRef<HTMLDivElement>()});
+const connectedFieldElement = createElement(InputGroup, {...connectedField, ref: createRef<HTMLInputElement>()});
+// @ts-expect-error Adorned input supports text-like controls, not file pickers.
+const fileGroup: InputGroupProps = {type: 'file'};
+const radioGroup: RadioGroupProps = {name: 'visibility', legend: 'Visibility', hideLabel: true, options: [{value: 'private', label: 'Private'}], value: 'private', required: true};
+const checkboxGroup: CheckboxGroupProps = {name: 'updates', legend: 'Updates', options: [{value: 'news', label: 'News'}], value: ['news']};
+const radioGroupElement = createElement(RadioGroup, {...radioGroup, ref: createRef<HTMLFieldSetElement>()});
+const checkboxGroupElement = createElement(CheckboxGroup, checkboxGroup);
+// @ts-expect-error Multiple choice uses an array value.
+const badGroupValue: CheckboxGroupProps = {...checkboxGroup, value: 'news'};
+const label: LabelProps = {htmlFor: 'project', required: true};
+const labelElement = createElement(Label, {...label, ref: createRef<HTMLLabelElement>()}, 'Project');
+const fieldset: FieldsetProps = {legend: 'Preferences', disabled: true, status: 'warning'};
+const groupElement = createElement(Fieldset, {...fieldset, ref: createRef<HTMLFieldSetElement>()});
+// @ts-expect-error A group must have a legend.
+const unnamedGroup: FieldsetProps = {disabled: true};
 const heading: HeadingProps = {level: 3, size: 'large'};
 const display: HeadingProps = {level: 1, size: 'display'};
 const lead: TextProps = {as: 'p', size: 'lead'};
 const snippet: CodeSnippetProps = {code: 'npm install example', id: 'command'};
 // @ts-expect-error CodeSnippet requires literal code content.
 const badSnippet: CodeSnippetProps = {id: 'missing-code'};
-const input: InputProps = {size: 30, controlSize: 'xl'};
+const input: InputProps = {size: 30, controlSize: 'xl', status: 'warning', readOnly: true};
+// @ts-expect-error Field status has a closed semantic vocabulary.
+const badStatus: InputProps = {status: 'orange'};
+const select: SelectProps = {size: 4, multiple: true, defaultValue: ['team'], controlSize: 'xl', invalid: true};
+const scroll: ScrollAreaProps = {orientation: 'both', contentInset: 'scrollbar', style: {maxHeight: '12rem'}, 'aria-label': 'History'};
+const scrollRef = createRef<HTMLDivElement>();
+const scrollElement = createElement(ScrollArea, {...scroll, ref: scrollRef});
+// @ts-expect-error Only the documented scroll axes are supported.
+const badScroll: ScrollAreaProps = {orientation: 'diagonal'};
+const scrollRole: TokenName = 'sys.scrollbar.size';
+const selectRef = createRef<HTMLSelectElement>();
+const referencedSelect: ComponentPropsWithRef<typeof Select> = {ref: selectRef, name: 'visibility'};
+const selectElement = createElement(Select, {...referencedSelect, onChange: event => { const options: HTMLOptionsCollection = event.currentTarget.options; void options; }});
+// @ts-expect-error Visual control size cannot replace native select list size.
+const badSelect: SelectProps = {size: 'xl'};
 const icon: IconButtonProps = {label: 'Add item', size: '2xl'};
 // @ts-expect-error Visual size must not replace the native input size attribute.
 const badInput: InputProps = {size: 'xl'};
@@ -86,6 +159,8 @@ const badIcon: IconButtonProps = {size: 'md'};
 const typo: TokenName = 'sys.color.content.defalt';
 void css; void typo;
 void heading; void display; void lead; void snippet; void badSnippet; void input; void icon; void badInput; void badIcon;
+void select; void referencedSelect; void selectElement; void badSelect;
+void scroll; void scrollElement; void badScroll; void scrollRole;
 `,
   );
   const types = spawnSync(
@@ -118,12 +193,27 @@ void heading; void display; void lead; void snippet; void badSnippet; void input
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {FloodRoot, Heading, Field, Input, IconButton} from '@flood-md/react';
+import {Link} from '@flood-md/react';
+import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb, Pagination} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
-  h(Field,{label:'Name',required:true},p=>h(Input,{...p,name:'name'})),
+  h(Link,{href:'/docs',variant:'subtle',size:'sm'},'Documentation'),
+  h(Toggle,{defaultPressed:true},'Bold'),
+  h(Tabs,{label:'Sections',items:[{value:'a',label:'Alpha',content:'Content'}]}),
+  h(Breadcrumb,{items:[{label:'Home',href:'/'},{label:'Current'}]}),
+  h(Pagination,{page:1,pageCount:20,getHref:page=>'?page='+page}),
+  h(Tooltip,{content:'Help',trigger:props=>h('button',props,'Help')}),
+  h(Popover,{title:'Settings',trigger:props=>h('button',props,'Settings')}),
+  h(Dialog,{title:'Create',trigger:props=>h('button',props,'Create')}),
+  h(Collapsible,{title:'Advanced',defaultOpen:true},'Details'),
+  h(Accordion,{label:'FAQ',items:[{value:'a',title:'Question',content:'Answer'}]}),
+  h(SegmentedControl,{label:'Period',hideLabel:true,name:'period',defaultValue:'day',options:[{value:'day',label:'Day'}]}),
+  h(ToggleGroup,{label:'Formatting',options:[{value:'bold',label:'Bold'}],defaultValue:['bold']}),
+  h(ScrollArea,{'aria-label':'History',style:{maxHeight:'12rem'}},'Local activity'),
+  h(Field,{label:'Name',hideLabel:true,required:true},p=>h(Input,{...p,name:'name'})),
+  h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
-if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')) throw Error('React compatibility render');
+if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')||!html.includes('aria-expanded=')||!html.includes('flood-accordion')||!html.includes('flood-dialog')||!html.includes('role="tooltip"')||!html.includes('role="tablist"')||!html.includes('flood-pagination')||!html.includes('flood-breadcrumb')) throw Error('React compatibility render');
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")

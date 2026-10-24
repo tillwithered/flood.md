@@ -1,7 +1,7 @@
 {
   "name": "flood-md-workspace",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "workspaces": [
     "packages/*",
@@ -20,13 +20,17 @@
     "test:browser": "playwright test",
     "test:next": "npm run build --workspace=@flood-md/next-example",
     "test:packages": "node scripts/package-smoke.mjs",
-    "verify": "npm run build && npm run check && npm test && npm run test:packages && npm run test:next",
+    "verify": "npm run build && npm run check && npm test && npm run test:packages && npm run test:next && npm run site:check",
     "release:check": "node scripts/release.mjs --check",
     "release:publish": "node scripts/release.mjs",
-    "start": "node apps/website/server.mjs"
+    "start": "node apps/website/server.mjs",
+    "site:check": "node scripts/site-contract.mjs check",
+    "site:bundle": "node scripts/site-contract.mjs bundle",
+    "site:verify-deploy": "node scripts/site-contract.mjs wait"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
+    "@babel/parser": "8.0.8",
     "@playwright/test": "1.64.1",
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",

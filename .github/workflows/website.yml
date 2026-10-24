@@ -1,0 +1,34 @@
+name: Verify website deployment
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: website-verification
+  cancel-in-progress: true
+jobs:
+  deployed-source:
+    if: >-
+      github.repository == 'tillwithered/flood.md' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+      - name: Wait for the matching Railway source and verify public contracts
+        run: node scripts/site-contract.mjs wait
+        env:
+          WEBSITE_URL: ${{ vars.WEBSITE_URL || 'https://flood.md' }}
+          EXPECTED_COMMIT: ${{ github.event.workflow_run.head_sha }}
+          VERIFY_TIMEOUT_MS: 600000

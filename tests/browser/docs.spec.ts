@@ -15,7 +15,8 @@ test("home stays focused and navigation exposes documentation and GitHub", async
   await page.screenshot({ path: `.artifacts/docs-home-${info.project.name}.png`, fullPage: true });
   await nav.getByRole("link", { name: "Docs", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Introduction");
-  await expect(page.getByRole("link", { name: "Edit on GitHub" })).toHaveAttribute("href", /\/edit\/main\/docs\/README.md$/);
+  await expect(page.getByRole("button", { name: "Copy for agent", exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Page format" })).toHaveCount(0);
 });
 
 test("every published guide and component has a directly loadable page", async ({ page, request }) => {
@@ -28,8 +29,8 @@ test("every published guide and component has a directly loadable page", async (
   }
   for (const slug of componentSlugs) {
     expect((await page.goto(`/components/${slug}`))?.status()).toBe(200);
-    await expect(page.locator(".component-preview")).toBeVisible();
-    await expect(page.locator(".preview-stage")).not.toBeEmpty();
+    await expect(page.locator(".component-workbench")).toBeVisible();
+    await expect(page.locator(".preview-stage > .flood-root > *").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "API reference", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
@@ -42,11 +43,11 @@ test("component code, clipboard, local interactions and mobile navigation work",
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/components/button");
   await expect(page).toHaveTitle("Button — flood.md");
-  await page.locator(".preview-code summary").click();
-  await expect(page.locator(".preview-code code")).toContainText('from "@flood-md/react"');
-  await page.getByRole("button", { name: "Copy page", exact: true }).click();
+  await expect(page.locator("#usage .site-code-block code")).toContainText('from "@flood-md/react"');
+  await page.getByRole("button", { name: "Copy for agent", exact: true }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("# Button");
-  await page.locator(".preview-code").getByRole("button", { name: "Copy code" }).click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain(new URL("/agent/SKILL.md", page.url()).href);
+  await page.locator("#usage").getByRole("button", { name: "Copy code" }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("export function Example()");
   if (info.project.name === "mobile") {
     await page.getByText("Browse documentation", { exact: true }).click();
@@ -55,11 +56,12 @@ test("component code, clipboard, local interactions and mobile navigation work",
   }
   await page.goto("/components/icon-button");
   await page.getByRole("button", { name: "Add idea", exact: true }).click();
-  await expect(page.locator(".preview-stage").getByRole("status")).toContainText("1 idea added locally.");
+  await expect(page.locator(".preview-stage").getByRole("status")).toContainText("Action completed locally.");
   await page.goto("/components/field");
-  await page.getByRole("button", { name: "Check name" }).click();
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Project name" })).toHaveAttribute("aria-invalid", "true");
+  await page.getByRole("checkbox", { name: "Field prop error", exact: true }).uncheck();
+  await expect(page.getByRole("alert")).toHaveCount(0);
   await page.screenshot({ path: `.artifacts/docs-field-${info.project.name}.png`, fullPage: true });
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.goto("/docs/theming");

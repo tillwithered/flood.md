@@ -160,6 +160,8 @@
   text-underline-offset: 4px;
   text-decoration-thickness: 1px;
 }
+.flood-link--button { text-decoration: none; }
+.flood-link--button:where(.flood-button--solid) { color: var(--flood-action-text); }
 .flood-spinner {
   width: 12px;
   height: 12px;

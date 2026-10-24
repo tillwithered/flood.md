@@ -1,35 +1,43 @@
-import { readFile, writeFile, mkdir, lstat, access } from "node:fs/promises";
+import { readFile, writeFile, mkdir, lstat } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-export const VERSION = "0.2.2";
+export const VERSION = "0.2.3";
 const packages = ["@flood-md/tokens", "@flood-md/react", "@flood-md/agent"];
 const json = async (path) => JSON.parse(await readFile(path, "utf8"));
-const exists = async (path) => {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-};
 const agentFile = (name) =>
   fileURLToPath(import.meta.resolve(`@flood-md/agent/${name}`));
+const agentManifest = await json(agentFile("manifest.json"));
+const safeRelative = (path) => typeof path === "string" && /^[a-zA-Z0-9._/-]+$/.test(path) &&
+  !path.startsWith("/") && !path.split("/").some(part => !part || part === "." || part === "..");
+if (agentManifest.schemaVersion !== 1 || agentManifest.version !== VERSION || !Array.isArray(agentManifest.files) ||
+    !agentManifest.files.length || agentManifest.files.some(file =>
+      !safeRelative(file.source) || !safeRelative(file.target) ||
+      !(file.target.startsWith("flood/") || file.target.startsWith(".agents/skills/flood-ui/"))) ||
+    new Set(agentManifest.files.map(file => file.target)).size !== agentManifest.files.length)
+  throw new Error("Invalid Flood agent file manifest.");
+export const AGENT_FILES = Object.freeze(agentManifest.files.map(file => Object.freeze({ ...file })));
 
-// Refuse links and existing instruction files before changing any project data.
-export async function checkTarget(root, relative) {
+async function inspectTarget(root, relative) {
   let current = root;
+  let info;
   for (const part of relative.split("/")) {
     current = join(current, part);
     try {
-      if ((await lstat(current)).isSymbolicLink())
-        throw new Error(`Refusing linked path: ${relative}`);
+      info = await lstat(current);
+      if (info.isSymbolicLink()) throw new Error(`Refusing linked path: ${relative}`);
     } catch (error) {
-      if (error.code !== "ENOENT") throw error;
+      if (error.code === "ENOENT") return undefined;
+      throw error;
     }
   }
-  if (await exists(join(root, relative)))
+  return info;
+}
+
+// Refuse links and existing instruction files before changing any project data.
+export async function checkTarget(root, relative) {
+  if (await inspectTarget(root, relative))
     throw new Error(`${relative} already exists. No files were overwritten.`);
 }
 
@@ -67,16 +75,16 @@ export async function initProject(
     manifest.dependencies?.next || manifest.devDependencies?.next
       ? "next"
       : "react";
-  const files = [
-    "flood.json",
-    "flood/DESIGN.md",
-    ".agents/skills/flood-ui/SKILL.md",
-  ];
+  const files = ["flood.json", ...AGENT_FILES.map(file => file.target)];
   for (const file of files) await checkTarget(root, file);
   log(
     `Flood ${VERSION} · ${framework} · npm\nInstall: ${packages.map((p) => `${p}@${VERSION}`).join(", ")}\nCreate: ${files.join(", ")}`,
   );
   if (dryRun) return;
+  // Read the complete bundled guide set before npm or owned writes can change anything.
+  const guides = await Promise.all(AGENT_FILES.map(async file => ({
+    ...file, content: await readFile(agentFile(file.source)),
+  })));
   await installer(root);
   const config = {
     $schema: "https://flood.md/schema/config.json",
@@ -89,27 +97,24 @@ export async function initProject(
   };
   // Recheck after npm has run, before creating owned files.
   for (const file of files) await checkTarget(root, file);
-  await mkdir(join(root, "flood"), { recursive: true });
-  await mkdir(join(root, ".agents/skills/flood-ui"), { recursive: true });
+  for (const file of files) await mkdir(resolve(root, file, ".."), { recursive: true });
   await writeFile(
     join(root, files[0]),
     JSON.stringify(config, null, 2) + "\n",
     { flag: "wx" },
   );
-  await writeFile(
-    join(root, files[1]),
-    await readFile(agentFile("DESIGN.md")),
-    { flag: "wx" },
-  );
-  await writeFile(join(root, files[2]), await readFile(agentFile("SKILL.md")), {
-    flag: "wx",
-  });
+  for (const file of guides) {
+    await checkTarget(root, file.target);
+    await writeFile(join(root, file.target), file.content, { flag: "wx" });
+  }
   log(
     `\nConnected. Import '@flood-md/react/styles.css' in ${framework === "next" ? "app/layout.tsx" : "your app entry"}.\nWrap your interface in <FloodRoot> from '@flood-md/react' to use the dark foundations.\nRead flood/DESIGN.md for component APIs. Run npx @flood-md/cli doctor to verify.`,
   );
 }
 
 export async function doctor(root, log = console.log) {
+  const configInfo = await inspectTarget(root, "flood.json");
+  if (!configInfo?.isFile()) throw new Error("No regular flood.json. Run init first.");
   const config = await json(join(root, "flood.json")).catch(() => {
     throw new Error("No flood.json. Run init first.");
   });
@@ -131,11 +136,21 @@ export async function doctor(root, log = console.log) {
         `${name}: expected ${config.version}, found ${found?.version ?? "missing"}`,
       );
   }
-  for (const name of ["flood/DESIGN.md", ".agents/skills/flood-ui/SKILL.md"])
-    if (!(await exists(join(root, name)))) failures.push(`${name}: missing`);
+  for (const { target } of AGENT_FILES) {
+    try {
+      const info = await inspectTarget(root, target);
+      if (!info?.isFile()) failures.push(`${target}: missing or not a regular file`);
+    } catch (error) { failures.push(error.message); }
+  }
+  if (!failures.length) {
+    const installed = await json(join(root, "flood/manifest.json")).catch(() => undefined);
+    if (installed?.version !== config.version) failures.push("Agent manifest version differs; compare and merge the matching guide bundle.");
+    const header = (await readFile(join(root, "flood/DESIGN.md"), "utf8")).split(/\r?\n/, 1)[0];
+    if (!header.endsWith("\u00b7 " + config.version)) failures.push("DESIGN.md version differs; preserve custom edits while updating the contract.");
+  }
   if (failures.length) throw new Error(failures.join("\n"));
   log(
-    `Flood ${config.version}: package versions and agent files are aligned.\nCheck the stylesheet import in your application entry; doctor does not parse application code.`,
+    `Flood ${config.version}: package versions and ${AGENT_FILES.length} agent files are aligned.\nCheck the stylesheet import in your application entry; doctor does not parse application code or validate UI.`,
   );
 }
 

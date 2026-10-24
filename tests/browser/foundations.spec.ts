@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { chooseSelectOption, selectBridge } from "./select-helpers";
 
 const url = "http://127.0.0.1:3001/foundations";
 
@@ -28,6 +29,9 @@ test("foundation form retains native values, keyboard choices and reset", async 
   const name = page.getByRole("textbox", { name: "Project name" });
   const checkbox = page.getByRole("checkbox", { name: "Email updates" });
   const toggle = page.getByRole("switch", { name: "Public preview" });
+  const region = page.getByRole("combobox", { name: "Project region" });
+  await expect(selectBridge(region)).toHaveValue("global");
+  await chooseSelectOption(region, "europe");
   await expect(name).toHaveValue("Flood");
   await expect(checkbox).toBeChecked();
   await expect(toggle).not.toBeChecked();
@@ -47,8 +51,11 @@ test("foundation form retains native values, keyboard choices and reset", async 
   expect(Object.values(data)).toContain("Flood team");
   expect(Object.values(data)).toContain("A small original system");
   expect(data).not.toHaveProperty("updates");
+  expect(data.region).toBe("europe");
   await page.getByRole("button", { name: "Reset form", exact: true }).click();
   await expect(name).toHaveValue("Flood");
+  await expect(selectBridge(region)).toHaveValue("global");
+  await expect(region).toContainText("Global");
   await expect(checkbox).toBeChecked();
   await expect(toggle).not.toBeChecked();
   await expect(page.getByRole("radio", { name: "Team", exact: true })).toBeChecked();
@@ -76,6 +83,49 @@ test("field focus follows its contour without moving layout and survives invalid
   expect(associated.text).toContain("Visible to your team");
   expect(associated.text).toContain("Required project name");
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test("fields use a quiet uniform perimeter and textarea scrolls without a resize grip", async ({ page }) => {
+  await page.goto(url);
+  const controls = [page.getByRole("textbox", { name: "Project name", exact: true }), page.getByRole("textbox", { name: "Project description", exact: true })];
+  for (const rootSize of [16, 20, 24]) {
+    await page.evaluate((size) => { document.documentElement.style.fontSize = `${size}px`; }, rootSize);
+    for (const control of controls) {
+      const boundary = await control.evaluate((node) => {
+        const css = getComputedStyle(node);
+        const luminance = (color: string) => color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map((byte) => {
+          const value = byte / 255;
+          return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
+        }).reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
+        const foreground = luminance(css.borderTopColor), background = luminance(css.backgroundColor);
+        return { colors: [css.borderTopColor, css.borderRightColor, css.borderBottomColor, css.borderLeftColor], ratio: (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05), shadow: css.boxShadow };
+      });
+      expect(new Set(boundary.colors).size).toBe(1);
+      expect(boundary.colors[0]).toBe("rgb(56, 56, 56)");
+      expect(boundary.ratio).toBeLessThan(3);
+      expect(boundary.shadow).toBe("none");
+      const before = await control.boundingBox();
+      await control.focus();
+      await expect(control).toHaveCSS("border-width", "2px");
+      await expect(control).toHaveCSS("outline-offset", "0px");
+      expect(await control.boundingBox()).toEqual(before);
+      await control.evaluate((node) => node.setAttribute("aria-invalid", "true"));
+      await expect(control).toHaveCSS("border-top-color", "rgb(255, 92, 168)");
+      await control.blur();
+      await expect(control).toHaveCSS("border-color", "rgb(255, 138, 138)");
+      await control.evaluate((node) => { node.removeAttribute("aria-invalid"); node.setAttribute("disabled", ""); });
+      await expect(control).toBeDisabled();
+      await expect(control).toHaveCSS("opacity", "1");
+      await control.evaluate((node) => node.removeAttribute("disabled"));
+    }
+  }
+  const textarea = controls[1];
+  await expect(textarea).toHaveCSS("resize", "none");
+  await expect(textarea).toHaveCSS("overflow-y", "auto");
+  await textarea.fill(Array.from({ length: 40 }, (_, index) => `Line ${index + 1}`).join("\n"));
+  expect(await textarea.evaluate((node) => { node.scrollTop = node.scrollHeight; return node.scrollHeight > node.clientHeight && node.scrollTop > 0; })).toBe(true);
+  await textarea.evaluate((node) => { node.style.resize = "vertical"; });
+  await expect(textarea).toHaveCSS("resize", "vertical");
 });
 
 test("control scale uses the agreed rem heights and disabled actions stay inert", async ({ page }) => {

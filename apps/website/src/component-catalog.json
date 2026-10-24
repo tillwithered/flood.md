@@ -1,0 +1,573 @@
+[
+  {
+    "slug": "flood-root",
+    "name": "FloodRoot",
+    "group": "setup",
+    "description": "An explicit scope for the neutral dark foundations profile.",
+    "code": "<FloodRoot>\n  <Text>Your workspace starts here.</Text>\n</FloodRoot>",
+    "notes": [
+      "Import @flood-md/react/styles.css once at the application entry.",
+      "This root selects neutral/dark locally. Legacy controls outside it keep their earlier theme behavior."
+    ],
+    "imports": [
+      "FloodRoot",
+      "Text"
+    ]
+  },
+  {
+    "slug": "text",
+    "name": "Text",
+    "group": "typography",
+    "description": "Role-based interface text, from introductory copy to small supporting details.",
+    "code": "<Stack gap=\"3\">\n  <Text as=\"p\" size=\"lead\">A calm foundation for your next idea.</Text>\n  <Text as=\"p\" size=\"compact\">Use the space to make it yours.</Text>\n</Stack>",
+    "notes": [
+      "Use as=\"p\" for paragraphs. The label size does not create a form association.",
+      "Subtle is a supplementary tone; evaluate small required instructions against the actual background and font size."
+    ],
+    "imports": [
+      "Stack",
+      "Text"
+    ]
+  },
+  {
+    "slug": "heading",
+    "name": "Heading",
+    "group": "typography",
+    "description": "Semantic heading levels with an independent visual scale.",
+    "code": "<Stack gap=\"4\">\n  <Heading level={2} size=\"page\">Workspace settings</Heading>\n  <Heading level={3} size=\"section\">Notifications</Heading>\n</Stack>",
+    "notes": [
+      "Choose level for document structure and size for appearance.",
+      "Display is a large marketing role. Keep page and section sizes for ordinary product interfaces."
+    ],
+    "imports": [
+      "Stack",
+      "Heading"
+    ]
+  },
+  {
+    "slug": "stack",
+    "name": "Stack",
+    "group": "layout",
+    "description": "Vertical composition with spacing from the shared token scale.",
+    "code": "<Stack gap=\"4\">\n  <Heading size=\"section\">Project</Heading>\n  <Text as=\"p\">One place for your work.</Text>\n</Stack>",
+    "notes": [
+      "The parent owns the gap between its children.",
+      "Spacing keys are strings and use rem. Flood does not reset the host root font size."
+    ],
+    "imports": [
+      "Stack",
+      "Heading",
+      "Text"
+    ]
+  },
+  {
+    "slug": "inline",
+    "name": "Inline",
+    "group": "layout",
+    "description": "A wrapping horizontal group for related content and actions.",
+    "code": "<Inline gap=\"2\" align=\"center\">\n  <Button>Save changes</Button>\n  <Button variant=\"subtle\">Cancel</Button>\n</Inline>",
+    "notes": [
+      "Inline wraps when its children need more space.",
+      "Use the same control size for neighboring actions of the same level.",
+      "Rows center items by default. Use gap=\"4\" between independent choices; gap=\"2\" remains available for tightly related content."
+    ],
+    "imports": [
+      "Inline",
+      "Button"
+    ]
+  },
+  {
+    "slug": "surface",
+    "name": "Surface",
+    "group": "layout",
+    "description": "A quiet container with semantic elevation and token-based padding.",
+    "code": "<Surface elevation=\"raised\" padding=\"6\">\n  <Text>Everything in its place.</Text>\n</Surface>",
+    "notes": [
+      "Elevation describes appearance. Overlay does not create a dialog, portal or focus trap.",
+      "Prefer grouping and spacing before adding more nested containers."
+    ],
+    "imports": [
+      "Surface",
+      "Text"
+    ]
+  },
+  {
+    "slug": "divider",
+    "name": "Divider",
+    "group": "layout",
+    "description": "A semantic separator with a low-emphasis visual line.",
+    "code": "<Stack gap=\"4\">\n  <Text>Workspace</Text>\n  <Divider />\n  <Text>Account</Text>\n</Stack>",
+    "notes": [
+      "The line is decorative in contrast terms: content grouping must remain understandable without seeing it.",
+      "Divider renders a native hr; it has no orientation prop."
+    ],
+    "imports": [
+      "Stack",
+      "Text",
+      "Divider"
+    ]
+  },
+  {
+    "slug": "button",
+    "name": "Button",
+    "group": "actions",
+    "description": "Native actions with a clear prominence, size and interaction state.",
+    "code": "<Inline gap=\"2\">\n  <Button>Save changes</Button>\n  <Button variant=\"subtle\">Cancel</Button>\n  <Button loading>Saving</Button>\n</Inline>",
+    "notes": [
+      "Button defaults to type=\"button\". Set submit or reset deliberately inside forms.",
+      "Loading disables activation and sets aria-busy. The host owns completion announcements.",
+      "Prefer subtle for standalone secondary actions; ghost belongs in a clear parent context.",
+      "Buttons use content width, including inside Stack. Opt into a full-width action with style={{ inlineSize: \"100%\" }} only when the composition calls for it."
+    ],
+    "imports": [
+      "Inline",
+      "Button"
+    ]
+  },
+  {
+    "slug": "icon-button",
+    "name": "IconButton",
+    "group": "actions",
+    "description": "An icon-only action with a required accessible name.",
+    "code": "<IconButton label=\"Add idea\">\n  <Plus />\n</IconButton>",
+    "notes": [
+      "Provide a meaningful action label, rather than the name of the glyph.",
+      "Supply a licensed SVG. IconButton wraps it in a decorative IconSlot sized to the control.",
+      "Connect onClick to your host action. The interactive preview adds a local count; the basic usage snippet only shows composition."
+    ],
+    "imports": [
+      "IconButton",
+      "Plus"
+    ]
+  },
+  {
+    "slug": "link",
+    "name": "Link",
+    "group": "navigation",
+    "description": "A native anchor for navigation.",
+    "code": "<Link href=\"/docs/installation\">Install Flood</Link>",
+    "notes": [
+      "Use a button for state-changing actions and a link for navigation.",
+      "Link forwards native anchor attributes. Its optional solid/subtle/outline/ghost variants share Flood Button geometry; text is the unchanged default. No asChild API."
+    ],
+    "imports": [
+      "Link"
+    ]
+  },
+  {
+    "slug": "field",
+    "name": "Field",
+    "group": "forms",
+    "description": "The association between a visible label, its input and supporting messages.",
+    "code": "<Field label=\"Project name\" required hint=\"Visible to your team.\">\n  {(control) => <Input {...control} name=\"project\" />}\n</Field>",
+    "notes": [
+      "Spread the supplied control props onto one Input or Textarea.",
+      "Field merges describedBy with hint/error IDs and forwards native required through its function child.",
+      "The host owns validation rules. Compose Field in a client component in Next.js.",
+      "Field is not a generic native div wrapper and does not forward a ref."
+    ],
+    "imports": [
+      "Field",
+      "Input"
+    ]
+  },
+  {
+    "slug": "input",
+    "name": "Input",
+    "group": "forms",
+    "description": "A native input with semantic styling and independent visual sizing.",
+    "code": "<Field label=\"Workspace name\">\n  {(control) => <Input {...control} defaultValue=\"My project\" />}\n</Field>",
+    "notes": [
+      "Use Field or a native associated label; placeholder text is not a label.",
+      "controlSize changes appearance. The native numeric size attribute keeps its HTML meaning.",
+      "Default outlines use the quiet field.border role. field.boundary is a stronger opt-in; preserve the independent focus indicator when customizing colors."
+    ],
+    "imports": [
+      "Field",
+      "Input"
+    ]
+  },
+  {
+    "slug": "select",
+    "name": "Select",
+    "group": "forms",
+    "description": "A Flood choice field with its own popup and native form integration.",
+    "code": "<Field label=\"Visibility\">\n  {(control) => (\n    <Select {...control} name=\"visibility\" defaultValue=\"private\">\n      <option value=\"private\">Private</option>\n      <option value=\"team\">Team</option>\n    </Select>\n  )}\n</Field>",
+    "imports": [
+      "Field",
+      "Select"
+    ],
+    "notes": [
+      "Single selection uses a Flood trigger and listbox, including the popup. Native options and optgroups supply the choices; disabled choices cannot be selected.",
+      "Use arrows, Home/End and typing to navigate; Enter or Space confirms, Escape cancels. The popup scrolls active choices into view.",
+      "Select fills its Field; constrain the form or field wrapper. Multiple and numeric size greater than one use a native inline listbox rather than a popup.",
+      "A native form bridge preserves name, value/defaultValue, required, disabled, onChange and HTMLSelectElement ref. Inspect the matching guide for the visible focus contract."
+    ]
+  },
+  {
+    "slug": "textarea",
+    "name": "Textarea",
+    "group": "forms",
+    "description": "Native multiline input for notes and longer text.",
+    "code": "<Field label=\"Project note\" hint=\"Keep it short and useful.\">\n  {(control) => <Textarea {...control} rows={3} maxLength={500} />}\n</Field>",
+    "notes": [
+      "Rows, maxLength, value/defaultValue and form props remain native.",
+      "The default has no resize grip. Long text scrolls inside the field; a host can opt into native resizing with style={{ resize: \"vertical\" }}."
+    ],
+    "imports": [
+      "Field",
+      "Textarea"
+    ]
+  },
+  {
+    "slug": "checkbox",
+    "name": "Checkbox",
+    "group": "forms",
+    "description": "A labeled native checkbox for independent choices.",
+    "code": "<Checkbox label=\"Send project updates\" name=\"updates\" defaultChecked />",
+    "notes": [
+      "Use checked/onChange for controlled state or defaultChecked for native state.",
+      "Labels stay visible. Disabled does not mean read-only; explain unavailable choices outside the disabled control when needed.",
+      "The control and visible label form one content-width unit with an 8px-at-16px-root internal gap. Use an explicit parent gap=\"4\" (16px at that root) between units; the glyph keeps its token-defined size."
+    ],
+    "imports": [
+      "Checkbox"
+    ]
+  },
+  {
+    "slug": "radio",
+    "name": "Radio",
+    "group": "forms",
+    "description": "A labeled native radio for one choice within a group.",
+    "code": "<fieldset>\n  <legend>Visibility</legend>\n  <Radio label=\"Private\" name=\"visibility\" value=\"private\" defaultChecked />\n  <Radio label=\"Public\" name=\"visibility\" value=\"public\" />\n</fieldset>",
+    "notes": [
+      "Radios in one group share a name. The host supplies fieldset and legend.",
+      "Native browser keyboard and form behavior remain available.",
+      "The control and visible label form one content-width unit with an 8px-at-16px-root internal gap. Use an explicit parent gap=\"4\" (16px at that root) between units; the glyph keeps its token-defined size."
+    ],
+    "imports": [
+      "Radio"
+    ]
+  },
+  {
+    "slug": "switch",
+    "name": "Switch",
+    "group": "forms",
+    "description": "A labeled on/off setting with native checkbox form behavior.",
+    "code": "<Switch label=\"Email notifications\" name=\"notifications\" defaultChecked />",
+    "notes": [
+      "Switch uses a native checkbox with role=\"switch\".",
+      "checked/defaultChecked, name/value, reset and disabled remain native. The component does not persist settings.",
+      "The control and visible label form one content-width unit with an 8px-at-16px-root internal gap. Use an explicit parent gap=\"4\" (16px at that root) between units; the glyph keeps its token-defined size."
+    ],
+    "imports": [
+      "Switch"
+    ]
+  },
+  {
+    "slug": "code-snippet",
+    "name": "CodeSnippet",
+    "group": "content",
+    "description": "Selectable, wrapping code with an optional host-owned action.",
+    "code": "<CodeSnippet code=\"git status --short\" />",
+    "notes": [
+      "CodeSnippet escapes code content and uses the semantic system monospace font stack.",
+      "The host implements copy behavior, failure handling and feedback. No clipboard or network API runs inside the component."
+    ],
+    "imports": [
+      "CodeSnippet"
+    ]
+  },
+  {
+    "slug": "icon-slot",
+    "name": "IconSlot",
+    "group": "content",
+    "description": "Consistent geometry for a host-supplied SVG icon.",
+    "code": "<IconSlot size=\"md\"><ArrowRight /></IconSlot>",
+    "notes": [
+      "No glyph pack ships in the React package. Keep the license of the host's icon artwork.",
+      "Without label the slot is decorative. With label it exposes role=\"img\" and an accessible name.",
+      "Use an SVG rather than a text character. Avoid inline SVG sizing styles that override the slot."
+    ],
+    "imports": [
+      "IconSlot",
+      "ArrowRight"
+    ]
+  },
+  {
+    "slug": "scroll-area",
+    "name": "ScrollArea",
+    "group": "layout",
+    "description": "Native scrolling with inset overlay scrollbars that preserve content width.",
+    "code": "<ScrollArea aria-label=\"Recent activity\" style={{ maxHeight: \"12rem\" }}>\n  <Stack gap=\"4\">\n    <Text>Project created.</Text>\n    <Text>Workspace updated.</Text>\n  </Stack>\n</ScrollArea>",
+    "imports": [
+      "ScrollArea",
+      "Stack",
+      "Text"
+    ],
+    "notes": [
+      "Scrollbars overlay the viewport with an inset; they do not reserve a content gutter. Give the viewport an explicit height or maxHeight to produce vertical overflow.",
+      "The forwarded ref, className, style and native div props belong to the scrollable viewport. Supply a visible context or accessible label for keyboard users.",
+      "Wheel, touch and keyboard scrolling remain native. Default contentInset=\"scrollbar\" keeps text and full-width rows clear of rails with inner padding, without shrinking the viewport. Explicit none allows edge-to-edge content when the host already provides safe padding. Rails automatically avoid rounded clipping corners.",
+      "Forced colors restores native scrollbars as an accessibility fallback. Verify horizontal and RTL content, resizing and zoom in the host composition."
+    ]
+  },
+  {
+    "slug": "label",
+    "name": "Label",
+    "group": "forms",
+    "description": "A native label that connects a visible name to a control.",
+    "code": "<Stack gap=\"2\">\n  <Label htmlFor=\"project-label\">Project name</Label>\n  <Input id=\"project-label\" defaultValue=\"My project\" />\n</Stack>",
+    "imports": [
+      "Label",
+      "Stack",
+      "Input"
+    ],
+    "notes": [
+      "htmlFor connects the label to a matching control ID; implicit nested controls also retain native behavior.",
+      "required adds a decorative marker only. Set required on the actual control as well. Field already composes Label."
+    ]
+  },
+  {
+    "slug": "fieldset",
+    "name": "Fieldset",
+    "group": "forms",
+    "description": "A native group with a legend, shared descriptions and disabled form behavior.",
+    "code": "<Fieldset legend=\"Notifications\" hint=\"Choose the updates you want.\">\n  <Checkbox label=\"Product updates\" name=\"updates\" defaultChecked />\n  <Checkbox label=\"Release notes\" name=\"releases\" />\n</Fieldset>",
+    "imports": [
+      "Fieldset",
+      "Checkbox"
+    ],
+    "notes": [
+      "Uses a real fieldset and legend, with a ref to HTMLFieldSetElement. Disabled descendants retain native form semantics.",
+      "The browser exempts controls in the first legend from inherited disabling. Avoid interactive legend contents unless this is intentional.",
+      "hint, message, error and external aria-describedby IDs are merged without duplicates. Error takes precedence over an advisory status.",
+      "Group status describes the group; it does not mark every child invalid, manage selected values or implement a RadioGroup/CheckboxGroup."
+    ]
+  },
+  {
+    "name": "RadioGroup",
+    "slug": "radio-group",
+    "group": "forms",
+    "description": "A named single-choice group with native radio keyboard and form behavior.",
+    "code": "<RadioGroup name=\"visibility\" legend=\"Visibility\" options={[{ value: \"private\", label: \"Private\" }, { value: \"team\", label: \"Team\" }]} defaultValue=\"private\" />",
+    "imports": [
+      "RadioGroup"
+    ],
+    "notes": [
+      "Composes Fieldset and existing native choice controls. The ref targets HTMLFieldSetElement; options need unique values and visible labels.",
+      "value/onValueChange is controlled; defaultValue initializes an uncontrolled group. Native form reset restores uncontrolled defaults without firing onValueChange; controlled values remain owned by the host.",
+      "name belongs to the inputs. The form prop associates every input with an external form. Disabled options and groups follow native submission rules.",
+      "RadioGroup supports native required. CheckboxGroup returns repeated name/value entries; validate minimum/maximum selections in the host and explain errors through status/message."
+    ]
+  },
+  {
+    "name": "CheckboxGroup",
+    "slug": "checkbox-group",
+    "group": "forms",
+    "description": "A named multiple-choice group with a shared array value and native form behavior.",
+    "code": "<CheckboxGroup name=\"notifications\" legend=\"Notifications\" options={[{ value: \"updates\", label: \"Product updates\" }, { value: \"releases\", label: \"Release notes\" }]} defaultValue={[\"updates\"]} />",
+    "imports": [
+      "CheckboxGroup"
+    ],
+    "notes": [
+      "Composes Fieldset and existing native choice controls. The ref targets HTMLFieldSetElement; options need unique values and visible labels.",
+      "value/onValueChange is controlled; defaultValue initializes an uncontrolled group. Native form reset restores uncontrolled defaults without firing onValueChange; controlled values remain owned by the host.",
+      "name belongs to the inputs. The form prop associates every input with an external form. Disabled options and groups follow native submission rules.",
+      "CheckboxGroup has no required/min/max shortcut: a required checkbox means that specific checkbox. Validate the selected array in the host and use group status/message."
+    ]
+  },
+  {
+    "slug": "button-group",
+    "name": "ButtonGroup",
+    "group": "actions",
+    "description": "Connected actions with shared edges and ordinary keyboard focus.",
+    "code": "<ButtonGroup label=\"Editing actions\">\n  <Button variant=\"subtle\">Undo</Button>\n  <Button variant=\"subtle\">Redo</Button>\n</ButtonGroup>",
+    "imports": [
+      "ButtonGroup",
+      "Button"
+    ],
+    "notes": [
+      "Use direct Button/IconButton children with compatible sizes. The group owns connected radii and single separators; actions keep their props and handlers.",
+      "label names the group. Tab follows normal button order; this is not a toolbar, menu or selection group.",
+      "Horizontal is default; vertical stacks actions. Content can wrap within a button. Conditional/hidden actions preserve the visible end corners. No clipping masks focus."
+    ]
+  },
+  {
+    "slug": "input-group",
+    "name": "InputGroup",
+    "group": "forms",
+    "description": "One native text input with logical start/end content inside a shared perimeter.",
+    "code": "<Field label=\"Website\">\n  {control => <InputGroup {...control} start=\"https://\" placeholder=\"example.com\" />}\n</Field>",
+    "imports": [
+      "InputGroup",
+      "Field"
+    ],
+    "notes": [
+      "Ref, id, name, value, events and ARIA attributes target the real input. className/style customize the outer layout wrapper.",
+      "start/end are logical content slots. Adornments do not become the submitted value or an accessible label; use Field or Label and explain prefixes when needed.",
+      "The input has one shared field perimeter and accent focus. Interactive adornments keep their own focus indication and accessible names.",
+      "disabled/readOnly affect the input; host-owned addon actions need their own disabled policy. Use compatible action sizes. Text-like input types are supported; Textarea/Select are separate constructs."
+    ]
+  },
+  {
+    "slug": "toggle",
+    "name": "Toggle",
+    "group": "actions",
+    "description": "A native button with a persistent pressed state.",
+    "code": "<Toggle defaultPressed>Bold</Toggle>",
+    "notes": [
+      "Keep the accessible name stable; Enter/Space toggle pressed. Supports controlled pressed/onPressedChange or defaultPressed."
+    ],
+    "imports": [
+      "Toggle"
+    ]
+  },
+  {
+    "slug": "toggle-group",
+    "name": "ToggleGroup",
+    "group": "actions",
+    "description": "Optional single or multiple selections exposed as pressed buttons.",
+    "code": "<ToggleGroup label=\"Text formatting\" defaultValue={[\"bold\"]} options={[{value: \"bold\", label: \"Bold\"}, {value: \"italic\", label: \"Italic\"}]} />",
+    "notes": [
+      "Tab reaches each enabled action. Arrows/Home/End move focus without selecting. Single selection can be cleared.",
+      "Use RadioGroup for form choices and tabs for switching panels. ToggleGroup does not submit form values."
+    ],
+    "imports": [
+      "ToggleGroup"
+    ]
+  },
+  {
+    "slug": "segmented-control",
+    "name": "SegmentedControl",
+    "group": "forms",
+    "description": "A compact single-value choice with native radio semantics and a shared inset surface.",
+    "code": "<SegmentedControl label=\"Time range\" name=\"period\" defaultValue=\"day\" options={[{value: \"day\", label: \"Day\"}, {value: \"week\", label: \"Week\"}, {value: \"month\", label: \"Month\"}]} />",
+    "notes": [
+      "Uses original RadioGroup behavior and native inputs.",
+      "Arrow keys move focus and select; Home/End select endpoints, skipping disabled segments. Selecting the current value does not clear it.",
+      "Native name/form/required, reset and controlled values are preserved. Use actual tabs for tab panels, ToggleGroup for optional pressed actions."
+    ],
+    "imports": [
+      "SegmentedControl"
+    ]
+  },
+  {
+    "slug": "collapsible",
+    "name": "Collapsible",
+    "group": "content",
+    "description": "A named disclosure button and retained show/hide panel.",
+    "code": "<Collapsible title=\"Advanced settings\">Additional project settings.</Collapsible>",
+    "notes": [
+      "Use open/onOpenChange or defaultOpen. The panel stays mounted and hidden when closed; hidden form controls keep native form semantics.",
+      "Title is plain text for a stable button name. Content may be interactive. Disabled prevents trigger activation, not interaction inside an open panel."
+    ],
+    "imports": [
+      "Collapsible"
+    ]
+  },
+  {
+    "slug": "accordion",
+    "name": "Accordion",
+    "group": "content",
+    "description": "Related disclosure sections with optional single or multiple expansion.",
+    "code": "<Accordion label=\"Questions\" items={[{value:\"install\",title:\"How do I install Flood?\",content:\"Install the packages and import the stylesheet.\"}]} />",
+    "notes": [
+      "Headings contain native disclosure buttons. Set headingLevel for the surrounding document.",
+      "Enter/Space toggle. Tab visits available triggers and open panel contents. ArrowUp/Down and Home/End move among enabled top-level triggers without opening panels."
+    ],
+    "imports": [
+      "Accordion"
+    ]
+  },
+  {
+    "slug": "tooltip",
+    "name": "Tooltip",
+    "group": "overlays",
+    "description": "Brief text help on hover or focus, with collision-aware placement.",
+    "code": "<Tooltip content=\"Additional context\" trigger={trigger => <Button {...trigger}>Hover or focus</Button>} />",
+    "notes": [
+      "Requires native Popover API.",
+      "Forward trigger props and ref to one actual button. Tooltip is text-only; interactive content belongs in Popover.",
+      "Escape dismisses. Hover can move onto the tooltip; focus stays on the trigger. Do not use it as the only accessible name or essential instruction."
+    ],
+    "imports": [
+      "Tooltip",
+      "Button"
+    ]
+  },
+  {
+    "slug": "popover",
+    "name": "Popover",
+    "group": "overlays",
+    "description": "A nonmodal contextual dialog in the native top layer.",
+    "code": "<Popover title=\"Project settings\" trigger={trigger => <Button {...trigger}>Settings</Button>}>Project details.</Popover>",
+    "notes": [
+      "Forward all trigger props and ref.",
+      "Escape, outside pointer and focus leaving dismiss. Focus enters content and returns when appropriate; Tab is not trapped.",
+      "Closed content unmounts; keep persistent data in the host. Uses native Popover API within the existing DOM/theme scope."
+    ],
+    "imports": [
+      "Popover",
+      "Button"
+    ]
+  },
+  {
+    "slug": "dialog",
+    "name": "Dialog",
+    "group": "overlays",
+    "description": "A named native modal dialog with inert background and managed focus.",
+    "code": "<Dialog title=\"Create a project\" trigger={trigger => <Button {...trigger}>Open dialog</Button>}>Project details.</Dialog>",
+    "notes": [
+      "Uses native showModal, not a simulated modal div.",
+      "Escape closes the top layer; outside closing can be disabled independently. Tab remains inside the dialog.",
+      "Closed content unmounts. Forward trigger props/ref; initialFocusRef can select a safe initial control. Modern native dialog support is required."
+    ],
+    "imports": [
+      "Dialog",
+      "Button"
+    ]
+  },
+  {
+    "slug": "tabs",
+    "name": "Tabs",
+    "group": "navigation",
+    "description": "Connected tab buttons and retained content panels with roving keyboard focus.",
+    "code": "<Tabs label=\"Project sections\" items={[{value:\"overview\",label:\"Overview\",content:\"Project context.\"},{value:\"activity\",label:\"Activity\",content:\"Recent updates.\"}]} />",
+    "notes": [
+      "Arrow keys navigate enabled tabs; automatic activation is default, manual needs Enter/Space. Tab leaves the tablist. Horizontal direction follows RTL.",
+      "Inactive panels remain mounted but hidden. Keep form validation and persistent selection under host control. Invalid, missing or disabled selected values fall back to the first available item."
+    ],
+    "imports": [
+      "Tabs"
+    ]
+  },
+  {
+    "slug": "breadcrumb",
+    "name": "Breadcrumb",
+    "group": "navigation",
+    "description": "A wrapping hierarchy of native links with an explicit current page.",
+    "code": "<Breadcrumb items={[{label:\"Workspace\",href:\"/\"},{label:\"Projects\",href:\"/projects\"},{label:\"Flood\"}]} />",
+    "notes": [
+      "The last item is current, with or without an href. Separators are decorative and not focusable.",
+      "Links keep browser navigation semantics. The host owns actual routes and client routing."
+    ],
+    "imports": [
+      "Breadcrumb"
+    ]
+  },
+  {
+    "slug": "pagination",
+    "name": "Pagination",
+    "group": "navigation",
+    "description": "Controlled page navigation with bounded page windows, buttons or native links.",
+    "code": "<Pagination page={1} pageCount={20} getHref={page => `?page=${page}`} />",
+    "notes": [
+      "Use getHref for native route links, onPageChange for local controlled data, or both for a navigation notification. Modifier clicks retain browser behavior.",
+      "Page and pageCount must be positive safe integers within range. Empty datasets can omit Pagination. siblingCount 0/1/2 controls compactness; endpoints are noninteractive when unavailable."
+    ],
+    "imports": [
+      "Pagination"
+    ]
+  }
+]

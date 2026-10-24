@@ -4,14 +4,27 @@ import {
   forwardRef,
   createElement,
   useId,
+  useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type TextareaHTMLAttributes,
+  type SelectHTMLAttributes,
   type AnchorHTMLAttributes,
   type ReactNode,
   type HTMLAttributes,
   type CSSProperties,
+  type LabelHTMLAttributes,
+  type FieldsetHTMLAttributes,
+  type RefCallback,
+  type RefObject,
 } from "react";
+import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-state.js";
+import { SingleSelect } from "./select.js";
+import { OverlayScrollArea } from "./scroll-area.js";
+import { ChoiceGroup } from "./choice-group.js";
+import { Disclosure } from "./disclosure.js";
+import { AnchoredOverlay, ModalOverlay } from "./overlays.js";
+import { TabNavigation, BreadcrumbNavigation, PageNavigation } from "./navigation.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -57,39 +70,324 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   },
 );
 
+export type FieldStatus = "error" | "warning" | "success" | "info";
+
+export interface TabItem {
+  value: string;
+  label: string;
+  content: ReactNode;
+  icon?: ReactNode;
+  disabled?: boolean;
+}
+export interface TabsProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "defaultValue" | "onChange"> {
+  label: string;
+  items: readonly TabItem[];
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  activationMode?: "automatic" | "manual";
+  orientation?: "horizontal" | "vertical";
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  disabled?: boolean;
+  iconOnly?: boolean;
+}
+export const Tabs = forwardRef<HTMLDivElement, TabsProps>(function Tabs(
+  {activationMode="automatic",orientation="horizontal",controlSize="md",disabled=false,iconOnly=false,...props},ref,
+){return <TabNavigation {...props} ref={ref} activationMode={activationMode} orientation={orientation} controlSize={controlSize} disabled={disabled} iconOnly={iconOnly} />;});
+export interface BreadcrumbItem {label:string;href?:string;}
+export interface BreadcrumbProps extends Omit<HTMLAttributes<HTMLElement>, "children"> {
+  items: readonly BreadcrumbItem[];
+  label?: string;
+  separator?: string;
+}
+export const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
+  {label="Breadcrumb",separator="/",...props},ref,
+){return <BreadcrumbNavigation {...props} ref={ref} label={label} separator={separator} />;});
+export interface PaginationProps extends Omit<HTMLAttributes<HTMLElement>, "children" | "onChange"> {
+  page: number;
+  pageCount: number;
+  onPageChange?: (page: number) => void;
+  getHref?: (page: number) => string;
+  siblingCount?: 0 | 1 | 2;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  disabled?: boolean;
+  label?: string;
+  previousLabel?: string;
+  nextLabel?: string;
+  pageLabel?: (page: number) => string;
+}
+export const Pagination = forwardRef<HTMLElement, PaginationProps>(function Pagination(
+  {siblingCount=1,controlSize="sm",disabled=false,label="Pagination",previousLabel="Previous page",nextLabel="Next page",...props},ref,
+){return <PageNavigation {...props} ref={ref} siblingCount={siblingCount} controlSize={controlSize} disabled={disabled} label={label} previousLabel={previousLabel} nextLabel={nextLabel} />;});
+
+export interface OverlayTriggerProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  ref: RefCallback<HTMLButtonElement>;
+}
+export interface TooltipProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "content" | "title" | "role"> {
+  content: string;
+  trigger: (props: OverlayTriggerProps) => ReactNode;
+  side?: "top" | "bottom" | "left" | "right";
+  align?: "start" | "center" | "end";
+  delay?: number;
+  disabled?: boolean;
+}
+export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>(function Tooltip(
+  {side = "top", align = "center", delay = 300, disabled = false, ...props}, ref,
+) { return <AnchoredOverlay {...props} ref={ref} kind="tooltip" side={side} align={align} delay={delay} disabled={disabled} />; });
+export interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title" | "role"> {
+  title: string;
+  trigger: (props: OverlayTriggerProps) => ReactNode;
+  children?: ReactNode;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  side?: "top" | "bottom" | "left" | "right";
+  align?: "start" | "center" | "end";
+  closeLabel?: string;
+  initialFocusRef?: RefObject<HTMLElement | null>;
+}
+export const Popover = forwardRef<HTMLDivElement, PopoverProps>(function Popover(
+  {side = "bottom", align = "start", defaultOpen = false, disabled = false, closeLabel = "Close", ...props}, ref,
+) { return <AnchoredOverlay {...props} ref={ref} kind="popover" side={side} align={align} defaultOpen={defaultOpen} disabled={disabled} closeLabel={closeLabel} />; });
+export interface DialogProps extends Omit<HTMLAttributes<HTMLDialogElement>, "children" | "title" | "role"> {
+  title: string;
+  description?: string;
+  trigger: (props: OverlayTriggerProps) => ReactNode;
+  children?: ReactNode;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  closeLabel?: string;
+  closeOnOutsideClick?: boolean;
+  initialFocusRef?: RefObject<HTMLElement | null>;
+}
+export const Dialog = forwardRef<HTMLDialogElement, DialogProps>(function Dialog(
+  {defaultOpen = false, disabled = false, closeLabel = "Close", closeOnOutsideClick = true, ...props}, ref,
+) { return <ModalOverlay {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} closeLabel={closeLabel} closeOnOutsideClick={closeOnOutsideClick} />; });
+
+export interface CollapsibleProps extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "onChange"> {
+  title: string;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+}
+export const Collapsible = forwardRef<HTMLDivElement, CollapsibleProps>(function Collapsible(
+  {open, defaultOpen = false, onOpenChange, disabled = false, controlSize = "md", ...props}, ref,
+) {
+  const [local, setLocal] = useState(defaultOpen);
+  return <Disclosure {...props} ref={ref} expanded={open ?? local} disabled={disabled} controlSize={controlSize} onExpandedChange={next => {
+    if (open === undefined) setLocal(next);
+    onOpenChange?.(next);
+  }} />;
+});
+export interface AccordionItem {
+  value: string;
+  title: string;
+  content: ReactNode;
+  disabled?: boolean;
+}
+export interface AccordionProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "defaultValue" | "onChange"> {
+  label: string;
+  items: readonly AccordionItem[];
+  expansionMode?: "single" | "multiple";
+  value?: readonly string[];
+  defaultValue?: readonly string[];
+  onValueChange?: (value: string[]) => void;
+  disabled?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+}
+export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(function Accordion(
+  {label, items, expansionMode = "single", value, defaultValue = [], onValueChange, disabled = false, controlSize = "md", headingLevel = 3, className, onKeyDown, ...props}, ref,
+) {
+  const [local, setLocal] = useState(() => [...new Set(defaultValue)]);
+  const expanded = value ?? local;
+  if (new Set(items.map(item => item.value)).size !== items.length) throw new Error("Flood accordion item values must be unique");
+  if (expansionMode === "single" && new Set(expanded).size > 1) throw new Error("Flood single Accordion accepts at most one value");
+  return <div {...props} ref={ref} role="group" aria-label={label} className={classes("flood-accordion", className)} onKeyDown={event => {
+    onKeyDown?.(event);
+    if (event.defaultPrevented) return;
+    const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(":scope > .flood-disclosure > .flood-disclosure__heading > .flood-disclosure__trigger:not(:disabled)"));
+    const index = buttons.indexOf(event.target as HTMLButtonElement);
+    if (index < 0) return;
+    const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : event.key === "ArrowDown" ? (index + 1) % buttons.length : event.key === "ArrowUp" ? (index - 1 + buttons.length) % buttons.length : -1;
+    if (next >= 0) {event.preventDefault(); buttons[next].focus();}
+  }}>
+    {items.map(item => <Collapsible key={item.value} title={item.title} open={expanded.includes(item.value)} disabled={disabled || item.disabled} controlSize={controlSize} headingLevel={headingLevel} onOpenChange={active => {
+      const next = active ? expansionMode === "single" ? [item.value] : [...new Set([...expanded, item.value])] : expanded.filter(value => value !== item.value);
+      if (value === undefined) setLocal(next);
+      onValueChange?.([...next]);
+    }}>{item.content}</Collapsible>)}
+  </div>;
+});
+
+export interface ToggleProps extends Omit<ButtonProps, "aria-pressed" | "type" | "role" | "defaultValue"> {
+  pressed?: boolean;
+  defaultPressed?: boolean;
+  onPressedChange?: (pressed: boolean) => void;
+  iconOnly?: boolean;
+}
+/** A native toggle button; its accessible name stays stable when pressed. */
+export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(function Toggle(
+  { pressed, defaultPressed = false, onPressedChange, iconOnly = false, size = "md", variant = "subtle", onClick, className, children, disabled, loading, ...props }, ref,
+) {
+  const [local, setLocal] = useState(defaultPressed);
+  const selected = pressed ?? local;
+  return <Button {...props} ref={ref} type="button" aria-pressed={selected} size={size} variant={variant} disabled={disabled} loading={loading}
+    className={classes("flood-toggle", iconOnly && "flood-icon-button", className)} onClick={event => {
+      onClick?.(event);
+      if (event.defaultPrevented || disabled || loading) return;
+      if (pressed === undefined) setLocal(!selected);
+      onPressedChange?.(!selected);
+    }}>{iconOnly ? <IconSlot size={size}>{children}</IconSlot> : children}</Button>;
+});
+
+export interface ToggleOption {
+  value: string;
+  label: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+}
+export interface ToggleGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "role" | "children" | "defaultValue" | "onChange"> {
+  label: string;
+  options: readonly ToggleOption[];
+  selectionMode?: "single" | "multiple";
+  value?: readonly string[];
+  defaultValue?: readonly string[];
+  onValueChange?: (value: string[]) => void;
+  orientation?: "horizontal" | "vertical";
+  size?: ControlSize;
+  variant?: "solid" | "subtle" | "outline" | "ghost";
+  disabled?: boolean;
+  iconOnly?: boolean;
+}
+/** Optional selections exposed as pressed buttons, not radios, tabs or a toolbar. */
+export const ToggleGroup = forwardRef<HTMLDivElement, ToggleGroupProps>(function ToggleGroup(
+  { label, options, selectionMode = "multiple", value, defaultValue = [], onValueChange, orientation = "horizontal", size = "md", variant = "subtle", disabled = false, iconOnly = false, className, onKeyDown, ...props }, ref,
+) {
+  const [local, setLocal] = useState(() => [...new Set(defaultValue)]);
+  const selected = value ?? local;
+  if (new Set(options.map(option => option.value)).size !== options.length) throw new Error("Flood toggle option values must be unique");
+  if (selectionMode === "single" && new Set(selected).size > 1) throw new Error("Flood single ToggleGroup accepts at most one value");
+  if (iconOnly && options.some(option => !option.icon)) throw new Error("Flood icon-only toggle options require icons");
+  return <div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} data-selection-mode={selectionMode}
+    className={classes("flood-button-group", "flood-toggle-group", className)} onKeyDown={event => {
+      onKeyDown?.(event);
+      if (event.defaultPrevented) return;
+      const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(":scope > .flood-toggle:not(:disabled)"));
+      const index = buttons.indexOf(event.target as HTMLButtonElement);
+      if (index < 0) return;
+      const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+      const nextKey = orientation === "vertical" ? "ArrowDown" : rtl ? "ArrowLeft" : "ArrowRight";
+      const previousKey = orientation === "vertical" ? "ArrowUp" : rtl ? "ArrowRight" : "ArrowLeft";
+      const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : event.key === nextKey ? (index + 1) % buttons.length : event.key === previousKey ? (index - 1 + buttons.length) % buttons.length : -1;
+      if (next >= 0) { event.preventDefault(); buttons[next].focus(); }
+    }}>
+    {options.map(option => <Toggle key={option.value} size={size} variant={variant} disabled={disabled || option.disabled} pressed={selected.includes(option.value)} iconOnly={iconOnly}
+      aria-label={iconOnly ? option.label : undefined} onPressedChange={active => {
+        const next = active ? selectionMode === "single" ? [option.value] : [...new Set([...selected, option.value])] : selected.filter(item => item !== option.value);
+        if (value === undefined) setLocal(next);
+        onValueChange?.([...next]);
+      }}>{iconOnly ? option.icon : <>{option.icon && <IconSlot size={size}>{option.icon}</IconSlot>}{option.label}</>}</Toggle>)}
+  </div>;
+});
+
+export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "role"> {
+  label: string;
+  orientation?: "horizontal" | "vertical";
+}
+/** Connected actions keep their ordinary Tab order; this is not a toolbar. */
+export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(function ButtonGroup(
+  { label, orientation = "horizontal", className, ...props }, ref,
+) {
+  return <div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} className={classes("flood-button-group", className)} />;
+});
+
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  status?: FieldStatus;
   invalid?: boolean;
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { invalid, controlSize = "md", className, ...props },
+  { invalid, status, controlSize = "md", className, ...props },
   ref,
 ) {
   return (
     <input
       {...props}
       ref={ref}
-      aria-invalid={invalid || props["aria-invalid"]}
+      data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])}
+      aria-invalid={invalid || status === "error" || props["aria-invalid"]}
       className={classes("flood-input", `flood-control--${controlSize}`, className)}
     />
   );
 });
+export interface InputGroupProps extends Omit<InputProps, "children" | "type"> {
+  type?: "text" | "email" | "password" | "search" | "tel" | "url" | "number";
+  start?: ReactNode;
+  end?: ReactNode;
+}
+/** One real Input with host-owned logical start/end adornments. Ref and native attributes target the input. */
+export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function InputGroup(
+  { start, end, controlSize = "md", className, style, invalid, status, disabled, readOnly, ...props }, ref,
+) {
+  return <div hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-input-group", `flood-control--${controlSize}`, className)} style={style}
+    data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])} data-disabled={disabled || undefined} data-readonly={readOnly || undefined}>
+    {hasFieldContent(start) && <div className="flood-input-group__addon flood-input-group__addon--start">{start}</div>}
+    <Input {...props} ref={ref} controlSize={controlSize} invalid={invalid} status={status} disabled={disabled} readOnly={readOnly} />
+    {hasFieldContent(end) && <div className="flood-input-group__addon flood-input-group__addon--end">{end}</div>}
+  </div>;
+});
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  status?: FieldStatus;
   invalid?: boolean;
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  function Textarea({ invalid, controlSize = "md", className, ...props }, ref) {
+  function Textarea({ invalid, status, controlSize = "md", className, ...props }, ref) {
     return (
       <textarea
         {...props}
         ref={ref}
-        aria-invalid={invalid || props["aria-invalid"]}
+        data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])}
+        aria-invalid={invalid || status === "error" || props["aria-invalid"]}
         className={classes("flood-input", "flood-textarea", `flood-control--${controlSize}`, className)}
       />
     );
   },
 );
+
+export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  status?: FieldStatus;
+  invalid?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+}
+/** Native select and option semantics with an independent visual control size. */
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
+  { invalid, status, controlSize = "md", className, multiple, size, ...props },
+  ref,
+) {
+  const listbox = multiple || (size !== undefined && size > 1);
+  if (!listbox) return <SingleSelect {...props} status={status} invalid={invalid} controlSize={controlSize} className={className} size={size} ref={ref} />;
+  return (
+    <span className={classes("flood-select", `flood-control--${controlSize}`, listbox && "flood-select--listbox")}>
+      <select
+        {...props}
+        ref={ref}
+        multiple={multiple}
+        size={size}
+        data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])}
+        aria-invalid={invalid || status === "error" || props["aria-invalid"]}
+        className={classes("flood-input", "flood-select__control", `flood-control--${controlSize}`, className)}
+      />
+    </span>
+  );
+});
 
 export interface ChoiceProps extends Omit<
   InputHTMLAttributes<HTMLInputElement>,
@@ -136,15 +434,127 @@ export const Switch = forwardRef<HTMLInputElement, ChoiceProps>(function Switch(
   );
 });
 
+export interface LabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
+  required?: boolean;
+}
+/** A native label; the required marker never substitutes for the control's required prop. */
+export const Label = forwardRef<HTMLLabelElement, LabelProps>(function Label(
+  { required, children, className, ...props }, ref,
+) {
+  return <label {...props} ref={ref} className={classes("flood-label", className)}>{children}{required && <span aria-hidden="true"> *</span>}</label>;
+});
+
+export interface FieldsetProps extends FieldsetHTMLAttributes<HTMLFieldSetElement> {
+  legend: ReactNode;
+  /** @since 0.2.3 */
+  hideLabel?: boolean;
+  hint?: ReactNode;
+  error?: ReactNode;
+  message?: ReactNode;
+  status?: FieldStatus;
+}
+/** A native group: disabled, form ownership and nested fieldsets retain browser behavior. */
+export const Fieldset = forwardRef<HTMLFieldSetElement, FieldsetProps>(function Fieldset(
+  { legend, hideLabel = false, hint, error, message, status, children, className, id: explicitId, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props }, ref,
+) {
+  const generatedId = useId();
+  const id = explicitId ?? `flood-${generatedId}`;
+  const hasHint = hasFieldContent(hint), hasError = hasFieldContent(error), hasMessage = hasFieldContent(message) && !hasError;
+  const resolvedStatus = resolveFieldStatus(status, hasError, ariaInvalid);
+  const description = mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && `${id}-message`);
+  return <fieldset {...props} ref={ref} id={id} className={classes("flood-fieldset", className)} data-hide-label={hideLabel || undefined} data-status={resolvedStatus}
+    aria-describedby={description} aria-invalid={resolvedStatus === "error" || ariaInvalid || undefined}>
+    <legend className={classes("flood-legend", hideLabel && "flood-visually-hidden")}>{legend}</legend>
+    <div className="flood-fieldset__body">
+      {hasHint && <div id={`${id}-hint`} className="flood-hint">{hint}</div>}
+      {children}
+      {hasMessage && <div id={`${id}-message`} className="flood-message" role={resolvedStatus === "error" ? "alert" : undefined}>{message}</div>}
+      {hasError && <div id={`${id}-error`} className="flood-error" role="alert">{error}</div>}
+    </div>
+  </fieldset>;
+});
+
+export interface ChoiceOption {
+  value: string;
+  label: ReactNode;
+  disabled?: boolean;
+}
+export interface RadioGroupProps extends Omit<FieldsetProps, "children" | "defaultValue" | "role"> {
+  name: string;
+  options: readonly ChoiceOption[];
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  orientation?: "vertical" | "horizontal";
+  required?: boolean;
+}
+export const RadioGroup = forwardRef<HTMLFieldSetElement, RadioGroupProps>(function RadioGroup(
+  { value, defaultValue, onValueChange, orientation = "vertical", ...props }, ref,
+) {
+  return <ChoiceGroup {...props} ref={ref} kind="radio" orientation={orientation}
+    selected={value === undefined ? undefined : [value]} initial={defaultValue === undefined ? [] : [defaultValue]}
+    onSelectionChange={next => onValueChange?.(next[0] ?? "")} fieldsetComponent={Fieldset} choiceComponent={Radio} />;
+});
+
+export interface SegmentedControlProps extends Omit<RadioGroupProps, "legend" | "options"> {
+  label: string;
+  options: readonly ToggleOption[];
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  iconOnly?: boolean;
+  fullWidth?: boolean;
+}
+/** A segmented presentation of native single-choice inputs, retaining forms and reset. */
+export const SegmentedControl = forwardRef<HTMLFieldSetElement, SegmentedControlProps>(function SegmentedControl(
+  { label, options, controlSize = "md", iconOnly = false, fullWidth = false, orientation = "horizontal", className, onKeyDown, ...props }, ref,
+) {
+  if (iconOnly && options.some(option => !option.icon)) throw new Error("Flood icon-only segments require icons");
+  return <RadioGroup {...props} ref={ref} legend={label} orientation={orientation}
+    className={classes("flood-segmented", `flood-control--${controlSize}`, iconOnly && "flood-segmented--icons", fullWidth && "flood-segmented--full", className)}
+    options={options.map(option => ({ ...option, label: <>
+      {option.icon && <IconSlot size={controlSize}>{option.icon}</IconSlot>}
+      {iconOnly ? <span className="flood-segmented__name">{option.label}</span> : option.label}
+    </> }))} onKeyDown={event => {
+      onKeyDown?.(event);
+      if (event.defaultPrevented) return;
+      const inputs = Array.from(event.currentTarget.querySelectorAll<HTMLInputElement>(":scope > .flood-fieldset__body > .flood-choice-group > .flood-choice > input[type=radio]:not(:disabled)"));
+      const index = inputs.indexOf(event.target as HTMLInputElement);
+      if (index < 0) return;
+      const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+      const next = event.key === "Home" ? 0 : event.key === "End" ? inputs.length - 1
+        : event.key === "ArrowDown" || event.key === (rtl ? "ArrowLeft" : "ArrowRight") ? (index + 1) % inputs.length
+        : event.key === "ArrowUp" || event.key === (rtl ? "ArrowRight" : "ArrowLeft") ? (index - 1 + inputs.length) % inputs.length : -1;
+      if (next >= 0) { event.preventDefault(); inputs[next].focus(); inputs[next].click(); }
+    }} />;
+});
+export interface CheckboxGroupProps extends Omit<FieldsetProps, "children" | "defaultValue" | "role"> {
+  name: string;
+  options: readonly ChoiceOption[];
+  value?: readonly string[];
+  defaultValue?: readonly string[];
+  onValueChange?: (value: string[]) => void;
+  orientation?: "vertical" | "horizontal";
+}
+export const CheckboxGroup = forwardRef<HTMLFieldSetElement, CheckboxGroupProps>(function CheckboxGroup(
+  { value, defaultValue = [], onValueChange, orientation = "vertical", ...props }, ref,
+) {
+  return <ChoiceGroup {...props} ref={ref} kind="checkbox" orientation={orientation}
+    selected={value} initial={defaultValue} onSelectionChange={onValueChange} fieldsetComponent={Fieldset} choiceComponent={Checkbox} />;
+});
+
 export interface FieldControlProps {
   id: string;
   "aria-describedby"?: string;
   "aria-invalid"?: true;
+  status?: FieldStatus;
   required?: boolean;
 }
 export interface FieldProps {
+  status?: FieldStatus;
+  message?: ReactNode;
   id?: string;
   label: ReactNode;
+  /** @since 0.2.3 */
+  hideLabel?: boolean;
   hint?: ReactNode;
   error?: ReactNode;
   required?: boolean;
@@ -152,8 +562,11 @@ export interface FieldProps {
   children: (props: FieldControlProps) => ReactNode;
 }
 export function Field({
+  status,
+  message,
   id: explicitId,
   label,
+  hideLabel = false,
   hint,
   error,
   required,
@@ -162,27 +575,29 @@ export function Field({
 }: FieldProps) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
+  const hasMessage = hasFieldContent(message);
+  const hasHint = hasFieldContent(hint);
+  const hasError = hasFieldContent(error);
+  const resolvedStatus = hasError ? "error" : status;
   const description =
-    [describedBy, hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") ||
-    undefined;
+    mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && !hasError && `${id}-message`);
   return (
-    <div className="flood-field">
-      <label className="flood-label" htmlFor={id}>
-        {label}
-        {required && <span aria-hidden="true"> *</span>}
-      </label>
+    <div className="flood-field" data-hide-label={hideLabel || undefined} data-status={resolvedStatus}>
+      <Label htmlFor={id} required={required} className={hideLabel ? "flood-visually-hidden" : undefined}>{label}</Label>
       {children({
         id,
         "aria-describedby": description,
-        "aria-invalid": error ? true : undefined,
+        "aria-invalid": hasError || resolvedStatus === "error" ? true : undefined,
+        status: resolvedStatus,
         required,
       })}
-      {hint && (
+      {hasHint && (
         <div id={`${id}-hint`} className="flood-hint">
           {hint}
         </div>
       )}
-      {error && (
+      {hasMessage && !hasError && <div id={`${id}-message`} className="flood-message" role={resolvedStatus === "error" ? "alert" : undefined}>{message}</div>}
+      {hasError && (
         <div id={`${id}-error`} className="flood-error" role="alert">
           {error}
         </div>
@@ -191,12 +606,13 @@ export function Field({
   );
 }
 
-export const Link = forwardRef<
-  HTMLAnchorElement,
-  AnchorHTMLAttributes<HTMLAnchorElement>
->(function Link({ className, ...props }, ref) {
+export interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
+  variant?: "text" | "solid" | "subtle" | "outline" | "ghost";
+  size?: ControlSize;
+}
+export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link({ variant = "text", size = "md", className, ...props }, ref) {
   return (
-    <a {...props} ref={ref} className={classes("flood-link", className)} />
+    <a {...props} ref={ref} className={classes("flood-link", variant !== "text" && "flood-link--button", variant !== "text" && "flood-button", variant !== "text" && `flood-button--${variant}`, variant !== "text" && `flood-button--${size}`, className)} />
   );
 });
 
@@ -294,4 +710,15 @@ export const CodeSnippet = forwardRef<HTMLDivElement, CodeSnippetProps>(function
       {action != null && <div className="flood-code-snippet__action">{action}</div>}
     </div>
   );
+});
+
+export interface ScrollAreaProps extends HTMLAttributes<HTMLDivElement> {
+  orientation?: "vertical" | "horizontal" | "both";
+  contentInset?: "none" | "scrollbar";
+}
+/** Native scrolling with inset overlay tracks; the ref targets the scrollable viewport. */
+export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function ScrollArea(
+  { orientation = "vertical", contentInset = "scrollbar", ...props }, ref,
+) {
+  return <OverlayScrollArea {...props} orientation={orientation} contentInset={contentInset} ref={ref} />;
 });

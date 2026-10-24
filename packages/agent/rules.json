@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "scope": "Installed Flood React/Next.js projects",
+  "rules": [
+    {
+      "id": "api.installed",
+      "when": "Importing or changing Flood APIs",
+      "for": [
+        "developer",
+        "agent"
+      ],
+      "requires": [
+        "Host package.json",
+        "flood.json"
+      ],
+      "sourceOfTruth": "Installed @flood-md/react declarations",
+      "guide": "references/routing.md",
+      "verify": [
+        "Host type-check",
+        "Matching CLI doctor for package alignment"
+      ]
+    },
+    {
+      "id": "composition.primitives",
+      "when": "Composing screens or forms",
+      "for": [
+        "designer",
+        "developer",
+        "agent"
+      ],
+      "requires": [
+        "Supported installed exports",
+        "User interaction requirements"
+      ],
+      "sourceOfTruth": "DESIGN.md",
+      "guide": "references/composition.md",
+      "verify": [
+        "Rendered narrow/wide screen",
+        "Intrinsic actions and responsive form parent",
+        "Close choice label and independent group spacing"
+      ]
+    },
+    {
+      "id": "forms.associations",
+      "when": "Changing fields or submission",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Visible labels",
+        "Host validation and submission flow"
+      ],
+      "sourceOfTruth": "Installed Field/control contract",
+      "guide": "references/accessibility.md",
+      "verify": [
+        "Accessible names and descriptions",
+        "Native values, required and reset",
+        "Invalid focus and disabled/loading behavior"
+      ]
+    },
+    {
+      "id": "interaction.keyboard",
+      "when": "Changing interactive controls",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Runnable screen",
+        "Installed control keyboard contract"
+      ],
+      "sourceOfTruth": "Installed component behavior and DESIGN.md",
+      "guide": "references/accessibility.md",
+      "verify": [
+        "Keyboard-only full interaction",
+        "Visible focus in every relevant state",
+        "Select commit/cancel if present"
+      ]
+    },
+    {
+      "id": "theme.semantic",
+      "when": "Customizing visual roles",
+      "for": [
+        "designer",
+        "developer",
+        "agent"
+      ],
+      "requires": [
+        "Installed token manifest",
+        "Actual affected surfaces"
+      ],
+      "sourceOfTruth": "Installed token roles; source tokens.json when developing Flood",
+      "guide": "references/customization.md",
+      "verify": [
+        "Resolved scoped semantic values",
+        "Text and non-text contrast",
+        "No parallel raw palette"
+      ]
+    },
+    {
+      "id": "layout.reflow",
+      "when": "Changing layout or type",
+      "for": [
+        "designer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Actual composed screen"
+      ],
+      "sourceOfTruth": "DESIGN.md and host content requirements",
+      "guide": "references/composition.md",
+      "verify": [
+        "320px width",
+        "Root 24px and increased text spacing",
+        "No glyph shrink or unintended page overflow"
+      ]
+    },
+    {
+      "id": "verification.evidence",
+      "when": "Reporting completion",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Host verification scripts",
+        "Task scope"
+      ],
+      "sourceOfTruth": "Observed command and rendered behavior results",
+      "guide": "references/verification.md",
+      "verify": [
+        "Commands and actual results recorded",
+        "Manual checks distinguished",
+        "Untested behavior stated"
+      ]
+    },
+    {
+      "id": "installation.preserve",
+      "when": "Installing or updating guidance",
+      "for": [
+        "developer",
+        "agent"
+      ],
+      "requires": [
+        "Existing host instructions",
+        "User scope"
+      ],
+      "sourceOfTruth": "Host files and version-matched guide set",
+      "guide": "references/routing.md",
+      "verify": [
+        "Existing files preserved",
+        "No linked destinations followed",
+        "No publication inferred from source version"
+      ]
+    },
+    {
+      "id": "layout.spacing",
+      "when": "Composing or reviewing spacing, density, nested surfaces or moving previews",
+      "for": [
+        "designer",
+        "developer",
+        "agent"
+      ],
+      "requires": [
+        "Installed token manifest",
+        "Rendered host and actual wrapper tree"
+      ],
+      "sourceOfTruth": "Installed component recipe and host layout requirements",
+      "guide": "references/spacing.md",
+      "verify": [
+        "Measure visible gaps and row pitch, including padding and minimum height",
+        "Check wrapping and enlarged text",
+        "Check fine/coarse pointers and nonoverlapping interactive targets",
+        "Preserve keyboard focus and label activation"
+      ]
+    }
+  ],
+  "guideResolution": "Match guide to source in manifest.files; use its target relative to the host project root."
+}

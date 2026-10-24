@@ -46,7 +46,7 @@ no project theme editor, implicit download or remote configuration.
 
 ### Dark foundations in 0.2.0
 
-The aligned version is `0.2.2`. Registry publication is verified separately from
+The aligned version is `0.2.3`. Registry publication is verified separately from
 the manifests or source branch.
 `FloodRoot` explicitly selects `data-flood-foundations="neutral"` and
 `data-flood-theme="dark"`. New foundation styles are scoped to that root;
@@ -62,9 +62,10 @@ IconSlot accepts host SVG artwork without adding an icon library dependency.
 
 Inter is a bundled, unmodified third-party WOFF2 asset under its original SIL
 OFL 1.1, separate from Flood's MIT code. Its release, hash and license accompany
-the source. CSS resolves the font locally without a CDN. The dark field recipe
-includes a necessary boundary in addition to its quieter decorative outline;
-the 2px focus accent is configurable and provisional. These choices do not
+the source. CSS resolves the font locally without a CDN. The current dark field
+recipe uses the quiet field.border perimeter without a separate emphasized edge;
+the 2px focus accent replaces it without offset and remains configurable and
+provisional. These choices do not
 constitute a claim of complete accessibility across host compositions.
 
 New public APIs require declaration output, user and agent guidance and an

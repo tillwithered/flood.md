@@ -1,24 +1,19 @@
-import { isValidElement, useEffect, useState, type ReactNode } from "react";
+import { isValidElement, useEffect, useRef, useState, type ReactNode } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Copy } from "lucide-react";
-import { Button, CodeSnippet, Heading, IconSlot, Inline, Link, Text } from "@flood-md/react";
+import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
+import { Breadcrumb, Button, Collapsible, Heading, IconSlot, Inline, Input, Link, ScrollArea, SegmentedControl, Stack, Surface, Text } from "@flood-md/react";
 import { docPages } from "../routes.mjs";
-import { ComponentPreview, componentPages } from "./component-catalog";
+import { componentPages, componentGroups, matchesComponent } from "./component-catalog";
+import { ComponentWorkbench } from "./component-workbench";
+import { CodeBlock, CopyButton } from "./code-block";
+import { usageCode, componentMarkdown, catalogMarkdown } from "../component-docs.mjs";
+import content from "./generated/content.json";
+import { projectAdapters } from "../project-imports.mjs";
 import release from "./release.json";
 
-const sources = import.meta.glob<string>("../../../docs/{README,installation,foundations,theming,agents,faq}.md", { query: "?raw", import: "default", eager: true });
+const sources: Record<string, string> = content.docs;
 const repository = "https://github.com/tillwithered/flood.md";
-const install = `npx @flood-md/cli@${release.version} init`;
-const groups = [...new Set(componentPages.map(page => page.group))];
-function usageCode(component: typeof componentPages[number]) {
-  const names = [...new Set(["FloodRoot", ...Array.from(component.code.matchAll(/<([A-Z]\w*)/g), match => match[1])])];
-  const flood = names.filter(name => componentPages.some(page => page.name === name));
-  const icons = names.filter(name => ["Plus", "ArrowRight", "Copy"].includes(name));
-  const imports = `import { ${flood.join(", ")} } from "@flood-md/react";\n` + (icons.length ? `import { ${icons.join(", ")} } from "lucide-react";\n` : "");
-  const example = component.slug === "flood-root" ? component.code : `<FloodRoot>\n${component.code}\n</FloodRoot>`;
-  return `"use client";\n\n${imports}import "@flood-md/react/styles.css";\n\nexport function Example() {\n  return (\n${example.split("\n").map(line => `    ${line}`).join("\n")}\n  );\n}`;
-}
 
 function textOf(value: ReactNode): string {
   if (typeof value === "string" || typeof value === "number") return String(value);
@@ -40,41 +35,64 @@ function sections(markdown: string) {
   });
 }
 
-function CopyButton({ value, label = "Copy code" }: { value: string; label?: string }) {
-  const [status, setStatus] = useState("");
-  async function copy() {
-    try { await navigator.clipboard.writeText(value); setStatus("Copied."); }
-    catch { setStatus("Select and copy the text manually."); }
-  }
-  return <span className="copy-control">
-    <Button variant="subtle" size="sm" onClick={copy} aria-label={label}><IconSlot size="sm"><Copy /></IconSlot>{status === "Copied." ? "Copied" : "Copy"}</Button>
-    <span className="sr-only" role="status">{status}</span>
-  </span>;
-}
-function CodeBlock({ children }: { children?: ReactNode }) {
-  return <div className="doc-code"><CopyButton value={textOf(children)} /><pre>{children}</pre></div>;
+function MarkdownCodeBlock({ children }: { children?: ReactNode }) {
+  const className = isValidElement<{ className?: string }>(children) ? children.props.className : undefined;
+  return <CodeBlock code={textOf(children)} language={className?.replace(/^language-/, "") ?? "plaintext"} />;
 }
 function markdownLink(href: string | undefined) {
   if (!href) return undefined;
   if (/^(https?:|mailto:|#|\/)/.test(href)) return href;
   const [file, hash] = href.split("#");
+  if (file.startsWith("../packages/agent/")) return "/agent/" + file.slice("../packages/agent/".length) + (hash ? `#${hash}` : "");
   const page = docPages.find(item => item.file === file);
   if (page) return page.path + (hash ? `#${hash}` : "");
   if (file === "components.md" || file === "base-components.md") return "/components" + (hash ? `#${hash}` : "");
   const target = new URL(href, `${repository}/blob/main/docs/README.md`);
   return target.href;
 }
-function Sidebar({ path }: { path: string }) {
+function Sidebar({ path, query, onQueryChange, visible = true }: { path: string; query: string; onQueryChange: (query: string) => void; visible?: boolean }) {
+  const nav = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    const align = () => {
+      const current = nav.current?.querySelector('[aria-current="page"]');
+      const viewport = nav.current?.closest<HTMLElement>(".flood-scroll-area__viewport");
+      if (!current || !viewport || viewport.clientHeight === 0 || cancelled) return;
+      const item = current.getBoundingClientRect(), frame = viewport.getBoundingClientRect();
+      const toolsHeight = nav.current?.querySelector(".catalog-nav-tools")?.getBoundingClientRect().height ?? 0;
+      const gap = parseFloat(getComputedStyle(viewport).fontSize) / 2;
+      const bottom = Math.min(frame.bottom, innerHeight - gap);
+      // Scroll this region only; never move the article or page heading.
+      if (item.bottom > bottom) viewport.scrollTop += item.bottom - bottom + gap;
+      else if (item.top < frame.top + toolsHeight) viewport.scrollTop -= frame.top + toolsHeight - item.top;
+    };
+    const frame = requestAnimationFrame(align);
+    void document.fonts.ready.then(align);
+    return () => { cancelled = true; cancelAnimationFrame(frame); };
+  }, [path, visible]);
   const inComponents = path.startsWith("/components");
-  return <nav aria-label="Documentation sections" className="side-nav">
-    {inComponents && <div className="side-group"><Text size="helper" tone="subtle" className="side-label">Components</Text>
-      <Link href="/components" className="side-link catalog-link" aria-current={path === "/components" ? "page" : undefined}>Overview <span>18</span></Link>
-      {[...componentPages].sort((a, b) => a.name.localeCompare(b.name)).map(page => <Link key={page.slug} className="side-link" href={`/components/${page.slug}`} aria-current={path === `/components/${page.slug}` ? "page" : undefined}>{page.name}</Link>)}
-    </div>}
-    <div className="side-group"><Text size="helper" tone="subtle" className="side-label">Getting started</Text>
-      {docPages.map(page => <Link key={page.path} href={page.path} className="side-link" aria-current={path === page.path ? "page" : undefined}>{page.label}</Link>)}
+  const results = componentPages.filter(page => matchesComponent(page, query));
+  return <nav ref={nav} aria-label="Documentation sections" className="side-nav">
+    {inComponents && <>
+      <div className="catalog-nav-tools">
+        <Link href="/components" variant="ghost" size="sm" className="side-link catalog-link" aria-current={path === "/components" ? "page" : undefined}>All components <span>{componentPages.length}</span></Link>
+        <Input type="search" controlSize="sm" aria-label="Search components" placeholder="Find a component…" value={query} onChange={event => onQueryChange(event.currentTarget.value)} onKeyDown={event => { if (event.key === "Escape") onQueryChange(""); }} />
+        {query && <Inline gap="2" className="catalog-search-summary"><Text size="helper" tone="subtle" role="status">{results.length} results</Text><Button variant="ghost" size="sm" onClick={() => onQueryChange("")}>Clear search</Button></Inline>}
+      </div>
+      {componentGroups.map(group => {
+        const entries = group.components.filter(page => matchesComponent(page, query));
+        return entries.length > 0 && <div className="side-group" key={group.id} role="group" aria-label={group.label}>
+          <Text size="helper" tone="subtle" className="side-label">{group.label}</Text>
+          {entries.map(page => <Link key={page.slug} variant="ghost" size="sm" className="side-link" href={`/components/${page.slug}`} aria-current={path === `/components/${page.slug}` ? "page" : undefined}>{page.name}</Link>)}
+        </div>;
+      })}
+      {results.length === 0 && <Text as="p" size="compact" tone="subtle" className="catalog-empty">No components found.</Text>}
+    </>}
+    <div className="side-group"><Text size="helper" tone="subtle" className="side-label">Documentation</Text>
+      {docPages.map(page => <Link key={page.path} href={page.path} variant="ghost" size="sm" className="side-link" aria-current={path === page.path ? "page" : undefined}>{page.label}</Link>)}
     </div>
-    {!inComponents && <div className="side-group"><Link href="/components" className="side-link catalog-link">All components <span>18</span></Link></div>}
+    {!inComponents && <div className="side-group"><Link href="/components" variant="ghost" size="sm" className="side-link catalog-link">All components <span>{componentPages.length}</span></Link></div>}
   </nav>;
 }
 
@@ -82,21 +100,28 @@ export default function Documentation({ path }: { path: string }) {
   const doc = docPages.find(page => page.path === path);
   const component = componentPages.find(page => path === `/components/${page.slug}`);
   const catalog = path === "/components";
+  const [query, setQuery] = useState("");
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const visibleGroups = componentGroups.map(group => ({ ...group, components: group.components.filter(page => matchesComponent(page, query)) })).filter(group => group.components.length > 0);
   const title = doc?.label ?? component?.name ?? (catalog ? "Components" : "Page not found");
   const description = doc?.description ?? component?.description ?? "Original components. Native semantics. One calm foundation.";
-  const raw = doc ? sources[`../../../docs/${doc.file}`] : "";
+  const raw = doc ? sources[doc.file] : "";
   const markdown = raw?.replace(/^# .*\r?\n/, "") ?? "";
+  const [importMode, setImportMode] = useState<"package" | "project">("package");
+  const [exampleImports, setExampleImports] = useState(() => component ? ["FloodRoot", ...component.imports.filter(name => componentPages.some(page => page.name === name))] : []);
+  const [exampleCode, setExampleCode] = useState(() => component ? usageCode(component) : "");
   const toc = doc ? sections(markdown) : component
-    ? [{ id: "preview", label: "Preview" }, { id: "installation", label: "Installation" }, { id: "usage", label: "Usage" }, { id: "api", label: "API reference" }]
-    : groups.map(group => ({ id: slug(group), label: group }));
-  const ordered = [...docPages.map(page => ({ path: page.path, name: page.label })), { path: "/components", name: "Components" }, ...componentPages.map(page => ({ path: `/components/${page.slug}`, name: page.name }))];
+    ? [{ id: "preview", label: "Component lab" }, { id: "usage", label: "Use in your project" }, { id: "design-notes", label: "Design notes" }, { id: "api", label: "API reference" }]
+    : visibleGroups.map(group => ({ id: group.id, label: group.label }));
+  const ordered = [...docPages.map(page => ({ path: page.path, name: page.label })), { path: "/components", name: "Components" }, ...componentGroups.flatMap(group => group.components).map(page => ({ path: `/components/${page.slug}`, name: page.name }))];
   const current = ordered.findIndex(page => page.path === path);
   const previous = ordered[current - 1]; const next = ordered[current + 1];
-  const sourcePath = doc ? `docs/${doc.file}` : "apps/website/src/component-catalog.tsx";
-  const exampleCode = component ? usageCode(component) : "";
-  const pageMarkdown = doc ? raw : component
-    ? `# ${component.name}\n\n${component.description}\n\n## Installation\n\n\`\`\`sh\n${install}\n\`\`\`\n\n## Usage\n\n\`\`\`tsx\n${exampleCode}\n\`\`\`\n\n${component.notes.join("\n\n")}\n\n## API reference\n\n| Prop | Values | Default |\n| --- | --- | --- |\n${component.api.map(row => `| ${row.map(value => value.replaceAll("|", "\\|")).join(" | ")} |`).join("\n")}`
-    : `# Components\n\n${componentPages.map(page => `- [${page.name}](https://flood.md/components/${page.slug}): ${page.description}`).join("\n")}`;
+  const pageMarkdown = doc ? raw ?? "" : component ? componentMarkdown(component, exampleCode) + (importMode === "project" ? `\n## Project UI setup\n\n${projectAdapters(exampleImports)}` : "") : catalogMarkdown(componentPages);
+  const resourceOrigin = location.origin;
+  const localPreview = ["localhost", "127.0.0.1"].includes(location.hostname);
+  const agentContext = `Documentation version: ${content.version}${localPreview ? " (local source preview; source-only additions are not published)" : ""}.\n\nUse Flood for this task. Read the matching installed package declarations before making API changes.\n\n` +
+    `Page: ${resourceOrigin}${path}\nAgent skill: ${resourceOrigin}/agent/SKILL.md\nDesign contract: ${resourceOrigin}/agent/DESIGN.md\nCanonical Markdown: ${resourceOrigin}${path}.md\n\n` +
+    `The example below reflects the current playground settings. Keep native semantics and accessibility, import Flood styles once, and use semantic tokens before overrides. Do not invent unavailable components or claim that source-only APIs are already published.\n\n${pageMarkdown}`;
   useEffect(() => {
     document.title = `${title} — flood.md`;
     let cancelled = false;
@@ -113,52 +138,64 @@ export default function Documentation({ path }: { path: string }) {
     return () => { cancelled = true; };
   }, [title]);
   return <div className="docs-layout">
-    <aside className="desktop-sidebar" aria-label="Documentation navigation"><Sidebar path={path} /></aside>
+    <aside className="desktop-sidebar" aria-label="Documentation navigation"><ScrollArea contentInset="scrollbar" aria-label="Documentation sections scroll" style={{ maxHeight: "calc(100svh - 4rem)" }}><Sidebar path={path} query={query} onQueryChange={setQuery} /></ScrollArea></aside>
     <div className="doc-center">
-      <details className="mobile-navigation"><summary>Browse documentation</summary><Sidebar path={path} /></details>
+      <Collapsible className="mobile-navigation" title="Browse documentation" open={mobileOpen} onOpenChange={setMobileOpen} controlSize="sm"><ScrollArea aria-label="Mobile documentation sections" style={{ maxHeight: "60svh" }}><Sidebar path={path} query={query} onQueryChange={setQuery} visible={mobileOpen} /></ScrollArea></Collapsible>
       <main id="main-content" className="doc-article">
-        <div className="doc-breadcrumb"><Link href={component || catalog ? "/components" : "/docs"}>{component || catalog ? "Components" : "Documentation"}</Link><span aria-hidden="true">/</span><span>{title}</span></div>
+        <div className="doc-breadcrumb"><Breadcrumb label="Page breadcrumb" items={catalog ? [{label:title}] : [{label:component ? "Components" : "Documentation",href:component ? "/components" : "/docs"}, ...(component ? [{label:componentGroups.find(group=>group.id===component.group)?.label??component.group,href:`/components#${component.group}`}] : []), {label:title}]} /><Text size="helper" tone="subtle" className="doc-version">v{content.version}</Text>{localPreview && <Text size="helper" tone="subtle" className="local-preview-label">Local preview</Text>}</div>
         <header className="doc-heading">
           <Heading level={1} size="large">{title}</Heading>
           <Text as="p" tone="subtle" className="doc-description">{description}</Text>
-          <Inline gap="3" className="doc-tools"><CopyButton value={pageMarkdown ?? ""} label="Copy page" /><Link href={`${repository}/edit/main/${sourcePath}`} className="edit-link">Edit on GitHub <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link></Inline>
+          {!component && <Inline gap="3" className="doc-tools"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /></Inline>}
         </header>
+        <div>
         {doc && <div className="markdown-content"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
           a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>,
-          pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
+          pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock>,
           h2: ({ children, node }) => <h2 id={toc.find(section => "line" in section && section.line === node?.position?.start.line)?.id ?? slug(textOf(children))}>{children}</h2>,
-          table: ({ children }) => <div className="table-scroll" tabIndex={0} role="region" aria-label="Documentation table"><table>{children}</table></div>,
+          table: ({ children }) => <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label="Documentation table"><table>{children}</table></ScrollArea>,
         }}>{markdown}</Markdown></div>}
-        {catalog && <div className="component-catalog">{groups.map(group => <section id={slug(group)} key={group}>
-          <Heading level={2} size="section">{group}</Heading>
-          <div className="catalog-grid">{componentPages.filter(page => page.group === group).map(page => <Link className="catalog-card" key={page.slug} href={`/components/${page.slug}`}>
-            <span className="catalog-card-title">{page.name}<IconSlot size="sm"><ArrowUpRight /></IconSlot></span>
-            <Text size="compact" tone="subtle">{page.description}</Text>
-          </Link>)}</div>
-        </section>)}</div>}
+        {catalog && <div className="component-catalog">
+          {!query && <nav className="catalog-jumps" aria-label="Component categories">{componentGroups.map(group => <Link key={group.id} variant="outline" size="sm" href={`#${group.id}`}>{group.label}<Text size="helper" tone="subtle">{group.components.length}</Text></Link>)}</nav>}
+          {visibleGroups.map(group => <section id={group.id} key={group.id}>
+            <Heading level={2} size="section">{group.label}</Heading>
+            <Text as="p" size="compact" tone="subtle" className="catalog-description">{group.description}</Text>
+            <div className="catalog-grid">{group.components.map(page => <Link className="catalog-card" key={page.slug} href={`/components/${page.slug}`}>
+              <Surface padding="4" className="catalog-card-surface"><Stack gap="2">
+                <Inline gap="4" className="catalog-card-title"><Text size="label">{page.name}</Text><IconSlot size="sm"><ArrowUpRight /></IconSlot></Inline>
+                <Text size="compact" tone="subtle">{page.description}</Text>
+              </Stack></Surface>
+            </Link>)}</div>
+          </section>)}
+          {visibleGroups.length === 0 && <Text as="p" tone="subtle">No components found. Try another name or category.</Text>}
+        </div>}
+
         {component && <>
-          <section id="preview" className="component-preview" aria-label={`${component.name} preview`}>
-            <div className="preview-stage"><ComponentPreview key={component.slug} slug={component.slug} /></div>
-            <details className="preview-code"><summary>View code</summary><CodeBlock><code>{exampleCode}</code></CodeBlock></details>
+          <section id="preview" aria-label={`${component.name} preview`}>
+            <ComponentWorkbench key={component.slug} component={component} onCodeChange={setExampleCode} onImportsChange={setExampleImports} importMode={importMode} agentContext={agentContext} />
           </section>
-          <section id="installation" className="doc-section"><Heading level={2} size="section">Installation</Heading>
-            <Text as="p" size="compact" tone="subtle">The base components ship together. Run once in an existing React project.</Text>
-            <CodeSnippet code={install} action={<CopyButton value={install} label="Copy install command" />} />
-            <Link href="/docs/installation">React and Next.js setup <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
+          <section id="usage" className="doc-section"><Heading level={2} size="section">Use {component.name}</Heading>
+            <Text as="p" size="compact" tone="subtle">{component.name} is a named export of <code>@flood-md/react</code>. Connect the package once, then import what you use.</Text>
+            <Link href="/docs/installation">First time here? Connect Flood <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
+            <ScrollArea orientation="horizontal" className="import-modes-scroll" aria-label="Example import choices" tabIndex={-1}><SegmentedControl label="Example import style" name="example-import-style" hideLabel className="import-modes" controlSize="sm" value={importMode} onValueChange={value=>setImportMode(value as "package"|"project")} options={[{value:"package",label:"Package"},{value:"project",label:"Project UI"}]} /></ScrollArea>
+            {importMode === "project" && <Text as="p" size="compact" tone="subtle">These paths belong to your project. <Link href="/docs/project-ui">Create the UI adapters and alias first.</Link></Text>}
+            <CodeBlock code={exampleCode} language="tsx" filename={`${component.slug}.tsx`} />
+            {importMode === "project" && <Collapsible title="Project UI adapter files" className="adapter-instructions" controlSize="sm"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{ a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>, pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock> }}>{projectAdapters(exampleImports)}</Markdown></Collapsible>}
           </section>
-          <section id="usage" className="doc-section"><Heading level={2} size="section">Usage</Heading>
-            <Text as="p" size="compact">Import the stylesheet once and render inside <code>FloodRoot</code>. Use a client component for callbacks and state.</Text>
-            <CodeBlock><code>{exampleCode}</code></CodeBlock><ul className="usage-notes">{component.notes.map(note => <li key={note}>{note}</li>)}</ul>
+          <section id="design-notes" className="doc-section"><Heading level={2} size="section">Design notes</Heading>
+            <ul className="usage-notes">{component.notes.map(note => <li key={note}>{note}</li>)}</ul>
           </section>
           <section id="api" className="doc-section"><Heading level={2} size="section">API reference</Heading>
-            {component.api.length > 0 && <div className="table-scroll" tabIndex={0} role="region" aria-label={`${component.name} props`}><table><thead><tr><th scope="col">Prop</th><th scope="col">Values</th><th scope="col">Default</th></tr></thead><tbody>{component.api.map(([prop, values, fallback]) => <tr key={prop}><td><code>{prop}</code></td><td>{values}</td><td>{fallback}</td></tr>)}</tbody></table></div>}
+            {component.api.length > 0 && <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label={`${component.name} props`}><table><thead><tr><th scope="col">Prop</th><th scope="col">Values</th><th scope="col">Default</th></tr></thead><tbody>{component.api.map(([prop, values, fallback]) => <tr key={prop}><td><code>{prop}</code></td><td>{values}</td><td>{fallback}</td></tr>)}</tbody></table></ScrollArea>}
             <Link href={`${repository}/blob/v${release.version}/packages/react/src/index.tsx`}>View TypeScript source <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link>
           </section>
         </>}
         {!doc && !component && !catalog && <Link href="/docs">Back to documentation</Link>}
+        </div>
+        <Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link><Link href="/agent/SKILL.md">Agent skill</Link></Inline>
         <nav className="doc-pagination" aria-label="Previous and next page">
-          {previous ? <Link href={previous.path}><IconSlot size="sm"><ArrowLeft /></IconSlot>{previous.name}</Link> : <span />}
-          {next && <Link href={next.path}>{next.name}<IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
+          {previous ? <Link href={previous.path} variant="subtle" size="sm"><IconSlot size="sm"><ArrowLeft /></IconSlot>{previous.name}</Link> : <span />}
+          {next && <Link href={next.path} variant="subtle" size="sm">{next.name}<IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
         </nav>
       </main>
     </div>

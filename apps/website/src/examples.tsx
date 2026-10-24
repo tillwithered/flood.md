@@ -7,6 +7,7 @@ import {
 import "@flood-md/react/styles.css";
 import "./site.css";
 import release from "./release.json";
+import { SiteHeader } from "./site-header";
 
 const command = `npx @flood-md/cli@${release.version} init`;
 const initialNote = "A modern React app with a calm, focused interface for my team. Keep it simple and flexible.";
@@ -96,17 +97,7 @@ export default function Examples() {
   return (
     <FloodRoot className="site-root">
       <div className="site-shell">
-        <header className="site-header">
-          <a href="/" className="wordmark" aria-label="flood.md home">
-            <img src="/flood-mark.png" alt="" width="34" height="34" />
-            <span>flood<span className="wordmark-suffix">.md</span></span>
-          </a>
-          <Inline gap="6" className="header-links">
-            <Link href="https://github.com/tillwithered/flood.md/blob/main/docs/base-components.md">Components</Link>
-            <span className="header-divider" aria-hidden="true" />
-            <Link href="https://github.com/tillwithered/flood.md" className="icon-link">GitHub <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link>
-          </Inline>
-        </header>
+        <SiteHeader path="/playground" />
 
         <main className="landing-main">
           <section className="hero" aria-labelledby="hero-title">

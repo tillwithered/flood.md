@@ -1,6 +1,6 @@
 {
   "name": "@flood-md/tokens",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "type": "module",
   "description": "Flood semantic design tokens and light/dark themes.",
   "license": "MIT",
