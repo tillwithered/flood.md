@@ -68,8 +68,15 @@ test("Navigation playgrounds reflow, expose valid recipes and preserve panel beh
     if(slug==="tabs"){
       await chooseSelectOption(page.getByRole("combobox",{name:"Tabs prop orientation",exact:true}),"vertical");
       await stage.getByRole("tab",{name:"Overview"}).focus();await page.keyboard.press("ArrowDown");await expect(stage.getByRole("tab",{name:"Activity"})).toHaveAttribute("aria-selected","true");
+      const assertJoined=async(vertical:boolean)=>{
+        const tab=await stage.getByRole("tab",{name:"Activity"}).boundingBox(),panel=await stage.getByRole("tabpanel",{name:"Activity"}).boundingBox();
+        expect(Math.abs(vertical?tab!.x+tab!.width-panel!.x:tab!.y+tab!.height-panel!.y)).toBeLessThan(1);
+      };
+      await assertJoined(true);
+      await page.locator(".component-workbench").screenshot({path:`.artifacts/tabs-vertical-${info.project.name}.png`});
       await page.getByRole("checkbox",{name:"Tabs prop disabled",exact:true}).check();await expect(stage.getByRole("tabpanel",{name:"Activity"})).toBeVisible();await page.getByRole("checkbox",{name:"Tabs prop disabled",exact:true}).uncheck();
       await chooseSelectOption(page.getByRole("combobox",{name:"Tabs prop orientation",exact:true}),"horizontal");
+      await assertJoined(false);
     }else if(slug==="pagination"){
       await stage.getByRole("button",{name:"Next page",exact:true}).click();await expect(stage).toContainText("Page 2 of 20");await expect(page.locator("#usage .site-code-block code")).toContainText("useState(2)");
       await page.getByRole("checkbox",{name:"Pagination prop links",exact:true}).check();await stage.getByRole("link",{name:"Next page",exact:true}).click();await expect(stage).toContainText("Page 3 of 20");

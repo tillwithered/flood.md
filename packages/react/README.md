@@ -470,6 +470,10 @@ state and native form constraints. Hosts own inactive-field validation. External
 selection changes return focus from a hidden panel to the selected tab if needed.
 Horizontal overflow uses Flood ScrollArea; vertical layout wraps its tab labels.
 Sizes are controlSize sm/md/lg/xl. There is no tab deletion/loading/fetch model.
+The dark recipe is one contained surface: the active tab shares the panel's
+background, while inactive tabs sit on the recessed navigation strip. Both
+orientations share a single outer perimeter, without a separate panel border or
+selection underline. Keep panel content free of redundant enclosing surfaces.
 
 Breadcrumb uses an accessible nav label (Breadcrumb by default), an ordered items
 array of label/optional href, and a decorative separator (/ by default). The last

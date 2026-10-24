@@ -124,7 +124,10 @@ closeLabel localizes the explicit close action. Native top-layer APIs preserve
 FloodRoot theme scope without body portals. Avoid overriding positioning fields.
 Native Popover/dialog support is required, no legacy polyfill. Pending 0.2.3.
 
-Tabs switches linked content panels (not modes or radio values). Arrows activate
+Tabs switches linked content panels (not modes or radio values) on a shared
+contained surface. Avoid a second enclosing card
+inside the panel; selected fill joins the panel without an additional underline.
+Arrows activate
 by default, or focus only with activationMode=manual; Enter/Space commit. One tab
 stop, RTL/orientation aware, disabled skip. Panels stay mounted/hidden and retain
 native form constraints. Controlled/missing/disabled selected values derive first

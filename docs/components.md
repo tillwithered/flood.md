@@ -355,6 +355,8 @@ uses Enter/Space. Tab leaves the roving tablist. Inactive panels stay mounted an
 hidden, so form constraints remain native; manage inactive fields in the host.
 Missing/disabled values fall back to the first available item. Vertical, icon-only
 and four control sizes are supported; horizontal overflow uses Flood ScrollArea.
+The active tab joins the content on one shared surface in either orientation.
+The outer container owns the quiet perimeter; panel content needs no extra card.
 
 Breadcrumb renders an ordered path of native links; the last item is current,
 with or without a link. Separators are decorative. Pagination takes a controlled
