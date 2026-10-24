@@ -224,6 +224,7 @@
 .flood-root .flood-fieldset { margin: 0; padding: 0; border: 0; min-inline-size: 0; inline-size: 100%; }
 .flood-root .flood-legend { padding: 0; margin-block-end: var(--flood-sys-space-3); font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); font-weight: var(--flood-sys-type-label-weight); letter-spacing: var(--flood-sys-type-label-tracking); }
 .flood-root .flood-fieldset__body { display: grid; gap: var(--flood-sys-space-3); min-inline-size: 0; }
+.flood-root .flood-fieldset:has(> .flood-fieldset__body > .flood-hint) > .flood-legend { margin-block-end: var(--flood-sys-space-1); }
 .flood-root .flood-fieldset:disabled :is(.flood-legend, .flood-label) { color: var(--flood-sys-color-field-disabled-content); }
 .flood-root .flood-label { color: var(--flood-sys-color-content-helper); font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); font-weight: var(--flood-sys-type-label-weight); letter-spacing: var(--flood-sys-type-label-tracking); }
 .flood-root :where(.flood-hint, .flood-error) { font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); font-weight: var(--flood-sys-type-helper-weight); letter-spacing: var(--flood-sys-type-helper-tracking); }

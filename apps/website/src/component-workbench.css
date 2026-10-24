@@ -18,6 +18,7 @@
 .workbench-stage[data-component="field"] .flood-hint { grid-row: 3; }
 .workbench-stage[data-component="field"] :is(.flood-error, .flood-message) { grid-row: 4; }
 .workbench-stage[data-component="fieldset"] .flood-fieldset__body { grid-template-rows: minmax(1.5rem, auto) auto auto minmax(1.5rem, auto); }
+.workbench-stage[data-component="fieldset"] .flood-fieldset > .flood-legend { margin-block-end: var(--flood-sys-space-1); }
 .workbench-stage[data-component="fieldset"] .flood-fieldset__body > .flood-hint { grid-row: 1; }
 .workbench-stage[data-component="fieldset"] .flood-fieldset__body > .flood-choice:nth-of-type(1) { grid-row: 2; }
 .workbench-stage[data-component="fieldset"] .flood-fieldset__body > .flood-choice:nth-of-type(2) { grid-row: 3; }
