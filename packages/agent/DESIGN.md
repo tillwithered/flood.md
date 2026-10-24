@@ -1,4 +1,4 @@
-# Flood design system · 0.2.1
+# Flood design system · 0.2.2
 
 React + TypeScript and Next.js App Router. Use this guide with matching installed
 Flood packages and flood.json. The source repository's release status does not
@@ -15,9 +15,14 @@ child. Keep server data fetching in server components.
 
 ## Compose
 
-- Use Text sizes body/compact/label/helper and Heading sizes large/page/section.
+- Use Text sizes lead/body/compact/label/helper and Heading sizes display/large/page/section.
   Heading level 1–6 sets semantics independently of visual size. Text label size
   does not associate a form control; use Field.
+- Reserve display for a marketing headline; preserve normal page/section sizes
+  inside product UI. Hosts own responsive composition.
+- Use CodeSnippet with a code string and optional action slot for commands or
+  short examples. The host owns clipboard permission, feedback and errors;
+  selectable wrapped code remains available when copying fails.
 - Use Stack and wrapping Inline. Gap and Surface padding keys are strings
   0/1/2/3/4/6/8/12. Parent layout owns spacing; avoid redundant cards and borders.
 - Sizes use rem, line heights ratios, tracking em. Do not impose a fixed root

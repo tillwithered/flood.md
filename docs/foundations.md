@@ -1,11 +1,17 @@
-# Foundations tokens · 0.2.0
+# Foundations tokens · 0.2.2
 
-This guide describes the **0.2.0** foundation exports. Keep Flood packages at
+This guide describes the **0.2.2** foundation exports. Keep Flood packages at
 matching exact versions. Existing 0.1.1 installs use their earlier token contract.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).
 The compiler also supports component aliases (`comp`) and isolated experiments
 (`exp`); no component-specific tokens are shipped in this first profile.
+
+The neutral dark profile has 163 public semantic roles. Version 0.2.2 adds
+`sys.type.display.*` (5.5rem size, 1.12 line height, 500 weight, -.04em tracking)
+for marketing headings, `sys.type.lead.*` (1.375rem, 1.45, 400, -.01em) for
+supporting marketing copy, and `sys.font.mono` for code. Existing product typography
+retains its metrics. Responsive page composition remains the host's responsibility.
 
 ## Use the neutral dark profile
 
@@ -170,5 +176,5 @@ using those tokens; old custom overrides continue to apply there. Inside
 `FloodRoot`, the dark foundation roles control the component recipe. Legacy
 overrides do not automatically override separately scoped foundation roles.
 
-Version 0.2.0 adds these exports without replacing an existing npm version.
+Version 0.2.2 adds these exports without replacing an existing npm version.
 Publication must be verified separately; source version numbers are not proof.

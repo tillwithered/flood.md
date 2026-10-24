@@ -1,11 +1,11 @@
 # Using Flood with an agent
 
 Read flood.json and the installed flood/DESIGN.md before editing an existing
-project. Use the matching package and CLI version. This guide describes **0.2.1**;
+project. Use the matching package and CLI version. This guide describes **0.2.2**;
 existing 0.1.1 projects retain their earlier version-specific component guide.
 
 For public installation, give an agent https://flood.md/llms.txt. That endpoint
-tracks the deployed release. Start with `npx @flood-md/cli@0.2.1 init --dry-run`,
+tracks the deployed release. Start with `npx @flood-md/cli@0.2.2 init --dry-run`,
 then follow [installation](installation.md) and the matching package's agent files.
 
 ## Versioned files

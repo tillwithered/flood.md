@@ -22,7 +22,7 @@ you need behavior outside the public API.
 
 ## Why is there no add button command?
 
-The base set ships together in @flood-md/react: nine foundation primitives and
+The base set ships together in @flood-md/react: ten foundation primitives and
 eight native controls. Import the components you need; see the
 [base component set](base-components.md). The CLI provides init, init --dry-run
 and doctor.

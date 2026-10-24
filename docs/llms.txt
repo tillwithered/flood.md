@@ -1,4 +1,4 @@
-# flood.md — agent entry point · 0.2.1
+# flood.md — agent entry point · 0.2.2
 
 Flood is an original React + TypeScript design system supporting Next.js App Router.
 Existing projects follow their installed flood.json and flood/DESIGN.md first.
@@ -6,18 +6,20 @@ Keep exact Flood package versions aligned. Never fabricate installation success.
 
 Installation:
 1. Read the host package.json; React must already be installed.
-2. Run npx @flood-md/cli@0.2.1 init --dry-run in the project root.
-3. Run npx @flood-md/cli@0.2.1 init within the user's authorized scope.
+2. Run npx @flood-md/cli@0.2.2 init --dry-run in the project root.
+3. Run npx @flood-md/cli@0.2.2 init within the user's authorized scope.
 4. Import @flood-md/react/styles.css once in the app entry or Next root layout.
 5. Wrap new compositions in FloodRoot to select the neutral/dark foundations profile.
 6. Read installed flood/DESIGN.md and flood.json for the matching API.
-7. Run npx @flood-md/cli@0.2.1 doctor.
+7. Run npx @flood-md/cli@0.2.2 doctor.
 
-Primitives: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot,
+Primitives: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, CodeSnippet, IconSlot,
 IconButton. Controls: Button, Input, Textarea, Checkbox, Radio, Switch, Field, Link.
 Import from @flood-md/react. Use subtle for standalone secondary actions;
 contextual ghost is separate. Flood bundles Inter locally with its OFL license.
 Use a client component for state, callbacks and Field's function child.
+Heading display is for marketing hierarchy. CodeSnippet takes code and an optional
+host action; copying and announcements remain host responsibilities.
 Preserve native forms, visible labels, semantic associations, focus and relative sizing.
 No external UI component library or new light foundations profile is supplied.
 

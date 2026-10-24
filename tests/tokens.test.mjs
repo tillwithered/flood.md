@@ -43,6 +43,26 @@ test("dark foundations publish coherent role metrics and accessible boundary col
   }
 });
 
+test("additive display and mono roles preserve the established heading scale", () => {
+  const { catalog } = compile(source).contexts[0];
+  const tokens = new Map(catalog.map((token) => [token.id, token]));
+  for (const [property, expected] of Object.entries({ size: { value: 5.5, unit: "rem" }, "line-height": 1.12, tracking: { value: -.04, unit: "em" }, weight: 500 })) {
+    const token = tokens.get(`sys.type.display.${property}`);
+    assert.deepEqual(token.value, expected);
+    assert.equal(token.since, "0.2.2");
+    assert.equal(token.status, "experimental");
+  }
+  assert.deepEqual(tokens.get("sys.type.large.size").value, { value: 2, unit: "rem" });
+  assert.deepEqual(tokens.get("sys.font.mono").value, ["SFMono-Regular", "Consolas", "Liberation Mono", "monospace"]);
+  assert.equal(tokens.get("sys.font.mono").since, "0.2.2");
+  for (const [property, expected] of Object.entries({ size: { value: 1.375, unit: "rem" }, "line-height": 1.45, tracking: { value: -.01, unit: "em" }, weight: 400 })) {
+    const token = tokens.get(`sys.type.lead.${property}`);
+    assert.deepEqual(token.value, expected);
+    assert.equal(token.since, "0.2.2");
+  }
+  assert.deepEqual(tokens.get("sys.type.body.size").value, { value: 1, unit: "rem" });
+});
+
 test("foundation output is deterministic and preserves the legacy JSON contract", async () => {
   const a = compile(source),
     b = compile(source);

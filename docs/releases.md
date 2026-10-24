@@ -1,5 +1,11 @@
 # Release process
 
+During the pre-1.0 0.2 stabilization series, an explicitly documented patch can
+add compatible primitives or opt-in roles alongside corrections. Existing
+signatures, defaults and token values must remain compatible. Any breaking
+change needs a separate minor-version decision. Types, user/agent docs and exact
+internal versions remain aligned for every release.
+
 1. Confirm ownership of npm scope `@flood-md` (or update all names consistently).
 2. Authenticate npm for the first publication. Run `npm run verify` and browser CI.
 3. Review package tarballs (`npm pack --dry-run --workspace=<name>`).
