@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { pagePaths } from "./routes.mjs";
 
 const root = fileURLToPath(new URL("./dist", import.meta.url));
 const types = {
@@ -9,6 +10,8 @@ const types = {
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".woff2": "font/woff2",
   ".json": "application/json; charset=utf-8",
   ".txt": "text/plain; charset=utf-8",
   ".md": "text/plain; charset=utf-8",
@@ -30,7 +33,7 @@ createServer(async (request, response) => {
     }
     const file = resolve(
       root,
-      `.${pathname === "/" || pathname === "/playground" ? "/index.html" : pathname}`,
+      `.${pagePaths.has(pathname) ? "/index.html" : pathname}`,
     );
     if (!file.startsWith(root + sep)) {
       response.writeHead(403);

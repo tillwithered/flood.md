@@ -18,6 +18,11 @@ output in a Node 24 image and starts the server. Container runtime contents are
 limited to the built website and server entry; source and build dependencies stay
 in the build stage.
 
+The runtime also includes `apps/website/routes.mjs`, the explicit page allowlist.
+Known `/docs` and `/components` pages serve the website entry; unknown paths
+return 404. Documentation Markdown is bundled at build time from `docs/` and
+does not depend on a live GitHub connection.
+
 ## Hosting contract
 
 - Build from the repository root using the Dockerfile.
