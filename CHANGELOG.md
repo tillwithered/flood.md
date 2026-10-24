@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- Local component playgrounds use shared recipes for real previews and matching
+  TSX, with controls for supported props, state and native focus.
+- Documentation adds local syntax highlighting, a Markdown reader, copy/download
+  and canonical `.md` files. Setup is explained once; component pages show imports.
+- API tables and declared defaults are generated from TypeScript source during
+  every build; missing documentation/preview coverage blocks verification.
+- Project UI examples support optional semantic imports such as `@/ui/button`
+  with explicit adapter and alias setup, alongside direct package imports.
+- Dark Input/Textarea use one uniform necessary contour instead of an emphasized
+  bottom edge. Textarea scrolls without a default native resize grip; hosts can
+  opt into resizing with CSS. Focus stays 2px and does not shift layout.
+
+These changes are unreleased. The planned correction release is 0.2.3; align
+package versions and verify publication before enabling a new installation command.
+
 ## 0.2.2 — Marketing composition
 
 - Add opt-in display typography and a selectable CodeSnippet primitive with a

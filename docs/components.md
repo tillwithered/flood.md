@@ -109,11 +109,15 @@ from disabled. Explain unavailable actions outside a disabled element when neede
 
 ### Contrast and customization
 
-Dark fields combine a quiet outline with a stronger bottom boundary. Keep the
-necessary boundary or re-evaluate its replacement against actual neighboring
+Dark fields use one uniform necessary perimeter without a separate bottom edge
+or inset shadow. Keep this boundary or re-evaluate its replacement against neighboring
 surfaces. Focus is a 2px accent boundary without offset or a second contour;
 its configurable pink default is provisional, not a complete brand palette.
 Invalid styling must not erase the focus indicator.
+
+Textarea hides the native resize grip by default and scrolls overflowing content.
+Hosts can enable resizing with `style={{ resize: "vertical" }}`; the native rows,
+value and form contracts remain unchanged.
 
 Host overrides come after the stylesheet and should target semantic
 `--flood-sys-*` variables within FloodRoot. Decorative lines and necessary control

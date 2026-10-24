@@ -63,3 +63,4 @@ await writeFile(
   `${release.published ? "Release status: published." : "Release status: PREVIEW. Source release candidate; do not run the installation command until npm publication is verified."}\n\n${guide}`,
 );
 console.log("Built Flood packages and agent endpoints.");
+await import("./build-website-content.mjs");

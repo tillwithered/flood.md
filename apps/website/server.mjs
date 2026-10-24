@@ -14,7 +14,7 @@ const types = {
   ".woff2": "font/woff2",
   ".json": "application/json; charset=utf-8",
   ".txt": "text/plain; charset=utf-8",
-  ".md": "text/plain; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8",
 };
 createServer(async (request, response) => {
   try {

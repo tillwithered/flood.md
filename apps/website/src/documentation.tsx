@@ -1,24 +1,20 @@
 import { isValidElement, useEffect, useState, type ReactNode } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { ArrowLeft, ArrowRight, ArrowUpRight, Copy } from "lucide-react";
-import { Button, CodeSnippet, Heading, IconSlot, Inline, Link, Text } from "@flood-md/react";
+import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
+import { Button, Heading, IconSlot, Inline, Link, Text } from "@flood-md/react";
 import { docPages } from "../routes.mjs";
-import { ComponentPreview, componentPages } from "./component-catalog";
+import { componentPages } from "./component-catalog";
+import { ComponentWorkbench } from "./component-workbench";
+import { CodeBlock, CopyButton } from "./code-block";
+import { usageCode, componentMarkdown, catalogMarkdown } from "../component-docs.mjs";
+import content from "./generated/content.json";
+import { projectAdapters } from "../project-imports.mjs";
 import release from "./release.json";
 
-const sources = import.meta.glob<string>("../../../docs/{README,installation,foundations,theming,agents,faq}.md", { query: "?raw", import: "default", eager: true });
+const sources: Record<string, string> = content.docs;
 const repository = "https://github.com/tillwithered/flood.md";
-const install = `npx @flood-md/cli@${release.version} init`;
 const groups = [...new Set(componentPages.map(page => page.group))];
-function usageCode(component: typeof componentPages[number]) {
-  const names = [...new Set(["FloodRoot", ...Array.from(component.code.matchAll(/<([A-Z]\w*)/g), match => match[1])])];
-  const flood = names.filter(name => componentPages.some(page => page.name === name));
-  const icons = names.filter(name => ["Plus", "ArrowRight", "Copy"].includes(name));
-  const imports = `import { ${flood.join(", ")} } from "@flood-md/react";\n` + (icons.length ? `import { ${icons.join(", ")} } from "lucide-react";\n` : "");
-  const example = component.slug === "flood-root" ? component.code : `<FloodRoot>\n${component.code}\n</FloodRoot>`;
-  return `"use client";\n\n${imports}import "@flood-md/react/styles.css";\n\nexport function Example() {\n  return (\n${example.split("\n").map(line => `    ${line}`).join("\n")}\n  );\n}`;
-}
 
 function textOf(value: ReactNode): string {
   if (typeof value === "string" || typeof value === "number") return String(value);
@@ -40,19 +36,9 @@ function sections(markdown: string) {
   });
 }
 
-function CopyButton({ value, label = "Copy code" }: { value: string; label?: string }) {
-  const [status, setStatus] = useState("");
-  async function copy() {
-    try { await navigator.clipboard.writeText(value); setStatus("Copied."); }
-    catch { setStatus("Select and copy the text manually."); }
-  }
-  return <span className="copy-control">
-    <Button variant="subtle" size="sm" onClick={copy} aria-label={label}><IconSlot size="sm"><Copy /></IconSlot>{status === "Copied." ? "Copied" : "Copy"}</Button>
-    <span className="sr-only" role="status">{status}</span>
-  </span>;
-}
-function CodeBlock({ children }: { children?: ReactNode }) {
-  return <div className="doc-code"><CopyButton value={textOf(children)} /><pre>{children}</pre></div>;
+function MarkdownCodeBlock({ children }: { children?: ReactNode }) {
+  const className = isValidElement<{ className?: string }>(children) ? children.props.className : undefined;
+  return <CodeBlock code={textOf(children)} language={className?.replace(/^language-/, "") ?? "plaintext"} />;
 }
 function markdownLink(href: string | undefined) {
   if (!href) return undefined;
@@ -68,13 +54,13 @@ function Sidebar({ path }: { path: string }) {
   const inComponents = path.startsWith("/components");
   return <nav aria-label="Documentation sections" className="side-nav">
     {inComponents && <div className="side-group"><Text size="helper" tone="subtle" className="side-label">Components</Text>
-      <Link href="/components" className="side-link catalog-link" aria-current={path === "/components" ? "page" : undefined}>Overview <span>18</span></Link>
+      <Link href="/components" className="side-link catalog-link" aria-current={path === "/components" ? "page" : undefined}>Overview <span>{componentPages.length}</span></Link>
       {[...componentPages].sort((a, b) => a.name.localeCompare(b.name)).map(page => <Link key={page.slug} className="side-link" href={`/components/${page.slug}`} aria-current={path === `/components/${page.slug}` ? "page" : undefined}>{page.name}</Link>)}
     </div>}
     <div className="side-group"><Text size="helper" tone="subtle" className="side-label">Getting started</Text>
       {docPages.map(page => <Link key={page.path} href={page.path} className="side-link" aria-current={path === page.path ? "page" : undefined}>{page.label}</Link>)}
     </div>
-    {!inComponents && <div className="side-group"><Link href="/components" className="side-link catalog-link">All components <span>18</span></Link></div>}
+    {!inComponents && <div className="side-group"><Link href="/components" className="side-link catalog-link">All components <span>{componentPages.length}</span></Link></div>}
   </nav>;
 }
 
@@ -84,19 +70,28 @@ export default function Documentation({ path }: { path: string }) {
   const catalog = path === "/components";
   const title = doc?.label ?? component?.name ?? (catalog ? "Components" : "Page not found");
   const description = doc?.description ?? component?.description ?? "Original components. Native semantics. One calm foundation.";
-  const raw = doc ? sources[`../../../docs/${doc.file}`] : "";
+  const raw = doc ? sources[doc.file] : "";
   const markdown = raw?.replace(/^# .*\r?\n/, "") ?? "";
+  const [mode, setMode] = useState<"read" | "markdown">("read");
+  const [importMode, setImportMode] = useState<"package" | "project">("package");
+  const [exampleImports, setExampleImports] = useState(() => component ? ["FloodRoot", ...component.imports.filter(name => componentPages.some(page => page.name === name))] : []);
+  const [exampleCode, setExampleCode] = useState(() => component ? usageCode(component) : "");
   const toc = doc ? sections(markdown) : component
-    ? [{ id: "preview", label: "Preview" }, { id: "installation", label: "Installation" }, { id: "usage", label: "Usage" }, { id: "api", label: "API reference" }]
+    ? [{ id: "preview", label: "Component lab" }, { id: "usage", label: "Use in your project" }, { id: "design-notes", label: "Design notes" }, { id: "api", label: "API reference" }]
     : groups.map(group => ({ id: slug(group), label: group }));
   const ordered = [...docPages.map(page => ({ path: page.path, name: page.label })), { path: "/components", name: "Components" }, ...componentPages.map(page => ({ path: `/components/${page.slug}`, name: page.name }))];
   const current = ordered.findIndex(page => page.path === path);
   const previous = ordered[current - 1]; const next = ordered[current + 1];
-  const sourcePath = doc ? `docs/${doc.file}` : "apps/website/src/component-catalog.tsx";
-  const exampleCode = component ? usageCode(component) : "";
-  const pageMarkdown = doc ? raw : component
-    ? `# ${component.name}\n\n${component.description}\n\n## Installation\n\n\`\`\`sh\n${install}\n\`\`\`\n\n## Usage\n\n\`\`\`tsx\n${exampleCode}\n\`\`\`\n\n${component.notes.join("\n\n")}\n\n## API reference\n\n| Prop | Values | Default |\n| --- | --- | --- |\n${component.api.map(row => `| ${row.map(value => value.replaceAll("|", "\\|")).join(" | ")} |`).join("\n")}`
-    : `# Components\n\n${componentPages.map(page => `- [${page.name}](https://flood.md/components/${page.slug}): ${page.description}`).join("\n")}`;
+  const sourcePath = doc ? `docs/${doc.file}` : "apps/website/src/component-catalog.json";
+  const pageMarkdown = doc ? raw ?? "" : component ? componentMarkdown(component, exampleCode) + (importMode === "project" ? `\n## Project UI setup\n\n${projectAdapters(exampleImports)}` : "") : catalogMarkdown(componentPages);
+  function downloadMarkdown() {
+    const url = URL.createObjectURL(new Blob([pageMarkdown], { type: "text/markdown;charset=utf-8" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${component?.slug ?? doc?.file.replace(/\.md$/, "") ?? "components"}.md`;
+    anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   useEffect(() => {
     document.title = `${title} — flood.md`;
     let cancelled = false;
@@ -112,20 +107,26 @@ export default function Documentation({ path }: { path: string }) {
     }
     return () => { cancelled = true; };
   }, [title]);
-  return <div className="docs-layout">
+  return <div className="docs-layout" data-document-mode={mode}>
     <aside className="desktop-sidebar" aria-label="Documentation navigation"><Sidebar path={path} /></aside>
     <div className="doc-center">
       <details className="mobile-navigation"><summary>Browse documentation</summary><Sidebar path={path} /></details>
       <main id="main-content" className="doc-article">
-        <div className="doc-breadcrumb"><Link href={component || catalog ? "/components" : "/docs"}>{component || catalog ? "Components" : "Documentation"}</Link><span aria-hidden="true">/</span><span>{title}</span></div>
+        <div className="doc-breadcrumb"><Link href={component || catalog ? "/components" : "/docs"}>{component || catalog ? "Components" : "Documentation"}</Link><span aria-hidden="true">/</span><span>{title}</span><span className="doc-version">v{content.version}</span>{["localhost", "127.0.0.1"].includes(location.hostname) && <span className="local-preview-label">Local preview</span>}</div>
         <header className="doc-heading">
           <Heading level={1} size="large">{title}</Heading>
           <Text as="p" tone="subtle" className="doc-description">{description}</Text>
-          <Inline gap="3" className="doc-tools"><CopyButton value={pageMarkdown ?? ""} label="Copy page" /><Link href={`${repository}/edit/main/${sourcePath}`} className="edit-link">Edit on GitHub <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link></Inline>
+          <Inline gap="3" className="doc-tools">
+            <div className="reader-modes" role="group" aria-label="Page format"><Button size="sm" variant="ghost" aria-pressed={mode === "read"} onClick={() => setMode("read")}>Read</Button><Button size="sm" variant="ghost" aria-pressed={mode === "markdown"} onClick={() => setMode("markdown")}>Markdown</Button></div>
+            <CopyButton value={pageMarkdown} label="Copy page as Markdown" />
+            <Button size="sm" variant="ghost" onClick={downloadMarkdown}>Download .md</Button>
+            <Link href={`${repository}/edit/main/${sourcePath}`} className="edit-link">Edit on GitHub <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link>
+          </Inline>
         </header>
+        <div hidden={mode !== "read"}>
         {doc && <div className="markdown-content"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
           a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>,
-          pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
+          pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock>,
           h2: ({ children, node }) => <h2 id={toc.find(section => "line" in section && section.line === node?.position?.start.line)?.id ?? slug(textOf(children))}>{children}</h2>,
           table: ({ children }) => <div className="table-scroll" tabIndex={0} role="region" aria-label="Documentation table"><table>{children}</table></div>,
         }}>{markdown}</Markdown></div>}
@@ -137,18 +138,19 @@ export default function Documentation({ path }: { path: string }) {
           </Link>)}</div>
         </section>)}</div>}
         {component && <>
-          <section id="preview" className="component-preview" aria-label={`${component.name} preview`}>
-            <div className="preview-stage"><ComponentPreview key={component.slug} slug={component.slug} /></div>
-            <details className="preview-code"><summary>View code</summary><CodeBlock><code>{exampleCode}</code></CodeBlock></details>
+          <section id="preview" aria-label={`${component.name} preview`}>
+            <ComponentWorkbench key={component.slug} component={component} onCodeChange={setExampleCode} onImportsChange={setExampleImports} importMode={importMode} />
           </section>
-          <section id="installation" className="doc-section"><Heading level={2} size="section">Installation</Heading>
-            <Text as="p" size="compact" tone="subtle">The base components ship together. Run once in an existing React project.</Text>
-            <CodeSnippet code={install} action={<CopyButton value={install} label="Copy install command" />} />
-            <Link href="/docs/installation">React and Next.js setup <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
+          <section id="usage" className="doc-section"><Heading level={2} size="section">Use {component.name}</Heading>
+            <Text as="p" size="compact" tone="subtle">{component.name} is a named export of <code>@flood-md/react</code>. Connect the package once, then import what you use.</Text>
+            <Link href="/docs/installation">First time here? Connect Flood <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
+            <div role="group" aria-label="Example import style" className="reader-modes import-modes"><Button variant="ghost" size="sm" aria-pressed={importMode === "package"} onClick={() => setImportMode("package")}>Package</Button><Button variant="ghost" size="sm" aria-pressed={importMode === "project"} onClick={() => setImportMode("project")}>Project UI</Button></div>
+            {importMode === "project" && <Text as="p" size="compact" tone="subtle">These paths belong to your project. <Link href="/docs/project-ui">Create the UI adapters and alias first.</Link></Text>}
+            <CodeBlock code={exampleCode} language="tsx" filename={`${component.slug}.tsx`} />
+            {importMode === "project" && <details className="adapter-instructions"><summary>Project UI adapter files</summary><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{ a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>, pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock> }}>{projectAdapters(exampleImports)}</Markdown></details>}
           </section>
-          <section id="usage" className="doc-section"><Heading level={2} size="section">Usage</Heading>
-            <Text as="p" size="compact">Import the stylesheet once and render inside <code>FloodRoot</code>. Use a client component for callbacks and state.</Text>
-            <CodeBlock><code>{exampleCode}</code></CodeBlock><ul className="usage-notes">{component.notes.map(note => <li key={note}>{note}</li>)}</ul>
+          <section id="design-notes" className="doc-section"><Heading level={2} size="section">Design notes</Heading>
+            <ul className="usage-notes">{component.notes.map(note => <li key={note}>{note}</li>)}</ul>
           </section>
           <section id="api" className="doc-section"><Heading level={2} size="section">API reference</Heading>
             {component.api.length > 0 && <div className="table-scroll" tabIndex={0} role="region" aria-label={`${component.name} props`}><table><thead><tr><th scope="col">Prop</th><th scope="col">Values</th><th scope="col">Default</th></tr></thead><tbody>{component.api.map(([prop, values, fallback]) => <tr key={prop}><td><code>{prop}</code></td><td>{values}</td><td>{fallback}</td></tr>)}</tbody></table></div>}
@@ -156,12 +158,14 @@ export default function Documentation({ path }: { path: string }) {
           </section>
         </>}
         {!doc && !component && !catalog && <Link href="/docs">Back to documentation</Link>}
+        </div>
+        {mode === "markdown" && <div className="markdown-source"><Text as="p" size="compact" tone="subtle">Copy or download this page with your current example settings. The permanent raw file contains the default example.</Text><Link href={`${path}.md`} className="raw-markdown-link">Open raw .md <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link><CodeBlock code={pageMarkdown} language="markdown" filename={`${component?.slug ?? doc?.file.replace(/\.md$/, "") ?? "components"}.md`} label="Page Markdown source" /></div>}
         <nav className="doc-pagination" aria-label="Previous and next page">
           {previous ? <Link href={previous.path}><IconSlot size="sm"><ArrowLeft /></IconSlot>{previous.name}</Link> : <span />}
           {next && <Link href={next.path}>{next.name}<IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
         </nav>
       </main>
     </div>
-    <aside className="doc-toc" aria-label="Page outline"><Text size="helper" tone="subtle">On this page</Text><nav aria-label="On this page">{toc.map(item => <Link key={item.id} href={`#${item.id}`}>{item.label}</Link>)}</nav><Link href="/llms.txt">Agent entry point <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link></aside>
+    <aside className="doc-toc" aria-label="Page outline" hidden={mode !== "read"}><Text size="helper" tone="subtle">On this page</Text><nav aria-label="On this page">{toc.map(item => <Link key={item.id} href={`#${item.id}`}>{item.label}</Link>)}</nav><Link href="/llms.txt">Agent entry point <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link></aside>
   </div>;
 }

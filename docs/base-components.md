@@ -30,7 +30,7 @@ than glyph artwork. Preserve the license of any icon pack used by the host.
 | --- | --- |
 | `Button` | Native action, explicit submit/reset, loading and disabled behavior |
 | `Input` | Native input props/ref and independent visual control sizing |
-| `Textarea` | Native multiline input, resizing and validation styling |
+| `Textarea` | Native multiline input, scrolling and validation styling |
 | `Checkbox` | Native checkbox with a required visible label |
 | `Radio` | Native radio with a visible label; the host owns group name and legend |
 | `Switch` | Native checkbox behavior exposed with switch semantics |
@@ -84,7 +84,7 @@ font retains its OFL license. Legacy controls outside FloodRoot keep their
 earlier light/dark contract; legacy variables do not automatically override the
 new scoped roles.
 
-Fields combine a quiet outline with a necessary stronger bottom boundary;
+Fields use one uniform necessary perimeter without a separate bottom edge;
 keyboard focus follows the field with a configurable 2px accent and no offset.
 Keep focus visible in invalid/selected states. Test actual text contrast,
 keyboard use, forced colors, reduced motion, narrow widths and enlarged text.

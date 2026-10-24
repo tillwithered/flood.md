@@ -9,6 +9,7 @@ WORKDIR /app
 COPY --from=build --chown=node:node /app/apps/website/dist ./apps/website/dist
 COPY --from=build --chown=node:node /app/apps/website/server.mjs ./apps/website/server.mjs
 COPY --from=build --chown=node:node /app/apps/website/routes.mjs ./apps/website/routes.mjs
+COPY --from=build --chown=node:node /app/apps/website/src/component-catalog.json ./apps/website/src/component-catalog.json
 USER node
 EXPOSE 4173
 CMD ["node", "apps/website/server.mjs"]

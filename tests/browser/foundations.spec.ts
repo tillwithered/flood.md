@@ -78,6 +78,48 @@ test("field focus follows its contour without moving layout and survives invalid
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
+test("fields use one contrasting perimeter and textarea scrolls without a resize grip", async ({ page }) => {
+  await page.goto(url);
+  const controls = [page.getByRole("textbox", { name: "Project name", exact: true }), page.getByRole("textbox", { name: "Project description", exact: true })];
+  for (const rootSize of [16, 20, 24]) {
+    await page.evaluate((size) => { document.documentElement.style.fontSize = `${size}px`; }, rootSize);
+    for (const control of controls) {
+      const boundary = await control.evaluate((node) => {
+        const css = getComputedStyle(node);
+        const luminance = (color: string) => color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map((byte) => {
+          const value = byte / 255;
+          return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
+        }).reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
+        const foreground = luminance(css.borderTopColor), background = luminance(css.backgroundColor);
+        return { colors: [css.borderTopColor, css.borderRightColor, css.borderBottomColor, css.borderLeftColor], ratio: (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05), shadow: css.boxShadow };
+      });
+      expect(new Set(boundary.colors).size).toBe(1);
+      expect(boundary.ratio).toBeGreaterThanOrEqual(3);
+      expect(boundary.shadow).toBe("none");
+      const before = await control.boundingBox();
+      await control.focus();
+      await expect(control).toHaveCSS("border-width", "2px");
+      await expect(control).toHaveCSS("outline-offset", "0px");
+      expect(await control.boundingBox()).toEqual(before);
+      await control.evaluate((node) => node.setAttribute("aria-invalid", "true"));
+      await expect(control).toHaveCSS("border-top-color", "rgb(255, 92, 168)");
+      await control.blur();
+      await expect(control).toHaveCSS("border-color", "rgb(255, 138, 138)");
+      await control.evaluate((node) => { node.removeAttribute("aria-invalid"); node.setAttribute("disabled", ""); });
+      await expect(control).toBeDisabled();
+      await expect(control).toHaveCSS("opacity", "1");
+      await control.evaluate((node) => node.removeAttribute("disabled"));
+    }
+  }
+  const textarea = controls[1];
+  await expect(textarea).toHaveCSS("resize", "none");
+  await expect(textarea).toHaveCSS("overflow-y", "auto");
+  await textarea.fill(Array.from({ length: 40 }, (_, index) => `Line ${index + 1}`).join("\n"));
+  expect(await textarea.evaluate((node) => { node.scrollTop = node.scrollHeight; return node.scrollHeight > node.clientHeight && node.scrollTop > 0; })).toBe(true);
+  await textarea.evaluate((node) => { node.style.resize = "vertical"; });
+  await expect(textarea).toHaveCSS("resize", "vertical");
+});
+
 test("control scale uses the agreed rem heights and disabled actions stay inert", async ({ page }) => {
   await page.goto(url);
   for (const [size, height] of Object.entries({ "2xs": 24, xs: 28, sm: 32, md: 40, lg: 44, xl: 48, "2xl": 56 })) {

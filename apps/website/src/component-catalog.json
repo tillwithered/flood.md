@@ -1,0 +1,275 @@
+[
+  {
+    "slug": "flood-root",
+    "name": "FloodRoot",
+    "group": "Setup",
+    "description": "An explicit scope for the neutral dark foundations profile.",
+    "code": "<FloodRoot>\n  <Text>Your workspace starts here.</Text>\n</FloodRoot>",
+    "notes": [
+      "Import @flood-md/react/styles.css once at the application entry.",
+      "This root selects neutral/dark locally. Legacy controls outside it keep their earlier theme behavior."
+    ],
+    "imports": [
+      "FloodRoot",
+      "Text"
+    ]
+  },
+  {
+    "slug": "text",
+    "name": "Text",
+    "group": "Typography",
+    "description": "Role-based interface text, from introductory copy to small supporting details.",
+    "code": "<Stack gap=\"3\">\n  <Text as=\"p\" size=\"lead\">A calm foundation for your next idea.</Text>\n  <Text as=\"p\" size=\"compact\">Use the space to make it yours.</Text>\n</Stack>",
+    "notes": [
+      "Use as=\"p\" for paragraphs. The label size does not create a form association.",
+      "Subtle is a supplementary tone; evaluate small required instructions against the actual background and font size."
+    ],
+    "imports": [
+      "Stack",
+      "Text"
+    ]
+  },
+  {
+    "slug": "heading",
+    "name": "Heading",
+    "group": "Typography",
+    "description": "Semantic heading levels with an independent visual scale.",
+    "code": "<Stack gap=\"4\">\n  <Heading level={2} size=\"page\">Workspace settings</Heading>\n  <Heading level={3} size=\"section\">Notifications</Heading>\n</Stack>",
+    "notes": [
+      "Choose level for document structure and size for appearance.",
+      "Display is a large marketing role. Keep page and section sizes for ordinary product interfaces."
+    ],
+    "imports": [
+      "Stack",
+      "Heading"
+    ]
+  },
+  {
+    "slug": "stack",
+    "name": "Stack",
+    "group": "Layout",
+    "description": "Vertical composition with spacing from the shared token scale.",
+    "code": "<Stack gap=\"4\">\n  <Heading size=\"section\">Project</Heading>\n  <Text as=\"p\">One place for your work.</Text>\n</Stack>",
+    "notes": [
+      "The parent owns the gap between its children.",
+      "Spacing keys are strings and use rem. Flood does not reset the host root font size."
+    ],
+    "imports": [
+      "Stack",
+      "Heading",
+      "Text"
+    ]
+  },
+  {
+    "slug": "inline",
+    "name": "Inline",
+    "group": "Layout",
+    "description": "A wrapping horizontal group for related content and actions.",
+    "code": "<Inline gap=\"2\" align=\"center\">\n  <Button>Save changes</Button>\n  <Button variant=\"subtle\">Cancel</Button>\n</Inline>",
+    "notes": [
+      "Inline wraps when its children need more space.",
+      "Use the same control size for neighboring actions of the same level."
+    ],
+    "imports": [
+      "Inline",
+      "Button"
+    ]
+  },
+  {
+    "slug": "surface",
+    "name": "Surface",
+    "group": "Layout",
+    "description": "A quiet container with semantic elevation and token-based padding.",
+    "code": "<Surface elevation=\"raised\" padding=\"6\">\n  <Text>Everything in its place.</Text>\n</Surface>",
+    "notes": [
+      "Elevation describes appearance. Overlay does not create a dialog, portal or focus trap.",
+      "Prefer grouping and spacing before adding more nested containers."
+    ],
+    "imports": [
+      "Surface",
+      "Text"
+    ]
+  },
+  {
+    "slug": "divider",
+    "name": "Divider",
+    "group": "Layout",
+    "description": "A semantic separator with a low-emphasis visual line.",
+    "code": "<Stack gap=\"4\">\n  <Text>Workspace</Text>\n  <Divider />\n  <Text>Account</Text>\n</Stack>",
+    "notes": [
+      "The line is decorative in contrast terms: content grouping must remain understandable without seeing it.",
+      "Divider renders a native hr; it has no orientation prop."
+    ],
+    "imports": [
+      "Stack",
+      "Text",
+      "Divider"
+    ]
+  },
+  {
+    "slug": "button",
+    "name": "Button",
+    "group": "Actions",
+    "description": "Native actions with a clear prominence, size and interaction state.",
+    "code": "<Inline gap=\"2\">\n  <Button>Save changes</Button>\n  <Button variant=\"subtle\">Cancel</Button>\n  <Button loading>Saving</Button>\n</Inline>",
+    "notes": [
+      "Button defaults to type=\"button\". Set submit or reset deliberately inside forms.",
+      "Loading disables activation and sets aria-busy. The host owns completion announcements.",
+      "Prefer subtle for standalone secondary actions; ghost belongs in a clear parent context."
+    ],
+    "imports": [
+      "Inline",
+      "Button"
+    ]
+  },
+  {
+    "slug": "icon-button",
+    "name": "IconButton",
+    "group": "Actions",
+    "description": "An icon-only action with a required accessible name.",
+    "code": "<IconButton label=\"Add idea\">\n  <Plus />\n</IconButton>",
+    "notes": [
+      "Provide a meaningful action label, rather than the name of the glyph.",
+      "Supply a licensed SVG. IconButton wraps it in a decorative IconSlot sized to the control.",
+      "Connect onClick to your host action. The interactive preview adds a local count; the basic usage snippet only shows composition."
+    ],
+    "imports": [
+      "IconButton",
+      "Plus"
+    ]
+  },
+  {
+    "slug": "link",
+    "name": "Link",
+    "group": "Actions",
+    "description": "A native anchor for navigation.",
+    "code": "<Link href=\"/docs/installation\">Install Flood</Link>",
+    "notes": [
+      "Use a button for state-changing actions and a link for navigation.",
+      "Link forwards anchor attributes. It does not provide Button variants or an asChild API."
+    ],
+    "imports": [
+      "Link"
+    ]
+  },
+  {
+    "slug": "field",
+    "name": "Field",
+    "group": "Forms",
+    "description": "The association between a visible label, its input and supporting messages.",
+    "code": "<Field label=\"Project name\" required hint=\"Visible to your team.\">\n  {(control) => <Input {...control} name=\"project\" />}\n</Field>",
+    "notes": [
+      "Spread the supplied control props onto one Input or Textarea.",
+      "Field merges describedBy with hint/error IDs and forwards native required through its function child.",
+      "The host owns validation rules. Compose Field in a client component in Next.js.",
+      "Field is not a generic native div wrapper and does not forward a ref."
+    ],
+    "imports": [
+      "Field",
+      "Input"
+    ]
+  },
+  {
+    "slug": "input",
+    "name": "Input",
+    "group": "Forms",
+    "description": "A native input with semantic styling and independent visual sizing.",
+    "code": "<Field label=\"Workspace name\">\n  {(control) => <Input {...control} defaultValue=\"My project\" />}\n</Field>",
+    "notes": [
+      "Use Field or a native associated label; placeholder text is not a label.",
+      "controlSize changes appearance. The native numeric size attribute keeps its HTML meaning.",
+      "Preserve the stronger necessary boundary and focus indicator when customizing colors."
+    ],
+    "imports": [
+      "Field",
+      "Input"
+    ]
+  },
+  {
+    "slug": "textarea",
+    "name": "Textarea",
+    "group": "Forms",
+    "description": "Native multiline input for notes and longer text.",
+    "code": "<Field label=\"Project note\" hint=\"Keep it short and useful.\">\n  {(control) => <Textarea {...control} rows={3} maxLength={500} />}\n</Field>",
+    "notes": [
+      "Rows, maxLength, value/defaultValue and form props remain native.",
+      "The default has no resize grip. Long text scrolls inside the field; a host can opt into native resizing with style={{ resize: \"vertical\" }}."
+    ],
+    "imports": [
+      "Field",
+      "Textarea"
+    ]
+  },
+  {
+    "slug": "checkbox",
+    "name": "Checkbox",
+    "group": "Forms",
+    "description": "A labeled native checkbox for independent choices.",
+    "code": "<Checkbox label=\"Send project updates\" name=\"updates\" defaultChecked />",
+    "notes": [
+      "Use checked/onChange for controlled state or defaultChecked for native state.",
+      "Labels stay visible. Disabled does not mean read-only; explain unavailable choices outside the disabled control when needed."
+    ],
+    "imports": [
+      "Checkbox"
+    ]
+  },
+  {
+    "slug": "radio",
+    "name": "Radio",
+    "group": "Forms",
+    "description": "A labeled native radio for one choice within a group.",
+    "code": "<fieldset>\n  <legend>Visibility</legend>\n  <Radio label=\"Private\" name=\"visibility\" value=\"private\" defaultChecked />\n  <Radio label=\"Public\" name=\"visibility\" value=\"public\" />\n</fieldset>",
+    "notes": [
+      "Radios in one group share a name. The host supplies fieldset and legend.",
+      "Native browser keyboard and form behavior remain available."
+    ],
+    "imports": [
+      "Radio"
+    ]
+  },
+  {
+    "slug": "switch",
+    "name": "Switch",
+    "group": "Forms",
+    "description": "A labeled on/off setting with native checkbox form behavior.",
+    "code": "<Switch label=\"Email notifications\" name=\"notifications\" defaultChecked />",
+    "notes": [
+      "Switch uses a native checkbox with role=\"switch\".",
+      "checked/defaultChecked, name/value, reset and disabled remain native. The component does not persist settings."
+    ],
+    "imports": [
+      "Switch"
+    ]
+  },
+  {
+    "slug": "code-snippet",
+    "name": "CodeSnippet",
+    "group": "Content",
+    "description": "Selectable, wrapping code with an optional host-owned action.",
+    "code": "<CodeSnippet code=\"git status --short\" />",
+    "notes": [
+      "CodeSnippet escapes code content and uses the semantic system monospace font stack.",
+      "The host implements copy behavior, failure handling and feedback. No clipboard or network API runs inside the component."
+    ],
+    "imports": [
+      "CodeSnippet"
+    ]
+  },
+  {
+    "slug": "icon-slot",
+    "name": "IconSlot",
+    "group": "Content",
+    "description": "Consistent geometry for a host-supplied SVG icon.",
+    "code": "<IconSlot size=\"md\"><ArrowRight /></IconSlot>",
+    "notes": [
+      "No glyph pack ships in the React package. Keep the license of the host's icon artwork.",
+      "Without label the slot is decorative. With label it exposes role=\"img\" and an accessible name.",
+      "Use an SVG rather than a text character. Avoid inline SVG sizing styles that override the slot."
+    ],
+    "imports": [
+      "IconSlot",
+      "ArrowRight"
+    ]
+  }
+]

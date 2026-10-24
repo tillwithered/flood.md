@@ -3,6 +3,13 @@
 Use Node.js 22.12 or newer and an existing npm-based React/Next.js project.
 React 18.3/19 is supported; React 19 and Next.js App Router are integration targets.
 
+## Connect once, import by name
+
+The base set ships in one package. Set it up once for your project, then use
+named imports such as `import { Button, Input } from "@flood-md/react"`.
+There is no per-component `add` command or source-copy registry. You do not
+repeat installation when you start using another component.
+
 ## Connect with the CLI
 
 ```sh

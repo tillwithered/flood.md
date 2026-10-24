@@ -11,8 +11,9 @@ them without a separate content service.
 | Guide | What it covers |
 | --- | --- |
 | [Installation](installation.md) | React, Next.js, CLI setup and manual installation |
+| [Project UI](project-ui.md) | Optional semantic @/ui/button imports in your application |
 | [Components](components.md) | Available controls, props and form composition |
-| [Base component inventory](base-components.md) | The 18 primitives and controls in the base release |
+| [Base component inventory](base-components.md) | Available primitives and controls in the base release |
 | [Customization](theming.md) | Scoped dark foundations overrides and legacy theme boundaries |
 | [Foundations](foundations.md) | Typed semantic tokens and neutral dark profile for 0.2.2 |
 | [Agents](agents.md) | Installing and using the matching agent instructions |

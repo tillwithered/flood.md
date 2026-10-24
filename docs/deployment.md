@@ -18,10 +18,16 @@ output in a Node 24 image and starts the server. Container runtime contents are
 limited to the built website and server entry; source and build dependencies stay
 in the build stage.
 
-The runtime also includes `apps/website/routes.mjs`, the explicit page allowlist.
+The runtime also includes `apps/website/routes.mjs` and its catalog JSON inventory,
+which define the explicit page allowlist.
 Known `/docs` and `/components` pages serve the website entry; unknown paths
 return 404. Documentation Markdown is bundled at build time from `docs/` and
 does not depend on a live GitHub connection.
+
+The build also emits canonical Markdown counterparts for the documentation and
+component pages. For example `/docs/installation.md` and `/components/button.md`
+return `text/markdown` with the default documented example. Clipboard/download
+from the interactive reader can instead include its current lab settings.
 
 ## Hosting contract
 
