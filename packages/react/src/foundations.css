@@ -85,7 +85,7 @@
 }
 .flood-root .flood-button--outline { border-color: var(--flood-sys-color-field-boundary); }
 .flood-root .flood-icon-button { min-inline-size: var(--flood-control-height); padding: var(--flood-sys-space-1); }
-.flood-root .flood-icon { display: inline-flex; flex: none; inline-size: var(--flood-icon-size); block-size: var(--flood-icon-size); color: inherit; }
+.flood-root .flood-icon { display: inline-flex; align-items: center; justify-content: center; line-height: 1; flex: none; inline-size: var(--flood-icon-size); block-size: var(--flood-icon-size); color: inherit; }
 .flood-root .flood-icon > svg { display: block; inline-size: 100%; block-size: 100%; }
 .flood-root .flood-input {
   display: block;

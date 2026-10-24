@@ -1,4 +1,4 @@
-# Base component inventory · 0.2.0
+# Base component inventory · 0.2.1
 
 The base dark design system exports **17 components: nine primitives and eight
 native controls**. They use original Flood implementations, React 18.3/19 APIs

@@ -1,4 +1,4 @@
-# Flood design system · 0.2.0
+# Flood design system · 0.2.1
 
 React + TypeScript and Next.js App Router. Use this guide with matching installed
 Flood packages and flood.json. The source repository's release status does not

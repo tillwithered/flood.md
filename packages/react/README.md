@@ -3,7 +3,7 @@
 Original React 18.3/19 components for TypeScript and Next.js App Router. Native
 HTML semantics and refs, no third-party component library or Tailwind dependency.
 
-This package documents the **0.2.0** API. Keep Flood package versions aligned
+This package documents the **0.2.1** API. Keep Flood package versions aligned
 and follow the guide matching your installed version.
 
 ```tsx
