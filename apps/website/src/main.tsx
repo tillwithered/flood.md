@@ -61,7 +61,7 @@ function App() {
             <Text as="p" size="helper" tone="subtle" className="eyebrow">INDEPENDENT BY DESIGN</Text>
             <Heading level={1} size="large">A clear foundation.<br />Room to make it yours.</Heading>
             <Text as="p" size="body" tone="subtle" className="description">
-              Clean components. A considered dark theme.<br className="desktop-break" />
+              Clean components. A considered dark theme.{" "}<br className="desktop-break" />
               For React, Next.js, and the agent beside you.
             </Text>
           </Stack>

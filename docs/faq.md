@@ -43,7 +43,7 @@ if the import and wrapper are already present.
 ## Can I rerun init or use it as an updater?
 
 Init refuses existing flood.json or owned instruction files. It does not overwrite
-project instructions. Follow the [upgrade guide](installation.md#updates) and
+project instructions. Follow the [upgrade guide](installation.md) and
 review customized instructions when moving to a new release.
 
 ## Does making the website source public grant server access?
