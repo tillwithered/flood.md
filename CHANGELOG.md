@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add SegmentedControl with a shared inset surface, native single selection,
+  form/reset behavior and text/icon previews; planned for the next 0.2.3 patch.
+
 - Add Toggle and ToggleGroup pressed actions with original state, icon and keyboard
   behavior, source documentation and live recipes; planned for the next 0.2.3 patch.
 

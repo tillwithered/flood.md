@@ -31,7 +31,7 @@ included. Legacy controls outside FloodRoot keep their earlier theme behavior.
 
 Exports: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot,
 IconButton, CodeSnippet, Button, Input, Textarea, Checkbox, Radio, Switch, Field and Link,
-plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, Select
+plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup, SegmentedControl, Select
 and ScrollArea beyond published 0.2.2. Button variants are solid/subtle/outline/ghost;
 sizes are 2xs/xs/sm/md/lg/xl/2xl. Prefer subtle for standalone secondary actions;
 ghost belongs in a clear parent context. Loading disables activation.
@@ -263,4 +263,44 @@ until the release is explicitly prepared and verified.
 <Toggle defaultPressed onPressedChange={active => console.log(active)}>Bold</Toggle>
 <ToggleGroup label="Text formatting" defaultValue={["bold"]}
   options={[{value: "bold", label: "Bold"}, {value: "italic", label: "Italic"}]} />
+```
+
+
+## Current source: SegmentedControl
+
+SegmentedControl is a segmented presentation of Flood RadioGroup with native
+radio inputs, a visible label/legend and shared inset surface. Supply label,
+name and unique-value options (string label, optional icon/disabled). Use short
+labels for a small set of modes. Default orientation is horizontal; vertical,
+iconOnly and fullWidth are supported. iconOnly requires each option's icon and
+keeps its label available to assistive technology. fullWidth distributes equal
+width to horizontal segments. controlSize is sm/md/lg/xl; touch targets may grow
+the shared shell. Intrinsic groups retain readable labels rather than compressing
+icons; use a constrained ScrollArea or another orientation if needed.
+
+value/onValueChange use a single string; defaultValue initializes local state.
+An absent or unmatched initial value leaves the group unselected. Once selected,
+clicking the current segment cannot clear it; controlled host state can clear it.
+Keep names unique among independent groups in the same form. Native name, form,
+required, disabled fieldsets and reset are preserved through RadioGroup. Reset
+restores the latest defaultValue for local state, preserves controlled host
+values, respects cancellation and does not call onValueChange. Empty/missing
+options are not invented. No automatic fallback to the first option is applied.
+
+Tab reaches the selected enabled radio (browser defaults apply if none is
+selected). Arrows focus and select, wrapping and skipping disabled options;
+horizontal left/right follow RTL. Home/End select the first/last enabled item.
+Space selects without clearing. A canceled native onKeyDown skips Flood's
+keyboard enhancement. Enter retains native radio/form behavior. The ref targets
+HTMLFieldSetElement. Hint/message/error/status follow Fieldset.
+
+Use SegmentedControl for one value/mode, ToggleGroup for optional pressed actions
+and actual tabs for associated tab panels. This does not implement tab panels.
+Source-only addition planned for 0.2.3; manifests remain aligned at 0.2.2 until
+release preparation. No publication is implied by the current source.
+
+```tsx
+<SegmentedControl label="Time range" name="period" defaultValue="day"
+  options={[{value: "day", label: "Day"}, {value: "week", label: "Week"},
+    {value: "month", label: "Month"}]} />
 ```

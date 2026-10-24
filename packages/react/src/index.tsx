@@ -334,6 +334,37 @@ export const RadioGroup = forwardRef<HTMLFieldSetElement, RadioGroupProps>(funct
     selected={value === undefined ? undefined : [value]} initial={defaultValue === undefined ? [] : [defaultValue]}
     onSelectionChange={next => onValueChange?.(next[0] ?? "")} fieldsetComponent={Fieldset} choiceComponent={Radio} />;
 });
+
+export interface SegmentedControlProps extends Omit<RadioGroupProps, "legend" | "options"> {
+  label: string;
+  options: readonly ToggleOption[];
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  iconOnly?: boolean;
+  fullWidth?: boolean;
+}
+/** A segmented presentation of native single-choice inputs, retaining forms and reset. */
+export const SegmentedControl = forwardRef<HTMLFieldSetElement, SegmentedControlProps>(function SegmentedControl(
+  { label, options, controlSize = "md", iconOnly = false, fullWidth = false, orientation = "horizontal", className, onKeyDown, ...props }, ref,
+) {
+  if (iconOnly && options.some(option => !option.icon)) throw new Error("Flood icon-only segments require icons");
+  return <RadioGroup {...props} ref={ref} legend={label} orientation={orientation}
+    className={classes("flood-segmented", `flood-control--${controlSize}`, iconOnly && "flood-segmented--icons", fullWidth && "flood-segmented--full", className)}
+    options={options.map(option => ({ ...option, label: <>
+      {option.icon && <IconSlot size={controlSize}>{option.icon}</IconSlot>}
+      {iconOnly ? <span className="flood-segmented__name">{option.label}</span> : option.label}
+    </> }))} onKeyDown={event => {
+      onKeyDown?.(event);
+      if (event.defaultPrevented) return;
+      const inputs = Array.from(event.currentTarget.querySelectorAll<HTMLInputElement>(":scope > .flood-fieldset__body > .flood-choice-group > .flood-choice > input[type=radio]:not(:disabled)"));
+      const index = inputs.indexOf(event.target as HTMLInputElement);
+      if (index < 0) return;
+      const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+      const next = event.key === "Home" ? 0 : event.key === "End" ? inputs.length - 1
+        : event.key === "ArrowDown" || event.key === (rtl ? "ArrowLeft" : "ArrowRight") ? (index + 1) % inputs.length
+        : event.key === "ArrowUp" || event.key === (rtl ? "ArrowRight" : "ArrowLeft") ? (index - 1 + inputs.length) % inputs.length : -1;
+      if (next >= 0) { event.preventDefault(); inputs[next].focus(); inputs[next].click(); }
+    }} />;
+});
 export interface CheckboxGroupProps extends Omit<FieldsetProps, "children" | "defaultValue" | "role"> {
   name: string;
   options: readonly ChoiceOption[];

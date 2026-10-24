@@ -94,3 +94,12 @@ Arrow/Home/End navigate focus; Enter/Space activate; ordinary Tab order remains.
 Do not use these as form inputs, required radios or tabs. No automatic native
 form reset/submission is provided. Default props initialize only; host state owns
 controlled values. Current source only, pending 0.2.3, not published 0.2.2.
+
+SegmentedControl composes native RadioGroup for one value/mode: label, unique form
+name and string-label options, with optional artwork. Use value/onValueChange or
+defaultValue; it does not clear when the selected item is pressed again. Arrows
+select, Home/End select endpoints, Space checks; Enter keeps native form behavior.
+Native form/required/disabled/reset behavior remains. Use actual tabs for panels,
+not SegmentedControl. Choose short labels, icons or vertical orientation for
+constrained widths; fullWidth distributes segments equally. iconOnly retains
+accessible option labels. Pending source-only 0.2.3, not published 0.2.2.

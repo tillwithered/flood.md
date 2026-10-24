@@ -446,5 +446,20 @@
     "imports": [
       "ToggleGroup"
     ]
+  },
+  {
+    "slug": "segmented-control",
+    "name": "SegmentedControl",
+    "group": "forms",
+    "description": "A compact single-value choice with native radio semantics and a shared inset surface.",
+    "code": "<SegmentedControl label=\"Time range\" name=\"period\" defaultValue=\"day\" options={[{value: \"day\", label: \"Day\"}, {value: \"week\", label: \"Week\"}, {value: \"month\", label: \"Month\"}]} />",
+    "notes": [
+      "Unreleased source beyond published 0.2.2. Uses original RadioGroup behavior and native inputs.",
+      "Arrow keys move focus and select; Home/End select endpoints, skipping disabled segments. Selecting the current value does not clear it.",
+      "Native name/form/required, reset and controlled values are preserved. Use actual tabs for tab panels, ToggleGroup for optional pressed actions."
+    ],
+    "imports": [
+      "SegmentedControl"
+    ]
   }
 ]

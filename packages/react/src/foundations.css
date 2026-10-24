@@ -505,3 +505,26 @@
 .flood-root :is(.flood-button, .flood-input, .flood-button-group, .flood-input-group)[hidden] { display: none; }
 
 .flood-root .flood-input-group[data-disabled="true"] > .flood-input-group__addon { color: var(--flood-sys-color-field-disabled-content); }
+
+/* The shell and selected segment share concentric geometry; native radios own state. */
+.flood-root .flood-segmented { inline-size: fit-content; max-inline-size: 100%; }
+.flood-root .flood-segmented .flood-choice-group { box-sizing: border-box; inline-size: max-content; flex-wrap: nowrap; align-items: stretch; gap: var(--flood-sys-space-1); padding: calc(var(--flood-sys-space-1) - var(--flood-sys-stroke-width)); border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-field-border); border-radius: var(--flood-sys-radius-field); background: var(--flood-sys-color-surface-default); }
+.flood-root .flood-segmented--full { inline-size: 100%; }
+.flood-root .flood-segmented--full .flood-choice-group { inline-size: 100%; }
+.flood-root .flood-segmented .flood-choice { position: relative; box-sizing: border-box; flex: 1 0 auto; justify-content: center; max-inline-size: none; min-block-size: calc(var(--flood-control-height) - 2 * var(--flood-sys-space-1)); padding-block: max(0px, calc((var(--flood-control-height) - 2 * var(--flood-sys-space-1) - var(--flood-control-text) * var(--flood-control-line)) / 2)); padding-inline: var(--flood-sys-space-3); border-radius: max(0px, calc(var(--flood-sys-radius-field) - var(--flood-sys-space-1))); color: var(--flood-sys-color-content-subtle); font-size: var(--flood-control-text); line-height: var(--flood-control-line); font-weight: var(--flood-sys-type-control-weight); letter-spacing: var(--flood-sys-type-control-tracking); cursor: pointer; }
+.flood-root .flood-segmented--full .flood-choice { flex: 1 1 0; min-inline-size: 0; }
+.flood-root .flood-segmented .flood-choice-group[data-orientation="vertical"] > .flood-choice { inline-size: 100%; }
+.flood-root .flood-segmented--icons .flood-choice { padding-inline: var(--flood-sys-space-1); min-inline-size: calc(var(--flood-control-height) - 2 * var(--flood-sys-space-1)); }
+.flood-root .flood-segmented .flood-choice > span { display: inline-flex; align-items: center; justify-content: center; gap: var(--flood-control-gap); }
+.flood-root .flood-segmented .flood-choice > .flood-check { position: absolute; inset: 0; inline-size: 100%; min-inline-size: 0; max-inline-size: none; block-size: 100%; margin: 0; border: 0; opacity: 0; cursor: inherit; }
+.flood-root .flood-segmented .flood-choice > .flood-check::before { display: none; }
+.flood-root .flood-segmented .flood-choice:has(input:checked) { background: var(--flood-sys-color-selection-background); color: var(--flood-sys-color-selection-content); }
+.flood-root .flood-segmented .flood-choice:has(input:focus-visible) { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: 0; }
+.flood-root .flood-segmented .flood-choice:has(input:disabled) { color: var(--flood-sys-color-field-disabled-content); cursor: default; }
+.flood-root .flood-segmented__name { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (pointer: coarse) { .flood-root .flood-segmented .flood-choice { min-block-size: max(calc(var(--flood-control-height) - 2 * var(--flood-sys-space-1)), var(--flood-sys-size-touch)); min-inline-size: var(--flood-sys-size-touch); } }
+@media (forced-colors: active) {
+  .flood-root .flood-segmented .flood-choice-group { border-color: CanvasText; }
+  .flood-root .flood-segmented .flood-choice:has(input:checked) { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+  .flood-root .flood-segmented .flood-choice:has(input:focus-visible) { outline-color: Highlight; }
+}

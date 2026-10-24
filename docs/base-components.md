@@ -1,8 +1,8 @@
 # Base component inventory
 
-The current source exports **28 components**, including the unreleased Select, ScrollArea,
-Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle and ToggleGroup additions. Published 0.2.2
-exports 18 components and does not include these ten exports. They use original Flood implementations, React 18.3/19 APIs
+The current source exports **29 components**, including the unreleased Select, ScrollArea,
+Label, Fieldset, RadioGroup, CheckboxGroup, ButtonGroup, InputGroup, Toggle, ToggleGroup and SegmentedControl additions. Published 0.2.2
+exports 18 components and does not include these eleven exports. They use original Flood implementations, React 18.3/19 APIs
 and TypeScript declarations. Import `@flood-md/react/styles.css` once and place
 new compositions inside `FloodRoot`.
 
@@ -32,6 +32,7 @@ than glyph artwork. Preserve the license of any icon pack used by the host.
 | Export | Responsibility |
 | --- | --- |
 | `Toggle` (unreleased source) | Native pressed action with controlled/local state |
+| `SegmentedControl` (unreleased source) | Native single choice in a shared inset surface, preserving forms and reset |
 | `ToggleGroup` (unreleased source) | Optional single/multiple pressed actions with keyboard focus navigation |
 | `ButtonGroup` (unreleased source) | Connected independent actions with ordinary Tab navigation |
 | `InputGroup` (unreleased source) | One native input with host-owned start/end adornments |
