@@ -6,7 +6,7 @@ import { once } from 'node:events';
 import { prepareSiteBundle, checkLocalSite, verifySite, waitForSite } from '../scripts/site-contract.mjs';
 
 const sha = 'a'.repeat(40);
-const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')); 
+const { version } = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 async function fixture(handler) {
  const server = createServer(handler);server.listen(0,'127.0.0.1');await once(server,'listening');
  return {server,url:'http://127.0.0.1:'+server.address().port,close:()=>new Promise(resolve=>server.close(resolve))};
