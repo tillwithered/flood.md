@@ -98,7 +98,7 @@ font retains its OFL license. Legacy controls outside FloodRoot keep their
 earlier light/dark contract; legacy variables do not automatically override the
 new scoped roles.
 
-Fields use one uniform necessary perimeter without a separate bottom edge;
+Fields use one quiet field.border perimeter without a separate bottom edge;
 keyboard focus follows the field with a configurable 2px accent and no offset.
 Keep focus visible in invalid/selected states. Test actual text contrast,
 keyboard use, forced colors, reduced motion, narrow widths and enlarged text.

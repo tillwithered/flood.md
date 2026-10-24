@@ -85,7 +85,7 @@ test("field focus follows its contour without moving layout and survives invalid
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
-test("fields use one contrasting perimeter and textarea scrolls without a resize grip", async ({ page }) => {
+test("fields use a quiet uniform perimeter and textarea scrolls without a resize grip", async ({ page }) => {
   await page.goto(url);
   const controls = [page.getByRole("textbox", { name: "Project name", exact: true }), page.getByRole("textbox", { name: "Project description", exact: true })];
   for (const rootSize of [16, 20, 24]) {
@@ -101,7 +101,8 @@ test("fields use one contrasting perimeter and textarea scrolls without a resize
         return { colors: [css.borderTopColor, css.borderRightColor, css.borderBottomColor, css.borderLeftColor], ratio: (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05), shadow: css.boxShadow };
       });
       expect(new Set(boundary.colors).size).toBe(1);
-      expect(boundary.ratio).toBeGreaterThanOrEqual(3);
+      expect(boundary.colors[0]).toBe("rgb(56, 56, 56)");
+      expect(boundary.ratio).toBeLessThan(3);
       expect(boundary.shadow).toBe("none");
       const before = await control.boundingBox();
       await control.focus();

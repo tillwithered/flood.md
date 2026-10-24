@@ -45,7 +45,7 @@ font stack; the host owns copy actions and status messages. Both additions are
 compatible extensions in 0.2.2; they do not replace existing defaults.
 
 Input/Textarea controlSize is sm/md/lg/xl; native Input size is preserved.
-Dark fields use one uniform necessary perimeter; focus replaces it with a 2px
+Dark fields use one quiet uniform `color.field.border` perimeter; focus replaces it with a 2px
 accent without a gap or layout shift. Textarea scrolls its content without a
 native resize grip by default; hosts can opt into resizing through the native
 style prop, for example `style={{ resize: "vertical" }}`.

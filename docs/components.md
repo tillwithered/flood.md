@@ -192,9 +192,11 @@ from disabled. Explain unavailable actions outside a disabled element when neede
 
 ### Contrast and customization
 
-Dark fields use one uniform necessary perimeter without a separate bottom edge
-or inset shadow. Keep this boundary or re-evaluate its replacement against neighboring
-surfaces. Focus is a 2px accent boundary without offset or a second contour;
+Dark fields use one quiet `color.field.border` perimeter without a separate bottom
+edge or inset shadow. The stronger `color.field.boundary` role is an explicit
+choice for compositions that need it. Quiet outlines do not establish 3:1
+non-text contrast; evaluate recognition against the actual surface. Focus is a
+2px accent boundary without offset or a second contour;
 its configurable pink default is provisional, not a complete brand palette.
 Invalid styling must not erase the focus indicator.
 

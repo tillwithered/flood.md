@@ -149,6 +149,24 @@ the indicator to make a row fit. Check narrow widths, root text scaling, user
 text-spacing overrides and long translations. Preserve visible focus, native
 form semantics, forced colors and reduced motion while changing composition.
 
+## Coordinate nested corners only where shapes share an inset
+
+A menu's selected/hovered row follows the same outer contour as its popup. For
+uniform padding, derive the inner radius from the outer border-box radius:
+
+`inner radius = max(0, outer radius - padding - border width)`.
+
+The Select popup uses its field-radius role, space-1 padding and stroke-width
+role. At a 16px root these are 16px, 4px and 1px, so the option radius is 11px.
+The relation follows root scaling and semantic overrides; do not reuse the
+independent checkbox indicator radius for menu rows.
+
+The recipe is local to the popup, not a global rule for every descendant.
+Independent Buttons inside Surface or CodeSnippet keep their own action radius.
+Pill tracks/thumbs and segmented controls already derive their curves from their
+actual heights; do not subtract arbitrary padding from an effectively infinite
+pill token. For unequal insets, derive each corner/axis from its actual inset.
+
 ## Source additions and compatibility
 
 Select's custom single-choice popup and the refined intrinsic sizing/custom choice appearance are

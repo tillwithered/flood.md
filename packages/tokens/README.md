@@ -19,8 +19,10 @@ on their scope; repeat both attributes for nested scopes. See the
 [foundations guide](../../docs/foundations.md) for supported types and limits.
 
 The React package bundles Inter and its OFL license. Token-only consumers provide
-their own font setup. Quiet field outlines need their separate necessary
-boundary signal; decorative line contrast is distinct from text accessibility.
+their own font setup. Current source maps the quiet field.border role to the
+container-outline tone. field.boundary remains a stronger opt-in; the quiet
+default does not establish 3:1 non-text contrast. Evaluate actual recognition
+and accessibility for the host composition.
 
 Legacy ./tokens.css and JSON retain the earlier shared/light/dark contract and
 --flood-* names. Legacy controls outside FloodRoot remain compatible; legacy

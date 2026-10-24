@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Use the quiet field.border role for default control outlines, matching the
+  container tone; retain field.boundary as an explicit stronger alternative.
+- Derive Select option corners from the popup radius minus its padding and
+  stroke. Keep independent nested actions on their own radius recipes.
+
 - Add Select with a custom Flood single-choice trigger/listbox popup, styled
   dark geometry and a native form-value/ref bridge. Multiple/size listboxes
   remain inline native controls without an operating-system dropdown.
@@ -18,7 +23,7 @@
   every build; missing documentation/preview coverage blocks verification.
 - Project UI examples support optional semantic imports such as `@/ui/button`
   with explicit adapter and alias setup, alongside direct package imports.
-- Dark Input/Textarea use one uniform necessary contour instead of an emphasized
+- Dark Input/Textarea use one uniform quiet contour instead of an emphasized
   bottom edge. Textarea scrolls without a default native resize grip; hosts can
   opt into resizing with CSS. Focus stays 2px and does not shift layout.
 

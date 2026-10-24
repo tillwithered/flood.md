@@ -63,7 +63,7 @@ IconSlot accepts host SVG artwork without adding an icon library dependency.
 Inter is a bundled, unmodified third-party WOFF2 asset under its original SIL
 OFL 1.1, separate from Flood's MIT code. Its release, hash and license accompany
 the source. CSS resolves the font locally without a CDN. The current dark field
-recipe uses one uniform necessary perimeter without a separate emphasized edge;
+recipe uses the quiet field.border perimeter without a separate emphasized edge;
 the 2px focus accent replaces it without offset and remains configurable and
 provisional. These choices do not
 constitute a claim of complete accessibility across host compositions.

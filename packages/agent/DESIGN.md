@@ -85,6 +85,10 @@ child. Keep server data fetching in server components.
   root size. Check320px widths, enlarged text and user text-spacing overrides
   instead of shrinking type or clipping labels to make the layout fit.
 
+For inset shapes that share a contour (Select popup and highlighted rows),
+derive inner radius as max(0, outer radius - padding - border width). Keep this
+local to the composition; independent nested actions keep their own radii.
+
 ## Tokens and accessibility
 
 Use semantic --flood-sys-* roles inside FloodRoot; values are authored only in
@@ -93,8 +97,10 @@ Nested token scopes repeat both data-flood-foundations=neutral and
 data-flood-theme=dark attributes. Preserve independent surface, content, boundary,
 selection, feedback and focus roles rather than hardcoding component colors.
 
-Fields use one uniform necessary perimeter, without a second bottom edge or
-inset shadow. Re-evaluate contrast if replacing that boundary. Focus is 2px
+Default controls use the quiet field.border role, without a second bottom edge or
+inset shadow. Keep field.boundary as an explicit stronger alternative; do not apply
+it to every ordinary control. Quiet defaults do not establish 3:1 non-text
+contrast. Focus is 2px
 without offset; the configurable pink default is provisional. Keep focus visible
 with invalid and selected states. Do not mute a whole component through opacity
 to reduce one border. Never convey error, selection or status by color alone.

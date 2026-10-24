@@ -107,11 +107,28 @@ text-field defaults.
 
 ### Boundaries, focus and motion
 
-The quiet `color.field.border` (#4a4a4a) is insufficient as the sole necessary
-boundary. `color.field.boundary` (#8a8a8a) supplies a stronger recognition signal.
-The current field recipe uses it as one uniform perimeter rather than an
-emphasized bottom edge or a second inset contour.
-Decorative borders never substitute for this signal. Error, selected and focus
+Current source uses the quiet `color.field.border` (#383838), matching the
+container-outline tone, for ordinary Input, Textarea, Select, unchecked choices,
+Switch and outline Button borders. It is one uniform perimeter, with no extra
+bottom edge or inset contour. The stronger `color.field.boundary` (#8a8a8a)
+remains available for an explicit contrast requirement; it is not the default.
+
+The quiet outline and field fill do not reach 3:1 against neighboring dark
+surfaces. This visual profile therefore does not establish WCAG 1.4.11 compliance
+for controls whose recognition depends on those signals. Preserve labels and
+evaluate the complete host composition; use a stronger role when required.
+Text contrast and APCA guidance remain separate from outline styling.
+
+A host can opt into stronger fields without overriding the independent focus role:
+
+```css
+/* Import after the Flood stylesheet; apply this attribute to FloodRoot. */
+.flood-root[data-control-contrast="strong"] {
+  --flood-sys-color-field-border: var(--flood-sys-color-field-boundary);
+}
+```
+
+Error, selected and focus
 states need semantic markup and a visible cue beyond color where applicable.
 
 Focus uses `focus.width` 2px and `focus.offset` 0px. `color.focus.ring` currently
