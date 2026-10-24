@@ -12,8 +12,10 @@ import {
   type ReactNode,
   type HTMLAttributes,
   type CSSProperties,
+  type LabelHTMLAttributes,
+  type FieldsetHTMLAttributes,
 } from "react";
-import { resolveFieldStatus } from "./field-state.js";
+import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-state.js";
 import { SingleSelect } from "./select.js";
 import { OverlayScrollArea } from "./scroll-area.js";
 
@@ -173,6 +175,44 @@ export const Switch = forwardRef<HTMLInputElement, ChoiceProps>(function Switch(
   );
 });
 
+export interface LabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
+  required?: boolean;
+}
+/** A native label; the required marker never substitutes for the control's required prop. */
+export const Label = forwardRef<HTMLLabelElement, LabelProps>(function Label(
+  { required, children, className, ...props }, ref,
+) {
+  return <label {...props} ref={ref} className={classes("flood-label", className)}>{children}{required && <span aria-hidden="true"> *</span>}</label>;
+});
+
+export interface FieldsetProps extends FieldsetHTMLAttributes<HTMLFieldSetElement> {
+  legend: ReactNode;
+  hint?: ReactNode;
+  error?: ReactNode;
+  message?: ReactNode;
+  status?: FieldStatus;
+}
+/** A native group: disabled, form ownership and nested fieldsets retain browser behavior. */
+export const Fieldset = forwardRef<HTMLFieldSetElement, FieldsetProps>(function Fieldset(
+  { legend, hint, error, message, status, children, className, id: explicitId, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props }, ref,
+) {
+  const generatedId = useId();
+  const id = explicitId ?? `flood-${generatedId}`;
+  const hasHint = hasFieldContent(hint), hasError = hasFieldContent(error), hasMessage = hasFieldContent(message) && !hasError;
+  const resolvedStatus = resolveFieldStatus(status, hasError, ariaInvalid);
+  const description = mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && `${id}-message`);
+  return <fieldset {...props} ref={ref} id={id} className={classes("flood-fieldset", className)} data-status={resolvedStatus}
+    aria-describedby={description} aria-invalid={resolvedStatus === "error" || ariaInvalid || undefined}>
+    <legend className="flood-legend">{legend}</legend>
+    <div className="flood-fieldset__body">
+      {hasHint && <div id={`${id}-hint`} className="flood-hint">{hint}</div>}
+      {children}
+      {hasMessage && <div id={`${id}-message`} className="flood-message" role={resolvedStatus === "error" ? "alert" : undefined}>{message}</div>}
+      {hasError && <div id={`${id}-error`} className="flood-error" role="alert">{error}</div>}
+    </div>
+  </fieldset>;
+});
+
 export interface FieldControlProps {
   id: string;
   "aria-describedby"?: string;
@@ -204,19 +244,15 @@ export function Field({
 }: FieldProps) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
-  const hasMessage = message !== null && message !== undefined && message !== false && message !== true && message !== "";
-  const hasHint = hint !== null && hint !== undefined && hint !== false && hint !== true && hint !== "";
-  const hasError = error !== null && error !== undefined && error !== false && error !== true && error !== "";
+  const hasMessage = hasFieldContent(message);
+  const hasHint = hasFieldContent(hint);
+  const hasError = hasFieldContent(error);
   const resolvedStatus = hasError ? "error" : status;
   const description =
-    [...new Set([describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && !hasError && `${id}-message`].filter(Boolean).join(" ").split(/\s+/).filter(Boolean))].join(" ") ||
-    undefined;
+    mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && !hasError && `${id}-message`);
   return (
     <div className="flood-field" data-status={resolvedStatus}>
-      <label className="flood-label" htmlFor={id}>
-        {label}
-        {required && <span aria-hidden="true"> *</span>}
-      </label>
+      <Label htmlFor={id} required={required}>{label}</Label>
       {children({
         id,
         "aria-describedby": description,

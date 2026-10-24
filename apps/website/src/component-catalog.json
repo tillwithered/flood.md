@@ -313,5 +313,40 @@
       "Wheel, touch and keyboard scrolling remain native. Default contentInset=\"scrollbar\" keeps text and full-width rows clear of rails with inner padding, without shrinking the viewport. Explicit none allows edge-to-edge content when the host already provides safe padding. Rails automatically avoid rounded clipping corners.",
       "Forced colors restores native scrollbars as an accessibility fallback. Verify horizontal and RTL content, resizing and zoom in the host composition."
     ]
+  },
+  {
+    "slug": "label",
+    "name": "Label",
+    "group": "forms",
+    "description": "A native label that connects a visible name to a control.",
+    "code": "<Stack gap=\"2\">\n  <Label htmlFor=\"project-label\">Project name</Label>\n  <Input id=\"project-label\" defaultValue=\"My project\" />\n</Stack>",
+    "imports": [
+      "Label",
+      "Stack",
+      "Input"
+    ],
+    "notes": [
+      "Unreleased source export beyond published 0.2.2.",
+      "htmlFor connects the label to a matching control ID; implicit nested controls also retain native behavior.",
+      "required adds a decorative marker only. Set required on the actual control as well. Field already composes Label."
+    ]
+  },
+  {
+    "slug": "fieldset",
+    "name": "Fieldset",
+    "group": "forms",
+    "description": "A native group with a legend, shared descriptions and disabled form behavior.",
+    "code": "<Fieldset legend=\"Notifications\" hint=\"Choose the updates you want.\">\n  <Checkbox label=\"Product updates\" name=\"updates\" defaultChecked />\n  <Checkbox label=\"Release notes\" name=\"releases\" />\n</Fieldset>",
+    "imports": [
+      "Fieldset",
+      "Checkbox"
+    ],
+    "notes": [
+      "Unreleased source export beyond published 0.2.2.",
+      "Uses a real fieldset and legend, with a ref to HTMLFieldSetElement. Disabled descendants retain native form semantics.",
+      "The browser exempts controls in the first legend from inherited disabling. Avoid interactive legend contents unless this is intentional.",
+      "hint, message, error and external aria-describedby IDs are merged without duplicates. Error takes precedence over an advisory status.",
+      "Group status describes the group; it does not mark every child invalid, manage selected values or implement a RadioGroup/CheckboxGroup."
+    ]
   }
 ]

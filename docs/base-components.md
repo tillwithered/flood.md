@@ -1,15 +1,16 @@
 # Base component inventory
 
-The current source exports **20 components: eleven primitives and nine
-controls**, including the unreleased Select and ScrollArea additions. Published 0.2.2
-exports 18 components and does not include Select or ScrollArea. They use original Flood implementations, React 18.3/19 APIs
+The current source exports **22 components**, including the unreleased Select, ScrollArea,
+Label and Fieldset additions. Published 0.2.2
+exports 18 components and does not include these four exports. They use original Flood implementations, React 18.3/19 APIs
 and TypeScript declarations. Import `@flood-md/react/styles.css` once and place
 new compositions inside `FloodRoot`.
 
-## Eleven primitives
+## Structure and presentation
 
 | Export | Responsibility |
 | --- | --- |
+| `Label` (unreleased source) | Native label association and an optional required marker |
 | `FloodRoot` | Explicit neutral/dark scope; local Inter and semantic roles |
 | `Text` | Lead, body, compact, label and helper typography with semantic tone |
 | `Heading` | Independent semantic heading level and display/large/page/section appearance |
@@ -26,7 +27,7 @@ IconButton composes the Button control; this grouping describes how the base
 kit is used, not a separate rendering engine. IconSlot supplies geometry rather
 than glyph artwork. Preserve the license of any icon pack used by the host.
 
-## Nine controls in current source
+## Controls and field composition in current source
 
 | Export | Responsibility |
 | --- | --- |
@@ -37,6 +38,7 @@ than glyph artwork. Preserve the license of any icon pack used by the host.
 | `Checkbox` | Native checkbox with a required visible label |
 | `Radio` | Native radio with a visible label; the host owns group name and legend |
 | `Switch` | Native checkbox behavior exposed with switch semantics |
+| `Fieldset` (unreleased source) | Native fieldset/legend, inherited disabled and group descriptions |
 | `Field` | Associates one input with label, required marker, hints and errors |
 | `Link` | Native anchor for navigation |
 

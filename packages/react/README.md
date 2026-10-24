@@ -31,7 +31,8 @@ included. Legacy controls outside FloodRoot keep their earlier theme behavior.
 
 Exports: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot,
 IconButton, CodeSnippet, Button, Input, Textarea, Checkbox, Radio, Switch, Field and Link,
-plus TypeScript prop types. Button variants are solid/subtle/outline/ghost;
+plus TypeScript prop types. Current source also exports Label, Fieldset, Select
+and ScrollArea beyond published 0.2.2. Button variants are solid/subtle/outline/ghost;
 sizes are 2xs/xs/sm/md/lg/xl/2xl. Prefer subtle for standalone secondary actions;
 ghost belongs in a clear parent context. Loading disables activation.
 
@@ -103,6 +104,28 @@ See [components](../../docs/components.md), [foundations](../../docs/foundations
 and [Inter provenance](src/fonts/README.md). Verify contrast, focus, keyboard,
 narrow layouts and text scaling in your actual application.
 
+
+## Current source: Label and Fieldset
+
+Label forwards native label attributes and an HTMLLabelElement ref. Connect its
+htmlFor to a unique control ID, or nest one labelable control. Its required marker
+is decorative; required belongs on the actual control. Field composes this Label.
+
+Fieldset forwards native fieldset attributes/ref and takes a required legend.
+It provides hint/message/error/status and merges their IDs with aria-describedby.
+Error wins over advisory feedback. Descriptions belong to the group rather than
+being copied onto every child. Disabled uses native descendant behavior: controls
+in the first legend are exempt. Avoid interactive legend content unless intended.
+Disabled values are omitted from native FormData; nested fieldsets preserve HTML
+rules. Styling removes the browser border but retains the actual fieldset/legend.
+It does not own choice values, implement a selection model or validate children.
+
+```tsx
+<Fieldset legend="Notifications" hint="Choose the updates you want.">
+  <Checkbox label="Product updates" name="updates" defaultChecked />
+  <Checkbox label="Release notes" name="releases" />
+</Fieldset>
+```
 
 ## Current source: overlay ScrollArea
 

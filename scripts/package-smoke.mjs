@@ -70,7 +70,13 @@ try {
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
-import { ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+const label: LabelProps = {htmlFor: 'project', required: true};
+const labelElement = createElement(Label, {...label, ref: createRef<HTMLLabelElement>()}, 'Project');
+const fieldset: FieldsetProps = {legend: 'Preferences', disabled: true, status: 'warning'};
+const groupElement = createElement(Fieldset, {...fieldset, ref: createRef<HTMLFieldSetElement>()});
+// @ts-expect-error A group must have a legend.
+const unnamedGroup: FieldsetProps = {disabled: true};
 const heading: HeadingProps = {level: 3, size: 'large'};
 const display: HeadingProps = {level: 1, size: 'display'};
 const lead: TextProps = {as: 'p', size: 'lead'};

@@ -40,3 +40,13 @@ shortens rails near rounded clipping corners; do not add ad-hoc per-page rail
 offsets. Do not hide native scrolling as a CSS-only
 substitute for an overlay engine. Check wheel, touch, keyboard, thumb drag, resize
 and RTL; preserve the native forced-colors fallback.
+
+## Current source: label and group foundations
+
+Field already composes Label. Use standalone Label when assembling an associated
+control outside Field; its required marker does not set native required. Keep IDs
+unique. Use Fieldset and its legend for related controls, with hint/message/error
+on the group and individual labels on each control. A disabled native fieldset
+disables descendants except controls in its first legend. Fieldset does not own
+selected values or replace a RadioGroup/CheckboxGroup selection contract. Preserve
+these semantics in nested groups and native form submission.

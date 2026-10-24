@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add native Label and Fieldset foundations, reuse Label inside Field and share
+  description handling; document and preview their association and group behavior.
+
 - Group the component catalog by purpose, add category navigation and component
   search, and generate the same taxonomy in the catalog Markdown.
 

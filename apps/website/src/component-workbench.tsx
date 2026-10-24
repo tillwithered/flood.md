@@ -36,6 +36,8 @@ const knobs: Record<string, Knob[]> = {
   surface: [select("elevation", ["default", "raised", "overlay"], "default"), select("padding", spaces, "6")],
   "icon-slot": [select("size", sizes, "md"), { name: "label", initial: "" }],
   "code-snippet": [{ name: "code", initial: `npx @flood-md/cli@${release.version} init` }, toggle("copyAction", true)],
+  label: [toggle("required")],
+  fieldset: [statusKnob(), toggle("disabled"), toggle("hint", true)],
   field: [statusKnob(), toggle("required", true), toggle("error", true), toggle("hint", true)],
   link: [], divider: [], "flood-root": [],
 };
@@ -124,6 +126,8 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     case "surface": return element("Surface", { elevation: v.elevation, padding: v.padding }, element("Stack", { gap: "2" }, element("Heading", { size: "section", level: 2 }, "Your workspace"), text("A surface gives related content a shared place.")));
     case "icon-slot": return element("IconSlot", { size: v.size, label: v.label || undefined }, element("ArrowRight"));
     case "code-snippet": return element("Stack", { gap: "3" }, element("CodeSnippet", { code: String(v.code), ...(v.copyAction ? { action: binding(`<Button variant="subtle" size="sm" onClick={copy}>Copy</Button>`, createElement(Flood.Button, { variant: "subtle", size: "sm", onClick: actions.copy }, "Copy")) } : {}) }), ...(v.copyAction ? [status] : []));
+    case "label": return element("Stack", { gap: "2" }, element("Label", { htmlFor: "label-example", required: v.required }, "Project name"), element("Input", { id: "label-example", required: v.required, defaultValue: "My project" }));
+    case "fieldset": return element("Fieldset", { legend: "Notifications", disabled: v.disabled, hint: v.hint ? "Choose the updates you want." : undefined, status: fieldStatus, message }, element("Checkbox", { label: "Product updates", name: "updates", defaultChecked: true }), element("Checkbox", { label: "Release notes", name: "releases" }));
     case "field": return { tag: "Field", props: { label: "Project name", status: fieldStatus, message: v.error ? undefined : message, required: v.required, hint: v.hint ? "Visible to your team." : undefined, error: v.error ? "Enter a project name." : undefined }, field: element("Input", { name: "project", defaultValue: "" }) };
     case "divider": return element("Stack", { gap: "4" }, text("Workspace"), element("Divider"), text("Account"));
     case "flood-root": return element("Surface", { padding: "6" }, element("Stack", { gap: "2" }, element("Heading", { size: "section", level: 2 }, "Neutral. Dark. Local."), text("This composition uses FloodRoot without changing the document theme.")));
@@ -165,7 +169,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
 
   const controls = componentKnobs(component);
   const hasFocusAction = ["input", "textarea", "select"].includes(component.slug);
-  const spacious = ["input", "textarea", "select", "field", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
+  const spacious = ["input", "textarea", "select", "field", "label", "fieldset", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
   const labelFor = (knob: Knob) => knob.label ?? ({ controlSize: "Size", contentInset: "Content clearance", readOnly: "Read only", copyAction: "Copy button", label: "Accessible name" } as Record<string, string>)[knob.name] ?? knob.name[0].toUpperCase() + knob.name.slice(1);
   return <section className="component-workbench" aria-label={`${component.name} live playground`}>
     <div className="workbench-title"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setResetKey((key) => key + 1); }}>Reset</Flood.Button></Flood.Inline></div>
