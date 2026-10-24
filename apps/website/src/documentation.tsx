@@ -1,10 +1,10 @@
-import { isValidElement, useEffect, useState, type ReactNode } from "react";
+import { isValidElement, useEffect, useRef, useState, type ReactNode } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
-import { Button, Heading, IconSlot, Inline, Link, ScrollArea, Text } from "@flood-md/react";
+import { Button, Heading, IconSlot, Inline, Input, Link, ScrollArea, Text } from "@flood-md/react";
 import { docPages } from "../routes.mjs";
-import { componentPages } from "./component-catalog";
+import { componentPages, componentGroups, matchesComponent } from "./component-catalog";
 import { ComponentWorkbench } from "./component-workbench";
 import { CodeBlock, CopyButton } from "./code-block";
 import { usageCode, componentMarkdown, catalogMarkdown } from "../component-docs.mjs";
@@ -14,7 +14,6 @@ import release from "./release.json";
 
 const sources: Record<string, string> = content.docs;
 const repository = "https://github.com/tillwithered/flood.md";
-const groups = [...new Set(componentPages.map(page => page.group))];
 
 function textOf(value: ReactNode): string {
   if (typeof value === "string" || typeof value === "number") return String(value);
@@ -51,14 +50,46 @@ function markdownLink(href: string | undefined) {
   const target = new URL(href, `${repository}/blob/main/docs/README.md`);
   return target.href;
 }
-function Sidebar({ path }: { path: string }) {
+function Sidebar({ path, query, onQueryChange, visible = true }: { path: string; query: string; onQueryChange: (query: string) => void; visible?: boolean }) {
+  const nav = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!visible) return;
+    let cancelled = false;
+    const align = () => {
+      const current = nav.current?.querySelector('[aria-current="page"]');
+      const viewport = nav.current?.closest<HTMLElement>(".flood-scroll-area__viewport");
+      if (!current || !viewport || viewport.clientHeight === 0 || cancelled) return;
+      const item = current.getBoundingClientRect(), frame = viewport.getBoundingClientRect();
+      const toolsHeight = nav.current?.querySelector(".catalog-nav-tools")?.getBoundingClientRect().height ?? 0;
+      const gap = parseFloat(getComputedStyle(viewport).fontSize) / 2;
+      const bottom = Math.min(frame.bottom, innerHeight - gap);
+      // Scroll this region only; never move the article or page heading.
+      if (item.bottom > bottom) viewport.scrollTop += item.bottom - bottom + gap;
+      else if (item.top < frame.top + toolsHeight) viewport.scrollTop -= frame.top + toolsHeight - item.top;
+    };
+    const frame = requestAnimationFrame(align);
+    void document.fonts.ready.then(align);
+    return () => { cancelled = true; cancelAnimationFrame(frame); };
+  }, [path, visible]);
   const inComponents = path.startsWith("/components");
-  return <nav aria-label="Documentation sections" className="side-nav">
-    {inComponents && <div className="side-group"><Text size="helper" tone="subtle" className="side-label">Components</Text>
-      <Link href="/components" className="side-link catalog-link" aria-current={path === "/components" ? "page" : undefined}>Overview <span>{componentPages.length}</span></Link>
-      {[...componentPages].sort((a, b) => a.name.localeCompare(b.name)).map(page => <Link key={page.slug} className="side-link" href={`/components/${page.slug}`} aria-current={path === `/components/${page.slug}` ? "page" : undefined}>{page.name}</Link>)}
-    </div>}
-    <div className="side-group"><Text size="helper" tone="subtle" className="side-label">Getting started</Text>
+  const results = componentPages.filter(page => matchesComponent(page, query));
+  return <nav ref={nav} aria-label="Documentation sections" className="side-nav">
+    {inComponents && <>
+      <div className="catalog-nav-tools">
+        <Link href="/components" className="side-link catalog-link" aria-current={path === "/components" ? "page" : undefined}>All components <span>{componentPages.length}</span></Link>
+        <Input type="search" controlSize="sm" aria-label="Search components" placeholder="Find a component…" value={query} onChange={event => onQueryChange(event.currentTarget.value)} onKeyDown={event => { if (event.key === "Escape") onQueryChange(""); }} />
+        {query && <Inline gap="2" className="catalog-search-summary"><Text size="helper" tone="subtle" role="status">{results.length} results</Text><Button variant="ghost" size="sm" onClick={() => onQueryChange("")}>Clear search</Button></Inline>}
+      </div>
+      {componentGroups.map(group => {
+        const entries = group.components.filter(page => matchesComponent(page, query));
+        return entries.length > 0 && <div className="side-group" key={group.id} role="group" aria-label={group.label}>
+          <Text size="helper" tone="subtle" className="side-label">{group.label}</Text>
+          {entries.map(page => <Link key={page.slug} className="side-link" href={`/components/${page.slug}`} aria-current={path === `/components/${page.slug}` ? "page" : undefined}>{page.name}</Link>)}
+        </div>;
+      })}
+      {results.length === 0 && <Text as="p" size="compact" tone="subtle" className="catalog-empty">No components found.</Text>}
+    </>}
+    <div className="side-group"><Text size="helper" tone="subtle" className="side-label">Documentation</Text>
       {docPages.map(page => <Link key={page.path} href={page.path} className="side-link" aria-current={path === page.path ? "page" : undefined}>{page.label}</Link>)}
     </div>
     {!inComponents && <div className="side-group"><Link href="/components" className="side-link catalog-link">All components <span>{componentPages.length}</span></Link></div>}
@@ -69,6 +100,9 @@ export default function Documentation({ path }: { path: string }) {
   const doc = docPages.find(page => page.path === path);
   const component = componentPages.find(page => path === `/components/${page.slug}`);
   const catalog = path === "/components";
+  const [query, setQuery] = useState("");
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const visibleGroups = componentGroups.map(group => ({ ...group, components: group.components.filter(page => matchesComponent(page, query)) })).filter(group => group.components.length > 0);
   const title = doc?.label ?? component?.name ?? (catalog ? "Components" : "Page not found");
   const description = doc?.description ?? component?.description ?? "Original components. Native semantics. One calm foundation.";
   const raw = doc ? sources[doc.file] : "";
@@ -78,8 +112,8 @@ export default function Documentation({ path }: { path: string }) {
   const [exampleCode, setExampleCode] = useState(() => component ? usageCode(component) : "");
   const toc = doc ? sections(markdown) : component
     ? [{ id: "preview", label: "Component lab" }, { id: "usage", label: "Use in your project" }, { id: "design-notes", label: "Design notes" }, { id: "api", label: "API reference" }]
-    : groups.map(group => ({ id: slug(group), label: group }));
-  const ordered = [...docPages.map(page => ({ path: page.path, name: page.label })), { path: "/components", name: "Components" }, ...componentPages.map(page => ({ path: `/components/${page.slug}`, name: page.name }))];
+    : visibleGroups.map(group => ({ id: group.id, label: group.label }));
+  const ordered = [...docPages.map(page => ({ path: page.path, name: page.label })), { path: "/components", name: "Components" }, ...componentGroups.flatMap(group => group.components).map(page => ({ path: `/components/${page.slug}`, name: page.name }))];
   const current = ordered.findIndex(page => page.path === path);
   const previous = ordered[current - 1]; const next = ordered[current + 1];
   const pageMarkdown = doc ? raw ?? "" : component ? componentMarkdown(component, exampleCode) + (importMode === "project" ? `\n## Project UI setup\n\n${projectAdapters(exampleImports)}` : "") : catalogMarkdown(componentPages);
@@ -104,11 +138,11 @@ export default function Documentation({ path }: { path: string }) {
     return () => { cancelled = true; };
   }, [title]);
   return <div className="docs-layout">
-    <aside className="desktop-sidebar" aria-label="Documentation navigation"><ScrollArea contentInset="scrollbar" aria-label="Documentation sections scroll" style={{ maxHeight: "calc(100svh - 4rem)" }}><Sidebar path={path} /></ScrollArea></aside>
+    <aside className="desktop-sidebar" aria-label="Documentation navigation"><ScrollArea contentInset="scrollbar" aria-label="Documentation sections scroll" style={{ maxHeight: "calc(100svh - 4rem)" }}><Sidebar path={path} query={query} onQueryChange={setQuery} /></ScrollArea></aside>
     <div className="doc-center">
-      <details className="mobile-navigation"><summary>Browse documentation</summary><Sidebar path={path} /></details>
+      <details className="mobile-navigation" onToggle={event => setMobileOpen(event.currentTarget.open)}><summary>Browse documentation</summary><ScrollArea aria-label="Mobile documentation sections" style={{ maxHeight: "60svh" }}><Sidebar path={path} query={query} onQueryChange={setQuery} visible={mobileOpen} /></ScrollArea></details>
       <main id="main-content" className="doc-article">
-        <div className="doc-breadcrumb"><Link href={component || catalog ? "/components" : "/docs"}>{component || catalog ? "Components" : "Documentation"}</Link><span aria-hidden="true">/</span><span>{title}</span><span className="doc-version">v{content.version}</span>{["localhost", "127.0.0.1"].includes(location.hostname) && <span className="local-preview-label">Local preview</span>}</div>
+        <div className="doc-breadcrumb"><Link href={component || catalog ? "/components" : "/docs"}>{component || catalog ? "Components" : "Documentation"}</Link><span aria-hidden="true">/</span>{component && <><Link href={`/components#${component.group}`}>{componentGroups.find(group => group.id === component.group)?.label}</Link><span aria-hidden="true">/</span></>}<span>{title}</span><span className="doc-version">v{content.version}</span>{["localhost", "127.0.0.1"].includes(location.hostname) && <span className="local-preview-label">Local preview</span>}</div>
         <header className="doc-heading">
           <Heading level={1} size="large">{title}</Heading>
           <Text as="p" tone="subtle" className="doc-description">{description}</Text>
@@ -121,13 +155,19 @@ export default function Documentation({ path }: { path: string }) {
           h2: ({ children, node }) => <h2 id={toc.find(section => "line" in section && section.line === node?.position?.start.line)?.id ?? slug(textOf(children))}>{children}</h2>,
           table: ({ children }) => <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label="Documentation table"><table>{children}</table></ScrollArea>,
         }}>{markdown}</Markdown></div>}
-        {catalog && <div className="component-catalog">{groups.map(group => <section id={slug(group)} key={group}>
-          <Heading level={2} size="section">{group}</Heading>
-          <div className="catalog-grid">{componentPages.filter(page => page.group === group).map(page => <Link className="catalog-card" key={page.slug} href={`/components/${page.slug}`}>
-            <span className="catalog-card-title">{page.name}<IconSlot size="sm"><ArrowUpRight /></IconSlot></span>
-            <Text size="compact" tone="subtle">{page.description}</Text>
-          </Link>)}</div>
-        </section>)}</div>}
+        {catalog && <div className="component-catalog">
+          {!query && <nav className="catalog-jumps" aria-label="Component categories">{componentGroups.map(group => <Link key={group.id} href={`#${group.id}`}>{group.label}<span>{group.components.length}</span></Link>)}</nav>}
+          {visibleGroups.map(group => <section id={group.id} key={group.id}>
+            <Heading level={2} size="section">{group.label}</Heading>
+            <Text as="p" size="compact" tone="subtle" className="catalog-description">{group.description}</Text>
+            <div className="catalog-grid">{group.components.map(page => <Link className="catalog-card" key={page.slug} href={`/components/${page.slug}`}>
+              <span className="catalog-card-title">{page.name}<IconSlot size="sm"><ArrowUpRight /></IconSlot></span>
+              <Text size="compact" tone="subtle">{page.description}</Text>
+            </Link>)}</div>
+          </section>)}
+          {visibleGroups.length === 0 && <Text as="p" tone="subtle">No components found. Try another name or category.</Text>}
+        </div>}
+
         {component && <>
           <section id="preview" aria-label={`${component.name} preview`}>
             <ComponentWorkbench key={component.slug} component={component} onCodeChange={setExampleCode} onImportsChange={setExampleImports} importMode={importMode} agentContext={agentContext} />

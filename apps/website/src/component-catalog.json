@@ -2,7 +2,7 @@
   {
     "slug": "flood-root",
     "name": "FloodRoot",
-    "group": "Setup",
+    "group": "setup",
     "description": "An explicit scope for the neutral dark foundations profile.",
     "code": "<FloodRoot>\n  <Text>Your workspace starts here.</Text>\n</FloodRoot>",
     "notes": [
@@ -17,7 +17,7 @@
   {
     "slug": "text",
     "name": "Text",
-    "group": "Typography",
+    "group": "typography",
     "description": "Role-based interface text, from introductory copy to small supporting details.",
     "code": "<Stack gap=\"3\">\n  <Text as=\"p\" size=\"lead\">A calm foundation for your next idea.</Text>\n  <Text as=\"p\" size=\"compact\">Use the space to make it yours.</Text>\n</Stack>",
     "notes": [
@@ -32,7 +32,7 @@
   {
     "slug": "heading",
     "name": "Heading",
-    "group": "Typography",
+    "group": "typography",
     "description": "Semantic heading levels with an independent visual scale.",
     "code": "<Stack gap=\"4\">\n  <Heading level={2} size=\"page\">Workspace settings</Heading>\n  <Heading level={3} size=\"section\">Notifications</Heading>\n</Stack>",
     "notes": [
@@ -47,7 +47,7 @@
   {
     "slug": "stack",
     "name": "Stack",
-    "group": "Layout",
+    "group": "layout",
     "description": "Vertical composition with spacing from the shared token scale.",
     "code": "<Stack gap=\"4\">\n  <Heading size=\"section\">Project</Heading>\n  <Text as=\"p\">One place for your work.</Text>\n</Stack>",
     "notes": [
@@ -63,7 +63,7 @@
   {
     "slug": "inline",
     "name": "Inline",
-    "group": "Layout",
+    "group": "layout",
     "description": "A wrapping horizontal group for related content and actions.",
     "code": "<Inline gap=\"2\" align=\"center\">\n  <Button>Save changes</Button>\n  <Button variant=\"subtle\">Cancel</Button>\n</Inline>",
     "notes": [
@@ -79,7 +79,7 @@
   {
     "slug": "surface",
     "name": "Surface",
-    "group": "Layout",
+    "group": "layout",
     "description": "A quiet container with semantic elevation and token-based padding.",
     "code": "<Surface elevation=\"raised\" padding=\"6\">\n  <Text>Everything in its place.</Text>\n</Surface>",
     "notes": [
@@ -94,7 +94,7 @@
   {
     "slug": "divider",
     "name": "Divider",
-    "group": "Layout",
+    "group": "layout",
     "description": "A semantic separator with a low-emphasis visual line.",
     "code": "<Stack gap=\"4\">\n  <Text>Workspace</Text>\n  <Divider />\n  <Text>Account</Text>\n</Stack>",
     "notes": [
@@ -110,7 +110,7 @@
   {
     "slug": "button",
     "name": "Button",
-    "group": "Actions",
+    "group": "actions",
     "description": "Native actions with a clear prominence, size and interaction state.",
     "code": "<Inline gap=\"2\">\n  <Button>Save changes</Button>\n  <Button variant=\"subtle\">Cancel</Button>\n  <Button loading>Saving</Button>\n</Inline>",
     "notes": [
@@ -127,7 +127,7 @@
   {
     "slug": "icon-button",
     "name": "IconButton",
-    "group": "Actions",
+    "group": "actions",
     "description": "An icon-only action with a required accessible name.",
     "code": "<IconButton label=\"Add idea\">\n  <Plus />\n</IconButton>",
     "notes": [
@@ -143,7 +143,7 @@
   {
     "slug": "link",
     "name": "Link",
-    "group": "Actions",
+    "group": "navigation",
     "description": "A native anchor for navigation.",
     "code": "<Link href=\"/docs/installation\">Install Flood</Link>",
     "notes": [
@@ -157,7 +157,7 @@
   {
     "slug": "field",
     "name": "Field",
-    "group": "Forms",
+    "group": "forms",
     "description": "The association between a visible label, its input and supporting messages.",
     "code": "<Field label=\"Project name\" required hint=\"Visible to your team.\">\n  {(control) => <Input {...control} name=\"project\" />}\n</Field>",
     "notes": [
@@ -174,7 +174,7 @@
   {
     "slug": "input",
     "name": "Input",
-    "group": "Forms",
+    "group": "forms",
     "description": "A native input with semantic styling and independent visual sizing.",
     "code": "<Field label=\"Workspace name\">\n  {(control) => <Input {...control} defaultValue=\"My project\" />}\n</Field>",
     "notes": [
@@ -190,7 +190,7 @@
   {
     "slug": "select",
     "name": "Select",
-    "group": "Forms",
+    "group": "forms",
     "description": "A Flood choice field with its own popup and native form integration.",
     "code": "<Field label=\"Visibility\">\n  {(control) => (\n    <Select {...control} name=\"visibility\" defaultValue=\"private\">\n      <option value=\"private\">Private</option>\n      <option value=\"team\">Team</option>\n    </Select>\n  )}\n</Field>",
     "imports": [
@@ -208,7 +208,7 @@
   {
     "slug": "textarea",
     "name": "Textarea",
-    "group": "Forms",
+    "group": "forms",
     "description": "Native multiline input for notes and longer text.",
     "code": "<Field label=\"Project note\" hint=\"Keep it short and useful.\">\n  {(control) => <Textarea {...control} rows={3} maxLength={500} />}\n</Field>",
     "notes": [
@@ -223,7 +223,7 @@
   {
     "slug": "checkbox",
     "name": "Checkbox",
-    "group": "Forms",
+    "group": "forms",
     "description": "A labeled native checkbox for independent choices.",
     "code": "<Checkbox label=\"Send project updates\" name=\"updates\" defaultChecked />",
     "notes": [
@@ -238,7 +238,7 @@
   {
     "slug": "radio",
     "name": "Radio",
-    "group": "Forms",
+    "group": "forms",
     "description": "A labeled native radio for one choice within a group.",
     "code": "<fieldset>\n  <legend>Visibility</legend>\n  <Radio label=\"Private\" name=\"visibility\" value=\"private\" defaultChecked />\n  <Radio label=\"Public\" name=\"visibility\" value=\"public\" />\n</fieldset>",
     "notes": [
@@ -253,7 +253,7 @@
   {
     "slug": "switch",
     "name": "Switch",
-    "group": "Forms",
+    "group": "forms",
     "description": "A labeled on/off setting with native checkbox form behavior.",
     "code": "<Switch label=\"Email notifications\" name=\"notifications\" defaultChecked />",
     "notes": [
@@ -268,7 +268,7 @@
   {
     "slug": "code-snippet",
     "name": "CodeSnippet",
-    "group": "Content",
+    "group": "content",
     "description": "Selectable, wrapping code with an optional host-owned action.",
     "code": "<CodeSnippet code=\"git status --short\" />",
     "notes": [
@@ -282,7 +282,7 @@
   {
     "slug": "icon-slot",
     "name": "IconSlot",
-    "group": "Content",
+    "group": "content",
     "description": "Consistent geometry for a host-supplied SVG icon.",
     "code": "<IconSlot size=\"md\"><ArrowRight /></IconSlot>",
     "notes": [
@@ -298,7 +298,7 @@
   {
     "slug": "scroll-area",
     "name": "ScrollArea",
-    "group": "Layout",
+    "group": "layout",
     "description": "Native scrolling with inset overlay scrollbars that preserve content width.",
     "code": "<ScrollArea aria-label=\"Recent activity\" style={{ maxHeight: \"12rem\" }}>\n  <Stack gap=\"4\">\n    <Text>Project created.</Text>\n    <Text>Workspace updated.</Text>\n  </Stack>\n</ScrollArea>",
     "imports": [

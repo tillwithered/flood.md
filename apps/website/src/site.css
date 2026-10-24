@@ -102,6 +102,14 @@ html { scroll-behavior: smooth; }
 .side-nav .side-link:hover, .side-nav .side-link[aria-current="page"] { color: var(--flood-sys-color-content-default); background: var(--flood-sys-color-action-on-surface-rest); }
 .side-nav .side-link[aria-current="page"] { font-weight: 500; }
 .catalog-link span { font-size: var(--flood-sys-type-helper-size); color: var(--flood-sys-color-content-subtle); }
+.catalog-nav-tools { position: sticky; inset-block-start: 0; z-index: 1; display: grid; gap: .5rem; padding-block-end: .75rem; background: var(--flood-sys-color-surface-canvas); }
+.catalog-search-summary { justify-content: space-between; flex-wrap: wrap; }
+.catalog-empty { padding: .5rem .75rem; }
+.catalog-jumps { display: flex; flex-wrap: wrap; gap: .5rem; margin-block-end: 2rem; }
+.catalog-jumps .flood-link { display: inline-flex; align-items: center; gap: .5rem; padding: .375rem .75rem; border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-action); text-decoration: none; font-size: var(--flood-sys-type-compact-size); }
+.catalog-jumps span { color: var(--flood-sys-color-content-subtle); }
+.catalog-description { margin-block: .5rem 1rem; }
+.component-catalog section { scroll-margin-block-start: 2rem; margin-block-end: 2rem; }
 .doc-center, .doc-article { min-inline-size: 0; }
 .doc-article { max-inline-size: 48rem; margin-inline: auto; }
 .doc-breadcrumb { display: flex; align-items: center; flex-wrap: wrap; gap: .625rem; font-size: var(--flood-sys-type-helper-size); color: var(--flood-sys-color-content-subtle); margin-block-end: 1.5rem; }

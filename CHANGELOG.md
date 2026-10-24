@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Group the component catalog by purpose, add category navigation and component
+  search, and generate the same taxonomy in the catalog Markdown.
+
 - Add consistent error/warning/success/info field status and associated Field
   messages; retain invalid/error precedence. Make text-field readOnly visually
   distinct and demonstrate its native editing behavior in the playground.

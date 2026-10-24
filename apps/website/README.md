@@ -18,6 +18,12 @@ GitHub. Raw HTML in Markdown is skipped. Tables and fenced code are supported.
 names and editorial examples. API tables and explicit defaults come from the
 React TypeScript source through the AST-based contract reader, not a duplicated
 manual list. The build emits ignored generated reader data and Markdown files.
+`src/component-groups.json` supplies stable category IDs, labels, descriptions
+and ordering for the sidebar, overview, pagination and generated catalog Markdown.
+Each available component has one primary category; categories describe purpose,
+not an atomic-design implementation tier. Unknown categories fail the build.
+The sidebar search matches names, descriptions and categories; the overview
+uses the same filter. No unavailable components are advertised as installable.
 `src/component-workbench.tsx` describes
 supported controls and declarative example recipes. The same recipe renders the
 real Flood components and prints valid TSX, so the selected props and copied
