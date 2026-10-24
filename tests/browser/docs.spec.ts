@@ -62,6 +62,9 @@ test("component code, clipboard, local interactions and mobile navigation work",
   await expect(page.getByRole("textbox", { name: "Project name" })).toHaveAttribute("aria-invalid", "true");
   await page.screenshot({ path: `.artifacts/docs-field-${info.project.name}.png`, fullPage: true });
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.goto("/docs/theming");
+  await page.getByRole("link", { name: "migration instructions", exact: true }).click();
+  await expect(page.locator("#updates-from-011")).toBeInViewport();
 });
 
 test("docs reflow with enlarged text and retain active-page and heading semantics", async ({ page }, info) => {

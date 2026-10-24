@@ -26,7 +26,7 @@ function textOf(value: ReactNode): string {
   if (isValidElement<{ children?: ReactNode }>(value)) return textOf(value.props.children);
   return "";
 }
-function slug(text: string) { return text.toLowerCase().replace(/[`*]/g, "").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, ""); }
+function slug(text: string) { return text.toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, "").trim().replace(/\s/g, "-"); }
 function sections(markdown: string) {
   let fenced = false;
   const seen = new Map<string, number>();
