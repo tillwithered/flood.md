@@ -30,3 +30,15 @@ Test keyboard start-to-finish, focus visibility, labels and descriptions,
 validation, native form reset, long text, 320px layout and root text enlargement.
 An automated scanner alone cannot establish application accessibility or WCAG 3
 conformance. Record what was actually checked; see [verification](verification.md).
+## Field status and read-only values (current source)
+
+Use status on Field/Input/Textarea/Select for error, warning, success or info.
+With Field, provide message and spread its callback props onto the Flood control.
+Only error marks aria-invalid; warning/success/info are advisory. Existing error
+or invalid takes precedence. Include a useful description instead of relying on
+color alone. Status does not implement host validation or native constraints.
+
+readOnly on text-like Input/Textarea prevents editing while preserving focus,
+selection, copy and submission. Do not substitute disabled or apply readOnly to
+Select/checkboxes. Explain the restriction. Preserve the solid accent focus even
+when a read-only field uses a dashed resting perimeter.

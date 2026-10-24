@@ -13,6 +13,7 @@ import {
   type HTMLAttributes,
   type CSSProperties,
 } from "react";
+import { resolveFieldStatus } from "./field-state.js";
 import { SingleSelect } from "./select.js";
 import { OverlayScrollArea } from "./scroll-area.js";
 
@@ -60,34 +61,40 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   },
 );
 
+export type FieldStatus = "error" | "warning" | "success" | "info";
+
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  status?: FieldStatus;
   invalid?: boolean;
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { invalid, controlSize = "md", className, ...props },
+  { invalid, status, controlSize = "md", className, ...props },
   ref,
 ) {
   return (
     <input
       {...props}
       ref={ref}
-      aria-invalid={invalid || props["aria-invalid"]}
+      data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])}
+      aria-invalid={invalid || status === "error" || props["aria-invalid"]}
       className={classes("flood-input", `flood-control--${controlSize}`, className)}
     />
   );
 });
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  status?: FieldStatus;
   invalid?: boolean;
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  function Textarea({ invalid, controlSize = "md", className, ...props }, ref) {
+  function Textarea({ invalid, status, controlSize = "md", className, ...props }, ref) {
     return (
       <textarea
         {...props}
         ref={ref}
-        aria-invalid={invalid || props["aria-invalid"]}
+        data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])}
+        aria-invalid={invalid || status === "error" || props["aria-invalid"]}
         className={classes("flood-input", "flood-textarea", `flood-control--${controlSize}`, className)}
       />
     );
@@ -95,16 +102,17 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
 );
 
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  status?: FieldStatus;
   invalid?: boolean;
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
 /** Native select and option semantics with an independent visual control size. */
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
-  { invalid, controlSize = "md", className, multiple, size, ...props },
+  { invalid, status, controlSize = "md", className, multiple, size, ...props },
   ref,
 ) {
   const listbox = multiple || (size !== undefined && size > 1);
-  if (!listbox) return <SingleSelect {...props} invalid={invalid} controlSize={controlSize} className={className} size={size} ref={ref} />;
+  if (!listbox) return <SingleSelect {...props} status={status} invalid={invalid} controlSize={controlSize} className={className} size={size} ref={ref} />;
   return (
     <span className={classes("flood-select", `flood-control--${controlSize}`, listbox && "flood-select--listbox")}>
       <select
@@ -112,7 +120,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
         ref={ref}
         multiple={multiple}
         size={size}
-        aria-invalid={invalid || props["aria-invalid"]}
+        data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])}
+        aria-invalid={invalid || status === "error" || props["aria-invalid"]}
         className={classes("flood-input", "flood-select__control", `flood-control--${controlSize}`, className)}
       />
     </span>
@@ -168,9 +177,12 @@ export interface FieldControlProps {
   id: string;
   "aria-describedby"?: string;
   "aria-invalid"?: true;
+  status?: FieldStatus;
   required?: boolean;
 }
 export interface FieldProps {
+  status?: FieldStatus;
+  message?: ReactNode;
   id?: string;
   label: ReactNode;
   hint?: ReactNode;
@@ -180,6 +192,8 @@ export interface FieldProps {
   children: (props: FieldControlProps) => ReactNode;
 }
 export function Field({
+  status,
+  message,
   id: explicitId,
   label,
   hint,
@@ -190,13 +204,15 @@ export function Field({
 }: FieldProps) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
+  const hasMessage = message !== null && message !== undefined && message !== false && message !== true && message !== "";
   const hasHint = hint !== null && hint !== undefined && hint !== false && hint !== true && hint !== "";
   const hasError = error !== null && error !== undefined && error !== false && error !== true && error !== "";
+  const resolvedStatus = hasError ? "error" : status;
   const description =
-    [...new Set([describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`].filter(Boolean).join(" ").split(/\s+/).filter(Boolean))].join(" ") ||
+    [...new Set([describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && !hasError && `${id}-message`].filter(Boolean).join(" ").split(/\s+/).filter(Boolean))].join(" ") ||
     undefined;
   return (
-    <div className="flood-field">
+    <div className="flood-field" data-status={resolvedStatus}>
       <label className="flood-label" htmlFor={id}>
         {label}
         {required && <span aria-hidden="true"> *</span>}
@@ -204,7 +220,8 @@ export function Field({
       {children({
         id,
         "aria-describedby": description,
-        "aria-invalid": hasError ? true : undefined,
+        "aria-invalid": hasError || resolvedStatus === "error" ? true : undefined,
+        status: resolvedStatus,
         required,
       })}
       {hasHint && (
@@ -212,6 +229,7 @@ export function Field({
           {hint}
         </div>
       )}
+      {hasMessage && !hasError && <div id={`${id}-message`} className="flood-message" role={resolvedStatus === "error" ? "alert" : undefined}>{message}</div>}
       {hasError && (
         <div id={`${id}-error`} className="flood-error" role="alert">
           {error}

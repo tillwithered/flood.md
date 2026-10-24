@@ -17,14 +17,15 @@ const sizes = ["2xs", "xs", "sm", "md", "lg", "xl", "2xl"];
 const spaces = ["0", "1", "2", "3", "4", "6", "8", "12"];
 const variants = ["solid", "subtle", "outline", "ghost"];
 const select = (name: string, options: string[], initial: string): Knob => ({ name, options, initial });
+const statusKnob = () => select("status", ["none", "error", "warning", "success", "info"], "none");
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
   "scroll-area": [select("orientation", ["vertical", "horizontal", "both"], "vertical"), select("contentInset", ["scrollbar", "none"], "scrollbar")],
   button: [select("variant", variants, "solid"), select("size", sizes, "md"), toggle("disabled"), toggle("loading")],
   "icon-button": [select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled"), toggle("loading")],
-  input: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("invalid"), toggle("disabled"), toggle("readOnly")],
-  select: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("invalid"), toggle("disabled")],
-  textarea: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("invalid"), toggle("disabled"), toggle("readOnly")],
+  input: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), statusKnob(), toggle("invalid"), toggle("disabled"), toggle("readOnly")],
+  select: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), statusKnob(), toggle("invalid"), toggle("disabled")],
+  textarea: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), statusKnob(), toggle("invalid"), toggle("disabled"), toggle("readOnly")],
   checkbox: [toggle("checked", true), toggle("disabled")],
   radio: [toggle("checked", true), toggle("disabled")],
   switch: [toggle("checked", true), toggle("disabled")],
@@ -35,13 +36,13 @@ const knobs: Record<string, Knob[]> = {
   surface: [select("elevation", ["default", "raised", "overlay"], "default"), select("padding", spaces, "6")],
   "icon-slot": [select("size", sizes, "md"), { name: "label", initial: "" }],
   "code-snippet": [{ name: "code", initial: `npx @flood-md/cli@${release.version} init` }, toggle("copyAction", true)],
-  field: [toggle("required", true), toggle("error", true), toggle("hint", true)],
+  field: [statusKnob(), toggle("required", true), toggle("error", true), toggle("hint", true)],
   link: [], divider: [], "flood-root": [],
 };
 function componentKnobs(component: ComponentPage): Knob[] {
   return (knobs[component.slug] ?? []).map(knob => {
     const prop = component.contract?.props.find(item => item.name === knob.name);
-    const options = knob.options && prop?.options?.length ? prop.options.map(String) : knob.options;
+    const options = knob.options && prop?.options?.length ? (knob.name === "status" ? ["none", ...prop.options.map(String)] : prop.options.map(String)) : knob.options;
     const value = prop?.defaultLiteral;
     const initial = value === undefined ? knob.initial : typeof knob.initial === "boolean" ? (typeof value === "boolean" ? value : knob.initial) : String(value);
     return { ...knob, options, initial };
@@ -89,6 +90,8 @@ interface PreviewActions {
 
 function recipeFor(slug: string, values: Values, actions: PreviewActions): ElementRecipe {
   const v = values;
+  const fieldStatus = v.invalid || (slug === "field" && v.error) ? "error" : v.status === "none" ? undefined : v.status;
+  const message = ({ error: "Please review this value.", warning: "Check this value before continuing.", success: "Looks good.", info: "You can change this later." } as Record<string, string>)[String(fieldStatus)];
   const text = (value: string) => element("Text", { as: "p", size: "compact" }, value);
   const status = element("Text", { as: "p", size: "compact", role: "status" }, binding("status", actions.status));
   const action = binding('() => setStatus("Action completed locally.")', () => actions.setStatus("Action completed locally."));
@@ -109,8 +112,8 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     }
     case "button": return element("Stack", { gap: "4" }, element("Inline", {}, element("Button", { variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, "Save changes")), status);
     case "icon-button": return element("Stack", { gap: "4" }, element("Inline", {}, element("IconButton", { label: "Add idea", variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, element("Plus"))), status);
-    case "input": case "textarea": return { tag: "Field", props: { label: slug === "input" ? "Project name" : "Project note", error: v.invalid ? "Please review this value." : undefined }, field: element(slug === "input" ? "Input" : "Textarea", { controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, readOnly: v.readOnly, defaultValue: slug === "input" ? "My project" : "A calm place for the next idea." }) };
-    case "select": return { tag: "Field", props: { label: "Project visibility", hint: v.invalid ? undefined : "Choose who can discover this project.", error: v.invalid ? "Please choose a visibility." : undefined }, field: element("Select", { name: "visibility", controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, defaultValue: "private" }, element("option", { value: "private" }, "Private"), element("option", { value: "team" }, "Team"), element("option", { value: "public" }, "Public")) };
+    case "input": case "textarea": return { tag: "Field", props: { label: slug === "input" ? "Project name" : "Project note", status: fieldStatus, message: message ?? (v.readOnly ? "Read only. Select and copy." : undefined) }, field: element(slug === "input" ? "Input" : "Textarea", { controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, readOnly: v.readOnly, defaultValue: slug === "input" ? "My project" : "A calm place for the next idea." }) };
+    case "select": return { tag: "Field", props: { label: "Project visibility", status: fieldStatus, message }, field: element("Select", { name: "visibility", controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, defaultValue: "private" }, element("option", { value: "private" }, "Private"), element("option", { value: "team" }, "Team"), element("option", { value: "public" }, "Public")) };
     case "checkbox": return element("Checkbox", { ...choice, label: "Receive project updates", name: "updates" });
     case "switch": return element("Switch", { ...choice, label: "Email notifications", name: "notifications" });
     case "radio": return element("fieldset", { style: { margin: 0, padding: 0, border: 0 } }, element("legend", {}, "Project visibility"), element("Stack", { gap: "2" }, element("Radio", { label: "Private", name: "workbench-visibility", value: "private", disabled: v.disabled, checked: binding("checked", Boolean(v.checked)), onChange: binding("() => setChecked(true)", () => actions.checked(true)) }), element("Radio", { label: "Public", name: "workbench-visibility", value: "public", disabled: v.disabled, checked: binding("!checked", !v.checked), onChange: binding("() => setChecked(false)", () => actions.checked(false)) })));
@@ -121,7 +124,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     case "surface": return element("Surface", { elevation: v.elevation, padding: v.padding }, element("Stack", { gap: "2" }, element("Heading", { size: "section", level: 2 }, "Your workspace"), text("A surface gives related content a shared place.")));
     case "icon-slot": return element("IconSlot", { size: v.size, label: v.label || undefined }, element("ArrowRight"));
     case "code-snippet": return element("Stack", { gap: "3" }, element("CodeSnippet", { code: String(v.code), ...(v.copyAction ? { action: binding(`<Button variant="subtle" size="sm" onClick={copy}>Copy</Button>`, createElement(Flood.Button, { variant: "subtle", size: "sm", onClick: actions.copy }, "Copy")) } : {}) }), ...(v.copyAction ? [status] : []));
-    case "field": return { tag: "Field", props: { label: "Project name", required: v.required, hint: v.hint ? "Visible to your team." : undefined, error: v.error ? "Enter a project name." : undefined }, field: element("Input", { name: "project", defaultValue: "" }) };
+    case "field": return { tag: "Field", props: { label: "Project name", status: fieldStatus, message: v.error ? undefined : message, required: v.required, hint: v.hint ? "Visible to your team." : undefined, error: v.error ? "Enter a project name." : undefined }, field: element("Input", { name: "project", defaultValue: "" }) };
     case "divider": return element("Stack", { gap: "4" }, text("Workspace"), element("Divider"), text("Account"));
     case "flood-root": return element("Surface", { padding: "6" }, element("Stack", { gap: "2" }, element("Heading", { size: "section", level: 2 }, "Neutral. Dark. Local."), text("This composition uses FloodRoot without changing the document theme.")));
     case "link": return element("Link", { href: "/docs/installation" }, "Read the installation guide");
@@ -136,7 +139,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   const [resetKey, setResetKey] = useState(0);
   const stage = useRef<HTMLDivElement>(null);
   const values = state.slug === component.slug ? state.values : initialValues(component);
-  const change = (name: string, value: string | boolean) => { setState({ slug: component.slug, values: { ...values, [name]: value } }); setStatus(""); };
+  const change = (name: string, value: string | boolean) => { setState({ slug: component.slug, values: { ...values, ...(name === "status" ? { invalid: false, ...(component.slug === "field" ? { error: false } : {}) } : {}), [name]: value } }); setStatus(""); };
   const callback = useRef(onCodeChange);
   const importsCallback = useRef(onImportsChange);
   useEffect(() => { callback.current = onCodeChange; }, [onCodeChange]);

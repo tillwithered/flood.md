@@ -15,7 +15,7 @@
 .workbench-stage[data-component="select"] .flood-field { grid-template-rows: auto auto minmax(1.5rem, auto); }
 .workbench-stage[data-component="field"] .flood-field { grid-template-rows: auto auto minmax(1.5rem, auto) minmax(1.5rem, auto); }
 .workbench-stage[data-component="field"] .flood-hint { grid-row: 3; }
-.workbench-stage[data-component="field"] .flood-error { grid-row: 4; }
+.workbench-stage[data-component="field"] :is(.flood-error, .flood-message) { grid-row: 4; }
 .workbench-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--flood-sys-space-4); padding: var(--flood-sys-space-4) var(--flood-sys-space-6); border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); background: var(--flood-sys-color-surface-default); }
 .workbench-control { display: grid; gap: var(--flood-sys-space-2); align-content: center; flex: 0 1 11rem; min-inline-size: 0; max-inline-size: 100%; font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); color: var(--flood-sys-color-content-helper); }
 .workbench-control--toggle { display: flex; flex: 0 1 auto; align-self: center; }

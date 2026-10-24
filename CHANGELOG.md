@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add consistent error/warning/success/info field status and associated Field
+  messages; retain invalid/error precedence. Make text-field readOnly visually
+  distinct and demonstrate its native editing behavior in the playground.
+
 - Stabilize playground scene dimensions and action feedback, simplify its header
   and settings, and document third-party font/icon assets with full notices.
 

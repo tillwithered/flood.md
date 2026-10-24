@@ -45,6 +45,20 @@ font stack; the host owns copy actions and status messages. Both additions are
 compatible extensions in 0.2.2; they do not replace existing defaults.
 
 Input/Textarea controlSize is sm/md/lg/xl; native Input size is preserved.
+Current source adds `status="error" | "warning" | "success" | "info"` to Input,
+Textarea, Select and Field. Use Field's `message` for a description associated
+with the control; spreading its callback props forwards status too. Existing
+`error`, `invalid` or affirmative `aria-invalid` override positive statuses.
+Only error sets aria-invalid; warning, success and info do not reject a value.
+These visual/ARIA states do not replace native constraints or host validation.
+
+Input/Textarea `readOnly` preserves focus, selection, copying and form submission
+while preventing edits. Inside dark foundations it uses a canvas background and
+quiet dashed perimeter at rest; focus retains the solid 2px accent. It differs
+from disabled, which prevents ordinary focus and omits the value from submission.
+Native HTML readOnly applies to text-like input types and Textarea; it is not a
+Select or checkbox state. Explain why a value is read only in the surrounding UI.
+
 Dark fields use one quiet uniform `color.field.border` perimeter; focus replaces it with a 2px
 accent without a gap or layout shift. Textarea scrolls its content without a
 native resize grip by default; hosts can opt into resizing through the native

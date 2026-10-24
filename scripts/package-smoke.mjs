@@ -77,7 +77,9 @@ const lead: TextProps = {as: 'p', size: 'lead'};
 const snippet: CodeSnippetProps = {code: 'npm install example', id: 'command'};
 // @ts-expect-error CodeSnippet requires literal code content.
 const badSnippet: CodeSnippetProps = {id: 'missing-code'};
-const input: InputProps = {size: 30, controlSize: 'xl'};
+const input: InputProps = {size: 30, controlSize: 'xl', status: 'warning', readOnly: true};
+// @ts-expect-error Field status has a closed semantic vocabulary.
+const badStatus: InputProps = {status: 'orange'};
 const select: SelectProps = {size: 4, multiple: true, defaultValue: ['team'], controlSize: 'xl', invalid: true};
 const scroll: ScrollAreaProps = {orientation: 'both', contentInset: 'scrollbar', style: {maxHeight: '12rem'}, 'aria-label': 'History'};
 const scrollRef = createRef<HTMLDivElement>();

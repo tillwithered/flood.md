@@ -1,3 +1,4 @@
+import { resolveFieldStatus } from "./field-state.js";
 import {
   Children, Fragment, forwardRef, isValidElement, useEffect, useId,
   useImperativeHandle, useLayoutEffect, useRef, useState,
@@ -23,7 +24,7 @@ function initialChoices(children: ReactNode, group?: string, groupDisabled = fal
 /** Internal implementation. The public entry retains the native SelectProps/ref contract. */
 export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function SingleSelect({
   children, value, defaultValue, onChange, onInvalid, onFocus, onBlur, onKeyDown, onKeyUp, onClick,
-  disabled, required, id, className, style, title, autoFocus, invalid, controlSize = "md",
+  disabled, required, id, className, style, title, autoFocus, invalid, status, controlSize = "md",
   "aria-label": ariaLabel, "aria-labelledby": labelledBy, "aria-describedby": describedBy,
   "aria-invalid": ariaInvalid, ...nativeProps
 }, forwardedRef) {
@@ -192,7 +193,8 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
       tabIndex={nativeProps.tabIndex} accessKey={nativeProps.accessKey} dir={nativeProps.dir} lang={nativeProps.lang} hidden={nativeProps.hidden}
       className={["flood-input flood-select__control", `flood-control--${controlSize}`, className].filter(Boolean).join(" ")}
       style={style} title={title} aria-label={ariaLabel} aria-labelledby={labelledBy}
-      aria-describedby={descriptions} aria-invalid={invalid || ariaInvalid || Boolean(validation) || undefined}
+      aria-describedby={descriptions} data-status={resolveFieldStatus(status, invalid || Boolean(validation), ariaInvalid)}
+      aria-invalid={invalid || status === "error" || ariaInvalid || Boolean(validation) || undefined}
       aria-required={required || undefined} aria-expanded={open} aria-haspopup="listbox" aria-controls={menuId}
       aria-activedescendant={open && active >= 0 && choices[active] && !choices[active].hidden ? `${menuId}-${active}` : undefined}
       onFocus={(event) => { if (onFocus) mirror(new FocusEvent("focusin", { bubbles: true, relatedTarget: event.relatedTarget })); }}

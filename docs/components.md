@@ -253,3 +253,30 @@ Wheel/touch/keyboard scrolling stays native. The overlay thumb supports dragging
 and track clicks; it follows resizing, content changes and RTL. Forced colors
 restores a visible native bar as a deliberate accessibility fallback. This current
 source export is not available in the published 0.2.2 package.
+
+## Current source: field status and read-only values
+
+Input, Textarea, Select and Field accept `status="error" | "warning" | "success" | "info"`.
+Use no status for the neutral default. Field associates its `message` with the
+control and forwards status through callback props:
+
+```tsx
+<Field label="Project name" status="warning" message="Check this name before continuing.">
+  {control => <Input {...control} defaultValue="New project" />}
+</Field>
+```
+
+Only error sets aria-invalid. Existing error, invalid or affirmative aria-invalid
+wins over a positive status. Native constraints and application validation still
+belong to the host. Warnings and information do not block editing or submission.
+Use explanatory text; color alone must not carry the meaning. Text already
+supports these feedback tones. Layout primitives and generic buttons do not gain
+validation states merely to match the fields.
+
+`readOnly` prevents edits to text-like Input/Textarea while preserving focus,
+selection, copying and submitted values. The dark field has a quiet dashed
+resting border and canvas background; its focused border remains solid accent.
+Disabled fields have different semantics. Select, Checkbox and Radio have no
+native read-only state. The playground includes a short read-only explanation.
+
+These API additions belong to unreleased source beyond published 0.2.2.

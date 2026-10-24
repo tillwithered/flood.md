@@ -147,6 +147,15 @@
 .flood-root .flood-input::placeholder { color: var(--flood-sys-color-field-placeholder); opacity: 1; }
 .flood-root .flood-input[aria-invalid="true"] { border-color: var(--flood-sys-color-feedback-error); }
 .flood-root .flood-input[readonly] { cursor: text; }
+.flood-root .flood-input[readonly]:not(:disabled) { background: var(--flood-sys-color-surface-canvas); }
+.flood-root .flood-input[readonly]:not(:disabled):not(:focus-visible) { border-style: dashed; }
+.flood-root [data-status="error"] { --flood-field-feedback: var(--flood-sys-color-feedback-error); }
+.flood-root [data-status="warning"] { --flood-field-feedback: var(--flood-sys-color-feedback-warning); }
+.flood-root [data-status="success"] { --flood-field-feedback: var(--flood-sys-color-feedback-success); }
+.flood-root [data-status="info"] { --flood-field-feedback: var(--flood-sys-color-feedback-info); }
+.flood-root .flood-input[data-status] { border-color: var(--flood-field-feedback); }
+.flood-root .flood-message { font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); color: var(--flood-field-feedback, var(--flood-sys-color-content-helper)); }
+.flood-root .flood-field[data-status] > .flood-error { color: var(--flood-field-feedback); }
 .flood-root .flood-input:disabled { background: var(--flood-sys-color-field-disabled); color: var(--flood-sys-color-field-disabled-content); border-color: var(--flood-sys-color-field-border); opacity: 1; }
 .flood-root .flood-input:focus-visible {
   outline: none;
