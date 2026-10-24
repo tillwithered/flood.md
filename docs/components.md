@@ -280,3 +280,24 @@ Disabled fields have different semantics. Select, Checkbox and Radio have no
 native read-only state. The playground includes a short read-only explanation.
 
 These API additions belong to unreleased source beyond published 0.2.2.
+## Visually hidden external labels (current source)
+
+`Field` and `Fieldset` accept `hideLabel`, inherited by `RadioGroup`,
+`CheckboxGroup` and `SegmentedControl`. The actual label/legend remains available
+to assistive technology and retains its association, but no longer occupies a
+layout row. Keep the required `label`/`legend` prop supplied. Use this where the
+surrounding interface already makes the visible purpose clear. Descriptions,
+required semantics and validation continue to work.
+
+For Input, Textarea, Select and InputGroup, apply this to the enclosing Field:
+
+```tsx
+<Field label="Search projects" hideLabel>
+  {control => <Input {...control} type="search" />}
+</Field>
+```
+
+Do not use placeholder as a replacement name, hide interactive label content,
+or remove the individual labels of choices. ButtonGroup/ToggleGroup already
+have accessible group names without a visible heading. `hideLabel` is a
+source-only addition for the pending 0.2.3 patch, beyond published 0.2.2.

@@ -49,7 +49,9 @@ const knobs: Record<string, Knob[]> = {
   link: [], divider: [], "flood-root": [],
 };
 function componentKnobs(component: ComponentPage): Knob[] {
-  return (knobs[component.slug] ?? []).map(knob => {
+  const labelHosts = ["field", "fieldset", "radio-group", "checkbox-group", "segmented-control", "input", "input-group", "textarea", "select"];
+  const source = [...(knobs[component.slug] ?? []), ...(labelHosts.includes(component.slug) ? [{...toggle("hideLabel"), label: "Hide label"}] : [])];
+  return source.map(knob => {
     const prop = component.contract?.props.find(item => item.name === knob.name);
     const options = knob.options && prop?.options?.length ? (knob.name === "status" ? ["none", ...prop.options.map(String)] : prop.options.map(String)) : knob.options;
     const value = prop?.defaultLiteral;
@@ -74,7 +76,7 @@ function printRecipe(node: ElementRecipe, imports: Set<string>, icons: Set<strin
   if (node.tag in Flood) imports.add(node.tag);
   if (["Plus", "ArrowRight", "Copy", "Undo2", "Redo2", "History", "Bold", "Italic", "Underline"].includes(node.tag)) icons.add(node.tag);
   const pad = "  ".repeat(depth);
-  const props = Object.entries(node.props ?? {}).filter(([key, value]) => value !== undefined && !(value === false && ["disabled", "loading", "invalid", "readOnly", "required"].includes(key))).map(([key, value]) => {
+  const props = Object.entries(node.props ?? {}).filter(([key, value]) => value !== undefined && !(value === false && ["disabled", "loading", "invalid", "readOnly", "required", "hideLabel"].includes(key))).map(([key, value]) => {
     if (isBinding(value)) return `${key}={${value.expression}}`;
     return typeof value === "string" && !/[\\"<>&\n\r]/.test(value) ? `${key}=${JSON.stringify(value)}` : `${key}={${JSON.stringify(value)}}`;
   }).join(" ");
@@ -114,7 +116,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       const options = names.map((label, index) => ({ value: label.toLowerCase(), label, ...(v.content !== "text" ? { icon: createElement(glyphs[index]) } : {}), disabled: Boolean(v.disableLast) && index === 2 }));
       const source = `[${names.map((label, index) => `{value: ${JSON.stringify(label.toLowerCase())}, label: ${JSON.stringify(label)}${v.content !== "text" ? `, icon: <${iconNames[index]} />` : ""}${v.disableLast && index === 2 ? ", disabled: true" : ""}}`).join(", ")}]`;
       return element("Stack", { gap: "4", ...(v.fullWidth ? { style: { width: "26rem", maxWidth: "100%" } } : {}) }, element("SegmentedControl", {
-        label: "Time range", name: "period", defaultValue: "day", options: binding(source, options), controlSize: v.controlSize, orientation: v.orientation,
+        label: "Time range", hideLabel: v.hideLabel, name: "period", defaultValue: "day", options: binding(source, options), controlSize: v.controlSize, orientation: v.orientation,
         iconOnly: v.content === "icons", fullWidth: v.fullWidth, disabled: v.disabled,
         onValueChange: binding('(value) => setStatus(`Selected: ${value}.`)', (value: string) => actions.setStatus(`Selected: ${value}.`)),
       }), status);
@@ -160,15 +162,15 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       const start = v.start === "none" ? undefined : v.start === "action" ? startAction : v.start === "icon" ? binding('<IconSlot><Copy /></IconSlot>', createElement(Flood.IconSlot, {}, createElement(Copy))) : v.start;
       const end = v.end === "none" ? undefined : v.end === "action" ? button : v.end === "icon-action" ? iconAction : v.end;
       const [label, value, type] = v.start === "+7" ? ["Phone number (+7)", "999 123 45 67", "tel"] : v.start === "@" ? ["Username", "flood", "text"] : v.start === "$" ? ["Amount in dollars", "100", "text"] : v.end === "kg" ? ["Weight in kilograms", "72", "text"] : ["Website", "example.com", "text"];
-      return element("Stack", { gap: "4" }, { tag: "Field", props: { label, status: fieldStatus, message: message ?? (v.readOnly ? "Read only. Select and copy." : undefined) }, field: element("InputGroup", {
+      return element("Stack", { gap: "4" }, { tag: "Field", props: { label, hideLabel: v.hideLabel, status: fieldStatus, message: message ?? (v.readOnly ? "Read only. Select and copy." : undefined) }, field: element("InputGroup", {
         key: `${v.start}-${v.end}`, start, end, type,
         controlSize: v.controlSize, disabled: v.disabled, readOnly: v.readOnly, name: "website", defaultValue: value,
       }) }, status);
     }
     case "button": return element("Stack", { gap: "4" }, element("Inline", {}, element("Button", { variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, "Save changes")), status);
     case "icon-button": return element("Stack", { gap: "4" }, element("Inline", {}, element("IconButton", { label: "Add idea", variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, element("Plus"))), status);
-    case "input": case "textarea": return { tag: "Field", props: { label: slug === "input" ? "Project name" : "Project note", status: fieldStatus, message: message ?? (v.readOnly ? "Read only. Select and copy." : undefined) }, field: element(slug === "input" ? "Input" : "Textarea", { controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, readOnly: v.readOnly, defaultValue: slug === "input" ? "My project" : "A calm place for the next idea." }) };
-    case "select": return { tag: "Field", props: { label: "Project visibility", status: fieldStatus, message }, field: element("Select", { name: "visibility", controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, defaultValue: "private" }, element("option", { value: "private" }, "Private"), element("option", { value: "team" }, "Team"), element("option", { value: "public" }, "Public")) };
+    case "input": case "textarea": return { tag: "Field", props: { label: slug === "input" ? "Project name" : "Project note", hideLabel: v.hideLabel, status: fieldStatus, message: message ?? (v.readOnly ? "Read only. Select and copy." : undefined) }, field: element(slug === "input" ? "Input" : "Textarea", { controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, readOnly: v.readOnly, defaultValue: slug === "input" ? "My project" : "A calm place for the next idea." }) };
+    case "select": return { tag: "Field", props: { label: "Project visibility", hideLabel: v.hideLabel, status: fieldStatus, message }, field: element("Select", { name: "visibility", controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, defaultValue: "private" }, element("option", { value: "private" }, "Private"), element("option", { value: "team" }, "Team"), element("option", { value: "public" }, "Public")) };
     case "checkbox": return element("Checkbox", { ...choice, label: "Receive project updates", name: "updates" });
     case "switch": return element("Switch", { ...choice, label: "Email notifications", name: "notifications" });
     case "radio": return element("fieldset", { style: { margin: 0, padding: 0, border: 0 } }, element("legend", {}, "Project visibility"), element("Stack", { gap: "2" }, element("Radio", { label: "Private", name: "workbench-visibility", value: "private", disabled: v.disabled, checked: binding("checked", Boolean(v.checked)), onChange: binding("() => setChecked(true)", () => actions.checked(true)) }), element("Radio", { label: "Public", name: "workbench-visibility", value: "public", disabled: v.disabled, checked: binding("!checked", !v.checked), onChange: binding("() => setChecked(false)", () => actions.checked(false)) })));
@@ -183,15 +185,15 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       const radio = slug === "radio-group";
       const options = radio ? [{ value: "private", label: "Private" }, { value: "team", label: "Team" }, { value: "public", label: "Public", disabled: true }] : [{ value: "updates", label: "Product updates" }, { value: "releases", label: "Release notes" }, { value: "marketing", label: "Marketing", disabled: true }];
       return element("Stack", { gap: "4" }, element(radio ? "RadioGroup" : "CheckboxGroup", {
-        name: radio ? "visibility" : "notifications", legend: radio ? "Visibility" : "Notifications", options,
+        name: radio ? "visibility" : "notifications", legend: radio ? "Visibility" : "Notifications", hideLabel: v.hideLabel, options,
         defaultValue: radio ? "private" : ["updates"], orientation: v.orientation, status: fieldStatus, message,
         disabled: v.disabled, ...(radio ? { required: v.required } : {}),
         onValueChange: radio ? binding('value => setStatus("Selected: " + value)', (value: string) => actions.setStatus("Selected: " + value)) : binding('value => setStatus("Selected: " + (value.join(", ") || "none"))', (value: string[]) => actions.setStatus("Selected: " + (value.join(", ") || "none"))),
       }), status);
     }
     case "label": return element("Stack", { gap: "2" }, element("Label", { htmlFor: "label-example", required: v.required }, "Project name"), element("Input", { id: "label-example", required: v.required, defaultValue: "My project" }));
-    case "fieldset": return element("Fieldset", { legend: "Notifications", disabled: v.disabled, hint: v.hint ? "Choose the updates you want." : undefined, status: fieldStatus, message }, element("Checkbox", { label: "Product updates", name: "updates", defaultChecked: true }), element("Checkbox", { label: "Release notes", name: "releases" }));
-    case "field": return { tag: "Field", props: { label: "Project name", status: fieldStatus, message: v.error ? undefined : message, required: v.required, hint: v.hint ? "Visible to your team." : undefined, error: v.error ? "Enter a project name." : undefined }, field: element("Input", { name: "project", defaultValue: "" }) };
+    case "fieldset": return element("Fieldset", { legend: "Notifications", hideLabel: v.hideLabel, disabled: v.disabled, hint: v.hint ? "Choose the updates you want." : undefined, status: fieldStatus, message }, element("Checkbox", { label: "Product updates", name: "updates", defaultChecked: true }), element("Checkbox", { label: "Release notes", name: "releases" }));
+    case "field": return { tag: "Field", props: { label: "Project name", hideLabel: v.hideLabel, status: fieldStatus, message: v.error ? undefined : message, required: v.required, hint: v.hint ? "Visible to your team." : undefined, error: v.error ? "Enter a project name." : undefined }, field: element("Input", { name: "project", defaultValue: "" }) };
     case "divider": return element("Stack", { gap: "4" }, text("Workspace"), element("Divider"), text("Account"));
     case "flood-root": return element("Surface", { padding: "6" }, element("Stack", { gap: "2" }, element("Heading", { size: "section", level: 2 }, "Neutral. Dark. Local."), text("This composition uses FloodRoot without changing the document theme.")));
     case "link": return element("Link", { href: "/docs/installation" }, "Read the installation guide");
@@ -248,7 +250,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
     {controls.length > 0 && <div className="workbench-controls" aria-label={`${component.name} API controls`}>
       {controls.map((knob) => typeof knob.initial === "boolean" ?
         <div className="workbench-control workbench-control--toggle" key={knob.name}>
-          <Flood.Checkbox id={`${id}-${knob.name}`} label={labelFor(knob)} aria-label={`${component.name} prop ${knob.name}`} checked={Boolean(values[knob.name])} onChange={(event) => change(knob.name, event.currentTarget.checked)} />
+          <Flood.Checkbox id={`${id}-${knob.name}`} label={labelFor(knob)} aria-label={`${component.name} ${knob.name === "hideLabel" && ["input", "input-group", "textarea", "select"].includes(component.slug) ? "Field wrapper" : "prop"} ${knob.name}`} checked={Boolean(values[knob.name])} onChange={(event) => change(knob.name, event.currentTarget.checked)} />
         </div> :
         <label className="workbench-control" htmlFor={`${id}-${knob.name}`} key={knob.name}>
           <span>{labelFor(knob)}</span>

@@ -1,5 +1,9 @@
 @import "@flood-md/tokens/foundations.css";
 
+/* Keep real labels in the accessibility tree while removing their layout box. */
+.flood-visually-hidden { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.flood-field[data-hide-label="true"], .flood-fieldset[data-hide-label="true"] { position: relative; }
+
 @font-face {
   font-family: "Inter";
   font-style: normal;

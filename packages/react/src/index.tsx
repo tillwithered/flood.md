@@ -287,6 +287,8 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(function Label(
 
 export interface FieldsetProps extends FieldsetHTMLAttributes<HTMLFieldSetElement> {
   legend: ReactNode;
+  /** @since 0.2.3 */
+  hideLabel?: boolean;
   hint?: ReactNode;
   error?: ReactNode;
   message?: ReactNode;
@@ -294,16 +296,16 @@ export interface FieldsetProps extends FieldsetHTMLAttributes<HTMLFieldSetElemen
 }
 /** A native group: disabled, form ownership and nested fieldsets retain browser behavior. */
 export const Fieldset = forwardRef<HTMLFieldSetElement, FieldsetProps>(function Fieldset(
-  { legend, hint, error, message, status, children, className, id: explicitId, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props }, ref,
+  { legend, hideLabel = false, hint, error, message, status, children, className, id: explicitId, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props }, ref,
 ) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
   const hasHint = hasFieldContent(hint), hasError = hasFieldContent(error), hasMessage = hasFieldContent(message) && !hasError;
   const resolvedStatus = resolveFieldStatus(status, hasError, ariaInvalid);
   const description = mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && `${id}-message`);
-  return <fieldset {...props} ref={ref} id={id} className={classes("flood-fieldset", className)} data-status={resolvedStatus}
+  return <fieldset {...props} ref={ref} id={id} className={classes("flood-fieldset", className)} data-hide-label={hideLabel || undefined} data-status={resolvedStatus}
     aria-describedby={description} aria-invalid={resolvedStatus === "error" || ariaInvalid || undefined}>
-    <legend className="flood-legend">{legend}</legend>
+    <legend className={classes("flood-legend", hideLabel && "flood-visually-hidden")}>{legend}</legend>
     <div className="flood-fieldset__body">
       {hasHint && <div id={`${id}-hint`} className="flood-hint">{hint}</div>}
       {children}
@@ -392,6 +394,8 @@ export interface FieldProps {
   message?: ReactNode;
   id?: string;
   label: ReactNode;
+  /** @since 0.2.3 */
+  hideLabel?: boolean;
   hint?: ReactNode;
   error?: ReactNode;
   required?: boolean;
@@ -403,6 +407,7 @@ export function Field({
   message,
   id: explicitId,
   label,
+  hideLabel = false,
   hint,
   error,
   required,
@@ -418,8 +423,8 @@ export function Field({
   const description =
     mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && !hasError && `${id}-message`);
   return (
-    <div className="flood-field" data-status={resolvedStatus}>
-      <Label htmlFor={id} required={required}>{label}</Label>
+    <div className="flood-field" data-hide-label={hideLabel || undefined} data-status={resolvedStatus}>
+      <Label htmlFor={id} required={required} className={hideLabel ? "flood-visually-hidden" : undefined}>{label}</Label>
       {children({
         id,
         "aria-describedby": description,

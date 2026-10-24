@@ -304,3 +304,32 @@ release preparation. No publication is implied by the current source.
   options={[{value: "day", label: "Day"}, {value: "week", label: "Week"},
     {value: "month", label: "Month"}]} />
 ```
+
+
+## Current source: visually hidden external labels
+
+Field and Fieldset accept hideLabel (false by default). It visually hides the real
+Label or legend, preserving its association and accessible name, while removing
+the label's layout row and spacing. The required label/legend prop remains required.
+RadioGroup, CheckboxGroup and SegmentedControl inherit hideLabel. Required native
+controls, descriptions, error/status, group names and form behavior are unchanged.
+Keep essential instructions in a visible hint/message when they are needed.
+Use textual label content; do not put interactive elements inside hidden labels.
+
+For Input/Textarea/Select/InputGroup apply hideLabel to their surrounding Field,
+not the native control. Input aria-label/aria-labelledby remain available when
+the host deliberately provides its own labeling. Placeholder is not a label.
+ButtonGroup/ToggleGroup already expose their group label as an accessible name;
+this flag does not hide button text or the per-option labels of Checkbox/Radio/
+Switch. Standalone icon actions still need an accessible name.
+
+```tsx
+<Field label="Search projects" hideLabel>
+  {control => <Input {...control} type="search" />}
+</Field>
+<SegmentedControl label="Time range" hideLabel name="period" defaultValue="day"
+  options={[{value:"day",label:"Day"},{value:"week",label:"Week"}]} />
+```
+
+This compatible prop addition is source-only for the pending 0.2.3 patch; it is
+not available in the existing published 0.2.2 package. It requires Flood CSS.

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add hideLabel to Field/Fieldset and derived selection groups, retaining native
+  accessible names and removing the external label row; planned for 0.2.3.
+
 - Add SegmentedControl with a shared inset surface, native single selection,
   form/reset behavior and text/icon previews; planned for the next 0.2.3 patch.
 

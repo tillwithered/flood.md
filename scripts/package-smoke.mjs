@@ -71,7 +71,7 @@ const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
 import { SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
-const segments: SegmentedControlProps = {label:'Time range',name:'period',value:'day',options:[{value:'day',label:'Day'}],onValueChange:value=>value satisfies string};
+const segments: SegmentedControlProps = {label:'Time range',hideLabel:true,name:'period',value:'day',options:[{value:'day',label:'Day'}],onValueChange:value=>value satisfies string};
 createElement(SegmentedControl,{...segments,ref:createRef<HTMLFieldSetElement>()});
 // @ts-expect-error SegmentedControl owns one string value, not an array.
 const badSegments: SegmentedControlProps = {...segments,value:['day']};
@@ -87,7 +87,7 @@ const actionsElement = createElement(ButtonGroup, {...actions, ref: createRef<HT
 const connectedFieldElement = createElement(InputGroup, {...connectedField, ref: createRef<HTMLInputElement>()});
 // @ts-expect-error Adorned input supports text-like controls, not file pickers.
 const fileGroup: InputGroupProps = {type: 'file'};
-const radioGroup: RadioGroupProps = {name: 'visibility', legend: 'Visibility', options: [{value: 'private', label: 'Private'}], value: 'private', required: true};
+const radioGroup: RadioGroupProps = {name: 'visibility', legend: 'Visibility', hideLabel: true, options: [{value: 'private', label: 'Private'}], value: 'private', required: true};
 const checkboxGroup: CheckboxGroupProps = {name: 'updates', legend: 'Updates', options: [{value: 'news', label: 'News'}], value: ['news']};
 const radioGroupElement = createElement(RadioGroup, {...radioGroup, ref: createRef<HTMLFieldSetElement>()});
 const checkboxGroupElement = createElement(CheckboxGroup, checkboxGroup);
@@ -167,10 +167,10 @@ import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
   h(Toggle,{defaultPressed:true},'Bold'),
-  h(SegmentedControl,{label:'Period',name:'period',defaultValue:'day',options:[{value:'day',label:'Day'}]}),
+  h(SegmentedControl,{label:'Period',hideLabel:true,name:'period',defaultValue:'day',options:[{value:'day',label:'Day'}]}),
   h(ToggleGroup,{label:'Formatting',options:[{value:'bold',label:'Bold'}],defaultValue:['bold']}),
   h(ScrollArea,{'aria-label':'History',style:{maxHeight:'12rem'}},'Local activity'),
-  h(Field,{label:'Name',required:true},p=>h(Input,{...p,name:'name'})),
+  h(Field,{label:'Name',hideLabel:true,required:true},p=>h(Input,{...p,name:'name'})),
   h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
 if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')) throw Error('React compatibility render');

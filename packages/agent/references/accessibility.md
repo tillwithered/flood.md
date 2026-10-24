@@ -42,3 +42,11 @@ readOnly on text-like Input/Textarea prevents editing while preserving focus,
 selection, copy and submission. Do not substitute disabled or apply readOnly to
 Select/checkboxes. Explain the restriction. Preserve the solid accent focus even
 when a read-only field uses a dashed resting perimeter.
+
+External-label visibility: source Field/Fieldset hideLabel preserves the actual
+label/legend and accessible name while removing its visual row. RadioGroup,
+CheckboxGroup and SegmentedControl inherit it. Keep label/legend supplied and
+textual; do not hide interactive label content. Use it only where surrounding
+context supplies the visible meaning. Input/Textarea/Select/InputGroup configure
+this on their Field wrapper, not the control. Placeholder never replaces naming;
+choice option labels and button names have separate contracts. Pending 0.2.3.
