@@ -10,7 +10,8 @@ and browser-native form elements provide the underlying platform APIs.
 Yes. Import the global stylesheet in app/layout.tsx. Flood's React entry preserves
 its use-client boundary. Compose callbacks, state and Field's function child in
 your own client component. The integration fixture tests React 19 and Next.js App
-Router. React 18.3 is accepted by peer dependencies but is not in the CI matrix yet.
+Router. Clean-package checks also exercise React 18.3 and 19 server rendering;
+the full interactive Next.js fixture uses React 19.
 
 ## Is this the same installation model as shadcn?
 
@@ -21,8 +22,10 @@ you need behavior outside the public API.
 
 ## Why is there no add button command?
 
-All eight initial controls ship in @flood-md/react. Import the controls you need.
-The CLI provides init, init --dry-run and doctor.
+The base set ships together in @flood-md/react: nine foundation primitives and
+eight native controls. Import the components you need; see the
+[base component set](base-components.md). The CLI provides init, init --dry-run
+and doctor.
 
 ## Which package managers work?
 
@@ -33,7 +36,9 @@ but their integration is not currently covered by the installer tests.
 
 Import @flood-md/react/styles.css once at the app root. Doctor checks package
 versions and instruction files, not the application's stylesheet imports.
-Check project CSS overrides if the import is already present.
+Wrap a new interface in FloodRoot to select the neutral dark foundations profile.
+Outside that scope, controls retain the legacy theme. Check project CSS overrides
+if the import and wrapper are already present.
 
 ## Can I rerun init or use it as an updater?
 

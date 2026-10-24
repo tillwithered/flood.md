@@ -1,8 +1,7 @@
-# Foundations tokens · 0.2.0 release candidate
+# Foundations tokens · 0.2.0
 
-This source describes the **0.2.0 release candidate**, not a verified npm
-publication. These subpaths are absent from npm 0.1.1. Candidate consumers use
-matching repository-built packages; all internal versions remain aligned.
+This guide describes the **0.2.0** foundation exports. Keep Flood packages at
+matching exact versions. Existing 0.1.1 installs use their earlier token contract.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).
 The compiler also supports component aliases (`comp`) and isolated experiments
@@ -171,5 +170,5 @@ using those tokens; old custom overrides continue to apply there. Inside
 `FloodRoot`, the dark foundation roles control the component recipe. Legacy
 overrides do not automatically override separately scoped foundation roles.
 
-The 0.2.0 candidate adds these exports without replacing an existing npm version.
+Version 0.2.0 adds these exports without replacing an existing npm version.
 Publication must be verified separately; source version numbers are not proof.

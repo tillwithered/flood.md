@@ -44,10 +44,10 @@ no project theme editor, implicit download or remote configuration.
 
 ## Versioning
 
-### Dark foundations in the 0.2.0 candidate
+### Dark foundations in 0.2.0
 
-The aligned version is `0.2.0`, prepared as a release candidate. Registry
-publication is not implied by the manifests or source branch.
+The aligned version is `0.2.0`. Registry publication is verified separately from
+the manifests or source branch.
 `FloodRoot` explicitly selects `data-flood-foundations="neutral"` and
 `data-flood-theme="dark"`. New foundation styles are scoped to that root;
 legacy controls outside it keep their existing light/dark behavior. A new light

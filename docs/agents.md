@@ -1,14 +1,12 @@
 # Using Flood with an agent
 
 Read flood.json and the installed flood/DESIGN.md before editing an existing
-project. Use the matching package and CLI version. Repository source currently
-describes the **0.2.0 release candidate**; npm publication is not yet verified.
-The last verified public release is 0.1.1 and has its earlier component API.
+project. Use the matching package and CLI version. This guide describes **0.2.0**;
+existing 0.1.1 projects retain their earlier version-specific component guide.
 
 For public installation, give an agent https://flood.md/llms.txt. That endpoint
-tracks the deployed release; it must not be treated as proof that an unreleased
-source candidate exists on npm. Evaluate 0.2.0 with the local tarball workflow in
-[installation](installation.md), then use the matching package's agent files.
+tracks the deployed release. Start with `npx @flood-md/cli@0.2.0 init --dry-run`,
+then follow [installation](installation.md) and the matching package's agent files.
 
 ## Versioned files
 

@@ -4,13 +4,10 @@ An independent design system for **React, TypeScript and Next.js**. Original
 components, semantic tokens, a small installer, and versioned instructions for
 coding agents. No third-party UI component library or Tailwind dependency.
 
-## 0.2.0 release candidate
+## Base dark design system · 0.2.0
 
-The current source provides the dark foundations profile and first component
-set for **0.2.0**. npm publication is not yet verified; the registry command below
-continues to install the last verified release, **0.1.1**. Evaluate the candidate
-with [local package tarballs](docs/installation.md) rather than guessing a
-working registry command.
+Flood 0.2.0 provides a dark foundations profile, 154 semantic token roles and
+[17 original primitives and controls](docs/base-components.md).
 
 ```tsx
 import "@flood-md/react/styles.css";
@@ -34,12 +31,10 @@ New primitives include Text/Heading, Stack/Inline/Surface, IconSlot/IconButton
 and Divider. The new foundations profile starts with dark only; the older theme
 contract remains compatible outside FloodRoot.
 
-## Connect to the verified 0.1.1 release
-
-Verified public release:
+## Connect
 
 ```sh
-npx @flood-md/cli@0.1.1 init
+npx @flood-md/cli@0.2.0 init
 ```
 
 Run in an existing npm-based React or Next.js project. Use `init --dry-run` to see
@@ -50,15 +45,15 @@ once in your React entry or Next.js `app/layout.tsx`:
 
 ```tsx
 import "@flood-md/react/styles.css";
-import { Button } from "@flood-md/react";
+import { Button, FloodRoot } from "@flood-md/react";
 
 export function Example() {
-  return <Button>Start something</Button>;
+  return <FloodRoot><Button>Start something</Button></FloodRoot>;
 }
 ```
 
 Give an agent `https://flood.md/llms.txt`. The guide
-uses the same CLI as a manual installation. `npx @flood-md/cli@0.1.1 doctor` checks
+uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.0 doctor` checks
 installed versions and owned instruction files.
 
 ## Documentation
@@ -67,6 +62,7 @@ Start with the [documentation index](docs/README.md):
 
 - [Installation and updates](docs/installation.md)
 - [Component API and examples](docs/components.md)
+- [Base component inventory](docs/base-components.md)
 - [Tokens and themes](docs/theming.md)
 - [Agent setup](docs/agents.md)
 - [Frequently asked questions](docs/faq.md)
@@ -82,7 +78,7 @@ variables; host application owns layout, data fetching and side effects.
 ## Develop
 
 See [foundations](docs/foundations.md) and the [component guide](docs/components.md)
-for the 0.2.0 candidate. These additions are absent from npm 0.1.1. The Next.js
+for 0.2.0. Existing 0.1.1 projects should follow their matching guides. The Next.js
 example includes `/foundations` and `/team` for reviewing the current source.
 
 Node.js 22.12+ (Node 24 recommended), npm 11.

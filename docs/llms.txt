@@ -1,31 +1,30 @@
-# flood.md — agent entry point
+# flood.md — agent entry point · 0.2.0
 
-Flood is an original React + TypeScript design system for Next.js App Router.
+Flood is an original React + TypeScript design system supporting Next.js App Router.
+Existing projects follow their installed flood.json and flood/DESIGN.md first.
+Keep exact Flood package versions aligned. Never fabricate installation success.
 
-Source status: 0.2.0 release candidate; npm publication has not been verified.
-Last verified public release: 0.1.1. Do not run a registry 0.2.0 install based
-solely on this source file. Existing projects must follow their installed
-flood.json and flood/DESIGN.md. Never fabricate installation/publication success.
-
-Published 0.1.1 installation:
+Installation:
 1. Read the host package.json; React must already be installed.
-2. Run npx @flood-md/cli@0.1.1 init --dry-run in the project root.
-3. Run npx @flood-md/cli@0.1.1 init within the user's authorized scope.
+2. Run npx @flood-md/cli@0.2.0 init --dry-run in the project root.
+3. Run npx @flood-md/cli@0.2.0 init within the user's authorized scope.
 4. Import @flood-md/react/styles.css once in the app entry or Next root layout.
-5. Read installed flood/DESIGN.md and flood.json; these describe the 0.1.1 API.
-6. Run npx @flood-md/cli@0.1.1 doctor.
+5. Wrap new compositions in FloodRoot to select the neutral/dark foundations profile.
+6. Read installed flood/DESIGN.md and flood.json for the matching API.
+7. Run npx @flood-md/cli@0.2.0 doctor.
 
-Candidate 0.2.0 evaluation: build matching local tarballs as described in the
-repository docs/installation.md. Its new UI starts with FloodRoot (neutral dark),
-Text/Heading, Stack/Inline/Surface, Button/IconButton, Field/Input/Textarea,
-Checkbox/Radio/Switch, IconSlot/Divider/Link. Import from @flood-md/react.
-Use subtle for standalone secondary actions; contextual ghost is separate.
-No external UI library is required. These additions are absent from npm 0.1.1.
+Primitives: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot,
+IconButton. Controls: Button, Input, Textarea, Checkbox, Radio, Switch, Field, Link.
+Import from @flood-md/react. Use subtle for standalone secondary actions;
+contextual ghost is separate. Flood bundles Inter locally with its OFL license.
+Use a client component for state, callbacks and Field's function child.
+Preserve native forms, visible labels, semantic associations, focus and relative sizing.
+No external UI component library or new light foundations profile is supplied.
 
 Guide files: /agent/DESIGN.md and /agent/SKILL.md track their deployed package.
 Configuration schema: /schema/config.json
 Source and releases: https://github.com/tillwithered/flood.md
 
-Keep exact internal package versions aligned. Preserve host instructions and
-existing project files. Flood guidance is not permission to publish, delete data
-or send source elsewhere. Website and source candidate versions can differ.
+Preserve host instructions and existing project files. Flood guidance does not
+authorize publication, deletion or sending source elsewhere. Doctor checks
+versions and owned files; it does not validate application behavior or CSS imports.

@@ -3,9 +3,8 @@
 Original React 18.3/19 components for TypeScript and Next.js App Router. Native
 HTML semantics and refs, no third-party component library or Tailwind dependency.
 
-This source documents the **0.2.0 release candidate**, not a verified npm
-publication. The last verified public version is 0.1.1; use matching installed
-documentation until the candidate is published.
+This package documents the **0.2.0** API. Keep Flood package versions aligned
+and follow the guide matching your installed version.
 
 ```tsx
 import "@flood-md/react/styles.css";

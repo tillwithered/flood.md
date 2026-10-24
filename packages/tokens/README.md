@@ -1,8 +1,7 @@
 # @flood-md/tokens
 
-Typed reference values and semantic CSS roles for Flood. This source documents
-the **0.2.0 release candidate**; npm publication is not yet verified. Existing
-0.1.1 installs do not contain the foundations exports described below.
+Typed reference values and semantic CSS roles for Flood **0.2.0**. Keep Flood
+package versions aligned. Existing 0.1.1 installs use their earlier token contract.
 
 React consumers import @flood-md/react/styles.css and use FloodRoot. Token-only
 consumers import @flood-md/tokens/foundations.css and set both attributes on the

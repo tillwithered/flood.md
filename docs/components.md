@@ -1,10 +1,9 @@
 # Components
 
-## Dark foundations · 0.2.0 release candidate
+## Dark foundations · 0.2.0
 
-This source documents the **0.2.0 release candidate**. npm publication is not
-yet verified. Use matching locally built packages for candidate evaluation;
-existing 0.1.1 installs follow their version-specific guides.
+This guide describes the **0.2.0** API. See the [base component inventory](base-components.md)
+for the complete set. Existing 0.1.1 installs follow their version-specific guides.
 
 Import the same stylesheet and wrap new compositions in `FloodRoot` to select
 neutral/dark. Existing controls outside it retain legacy light/dark behavior.
