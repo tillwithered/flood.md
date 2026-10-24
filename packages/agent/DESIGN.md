@@ -1,5 +1,8 @@
 # Flood design system · 0.1.1
 
+This header describes the published 0.1.1 contract. The final section documents
+unreleased next-minor source additions; do not assume they exist in 0.1.1 installs.
+
 React + TypeScript. Next.js App Router is supported. Flood owns its components,
 tokens, CSS and installer. Do not introduce another UI library or copy external components.
 
@@ -55,3 +58,38 @@ export function Profile() {
   );
 }
 ```
+
+## Unreleased next minor: dark foundations
+
+These source additions target the next aligned 0.2.0 release. Package manifests
+still read 0.1.1. Do not install or advertise 0.2.0 until publication is verified.
+Keep the preceding legacy API for projects using published 0.1.1.
+
+- Import the same styles.css and wrap new compositions in FloodRoot for explicit
+  neutral/dark scope. No new light foundations profile exists in this slice.
+- Use Text sizes body/compact/label/helper and Heading sizes large/page/section.
+  Choose semantic heading level independently of visual size. Text's label size
+  does not create a form association; use Field for labeled inputs.
+- Stack/Inline gap and Surface padding accept string keys 0/1/2/3/4/6/8/12.
+  These are rem values; never impose a fixed root font size. Inline wraps.
+- The dark profile uses locally bundled Inter with its original OFL notice.
+  Preserve the license. Tracking and line-height follow typographic roles;
+  do not tighten every element through a global letter-spacing override.
+- Button adds subtle and sizes 2xs/xs/sm/md/lg/xl/2xl. Standalone secondary
+  actions normally use subtle; reserve ghost for an evident parent context.
+- Input/Textarea use controlSize sm/md/lg/xl. Preserve Input's native size prop.
+  Field required forwards required and adds a marker; describedBy merges external
+  IDs with hint/error associations. Spread all function-child control props.
+- IconSlot is a host SVG adapter, decorative without label. IconButton requires
+  a nonempty action label. Retain any external icon pack's license separately.
+- Surface overlay is visual elevation only; it does not provide modal semantics,
+  portals, keyboard dismissal or focus trapping.
+- Preserve the quiet field outline plus its stronger necessary boundary. Focus
+  is 2px without offset; its pink default is provisional and configurable.
+  Do not remove focus when invalid or reduce entire component opacity.
+- Decorative dividers, necessary boundaries and text have different contrast
+  roles. Evaluate text with WCAG and supplementary APCA size/weight guidance;
+  never treat APCA as full certification or apply text thresholds to borders.
+- Verify root scaling, text-spacing overrides, narrow layouts, keyboard,
+  forced-colors, reduced motion and focus/invalid combinations in the host app.
+  Existing Checkbox/Radio/Switch keep native form semantics and visible labels.

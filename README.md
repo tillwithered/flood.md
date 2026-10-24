@@ -50,6 +50,11 @@ variables; host application owns layout, data fetching and side effects.
 
 ## Develop
 
+The next minor is being developed in source: an opt-in dark foundations profile,
+Inter typography and new primitives. See [foundations](docs/foundations.md) and
+the [component guide](docs/components.md). These additions are not in npm 0.1.1.
+The Next.js example includes `/foundations` for reviewing the current source.
+
 Node.js 22.12+ (Node 24 recommended), npm 11.
 
 ```sh

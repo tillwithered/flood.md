@@ -42,6 +42,8 @@ await copyFile(
   "packages/react/src/styles.css",
   "packages/react/dist/styles.css",
 );
+await copyFile("packages/react/src/foundations.css", "packages/react/dist/foundations.css");
+await cp("packages/react/src/fonts", "packages/react/dist/fonts", { recursive: true });
 for (const name of ["tokens", "react", "agent", "cli"])
   await copyFile("LICENSE", `packages/${name}/LICENSE`);
 await mkdir("apps/website/public/schema", { recursive: true });

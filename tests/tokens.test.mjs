@@ -11,6 +11,38 @@ const clone = () => structuredClone(source);
 const dark = (value) => value.sets.theme.dark.sys.color;
 const meta = (token) => token.$extensions["md.flood"];
 
+test("dark foundations publish coherent role metrics and accessible boundary colors", () => {
+  const result = compile(source);
+  const values = new Map(result.contexts[0].catalog.map((x) => [x.id, x.value]));
+  const metric = (id) => values.get(`sys.${id}`);
+  for (const [role, size, line, weight, tracking] of [
+    ["large", 32, 40, 500, -.02], ["page", 24, 32, 500, -.02],
+    ["section", 20, 28, 500, -.015], ["body", 16, 24, 400, -.01],
+    ["compact", 14, 20, 400, -.01], ["label", 13, 18, 400, -.01],
+    ["helper", 12, 18, 400, -.01], ["control", 14, 20, 500, -.005],
+  ]) {
+    assert.deepEqual(metric(`type.${role}.size`), { value: size / 16, unit: "rem" });
+    assert.equal(metric(`type.${role}.line-height`), line / size);
+    assert.equal(metric(`type.${role}.weight`), weight);
+    assert.deepEqual(metric(`type.${role}.tracking`), { value: tracking, unit: "em" });
+  }
+  const sizes = ["2xs", "xs", "sm", "md", "lg", "xl", "2xl"];
+  assert.deepEqual(sizes.map((size) => metric(`control.${size}.height`).value * 16), [24,28,32,40,44,48,56]);
+  assert.deepEqual(sizes.map((size) => metric(`control.${size}.icon-size`).value * 16), [14,16,16,20,20,24,24]);
+  const luminance = (color) => color.components.map((v) => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4).reduce((sum, v, i) => sum + v * [.2126,.7152,.0722][i], 0);
+  const ratio = (a, b) => (Math.max(luminance(a), luminance(b)) + .05) / (Math.min(luminance(a), luminance(b)) + .05);
+  for (const surface of ["canvas", "default", "raised", "overlay"]) {
+    assert.ok(ratio(metric("color.field.boundary"), metric(`color.surface.${surface}`)) >= 3);
+    assert.ok(ratio(metric("color.focus.ring"), metric(`color.surface.${surface}`)) >= 3);
+  }
+  assert.ok(ratio(metric("color.field.border"), metric("color.field.background")) < 3, "quiet outline is not misrepresented as a required boundary");
+  assert.equal(metric("motion.duration-reduced").value, 0);
+  assert.equal(metric("color.action.ghost.rest").alpha, 0);
+  for (const [state, byte] of Object.entries({ rest: 48, hover: 56, pressed: 74, content: 255, disabled: 48, "disabled-content": 122 })) {
+    assert.deepEqual(metric(`color.action.on-surface.${state}`).components, [byte / 255, byte / 255, byte / 255]);
+  }
+});
+
 test("foundation output is deterministic and preserves the legacy JSON contract", async () => {
   const a = compile(source),
     b = compile(source);
@@ -142,7 +174,7 @@ test("metadata and supported value types reject unsafe or ambiguous input", () =
   value.sets.palette.neutral.ref.color.neutral["0"].$value.alpha = 2;
   assert.throws(() => compile(value), /alpha outside/);
   value = clone();
-  value.sets.shared.ref.stroke.width["2"].$value.unit = "em";
+  value.sets.shared.ref.stroke.width["2"].$value.unit = "%";
   assert.throws(() => compile(value), /invalid dimension/);
   value = clone();
   value.sets.shared.ref.stroke.width["2"].$type = "shadow";
@@ -184,6 +216,7 @@ test("a component alias chain resolves without exposing internal reference names
 test("all supported scalar types serialize through the same validated pipeline", () => {
   for (const [type, input, expected] of [
     ["dimension", { value: 1.5, unit: "rem" }, "1.5rem"],
+    ["dimension", { value: -0.02, unit: "em" }, "-0.02em"],
     ["duration", { value: 140, unit: "ms" }, "140ms"],
     ["number", 1.6, "1.6"],
     ["fontWeight", 500, "500"],
@@ -211,6 +244,7 @@ test("all supported scalar types serialize through the same validated pipeline",
 test("unsupported scalar values, literal semantic values and changing identity fail", () => {
   for (const [type, input] of [
     ["dimension", { value: -1, unit: "px" }],
+    ["dimension", { value: -1, unit: "rem" }],
     ["duration", { value: 1, unit: "frames" }],
     ["number", Infinity],
     ["fontWeight", 1001],

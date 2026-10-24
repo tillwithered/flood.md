@@ -43,6 +43,33 @@ the intended extension boundary. No implicit downloads or remote configuration.
 
 ## Versioning
 
+### Unreleased dark foundations profile
+
+The next aligned minor is planned as `0.2.0`; manifests remain `0.1.1` until
+release preparation. This source change is not a published npm release.
+`FloodRoot` explicitly selects `data-flood-foundations="neutral"` and
+`data-flood-theme="dark"`. New foundation styles are scoped to that root;
+legacy controls outside it keep their existing light/dark behavior. A new light
+foundations profile is outside this slice.
+
+The single token source remains `packages/tokens/src/tokens.json`. Typed
+reference values feed semantic aliases and generated CSS, manifest, resolved
+JSON and TypeScript lookup. Typography, spacing, finite radii and control/icon
+geometry use relative units; root font size belongs to the host application.
+Text/Heading and layout primitives compose with the existing native controls.
+IconSlot accepts host SVG artwork without adding an icon library dependency.
+
+Inter is a bundled, unmodified third-party WOFF2 asset under its original SIL
+OFL 1.1, separate from Flood's MIT code. Its release, hash and license accompany
+the source. CSS resolves the font locally without a CDN. The dark field recipe
+includes a necessary boundary in addition to its quieter decorative outline;
+the 2px focus accent is configurable and provisional. These choices do not
+constitute a claim of complete accessibility across host compositions.
+
+New public APIs require declaration output, user and agent guidance and an
+aligned release decision. The installed `0.1.1` agent contract stays explicitly
+separate from the unreleased next-minor additions.
+
 One release train for tokens, React, agent and CLI. Release checks enforce exact
 versions and required artifacts. Publish dependency-first. Never mutate an npm
 version. Use a new patch release for corrections. Review changelog and upgrade

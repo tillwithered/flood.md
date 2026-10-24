@@ -14,3 +14,11 @@ The source envelope also compiles typed reference/semantic tokens. The additive
 minor release; npm 0.1.1 does not contain them. The existing exports keep their
 original contract. See [the foundations guide](../../docs/foundations.md) for
 scope attributes, supported types, public roles and usage limitations.
+
+The neutral dark profile includes Inter typography, rem spacing/control sizing,
+semantic action/field/feedback colors, focus, radii and initial motion/layer
+roles. The React package bundles Inter and its OFL license locally; token-only
+consumers supply their own font files. A light profile
+is not supplied for these new foundations. The legacy theme exports above keep
+their existing behavior. Quiet field outlines require the separate necessary
+boundary signal described in the guide.

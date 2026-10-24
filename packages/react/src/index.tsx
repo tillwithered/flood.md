@@ -2,20 +2,24 @@
 
 import {
   forwardRef,
+  createElement,
   useId,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type TextareaHTMLAttributes,
   type AnchorHTMLAttributes,
   type ReactNode,
+  type HTMLAttributes,
+  type CSSProperties,
 } from "react";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
 
+export type ControlSize = "2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "solid" | "outline" | "ghost";
-  size?: "sm" | "md";
+  variant?: "solid" | "subtle" | "outline" | "ghost";
+  size?: ControlSize;
   loading?: boolean;
 }
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -55,9 +59,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   invalid?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
 }
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { invalid, className, ...props },
+  { invalid, controlSize = "md", className, ...props },
   ref,
 ) {
   return (
@@ -65,21 +70,22 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       {...props}
       ref={ref}
       aria-invalid={invalid || props["aria-invalid"]}
-      className={classes("flood-input", className)}
+      className={classes("flood-input", `flood-control--${controlSize}`, className)}
     />
   );
 });
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   invalid?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
 }
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  function Textarea({ invalid, className, ...props }, ref) {
+  function Textarea({ invalid, controlSize = "md", className, ...props }, ref) {
     return (
       <textarea
         {...props}
         ref={ref}
         aria-invalid={invalid || props["aria-invalid"]}
-        className={classes("flood-input", "flood-textarea", className)}
+        className={classes("flood-input", "flood-textarea", `flood-control--${controlSize}`, className)}
       />
     );
   },
@@ -134,12 +140,15 @@ export interface FieldControlProps {
   id: string;
   "aria-describedby"?: string;
   "aria-invalid"?: true;
+  required?: boolean;
 }
 export interface FieldProps {
   id?: string;
   label: ReactNode;
   hint?: ReactNode;
   error?: ReactNode;
+  required?: boolean;
+  describedBy?: string;
   children: (props: FieldControlProps) => ReactNode;
 }
 export function Field({
@@ -147,22 +156,26 @@ export function Field({
   label,
   hint,
   error,
+  required,
+  describedBy,
   children,
 }: FieldProps) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
   const description =
-    [hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") ||
+    [describedBy, hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") ||
     undefined;
   return (
     <div className="flood-field">
       <label className="flood-label" htmlFor={id}>
         {label}
+        {required && <span aria-hidden="true"> *</span>}
       </label>
       {children({
         id,
         "aria-describedby": description,
         "aria-invalid": error ? true : undefined,
+        required,
       })}
       {hint && (
         <div id={`${id}-hint`} className="flood-hint">
@@ -186,3 +199,83 @@ export const Link = forwardRef<
     <a {...props} ref={ref} className={classes("flood-link", className)} />
   );
 });
+
+/** Explicit opt-in to the dark foundations profile; no global theme mutation. */
+export const FloodRoot = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
+  function FloodRoot({ className, ...props }, ref) {
+    return <div {...props} ref={ref} data-flood-foundations="neutral" data-flood-theme="dark" className={classes("flood-root", className)} />;
+  },
+);
+
+export interface TextProps extends HTMLAttributes<HTMLElement> {
+  as?: "span" | "p" | "div";
+  size?: "body" | "compact" | "label" | "helper";
+  tone?: "default" | "subtle" | "error" | "success" | "warning" | "info";
+}
+export const Text = forwardRef<HTMLElement, TextProps>(function Text(
+  { as = "span", size = "body", tone = "default", className, ...props }, ref,
+) {
+  return createElement(as, { ...props, ref, className: classes("flood-text", `flood-type--${size}`, `flood-tone--${tone}`, className) });
+});
+
+export interface HeadingProps extends HTMLAttributes<HTMLHeadingElement> {
+  level?: 1 | 2 | 3 | 4 | 5 | 6;
+  size?: "large" | "page" | "section";
+}
+export const Heading = forwardRef<HTMLHeadingElement, HeadingProps>(function Heading(
+  { level = 2, size = "page", className, ...props }, ref,
+) {
+  return createElement(`h${level}`, { ...props, ref, className: classes("flood-heading", `flood-type--${size}`, className) });
+});
+
+export type Space = "0" | "1" | "2" | "3" | "4" | "6" | "8" | "12";
+export interface LayoutProps extends HTMLAttributes<HTMLDivElement> {
+  gap?: Space;
+}
+export const Stack = forwardRef<HTMLDivElement, LayoutProps>(function Stack(
+  { gap = "4", style, className, ...props }, ref,
+) {
+  return <div {...props} ref={ref} className={classes("flood-stack", className)} style={{ "--flood-layout-gap": `var(--flood-sys-space-${gap})`, ...style } as CSSProperties} />;
+});
+export interface InlineProps extends LayoutProps {
+  align?: "start" | "center" | "end" | "baseline";
+}
+export const Inline = forwardRef<HTMLDivElement, InlineProps>(function Inline(
+  { gap = "2", align = "center", style, className, ...props }, ref,
+) {
+  return <div {...props} ref={ref} className={classes("flood-inline", className)} style={{ "--flood-layout-gap": `var(--flood-sys-space-${gap})`, alignItems: align === "start" ? "flex-start" : align === "end" ? "flex-end" : align, ...style } as CSSProperties} />;
+});
+export interface SurfaceProps extends HTMLAttributes<HTMLDivElement> {
+  elevation?: "default" | "raised" | "overlay";
+  padding?: Space;
+}
+export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(function Surface(
+  { elevation = "default", padding = "6", style, className, ...props }, ref,
+) {
+  return <div {...props} ref={ref} data-flood-elevation={elevation} className={classes("flood-surface", className)} style={{ background: `var(--flood-sys-color-surface-${elevation})`, padding: `var(--flood-sys-space-${padding})`, ...style }} />;
+});
+
+export interface IconSlotProps extends HTMLAttributes<HTMLSpanElement> {
+  size?: ControlSize;
+  label?: string;
+}
+/** Adapter for the host's SVG icon package; glyphs are not bundled. */
+export const IconSlot = forwardRef<HTMLSpanElement, IconSlotProps>(function IconSlot(
+  { size = "md", label, className, children, ...props }, ref,
+) {
+  return <span {...props} ref={ref} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true} className={classes("flood-icon", `flood-icon--${size}`, className)}>{children}</span>;
+});
+export interface IconButtonProps extends Omit<ButtonProps, "aria-label"> {
+  label: string;
+}
+export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
+  { label, size = "md", variant = "subtle", className, children, ...props }, ref,
+) {
+  return <Button {...props} ref={ref} size={size} variant={variant} aria-label={label} className={classes("flood-icon-button", className)}><IconSlot size={size}>{children}</IconSlot></Button>;
+});
+
+export const Divider = forwardRef<HTMLHRElement, HTMLAttributes<HTMLHRElement>>(
+  function Divider({ className, ...props }, ref) {
+    return <hr {...props} ref={ref} className={classes("flood-divider", className)} />;
+  },
+);

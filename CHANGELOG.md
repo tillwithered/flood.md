@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Target the next aligned minor, 0.2.0, for the dark foundations profile. Add
+  154 semantic roles, bundled Inter with its OFL license, rem-based geometry,
+  typography, actions, feedback, focus, motion and layering tokens.
+- Add FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot and
+  IconButton; expand Button sizing and native form recipes inside FloodRoot.
+  Preserve legacy theme behavior outside the opt-in root. Add a Next.js
+  foundations example and browser checks for forms, scaling and system modes.
+
 - Add an experimental, opt-in foundations token profile with typed aliases,
   CSS/JSON generation, a public catalog and TypeScript names. Existing token
   imports retain their contract. The new exports require the next aligned minor

@@ -1,6 +1,6 @@
 // Build-time compiler for Flood's deliberately limited DTCG token profile.
 // No CSS expressions or external references are executed from source data.
-const segment = /^(?:[a-z][a-z0-9]*(?:-[a-z0-9]+)*|0|[1-9][0-9]*)$/;
+const segment = /^(?:(?:[a-z]|[1-9][0-9]*[a-z])[a-z0-9]*(?:-[a-z0-9]+)*|0|[1-9][0-9]*)$/;
 const reference = /^\{((?:ref|sys|comp|exp)\.[a-z0-9.-]+)\}$/;
 const types = new Set([
   "color",
@@ -92,10 +92,10 @@ function valueCSS(type, value, id) {
     case "dimension":
     case "duration": {
       keys(value, ["value", "unit"], id);
-      const units = type === "dimension" ? ["px", "rem"] : ["ms", "s"];
+      const units = type === "dimension" ? ["px", "rem", "em"] : ["ms", "s"];
       if (
         !finite(value.value) ||
-        value.value < 0 ||
+        (value.value < 0 && !(type === "dimension" && value.unit === "em")) ||
         !units.includes(value.unit)
       )
         fail(`${id}: invalid ${type}`);
