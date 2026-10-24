@@ -407,7 +407,8 @@ content. Use Popover for interactive content; tooltip text is not a button's nam
 Popover takes a visible title, children, trigger, side (bottom), align (start),
 open/onOpenChange or local defaultOpen. It is a nonmodal dialog: focus enters its
 content, but Tab is not trapped. Escape, outside pointer and focus leaving request
-closing. Close button text is configurable with closeLabel. initialFocusRef can
+closing. The upper-end close action is an IconButton with a decorative cross; closeLabel
+configures its accessible name. initialFocusRef can
 choose an enabled element inside the panel; otherwise content gets initial focus.
 Disabled prevents trigger activation. The div ref/className/style/native props
 target the actual panel. Side flips and coordinates clamp near viewport edges;
@@ -418,6 +419,7 @@ position and available-size variables. Logical start/end alignment follows RTL.
 Dialog uses native showModal for backdrop, inert background and nested modal
 behavior. It takes title, optional plain description, children, trigger and the
 same controlled/local state, disabled trigger, closeLabel and initialFocusRef.
+Its upper-end close action also uses IconButton.
 Escape requests closure of the topmost layer. closeOnOutsideClick defaults true;
 turning it off preserves Escape and the explicit close action. Tab/Shift+Tab cycle
 inside the modal, including nested nonmodal content; background scrolling is

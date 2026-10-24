@@ -1,5 +1,6 @@
 import {forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState} from "react";
 import type {TooltipProps,PopoverProps,DialogProps,OverlayTriggerProps} from "./index.js";
+import {IconButton} from "./index.js";
 import {positionLayer,registerLayer,returnFocus,lockScroll,tabbables} from "./overlay-runtime.js";
 import {mergeDescriptions} from "./field-state.js";
 const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffect;
@@ -7,6 +8,11 @@ function useCurrent<T>(value:T){const ref=useRef(value);useBrowserLayoutEffect((
 function focusContent(panel:HTMLElement,preferred?:HTMLElement|null){
   const target=preferred?.isConnected&&panel.contains(preferred)?preferred:panel.querySelector<HTMLElement>('[autofocus],[data-flood-autofocus]')??tabbables(panel.querySelector<HTMLElement>(".flood-overlay-body")??panel)[0]??tabbables(panel)[0]??panel;
   target.focus({preventScroll:true});
+}
+function OverlayClose({label,onClick}:{label:string;onClick:()=>void}){
+  return <IconButton label={label} size="sm" variant="subtle" className="flood-overlay-close" onClick={onClick}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true" focusable="false"><path d="m4 4 16 16M20 4 4 20" /></svg>
+  </IconButton>;
 }
 
 type AnchoredProps=(TooltipProps|PopoverProps)&{kind:"tooltip"|"popover"};
@@ -62,7 +68,7 @@ export const AnchoredOverlay=forwardRef<HTMLDivElement,AnchoredProps>(function A
   return <>{trigger(triggerProps)}<div {...attributes} ref={panel} id={id} popover="manual" role={kind==="tooltip"?"tooltip":"dialog"} aria-labelledby={kind==="popover"?`${id}-title`:undefined}
     tabIndex={kind==="popover"?-1:undefined} className={["flood-overlay-panel",kind==="tooltip"?"flood-tooltip":"flood-popover",className].filter(Boolean).join(" ")} style={style}
     onPointerEnter={event=>{attributes.onPointerEnter?.(event);if(kind==="tooltip"){overPanel.current=true;clear()}}} onPointerLeave={event=>{attributes.onPointerLeave?.(event);if(kind==="tooltip"){overPanel.current=false;leave()}}}>
-    {kind==="tooltip"?tip.content:<><div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{pop.title}</h2><button type="button" className="flood-button flood-button--subtle flood-button--sm" onClick={close}>{pop.closeLabel??"Close"}</button></div>{open&&<div className="flood-overlay-body">{pop.children}</div>}</>}
+    {kind==="tooltip"?tip.content:<><div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{pop.title}</h2><OverlayClose label={pop.closeLabel??"Close"} onClick={close} /></div>{open&&<div className="flood-overlay-body">{pop.children}</div>}</>}
   </div></>;
 });
 
@@ -98,7 +104,7 @@ export const ModalOverlay=forwardRef<HTMLDialogElement,DialogProps>(function Mod
       if(!first){event.preventDefault();return;}
       if(event.shiftKey&&(active===first||!items.includes(active as HTMLElement))){event.preventDefault();last?.focus();}
       else if(!event.shiftKey&&(active===last||!items.includes(active as HTMLElement))){event.preventDefault();first.focus();}
-    }}><div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{title}</h2><button type="button" className="flood-button flood-button--subtle flood-button--sm" onClick={()=>request(false)}>{closeLabel}</button></div>
+    }}><div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{title}</h2><OverlayClose label={closeLabel} onClick={()=>request(false)} /></div>
     {description&&<p id={`${id}-description`} className="flood-overlay-description">{description}</p>}{open&&<div className="flood-overlay-body">{children}</div>}
   </dialog></>;
 });

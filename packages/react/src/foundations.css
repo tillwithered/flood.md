@@ -10,6 +10,7 @@
 .flood-root .flood-tooltip { inline-size: max-content; max-inline-size: min(20rem, var(--flood-overlay-available-width, calc(100vw - 1rem))); padding: var(--flood-sys-space-2) var(--flood-sys-space-3); border-radius: var(--flood-sys-radius-field); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); overflow-wrap: anywhere; }
 .flood-root .flood-popover { inline-size: 20rem; }
 .flood-root .flood-overlay-header { display: flex; align-items: center; justify-content: space-between; gap: var(--flood-sys-space-4); }
+.flood-root .flood-overlay-close { flex: none; align-self: flex-start; }
 .flood-root .flood-overlay-title { margin: 0; min-inline-size: 0; font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); font-weight: var(--flood-sys-type-label-weight); overflow-wrap: anywhere; }
 .flood-root .flood-overlay-body { margin-block-start: var(--flood-sys-space-3); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
 .flood-root .flood-overlay-description { margin: var(--flood-sys-space-2) 0 0; color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }

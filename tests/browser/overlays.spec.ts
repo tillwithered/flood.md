@@ -123,3 +123,16 @@ test("Native popover closure respects controlled ownership and default nested la
   await page.keyboard.press("Escape");await expect(nested).toBeHidden();await expect(dialog).toBeVisible();
   await page.keyboard.press("Escape");await expect(dialog).toBeHidden();expect(errors).toEqual([]);
 });
+
+test("Overlay close actions are named square IconButtons with centered decorative crosses",async({page})=>{
+  for(const slug of ["popover","dialog"]){
+    await page.goto(`/components/${slug}`);await page.locator(".preview-stage").getByRole("button").first().click();
+    const panel=page.getByRole("dialog"),close=panel.getByRole("button",{name:"Close",exact:true});
+    await expect(close).toHaveClass(/flood-icon-button/);await expect(close).toHaveText("");
+    const button=(await close.boundingBox())!,glyph=(await close.locator("svg").boundingBox())!,shell=(await panel.boundingBox())!;
+    expect(button.width).toBeCloseTo(button.height,1);
+    expect(glyph.x+glyph.width/2).toBeCloseTo(button.x+button.width/2,1);expect(glyph.y+glyph.height/2).toBeCloseTo(button.y+button.height/2,1);
+    expect(button.y-shell.y).toBeCloseTo(shell.x+shell.width-button.x-button.width,1);
+    await close.focus();await expect(close).toBeFocused();await close.press("Enter");await expect(panel).toBeHidden();
+  }
+});

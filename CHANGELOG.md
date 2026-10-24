@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Use named IconButton close actions with centered crosses in Popover and Dialog.
+
 - Add original Tooltip, Popover and native Dialog with shared collision placement,
   layer dismissal and focus/scroll ownership; add the Overlays catalog category.
   These source APIs are planned for the next aligned 0.2.3 patch.
