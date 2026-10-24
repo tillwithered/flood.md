@@ -9,6 +9,11 @@ coding agents. No third-party UI component library or Tailwind dependency.
 Flood 0.2.2 provides a dark foundations profile, 163 semantic token roles and
 [18 original primitives and controls](docs/base-components.md).
 
+Current unreleased source extends this to 20 exports and 168 semantic roles,
+including Select, overlay ScrollArea and a focused agent skill/rules bundle.
+Use the guide matching your installed version; these additions do not modify
+the existing npm release.
+
 ```tsx
 import "@flood-md/react/styles.css";
 import { Button, FloodRoot, Heading, Stack } from "@flood-md/react";

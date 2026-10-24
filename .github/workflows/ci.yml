@@ -24,6 +24,15 @@ jobs:
       - run: npm run release:check
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - name: Prepare verified website runtime
+        id: website
+        run: npm run site:bundle
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: website-runtime-${{ github.sha }}
+          path: ${{ steps.website.outputs.directory }}
+          retention-days: 14
+          if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: failure()
         with:

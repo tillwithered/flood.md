@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Check, Copy, FileCode2 } from "lucide-react";
-import { Button, IconSlot } from "@flood-md/react";
+import { Button, IconSlot, ScrollArea } from "@flood-md/react";
 import type { HighlighterCore, ThemedToken } from "shiki/core";
 import "./code-block.css";
 
@@ -77,10 +77,11 @@ function tokenStyle(token: ThemedToken): CSSProperties {
 export interface CopyButtonProps {
   value: string;
   label?: string;
+  text?: string;
 }
 
 /** Copies the original value, independently of highlighted/rendered output. */
-export function CopyButton({ value, label = "Copy code" }: CopyButtonProps) {
+export function CopyButton({ value, label = "Copy code", text = "Copy" }: CopyButtonProps) {
   const [state, setState] = useState<"idle" | "copying" | "copied" | "failed">("idle");
   const mounted = useRef(true);
   const operation = useRef(0);
@@ -125,7 +126,7 @@ export function CopyButton({ value, label = "Copy code" }: CopyButtonProps) {
       <Button className="site-copy-control__button" variant="ghost" size="sm" loading={state === "copying"}
         aria-label={label} onClick={copy}>
         {state !== "copying" && <IconSlot size="sm">{state === "copied" ? <Check /> : <Copy />}</IconSlot>}
-        Copy
+        {text}
       </Button>
       <span role="status" className={state === "failed" ? "site-copy-control__error" : "site-code-visually-hidden"}>
         {announcement}
@@ -169,9 +170,10 @@ export function CodeBlock({ code, language = "plaintext", filename, label = "Cod
           <span className="site-code-block__filename">{filename || displayLanguage}</span>
           {filename && <span className="site-code-block__language">{displayLanguage}</span>}
         </span>
-        <CopyButton value={code} />
+        <CopyButton value={code} text="Copy code" />
       </figcaption>
-      <pre className="site-code-block__pre" tabIndex={0} role="group" aria-label={filename ? `${filename} source code` : `${displayLanguage} source code`}>
+      <ScrollArea className="site-code-block__scroll" style={{ maxHeight: "38rem" }} role="group" aria-label={filename ? `${filename} source code` : `${displayLanguage} source code`}>
+      <pre className="site-code-block__pre">
         <code className="site-code-block__code">{tokens ? tokens.map((line, lineIndex) => (
           <Fragment key={lineIndex}>
             <span className="site-code-block__line">{line.map((token, tokenIndex) => (
@@ -181,6 +183,7 @@ export function CodeBlock({ code, language = "plaintext", filename, label = "Cod
           </Fragment>
         )) : code}</code>
       </pre>
+      </ScrollArea>
     </figure>
   );
 }

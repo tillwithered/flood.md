@@ -1,12 +1,12 @@
 # Base component inventory
 
-The current source exports **19 components: ten primitives and nine
-controls**, including the unreleased Select addition. Published 0.2.2
-exports 18 components and does not include Select. They use original Flood implementations, React 18.3/19 APIs
+The current source exports **20 components: eleven primitives and nine
+controls**, including the unreleased Select and ScrollArea additions. Published 0.2.2
+exports 18 components and does not include Select or ScrollArea. They use original Flood implementations, React 18.3/19 APIs
 and TypeScript declarations. Import `@flood-md/react/styles.css` once and place
 new compositions inside `FloodRoot`.
 
-## Ten primitives
+## Eleven primitives
 
 | Export | Responsibility |
 | --- | --- |
@@ -16,6 +16,7 @@ new compositions inside `FloodRoot`.
 | `Stack` | Vertical layout with token spacing |
 | `Inline` | Wrapping horizontal layout and alignment |
 | `Surface` | Default/raised/overlay visual surface with token padding |
+| `ScrollArea` (unreleased source) | Native viewport with inset overlay scrollbars; no content gutter |
 | `Divider` | Semantic separator with a quiet decorative line |
 | `IconSlot` | Sized adapter for a host-supplied SVG; optional accessible label |
 | `IconButton` | Button composition with a required action label and decorative icon |
@@ -92,7 +93,7 @@ documentation and checks. Breaking changes require a separate version decision.
 
 ## Scope and customization
 
-The base profile is dark only and contains 163 public semantic token roles.
+The base profile is dark only and contains 168 current-source public semantic token roles (163 in published 0.2.2).
 Override `--flood-sys-*` variables on the foundation scope. The bundled Inter
 font retains its OFL license. Legacy controls outside FloodRoot keep their
 earlier light/dark contract; legacy variables do not automatically override the

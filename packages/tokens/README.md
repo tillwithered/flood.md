@@ -27,3 +27,7 @@ and accessibility for the host composition.
 Legacy ./tokens.css and JSON retain the earlier shared/light/dark contract and
 --flood-* names. Legacy controls outside FloodRoot remain compatible; legacy
 overrides do not automatically change separately scoped foundations roles.
+
+Current source adds scrollbar size/inset/min-thumb roles and semantic thumb/hover
+colors, expanding the profile to 168 roles. Published0.2.2 retains its 163-role
+contract; install matching source declarations before using additions.

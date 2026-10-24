@@ -41,6 +41,19 @@
 .flood-root .flood-tone--info { color: var(--flood-sys-color-feedback-info); }
 .flood-root .flood-stack { display: flex; flex-direction: column; gap: var(--flood-layout-gap); min-inline-size: 0; }
 .flood-root .flood-inline { display: flex; flex-wrap: wrap; gap: var(--flood-layout-gap); min-inline-size: 0; }
+.flood-root :where(.flood-stack, .flood-inline, .flood-surface) { min-block-size: 0; }
+.flood-scroll-area { position: relative; isolation: isolate; min-inline-size: 0; min-block-size: 0; max-inline-size: 100%; }
+.flood-scroll-area__viewport { position: relative; z-index: 0; box-sizing: border-box; min-inline-size: 0; min-block-size: 0; overflow: auto; scroll-behavior: auto; }
+.flood-scroll-area__viewport[hidden] { display: none; }
+.flood-scroll-area__viewport[data-orientation="vertical"] { overflow-x: hidden; }
+.flood-scroll-area__viewport[data-orientation="horizontal"] { overflow-y: hidden; }
+.flood-scroll-area__viewport[data-scrollbars="overlay"] { scrollbar-width: none; }
+.flood-scroll-area__viewport[data-scrollbars="overlay"]::-webkit-scrollbar { display: none; width: 0; height: 0; }
+.flood-scroll-area__content { display: flow-root; min-inline-size: 100%; }
+.flood-scroll-area__track { position: absolute; z-index: var(--flood-sys-layer-sticky); touch-action: none; user-select: none; }
+.flood-scroll-area__thumb { border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-scrollbar-thumb); touch-action: none; user-select: none; cursor: default; }
+.flood-scroll-area__thumb:hover, .flood-scroll-area__track[data-dragging="true"] .flood-scroll-area__thumb { background: var(--flood-sys-color-scrollbar-thumb-hover); }
+.flood-root .flood-scroll-area__viewport:focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: var(--flood-sys-focus-offset); }
 .flood-root .flood-code-snippet {
   box-sizing: border-box;
   display: flex;
@@ -66,7 +79,7 @@
   overflow-wrap: anywhere;
   user-select: text;
 }
-.flood-root .flood-code-snippet__action { flex: none; }
+.flood-root .flood-code-snippet__action { flex: none; max-inline-size: 100%; }
 .flood-root .flood-surface {
   box-sizing: border-box;
   border-radius: var(--flood-sys-radius-block);
@@ -177,7 +190,7 @@
   margin: 0;
   padding: var(--flood-menu-padding);
   max-block-size: calc(var(--flood-sys-control-md-height) * 8);
-  overflow: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   border: var(--flood-menu-stroke) solid var(--flood-sys-color-border-decorative);
   border-radius: var(--flood-menu-radius);
@@ -190,6 +203,7 @@
   z-index: var(--flood-sys-layer-popover);
 }
 .flood-root .flood-select__menu::backdrop { background: transparent; pointer-events: none; }
+.flood-root .flood-select__viewport { max-block-size: calc(var(--flood-sys-control-md-height) * 8 - var(--flood-sys-space-1) * 2 - var(--flood-sys-stroke-width) * 2); }
 .flood-root .flood-select__option { display: flex; align-items: center; justify-content: space-between; gap: var(--flood-sys-space-2); min-block-size: var(--flood-sys-control-md-height); padding: var(--flood-sys-space-2) var(--flood-sys-space-3); border-radius: max(0px, calc(var(--flood-menu-radius) - var(--flood-menu-padding) - var(--flood-menu-stroke))); cursor: pointer; box-sizing: border-box; overflow-wrap: anywhere; }
 .flood-root .flood-select__option[data-active="true"] { background: var(--flood-sys-color-selection-background); }
 .flood-root .flood-select__option[aria-disabled="true"] { color: var(--flood-sys-color-field-disabled-content); cursor: not-allowed; }
@@ -252,6 +266,10 @@
   .flood-root .flood-button, .flood-root .flood-switch-input::before, .flood-root .flood-spinner { transition-duration: var(--flood-sys-motion-duration-reduced); animation: none; }
 }
 @media (forced-colors: active) {
+  .flood-scroll-area__viewport[data-scrollbars="overlay"] { scrollbar-width: auto; }
+  .flood-scroll-area__viewport[data-scrollbars="overlay"]::-webkit-scrollbar { display: initial; width: auto; height: auto; }
+  .flood-scroll-area__track { display: none; }
+  .flood-root .flood-scroll-area__viewport:focus-visible { outline-color: Highlight; }
   .flood-root .flood-button { border-color: ButtonText; }
   .flood-root .flood-input { border-color: CanvasText; }
   .flood-root .flood-input:focus-visible { border-color: Highlight; }

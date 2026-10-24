@@ -35,10 +35,9 @@
   box-sizing: border-box;
   min-inline-size: 0;
   max-inline-size: 100%;
-  max-block-size: 38rem;
   margin: 0;
   padding: 1.25rem;
-  overflow: auto;
+  overflow: visible;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   tab-size: 2;
@@ -48,9 +47,8 @@
   line-height: 1.8;
   letter-spacing: normal;
   text-align: start;
-  scrollbar-width: thin;
 }
-.site-root .site-code-block__pre:focus-visible {
+.site-root .site-code-block__scroll:focus-visible {
   outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
   outline-offset: calc(-1 * var(--flood-sys-focus-width));
 }
@@ -102,5 +100,5 @@
 @media (forced-colors: active) {
   .site-root .site-code-block, .site-root .site-code-block__toolbar { border-color: CanvasText; }
   .site-root .site-code-block__pre, .site-root .site-code-block__token { color: CanvasText !important; }
-  .site-root .site-code-block__pre:focus-visible { outline-color: Highlight; }
+  .site-root .site-code-block__scroll:focus-visible { outline-color: Highlight; }
 }

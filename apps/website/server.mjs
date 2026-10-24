@@ -16,7 +16,7 @@ const types = {
   ".txt": "text/plain; charset=utf-8",
   ".md": "text/markdown; charset=utf-8",
 };
-createServer(async (request, response) => {
+const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(
       new URL(request.url, "http://localhost").pathname,
@@ -53,6 +53,7 @@ createServer(async (request, response) => {
     response.writeHead(404, { "Content-Type": "text/plain" });
     response.end("Not found");
   }
-}).listen(Number(process.env.PORT ?? 4173), "0.0.0.0", () =>
-  console.log(`Flood website listening on ${process.env.PORT ?? 4173}`),
+});
+server.listen(Number(process.env.PORT ?? 4173), "0.0.0.0", () =>
+  console.log(`Flood website listening on ${server.address().port}`),
 );

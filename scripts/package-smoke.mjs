@@ -70,7 +70,7 @@ try {
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
-import { Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
 const heading: HeadingProps = {level: 3, size: 'large'};
 const display: HeadingProps = {level: 1, size: 'display'};
 const lead: TextProps = {as: 'p', size: 'lead'};
@@ -79,6 +79,12 @@ const snippet: CodeSnippetProps = {code: 'npm install example', id: 'command'};
 const badSnippet: CodeSnippetProps = {id: 'missing-code'};
 const input: InputProps = {size: 30, controlSize: 'xl'};
 const select: SelectProps = {size: 4, multiple: true, defaultValue: ['team'], controlSize: 'xl', invalid: true};
+const scroll: ScrollAreaProps = {orientation: 'both', style: {maxHeight: '12rem'}, 'aria-label': 'History'};
+const scrollRef = createRef<HTMLDivElement>();
+const scrollElement = createElement(ScrollArea, {...scroll, ref: scrollRef});
+// @ts-expect-error Only the documented scroll axes are supported.
+const badScroll: ScrollAreaProps = {orientation: 'diagonal'};
+const scrollRole: TokenName = 'sys.scrollbar.size';
 const selectRef = createRef<HTMLSelectElement>();
 const referencedSelect: ComponentPropsWithRef<typeof Select> = {ref: selectRef, name: 'visibility'};
 const selectElement = createElement(Select, {...referencedSelect, onChange: event => { const options: HTMLOptionsCollection = event.currentTarget.options; void options; }});
@@ -94,6 +100,7 @@ const typo: TokenName = 'sys.color.content.defalt';
 void css; void typo;
 void heading; void display; void lead; void snippet; void badSnippet; void input; void icon; void badInput; void badIcon;
 void select; void referencedSelect; void selectElement; void badSelect;
+void scroll; void scrollElement; void badScroll; void scrollRole;
 `,
   );
   const types = spawnSync(
@@ -126,13 +133,14 @@ void select; void referencedSelect; void selectElement; void badSelect;
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {FloodRoot, Heading, Field, Input, Select, IconButton} from '@flood-md/react';
+import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
+  h(ScrollArea,{'aria-label':'History',style:{maxHeight:'12rem'}},'Local activity'),
   h(Field,{label:'Name',required:true},p=>h(Input,{...p,name:'name'})),
   h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
-if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('<select')||!html.includes('selected=""')) throw Error('React compatibility render');
+if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')) throw Error('React compatibility render');
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")

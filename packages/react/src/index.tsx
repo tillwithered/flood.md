@@ -14,6 +14,7 @@ import {
   type CSSProperties,
 } from "react";
 import { SingleSelect } from "./select.js";
+import { OverlayScrollArea } from "./scroll-area.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -189,8 +190,10 @@ export function Field({
 }: FieldProps) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
+  const hasHint = hint !== null && hint !== undefined && hint !== false && hint !== true && hint !== "";
+  const hasError = error !== null && error !== undefined && error !== false && error !== true && error !== "";
   const description =
-    [describedBy, hint && `${id}-hint`, error && `${id}-error`].filter(Boolean).join(" ") ||
+    [...new Set([describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`].filter(Boolean).join(" ").split(/\s+/).filter(Boolean))].join(" ") ||
     undefined;
   return (
     <div className="flood-field">
@@ -201,15 +204,15 @@ export function Field({
       {children({
         id,
         "aria-describedby": description,
-        "aria-invalid": error ? true : undefined,
+        "aria-invalid": hasError ? true : undefined,
         required,
       })}
-      {hint && (
+      {hasHint && (
         <div id={`${id}-hint`} className="flood-hint">
           {hint}
         </div>
       )}
-      {error && (
+      {hasError && (
         <div id={`${id}-error`} className="flood-error" role="alert">
           {error}
         </div>
@@ -321,4 +324,14 @@ export const CodeSnippet = forwardRef<HTMLDivElement, CodeSnippetProps>(function
       {action != null && <div className="flood-code-snippet__action">{action}</div>}
     </div>
   );
+});
+
+export interface ScrollAreaProps extends HTMLAttributes<HTMLDivElement> {
+  orientation?: "vertical" | "horizontal" | "both";
+}
+/** Native scrolling with inset overlay tracks; the ref targets the scrollable viewport. */
+export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function ScrollArea(
+  { orientation = "vertical", ...props }, ref,
+) {
+  return <OverlayScrollArea {...props} orientation={orientation} ref={ref} />;
 });

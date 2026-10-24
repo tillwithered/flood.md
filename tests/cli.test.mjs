@@ -11,7 +11,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { initProject, VERSION } from "../packages/cli/lib/index.mjs";
+import { initProject, doctor, AGENT_FILES, VERSION } from "../packages/cli/lib/index.mjs";
 
 async function fixture(t, manifest = { dependencies: { react: "^19.0.0" } }) {
   const root = await mkdtemp(join(tmpdir(), "flood-test-"));
@@ -124,4 +124,75 @@ test("linked instruction directories are rejected", async (t) => {
     /linked path/,
   );
   assert.deepEqual(await readdir(outside), []);
+});
+
+test("init provisions the entire manifest bundle and doctor notices missing references", async (t) => {
+  const root = await fixture(t);
+  await initProject(root, { installer() {}, log() {} });
+  for (const file of AGENT_FILES) {
+    const source = new URL(`../packages/agent/${file.source}`, import.meta.url);
+    assert.equal(await readFile(join(root, file.target), "utf8"), await readFile(source, "utf8"));
+  }
+  for (const name of ["tokens", "react", "agent"]) {
+    const directory = join(root, "node_modules", "@flood-md", name);
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "package.json"), JSON.stringify({ version: VERSION }));
+  }
+  await doctor(root, () => {});
+  const reference = AGENT_FILES.find(file => file.kind === "reference");
+  await rm(join(root, reference.target));
+  await assert.rejects(doctor(root, () => {}), error => error.message.includes(reference.target));
+});
+
+test("an existing focused reference blocks installation before npm and preserves content", async (t) => {
+  const root = await fixture(t);
+  const file = AGENT_FILES.find(file => file.kind === "reference");
+  await mkdir(join(root, file.target, ".."), { recursive: true });
+  await writeFile(join(root, file.target), "Host-specific instructions");
+  await assert.rejects(initProject(root, { installer() { assert.fail("must not install"); }, log() {} }), /already exists/);
+  assert.equal(await readFile(join(root, file.target), "utf8"), "Host-specific instructions");
+  await assert.rejects(readFile(join(root, "flood.json")), { code: "ENOENT" });
+});
+
+test("a linked skill reference directory is never followed", async (t) => {
+  const root = await fixture(t);
+  const outside = await mkdtemp(join(tmpdir(), "flood-ref-outside-"));
+  t.after(() => rm(outside, { recursive: true, force: true }));
+  await mkdir(join(root, ".agents/skills/flood-ui"), { recursive: true });
+  await symlink(outside, join(root, ".agents/skills/flood-ui/references"), process.platform === "win32" ? "junction" : "dir");
+  await assert.rejects(initProject(root, { installer() { assert.fail("must not install"); }, log() {} }), /linked path/);
+  assert.deepEqual(await readdir(outside), []);
+});
+
+test("doctor rejects a linked guide directory without reading its files", async (t) => {
+  const root = await fixture(t);
+  const outside = await mkdtemp(join(tmpdir(), "flood-doctor-outside-"));
+  t.after(() => rm(outside, { recursive: true, force: true }));
+  await initProject(root, { installer() {}, log() {} });
+  const path = join(root, ".agents/skills/flood-ui/references");
+  await rm(path, { recursive: true });
+  await symlink(outside, path, process.platform === "win32" ? "junction" : "dir");
+  await assert.rejects(doctor(root, () => {}), /linked path/);
+});
+
+test("doctor catches stale guide versions without overwriting customized text", async (t) => {
+  const root = await fixture(t);
+  await initProject(root, { installer() {}, log() {} });
+  for (const name of ["tokens", "react", "agent"]) {
+    const directory = join(root, "node_modules", "@flood-md", name);
+    await mkdir(directory, { recursive: true });
+    await writeFile(join(directory, "package.json"), JSON.stringify({ version: VERSION }));
+  }
+  const manifestPath = join(root, "flood/manifest.json");
+  const original = await readFile(manifestPath, "utf8");
+  await writeFile(manifestPath, JSON.stringify({ ...JSON.parse(original), version: "0.0.0" }));
+  await assert.rejects(doctor(root, () => {}), /manifest version differs/);
+  await writeFile(manifestPath, original);
+  const designPath = join(root, "flood/DESIGN.md");
+  const lines = (await readFile(designPath, "utf8")).split("\n");
+  lines[0] = "# Flood design system \u00b7 0.0.0";
+  const customized = lines.join("\n") + "\nHost-specific instructions remain mine.\n";
+  await writeFile(designPath, customized);
+  await assert.rejects(doctor(root, () => {}), /DESIGN.md version differs/);
+  assert.equal(await readFile(designPath, "utf8"), customized);
 });

@@ -17,6 +17,8 @@ for (const path of ["package.json", "apps/website/package.json", "examples/next/
 }
 const websiteRelease = JSON.parse(await readFile("apps/website/src/release.json", "utf8"));
 if (websiteRelease.version !== VERSION) throw new Error("Website command version differs from release train");
+const agentManifest = JSON.parse(await readFile("packages/agent/manifest.json", "utf8"));
+if (agentManifest.version !== VERSION) throw new Error("Agent manifest version differs from release train");
 const design = await readFile("packages/agent/DESIGN.md", "utf8");
 if (!design.split(/\r?\n/, 1)[0].includes(VERSION)) throw new Error("Agent guide version differs from release train");
 for (const name of names) {

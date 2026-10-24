@@ -1,5 +1,6 @@
 FROM node:24-alpine AS build
 WORKDIR /app
+ARG RAILWAY_GIT_COMMIT_SHA
 COPY . .
 RUN npm ci --ignore-scripts && npm run build
 

@@ -7,6 +7,7 @@ import { chooseSelectOption } from "./select-helpers";
 test("component props, preview, highlighted code and Markdown stay aligned", async ({ page }, info) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/components/button");
+  await expect(page.locator(".workbench-title").getByRole("button", { name: "Copy for agent", exact: true })).toBeVisible();
   await chooseSelectOption(page.getByRole("combobox", { name: "Button prop variant", exact: true }), "subtle");
   await chooseSelectOption(page.getByRole("combobox", { name: "Button prop size", exact: true }), "lg");
   const button = page.locator(".preview-stage").getByRole("button", { name: "Save changes" });
@@ -27,7 +28,7 @@ test("component props, preview, highlighted code and Markdown stay aligned", asy
   await source.scrollIntoViewIfNeeded();
   await expect(source).toHaveAttribute("data-highlighted", "true");
   await page.screenshot({ path: `.artifacts/lab-project-ui-${info.project.name}.png` });
-  await page.getByRole("button", { name: "Copy page as Markdown" }).click();
+  await page.getByRole("button", { name: "Copy for agent" }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("## Optional project UI boundary");
   await page.getByRole("button", { name: "Package", exact: true }).click();
   await expect(source.locator("code")).toContainText('from "@flood-md/react"');
@@ -37,19 +38,20 @@ test("component props, preview, highlighted code and Markdown stay aligned", asy
   await expect(button).toBeDisabled();
   await expect(button).toHaveAttribute("aria-busy", "true");
   await expect(source.locator("code")).toContainText("loading={true}");
-  await page.getByRole("button", { name: "Markdown", exact: true }).click();
-  const markdown = page.getByRole("figure", { name: "Page Markdown source" });
-  await expect(markdown.locator("code")).toContainText("# Button");
-  await expect(markdown.locator("code")).toContainText('variant="subtle"');
-  await expect(markdown.locator("code")).toContainText("loading={true}");
-  await page.getByRole("button", { name: "Copy page as Markdown" }).click();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("loading={true}");
-  const downloaded = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Download .md", exact: true }).click();
-  const file = await downloaded;
-  expect(file.suggestedFilename()).toBe("button.md");
-  expect(await readFile((await file.path())!, "utf8")).toContain('variant="subtle"');
-  await page.getByRole("button", { name: "Read", exact: true }).click();
+  await page.getByRole("button", { name: "Copy for agent", exact: true }).click();
+  const agentContext = await page.evaluate(() => navigator.clipboard.readText());
+  expect(agentContext).toContain("# Button");
+  expect(agentContext).toContain('variant="subtle"');
+  expect(agentContext).toContain("loading={true}");
+  expect(agentContext).toContain(new URL("/agent/DESIGN.md", page.url()).href);
+  expect(agentContext).toContain("local source preview");
+  for (const match of agentContext.matchAll(/(?:Page|Agent skill|Design contract|Canonical Markdown): (https?:\/\/\S+)/g)) {
+    expect(new URL(match[1]).origin).toBe(new URL(page.url()).origin);
+    expect((await page.request.get(match[1])).status()).toBe(200);
+  }
+  expect(agentContext).toContain(new URL("/components/button.md", page.url()).href);
+  await expect(page.getByRole("button", { name: "Markdown", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Download .md", exact: true })).toHaveCount(0);
   await expect(button).toBeDisabled();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(button).toBeEnabled();
@@ -121,7 +123,8 @@ test("Markdown is a real readable format with valid raw endpoints", async ({ pag
   }
   expect((await request.get("/components/missing.md")).status()).toBe(404);
   await page.goto("/docs/installation");
-  await page.getByRole("button", { name: "Markdown", exact: true }).click();
-  await expect(page.getByRole("figure", { name: "Page Markdown source" })).toHaveAttribute("data-highlighted", "true");
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.getByRole("button", { name: "Copy for agent", exact: true }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("# Installation");
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });

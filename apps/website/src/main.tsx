@@ -68,7 +68,7 @@ function App() {
         <Text size="helper" tone="subtle">A growing collection, made with care.</Text>
         <Inline gap="4">
           <Link href={`${repository}/blob/main/LICENSE`}>MIT licensed</Link>
-          <Link href="/agent/DESIGN.md">For your agent</Link>
+          <Link href="/agent/SKILL.md">For your agent</Link>
         </Inline>
       </footer>
     </div>

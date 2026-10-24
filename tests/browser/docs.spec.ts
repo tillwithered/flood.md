@@ -15,7 +15,8 @@ test("home stays focused and navigation exposes documentation and GitHub", async
   await page.screenshot({ path: `.artifacts/docs-home-${info.project.name}.png`, fullPage: true });
   await nav.getByRole("link", { name: "Docs", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Introduction");
-  await expect(page.getByRole("link", { name: "Edit on GitHub" })).toHaveAttribute("href", /\/edit\/main\/docs\/README.md$/);
+  await expect(page.getByRole("button", { name: "Copy for agent", exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Page format" })).toHaveCount(0);
 });
 
 test("every published guide and component has a directly loadable page", async ({ page, request }) => {
@@ -43,8 +44,9 @@ test("component code, clipboard, local interactions and mobile navigation work",
   await page.goto("/components/button");
   await expect(page).toHaveTitle("Button — flood.md");
   await expect(page.locator("#usage .site-code-block code")).toContainText('from "@flood-md/react"');
-  await page.getByRole("button", { name: "Copy page as Markdown", exact: true }).click();
+  await page.getByRole("button", { name: "Copy for agent", exact: true }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("# Button");
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain(new URL("/agent/SKILL.md", page.url()).href);
   await page.locator("#usage").getByRole("button", { name: "Copy code" }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("export function Example()");
   if (info.project.name === "mobile") {

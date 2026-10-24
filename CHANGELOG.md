@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Add native ScrollArea with inset overlay rails, orientation choices, touch/wheel/
+  keyboard scrolling, drag/track interactions and forced-colors fallback; use
+  the same engine in Select, documentation code, tables and navigation.
+- Add five semantic scrollbar roles and refine constrained layout, Field
+  description associations and CodeSnippet action overflow.
+- Ship a focused agent skill, source/rule matrix and references through one
+  manifest shared by npm, safe CLI provisioning and website endpoints.
+- Simplify component pages to contextual Copy for agent beside Reset and separate
+  Copy code; Markdown transports the actual example and governing rules.
+- Verify runtime-only website artifacts in CI, stamp source metadata and probe
+  the matching deployed commit after main CI.
+
 - Use the quiet field.border role for default control outlines, matching the
   container tone; retain field.boundary as an explicit stronger alternative.
 - Derive Select option corners from the popup radius minus its padding and

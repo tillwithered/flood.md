@@ -12,11 +12,17 @@
   "files": [
     "DESIGN.md",
     "SKILL.md",
+    "references",
+    "rules.json",
+    "manifest.json",
     "README.md"
   ],
   "exports": {
     "./DESIGN.md": "./DESIGN.md",
-    "./SKILL.md": "./SKILL.md"
+    "./SKILL.md": "./SKILL.md",
+    "./manifest.json": "./manifest.json",
+    "./rules.json": "./rules.json",
+    "./references/*": "./references/*"
   },
   "publishConfig": {
     "access": "public"

@@ -4,6 +4,7 @@ import {
   type ChangeEvent, type ReactNode,
 } from "react";
 import type { SelectProps } from "./index.js";
+import { OverlayScrollArea } from "./scroll-area.js";
 
 interface Choice { value: string; label: string; disabled: boolean; hidden: boolean; group?: string }
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -30,11 +31,12 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
   const triggerId = id ?? `flood-select-${generatedId}`;
   const menuId = `${triggerId}-options`, validationId = `${triggerId}-validation`;
   const native = useRef<HTMLSelectElement>(null), trigger = useRef<HTMLButtonElement>(null), menu = useRef<HTMLDivElement>(null);
+  const scrollViewport = useRef<HTMLDivElement>(null);
   const [choices, setChoices] = useState(() => initialChoices(children));
   const [selected, setSelected] = useState(() => String(defaultValue ?? initialChoices(children).find((choice) => !choice.disabled && !choice.hidden)?.value ?? ""));
   const [open, setOpen] = useState(false), [active, setActive] = useState(-1);
   const [validation, setValidation] = useState("");
-  const [position, setPosition] = useState({ left: 0, top: 0, width: 0, maxHeight: 0 });
+  const [position, setPosition] = useState({ left: 0, top: 0, width: 0, maxHeight: 0, viewportHeight: 0 });
   const controlled = value !== undefined;
   const currentValue = controlled ? String(value) : selected;
   const current = useRef({ controlled, value: currentValue });
@@ -138,9 +140,13 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
     const width = Math.min(rect.width, Math.max(0, innerWidth - gap * 2));
     popup.style.width = `${width}px`;
     popup.style.maxHeight = `${maxHeight}px`;
+    const popupStyle = getComputedStyle(popup);
+    const inset = parseFloat(popupStyle.paddingTop) + parseFloat(popupStyle.paddingBottom) + parseFloat(popupStyle.borderTopWidth) + parseFloat(popupStyle.borderBottomWidth);
+    const viewportHeight = Math.max(0, maxHeight - inset);
+    if (scrollViewport.current) scrollViewport.current.style.maxHeight = `${viewportHeight}px`;
     const height = popup.getBoundingClientRect().height;
     const top = below >= height || below >= above ? rect.bottom + gap : Math.max(gap, rect.top - gap - height);
-    setPosition({ left: Math.max(gap, Math.min(rect.left, innerWidth - gap - width)), top, width, maxHeight });
+    setPosition({ left: Math.max(gap, Math.min(rect.left, innerWidth - gap - width)), top, width, maxHeight, viewportHeight });
   }, [open, choices]);
   useEffect(() => {
     if (!open || (choices[active] && enabled(choices[active]))) return;
@@ -220,10 +226,12 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
     >{children}</select>
     {open && <div ref={menu} id={menuId} role="listbox" aria-label={ariaLabel} aria-labelledby={ariaLabel ? undefined : labelledBy ?? triggerId} popover="manual"
       className="flood-select__menu" onPointerDown={(event) => event.preventDefault()} onClick={(event) => event.preventDefault()} style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight || undefined }}>
-      {!choices.some((choice) => !choice.hidden) && <div className="flood-select__empty">No options</div>}
-      {groups.map((group, index) => group.label ? <div key={index} role="group" aria-label={group.label}>
-        <div className="flood-select__group" aria-hidden="true">{group.label}</div>{group.items.map(renderOption)}
-      </div> : <Fragment key={index}>{group.items.map(renderOption)}</Fragment>)}
+      <OverlayScrollArea ref={scrollViewport} orientation="vertical" tabIndex={-1} className="flood-select__viewport" style={{ maxHeight: position.viewportHeight || undefined }}>
+        {!choices.some((choice) => !choice.hidden) && <div className="flood-select__empty">No options</div>}
+        {groups.map((group, index) => group.label ? <div key={index} role="group" aria-label={group.label}>
+          <div className="flood-select__group" aria-hidden="true">{group.label}</div>{group.items.map(renderOption)}
+        </div> : <Fragment key={index}>{group.items.map(renderOption)}</Fragment>)}
+      </OverlayScrollArea>
     </div>}
     {validation && <span className="flood-select__validation" id={validationId} role="alert">{validation}</span>}
   </span>;

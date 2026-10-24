@@ -42,7 +42,7 @@ checks package versions and internal dependency pins; reviewers must check docs.
 The 0.2.0 release process verifies actual registry availability. New
 public React APIs and the foundation profile require a minor release rather
 than a 0.1.x correction. All four packages, private workspaces, CLI version,
-agent guide and website command belong to the same release train.
+agent guide/manifest and website command belong to the same release train.
 
 Keep `apps/website/src/release.json` at `published: false` until tokens, React,
 agent and CLI 0.2.0 are verified on npm and a real CLI installation succeeds.

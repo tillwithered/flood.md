@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "entry": "SKILL.md",
+  "files": [
+    {
+      "source": "DESIGN.md",
+      "target": "flood/DESIGN.md",
+      "kind": "contract"
+    },
+    {
+      "source": "rules.json",
+      "target": "flood/rules.json",
+      "kind": "rules"
+    },
+    {
+      "source": "manifest.json",
+      "target": "flood/manifest.json",
+      "kind": "manifest"
+    },
+    {
+      "source": "SKILL.md",
+      "target": ".agents/skills/flood-ui/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/routing.md",
+      "target": ".agents/skills/flood-ui/references/routing.md",
+      "kind": "reference"
+    },
+    {
+      "source": "references/composition.md",
+      "target": ".agents/skills/flood-ui/references/composition.md",
+      "kind": "reference"
+    },
+    {
+      "source": "references/accessibility.md",
+      "target": ".agents/skills/flood-ui/references/accessibility.md",
+      "kind": "reference"
+    },
+    {
+      "source": "references/customization.md",
+      "target": ".agents/skills/flood-ui/references/customization.md",
+      "kind": "reference"
+    },
+    {
+      "source": "references/verification.md",
+      "target": ".agents/skills/flood-ui/references/verification.md",
+      "kind": "reference"
+    }
+  ],
+  "version": "0.2.2",
+  "installedEntry": ".agents/skills/flood-ui/SKILL.md",
+  "pathBase": "source is package-relative; target is relative to the host project root"
+}

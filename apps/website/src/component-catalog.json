@@ -294,5 +294,24 @@
       "IconSlot",
       "ArrowRight"
     ]
+  },
+  {
+    "slug": "scroll-area",
+    "name": "ScrollArea",
+    "group": "Layout",
+    "description": "Native scrolling with inset overlay scrollbars that preserve content width.",
+    "code": "<ScrollArea aria-label=\"Recent activity\" style={{ maxHeight: \"12rem\" }}>\n  <Stack gap=\"4\">\n    <Text>Project created.</Text>\n    <Text>Workspace updated.</Text>\n  </Stack>\n</ScrollArea>",
+    "imports": [
+      "ScrollArea",
+      "Stack",
+      "Text"
+    ],
+    "notes": [
+      "Unreleased source export. ScrollArea is not part of the published 0.2.2 package; use matching installed declarations.",
+      "Scrollbars overlay the viewport with an inset; they do not reserve a content gutter. Give the viewport an explicit height or maxHeight to produce vertical overflow.",
+      "The forwarded ref, className, style and native div props belong to the scrollable viewport. Supply a visible context or accessible label for keyboard users.",
+      "Wheel, touch and keyboard scrolling remain native. The host owns content padding; an overlay thumb can cover a small edge region without reflowing the content.",
+      "Forced colors restores native scrollbars as an accessibility fallback. Verify horizontal and RTL content, resizing and zoom in the host composition."
+    ]
   }
 ]

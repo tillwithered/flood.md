@@ -24,6 +24,15 @@ Preserve native forms, visible labels, semantic associations, focus and relative
 No external UI component library or new light foundations profile is supplied.
 
 Guide files: /agent/DESIGN.md and /agent/SKILL.md track their deployed package.
+Current unreleased source also adds Select and overlay ScrollArea. These exports
+require matching declarations and are not part of published 0.2.2.
+Current-source unreleased routing bundle: /agent/manifest.json lists all sources;
+/agent/rules.json indexes rule IDs, conditions, ownership and checks.
+/agent/references/routing.md maps tasks to composition.md, accessibility.md,
+customization.md and verification.md beside it. Read only relevant references.
+Existing installs use matching local files; 0.2.2 installs do not acquire new files
+from newer website prose. Guidance does not guarantee agent compliance.
+Human explanation: /docs/agents.md.
 Configuration schema: /schema/config.json
 Source and releases: https://github.com/tillwithered/flood.md
 

@@ -232,3 +232,18 @@ The [TypeScript interfaces](../packages/react/src/index.tsx) define exact native
 prop/ref types. Next.js examples include `/foundations` for form/state behavior
 and `/team` for a composed team-settings screen with contextual actions. These
 are runnable fixtures, not backend services.
+
+
+## Current source: ScrollArea
+
+Use ScrollArea for a constrained scroll region, not every arbitrary wrapper.
+Orientation is vertical by default, with horizontal/both alternatives. Its ref,
+style, className and native div props target the actual native scroll viewport.
+Set a height/maxHeight for vertical overflow and an accessible label when needed.
+Tracks overlay content with token-defined insets; they do not take a layout gutter.
+The host owns padding and should keep essential text/actions out of the rail zone.
+
+Wheel/touch/keyboard scrolling stays native. The overlay thumb supports dragging
+and track clicks; it follows resizing, content changes and RTL. Forced colors
+restores a visible native bar as a deliberate accessibility fallback. This current
+source export is not available in the published 0.2.2 package.

@@ -1,11 +1,18 @@
 # Flood design system · 0.2.2
 
+Read project-root flood.json and installed declarations with this contract.
+The source bundle's SKILL.md routes to focused composition, accessibility,
+customization and verification references. Its routing matrix names prerequisites
+and sources of truth; flood/rules.json indexes observable checks. Read only the
+relevant reference. This expanded bundle is unreleased beyond published 0.2.2;
+existing installations keep their matching guide set.
+
 React + TypeScript and Next.js App Router. Use this guide with matching installed
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-Repository-source note: this guide also marks the unreleased Select
-addition and layout refinements. Published 0.2.2 does not export Select. Confirm
+Repository-source note: this guide also marks the unreleased Select/ScrollArea
+additions and layout refinements. Published 0.2.2 exports neither. Confirm
 the matching installed declarations before using source-only additions.
 
 ## Connect
@@ -27,6 +34,11 @@ child. Keep server data fetching in server components.
 - Use CodeSnippet with a code string and optional action slot for commands or
   short examples. The host owns clipboard permission, feedback and errors;
   selectable wrapped code remains available when copying fails.
+- Use source ScrollArea for deliberately constrained overflow, with a named
+  viewport and explicit height/maxHeight for vertical content. Ref/style/native
+  div props target the native viewport. Overlay rails sit above content without
+  a gutter; the host owns padding. Keep wheel/touch/keyboard behavior and native
+  forced-colors fallback. Confirm this export exists in installed declarations.
 - Use Stack and wrapping Inline. Gap and Surface padding keys are strings
   0/1/2/3/4/6/8/12. Parent layout owns spacing; avoid redundant cards and borders.
 - Sizes use rem, line heights ratios, tracking em. Do not impose a fixed root

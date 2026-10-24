@@ -7,7 +7,10 @@ Foundations separates fixed reference values (`ref`) from semantic roles (`sys`)
 The compiler also supports component aliases (`comp`) and isolated experiments
 (`exp`); no component-specific tokens are shipped in this first profile.
 
-The neutral dark profile has 163 public semantic roles. Version 0.2.2 adds
+The current-source neutral dark profile has 168 public semantic roles; published
+0.2.2 has 163. The five source additions define scrollbar size, inset, minimum
+thumb length and thumb/rest-hover colors. Geometry uses rem; the viewport stays
+natively scrollable and overlay tracks reserve no layout gutter. Version 0.2.2 adds
 `sys.type.display.*` (5.5rem size, 1.12 line height, 500 weight, -.04em tracking)
 for marketing headings, `sys.type.lead.*` (1.375rem, 1.45, 400, -.01em) for
 supporting marketing copy, and `sys.font.mono` for code. Existing product typography

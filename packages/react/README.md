@@ -88,3 +88,24 @@ not dialog behavior. The focus accent remains configurable and provisional.
 See [components](../../docs/components.md), [foundations](../../docs/foundations.md)
 and [Inter provenance](src/fonts/README.md). Verify contrast, focus, keyboard,
 narrow layouts and text scaling in your actual application.
+
+
+## Current source: overlay ScrollArea
+
+ScrollArea keeps native wheel, touch and keyboard scrolling while drawing inset
+tracks above content. Set height/maxHeight on its viewport through style; choose
+orientation vertical (default), horizontal or both. The HTMLDivElement ref and
+native div props/className/style target that actual scroll viewport. Supply an
+accessible label when it is a standalone scroll region. Tracks do not reserve
+layout width; the host chooses any content padding. Forced colors and unavailable
+enhancement restore native scrollbars rather than hide scrolling access.
+
+```tsx
+<ScrollArea aria-label="Activity" style={{ maxHeight: "12rem" }}>
+  <Stack gap="4">{/* Long activity content */}</Stack>
+</ScrollArea>
+```
+
+This export is an unreleased source addition beyond published 0.2.2. The website
+uses the same component for code, tables and navigation; Select reuses its internal
+scroll viewport. See [layout](../../docs/layout.md) for constrained compositions.

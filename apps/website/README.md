@@ -1,8 +1,8 @@
 # Flood website
 
 The website uses the current Flood packages and original page compositions.
-It has a focused home page, seven documentation guides and an overview plus a
-detail page for each of the 18 exported components. The current local changes are
+It has a focused home page, eight documentation guides and an overview plus a
+detail page for each of the 20 current-source exported components. The current local changes are
 unreleased. Published npm remains at 0.2.2; see the changelog before preparing a
 release of the documentation lab and corrected dark field styles.
 
@@ -37,8 +37,9 @@ The optional `@/ui/button` boundary uses small project-owned re-exports and a
 CSS bridge. It does not copy component implementations or change their platform.
 The reader includes only the adapters needed by its current recipe.
 
-Read and Markdown modes show the same page content. Copy/download includes the
-current lab example. Canonical `/docs.md`, `/docs/installation.md`,
+There is no separate reader-format mode. Copy for agent sits beside Reset in the
+playground and includes the current lab example, API, notes and governing guide
+links. Code blocks independently offer Copy code. Canonical `/docs.md`, `/docs/installation.md`,
 `/components.md` and `/components/button.md` files are generated at build time
 from the same repository content and contain default examples. They are served
 as `text/markdown`; unknown files keep returning 404. No code is evaluated from
@@ -65,3 +66,7 @@ Run `npm run verify` and `npm run test:browser` from the repository root.
 Browser checks cover all direct guide/component URLs, code disclosure and copy,
 native interactions, mobile navigation, relative text scaling and missing paths.
 See [deployment](../../docs/deployment.md) for the hosting contract.
+
+ScrollArea powers bounded code, table and navigation regions; the website uses
+Flood controls for its own playground settings. npm run site:check tests a
+runtime-only deploy artifact; /site-release.json identifies its source commit.

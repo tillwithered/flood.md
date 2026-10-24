@@ -95,7 +95,7 @@ html { scroll-behavior: smooth; }
 /* Documentation composes the public library; page layout belongs to the website. */
 .docs-site .site-header { min-block-size: 5.5rem; border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
 .docs-layout { display: grid; grid-template-columns: 13rem minmax(0, 1fr) 10rem; gap: clamp(2rem, 4vw, 4rem); padding-block: 2.5rem 4rem; }
-.desktop-sidebar, .doc-toc { position: sticky; inset-block-start: 2rem; align-self: start; max-block-size: calc(100svh - 4rem); overflow: auto; scrollbar-width: thin; }
+.desktop-sidebar, .doc-toc { position: sticky; inset-block-start: 2rem; align-self: start; max-block-size: calc(100svh - 4rem); }
 .side-group { display: grid; gap: .125rem; margin-block-end: 1.5rem; }
 .side-label { display: block; padding: .5rem .75rem; }
 .side-nav .side-link { display: flex; align-items: center; justify-content: space-between; padding: .5rem .75rem; min-block-size: 2.25rem; border-radius: .625rem; font-size: var(--flood-sys-type-compact-size); line-height: 1.4; text-decoration: none; color: var(--flood-sys-color-content-subtle); }
@@ -110,11 +110,11 @@ html { scroll-behavior: smooth; }
 .doc-heading { margin-block-end: 2rem; }
 .doc-heading .doc-description { margin-block-start: .75rem; }
 .doc-tools { margin-block-start: 1.5rem; }
+.doc-resources { margin-block-start: var(--flood-sys-space-8); }
+.doc-resources .flood-link { font-size: var(--flood-sys-type-helper-size); color: var(--flood-sys-color-content-subtle); }
 .reader-modes { display: inline-flex; gap: .125rem; padding: .1875rem; border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-surface-default); }
 .reader-modes .flood-button[aria-pressed="true"] { background: var(--flood-sys-color-action-on-surface-hover); color: var(--flood-sys-color-content-default); }
-.markdown-source { display: grid; gap: 1rem; min-inline-size: 0; }
 .doc-section .site-code-block { margin: 0; }
-.markdown-source .site-code-block { margin-block-start: 0; }
 .import-modes { justify-self: start; }
 .adapter-instructions { padding-block-start: 1rem; border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); font-size: var(--flood-sys-type-compact-size); line-height: 1.7; overflow-wrap: anywhere; }
 .adapter-instructions > summary { cursor: pointer; font-weight: 500; }
@@ -123,7 +123,6 @@ html { scroll-behavior: smooth; }
 .adapter-instructions p { margin-block: 1rem; }
 .adapter-instructions .flood-link { font-size: inherit; }
 .docs-layout [hidden] { display: none !important; }
-.doc-tools .edit-link { display: inline-flex; align-items: center; gap: .375rem; font-size: var(--flood-sys-type-helper-size); color: var(--flood-sys-color-content-subtle); text-decoration: none; }
 .doc-toc > .flood-text { display: block; padding-block: .25rem .75rem; }
 .doc-toc nav { display: grid; gap: .75rem; }
 .doc-toc .flood-link { display: flex; align-items: center; gap: .25rem; font-size: var(--flood-sys-type-helper-size); line-height: 1.5; color: var(--flood-sys-color-content-subtle); text-decoration: none; }
@@ -156,7 +155,7 @@ html { scroll-behavior: smooth; }
 .preview-code { border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); background: var(--flood-sys-color-surface-default); }
 .preview-code summary { padding: 1rem 1.25rem; font-size: var(--flood-sys-type-compact-size); cursor: pointer; }
 .preview-code .doc-code { margin: 0; border: 0; border-radius: 0; border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
-.table-scroll { overflow: auto; max-inline-size: 100%; border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: .75rem; margin-block: 1rem; }
+.table-scroll { max-inline-size: 100%; border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-field); margin-block: 1rem; }
 .table-scroll table { inline-size: 100%; border-collapse: collapse; font-size: var(--flood-sys-type-compact-size); line-height: 1.6; }
 .table-scroll :is(th,td) { text-align: start; padding: .75rem 1rem; border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); overflow-wrap: anywhere; }
 .table-scroll th { font-weight: 500; color: var(--flood-sys-color-content-subtle); white-space: nowrap; }

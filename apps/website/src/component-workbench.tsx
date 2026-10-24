@@ -5,6 +5,7 @@ import type { ComponentPage } from "./component-catalog";
 import "./component-workbench.css";
 import { importStatements } from "../project-imports.mjs";
 import release from "./release.json";
+import { CopyButton } from "./code-block";
 
 type Values = Record<string, string | boolean>;
 type Knob = { name: string; label?: string; options?: string[]; initial: string | boolean };
@@ -18,6 +19,7 @@ const variants = ["solid", "subtle", "outline", "ghost"];
 const select = (name: string, options: string[], initial: string): Knob => ({ name, options, initial });
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
+  "scroll-area": [select("orientation", ["vertical", "horizontal", "both"], "vertical")],
   button: [select("variant", variants, "solid"), select("size", sizes, "md"), toggle("disabled"), toggle("loading")],
   "icon-button": [select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled"), toggle("loading")],
   input: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("invalid"), toggle("disabled"), toggle("readOnly")],
@@ -93,6 +95,15 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     onChange: binding("(event) => setChecked(event.currentTarget.checked)", (event: { currentTarget: { checked: boolean } }) => actions.checked(event.currentTarget.checked)),
   };
   switch (slug) {
+    case "scroll-area": {
+      const horizontal = v.orientation === "horizontal";
+      return element("ScrollArea", { orientation: v.orientation, "aria-label": "Project notes", style: { height: "12rem", width: "100%", maxWidth: "26rem" } },
+        element("Surface", { padding: "4" }, element(horizontal ? "Inline" : "Stack", {
+          gap: "4", style: horizontal ? { flexWrap: "nowrap", width: "max-content" } : v.orientation === "both" ? { minWidth: "42rem" } : {},
+        }, ...Array.from({ length: 12 }, (_, index) => element("Text", {
+          as: "p", size: "compact", ...(horizontal ? { style: { width: "12rem", flex: "none" } } : {}),
+        }, `Project note ${index + 1}: keep ideas together in one calm workspace.`)))));
+    }
     case "button": return element("Stack", { gap: "4" }, element("Inline", {}, element("Button", { variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, "Save changes")), status);
     case "icon-button": return element("Stack", { gap: "4" }, element("Inline", {}, element("IconButton", { label: "Add idea", variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, element("Plus"))), status);
     case "input": case "textarea": return { tag: "Field", props: { label: slug === "input" ? "Project name" : "Project note", hint: v.invalid ? undefined : "Changes stay in this preview.", error: v.invalid ? "Please review this value." : undefined }, field: element(slug === "input" ? "Input" : "Textarea", { controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, readOnly: v.readOnly, defaultValue: slug === "input" ? "My project" : "A calm place for the next idea." }) };
@@ -115,7 +126,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
   }
 }
 
-export function ComponentWorkbench({ component, onCodeChange, onImportsChange, importMode = "package" }: { component: ComponentPage; onCodeChange: (code: string) => void; onImportsChange?: (names: string[]) => void; importMode?: "package" | "project" }) {
+export function ComponentWorkbench({ component, onCodeChange, onImportsChange, agentContext, importMode = "package" }: { component: ComponentPage; onCodeChange: (code: string) => void; onImportsChange?: (names: string[]) => void; agentContext: string; importMode?: "package" | "project" }) {
   const id = useId();
   const [state, setState] = useState(() => ({ slug: component.slug, values: initialValues(component) }));
   const [status, setStatus] = useState("");
@@ -147,7 +158,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, i
   useEffect(() => { callback.current(code); importsCallback.current?.([...imports].sort()); }, [code]);
 
   return <section className="component-workbench" aria-label={`${component.name} live playground`}>
-    <div className="workbench-title"><div><span className="workbench-eyebrow">LIVE PLAYGROUND</span><p>Adjust the props. Copy the matching example.</p></div><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setResetKey((key) => key + 1); }}>Reset</Flood.Button></div>
+    <div className="workbench-title"><div><Flood.Text size="helper" tone="subtle" className="workbench-eyebrow">LIVE PLAYGROUND</Flood.Text><Flood.Text as="p" size="compact">Adjust the props. Try the component.</Flood.Text></div><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setResetKey((key) => key + 1); }}>Reset</Flood.Button></Flood.Inline></div>
     <div className="workbench-stage preview-stage" ref={stage} key={component.slug + resetKey}><Flood.FloodRoot>{renderRecipe(recipe)}</Flood.FloodRoot></div>
     <div className="workbench-controls" aria-label={`${component.name} API controls`}>
       {componentKnobs(component).map((knob) => typeof knob.initial === "boolean" ?

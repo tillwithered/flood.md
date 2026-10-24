@@ -2,7 +2,7 @@ import { isValidElement, useEffect, useState, type ReactNode } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
-import { Button, Heading, IconSlot, Inline, Link, Text } from "@flood-md/react";
+import { Button, Heading, IconSlot, Inline, Link, ScrollArea, Text } from "@flood-md/react";
 import { docPages } from "../routes.mjs";
 import { componentPages } from "./component-catalog";
 import { ComponentWorkbench } from "./component-workbench";
@@ -44,6 +44,7 @@ function markdownLink(href: string | undefined) {
   if (!href) return undefined;
   if (/^(https?:|mailto:|#|\/)/.test(href)) return href;
   const [file, hash] = href.split("#");
+  if (file.startsWith("../packages/agent/")) return "/agent/" + file.slice("../packages/agent/".length) + (hash ? `#${hash}` : "");
   const page = docPages.find(item => item.file === file);
   if (page) return page.path + (hash ? `#${hash}` : "");
   if (file === "components.md" || file === "base-components.md") return "/components" + (hash ? `#${hash}` : "");
@@ -72,7 +73,6 @@ export default function Documentation({ path }: { path: string }) {
   const description = doc?.description ?? component?.description ?? "Original components. Native semantics. One calm foundation.";
   const raw = doc ? sources[doc.file] : "";
   const markdown = raw?.replace(/^# .*\r?\n/, "") ?? "";
-  const [mode, setMode] = useState<"read" | "markdown">("read");
   const [importMode, setImportMode] = useState<"package" | "project">("package");
   const [exampleImports, setExampleImports] = useState(() => component ? ["FloodRoot", ...component.imports.filter(name => componentPages.some(page => page.name === name))] : []);
   const [exampleCode, setExampleCode] = useState(() => component ? usageCode(component) : "");
@@ -82,16 +82,12 @@ export default function Documentation({ path }: { path: string }) {
   const ordered = [...docPages.map(page => ({ path: page.path, name: page.label })), { path: "/components", name: "Components" }, ...componentPages.map(page => ({ path: `/components/${page.slug}`, name: page.name }))];
   const current = ordered.findIndex(page => page.path === path);
   const previous = ordered[current - 1]; const next = ordered[current + 1];
-  const sourcePath = doc ? `docs/${doc.file}` : "apps/website/src/component-catalog.json";
   const pageMarkdown = doc ? raw ?? "" : component ? componentMarkdown(component, exampleCode) + (importMode === "project" ? `\n## Project UI setup\n\n${projectAdapters(exampleImports)}` : "") : catalogMarkdown(componentPages);
-  function downloadMarkdown() {
-    const url = URL.createObjectURL(new Blob([pageMarkdown], { type: "text/markdown;charset=utf-8" }));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `${component?.slug ?? doc?.file.replace(/\.md$/, "") ?? "components"}.md`;
-    anchor.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
+  const resourceOrigin = location.origin;
+  const localPreview = ["localhost", "127.0.0.1"].includes(location.hostname);
+  const agentContext = `Documentation version: ${content.version}${localPreview ? " (local source preview; source-only additions are not published)" : ""}.\n\nUse Flood for this task. Read the matching installed package declarations before making API changes.\n\n` +
+    `Page: ${resourceOrigin}${path}\nAgent skill: ${resourceOrigin}/agent/SKILL.md\nDesign contract: ${resourceOrigin}/agent/DESIGN.md\nCanonical Markdown: ${resourceOrigin}${path}.md\n\n` +
+    `The example below reflects the current playground settings. Keep native semantics and accessibility, import Flood styles once, and use semantic tokens before overrides. Do not invent unavailable components or claim that source-only APIs are already published.\n\n${pageMarkdown}`;
   useEffect(() => {
     document.title = `${title} — flood.md`;
     let cancelled = false;
@@ -107,8 +103,8 @@ export default function Documentation({ path }: { path: string }) {
     }
     return () => { cancelled = true; };
   }, [title]);
-  return <div className="docs-layout" data-document-mode={mode}>
-    <aside className="desktop-sidebar" aria-label="Documentation navigation"><Sidebar path={path} /></aside>
+  return <div className="docs-layout">
+    <aside className="desktop-sidebar" aria-label="Documentation navigation"><ScrollArea aria-label="Documentation sections scroll" style={{ maxHeight: "calc(100svh - 4rem)" }}><Sidebar path={path} /></ScrollArea></aside>
     <div className="doc-center">
       <details className="mobile-navigation"><summary>Browse documentation</summary><Sidebar path={path} /></details>
       <main id="main-content" className="doc-article">
@@ -116,19 +112,14 @@ export default function Documentation({ path }: { path: string }) {
         <header className="doc-heading">
           <Heading level={1} size="large">{title}</Heading>
           <Text as="p" tone="subtle" className="doc-description">{description}</Text>
-          <Inline gap="3" className="doc-tools">
-            <div className="reader-modes" role="group" aria-label="Page format"><Button size="sm" variant="ghost" aria-pressed={mode === "read"} onClick={() => setMode("read")}>Read</Button><Button size="sm" variant="ghost" aria-pressed={mode === "markdown"} onClick={() => setMode("markdown")}>Markdown</Button></div>
-            <CopyButton value={pageMarkdown} label="Copy page as Markdown" />
-            <Button size="sm" variant="ghost" onClick={downloadMarkdown}>Download .md</Button>
-            <Link href={`${repository}/edit/main/${sourcePath}`} className="edit-link">Edit on GitHub <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link>
-          </Inline>
+          {!component && <Inline gap="3" className="doc-tools"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /></Inline>}
         </header>
-        <div hidden={mode !== "read"}>
+        <div>
         {doc && <div className="markdown-content"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
           a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>,
           pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock>,
           h2: ({ children, node }) => <h2 id={toc.find(section => "line" in section && section.line === node?.position?.start.line)?.id ?? slug(textOf(children))}>{children}</h2>,
-          table: ({ children }) => <div className="table-scroll" tabIndex={0} role="region" aria-label="Documentation table"><table>{children}</table></div>,
+          table: ({ children }) => <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label="Documentation table"><table>{children}</table></ScrollArea>,
         }}>{markdown}</Markdown></div>}
         {catalog && <div className="component-catalog">{groups.map(group => <section id={slug(group)} key={group}>
           <Heading level={2} size="section">{group}</Heading>
@@ -139,7 +130,7 @@ export default function Documentation({ path }: { path: string }) {
         </section>)}</div>}
         {component && <>
           <section id="preview" aria-label={`${component.name} preview`}>
-            <ComponentWorkbench key={component.slug} component={component} onCodeChange={setExampleCode} onImportsChange={setExampleImports} importMode={importMode} />
+            <ComponentWorkbench key={component.slug} component={component} onCodeChange={setExampleCode} onImportsChange={setExampleImports} importMode={importMode} agentContext={agentContext} />
           </section>
           <section id="usage" className="doc-section"><Heading level={2} size="section">Use {component.name}</Heading>
             <Text as="p" size="compact" tone="subtle">{component.name} is a named export of <code>@flood-md/react</code>. Connect the package once, then import what you use.</Text>
@@ -153,19 +144,19 @@ export default function Documentation({ path }: { path: string }) {
             <ul className="usage-notes">{component.notes.map(note => <li key={note}>{note}</li>)}</ul>
           </section>
           <section id="api" className="doc-section"><Heading level={2} size="section">API reference</Heading>
-            {component.api.length > 0 && <div className="table-scroll" tabIndex={0} role="region" aria-label={`${component.name} props`}><table><thead><tr><th scope="col">Prop</th><th scope="col">Values</th><th scope="col">Default</th></tr></thead><tbody>{component.api.map(([prop, values, fallback]) => <tr key={prop}><td><code>{prop}</code></td><td>{values}</td><td>{fallback}</td></tr>)}</tbody></table></div>}
+            {component.api.length > 0 && <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label={`${component.name} props`}><table><thead><tr><th scope="col">Prop</th><th scope="col">Values</th><th scope="col">Default</th></tr></thead><tbody>{component.api.map(([prop, values, fallback]) => <tr key={prop}><td><code>{prop}</code></td><td>{values}</td><td>{fallback}</td></tr>)}</tbody></table></ScrollArea>}
             <Link href={`${repository}/blob/v${release.version}/packages/react/src/index.tsx`}>View TypeScript source <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link>
           </section>
         </>}
         {!doc && !component && !catalog && <Link href="/docs">Back to documentation</Link>}
         </div>
-        {mode === "markdown" && <div className="markdown-source"><Text as="p" size="compact" tone="subtle">Copy or download this page with your current example settings. The permanent raw file contains the default example.</Text><Link href={`${path}.md`} className="raw-markdown-link">Open raw .md <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link><CodeBlock code={pageMarkdown} language="markdown" filename={`${component?.slug ?? doc?.file.replace(/\.md$/, "") ?? "components"}.md`} label="Page Markdown source" /></div>}
+        <Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link><Link href="/agent/SKILL.md">Agent skill</Link></Inline>
         <nav className="doc-pagination" aria-label="Previous and next page">
           {previous ? <Link href={previous.path}><IconSlot size="sm"><ArrowLeft /></IconSlot>{previous.name}</Link> : <span />}
           {next && <Link href={next.path}>{next.name}<IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
         </nav>
       </main>
     </div>
-    <aside className="doc-toc" aria-label="Page outline" hidden={mode !== "read"}><Text size="helper" tone="subtle">On this page</Text><nav aria-label="On this page">{toc.map(item => <Link key={item.id} href={`#${item.id}`}>{item.label}</Link>)}</nav><Link href="/llms.txt">Agent entry point <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link></aside>
+    <aside className="doc-toc" aria-label="Page outline"><Text size="helper" tone="subtle">On this page</Text><nav aria-label="On this page">{toc.map(item => <Link key={item.id} href={`#${item.id}`}>{item.label}</Link>)}</nav><Link href="/llms.txt">Agent entry point <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link></aside>
   </div>;
 }

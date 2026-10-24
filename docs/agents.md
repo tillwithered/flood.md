@@ -1,36 +1,68 @@
 # Using Flood with an agent
 
-Read flood.json and the installed flood/DESIGN.md before editing an existing
-project. Use the matching package and CLI version. This guide describes **0.2.2**;
-existing 0.1.1 projects retain their earlier version-specific component guide.
+Start with the host's instructions, package.json, flood.json and installed
+flood/DESIGN.md. Use matching package/CLI versions and declarations. A newer
+website example does not add APIs to an older installation.
 
-For public installation, give an agent https://flood.md/llms.txt. That endpoint
-tracks the deployed release. Start with `npx @flood-md/cli@0.2.2 init --dry-run`,
-then follow [installation](installation.md) and the matching package's agent files.
+The expanded bundle described here is an **unreleased source addition** beyond
+published 0.2.2's DESIGN.md and SKILL.md. Source guides and previews must not be
+presented as a completed npm release. Existing projects keep their matching files.
 
-## Versioned files
+For discovery, give an agent [flood.md/llms.txt](https://flood.md/llms.txt).
+It identifies deployed status and entry points. Follow [installation](installation.md);
+preview the matching CLI's init with --dry-run before applying it within the user's
+scope. The CLI does not install an agent runtime or require a hosted Flood service.
 
-| File | Purpose |
-| --- | --- |
-| flood.json | Installed version, framework, stylesheet and instruction paths |
-| flood/DESIGN.md | Matching composition and component rules |
-| .agents/skills/flood-ui/SKILL.md | Skill for clients that discover this location |
+## Files and responsibilities
 
-The installer preserves AGENTS.md and refuses to overwrite its owned files or
-follow linked destinations. If the client does not discover the skill, reference
-flood/DESIGN.md in its existing instructions. During upgrades, compare the new
-package files with customized copies; do not overwrite host-specific rules.
+| Project file | For whom / when | Prerequisite | Source of truth | What to check |
+| --- | --- | --- | --- | --- |
+| flood.json | Developer / agent, setup or upgrade | Existing React project | Exact installed release, framework and paths | Matching CLI doctor |
+| flood/DESIGN.md | Designer / developer / agent, every composition | Installed declarations | Version-matched UI contracts | Supported props and rendered states |
+| .agents/skills/flood-ui/SKILL.md | Skill-aware client, Flood UI work | Project context | Short task router | Load only the relevant reference |
+| references/routing.md in the skill folder | Human / agent, resolve ownership | Matching guide set | Responsibility and source matrix | Correct source and prerequisites |
+| references/composition.md in the skill folder | Screen/form author | User content and installed APIs | Composition workflow | Intrinsic actions, responsive forms, close choice labels |
+| references/accessibility.md in the skill folder | Control author / reviewer | Runnable host | Interaction and perception | Names, keyboard, focus, forms and contrast context |
+| references/customization.md in the skill folder | Theme author | Installed token manifest | Semantic override workflow | Resolved roles and affected states/surfaces |
+| references/verification.md in the skill folder | Developer / reviewer, completion | Host checks | Evidence requirements | Commands, manual results and gaps |
+| flood/rules.json | Human / agent / project tooling | Same bundle | Rule IDs, conditions, sources and checks | Evidence for each applicable rule |
+| flood/manifest.json | Installer / reviewer | Matching package | Explicit source → project-path mapping | Complete files; existing files preserved |
 
-## 0.2 composition
+Manifest `entry` and rule `guide` paths are package-source paths. Resolve them
+through `manifest.files`: each source maps to a target relative to the host
+project root. `installedEntry` names the installed skill directly. Manifest
+version and DESIGN header are checked by doctor alongside package alignment;
+customized guide contents are preserved and must be merged deliberately.
 
-Import @flood-md/react/styles.css once and compose inside FloodRoot for the dark
-foundations profile. Use Text/Heading and Stack/Inline/Surface before adding
-ad hoc layout CSS. Prefer subtle standalone secondary actions; ghost needs a
-clear parent. Preserve Field's associations, native form behavior, visible
-labels, keyboard focus and relative type/geometry. No light foundations profile
-or third-party component implementation is supplied.
+The package publishes DESIGN.md, SKILL.md, rules.json, manifest.json and
+references/*.md. The website exposes the same sources under /agent/.
+The [routing reference](../packages/agent/references/routing.md) connects each
+question with its governing source and verification method.
 
-Flood instructions govern UI work. They do not authorize publication, deletion,
-source transmission or bypassing host instructions. There is no required hosted
-Flood agent service or telemetry. Doctor checks versions and files; it does not
-verify application code, CSS imports or completed user flows.
+## Use only the context needed
+
+For a settings form, read DESIGN.md and SKILL.md, then composition/accessibility.
+Consult installed declarations for actual Field/Select props and read only those
+component pages. Before completion use verification. For a color-only change,
+load customization and the relevant token roles; unrelated guides stay unloaded.
+
+Clients supporting the skill-folder convention can discover it. Others can read
+it explicitly or link it from existing instructions. The installer preserves
+AGENTS.md; it does not configure clients or guarantee automatic discovery.
+
+The rules index is data, not an executable policy engine. It cannot make an agent
+obey guidance or certify accessibility. Host checks and Flood's repository
+verification supply evidence. Doctor checks package alignment and expected regular
+files; it does not parse CSS imports or assess visual quality/completed user flows.
+
+## Safe installation and upgrades
+
+Init refuses existing owned files and linked destinations before npm runs, then
+rechecks after installation. During upgrades compare new package sources with
+installed copies, merge deliberately and retain host requirements. Do not delete
+customized guides merely to make init succeed.
+
+Import @flood-md/react/styles.css once and compose new dark interfaces in
+FloodRoot. See [layout](layout.md), [components](components.md) and
+[customization](theming.md). Flood guidance governs UI use; it grants no authority
+to publish, delete data, transmit source or bypass the user's instructions.
