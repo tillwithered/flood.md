@@ -180,7 +180,7 @@
     "notes": [
       "Use Field or a native associated label; placeholder text is not a label.",
       "controlSize changes appearance. The native numeric size attribute keeps its HTML meaning.",
-      "Preserve the stronger necessary boundary and focus indicator when customizing colors."
+      "Default outlines use the quiet field.border role. field.boundary is a stronger opt-in; preserve the independent focus indicator when customizing colors."
     ],
     "imports": [
       "Field",
