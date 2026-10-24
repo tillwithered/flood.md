@@ -20,8 +20,9 @@ invented as a package API. No external component library or parallel token syste
 | Work | Read next | Required result |
 | --- | --- | --- |
 | New screen, layout or form | [Composition](references/composition.md) | Existing primitives, correct host width and form ownership |
+| Spacing, density, nested geometry or shifting previews | [Spacing](references/spacing.md) | Measured visual relationships and nonoverlapping interactive areas |
 | Keyboard, validation, names or states | [Accessibility](references/accessibility.md) | Real interaction and associations preserved |
-| Brand, density, colors or typography | [Customization](references/customization.md) | Scoped semantic overrides; unchanged behavior |
+| Brand, colors or typography | [Customization](references/customization.md) | Scoped semantic overrides; unchanged behavior |
 | Completion, regression or upgrade review | [Verification](references/verification.md) | Checks and limits reported against the actual host |
 | Decide which document governs a change | [Routing and sources](references/routing.md) | Source of truth and prerequisites identified |
 

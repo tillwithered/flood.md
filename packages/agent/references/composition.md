@@ -1,5 +1,8 @@
 # Compose an interface
 
+For spacing, density or nested-geometry decisions, read [Spacing](spacing.md).
+Measure the complete row geometry before adding a gap to repeated controls.
+
 Start with content and the user's interaction. Use the installed exports shown
 in flood/DESIGN.md; no invented props, new component library or copied registry.
 

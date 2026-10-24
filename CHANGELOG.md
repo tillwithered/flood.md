@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Include portable spacing/density guidance in the versioned agent bundle, with
+  task routing, a stable rule and the same safe CLI/website delivery contract.
+
 - Add RadioGroup and CheckboxGroup composed from Fieldset and native choice
   controls, with controlled/uncontrolled values, reset and form association.
 

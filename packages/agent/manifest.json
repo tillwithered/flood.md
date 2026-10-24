@@ -46,6 +46,11 @@
       "source": "references/verification.md",
       "target": ".agents/skills/flood-ui/references/verification.md",
       "kind": "reference"
+    },
+    {
+      "source": "references/spacing.md",
+      "target": ".agents/skills/flood-ui/references/spacing.md",
+      "kind": "reference"
     }
   ],
   "version": "0.2.2",

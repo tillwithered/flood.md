@@ -22,6 +22,7 @@ scope. The CLI does not install an agent runtime or require a hosted Flood servi
 | .agents/skills/flood-ui/SKILL.md | Skill-aware client, Flood UI work | Project context | Short task router | Load only the relevant reference |
 | references/routing.md in the skill folder | Human / agent, resolve ownership | Matching guide set | Responsibility and source matrix | Correct source and prerequisites |
 | references/composition.md in the skill folder | Screen/form author | User content and installed APIs | Composition workflow | Intrinsic actions, responsive forms, close choice labels |
+| references/spacing.md in the skill folder | Designer / developer / agent | Installed tokens and rendered host | Spacing and density decisions | Visible gaps, row pitch, wrapping and nonoverlapping touch targets |
 | references/accessibility.md in the skill folder | Control author / reviewer | Runnable host | Interaction and perception | Names, keyboard, focus, forms and contrast context |
 | references/customization.md in the skill folder | Theme author | Installed token manifest | Semantic override workflow | Resolved roles and affected states/surfaces |
 | references/verification.md in the skill folder | Developer / reviewer, completion | Host checks | Evidence requirements | Commands, manual results and gaps |

@@ -9,6 +9,7 @@ override user authority or grant permission for unrelated operations.
 | Which API can I import? Every component edit | Developer / agent | Installed exact versions | Installed @flood-md/react declarations; flood.json | Type-check host imports; CLI doctor for alignment |
 | What does this release mean? Setup / upgrade | Developer / agent | Matching guide | flood/DESIGN.md, package changelog | Compare version and declarations; preserve host edits |
 | How should a screen fit together? Screen / form work | Designer / developer / agent | Scope, content and current API | composition.md; host layout requirements | Narrow/wide rendered screen and native form interaction |
+| Why does spacing look wrong? Density / nested geometry | Designer / developer / agent | Installed tokens and actual wrapper tree | spacing.md; host content hierarchy | Measured visible gaps, row pitch, text reflow and touch targets |
 | What must remain accessible? Control/state work | Developer / reviewer / agent | Named controls and actual host context | accessibility.md; installed component contract | Keyboard, accessible names, validation and focus checks |
 | How can appearance change? Theme / density work | Designer / developer / agent | Existing semantic roles | customization.md; installed token manifest | Inspect resolved roles, contrast and reflow |
 | Is this done? Completion / regression | Reviewer / agent | Runnable host and checks | verification.md; project scripts | Report commands, manual checks and gaps |

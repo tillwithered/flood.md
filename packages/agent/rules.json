@@ -157,6 +157,27 @@
         "No linked destinations followed",
         "No publication inferred from source version"
       ]
+    },
+    {
+      "id": "layout.spacing",
+      "when": "Composing or reviewing spacing, density, nested surfaces or moving previews",
+      "for": [
+        "designer",
+        "developer",
+        "agent"
+      ],
+      "requires": [
+        "Installed token manifest",
+        "Rendered host and actual wrapper tree"
+      ],
+      "sourceOfTruth": "Installed component recipe and host layout requirements",
+      "guide": "references/spacing.md",
+      "verify": [
+        "Measure visible gaps and row pitch, including padding and minimum height",
+        "Check wrapping and enlarged text",
+        "Check fine/coarse pointers and nonoverlapping interactive targets",
+        "Preserve keyboard focus and label activation"
+      ]
     }
   ],
   "guideResolution": "Match guide to source in manifest.files; use its target relative to the host project root."

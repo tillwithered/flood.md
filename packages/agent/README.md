@@ -11,6 +11,7 @@ no authority to modify external services.
 | SKILL.md | Short entry and task router |
 | references/routing.md | Applicability, audience, prerequisites and governing source |
 | references/composition.md | Screen/form composition workflow |
+| references/spacing.md | Measured spacing, density, nested geometry and hit areas |
 | references/accessibility.md | Interaction and perception checks |
 | references/customization.md | Scoped semantic customization |
 | references/verification.md | Evidence before reporting completion |
