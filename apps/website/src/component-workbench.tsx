@@ -97,12 +97,13 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
   switch (slug) {
     case "scroll-area": {
       const horizontal = v.orientation === "horizontal";
-      return element("ScrollArea", { orientation: v.orientation, "aria-label": "Project notes", style: { height: "12rem", width: "100%", maxWidth: "26rem" } },
-        element("Surface", { padding: "4" }, element(horizontal ? "Inline" : "Stack", {
-          gap: "4", style: horizontal ? { flexWrap: "nowrap", width: "max-content" } : v.orientation === "both" ? { minWidth: "42rem" } : {},
-        }, ...Array.from({ length: 12 }, (_, index) => element("Text", {
-          as: "p", size: "compact", ...(horizontal ? { style: { width: "12rem", flex: "none" } } : {}),
-        }, `Project note ${index + 1}: keep ideas together in one calm workspace.`)))));
+      return element("Surface", { padding: "4", style: { width: "100%", maxWidth: "26rem" } },
+        element("ScrollArea", { orientation: v.orientation, "aria-label": "Project notes", style: { height: "12rem", width: "100%" } },
+          element(horizontal ? "Inline" : "Stack", {
+            gap: "4", style: horizontal ? { flexWrap: "nowrap", width: "max-content" } : v.orientation === "both" ? { minWidth: "42rem" } : {},
+          }, ...Array.from({ length: 12 }, (_, index) => element("Text", {
+            as: "p", size: "compact", ...(horizontal ? { style: { width: "12rem", flex: "none" } } : {}),
+          }, `Project note ${index + 1}: keep ideas together in one calm workspace.`)))));
     }
     case "button": return element("Stack", { gap: "4" }, element("Inline", {}, element("Button", { variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, "Save changes")), status);
     case "icon-button": return element("Stack", { gap: "4" }, element("Inline", {}, element("IconButton", { label: "Add idea", variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, element("Plus"))), status);
