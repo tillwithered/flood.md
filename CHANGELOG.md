@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add RadioGroup and CheckboxGroup composed from Fieldset and native choice
+  controls, with controlled/uncontrolled values, reset and form association.
+
 - Add native Label and Fieldset foundations, reuse Label inside Field and share
   description handling; document and preview their association and group behavior.
 

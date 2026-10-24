@@ -70,7 +70,13 @@ try {
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
-import { Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+const radioGroup: RadioGroupProps = {name: 'visibility', legend: 'Visibility', options: [{value: 'private', label: 'Private'}], value: 'private', required: true};
+const checkboxGroup: CheckboxGroupProps = {name: 'updates', legend: 'Updates', options: [{value: 'news', label: 'News'}], value: ['news']};
+const radioGroupElement = createElement(RadioGroup, {...radioGroup, ref: createRef<HTMLFieldSetElement>()});
+const checkboxGroupElement = createElement(CheckboxGroup, checkboxGroup);
+// @ts-expect-error Multiple choice uses an array value.
+const badGroupValue: CheckboxGroupProps = {...checkboxGroup, value: 'news'};
 const label: LabelProps = {htmlFor: 'project', required: true};
 const labelElement = createElement(Label, {...label, ref: createRef<HTMLLabelElement>()}, 'Project');
 const fieldset: FieldsetProps = {legend: 'Preferences', disabled: true, status: 'warning'};

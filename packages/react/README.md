@@ -31,7 +31,7 @@ included. Legacy controls outside FloodRoot keep their earlier theme behavior.
 
 Exports: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot,
 IconButton, CodeSnippet, Button, Input, Textarea, Checkbox, Radio, Switch, Field and Link,
-plus TypeScript prop types. Current source also exports Label, Fieldset, Select
+plus TypeScript prop types. Current source also exports Label, Fieldset, RadioGroup, CheckboxGroup, Select
 and ScrollArea beyond published 0.2.2. Button variants are solid/subtle/outline/ghost;
 sizes are 2xs/xs/sm/md/lg/xl/2xl. Prefer subtle for standalone secondary actions;
 ghost belongs in a clear parent context. Loading disables activation.
@@ -125,6 +125,34 @@ It does not own choice values, implement a selection model or validate children.
   <Checkbox label="Product updates" name="updates" defaultChecked />
   <Checkbox label="Release notes" name="releases" />
 </Fieldset>
+```
+
+## Current source: RadioGroup and CheckboxGroup
+
+Both compose Fieldset and the existing native Radio/Checkbox controls. Supply a
+legend, a name for the inputs and an options array with unique string values,
+visible labels and optional disabled flags. The ref targets HTMLFieldSetElement.
+Orientation is vertical by default; horizontal wraps. Disabled, hint, status,
+message and error follow Fieldset. These exports are unreleased beyond 0.2.2.
+
+RadioGroup uses a string value/defaultValue and onValueChange(string).
+CheckboxGroup uses an array value/defaultValue and onValueChange(string[]).
+Omitting value selects uncontrolled mode; otherwise update value in the host.
+Native form reset restores the latest defaultValue in uncontrolled mode and
+preserves the host's controlled value. A canceled reset does nothing; reset does
+not call onValueChange. Values for missing options remain in state but are not
+submitted. Disabled options are omitted from FormData.
+
+Name applies to inputs, not the fieldset. CheckboxGroup submits repeated entries;
+read them with FormData.getAll(name). The form prop associates every input with
+an external form. RadioGroup required uses native single-choice validity.
+CheckboxGroup intentionally has no required/min/max prop: validate the array in
+the host and describe errors through status/message. Empty/fully disabled options
+need a host decision about whether submission is meaningful.
+
+```tsx
+<RadioGroup name="visibility" legend="Visibility" defaultValue="private"
+  options={[{ value: "private", label: "Private" }, { value: "team", label: "Team" }]} />
 ```
 
 ## Current source: overlay ScrollArea

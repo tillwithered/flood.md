@@ -18,6 +18,7 @@ import {
 import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-state.js";
 import { SingleSelect } from "./select.js";
 import { OverlayScrollArea } from "./scroll-area.js";
+import { ChoiceGroup } from "./choice-group.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -211,6 +212,42 @@ export const Fieldset = forwardRef<HTMLFieldSetElement, FieldsetProps>(function 
       {hasError && <div id={`${id}-error`} className="flood-error" role="alert">{error}</div>}
     </div>
   </fieldset>;
+});
+
+export interface ChoiceOption {
+  value: string;
+  label: ReactNode;
+  disabled?: boolean;
+}
+export interface RadioGroupProps extends Omit<FieldsetProps, "children" | "defaultValue" | "role"> {
+  name: string;
+  options: readonly ChoiceOption[];
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  orientation?: "vertical" | "horizontal";
+  required?: boolean;
+}
+export const RadioGroup = forwardRef<HTMLFieldSetElement, RadioGroupProps>(function RadioGroup(
+  { value, defaultValue, onValueChange, orientation = "vertical", ...props }, ref,
+) {
+  return <ChoiceGroup {...props} ref={ref} kind="radio" orientation={orientation}
+    selected={value === undefined ? undefined : [value]} initial={defaultValue === undefined ? [] : [defaultValue]}
+    onSelectionChange={next => onValueChange?.(next[0] ?? "")} fieldsetComponent={Fieldset} choiceComponent={Radio} />;
+});
+export interface CheckboxGroupProps extends Omit<FieldsetProps, "children" | "defaultValue" | "role"> {
+  name: string;
+  options: readonly ChoiceOption[];
+  value?: readonly string[];
+  defaultValue?: readonly string[];
+  onValueChange?: (value: string[]) => void;
+  orientation?: "vertical" | "horizontal";
+}
+export const CheckboxGroup = forwardRef<HTMLFieldSetElement, CheckboxGroupProps>(function CheckboxGroup(
+  { value, defaultValue = [], onValueChange, orientation = "vertical", ...props }, ref,
+) {
+  return <ChoiceGroup {...props} ref={ref} kind="checkbox" orientation={orientation}
+    selected={value} initial={defaultValue} onSelectionChange={onValueChange} fieldsetComponent={Fieldset} choiceComponent={Checkbox} />;
 });
 
 export interface FieldControlProps {

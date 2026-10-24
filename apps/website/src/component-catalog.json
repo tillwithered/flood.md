@@ -348,5 +348,39 @@
       "hint, message, error and external aria-describedby IDs are merged without duplicates. Error takes precedence over an advisory status.",
       "Group status describes the group; it does not mark every child invalid, manage selected values or implement a RadioGroup/CheckboxGroup."
     ]
+  },
+  {
+    "name": "RadioGroup",
+    "slug": "radio-group",
+    "group": "forms",
+    "description": "A named single-choice group with native radio keyboard and form behavior.",
+    "code": "<RadioGroup name=\"visibility\" legend=\"Visibility\" options={[{ value: \"private\", label: \"Private\" }, { value: \"team\", label: \"Team\" }]} defaultValue=\"private\" />",
+    "imports": [
+      "RadioGroup"
+    ],
+    "notes": [
+      "Unreleased source export beyond published 0.2.2.",
+      "Composes Fieldset and existing native choice controls. The ref targets HTMLFieldSetElement; options need unique values and visible labels.",
+      "value/onValueChange is controlled; defaultValue initializes an uncontrolled group. Native form reset restores uncontrolled defaults without firing onValueChange; controlled values remain owned by the host.",
+      "name belongs to the inputs. The form prop associates every input with an external form. Disabled options and groups follow native submission rules.",
+      "RadioGroup supports native required. CheckboxGroup returns repeated name/value entries; validate minimum/maximum selections in the host and explain errors through status/message."
+    ]
+  },
+  {
+    "name": "CheckboxGroup",
+    "slug": "checkbox-group",
+    "group": "forms",
+    "description": "A named multiple-choice group with a shared array value and native form behavior.",
+    "code": "<CheckboxGroup name=\"notifications\" legend=\"Notifications\" options={[{ value: \"updates\", label: \"Product updates\" }, { value: \"releases\", label: \"Release notes\" }]} defaultValue={[\"updates\"]} />",
+    "imports": [
+      "CheckboxGroup"
+    ],
+    "notes": [
+      "Unreleased source export beyond published 0.2.2.",
+      "Composes Fieldset and existing native choice controls. The ref targets HTMLFieldSetElement; options need unique values and visible labels.",
+      "value/onValueChange is controlled; defaultValue initializes an uncontrolled group. Native form reset restores uncontrolled defaults without firing onValueChange; controlled values remain owned by the host.",
+      "name belongs to the inputs. The form prop associates every input with an external form. Disabled options and groups follow native submission rules.",
+      "CheckboxGroup has no required/min/max shortcut: a required checkbox means that specific checkbox. Validate the selected array in the host and use group status/message."
+    ]
   }
 ]

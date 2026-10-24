@@ -1,8 +1,8 @@
 # Base component inventory
 
-The current source exports **22 components**, including the unreleased Select, ScrollArea,
-Label and Fieldset additions. Published 0.2.2
-exports 18 components and does not include these four exports. They use original Flood implementations, React 18.3/19 APIs
+The current source exports **24 components**, including the unreleased Select, ScrollArea,
+Label, Fieldset, RadioGroup and CheckboxGroup additions. Published 0.2.2
+exports 18 components and does not include these six exports. They use original Flood implementations, React 18.3/19 APIs
 and TypeScript declarations. Import `@flood-md/react/styles.css` once and place
 new compositions inside `FloodRoot`.
 
@@ -38,6 +38,8 @@ than glyph artwork. Preserve the license of any icon pack used by the host.
 | `Checkbox` | Native checkbox with a required visible label |
 | `Radio` | Native radio with a visible label; the host owns group name and legend |
 | `Switch` | Native checkbox behavior exposed with switch semantics |
+| `RadioGroup` (unreleased source) | Single choice with group state and native radio semantics |
+| `CheckboxGroup` (unreleased source) | Multiple choices with an array value and native checkbox semantics |
 | `Fieldset` (unreleased source) | Native fieldset/legend, inherited disabled and group descriptions |
 | `Field` | Associates one input with label, required marker, hints and errors |
 | `Link` | Native anchor for navigation |

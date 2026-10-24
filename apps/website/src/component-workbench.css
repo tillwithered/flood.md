@@ -6,7 +6,7 @@
 .component-workbench .workbench-stage[data-size="compact"] { block-size: 16rem; }
 .component-workbench .workbench-stage[data-size="display"] { block-size: 26rem; }
 .workbench-stage > .flood-root { min-inline-size: 0; inline-size: fit-content; }
-.workbench-stage > .flood-root:has(> .flood-field, > .flood-fieldset) { inline-size: min(100%, 26rem); }
+.workbench-stage > .flood-root:has(> .flood-field, > .flood-fieldset, > .flood-stack > .flood-fieldset) { inline-size: min(100%, 26rem); }
 .workbench-stage > .flood-root:has(> .flood-stack .flood-code-snippet) { inline-size: min(100%, 28rem); }
 .workbench-stage[data-component="label"] > .flood-root { inline-size: min(100%, 26rem); }
 .workbench-stage .flood-type--display { overflow-wrap: anywhere; }

@@ -50,3 +50,14 @@ on the group and individual labels on each control. A disabled native fieldset
 disables descendants except controls in its first legend. Fieldset does not own
 selected values or replace a RadioGroup/CheckboxGroup selection contract. Preserve
 these semantics in nested groups and native form submission.
+
+## Current source: selection groups
+
+Use RadioGroup for one string value and CheckboxGroup for a string array. Supply
+name, legend and options with unique values; disable individual options when
+needed. Use value/onValueChange for host-controlled selection, or defaultValue
+for local selection. RadioGroup required is native; validate CheckboxGroup
+selection counts in the host. Read repeated checkbox form values with getAll.
+The group forwards Fieldset descriptions/status and native form ownership.
+Form reset restores uncontrolled defaults and preserves controlled values;
+canceled reset is ignored and reset does not emit onValueChange.

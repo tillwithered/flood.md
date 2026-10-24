@@ -16,7 +16,7 @@ const prop = (contract, name, key) => byName(contract, name).props.find((entry) 
 
 test("real component contracts resolve aliases, native inheritance and explicit defaults", () => {
   const contract = readComponentContract(source);
-  assert.equal(contract.length, 22);
+  assert.equal(contract.length, 24);
   assert.match(prop(contract, "Button", "size").type, /"2xs".*"2xl"/);
   assert.equal(prop(contract, "Button", "loading").defaultValue, "false");
   assert.equal(prop(contract, "Button", "type").defaultValue, '"button"');
@@ -44,7 +44,7 @@ export const Notice = forwardRef<HTMLDivElement, NoticeProps>(function Notice(
 ) { return <div {...props} ref={ref}>{message}</div>; });
 `;
   const contract = readComponentContract(expanded);
-  assert.equal(contract.length, 23);
+  assert.equal(contract.length, 25);
   assert.equal(prop(contract, "Button", "emphasis").required, false);
   assert.equal(prop(contract, "IconButton", "emphasis").required, false);
   assert.equal(prop(contract, "Notice", "tone").defaultValue, '"info"');
