@@ -1,38 +1,36 @@
 # Using Flood with an agent
 
-Give your coding agent the public entry point:
+Read flood.json and the installed flood/DESIGN.md before editing an existing
+project. Use the matching package and CLI version. This guide describes **0.2.0**;
+existing 0.1.1 projects retain their earlier version-specific component guide.
 
-```text
-https://flood.md/llms.txt
-```
+For public installation, give an agent https://flood.md/llms.txt. That endpoint
+tracks the deployed release. Start with `npx @flood-md/cli@0.2.0 init --dry-run`,
+then follow [installation](installation.md) and the matching package's agent files.
 
-The agent should read the host package.json, plan installation with
-`npx @flood-md/cli@0.1.1 init --dry-run`, then run init within your authorized
-scope. Import `@flood-md/react/styles.css` once at the application root.
-
-The installer creates:
+## Versioned files
 
 | File | Purpose |
 | --- | --- |
-| `flood.json` | Installed version, framework, stylesheet and instruction paths |
-| `flood/DESIGN.md` | Version-specific composition and component rules |
-| `.agents/skills/flood-ui/SKILL.md` | Agent skill for hosts that discover this location |
+| flood.json | Installed version, framework, stylesheet and instruction paths |
+| flood/DESIGN.md | Matching composition and component rules |
+| .agents/skills/flood-ui/SKILL.md | Skill for clients that discover this location |
 
-Agent clients differ in how they discover skills. If yours does not load that
-directory, reference `flood/DESIGN.md` in its existing project instructions.
-The installer preserves the host's AGENTS.md and refuses to overwrite existing
-Flood instruction files or follow linked destinations.
+The installer preserves AGENTS.md and refuses to overwrite its owned files or
+follow linked destinations. If the client does not discover the skill, reference
+flood/DESIGN.md in its existing instructions. During upgrades, compare the new
+package files with customized copies; do not overwrite host-specific rules.
 
-## Existing projects
+## 0.2 composition
 
-Read the installed flood.json and guide first. Run
-`npx @flood-md/cli@0.1.1 doctor` for this release; use the matching CLI for a
-different installed version. Doctor checks package versions and guide presence;
-it does not parse application code or verify the CSS import.
+Import @flood-md/react/styles.css once and compose inside FloodRoot for the dark
+foundations profile. Use Text/Heading and Stack/Inline/Surface before adding
+ad hoc layout CSS. Prefer subtle standalone secondary actions; ghost needs a
+clear parent. Preserve Field's associations, native form behavior, visible
+labels, keyboard focus and relative type/geometry. No light foundations profile
+or third-party component implementation is supplied.
 
-During an upgrade, compare the new package's guides with your customized copies
-before editing them. Website guidance can describe a newer release.
-
-Flood instructions describe UI work. They do not authorize an agent to publish,
-delete project data, transmit source code or bypass host project instructions.
-There is no hosted Flood agent service or required telemetry.
+Flood instructions govern UI work. They do not authorize publication, deletion,
+source transmission or bypassing host instructions. There is no required hosted
+Flood agent service or telemetry. Doctor checks versions and files; it does not
+verify application code, CSS imports or completed user flows.

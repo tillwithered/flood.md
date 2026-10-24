@@ -1,11 +1,24 @@
 # Changelog
 
-## Unreleased
+## 0.2.0 — Base dark DS
+
+- Add the opt-in dark foundations profile with
+  154 semantic roles, bundled Inter with its OFL license, rem-based geometry,
+  typography, actions, feedback, focus, motion and layering tokens.
+- Add FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, IconSlot and
+  IconButton; expand Button sizing and native form recipes inside FloodRoot.
+  Preserve legacy theme behavior outside the opt-in root. Add a Next.js
+  foundations example and browser checks for forms, scaling and system modes.
+- Add a functional team settings example in two compositions, covering native
+  local form state/reset, member roles, validation and responsive layout.
+- Make dark foundations the primary installer and agent-guide example. Align
+  all package/workspace versions and keep the website installation disabled
+  until publication of all four packages is verified.
 
 - Add an experimental, opt-in foundations token profile with typed aliases,
   CSS/JSON generation, a public catalog and TypeScript names. Existing token
-  imports retain their contract. The new exports require the next aligned minor
-  release; they are not published as part of npm 0.1.1.
+  imports retain their contract. The new exports belong to the aligned 0.2.0
+  release and are absent from 0.1.1.
 - Add component, theme, agent and FAQ guides with a documentation index.
 - Add contribution and private vulnerability reporting guidance.
 - Move account-specific hosting configuration and operational journals outside

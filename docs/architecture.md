@@ -1,4 +1,4 @@
-# Flood v0.1 architecture
+# Flood architecture
 
 ## Scope
 
@@ -36,12 +36,40 @@ component, as demonstrated by the Next fixture.
 
 ## Customization
 
-Use semantic tokens first. Default follows OS theme; root data-flood-theme chooses
-an explicit theme. Host overrides come after the Flood stylesheet. No project
-theme editor or fine-tuning service exists in v0.1; tokens and public props are
-the intended extension boundary. No implicit downloads or remote configuration.
+Use semantic tokens first. `FloodRoot` opts into the neutral/dark foundations
+profile. Outside this root, the legacy default follows OS theme and
+data-flood-theme selects an explicit legacy theme. Host overrides come after the
+Flood stylesheet. Tokens and public props are the extension boundary; there is
+no project theme editor, implicit download or remote configuration.
 
 ## Versioning
+
+### Dark foundations in 0.2.0
+
+The aligned version is `0.2.0`. Registry publication is verified separately from
+the manifests or source branch.
+`FloodRoot` explicitly selects `data-flood-foundations="neutral"` and
+`data-flood-theme="dark"`. New foundation styles are scoped to that root;
+legacy controls outside it keep their existing light/dark behavior. A new light
+foundations profile is outside this slice.
+
+The single token source remains `packages/tokens/src/tokens.json`. Typed
+reference values feed semantic aliases and generated CSS, manifest, resolved
+JSON and TypeScript lookup. Typography, spacing, finite radii and control/icon
+geometry use relative units; root font size belongs to the host application.
+Text/Heading and layout primitives compose with the existing native controls.
+IconSlot accepts host SVG artwork without adding an icon library dependency.
+
+Inter is a bundled, unmodified third-party WOFF2 asset under its original SIL
+OFL 1.1, separate from Flood's MIT code. Its release, hash and license accompany
+the source. CSS resolves the font locally without a CDN. The dark field recipe
+includes a necessary boundary in addition to its quieter decorative outline;
+the 2px focus accent is configurable and provisional. These choices do not
+constitute a claim of complete accessibility across host compositions.
+
+New public APIs require declaration output, user and agent guidance and an
+aligned release decision. The 0.2.0 agent contract leads with dark foundations;
+users of 0.1.1 should continue reading their matching installed guide.
 
 One release train for tokens, React, agent and CLI. Release checks enforce exact
 versions and required artifacts. Publish dependency-first. Never mutate an npm

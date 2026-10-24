@@ -7,3 +7,5 @@ Requires Node 22.12+. Installs matching tokens, React and agent packages; create
 flood.json, flood/DESIGN.md and .agents/skills/flood-ui/SKILL.md. Refuses existing
 owned files or linked destinations. Does not rewrite source code or AGENTS.md.
 After init, import @flood-md/react/styles.css once at the application root.
+Wrap new interfaces in FloodRoot from @flood-md/react to select the dark
+foundations profile. Read the installed flood/DESIGN.md for the matching API.

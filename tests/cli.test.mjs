@@ -37,7 +37,9 @@ test("dry run detects Next without installing or writing files", async (t) => {
 test("init creates matching owned instructions and preserves AGENTS.md", async (t) => {
   const root = await fixture(t);
   await writeFile(join(root, "AGENTS.md"), "My project rules");
-  await initProject(root, { installer() {}, log() {} });
+  const output = [];
+  await initProject(root, { installer() {}, log(message) { output.push(message); } });
+  assert.ok(output.some((message) => message.includes("<FloodRoot>")));
   assert.equal(
     JSON.parse(await readFile(join(root, "flood.json"))).version,
     VERSION,
@@ -50,6 +52,7 @@ test("init creates matching owned instructions and preserves AGENTS.md", async (
     await readFile(join(root, "flood/DESIGN.md"), "utf8"),
     /Next.js/,
   );
+  assert.ok((await readFile(join(root, "flood/DESIGN.md"), "utf8")).split(/\r?\n/, 1)[0].includes(VERSION));
   await assert.rejects(
     initProject(root, {
       installer() {

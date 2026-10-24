@@ -1,13 +1,19 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-test("landing, tabs, forms and both themes are accessible", async ({
+test("dark landing, keyboard tabs and forms are accessible", async ({
   page,
 }, testInfo) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "A little system.",
+    "A clear foundation.",
   );
+  await expect(page.locator(".site-root")).toHaveAttribute("data-flood-foundations", "neutral");
+  await expect(page.locator(".site-root")).toHaveAttribute("data-flood-theme", "dark");
+  expect(await page.evaluate(async () => {
+    const faces = await document.fonts.load('400 16px Inter', 'Рабочее пространство Ёжик');
+    return faces.length > 0 && faces.every((face) => face.status === "loaded");
+  })).toBe(true);
   await page.screenshot({
     path: `.artifacts/landing-${testInfo.project.name}.png`,
     fullPage: true,
@@ -16,6 +22,9 @@ test("landing, tabs, forms and both themes are accessible", async ({
   await expect(
     page.getByRole("status").filter({ hasText: "A small beginning" }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Add a new idea" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "A new idea" })).toBeVisible();
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.getByRole("tab", { name: "Button" }).focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("tab", { name: "Inputs" })).toBeFocused();
@@ -26,14 +35,16 @@ test("landing, tabs, forms and both themes are accessible", async ({
     "aria-invalid",
     "true",
   );
+  await expect(page.getByLabel("Project name")).toBeFocused();
+  await expect(page.getByLabel("Project name")).toHaveAttribute("required", "");
   await page.getByLabel("Project name").fill("Flood test");
   await page.getByRole("button", { name: "Save idea" }).click();
   await expect(page.getByRole("button", { name: "Save idea" })).toBeDisabled();
   await expect(
     page.getByRole("button", { name: "Saved locally" }),
   ).toBeVisible();
-  for (const dark of [false, true]) {
-    await page.getByRole("switch", { name: "Dark theme" }).setChecked(dark);
+  for (const name of ["Inputs", "Choices"]) {
+    await page.getByRole("tab", { name, exact: true }).click();
     const scan = await new AxeBuilder({ page }).analyze();
     expect(scan.violations).toEqual([]);
     expect(
@@ -53,10 +64,14 @@ test("native choices and disabled controls preserve semantics", async ({
   await checkbox.focus();
   await page.keyboard.press("Space");
   await expect(checkbox).not.toBeChecked();
-  await page.getByRole("radio", { name: "Compact", exact: true }).check();
+  await page.getByRole("radio", { name: "Public", exact: true }).check();
   await expect(
-    page.getByRole("radio", { name: "Comfortable", exact: true }),
+    page.getByRole("radio", { name: "Private", exact: true }),
   ).not.toBeChecked();
+  const updates = page.getByRole("switch", { name: "Email updates" });
+  await updates.focus();
+  await page.keyboard.press("Space");
+  await expect(updates).not.toBeChecked();
   await expect(
     page.getByRole("button", { name: "Disabled", exact: true }),
   ).toBeDisabled();

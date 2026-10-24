@@ -1,7 +1,7 @@
-# Experimental foundations tokens
+# Foundations tokens · 0.2.0
 
-Unreleased API. These subpaths are not in npm release 0.1.1. The next publication
-containing them requires an aligned minor release of the Flood packages.
+This guide describes the **0.2.0** foundation exports. Keep Flood packages at
+matching exact versions. Existing 0.1.1 installs use their earlier token contract.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).
 The compiler also supports component aliases (`comp`) and isolated experiments
@@ -24,9 +24,10 @@ import "@flood-md/tokens/foundations.css";
 }
 ```
 
-Both attributes belong on the same scope element. This opt-in stylesheet only
-defines tokens and `color-scheme`; it does not style elements, replace React
-component tokens or enable an incomplete light theme. The preset and theme are
+Both attributes belong on the same scope element. This opt-in token stylesheet
+defines tokens and `color-scheme`; React components adopt these roles inside
+`FloodRoot` when the React stylesheet is imported. It does not enable an
+incomplete light theme. The preset and theme are
 separate dimensions. Only `neutral` + `dark` is currently supplied.
 
 ## Inspect names and decisions
@@ -45,12 +46,87 @@ public manifest entries; alias/dependency metadata can still name their IDs.
 `neutral.dark.tokens.json` is a resolved diagnostic DTCG document including the
 internal reference graph's values. Internal names are not customization promises.
 
-The initial public roles cover canvas/default/raised/overlay surfaces,
-default/subtle content, decorative borders/dividers, and focus width/offset.
-Subtle content is for short supplementary labels and metadata. It is not a
-universal small-body-text color or an automatic APCA pass. Decorative borders
-must not be used as the sole required control boundary. No action, field-border,
-focus-color or material palette is implied by this subset.
+The dark profile covers surfaces, content, filled primary/subtle actions,
+contextual ghost actions, field and feedback colors, focus, typography, spacing,
+radii, control sizing, motion and local stacking levels. Subtle content is for
+short supplementary metadata, not a universal small-body-text color or an
+automatic APCA pass. Required small helper text uses `sys.color.content.helper`.
+
+### Role families
+
+All IDs below have the `sys.` prefix; CSS names replace dots with hyphens and
+prepend `--flood-`. The generated typed lookup is the complete contract.
+
+| Family | Roles |
+| --- | --- |
+| `font` | `sans` (Inter, Arial, sans-serif) |
+| `type` | `large`, `page`, `section`, `body`, `compact`, `label`, `helper`, `control`; each has `size`, `line-height`, `weight`, `tracking` |
+| `space` | `0`, `1`, `2`, `3`, `4`, `6`, `8`, `12`; one step = .25rem |
+| `radius` | `field` 1rem, `block` 1.5rem, `surface` 2rem, `action` pill, `indicator` .375rem |
+| `control` | `2xs`, `xs`, `sm`, `md`, `lg`, `xl`, `2xl`; each has `height`, `text-size`, `line-height`, `padding-inline`, `icon-size`, `gap` |
+| `size` | `touch`, `choice`, `switch-width`, `switch-height`, `switch-thumb` |
+| `color.action` | `primary`, `subtle`, `on-surface`, `ghost`; each has `rest`, `hover`, `pressed`, `content`, `disabled`, `disabled-content` |
+| `color.field` | `background`, `border`, `boundary`, `content`, `placeholder`, `disabled`, `disabled-content` |
+| `color.feedback` | `error`, `success`, `warning`, `info` |
+| `color.selection` | `background`, `content` |
+| `motion` | `duration-fast`, `duration-normal`, `duration-reduced`, `easing` |
+| `layer` | `base`, `sticky`, `popover`, `modal`, `toast` |
+
+### Inter typography
+
+Size equivalents assume a 16px root for illustration. Flood does not set the
+host's root font size. Sizes use rem, line heights use ratios and tracking uses
+em. Font weights are 400/500. The React stylesheet bundles the Inter variable
+font and its SIL Open Font License; it loads locally from the installed package.
+The token-only stylesheet does not load fonts: token-only consumers supply
+their own font setup with Latin/Cyrillic coverage as needed. Fallback metrics
+can differ.
+
+| Role | Size / line height | Weight | Tracking |
+| --- | --- | --- | --- |
+| large | 32 / 40 | 500 | -.02em |
+| page | 24 / 32 | 500 | -.02em |
+| section | 20 / 28 | 500 | -.015em |
+| body | 16 / 24 | 400 | -.01em |
+| compact | 14 / 20 | 400 | -.01em |
+| label | 13 / 18 | 400 | -.01em |
+| helper | 12 / 18 | 400 | -.01em |
+| control | 14 / 20 | 500 | -.005em |
+
+Control heights are 24/28/32/40/44/48/56px equivalents. Their icon sizes are
+14/16/16/20/20/24/24px equivalents. These are minimum visual heights, not fixed
+clipping boxes. Touch target size, neighboring targets, long translations and
+increased text spacing require separate checks. Small controls are not ordinary
+text-field defaults.
+
+### Boundaries, focus and motion
+
+The quiet `color.field.border` (#4a4a4a) is insufficient as the sole necessary
+boundary. `color.field.boundary` (#8a8a8a) supplies a stronger recognition signal;
+a recipe can use it along one edge while retaining the quiet outline elsewhere.
+Decorative borders never substitute for this signal. Error, selected and focus
+states need semantic markup and a visible cue beyond color where applicable.
+
+Focus uses `focus.width` 2px and `focus.offset` 0px. `color.focus.ring` currently
+uses provisional pink #ff5ca8; it is configurable and is not a finalized brand
+palette. It must remain visible when error or selected styles are present.
+Color-pair tests cover supplied dark surfaces; these are not a whole-component
+WCAG or APCA conformance claim. Validate text role, size and weight together.
+
+For example, APCA `apca-w3` 0.1.9 gives white text on canvas Lc −106.77,
+helper #ededed on canvas Lc −95.00 (overlay: −91.00), and subtle #b2b2b2 on
+overlay Lc −55.54. These values do not certify the 12px/400 helper recipe:
+that version's font lookup recommends approximately 15.5px at weight 400 for
+Lc 95. Small helper text is a compact supporting role; provide readable main
+instructions and validate the actual content, device and enlargement behavior.
+Do not use subtle text or feedback accent colors for small required instructions
+merely because a WCAG color-pair calculation passes.
+
+Motion values are an initial interaction recipe: 100ms fast, 160ms normal,
+0ms reduced, with state easing. Consumers must apply the reduced value under
+`prefers-reduced-motion: reduce` and avoid relying on motion to convey state.
+Layer values express local order only; they do not implement portals, trapping
+focus, dismissal, scroll locking or an overlay stack.
 
 ## Override and scope
 
@@ -72,6 +148,7 @@ nested tokens with explicit `$type`, `$value`, `$description` and `md.flood`
 metadata. Build artifacts are generated and must not be edited.
 
 The first compiler profile supports sRGB color, nonnegative px/rem dimension,
+signed em dimension (for tracking),
 ms/s duration, finite number, numeric fontWeight, fontFamily and cubicBezier.
 Aliases refer to whole tokens using `{sys.color.content.default}` syntax.
 Composite types, JSON Pointer references, group inheritance, density modifiers,
@@ -88,9 +165,10 @@ values are fixed; themes choose roles instead of changing reference values.
 ## Compatibility
 
 Existing `@flood-md/tokens` JSON and `tokens.css` retain their shared/light/dark
-contract and `--flood-*` names. Existing React controls still use those tokens;
-old custom overrides continue to apply. There is no automatic bridge that
-pretends a legacy override also changes a new, separately scoped role.
+contract and `--flood-*` names. Existing React controls outside `FloodRoot` keep
+using those tokens; old custom overrides continue to apply there. Inside
+`FloodRoot`, the dark foundation roles control the component recipe. Legacy
+overrides do not automatically override separately scoped foundation roles.
 
-Adding these exports is an unreleased additive change. All package versions
-remain aligned until release preparation; no existing npm version is replaced.
+Version 0.2.0 adds these exports without replacing an existing npm version.
+Publication must be verified separately; source version numbers are not proof.

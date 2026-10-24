@@ -1,38 +1,70 @@
-# Installation
+# Installation · 0.2.0
 
-Use Node.js 22.12 or newer and an existing React or Next.js npm project. React
-18.3/19 is accepted by peer dependencies; React 19 and Next.js App Router are
-the current CI integration targets.
+Use Node.js 22.12 or newer and an existing npm-based React/Next.js project.
+React 18.3/19 is supported; React 19 and Next.js App Router are integration targets.
 
-```sh
-npx @flood-md/cli@0.1.1 init --dry-run
-npx @flood-md/cli@0.1.1 init
-```
-
-Import `@flood-md/react/styles.css` once at the application root. For Next.js use
-`app/layout.tsx` (or `src/app/layout.tsx`). No Tailwind configuration is needed.
-
-Read `flood/DESIGN.md`; add its path to your agent's entry instructions if the
-client does not discover `.agents/skills`. Existing AGENTS.md is never replaced.
-
-## Manual
+## Connect with the CLI
 
 ```sh
-npm install --save-exact @flood-md/tokens@0.1.1 @flood-md/react@0.1.1 @flood-md/agent@0.1.1
+npx @flood-md/cli@0.2.0 init --dry-run
+npx @flood-md/cli@0.2.0 init
 ```
 
-Use guide files from the installed agent package. `flood doctor` requires the CLI
-generated configuration, and does not inspect your stylesheet imports.
+The installer adds exact matching tokens, React and agent packages. It creates
+`flood.json`, `flood/DESIGN.md` and `.agents/skills/flood-ui/SKILL.md`, preserves
+host instructions and refuses existing files or linked destinations. It does
+not modify application source. Import CSS once in the React entry or Next
+`app/layout.tsx`, then wrap new UI in `FloodRoot`:
 
-## Updates
+```tsx
+import "@flood-md/react/styles.css";
+import { Button, FloodRoot } from "@flood-md/react";
 
-Read the changelog and choose a published target version. Upgrade tokens, React
-and agent to that same exact version with npm install --save-exact. Use the CLI
-for that target version when running doctor. Compare the installed agent package's
-DESIGN.md and SKILL.md with your customized copies, apply relevant changes, and
-update flood.json's version after a successful migration. Keep existing framework,
-paths and project-specific instruction changes.
-The CLI deliberately has no destructive `update` command in v0.1. Major changes
-need explicit migration notes. `add` is unnecessary: all eight core components
-ship in the React package and are imported by name. Run doctor and your project's
-build/tests after upgrading. Do not rerun init to replace existing instructions.
+export function App() {
+  return <FloodRoot><Button>Start something</Button></FloodRoot>;
+}
+```
+
+Use a client component for callbacks, state or Field's function child. See
+[components](components.md) and the [base inventory](base-components.md).
+No Tailwind configuration or font CDN is needed. The foundations profile is dark
+only; legacy theme behavior remains available outside `FloodRoot`.
+
+```sh
+npx @flood-md/cli@0.2.0 doctor
+```
+
+Doctor checks package versions and guide presence, not stylesheet imports or
+application behavior. If your agent does not discover the installed skill,
+reference `flood/DESIGN.md` from its existing instructions.
+
+## Manual package installation
+
+```sh
+npm install --save-exact @flood-md/tokens@0.2.0 @flood-md/react@0.2.0 @flood-md/agent@0.2.0
+```
+
+Import the stylesheet and use `FloodRoot` as above. Manual installation does not
+create the CLI's project configuration or copied instruction files; read the
+matching agent package's guides directly or use CLI init in an unconfigured
+project. All components ship together and are imported by name.
+
+## Updates from 0.1.1
+
+Upgrade tokens, React and agent together to the same exact version. Existing
+controls outside `FloodRoot` retain their earlier theme behavior. Adopt the new
+dark recipes explicitly by adding `FloodRoot`; move customization to scoped
+`--flood-sys-*` roles instead of assuming old variables change the new profile.
+
+Compare the new package's agent guides with customized local copies before
+updating them. Update `flood.json` after a successful migration and run the
+matching CLI doctor. Do not rerun init to overwrite existing instructions.
+Run the host build/tests and browser checks after upgrading.
+
+## Evaluate repository changes locally
+
+For source development, run `npm ci` and `npm run build:packages`, then
+`npm pack --workspace=@flood-md/tokens` (and likewise React/agent). Install the
+three generated tarballs together using their local paths with
+`npm install --save-exact`. This evaluates local source without implying that a
+future version is already available from the registry.

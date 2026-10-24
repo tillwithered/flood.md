@@ -1,6 +1,6 @@
 // Build-time compiler for Flood's deliberately limited DTCG token profile.
 // No CSS expressions or external references are executed from source data.
-const segment = /^(?:[a-z][a-z0-9]*(?:-[a-z0-9]+)*|0|[1-9][0-9]*)$/;
+const segment = /^(?:(?:[a-z]|[1-9][0-9]*[a-z])[a-z0-9]*(?:-[a-z0-9]+)*|0|[1-9][0-9]*)$/;
 const reference = /^\{((?:ref|sys|comp|exp)\.[a-z0-9.-]+)\}$/;
 const types = new Set([
   "color",
@@ -92,10 +92,10 @@ function valueCSS(type, value, id) {
     case "dimension":
     case "duration": {
       keys(value, ["value", "unit"], id);
-      const units = type === "dimension" ? ["px", "rem"] : ["ms", "s"];
+      const units = type === "dimension" ? ["px", "rem", "em"] : ["ms", "s"];
       if (
         !finite(value.value) ||
-        value.value < 0 ||
+        (value.value < 0 && !(type === "dimension" && value.unit === "em")) ||
         !units.includes(value.unit)
       )
         fail(`${id}: invalid ${type}`);
@@ -402,7 +402,7 @@ export function compileTokens(source, version) {
   )
     fail("unused palette or theme set");
   const tokenNames = Object.fromEntries(sorted(allPublic));
-  const js = `// Generated. Experimental, unreleased token API.\nexport const tokenNames = Object.freeze(${JSON.stringify(tokenNames, null, 2)});\n`;
+  const js = `// Generated. Flood token API; role stability is recorded in the manifest.\nexport const tokenNames = Object.freeze(${JSON.stringify(tokenNames, null, 2)});\n`;
   const dts = `/** Experimental token IDs and CSS variable names. */\nexport declare const tokenNames: Readonly<{\n${Object.entries(
     tokenNames,
   )

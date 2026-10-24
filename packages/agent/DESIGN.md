@@ -1,57 +1,96 @@
-# Flood design system · 0.1.1
+# Flood design system · 0.2.0
 
-React + TypeScript. Next.js App Router is supported. Flood owns its components,
-tokens, CSS and installer. Do not introduce another UI library or copy external components.
+React + TypeScript and Next.js App Router. Use this guide with matching installed
+Flood packages and flood.json. The source repository's release status does not
+grant permission to publish or assume a version is available on npm.
 
 ## Connect
 
-Import `@flood-md/react/styles.css` once in the application entry or Next root layout.
-Use `Button, Input, Textarea, Checkbox, Radio, Switch, Field, Link` from `@flood-md/react`.
-Add `"use client"` to Next components that pass callbacks or use state. Flood's React
-entry already has a client boundary. Keep server data fetching in server components.
+Import @flood-md/react/styles.css once in the application entry or Next root
+layout. Wrap new interfaces in FloodRoot, which explicitly selects neutral/dark.
+FloodRoot does not mutate the document theme. This foundations profile is dark
+only. Legacy controls outside FloodRoot retain their earlier light/dark behavior.
+Add "use client" to host components using callbacks, state or Field's function
+child. Keep server data fetching in server components.
 
 ## Compose
 
-- Read installed `flood.json`; use docs matching its version. Run `flood doctor` if uncertain.
-- Use semantic `--flood-*` tokens. Primitive values are authored in the tokens package.
-- Parent layout owns gaps: 4/8 for controls, 12/16 within groups, 24 between groups,
-  32/48 between sections. Avoid redundant cards and containers.
-- One clear primary action per task. Use solid, outline and ghost button variants.
-- Use a real link for navigation, a button for actions. Button defaults to type=button;
-  set type=submit deliberately in forms.
-- Labels are visible. Use Field's render callback to pass id, aria-describedby and
-  aria-invalid to Input/Textarea. Checkbox, Radio and Switch require their label prop.
-- Field takes a function child, so compose it inside a client component in Next.
-- Radio groups share a name and have a fieldset/legend. Native inputs keep form semantics.
-- Use `data-flood-theme="dark"` or `"light"` on the root; default follows system theme.
-- Preserve focus, long content, native form submission and disabled behavior.
-- Loading buttons keep meaningful text; loading disables the action and sets aria-busy.
-- Never use color alone for state. Include an error message and a recovery action.
-- Theme-specific customization uses semantic CSS variable overrides after the Flood import.
+- Use Text sizes body/compact/label/helper and Heading sizes large/page/section.
+  Heading level 1–6 sets semantics independently of visual size. Text label size
+  does not associate a form control; use Field.
+- Use Stack and wrapping Inline. Gap and Surface padding keys are strings
+  0/1/2/3/4/6/8/12. Parent layout owns spacing; avoid redundant cards and borders.
+- Sizes use rem, line heights ratios, tracking em. Do not impose a fixed root
+  font size or a global letter-spacing override. Inter is bundled locally with
+  its original OFL license; preserve the notice when distributing it.
+- Use solid for the main action and subtle for standalone secondary actions.
+  Ghost requires a clear parent context such as a toolbar. Button sizes are
+  2xs/xs/sm/md/lg/xl/2xl; md is default. Small sizes need contextual touch checks.
+- Use Link for navigation and Button for actions. Button defaults to type=button;
+  set type=submit deliberately. Loading disables activation and sets aria-busy;
+  retain meaningful visible text and let the host announce completion.
+- Input/Textarea use controlSize sm/md/lg/xl. Preserve Input's native size prop.
+  Field required forwards native required and adds a visible marker. Spread all
+  callback props to preserve id, aria-describedby and aria-invalid. describedBy
+  merges external description IDs with hint/error IDs.
+- Checkbox, Radio and Switch require visible labels and preserve native forms.
+  Radio groups share a name and belong in a host fieldset/legend. Readonly and
+  disabled are different states; explain unavailability outside disabled controls.
+- IconSlot adapts host SVG artwork; without label it is decorative. IconButton
+  requires a nonempty action label. Retain the external icon pack's license.
+- Surface elevation overlay is visual only: no portal, focus trap, dismissal or
+  dialog semantics are implied. Layer tokens do not implement an overlay manager.
+
+## Tokens and accessibility
+
+Use semantic --flood-sys-* roles inside FloodRoot; values are authored only in
+the tokens package. Apply overrides on the scope element after the stylesheet.
+Nested token scopes repeat both data-flood-foundations=neutral and
+data-flood-theme=dark attributes. Preserve independent surface, content, boundary,
+selection, feedback and focus roles rather than hardcoding component colors.
+
+The quiet field outline needs its stronger necessary boundary. Focus is 2px
+without offset; the configurable pink default is provisional. Keep focus visible
+with invalid and selected states. Do not mute a whole component through opacity
+to reduce one border. Never convey error, selection or status by color alone.
+
+Evaluate text using actual size, weight, font and neighboring surface: WCAG plus
+supplementary APCA guidance. Do not apply text thresholds to decorative lines or
+claim full WCAG/APCA certification from a color-pair calculation. Small helper
+text is supporting content, not the sole presentation of required instructions.
 
 ## Verify
 
-Check keyboard use, labels, focus, empty/loading/error/disabled states, narrow screens,
-light/dark themes and reduced motion. Do not fabricate a working command or release.
-Never overwrite existing project instructions. Keep application data and side effects
-in the host project; Flood provides UI only.
+Check keyboard, labels, focus/invalid combinations, required fields, native form
+submission, loading/disabled/readonly, root scaling, text-spacing overrides,
+narrow screens, long content, forced colors and reduced motion. Keep application
+data and side effects in the host project. Flood owns UI only.
 
-## Example (client component)
+Read flood.json and use the matching CLI when running doctor. Doctor checks
+versions/instruction files, not CSS imports or completed UI behavior. Do not
+overwrite host instructions or fabricate installation/publication success.
+
+## Example
 
 ```tsx
 "use client";
-import { Button, Field, Input } from "@flood-md/react";
+import { Button, Field, FloodRoot, Heading, Input, Stack } from "@flood-md/react";
 
 export function Profile() {
   return (
-    <form onSubmit={(event) => event.preventDefault()}>
-      <Field label="Name" hint="Shown on your profile">
-        {(props) => (
-          <Input {...props} name="name" autoComplete="name" required />
-        )}
-      </Field>
-      <Button type="submit">Save changes</Button>
-    </form>
+    <FloodRoot>
+      <Stack gap="6">
+        <Heading level={1}>Profile</Heading>
+        <form onSubmit={(event) => event.preventDefault()}>
+          <Stack gap="4">
+            <Field label="Name" required hint="Shown on your profile">
+              {(props) => <Input {...props} name="name" autoComplete="name" />}
+            </Field>
+            <Button type="submit">Save changes</Button>
+          </Stack>
+        </form>
+      </Stack>
+    </FloodRoot>
   );
 }
 ```

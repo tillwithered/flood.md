@@ -4,12 +4,37 @@ An independent design system for **React, TypeScript and Next.js**. Original
 components, semantic tokens, a small installer, and versioned instructions for
 coding agents. No third-party UI component library or Tailwind dependency.
 
+## Base dark design system · 0.2.0
+
+Flood 0.2.0 provides a dark foundations profile, 154 semantic token roles and
+[17 original primitives and controls](docs/base-components.md).
+
+```tsx
+import "@flood-md/react/styles.css";
+import { Button, FloodRoot, Heading, Stack } from "@flood-md/react";
+
+export function Example() {
+  return (
+    <FloodRoot>
+      <Stack gap="4">
+        <Heading level={1}>Start something</Heading>
+        <Button>Create workspace</Button>
+      </Stack>
+    </FloodRoot>
+  );
+}
+```
+
+FloodRoot explicitly selects neutral/dark, with local Inter, semantic tokens,
+relative typography and layout, filled actions, native forms and keyboard focus.
+New primitives include Text/Heading, Stack/Inline/Surface, IconSlot/IconButton
+and Divider. The new foundations profile starts with dark only; the older theme
+contract remains compatible outside FloodRoot.
+
 ## Connect
 
-Verified public release:
-
 ```sh
-npx @flood-md/cli@0.1.1 init
+npx @flood-md/cli@0.2.0 init
 ```
 
 Run in an existing npm-based React or Next.js project. Use `init --dry-run` to see
@@ -20,15 +45,15 @@ once in your React entry or Next.js `app/layout.tsx`:
 
 ```tsx
 import "@flood-md/react/styles.css";
-import { Button } from "@flood-md/react";
+import { Button, FloodRoot } from "@flood-md/react";
 
 export function Example() {
-  return <Button>Start something</Button>;
+  return <FloodRoot><Button>Start something</Button></FloodRoot>;
 }
 ```
 
 Give an agent `https://flood.md/llms.txt`. The guide
-uses the same CLI as a manual installation. `npx @flood-md/cli doctor` checks
+uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.0 doctor` checks
 installed versions and owned instruction files.
 
 ## Documentation
@@ -37,18 +62,24 @@ Start with the [documentation index](docs/README.md):
 
 - [Installation and updates](docs/installation.md)
 - [Component API and examples](docs/components.md)
+- [Base component inventory](docs/base-components.md)
 - [Tokens and themes](docs/theming.md)
 - [Agent setup](docs/agents.md)
 - [Frequently asked questions](docs/faq.md)
 
-## First foundations
+## Components
 
-Button, Input, Textarea, Checkbox, Radio, Switch, Field and Link. Native form
-semantics, forwarded refs, light/dark themes, focus states and reduced motion.
+Button, Input, Textarea, Checkbox, Radio, Switch, Field and Link compose with the
+0.2 primitives above. Native semantics, forwarded refs, focus states and reduced
+motion remain part of the API. The 0.2 foundations profile is dark only.
 Components ship as dependencies, not copied source files. Customize semantic CSS
 variables; host application owns layout, data fetching and side effects.
 
 ## Develop
+
+See [foundations](docs/foundations.md) and the [component guide](docs/components.md)
+for 0.2.0. Existing 0.1.1 projects should follow their matching guides. The Next.js
+example includes `/foundations` and `/team` for reviewing the current source.
 
 Node.js 22.12+ (Node 24 recommended), npm 11.
 
@@ -85,4 +116,5 @@ Report vulnerabilities using the [security policy](SECURITY.md).
 
 ## License
 
-Flood is [MIT licensed](LICENSE).
+Flood code is [MIT licensed](LICENSE). The bundled Inter font retains its
+[original SIL Open Font License](packages/react/src/fonts/LICENSE.txt).

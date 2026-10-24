@@ -29,6 +29,10 @@ for (const name of ["tokens", "react", "agent", "cli"]) {
     ]),
   );
   assert.ok(packed.files.some((file) => file.path === "LICENSE"));
+  if (name === "react") {
+    for (const path of ["dist/foundations.css", "dist/fonts/InterVariable.woff2", "dist/fonts/LICENSE.txt"])
+      assert.ok(packed.files.some((file) => file.path === path), `Missing ${path}`);
+  }
   archives.push(resolve(".artifacts", packed.filename));
 }
 const root = await mkdtemp(join(tmpdir(), "flood-consumer-"));
@@ -40,6 +44,7 @@ try {
       private: true,
       type: "module",
       dependencies: { react: "19.3.1", "react-dom": "19.3.1" },
+      devDependencies: { "@types/react": "19.3.0", "@types/react-dom": "19.3.0" },
     }),
   );
   await initProject(root, {
@@ -64,9 +69,18 @@ try {
     `import { tokenNames, type TokenName } from '@flood-md/tokens/foundations';
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
+import { type HeadingProps, type InputProps, type IconButtonProps } from '@flood-md/react';
+const heading: HeadingProps = {level: 3, size: 'large'};
+const input: InputProps = {size: 30, controlSize: 'xl'};
+const icon: IconButtonProps = {label: 'Add item', size: '2xl'};
+// @ts-expect-error Visual size must not replace the native input size attribute.
+const badInput: InputProps = {size: 'xl'};
+// @ts-expect-error Icon-only actions require a name.
+const badIcon: IconButtonProps = {size: 'md'};
 // @ts-expect-error Unknown roles must be rejected rather than widened to string.
 const typo: TokenName = 'sys.color.content.defalt';
 void css; void typo;
+void heading; void input; void icon; void badInput; void badIcon;
 `,
   );
   const types = spawnSync(
@@ -96,8 +110,24 @@ void css; void typo;
   );
   assert.equal(cli.status, 0, cli.stderr);
   await readFile(join(root, "node_modules/@flood-md/react/dist/index.d.ts"));
+  await writeFile(join(root, "react-compat.mjs"), `
+import {createElement as h} from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {FloodRoot, Heading, Field, Input, IconButton} from '@flood-md/react';
+const html=renderToStaticMarkup(h(FloodRoot,null,
+  h(Heading,{level:1},'Ready'),
+  h(Field,{label:'Name',required:true},p=>h(Input,{...p,name:'name'})),
+  h(IconButton,{label:'Add'},'+')));
+if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')) throw Error('React compatibility render');
+`);
+  for (const reactVersion of ["19.3.1", "18.3.1"]) {
+    if (reactVersion === "18.3.1")
+      npm(["install", "--ignore-scripts", "--no-audit", "--no-fund", `react@${reactVersion}`, `react-dom@${reactVersion}`], root);
+    const compatibility = spawnSync(process.execPath, ["react-compat.mjs"], { cwd: root, encoding: "utf8" });
+    assert.equal(compatibility.status, 0, compatibility.stderr);
+  }
   console.log(
-    "Clean consumer: all four npm tarballs installed; published component renders; installed CLI doctor passes.",
+    "Clean consumer: four tarballs, font/license, typed props, CLI doctor and React 18/19 foundation SSR pass.",
   );
 } finally {
   await rm(root, { recursive: true, force: true });

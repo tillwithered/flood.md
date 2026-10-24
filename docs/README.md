@@ -7,15 +7,16 @@ instructions for coding agents. Start with the guide for your task:
 | --- | --- |
 | [Installation](installation.md) | React, Next.js, CLI setup and manual installation |
 | [Components](components.md) | Available controls, props and form composition |
+| [Base component inventory](base-components.md) | The 17 primitives and controls in the base release |
 | [Theming](theming.md) | Semantic tokens, light/dark mode and project overrides |
-| [Experimental foundations](foundations.md) | Typed reference/semantic tokens and the opt-in neutral dark profile (unreleased) |
+| [Foundations](foundations.md) | Typed semantic tokens and neutral dark profile for 0.2.0 |
 | [Agents](agents.md) | Installing and using the matching agent instructions |
 | [FAQ](faq.md) | Compatibility, customization, updates and common problems |
 
 ## Versions
 
-The current published release is **0.1.1**. Use exact matching versions of the
-Flood packages. Documentation on `main` can describe unreleased work; the
+This documentation describes **0.2.0**. Use matching exact versions of the
+Flood packages. Documentation on `main` can describe later work; the
 [release tags](https://github.com/tillwithered/flood.md/releases) preserve the
 source and docs for each release. Installed `flood/DESIGN.md` takes precedence
 over website guidance when working in an existing project.

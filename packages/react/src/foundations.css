@@ -1,0 +1,296 @@
+@import "@flood-md/tokens/foundations.css";
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./fonts/InterVariable.woff2") format("woff2");
+}
+
+.flood-root[data-flood-foundations="neutral"][data-flood-theme="dark"] {
+  color-scheme: dark;
+  color: var(--flood-sys-color-content-default);
+  background: var(--flood-sys-color-surface-canvas);
+  font-family: var(--flood-sys-font-sans);
+  font-size: var(--flood-sys-type-body-size);
+  line-height: var(--flood-sys-type-body-line-height);
+  letter-spacing: var(--flood-sys-type-body-tracking);
+  font-weight: var(--flood-sys-type-body-weight);
+  font-optical-sizing: auto;
+  font-synthesis: none;
+}
+.flood-root :where(.flood-text, .flood-heading, .flood-button, .flood-input, .flood-field, .flood-choice, .flood-link, .flood-icon, .flood-switch-input, .flood-check) {
+  box-sizing: border-box;
+  font-family: inherit;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+.flood-root :where(.flood-text, .flood-heading) {
+  margin: 0;
+  font-size: var(--flood-type-size);
+  line-height: var(--flood-type-line);
+  letter-spacing: var(--flood-type-tracking);
+  font-weight: var(--flood-type-weight);
+}
+.flood-root .flood-tone--default { color: var(--flood-sys-color-content-default); }
+.flood-root .flood-tone--subtle { color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-tone--error { color: var(--flood-sys-color-feedback-error); }
+.flood-root .flood-tone--success { color: var(--flood-sys-color-feedback-success); }
+.flood-root .flood-tone--warning { color: var(--flood-sys-color-feedback-warning); }
+.flood-root .flood-tone--info { color: var(--flood-sys-color-feedback-info); }
+.flood-root .flood-stack { display: flex; flex-direction: column; gap: var(--flood-layout-gap); min-inline-size: 0; }
+.flood-root .flood-inline { display: flex; flex-wrap: wrap; gap: var(--flood-layout-gap); min-inline-size: 0; }
+.flood-root .flood-surface {
+  box-sizing: border-box;
+  border-radius: var(--flood-sys-radius-block);
+  min-inline-size: 0;
+  --flood-surface-action-rest: var(--flood-sys-color-action-on-surface-rest);
+  --flood-surface-action-hover: var(--flood-sys-color-action-on-surface-hover);
+}
+.flood-root .flood-divider { border: 0; border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); margin: 0; inline-size: 100%; }
+.flood-root .flood-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--flood-control-height);
+  padding-block: calc((var(--flood-control-height) - var(--flood-control-text) * var(--flood-control-line)) / 2 - var(--flood-sys-stroke-width));
+  padding-inline: calc(var(--flood-control-padding) - var(--flood-sys-stroke-width));
+  gap: var(--flood-control-gap);
+  border: var(--flood-sys-stroke-width) solid transparent;
+  border-radius: var(--flood-sys-radius-action);
+  font-size: var(--flood-control-text);
+  line-height: var(--flood-control-line);
+  font-weight: var(--flood-sys-type-control-weight);
+  letter-spacing: var(--flood-sys-type-control-tracking);
+  background: var(--flood-action-rest);
+  color: var(--flood-action-content);
+  transition: background-color var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing);
+}
+.flood-root .flood-button:hover:not(:disabled) { background: var(--flood-action-hover); opacity: 1; }
+.flood-root .flood-button:active:not(:disabled) { background: var(--flood-action-pressed); }
+.flood-root .flood-button:disabled { background: var(--flood-action-disabled); color: var(--flood-action-disabled-content); opacity: 1; }
+.flood-root .flood-button[aria-pressed="true"]:not(:disabled) { background: var(--flood-sys-color-selection-background); color: var(--flood-sys-color-selection-content); }
+.flood-root .flood-surface .flood-button--subtle {
+  --flood-action-rest: var(--flood-surface-action-rest);
+  --flood-action-hover: var(--flood-surface-action-hover);
+  --flood-action-pressed: var(--flood-sys-color-action-on-surface-pressed);
+  --flood-action-content: var(--flood-sys-color-action-on-surface-content);
+  --flood-action-disabled: var(--flood-sys-color-action-on-surface-disabled);
+  --flood-action-disabled-content: var(--flood-sys-color-action-on-surface-disabled-content);
+}
+.flood-root .flood-surface[data-flood-elevation="overlay"] {
+  --flood-surface-action-rest: var(--flood-sys-color-action-on-surface-hover);
+  --flood-surface-action-hover: var(--flood-sys-color-action-on-surface-pressed);
+}
+.flood-root .flood-button--outline { border-color: var(--flood-sys-color-field-boundary); }
+.flood-root .flood-icon-button { min-inline-size: var(--flood-control-height); padding: var(--flood-sys-space-1); }
+.flood-root .flood-icon { display: inline-flex; flex: none; inline-size: var(--flood-icon-size); block-size: var(--flood-icon-size); color: inherit; }
+.flood-root .flood-icon > svg { display: block; inline-size: 100%; block-size: 100%; }
+.flood-root .flood-input {
+  display: block;
+  inline-size: 100%;
+  min-block-size: var(--flood-control-height);
+  padding-block: calc((var(--flood-control-height) - var(--flood-control-text) * var(--flood-control-line)) / 2 - var(--flood-sys-stroke-width));
+  padding-inline: calc(var(--flood-control-padding) - var(--flood-sys-stroke-width));
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-field-border);
+  border-block-end-color: var(--flood-sys-color-field-boundary);
+  border-radius: var(--flood-sys-radius-field);
+  background: var(--flood-sys-color-field-background);
+  color: var(--flood-sys-color-field-content);
+  font-size: var(--flood-control-text);
+  line-height: var(--flood-control-line);
+  letter-spacing: var(--flood-sys-type-compact-tracking);
+  font-weight: var(--flood-sys-type-compact-weight);
+}
+.flood-root .flood-input::placeholder { color: var(--flood-sys-color-field-placeholder); opacity: 1; }
+.flood-root .flood-input[aria-invalid="true"] { border-color: var(--flood-sys-color-feedback-error); }
+.flood-root .flood-input[readonly] { cursor: text; }
+.flood-root .flood-input:disabled { background: var(--flood-sys-color-field-disabled); color: var(--flood-sys-color-field-disabled-content); border-color: var(--flood-sys-color-field-border); opacity: 1; }
+.flood-root .flood-input:focus-visible {
+  outline: none;
+  outline-offset: var(--flood-sys-focus-offset);
+  border: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
+  padding-block: calc((var(--flood-control-height) - var(--flood-control-text) * var(--flood-control-line)) / 2 - var(--flood-sys-focus-width));
+  padding-inline: calc(var(--flood-control-padding) - var(--flood-sys-focus-width));
+}
+.flood-root .flood-textarea { min-block-size: calc(var(--flood-control-height) * 3); resize: vertical; }
+.flood-root .flood-field { display: grid; gap: var(--flood-sys-space-2); }
+.flood-root .flood-label { color: var(--flood-sys-color-content-helper); font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); font-weight: var(--flood-sys-type-label-weight); letter-spacing: var(--flood-sys-type-label-tracking); }
+.flood-root :where(.flood-hint, .flood-error) { font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); font-weight: var(--flood-sys-type-helper-weight); letter-spacing: var(--flood-sys-type-helper-tracking); }
+.flood-root .flood-hint { color: var(--flood-sys-color-content-helper); }
+.flood-root .flood-error { color: var(--flood-sys-color-content-helper); }
+.flood-root .flood-choice { gap: var(--flood-sys-space-2); min-block-size: var(--flood-sys-control-md-height); color: var(--flood-sys-color-content-default); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); letter-spacing: var(--flood-sys-type-compact-tracking); }
+.flood-root .flood-choice:has(input:disabled) { color: var(--flood-sys-color-field-disabled-content); }
+.flood-root .flood-check { inline-size: var(--flood-sys-size-choice); block-size: var(--flood-sys-size-choice); accent-color: var(--flood-sys-color-action-primary-rest); }
+.flood-root .flood-switch-input { inline-size: var(--flood-sys-size-switch-width); block-size: var(--flood-sys-size-switch-height); padding: calc((var(--flood-sys-size-switch-height) - var(--flood-sys-size-switch-thumb)) / 2 - var(--flood-sys-stroke-width)); border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-field-boundary); border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-action-subtle-hover); }
+.flood-root .flood-switch-input::before { inline-size: var(--flood-sys-size-switch-thumb); block-size: var(--flood-sys-size-switch-thumb); border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-content-default); transition: transform var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing); }
+.flood-root .flood-switch-input:checked { background: var(--flood-sys-color-action-primary-rest); border-color: var(--flood-sys-color-action-primary-rest); }
+.flood-root .flood-switch-input:checked::before { transform: translateX(calc(var(--flood-sys-size-switch-width) - var(--flood-sys-size-switch-height))); background: var(--flood-sys-color-action-primary-content); }
+.flood-root .flood-switch-input:dir(rtl):checked::before { transform: translateX(calc(var(--flood-sys-size-switch-height) - var(--flood-sys-size-switch-width))); }
+.flood-root .flood-switch-input:disabled { opacity: 1; border-color: var(--flood-sys-color-field-border); background: var(--flood-sys-color-field-disabled); }
+.flood-root .flood-switch-input:disabled::before { background: var(--flood-sys-color-field-disabled-content); }
+.flood-root .flood-link { font-size: inherit; color: var(--flood-sys-color-content-default); text-underline-offset: var(--flood-sys-space-1); }
+.flood-root :where(.flood-button, .flood-check, .flood-switch-input, .flood-link):focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: var(--flood-sys-focus-offset); }
+.flood-root .flood-spinner { inline-size: var(--flood-control-icon); block-size: var(--flood-control-icon); border-width: var(--flood-sys-focus-width); }
+@media (pointer: coarse) {
+  .flood-root .flood-button, .flood-root .flood-choice, .flood-root .flood-input { min-block-size: max(var(--flood-control-height, var(--flood-sys-control-md-height)), var(--flood-sys-size-touch)); }
+  .flood-root .flood-icon-button { min-inline-size: var(--flood-sys-size-touch); }
+  .flood-root .flood-input { font-size: max(var(--flood-control-text), var(--flood-sys-type-body-size)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flood-root .flood-button, .flood-root .flood-switch-input::before, .flood-root .flood-spinner { transition-duration: var(--flood-sys-motion-duration-reduced); animation: none; }
+}
+@media (forced-colors: active) {
+  .flood-root .flood-button { border-color: ButtonText; }
+  .flood-root .flood-input { border-color: CanvasText; }
+  .flood-root .flood-input:focus-visible { border-color: Highlight; }
+  .flood-root :where(.flood-button, .flood-check, .flood-switch-input, .flood-link):focus-visible { outline-color: Highlight; }
+  .flood-root .flood-switch-input { appearance: auto; }
+  .flood-root .flood-switch-input::before { display: none; }
+}
+
+/* Role recipes keep every value in the authored token source. */
+.flood-root .flood-type--large {
+  --flood-type-size: var(--flood-sys-type-large-size);
+  --flood-type-line: var(--flood-sys-type-large-line-height);
+  --flood-type-tracking: var(--flood-sys-type-large-tracking);
+  --flood-type-weight: var(--flood-sys-type-large-weight);
+}
+.flood-root .flood-type--page {
+  --flood-type-size: var(--flood-sys-type-page-size);
+  --flood-type-line: var(--flood-sys-type-page-line-height);
+  --flood-type-tracking: var(--flood-sys-type-page-tracking);
+  --flood-type-weight: var(--flood-sys-type-page-weight);
+}
+.flood-root .flood-type--section {
+  --flood-type-size: var(--flood-sys-type-section-size);
+  --flood-type-line: var(--flood-sys-type-section-line-height);
+  --flood-type-tracking: var(--flood-sys-type-section-tracking);
+  --flood-type-weight: var(--flood-sys-type-section-weight);
+}
+.flood-root .flood-type--body {
+  --flood-type-size: var(--flood-sys-type-body-size);
+  --flood-type-line: var(--flood-sys-type-body-line-height);
+  --flood-type-tracking: var(--flood-sys-type-body-tracking);
+  --flood-type-weight: var(--flood-sys-type-body-weight);
+}
+.flood-root .flood-type--compact {
+  --flood-type-size: var(--flood-sys-type-compact-size);
+  --flood-type-line: var(--flood-sys-type-compact-line-height);
+  --flood-type-tracking: var(--flood-sys-type-compact-tracking);
+  --flood-type-weight: var(--flood-sys-type-compact-weight);
+}
+.flood-root .flood-type--label {
+  --flood-type-size: var(--flood-sys-type-label-size);
+  --flood-type-line: var(--flood-sys-type-label-line-height);
+  --flood-type-tracking: var(--flood-sys-type-label-tracking);
+  --flood-type-weight: var(--flood-sys-type-label-weight);
+}
+.flood-root .flood-type--helper {
+  --flood-type-size: var(--flood-sys-type-helper-size);
+  --flood-type-line: var(--flood-sys-type-helper-line-height);
+  --flood-type-tracking: var(--flood-sys-type-helper-tracking);
+  --flood-type-weight: var(--flood-sys-type-helper-weight);
+}
+.flood-root .flood-type--control {
+  --flood-type-size: var(--flood-sys-type-control-size);
+  --flood-type-line: var(--flood-sys-type-control-line-height);
+  --flood-type-tracking: var(--flood-sys-type-control-tracking);
+  --flood-type-weight: var(--flood-sys-type-control-weight);
+}
+.flood-root .flood-button--2xs, .flood-root .flood-control--2xs {
+  --flood-control-height: var(--flood-sys-control-2xs-height);
+  --flood-control-text: var(--flood-sys-control-2xs-text-size);
+  --flood-control-line: var(--flood-sys-control-2xs-line-height);
+  --flood-control-padding: var(--flood-sys-control-2xs-padding-inline);
+  --flood-control-gap: var(--flood-sys-control-2xs-gap);
+  --flood-control-icon: var(--flood-sys-control-2xs-icon-size);
+}
+.flood-root .flood-icon--2xs { --flood-icon-size: var(--flood-sys-control-2xs-icon-size); }
+.flood-root .flood-button--xs, .flood-root .flood-control--xs {
+  --flood-control-height: var(--flood-sys-control-xs-height);
+  --flood-control-text: var(--flood-sys-control-xs-text-size);
+  --flood-control-line: var(--flood-sys-control-xs-line-height);
+  --flood-control-padding: var(--flood-sys-control-xs-padding-inline);
+  --flood-control-gap: var(--flood-sys-control-xs-gap);
+  --flood-control-icon: var(--flood-sys-control-xs-icon-size);
+}
+.flood-root .flood-icon--xs { --flood-icon-size: var(--flood-sys-control-xs-icon-size); }
+.flood-root .flood-button--sm, .flood-root .flood-control--sm {
+  --flood-control-height: var(--flood-sys-control-sm-height);
+  --flood-control-text: var(--flood-sys-control-sm-text-size);
+  --flood-control-line: var(--flood-sys-control-sm-line-height);
+  --flood-control-padding: var(--flood-sys-control-sm-padding-inline);
+  --flood-control-gap: var(--flood-sys-control-sm-gap);
+  --flood-control-icon: var(--flood-sys-control-sm-icon-size);
+}
+.flood-root .flood-icon--sm { --flood-icon-size: var(--flood-sys-control-sm-icon-size); }
+.flood-root .flood-button--md, .flood-root .flood-control--md {
+  --flood-control-height: var(--flood-sys-control-md-height);
+  --flood-control-text: var(--flood-sys-control-md-text-size);
+  --flood-control-line: var(--flood-sys-control-md-line-height);
+  --flood-control-padding: var(--flood-sys-control-md-padding-inline);
+  --flood-control-gap: var(--flood-sys-control-md-gap);
+  --flood-control-icon: var(--flood-sys-control-md-icon-size);
+}
+.flood-root .flood-icon--md { --flood-icon-size: var(--flood-sys-control-md-icon-size); }
+.flood-root .flood-button--lg, .flood-root .flood-control--lg {
+  --flood-control-height: var(--flood-sys-control-lg-height);
+  --flood-control-text: var(--flood-sys-control-lg-text-size);
+  --flood-control-line: var(--flood-sys-control-lg-line-height);
+  --flood-control-padding: var(--flood-sys-control-lg-padding-inline);
+  --flood-control-gap: var(--flood-sys-control-lg-gap);
+  --flood-control-icon: var(--flood-sys-control-lg-icon-size);
+}
+.flood-root .flood-icon--lg { --flood-icon-size: var(--flood-sys-control-lg-icon-size); }
+.flood-root .flood-button--xl, .flood-root .flood-control--xl {
+  --flood-control-height: var(--flood-sys-control-xl-height);
+  --flood-control-text: var(--flood-sys-control-xl-text-size);
+  --flood-control-line: var(--flood-sys-control-xl-line-height);
+  --flood-control-padding: var(--flood-sys-control-xl-padding-inline);
+  --flood-control-gap: var(--flood-sys-control-xl-gap);
+  --flood-control-icon: var(--flood-sys-control-xl-icon-size);
+}
+.flood-root .flood-icon--xl { --flood-icon-size: var(--flood-sys-control-xl-icon-size); }
+.flood-root .flood-button--2xl, .flood-root .flood-control--2xl {
+  --flood-control-height: var(--flood-sys-control-2xl-height);
+  --flood-control-text: var(--flood-sys-control-2xl-text-size);
+  --flood-control-line: var(--flood-sys-control-2xl-line-height);
+  --flood-control-padding: var(--flood-sys-control-2xl-padding-inline);
+  --flood-control-gap: var(--flood-sys-control-2xl-gap);
+  --flood-control-icon: var(--flood-sys-control-2xl-icon-size);
+}
+.flood-root .flood-icon--2xl { --flood-icon-size: var(--flood-sys-control-2xl-icon-size); }
+.flood-root .flood-button--solid {
+  --flood-action-rest: var(--flood-sys-color-action-primary-rest);
+  --flood-action-hover: var(--flood-sys-color-action-primary-hover);
+  --flood-action-pressed: var(--flood-sys-color-action-primary-pressed);
+  --flood-action-content: var(--flood-sys-color-action-primary-content);
+  --flood-action-disabled: var(--flood-sys-color-action-primary-disabled);
+  --flood-action-disabled-content: var(--flood-sys-color-action-primary-disabled-content);
+}
+.flood-root .flood-button--subtle {
+  --flood-action-rest: var(--flood-sys-color-action-subtle-rest);
+  --flood-action-hover: var(--flood-sys-color-action-subtle-hover);
+  --flood-action-pressed: var(--flood-sys-color-action-subtle-pressed);
+  --flood-action-content: var(--flood-sys-color-action-subtle-content);
+  --flood-action-disabled: var(--flood-sys-color-action-subtle-disabled);
+  --flood-action-disabled-content: var(--flood-sys-color-action-subtle-disabled-content);
+}
+.flood-root .flood-button--outline {
+  --flood-action-rest: var(--flood-sys-color-action-subtle-rest);
+  --flood-action-hover: var(--flood-sys-color-action-subtle-hover);
+  --flood-action-pressed: var(--flood-sys-color-action-subtle-pressed);
+  --flood-action-content: var(--flood-sys-color-action-subtle-content);
+  --flood-action-disabled: var(--flood-sys-color-action-subtle-disabled);
+  --flood-action-disabled-content: var(--flood-sys-color-action-subtle-disabled-content);
+}
+.flood-root .flood-button--ghost {
+  --flood-action-rest: var(--flood-sys-color-action-ghost-rest);
+  --flood-action-hover: var(--flood-sys-color-action-ghost-hover);
+  --flood-action-pressed: var(--flood-sys-color-action-ghost-pressed);
+  --flood-action-content: var(--flood-sys-color-action-ghost-content);
+  --flood-action-disabled: var(--flood-sys-color-action-ghost-disabled);
+  --flood-action-disabled-content: var(--flood-sys-color-action-ghost-disabled-content);
+}

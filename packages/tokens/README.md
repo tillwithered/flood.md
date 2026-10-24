@@ -1,16 +1,27 @@
 # @flood-md/tokens
 
-Semantic Flood CSS custom properties. Import `@flood-md/tokens/tokens.css`, or
-import the React package stylesheet, which includes these tokens. Default theme
-follows the OS; root `data-flood-theme="light"` / `"dark"` chooses a theme.
-Override semantic variables after the import. JSON export contains shared, light
-and dark maps. Source values live in src/tokens.json in the repository.
+Typed reference values and semantic CSS roles for Flood **0.2.0**. Keep Flood
+package versions aligned. Existing 0.1.1 installs use their earlier token contract.
 
-## Experimental foundations (unreleased)
+React consumers import @flood-md/react/styles.css and use FloodRoot. Token-only
+consumers import @flood-md/tokens/foundations.css and set both attributes on the
+same scope element: data-flood-foundations="neutral" data-flood-theme="dark".
+Only the neutral/dark foundations profile is supplied.
 
-The source envelope also compiles typed reference/semantic tokens. The additive
-`./foundations`, `./foundations.css`, `./foundations.manifest.json` and
-`./neutral.dark.tokens.json` exports are unreleased and require the next aligned
-minor release; npm 0.1.1 does not contain them. The existing exports keep their
-original contract. See [the foundations guide](../../docs/foundations.md) for
-scope attributes, supported types, public roles and usage limitations.
+Exports include ./foundations (typed tokenNames lookup), ./foundations.css,
+./foundations.manifest.json and ./neutral.dark.tokens.json. Values are authored
+only in src/tokens.json. Generated artifacts must not be edited.
+
+Roles cover surfaces/content, primary/subtle/contextual actions, fields,
+selection/feedback/focus, Inter typography, relative spacing/radii, control/icon
+sizes, motion and local layer order. Override public semantic --flood-sys-* roles
+on their scope; repeat both attributes for nested scopes. See the
+[foundations guide](../../docs/foundations.md) for supported types and limits.
+
+The React package bundles Inter and its OFL license. Token-only consumers provide
+their own font setup. Quiet field outlines need their separate necessary
+boundary signal; decorative line contrast is distinct from text accessibility.
+
+Legacy ./tokens.css and JSON retain the earlier shared/light/dark contract and
+--flood-* names. Legacy controls outside FloodRoot remain compatible; legacy
+overrides do not automatically change separately scoped foundations roles.
