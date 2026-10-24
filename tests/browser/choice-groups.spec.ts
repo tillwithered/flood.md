@@ -77,3 +77,34 @@ test("group form data, required radio validity and external ownership remain nat
   await many.evaluate(node => { (node as HTMLFieldSetElement).disabled = true; });
   expect(await page.locator("#owner").evaluate(node => new FormData(node as HTMLFormElement).getAll("many"))).toEqual([]);
 });
+
+test("related choices have compact measured spacing without overlapping hit areas", async ({ page }) => {
+  await open(page);
+  const group = page.getByRole("group", { name: "Many", exact: true });
+  const first = group.getByRole("checkbox", { name: "Alpha" });
+  const second = group.getByRole("checkbox", { name: "Beta" });
+  const geometry = await first.evaluate((input) => {
+    const fieldset = input.closest("fieldset")!, legend = fieldset.querySelector("legend")!;
+    const rows = [...fieldset.querySelectorAll(".flood-choice")].map(node => node.getBoundingClientRect());
+    return { font: parseFloat(getComputedStyle(document.documentElement).fontSize), pitch: rows[1].top - rows[0].top,
+      overlap: rows[0].bottom - rows[1].top, headerGap: input.getBoundingClientRect().top - legend.getBoundingClientRect().bottom };
+  });
+  expect(geometry.pitch).toBeLessThanOrEqual(geometry.font * 2);
+  expect(geometry.pitch).toBeGreaterThanOrEqual(geometry.font * 1.5);
+  expect(geometry.overlap).toBeLessThanOrEqual(0);
+  expect(geometry.headerGap).toBeGreaterThan(0);
+  expect(geometry.headerGap).toBeLessThanOrEqual(geometry.font * .75);
+  await expect(second).toBeDisabled();
+  await first.focus(); await page.keyboard.press("Space");
+  await expect(first).not.toBeChecked();
+});
+
+test("compact groups preserve coarse-pointer target size and nonoverlapping rows", async ({ browser }) => {
+  const context = await browser.newContext({ baseURL: "http://127.0.0.1:4173", hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage(); await open(page);
+    const rows = await page.getByRole("group", { name: "Many", exact: true }).locator(".flood-choice").evaluateAll(nodes => nodes.map(node => ({ top: node.getBoundingClientRect().top, bottom: node.getBoundingClientRect().bottom, height: node.getBoundingClientRect().height })));
+    expect(rows.every(row => row.height >= 44)).toBe(true);
+    expect(rows.slice(1).every((row, index) => row.top >= rows[index].bottom)).toBe(true);
+  } finally { await context.close(); }
+});

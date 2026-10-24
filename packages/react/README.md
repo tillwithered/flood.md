@@ -134,6 +134,10 @@ legend, a name for the inputs and an options array with unique string values,
 visible labels and optional disabled flags. The ref targets HTMLFieldSetElement.
 Orientation is vertical by default; horizontal wraps. Disabled, hint, status,
 message and error follow Fieldset. These exports are unreleased beyond 0.2.2.
+Choice groups use compact sm-height rows without an additional vertical gap.
+Coarse pointers retain the touch-target minimum. Wrapping labels can grow a row;
+the indicator remains explicitly sized. Horizontal groups keep space-4 between
+columns. Legend/helper spacing belongs to the group rather than each option.
 
 RadioGroup uses a string value/defaultValue and onValueChange(string).
 CheckboxGroup uses an array value/defaultValue and onValueChange(string[]).
