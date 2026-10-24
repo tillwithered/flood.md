@@ -1,7 +1,8 @@
-# Base component inventory · 0.2.2
+# Base component inventory
 
-The base dark design system exports **18 components: ten primitives and eight
-native controls**. They use original Flood implementations, React 18.3/19 APIs
+The current source exports **19 components: ten primitives and nine native
+controls**, including the unreleased native Select addition. Published 0.2.2
+exports 18 components and does not include Select. They use original Flood implementations, React 18.3/19 APIs
 and TypeScript declarations. Import `@flood-md/react/styles.css` once and place
 new compositions inside `FloodRoot`.
 
@@ -24,13 +25,14 @@ IconButton composes the Button control; this grouping describes how the base
 kit is used, not a separate rendering engine. IconSlot supplies geometry rather
 than glyph artwork. Preserve the license of any icon pack used by the host.
 
-## Eight controls
+## Nine controls in current source
 
 | Export | Responsibility |
 | --- | --- |
 | `Button` | Native action, explicit submit/reset, loading and disabled behavior |
 | `Input` | Native input props/ref and independent visual control sizing |
 | `Textarea` | Native multiline input, scrolling and validation styling |
+| `Select` (unreleased source) | Native options/optgroups, dropdown or listbox, form props and ref |
 | `Checkbox` | Native checkbox with a required visible label |
 | `Radio` | Native radio with a visible label; the host owns group name and legend |
 | `Switch` | Native checkbox behavior exposed with switch semantics |
@@ -41,10 +43,21 @@ than glyph artwork. Preserve the license of any icon pack used by the host.
 
 Button/IconButton sizes are `2xs`, `xs`, `sm`, `md`, `lg`, `xl`, `2xl` with
 minimum heights equivalent to 24/28/32/40/44/48/56px at a 16px reference root.
-Dimensions use rem; the host controls root sizing. Input/Textarea support
+Dimensions use rem; the host controls root sizing. Input/Textarea/source Select support
 `controlSize` sm/md/lg/xl (32/40/44/48px equivalents). Input's native numeric
 `size` prop retains its HTML meaning. Small visual controls still need adequate
 non-overlapping touch targets; wrapping labels can increase their height.
+
+Source Select also preserves native numeric `size` and `multiple`; listboxes do
+not show the dropdown chevron. Supply ordinary option/optgroup children. This
+native addition is not a custom select menu engine or a published 0.2.2 export.
+
+In current source, Checkbox/Radio draw Flood indicators on real native inputs;
+forced colors restores native appearance. Glyphs keep a 1.125rem footprint and
+.5rem label gap, with centered rows. Use explicit `Inline gap="4"` for a 1rem
+gap between choices; Inline's default gap="2" stays unchanged. Keep Button
+width intrinsic unless the host opts into a full-width action. The
+[layout guide](layout.md) shows responsive widths and complete compositions.
 
 Button defaults to solid/md and `type="button"`. Variants are solid, subtle,
 outline and ghost. Use filled subtle for standalone secondary actions; ghost
@@ -91,7 +104,7 @@ keyboard use, forced colors, reduced motion, narrow widths and enlarged text.
 The [foundations guide](foundations.md) records APCA and small-text limitations.
 
 Surface's overlay appearance does not implement a dialog or focus trap. This
-base release supplies no menu/select/dialog engine, new light profile, material
+base release supplies no custom menu/select/dialog engine, new light profile, material
 effects or backend operations. The `/foundations` and `/team` Next.js examples
 demonstrate local composition and form behavior without saving data or sending
 invitations to a service. See [component API details](components.md).

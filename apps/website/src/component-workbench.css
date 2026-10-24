@@ -9,13 +9,15 @@
 .workbench-stage > .flood-root:has(> .flood-field) { inline-size: min(100%, 26rem); }
 .workbench-stage > .flood-root:has(> .flood-stack .flood-code-snippet) { inline-size: min(100%, 28rem); }
 .workbench-stage .flood-type--display { overflow-wrap: anywhere; }
-.workbench-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); gap: var(--flood-sys-space-4); padding: var(--flood-sys-space-4) var(--flood-sys-space-6); border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); background: var(--flood-sys-color-surface-default); }
-.workbench-control { display: grid; gap: var(--flood-sys-space-2); align-content: start; min-inline-size: 0; font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); color: var(--flood-sys-color-content-helper); }
-.workbench-control select, .workbench-control input[type="text"] { box-sizing: border-box; inline-size: 100%; min-block-size: var(--flood-sys-control-sm-height); min-inline-size: 0; padding: var(--flood-sys-space-1) var(--flood-sys-space-2); border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-field-boundary); border-radius: var(--flood-sys-radius-indicator); background: var(--flood-sys-color-field-background); color: var(--flood-sys-color-content-default); font: inherit; }
-.workbench-control--toggle { grid-template-columns: minmax(0, 1fr) auto; align-items: center; align-content: center; min-block-size: var(--flood-sys-control-sm-height); }
-.workbench-control input[type="checkbox"] { margin: 0; inline-size: var(--flood-sys-size-choice); block-size: var(--flood-sys-size-choice); accent-color: var(--flood-sys-color-action-primary-rest); }
-.workbench-control :is(select, input):focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: var(--flood-sys-focus-offset); }
+.workbench-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--flood-sys-space-4); padding: var(--flood-sys-space-4) var(--flood-sys-space-6); border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); background: var(--flood-sys-color-surface-default); }
+.workbench-control { display: grid; gap: var(--flood-sys-space-2); align-content: center; flex: 0 1 11rem; min-inline-size: 0; max-inline-size: 100%; font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); color: var(--flood-sys-color-content-helper); }
+.workbench-control--toggle { display: flex; flex: 0 1 auto; align-self: center; }
+.workbench-controls:has(.workbench-control:not(.workbench-control--toggle)) .workbench-control--toggle { padding-block-start: calc(var(--flood-sys-type-label-size) * var(--flood-sys-type-label-line-height) + var(--flood-sys-space-2)); }
 .workbench-footnote, .workbench-explanation { font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); color: var(--flood-sys-color-content-helper); margin: 0; }
 .workbench-footnote { padding: var(--flood-sys-space-3) var(--flood-sys-space-6); background: var(--flood-sys-color-surface-default); }
 @media (max-width: 40rem) { .workbench-title, .workbench-controls { padding: var(--flood-sys-space-4); } .workbench-stage { padding: var(--flood-sys-space-6) var(--flood-sys-space-4); } .workbench-footnote { padding-inline: var(--flood-sys-space-4); } }
-@media (forced-colors: active) { .workbench-control select, .workbench-control input[type="text"] { border-color: CanvasText; } .workbench-control :is(select, input):focus-visible { outline-color: Highlight; } }
+
+@media (max-width: 40rem) {
+  .workbench-control:not(.workbench-control--toggle) { flex-basis: 100%; }
+  .workbench-controls:has(.workbench-control:not(.workbench-control--toggle)) .workbench-control--toggle { padding-block-start: 0; }
+}

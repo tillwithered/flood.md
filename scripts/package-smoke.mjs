@@ -69,7 +69,8 @@ try {
     `import { tokenNames, type TokenName } from '@flood-md/tokens/foundations';
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
-import { type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
+import { createElement, createRef, type ComponentPropsWithRef } from 'react';
+import { Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
 const heading: HeadingProps = {level: 3, size: 'large'};
 const display: HeadingProps = {level: 1, size: 'display'};
 const lead: TextProps = {as: 'p', size: 'lead'};
@@ -77,6 +78,12 @@ const snippet: CodeSnippetProps = {code: 'npm install example', id: 'command'};
 // @ts-expect-error CodeSnippet requires literal code content.
 const badSnippet: CodeSnippetProps = {id: 'missing-code'};
 const input: InputProps = {size: 30, controlSize: 'xl'};
+const select: SelectProps = {size: 4, multiple: true, defaultValue: ['team'], controlSize: 'xl', invalid: true};
+const selectRef = createRef<HTMLSelectElement>();
+const referencedSelect: ComponentPropsWithRef<typeof Select> = {ref: selectRef, name: 'visibility'};
+const selectElement = createElement(Select, {...referencedSelect, onChange: event => { const options: HTMLOptionsCollection = event.currentTarget.options; void options; }});
+// @ts-expect-error Visual control size cannot replace native select list size.
+const badSelect: SelectProps = {size: 'xl'};
 const icon: IconButtonProps = {label: 'Add item', size: '2xl'};
 // @ts-expect-error Visual size must not replace the native input size attribute.
 const badInput: InputProps = {size: 'xl'};
@@ -86,6 +93,7 @@ const badIcon: IconButtonProps = {size: 'md'};
 const typo: TokenName = 'sys.color.content.defalt';
 void css; void typo;
 void heading; void display; void lead; void snippet; void badSnippet; void input; void icon; void badInput; void badIcon;
+void select; void referencedSelect; void selectElement; void badSelect;
 `,
   );
   const types = spawnSync(
@@ -118,12 +126,13 @@ void heading; void display; void lead; void snippet; void badSnippet; void input
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {FloodRoot, Heading, Field, Input, IconButton} from '@flood-md/react';
+import {FloodRoot, Heading, Field, Input, Select, IconButton} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
   h(Field,{label:'Name',required:true},p=>h(Input,{...p,name:'name'})),
+  h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
-if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')) throw Error('React compatibility render');
+if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('<select')||!html.includes('selected=""')) throw Error('React compatibility render');
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")

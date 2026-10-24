@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add Select with native form semantics and styled dark field geometry.
+- Custom checkbox/radio visuals retain native inputs, keyboard behavior and refs.
+- Actions use intrinsic widths, choice glyphs keep fixed dimensions, and playground
+  controls use the DS with close labels and separated groups. Layout guidance
+  documents these contracts for people and agents.
+
 - Local component playgrounds use shared recipes for real previews and matching
   TSX, with controls for supported props, state and native focus.
 - Documentation adds local syntax highlighting, a Markdown reader, copy/download

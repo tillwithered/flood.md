@@ -28,6 +28,9 @@ test("foundation form retains native values, keyboard choices and reset", async 
   const name = page.getByRole("textbox", { name: "Project name" });
   const checkbox = page.getByRole("checkbox", { name: "Email updates" });
   const toggle = page.getByRole("switch", { name: "Public preview" });
+  const region = page.getByRole("combobox", { name: "Project region" });
+  await expect(region).toHaveValue("global");
+  await region.selectOption("europe");
   await expect(name).toHaveValue("Flood");
   await expect(checkbox).toBeChecked();
   await expect(toggle).not.toBeChecked();
@@ -47,8 +50,10 @@ test("foundation form retains native values, keyboard choices and reset", async 
   expect(Object.values(data)).toContain("Flood team");
   expect(Object.values(data)).toContain("A small original system");
   expect(data).not.toHaveProperty("updates");
+  expect(data.region).toBe("europe");
   await page.getByRole("button", { name: "Reset form", exact: true }).click();
   await expect(name).toHaveValue("Flood");
+  await expect(region).toHaveValue("global");
   await expect(checkbox).toBeChecked();
   await expect(toggle).not.toBeChecked();
   await expect(page.getByRole("radio", { name: "Team", exact: true })).toBeChecked();

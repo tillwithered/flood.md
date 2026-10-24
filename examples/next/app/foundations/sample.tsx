@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import {
   FloodRoot, Heading, Text, Stack, Inline, Surface, Divider,
-  Button, IconButton, Field, Input, Textarea, Checkbox, Radio, Switch,
+  Button, IconButton, Field, Input, Textarea, Select, Checkbox, Radio, Switch,
   type ControlSize,
 } from "@flood-md/react";
 
@@ -56,8 +56,17 @@ export function FoundationForm() {
                 <Field id="project-url" label="Project address" hint="Read only">
                   {(control) => <Input {...control} readOnly value="flood.md" />}
                 </Field>
+                <Field id="project-region" label="Project region" hint="Where your team works">
+                  {(control) => <Select {...control} name="region" defaultValue="global">
+                    <option value="global">Global</option>
+                    <optgroup label="Regions">
+                      <option value="europe">Europe</option>
+                      <option value="americas">Americas</option>
+                    </optgroup>
+                  </Select>}
+                </Field>
                 <Divider />
-                <Stack gap="2">
+                <Stack gap="4">
                   <Checkbox label="Email updates" name="updates" value="yes" defaultChecked />
                   <Switch label="Public preview" name="preview" value="yes" />
                 </Stack>

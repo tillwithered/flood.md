@@ -3,7 +3,9 @@
 ## Dark foundations · 0.2.2
 
 This guide describes the **0.2.2** API. See the [base component inventory](base-components.md)
-for the complete set. Existing 0.1.1 installs follow their version-specific guides.
+for the complete set. Current-source additions below are explicitly marked and
+do not imply a change to published 0.2.2. Existing 0.1.1 installs follow their
+version-specific guides.
 
 Import the same stylesheet and wrap new compositions in `FloodRoot` to select
 neutral/dark. Existing controls outside it retain legacy light/dark behavior.
@@ -89,7 +91,8 @@ that override slot sizing.
 | Button | `variant`: solid / subtle / outline / ghost; `size`: 2xs / xs / sm / md / lg / xl / 2xl; `loading` | Solid/md by default; native type defaults to button |
 | Input | `invalid`; `controlSize`: sm / md / lg / xl (md) | Native name/type/required/autoComplete/ref and size remain available |
 | Textarea | `invalid`; `controlSize`: sm / md / lg / xl (md) | Native rows/maxLength/form props and ref remain available |
-| Field | `label`, `hint`, `error`, `id`, `required`, `describedBy`, function child | Spread supplied props onto one Input/Textarea |
+| Select (current source) | `invalid`; `controlSize`: sm / md / lg / xl (md) | Native select/options/optgroups, numeric size, multiple, forms and ref |
+| Field | `label`, `hint`, `error`, `id`, `required`, `describedBy`, function child | Spread supplied props onto one Input/Textarea or source Select |
 | Checkbox | Required `label` | Native checkbox and visible label |
 | Radio | Required `label` | Shared name and host fieldset/legend for a group |
 | Switch | Required `label` | Native checkbox with switch semantics |
@@ -100,6 +103,62 @@ Input/Textarea sizes use 32/40/44/48px equivalents. Wrapped content can grow;
 touch targets need contextual verification. Field required shows a marker and
 forwards native required. describedBy merges external description IDs with
 hint/error IDs; preserve the supplied associations when composing the control.
+
+Keep action width intrinsic and form width responsive at the parent. A choice's
+indicator/label gap is .5rem; separate choices usually use `Inline gap="4"`
+(1rem) with centered row alignment. Inline's default remains gap="2". See the
+[layout guide](layout.md) for full-width opt-in, form widths and grouping examples.
+
+### Current source: native Select
+
+Select is an unreleased source addition beyond the published 0.2.2 exports.
+Use it only with matching package declarations. It wraps a real native select;
+the application supplies its option and optgroup children:
+
+```tsx
+"use client";
+
+import { Field, FloodRoot, Select } from "@flood-md/react";
+
+export function NotificationPreference() {
+  return (
+    <FloodRoot>
+      <Field label="Notifications" hint="Choose when to hear from us" required>
+        {(control) => (
+          <Select {...control} name="notifications" defaultValue="daily" controlSize="md">
+            <optgroup label="Email summaries">
+              <option value="daily">Daily summary</option>
+              <option value="weekly">Weekly summary</option>
+            </optgroup>
+            <option value="none">No email summaries</option>
+          </Select>
+        )}
+      </Field>
+    </FloodRoot>
+  );
+}
+```
+
+`controlSize` is visual sizing; native numeric `size` is the number of visible
+options. `multiple` and `size` greater than one preserve native listbox behavior
+and hide the single-select chevron. Controlled value/onChange, defaultValue,
+name, required, disabled, form and ref target the actual select. The options popup
+uses the browser/platform UI; this is not a custom menu or combobox engine.
+Select has no native readOnly state. Do not invent a readOnly interaction by
+preventing keyboard events; use a suitable non-editable presentation when needed.
+
+### Current source: custom choice appearance
+
+Checkbox and Radio use custom Flood indicators inside the dark scope while
+retaining real native inputs. The indicator is a fixed 1.125rem square within
+layout, not a flexible column; long labels wrap without shrinking its shape.
+Labels sit .5rem away and are centered with the indicator. Do not spread one
+choice across a row using space-between. Separate choices use the parent gap.
+
+The browser still owns keyboard activation, checked/defaultChecked, name/value,
+required/disabled, reset and submission. Forced colors restores native indicator
+appearance. Radio groups need a shared name and host fieldset/legend. Switch uses
+its own native checkbox track and the same close-label grouping principle.
 
 Prefer subtle for standalone secondary actions. Ghost needs a clear parent
 context, such as a toolbar. Selected is persistent state, not transient pressed.

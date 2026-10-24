@@ -7,6 +7,7 @@ import {
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type TextareaHTMLAttributes,
+  type SelectHTMLAttributes,
   type AnchorHTMLAttributes,
   type ReactNode,
   type HTMLAttributes,
@@ -90,6 +91,30 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     );
   },
 );
+
+export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  invalid?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+}
+/** Native select and option semantics with an independent visual control size. */
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
+  { invalid, controlSize = "md", className, multiple, size, ...props },
+  ref,
+) {
+  const listbox = multiple || (size !== undefined && size > 1);
+  return (
+    <span className={classes("flood-select", `flood-control--${controlSize}`, listbox && "flood-select--listbox")}>
+      <select
+        {...props}
+        ref={ref}
+        multiple={multiple}
+        size={size}
+        aria-invalid={invalid || props["aria-invalid"]}
+        className={classes("flood-input", "flood-select__control", `flood-control--${controlSize}`, className)}
+      />
+    </span>
+  );
+});
 
 export interface ChoiceProps extends Omit<
   InputHTMLAttributes<HTMLInputElement>,

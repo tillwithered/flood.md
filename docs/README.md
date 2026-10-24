@@ -12,6 +12,7 @@ them without a separate content service.
 | --- | --- |
 | [Installation](installation.md) | React, Next.js, CLI setup and manual installation |
 | [Project UI](project-ui.md) | Optional semantic @/ui/button imports in your application |
+| [Layout](layout.md) | Intrinsic actions, responsive forms, choice sizing, gaps and hierarchy |
 | [Components](components.md) | Available controls, props and form composition |
 | [Base component inventory](base-components.md) | Available primitives and controls in the base release |
 | [Customization](theming.md) | Scoped dark foundations overrides and legacy theme boundaries |

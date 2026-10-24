@@ -4,6 +4,10 @@ React + TypeScript and Next.js App Router. Use this guide with matching installe
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
+Repository-source note: this guide also marks the unreleased native Select
+addition and layout refinements. Published 0.2.2 does not export Select. Confirm
+the matching installed declarations before using source-only additions.
+
 ## Connect
 
 Import @flood-md/react/styles.css once in the application entry or Next root
@@ -34,17 +38,45 @@ child. Keep server data fetching in server components.
 - Use Link for navigation and Button for actions. Button defaults to type=button;
   set type=submit deliberately. Loading disables activation and sets aria-busy;
   retain meaningful visible text and let the host announce completion.
-- Input/Textarea use controlSize sm/md/lg/xl. Preserve Input's native size prop.
+- Input/Textarea and source Select use controlSize sm/md/lg/xl. Preserve native
+  numeric size props. Select accepts native option/optgroup children and an
+  HTMLSelectElement ref; multiple or size>1 remains a native listbox without a
+  dropdown arrow. Its popup belongs to the browser, not a custom menu engine.
   Field required forwards native required and adds a visible marker. Spread all
   callback props to preserve id, aria-describedby and aria-invalid. describedBy
   merges external description IDs with hint/error IDs.
 - Checkbox, Radio and Switch require visible labels and preserve native forms.
   Radio groups share a name and belong in a host fieldset/legend. Readonly and
   disabled are different states; explain unavailability outside disabled controls.
+  Select has no native readOnly state. Do not block its keyboard events to fake one.
 - IconSlot adapts host SVG artwork; without label it is decorative. IconButton
   requires a nonempty action label. Retain the external icon pack's license.
 - Surface elevation overlay is visual only: no portal, focus trap, dismissal or
   dialog semantics are implied. Layer tokens do not implement an overlay manager.
+
+## Layout rules
+
+- Keep Button width intrinsic to its content. Use Inline for sibling actions;
+  opt into full width only for a deliberate host layout with inlineSize:100%.
+  Do not stretch every action because its parent is a grid or vertical stack.
+- Inside a choice, keep the indicator a non-shrinking 1.125rem square and its
+  visible label .5rem away (8px at the reference root). Custom Checkbox/Radio
+  appearance still uses real native inputs; forced colors restores native marks.
+- Separate independent choices with Inline gap="4" (1rem/16px at the reference
+  root). Inline's default gap="2" remains unchanged. Internal label gap and
+  parent group gap are separate decisions; do not conflate them.
+- Center-align choice rows; keep each label close to its indicator. Do not use
+  space-between inside a Checkbox/Radio/Switch to push the label to the other edge.
+- Give form/Field parents a responsive width such as min(100%,26rem), with
+  min-inline-size:0 in grid/flex contexts. Input/Textarea/Select fill that width.
+  Check the actual wrapper tree after adding FloodRoot or Surface; do not leave
+  fields trapped in an intrinsic-width wrapper.
+- Build hierarchy with Heading, body/compact text, Field labels and supporting
+  helper text. Use gap4 within groups, gap6 between related groups, and wrap
+  action rows. Add surfaces for meaningful grouping, not around every control.
+- Keep geometry in rem, line-height unitless and tracking em; preserve the host
+  root size. Check320px widths, enlarged text and user text-spacing overrides
+  instead of shrinking type or clipping labels to make the layout fit.
 
 ## Tokens and accessibility
 
@@ -54,7 +86,8 @@ Nested token scopes repeat both data-flood-foundations=neutral and
 data-flood-theme=dark attributes. Preserve independent surface, content, boundary,
 selection, feedback and focus roles rather than hardcoding component colors.
 
-The quiet field outline needs its stronger necessary boundary. Focus is 2px
+Fields use one uniform necessary perimeter, without a second bottom edge or
+inset shadow. Re-evaluate contrast if replacing that boundary. Focus is 2px
 without offset; the configurable pink default is provisional. Keep focus visible
 with invalid and selected states. Do not mute a whole component through opacity
 to reduce one border. Never convey error, selection or status by color alone.

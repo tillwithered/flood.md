@@ -68,7 +68,8 @@
     "code": "<Inline gap=\"2\" align=\"center\">\n  <Button>Save changes</Button>\n  <Button variant=\"subtle\">Cancel</Button>\n</Inline>",
     "notes": [
       "Inline wraps when its children need more space.",
-      "Use the same control size for neighboring actions of the same level."
+      "Use the same control size for neighboring actions of the same level.",
+      "Rows center items by default. Use gap=\"4\" between independent choices; gap=\"2\" remains available for tightly related content."
     ],
     "imports": [
       "Inline",
@@ -115,7 +116,8 @@
     "notes": [
       "Button defaults to type=\"button\". Set submit or reset deliberately inside forms.",
       "Loading disables activation and sets aria-busy. The host owns completion announcements.",
-      "Prefer subtle for standalone secondary actions; ghost belongs in a clear parent context."
+      "Prefer subtle for standalone secondary actions; ghost belongs in a clear parent context.",
+      "Buttons use content width, including inside Stack. Opt into a full-width action with style={{ inlineSize: \"100%\" }} only when the composition calls for it."
     ],
     "imports": [
       "Inline",
@@ -186,6 +188,23 @@
     ]
   },
   {
+    "slug": "select",
+    "name": "Select",
+    "group": "Forms",
+    "description": "A styled native choice field with keyboard and form semantics.",
+    "code": "<Field label=\"Visibility\">\n  {(control) => (\n    <Select {...control} name=\"visibility\" defaultValue=\"private\">\n      <option value=\"private\">Private</option>\n      <option value=\"team\">Team</option>\n    </Select>\n  )}\n</Field>",
+    "imports": [
+      "Field",
+      "Select"
+    ],
+    "notes": [
+      "Unreleased local source addition. Select is not part of the published 0.2.2 package; the next release is pending review.",
+      "Use native option and optgroup children. The operating system owns the open picker, including keyboard navigation and touch interaction.",
+      "Select fills its Field; constrain the form or field wrapper rather than giving every control a fixed pixel width.",
+      "Native name, value/defaultValue, required, disabled, onChange and HTMLSelectElement ref are preserved."
+    ]
+  },
+  {
     "slug": "textarea",
     "name": "Textarea",
     "group": "Forms",
@@ -208,7 +227,8 @@
     "code": "<Checkbox label=\"Send project updates\" name=\"updates\" defaultChecked />",
     "notes": [
       "Use checked/onChange for controlled state or defaultChecked for native state.",
-      "Labels stay visible. Disabled does not mean read-only; explain unavailable choices outside the disabled control when needed."
+      "Labels stay visible. Disabled does not mean read-only; explain unavailable choices outside the disabled control when needed.",
+      "The control and visible label form one content-width unit with an 8px-at-16px-root internal gap. Use an explicit parent gap=\"4\" (16px at that root) between units; the glyph keeps its token-defined size."
     ],
     "imports": [
       "Checkbox"
@@ -222,7 +242,8 @@
     "code": "<fieldset>\n  <legend>Visibility</legend>\n  <Radio label=\"Private\" name=\"visibility\" value=\"private\" defaultChecked />\n  <Radio label=\"Public\" name=\"visibility\" value=\"public\" />\n</fieldset>",
     "notes": [
       "Radios in one group share a name. The host supplies fieldset and legend.",
-      "Native browser keyboard and form behavior remain available."
+      "Native browser keyboard and form behavior remain available.",
+      "The control and visible label form one content-width unit with an 8px-at-16px-root internal gap. Use an explicit parent gap=\"4\" (16px at that root) between units; the glyph keeps its token-defined size."
     ],
     "imports": [
       "Radio"
@@ -236,7 +257,8 @@
     "code": "<Switch label=\"Email notifications\" name=\"notifications\" defaultChecked />",
     "notes": [
       "Switch uses a native checkbox with role=\"switch\".",
-      "checked/defaultChecked, name/value, reset and disabled remain native. The component does not persist settings."
+      "checked/defaultChecked, name/value, reset and disabled remain native. The component does not persist settings.",
+      "The control and visible label form one content-width unit with an 8px-at-16px-root internal gap. Use an explicit parent gap=\"4\" (16px at that root) between units; the glyph keeps its token-defined size."
     ],
     "imports": [
       "Switch"

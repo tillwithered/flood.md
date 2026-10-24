@@ -16,7 +16,31 @@ import {
   Surface,
   IconButton,
   CodeSnippet,
+  Select,
 } from "../packages/react/dist/index.js";
+
+test("Select keeps native options, multiple size and Field associations", () => {
+  const html = renderToStaticMarkup(createElement(Field,
+    { id: "visibility", label: "Visibility", required: true, hint: "Choose a team", error: "Required" },
+    (props) => createElement(Select, { ...props, name: "visibility", multiple: true, size: 4, controlSize: "xl", defaultValue: ["team"] },
+      createElement("option", { value: "private" }, "Private"),
+      createElement("option", { value: "team" }, "Team"),
+      createElement("option", { value: "public", disabled: true }, "Public"),
+    ),
+  ));
+  assert.match(html, /<select\b/);
+  assert.match(html, /for="visibility"/);
+  assert.match(html, /aria-describedby="visibility-hint visibility-error"/);
+  assert.match(html, /aria-invalid="true"/);
+  assert.match(html, /multiple=""/);
+  assert.match(html, /size="4"/);
+  assert.match(html, /required=""/);
+  assert.match(html, /name="visibility"/);
+  assert.match(html, /flood-control--xl/);
+  assert.match(html, /<option value="team" selected="">Team<\/option>/);
+  assert.match(html, /<option value="public" disabled="">Public<\/option>/);
+  assert.doesNotMatch(html, /controlSize=/);
+});
 
 test("display heading and code snippet retain native semantics and escaped content", () => {
   const code = '<script>alert("example")</script>\nnpx example';

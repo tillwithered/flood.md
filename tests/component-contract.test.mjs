@@ -16,7 +16,7 @@ const prop = (contract, name, key) => byName(contract, name).props.find((entry) 
 
 test("real component contracts resolve aliases, native inheritance and explicit defaults", () => {
   const contract = readComponentContract(source);
-  assert.equal(contract.length, 18);
+  assert.equal(contract.length, 19);
   assert.match(prop(contract, "Button", "size").type, /"2xs".*"2xl"/);
   assert.equal(prop(contract, "Button", "loading").defaultValue, "false");
   assert.equal(prop(contract, "Button", "type").defaultValue, '"button"');
@@ -28,6 +28,8 @@ test("real component contracts resolve aliases, native inheritance and explicit 
   assert.deepEqual(byName(contract, "Field").nativeProps, []);
   assert.match(byName(contract, "Input").nativeProps[0], /InputHTMLAttributes<HTMLInputElement>/);
   assert.equal(prop(contract, "CodeSnippet", "code").required, true);
+  assert.match(byName(contract, "Select").nativeProps[0], /SelectHTMLAttributes<HTMLSelectElement>/);
+  assert.deepEqual(prop(contract, "Select", "controlSize").options, ["sm", "md", "lg", "xl"]);
 });
 
 test("new optional props and new runtime component exports are discovered without a catalog edit", () => {
@@ -42,7 +44,7 @@ export const Notice = forwardRef<HTMLDivElement, NoticeProps>(function Notice(
 ) { return <div {...props} ref={ref}>{message}</div>; });
 `;
   const contract = readComponentContract(expanded);
-  assert.equal(contract.length, 19);
+  assert.equal(contract.length, 20);
   assert.equal(prop(contract, "Button", "emphasis").required, false);
   assert.equal(prop(contract, "IconButton", "emphasis").required, false);
   assert.equal(prop(contract, "Notice", "tone").defaultValue, '"info"');
