@@ -100,6 +100,15 @@ accessible label when it is a standalone scroll region. Tracks do not reserve
 layout width; the host chooses any content padding. Forced colors and unavailable
 enhancement restore native scrollbars rather than hide scrolling access.
 
+Rails automatically shorten near rounded corners on the viewport or a clipping
+ancestor, including asymmetric corners. This does not add a gutter. Use
+`contentInset="scrollbar"` for navigation or full-width interactive rows: while
+an overlay rail is present, the inner content receives logical end padding for
+that axis (rail size plus two insets). The viewport keeps its full width; row
+backgrounds and text stop before the rail. Default `"none"` preserves edge-to-edge
+content. This opt-in padding can wrap text and change content height. Native
+fallback scrollbars retain their platform behavior.
+
 ```tsx
 <ScrollArea aria-label="Activity" style={{ maxHeight: "12rem" }}>
   <Stack gap="4">{/* Long activity content */}</Stack>

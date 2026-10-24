@@ -328,10 +328,11 @@ export const CodeSnippet = forwardRef<HTMLDivElement, CodeSnippetProps>(function
 
 export interface ScrollAreaProps extends HTMLAttributes<HTMLDivElement> {
   orientation?: "vertical" | "horizontal" | "both";
+  contentInset?: "none" | "scrollbar";
 }
 /** Native scrolling with inset overlay tracks; the ref targets the scrollable viewport. */
 export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function ScrollArea(
-  { orientation = "vertical", ...props }, ref,
+  { orientation = "vertical", contentInset = "none", ...props }, ref,
 ) {
-  return <OverlayScrollArea {...props} orientation={orientation} ref={ref} />;
+  return <OverlayScrollArea {...props} orientation={orientation} contentInset={contentInset} ref={ref} />;
 });

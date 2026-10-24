@@ -19,7 +19,7 @@ const variants = ["solid", "subtle", "outline", "ghost"];
 const select = (name: string, options: string[], initial: string): Knob => ({ name, options, initial });
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
-  "scroll-area": [select("orientation", ["vertical", "horizontal", "both"], "vertical")],
+  "scroll-area": [select("orientation", ["vertical", "horizontal", "both"], "vertical"), select("contentInset", ["none", "scrollbar"], "none")],
   button: [select("variant", variants, "solid"), select("size", sizes, "md"), toggle("disabled"), toggle("loading")],
   "icon-button": [select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled"), toggle("loading")],
   input: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("invalid"), toggle("disabled"), toggle("readOnly")],
@@ -98,7 +98,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     case "scroll-area": {
       const horizontal = v.orientation === "horizontal";
       return element("Surface", { padding: "4", style: { width: "100%", maxWidth: "26rem" } },
-        element("ScrollArea", { orientation: v.orientation, "aria-label": "Project notes", style: { height: "12rem", width: "100%" } },
+        element("ScrollArea", { orientation: v.orientation, contentInset: v.contentInset, "aria-label": "Project notes", style: { height: "12rem", width: "100%" } },
           element(horizontal ? "Inline" : "Stack", {
             gap: "4", style: horizontal ? { flexWrap: "nowrap", width: "max-content" } : v.orientation === "both" ? { minWidth: "42rem" } : {},
           }, ...Array.from({ length: 12 }, (_, index) => element("Text", {

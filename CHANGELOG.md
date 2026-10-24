@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Keep ScrollArea rails clear of rounded clipping corners automatically; add
+  opt-in contentInset="scrollbar" safety padding and use it for website navigation.
+
 - Add native ScrollArea with inset overlay rails, orientation choices, touch/wheel/
   keyboard scrolling, drag/track interactions and forced-colors fallback; use
   the same engine in Select, documentation code, tables and navigation.

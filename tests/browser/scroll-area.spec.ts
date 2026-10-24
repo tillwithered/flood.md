@@ -15,7 +15,10 @@ const h=React.createElement;
 function Example(){const[rows,setRows]=useState(30),[height,setHeight]=useState(160),[rtl,setRtl]=useState(false);
 const controls=h(Inline,null,h(Button,{onClick:()=>setRows(60)},'Add content'),h(Button,{onClick:()=>setRows(2)},'Short content'),h(Button,{onClick:()=>setHeight(240)},'Enlarge viewport'),h(Button,{onClick:()=>setRtl(v=>!v)},'Toggle direction'));
 const content=h('div',{style:{width:560}},...Array.from({length:rows},(_,i)=>h('div',{key:i,style:{height:30}},'Activity row '+(i+1))));
-return h(FloodRoot,{style:{padding:'1rem'}},h('h1',null,'Overlay scrollbar fixture'),h(Stack,null,controls,h(ScrollArea,{'aria-label':'Activity',orientation:'both',dir:rtl?'rtl':'ltr',style:{width:280,height}},content)));}
+const navigation=h(ScrollArea,{'aria-label':'Navigation',contentInset:'scrollbar',dir:rtl?'rtl':'ltr',style:{width:280,height}},
+...Array.from({length:rows},(_,i)=>h('button',{key:i,style:{display:'block',width:'100%',height:30}},'Navigation row '+(i+1))));
+return h(FloodRoot,{style:{padding:'1rem'}},h('h1',null,'Overlay scrollbar fixture'),
+h(Stack,null,controls,h(ScrollArea,{'aria-label':'Activity',orientation:'both',dir:rtl?'rtl':'ltr',style:{width:280,height}},content),navigation));}
 createRoot(document.getElementById('app')).render(h(Example));`;
   const entry = resolve(`.artifacts/scroll-area-contract-${process.pid}/entry.mjs`);
   await mkdir(resolve(`.artifacts/scroll-area-contract-${process.pid}`), { recursive: true }); await writeFile(entry, source);
@@ -174,4 +177,74 @@ test("explorer orientation choices demonstrate the selected axes without clippin
     await expect.poll(() => viewport.evaluate(node => ({ x: node.scrollWidth > node.clientWidth + 1, y: node.scrollHeight > node.clientHeight + 1 }))).toEqual({ x: axis !== "vertical", y: axis !== "horizontal" });
     await expect(page.locator("#usage .site-code-block code")).toContainText(`orientation="${axis}"`);
   }
+});
+
+test("rails avoid viewport and ancestor corner curves without adding a gutter", async ({ page }, info) => {
+  await open(page);
+  const viewport = page.getByRole("region", { name: "Activity" }), wrapper = viewport.locator("..");
+  const vertical = wrapper.locator(".flood-scroll-area__track--vertical");
+  const horizontal = wrapper.locator(".flood-scroll-area__track--horizontal");
+  const gap = async () => {
+    const box = (await viewport.boundingBox())!, rail = (await vertical.boundingBox())!;
+    return { top: rail.y - box.y, bottom: box.y + box.height - rail.y - rail.height };
+  };
+  await viewport.evaluate(node => { node.style.borderRadius = "32px"; });
+  await expect.poll(async () => (await gap()).top).toBeCloseTo(36, 1);
+  await expect.poll(async () => (await gap()).bottom).toBeCloseTo(36, 1);
+  await expect.poll(async () => {
+    const box = (await viewport.boundingBox())!, rail = (await horizontal.boundingBox())!;
+    return box.x + box.width - rail.x - rail.width;
+  }).toBeCloseTo(36, 1);
+  await viewport.evaluate(node => { node.style.borderRadius = "0"; });
+  await wrapper.evaluate(node => { node.style.overflow = "hidden"; node.style.borderRadius = "0 0 32px 32px"; });
+  await expect.poll(async () => (await gap()).top).toBeCloseTo(4, 1);
+  await expect.poll(async () => (await gap()).bottom).toBeCloseTo(36, 1);
+  expect(await viewport.evaluate(node => node.clientWidth)).toBe(280);
+  await viewport.evaluate(node => { node.scrollTop = node.scrollHeight; });
+  await expect.poll(async () => {
+    const box = (await viewport.boundingBox())!, thumb = (await vertical.locator(".flood-scroll-area__thumb").boundingBox())!;
+    return box.y + box.height - thumb.y - thumb.height;
+  }).toBeCloseTo(36, 1);
+  await wrapper.screenshot({ path: `.artifacts/scroll-area-rounded-${info.project.name}.png` });
+  await wrapper.evaluate(node => { node.style.borderRadius = "0"; });
+  await expect.poll(async () => (await gap()).bottom).toBeCloseTo(14, 1);
+});
+
+test("opt-in content inset keeps full-width rows clear of the rail in LTR and RTL", async ({ page }) => {
+  await open(page);
+  const viewport = page.getByRole("region", { name: "Navigation" });
+  const rail = viewport.locator("..").locator(".flood-scroll-area__track--vertical");
+  const row = viewport.getByRole("button", { name: "Navigation row 1", exact: true });
+  await expect(viewport).toHaveAttribute("data-scrollbars", "overlay");
+  await expect.poll(async () => {
+    const item = (await row.boundingBox())!, track = (await rail.boundingBox())!;
+    return track.x - item.x - item.width;
+  }).toBeCloseTo(4, 1);
+  expect(await viewport.evaluate(node => node.clientWidth)).toBe(280);
+  await page.getByRole("button", { name: "Toggle direction" }).click();
+  await expect.poll(async () => {
+    const item = (await row.boundingBox())!, track = (await rail.boundingBox())!;
+    return item.x - track.x - track.width;
+  }).toBeCloseTo(4, 1);
+  await page.emulateMedia({ forcedColors: "active" });
+  await expect(viewport.locator(".flood-scroll-area__content")).toHaveCSS("padding-inline-end", "0px");
+  await expect(rail).toBeHidden();
+  await page.emulateMedia({ forcedColors: "none" });
+  await page.getByRole("button", { name: "Short content" }).click();
+  await expect(rail).toHaveCount(0);
+  await expect(viewport.locator(".flood-scroll-area__content")).toHaveCSS("padding-inline-end", "0px");
+});
+
+test("documentation navigation row backgrounds end before the overlay rail", async ({ page }, info) => {
+  test.skip(info.project.name === "mobile", "Desktop sidebar is intentionally hidden on mobile");
+  await page.goto("/components/scroll-area");
+  const viewport = page.getByRole("region", { name: "Documentation sections scroll" });
+  const selected = viewport.locator('[aria-current="page"]');
+  const rail = viewport.locator("..").locator(".flood-scroll-area__track--vertical");
+  await expect(rail).toBeVisible();
+  await expect.poll(async () => {
+    const item = (await selected.boundingBox())!, track = (await rail.boundingBox())!;
+    return track.x - item.x - item.width;
+  }).toBeGreaterThanOrEqual(3.9);
+  await viewport.locator("..").screenshot({ path: ".artifacts/scroll-area-sidebar-safe.png" });
 });

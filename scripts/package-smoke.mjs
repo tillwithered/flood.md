@@ -79,7 +79,7 @@ const snippet: CodeSnippetProps = {code: 'npm install example', id: 'command'};
 const badSnippet: CodeSnippetProps = {id: 'missing-code'};
 const input: InputProps = {size: 30, controlSize: 'xl'};
 const select: SelectProps = {size: 4, multiple: true, defaultValue: ['team'], controlSize: 'xl', invalid: true};
-const scroll: ScrollAreaProps = {orientation: 'both', style: {maxHeight: '12rem'}, 'aria-label': 'History'};
+const scroll: ScrollAreaProps = {orientation: 'both', contentInset: 'scrollbar', style: {maxHeight: '12rem'}, 'aria-label': 'History'};
 const scrollRef = createRef<HTMLDivElement>();
 const scrollElement = createElement(ScrollArea, {...scroll, ref: scrollRef});
 // @ts-expect-error Only the documented scroll axes are supported.

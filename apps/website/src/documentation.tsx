@@ -104,7 +104,7 @@ export default function Documentation({ path }: { path: string }) {
     return () => { cancelled = true; };
   }, [title]);
   return <div className="docs-layout">
-    <aside className="desktop-sidebar" aria-label="Documentation navigation"><ScrollArea aria-label="Documentation sections scroll" style={{ maxHeight: "calc(100svh - 4rem)" }}><Sidebar path={path} /></ScrollArea></aside>
+    <aside className="desktop-sidebar" aria-label="Documentation navigation"><ScrollArea contentInset="scrollbar" aria-label="Documentation sections scroll" style={{ maxHeight: "calc(100svh - 4rem)" }}><Sidebar path={path} /></ScrollArea></aside>
     <div className="doc-center">
       <details className="mobile-navigation"><summary>Browse documentation</summary><Sidebar path={path} /></details>
       <main id="main-content" className="doc-article">

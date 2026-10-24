@@ -31,9 +31,50 @@ const emptyBar: Bar = { visible: false, length: 0, thumb: 0, position: 0, max: 0
 const empty: Measurements = { enhanced: false, vertical: emptyBar, horizontal: emptyBar };
 const sameBar = (a: Bar, b: Bar) => a.visible === b.visible && a.length === b.length && a.thumb === b.thumb && a.position === b.position && a.max === b.max && a.offset === b.offset && a.left === b.left && a.top === b.top && a.size === b.size;
 
+/** Keep the whole rail clear of rounded corners that actually clip this viewport. */
+function cornerBounds(node: HTMLElement, axis: Axis, crossStart: number, crossEnd: number, start: number, end: number, inset: number) {
+  const viewport = node.getBoundingClientRect();
+  const scaleX = node.offsetWidth ? viewport.width / node.offsetWidth : 1;
+  const scaleY = node.offsetHeight ? viewport.height / node.offsetHeight : 1;
+  if (!scaleX || !scaleY) return { start, end };
+  for (let ancestor: HTMLElement | null = node; ancestor; ancestor = ancestor.parentElement) {
+    const css = getComputedStyle(ancestor);
+    if (ancestor !== node && ![css.overflowX, css.overflowY].some(value => ["hidden", "clip", "auto", "scroll"].includes(value))) continue;
+    const radii = [css.borderTopLeftRadius, css.borderTopRightRadius, css.borderBottomRightRadius, css.borderBottomLeftRadius];
+    if (!radii.some(value => value.split(/\s+/).some(part => parseFloat(part) > 0))) continue;
+    const rect = ancestor.getBoundingClientRect();
+    const left = (rect.left - viewport.left) / scaleX - node.clientLeft;
+    const top = (rect.top - viewport.top) / scaleY - node.clientTop;
+    const width = rect.width / scaleX, height = rect.height / scaleY;
+    const radius = (value: string) => {
+      const [x, y = x] = value.split(/\s+/);
+      const resolve = (part: string, dimension: number) => part.endsWith("%") ? parseFloat(part) * dimension / 100 : parseFloat(part) || 0;
+      return { x: resolve(x, width), y: resolve(y, height) };
+    };
+    const corners = radii.map(radius);
+    // CSS scales overlapping elliptical radii together, including asymmetric corners.
+    const [tl, tr, br, bl] = corners;
+    const factor = Math.min(1, width / (tl.x + tr.x || 1), width / (bl.x + br.x || 1), height / (tl.y + bl.y || 1), height / (tr.y + br.y || 1));
+    corners.forEach(corner => { corner.x *= factor; corner.y *= factor; });
+    const isVertical = axis === "vertical";
+    const crossLow = isVertical ? left : top, crossHigh = crossLow + (isVertical ? width : height);
+    const mainLow = isVertical ? top : left, mainHigh = mainLow + (isVertical ? height : width);
+    const cap = (pair: typeof corners) => Math.max(0, ...pair.map((corner, side) => {
+      const crossRadius = isVertical ? corner.x : corner.y;
+      const nearCorner = side === 0 ? crossStart < crossLow + crossRadius + inset : crossEnd > crossHigh - crossRadius - inset;
+      return crossRadius > 0 && nearCorner && crossEnd > crossLow && crossStart < crossHigh ? isVertical ? corner.y : corner.x : 0;
+    }));
+    const startCap = cap(isVertical ? [tl, tr] : [tl, bl]);
+    const endCap = cap(isVertical ? [bl, br] : [tr, br]);
+    if (startCap) start = Math.max(start, mainLow + startCap + inset);
+    if (endCap) end = Math.min(end, mainHigh - endCap - inset);
+  }
+  return { start, end: Math.max(start, end) };
+}
+
 /** Original overlay chrome; the viewport itself remains a browser-native scroll container. */
 export const OverlayScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function OverlayScrollArea({
-  orientation = "vertical", children, className, style, tabIndex = 0, role, ...props
+  orientation = "vertical", contentInset = "none", children, className, style, tabIndex = 0, role, ...props
 }, forwardedRef) {
   const id = useId();
   const viewport = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
@@ -61,12 +102,16 @@ export const OverlayScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(fun
       const make = (axis: Axis): Bar => {
         const isVertical = axis === "vertical";
         const client = isVertical ? node.clientHeight : node.clientWidth, total = isVertical ? node.scrollHeight : node.scrollWidth;
-        const length = Math.max(0, client - inset * 2 - ((isVertical ? hasHorizontal : hasVertical) ? size + inset : 0));
+        const cross = isVertical ? rtl ? inset : node.clientWidth - inset - size : node.clientHeight - inset - size;
+        const mainStart = inset + (!isVertical && hasVertical && rtl ? size + inset : 0);
+        const mainEnd = client - inset - ((isVertical ? hasHorizontal : hasVertical && !rtl) ? size + inset : 0);
+        const bounds = cornerBounds(node, axis, cross, cross + size, mainStart, mainEnd, inset);
+        const length = Math.max(0, bounds.end - bounds.start);
         const thumb = Math.min(length, Math.max(minimum, total > 0 ? length * client / total : length));
         const max = Math.max(0, total - client), offset = isVertical ? node.scrollTop : horizontalOffset(node, rtl);
         return { visible: isVertical ? hasVertical : hasHorizontal, length, thumb, max, offset, position: max > 0 ? offset / max * (length - thumb) : 0, size,
-          left: node.offsetLeft + node.clientLeft + (isVertical ? rtl ? inset : node.clientWidth - inset - size : inset + (hasVertical && rtl ? size + inset : 0)),
-          top: node.offsetTop + node.clientTop + (isVertical ? inset : node.clientHeight - inset - size) };
+          left: node.offsetLeft + node.clientLeft + (isVertical ? cross : bounds.start),
+          top: node.offsetTop + node.clientTop + (isVertical ? bounds.start : cross) };
       };
       const next = { enhanced, vertical: make("vertical"), horizontal: make("horizontal") };
       setMeasurements((old) => old.enhanced === next.enhanced && sameBar(old.vertical, next.vertical) && sameBar(old.horizontal, next.horizontal) ? old : next);
@@ -80,7 +125,7 @@ export const OverlayScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(fun
     node.addEventListener("scroll", schedule, { passive: true }); window.addEventListener("resize", schedule);
     measure();
     return () => { if (frame) cancelAnimationFrame(frame); resize.disconnect(); mutation.disconnect(); direction.disconnect(); node.removeEventListener("scroll", schedule); window.removeEventListener("resize", schedule); };
-  }, [orientation]);
+  }, [orientation, contentInset]);
 
   useEffect(() => {
     const wheel = (event: WheelEvent) => {
@@ -135,12 +180,16 @@ export const OverlayScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(fun
     </div>;
   };
   const rootStyle: CSSProperties = { width: style?.width, minWidth: style?.minWidth, maxWidth: style?.maxWidth, inlineSize: style?.inlineSize, minInlineSize: style?.minInlineSize, maxInlineSize: style?.maxInlineSize };
+  const contentStyle = contentInset === "scrollbar" && measurements.enhanced ? {
+    "--flood-scroll-content-inline": measurements.vertical.visible ? "calc(var(--flood-sys-scrollbar-size) + 2 * var(--flood-sys-scrollbar-inset))" : "0px",
+    "--flood-scroll-content-block": measurements.horizontal.visible ? "calc(var(--flood-sys-scrollbar-size) + 2 * var(--flood-sys-scrollbar-inset))" : "0px",
+  } as CSSProperties : undefined;
   const named = props["aria-label"] || props["aria-labelledby"];
   return <div className="flood-scroll-area" style={rootStyle}>
     <div {...props} id={props.id ?? `flood-scroll-${id}`} ref={viewport} tabIndex={tabIndex} role={role ?? (named ? "region" : undefined)}
       className={["flood-scroll-area__viewport", className].filter(Boolean).join(" ")} style={style}
       data-orientation={orientation} data-scrollbars={measurements.enhanced ? "overlay" : undefined}>
-      <div className="flood-scroll-area__content" ref={content}>{children}</div>
+      <div className="flood-scroll-area__content" ref={content} style={contentStyle}>{children}</div>
     </div>
     {renderBar("vertical")}{renderBar("horizontal")}
   </div>;
