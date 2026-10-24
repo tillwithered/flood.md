@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 — Icon geometry
+
+- Center contents inside IconSlot without changing public APIs or token values.
+- Replace the website's text plus with a Lucide SVG that fills the existing
+  relative icon geometry. The icon package belongs to the website, not the Flood
+  runtime; its license is retained in the deployed assets.
+- Verify SVG sizing and centering at root font sizes 16, 20 and 24px.
+
 ## 0.2.0 — Base dark DS
 
 - Add the opt-in dark foundations profile with

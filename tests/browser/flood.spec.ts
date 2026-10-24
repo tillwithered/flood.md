@@ -1,6 +1,27 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+test("icon-only action scales its SVG and keeps it centered", async ({ page }) => {
+  await page.goto("/");
+  const button = page.getByRole("button", { name: "Add a new idea", exact: true });
+  const icon = button.locator(".flood-icon");
+  const svg = icon.locator("svg.lucide-plus");
+  await expect(svg).toHaveCount(1);
+  await expect(icon).toHaveAttribute("aria-hidden", "true");
+  for (const rootSize of [16, 20, 24]) {
+    await page.evaluate((size) => { document.documentElement.style.fontSize = `${size}px`; }, rootSize);
+    const buttonBox = (await button.boundingBox())!;
+    const svgBox = (await svg.boundingBox())!;
+    expect(svgBox.width).toBeCloseTo(rootSize * 1.25, 1);
+    expect(svgBox.height).toBeCloseTo(rootSize * 1.25, 1);
+    expect(svgBox.x + svgBox.width / 2).toBeCloseTo(buttonBox.x + buttonBox.width / 2, 1);
+    expect(svgBox.y + svgBox.height / 2).toBeCloseTo(buttonBox.y + buttonBox.height / 2, 1);
+    expect(buttonBox.width).toBeCloseTo(rootSize * 2.5, 1);
+    expect(buttonBox.height).toBeCloseTo(rootSize * 2.5, 1);
+    await expect(button).toHaveAccessibleName("Add a new idea");
+  }
+});
+
 test("dark landing, keyboard tabs and forms are accessible", async ({
   page,
 }, testInfo) => {

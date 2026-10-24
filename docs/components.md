@@ -1,8 +1,8 @@
 # Components
 
-## Dark foundations · 0.2.0
+## Dark foundations · 0.2.1
 
-This guide describes the **0.2.0** API. See the [base component inventory](base-components.md)
+This guide describes the **0.2.1** API. See the [base component inventory](base-components.md)
 for the complete set. Existing 0.1.1 installs follow their version-specific guides.
 
 Import the same stylesheet and wrap new compositions in `FloodRoot` to select

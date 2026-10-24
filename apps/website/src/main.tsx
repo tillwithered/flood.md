@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
+import { Plus } from "lucide-react";
 import {
   Button, Checkbox, Divider, Field, FloodRoot, Heading, IconButton,
   Inline, Input, Link, Radio, Stack, Surface, Switch, Text, Textarea,
@@ -113,7 +114,7 @@ function App() {
                       <Inline gap="2">
                         <Button onClick={() => setNotice("A small beginning. Make it yours.")}>Start something <span aria-hidden="true">↗</span></Button>
                         <Button variant="subtle" onClick={() => setNotice("Same foundation. A quieter action.")}>Make it yours</Button>
-                        <IconButton label="Add a new idea" onClick={() => setNotice("A new idea. A little more possibility.")}>+</IconButton>
+                        <IconButton label="Add a new idea" onClick={() => setNotice("A new idea. A little more possibility.")}><Plus /></IconButton>
                       </Inline>
                       <Text as="p" size="helper" tone="subtle" role="status">{notice || "Simple actions. Room for a little personality."}</Text>
                     </Stack>}
