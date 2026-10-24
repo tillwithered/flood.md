@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Align disclosure hover corners with Accordion outer edges and open panels,
+  removing rounded internal row seams.
+
 - Add Collapsible and Accordion with original shared disclosure behavior, stable
   ARIA relationships, controlled/local state and keyboard support; pending 0.2.3.
 

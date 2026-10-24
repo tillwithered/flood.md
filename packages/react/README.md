@@ -378,3 +378,8 @@ that transition. No extra landmark regions are created per panel.
 
 Source-only additions planned for 0.2.3; manifests remain aligned at 0.2.2 until
 release preparation. Import Flood CSS and use FloodRoot for dark foundations.
+
+Disclosure corner geometry: Accordion headers have square internal seams. Only
+the first header has upper shell corners, and only a closed last header has lower
+shell corners. An open Collapsible header has square lower corners where its
+panel begins. Hover backgrounds follow that same shape without clipping focus.

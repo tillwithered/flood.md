@@ -78,3 +78,20 @@ test("Disclosure previews preserve frame geometry, heading semantics and reduced
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   }
 });
+
+test("Accordion hover corners follow the outer shell rather than rounding every row",async({page},info)=>{
+  await page.goto("/components/accordion");
+  const group=page.locator(".preview-stage .flood-accordion"),buttons=group.getByRole("button");
+  await buttons.nth(0).click();await buttons.nth(1).hover();
+  const radii=async(index:number)=>buttons.nth(index).evaluate(node=>{const css=getComputedStyle(node);return [css.borderTopLeftRadius,css.borderTopRightRadius,css.borderBottomRightRadius,css.borderBottomLeftRadius].map(parseFloat)});
+  const outer=await group.evaluate(node=>{const css=getComputedStyle(node);return {radius:parseFloat(css.borderTopLeftRadius),stroke:parseFloat(css.borderLeftWidth)}});
+  expect((await radii(0))[0]+outer.stroke).toBeCloseTo(outer.radius,1);
+  expect((await radii(0)).slice(2)).toEqual([0,0]);
+  expect(await radii(1)).toEqual([0,0,0,0]);
+  const end=await radii(2);expect(end.slice(0,2)).toEqual([0,0]);expect(end[2]+outer.stroke).toBeCloseTo(outer.radius,1);
+  await page.locator(".component-workbench").screenshot({path:`.artifacts/accordion-hover-${info.project.name}.png`});
+  await buttons.nth(2).click();expect(await radii(2)).toEqual([0,0,0,0]);
+  await page.goto("/components/collapsible");const trigger=page.locator(".preview-stage").getByRole("button");
+  await expect(trigger).not.toHaveCSS("border-bottom-left-radius","0px");await trigger.click();
+  await expect(trigger).toHaveCSS("border-bottom-left-radius","0px");await expect(trigger).not.toHaveCSS("border-top-left-radius","0px");
+});
