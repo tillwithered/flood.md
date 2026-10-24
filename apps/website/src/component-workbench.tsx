@@ -54,6 +54,8 @@ const isBinding = (value: unknown): value is Binding => Boolean(value && typeof 
 function renderRecipe(node: ElementRecipe, extraProps: Record<string, unknown> = {}): ReactNode {
   const props = Object.fromEntries(Object.entries(node.props ?? {}).map(([key, value]) => [key, isBinding(value) ? value.value : value]));
   const tag = registry[node.tag] ?? node.tag;
+  // Demo feedback belongs to the preview chrome, never the sample's flow.
+  if (props.role === "status") props.className = [props.className, "workbench-feedback"].filter(Boolean).join(" ");
   if (node.field) return createElement(tag, props, ((control: Record<string, unknown>) => renderRecipe(node.field!, control)) as unknown as ReactNode);
   return createElement(tag, { ...extraProps, ...props }, ...(node.children ?? []).map((child, index) => typeof child === "string" ? child : isBinding(child) ? child.value as ReactNode : createElement(Fragment, { key: index }, renderRecipe(child))));
 }
@@ -107,7 +109,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     }
     case "button": return element("Stack", { gap: "4" }, element("Inline", {}, element("Button", { variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, "Save changes")), status);
     case "icon-button": return element("Stack", { gap: "4" }, element("Inline", {}, element("IconButton", { label: "Add idea", variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, element("Plus"))), status);
-    case "input": case "textarea": return { tag: "Field", props: { label: slug === "input" ? "Project name" : "Project note", hint: v.invalid ? undefined : "Changes stay in this preview.", error: v.invalid ? "Please review this value." : undefined }, field: element(slug === "input" ? "Input" : "Textarea", { controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, readOnly: v.readOnly, defaultValue: slug === "input" ? "My project" : "A calm place for the next idea." }) };
+    case "input": case "textarea": return { tag: "Field", props: { label: slug === "input" ? "Project name" : "Project note", error: v.invalid ? "Please review this value." : undefined }, field: element(slug === "input" ? "Input" : "Textarea", { controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, readOnly: v.readOnly, defaultValue: slug === "input" ? "My project" : "A calm place for the next idea." }) };
     case "select": return { tag: "Field", props: { label: "Project visibility", hint: v.invalid ? undefined : "Choose who can discover this project.", error: v.invalid ? "Please choose a visibility." : undefined }, field: element("Select", { name: "visibility", controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, defaultValue: "private" }, element("option", { value: "private" }, "Private"), element("option", { value: "team" }, "Team"), element("option", { value: "public" }, "Public")) };
     case "checkbox": return element("Checkbox", { ...choice, label: "Receive project updates", name: "updates" });
     case "switch": return element("Switch", { ...choice, label: "Email notifications", name: "notifications" });
@@ -158,21 +160,24 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   const code = '"use client";\n\n' + (usesChecked || usesStatus ? 'import { useState } from "react";\n' : "") + importStatements([...imports].sort(), importMode) + "\n" + (icons.size ? `import { ${[...icons].sort().join(", ")} } from "lucide-react";\n` : "") + `import "${stylesheet}";\n\nexport function Example() {\n` + preamble + `  return (\n${jsx}\n  );\n}\n`;
   useEffect(() => { callback.current(code); importsCallback.current?.([...imports].sort()); }, [code]);
 
+  const controls = componentKnobs(component);
+  const hasFocusAction = ["input", "textarea", "select"].includes(component.slug);
+  const spacious = ["input", "textarea", "select", "field", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
+  const labelFor = (knob: Knob) => knob.label ?? ({ controlSize: "Size", contentInset: "Content clearance", readOnly: "Read only", copyAction: "Copy button", label: "Accessible name" } as Record<string, string>)[knob.name] ?? knob.name[0].toUpperCase() + knob.name.slice(1);
   return <section className="component-workbench" aria-label={`${component.name} live playground`}>
-    <div className="workbench-title"><div><Flood.Text size="helper" tone="subtle" className="workbench-eyebrow">LIVE PLAYGROUND</Flood.Text><Flood.Text as="p" size="compact">Adjust the props. Try the component.</Flood.Text></div><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setResetKey((key) => key + 1); }}>Reset</Flood.Button></Flood.Inline></div>
-    <div className="workbench-stage preview-stage" ref={stage} key={component.slug + resetKey}><Flood.FloodRoot>{renderRecipe(recipe)}</Flood.FloodRoot></div>
-    <div className="workbench-controls" aria-label={`${component.name} API controls`}>
-      {componentKnobs(component).map((knob) => typeof knob.initial === "boolean" ?
+    <div className="workbench-title"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setResetKey((key) => key + 1); }}>Reset</Flood.Button></Flood.Inline></div>
+    <div className="workbench-stage preview-stage" data-component={component.slug} data-size={component.slug === "heading" ? "display" : spacious ? "regular" : "compact"} ref={stage} key={component.slug + resetKey}><Flood.FloodRoot>{renderRecipe(recipe)}</Flood.FloodRoot></div>
+    {controls.length > 0 && <div className="workbench-controls" aria-label={`${component.name} API controls`}>
+      {controls.map((knob) => typeof knob.initial === "boolean" ?
         <div className="workbench-control workbench-control--toggle" key={knob.name}>
-          <Flood.Checkbox id={`${id}-${knob.name}`} label={knob.label ?? knob.name} aria-label={`${component.name} prop ${knob.name}`} checked={Boolean(values[knob.name])} onChange={(event) => change(knob.name, event.currentTarget.checked)} />
+          <Flood.Checkbox id={`${id}-${knob.name}`} label={labelFor(knob)} aria-label={`${component.name} prop ${knob.name}`} checked={Boolean(values[knob.name])} onChange={(event) => change(knob.name, event.currentTarget.checked)} />
         </div> :
         <label className="workbench-control" htmlFor={`${id}-${knob.name}`} key={knob.name}>
-          <span>{knob.label ?? knob.name}</span>
+          <span>{labelFor(knob)}</span>
           {knob.options ? <Flood.Select controlSize="sm" id={`${id}-${knob.name}`} aria-label={`${component.name} prop ${knob.name}`} value={String(values[knob.name])} onChange={(event) => change(knob.name, event.currentTarget.value)}>{knob.options.map((option) => <option value={option} key={option}>{option}</option>)}</Flood.Select> : <Flood.Input controlSize="sm" id={`${id}-${knob.name}`} aria-label={`${component.name} prop ${knob.name}`} type="text" value={String(values[knob.name])} placeholder={knob.name === "label" ? "Decorative without a label" : undefined} onChange={(event) => change(knob.name, event.currentTarget.value)} />}
         </label>)}
-      {!componentKnobs(component).length && <p className="workbench-explanation">{component.slug === "divider" ? "A native separator. Spacing belongs to its parent layout." : component.slug === "flood-root" ? "The neutral dark scope has no theme switch. Native div attributes remain available." : "A native anchor. Navigation uses href; it has no Button variants."}</p>}
-    </div>
-    {(["input", "textarea", "select"].includes(component.slug)) && <div className="workbench-controls"><Flood.Button variant="subtle" size="sm" disabled={Boolean(values.disabled)} onClick={() => stage.current?.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select")?.focus()}>Focus control</Flood.Button></div>}
-    <p className="workbench-footnote">Reset restores the example; interactions stay local.</p>
+      {hasFocusAction && <Flood.Button className="workbench-focus" variant="subtle" size="sm" aria-label="Focus control" disabled={Boolean(values.disabled)} onClick={() => stage.current?.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select")?.focus()}>Focus</Flood.Button>}
+    </div>}
+
   </section>;
 }

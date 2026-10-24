@@ -25,6 +25,12 @@ example stay aligned. Reset restores inputs; ordinary state changes preserve
 native focus. Examples do not persist data or call a backend. Markdown rendering
 uses react-markdown and remark-gfm, not a third-party UI component implementation.
 
+Preview scenes have a fixed relative height for each example category. Prop
+changes do not resize the scene; oversized content scrolls inside it. Live
+feedback stays in a separate positioned region and does not enter the sample's
+layout. This preview-only presentation is not added to the printed recipe.
+Field examples reserve description rows so validation does not shift the control.
+
 The build compares public runtime exports, catalog entries, routes and live
 recipe coverage. Undocumented exports or missing recipes block the build and
 therefore the existing verify/release workflow. Version labels follow release.json;
@@ -59,6 +65,12 @@ The website's GitHub mark comes from GitHub's Primer Octicons, pinned at
 `9a274e212ee25c400ff666ce25a57866b7eacc25/icons/mark-github-16.svg`.
 The original MIT notice is retained in `public/licenses/github-mark.txt`.
 The asset is used to link to the Flood repository, not as Flood branding.
+
+Inter is bundled with the React stylesheet under SIL OFL 1.1; Lucide supplies
+website/example SVGs under ISC with upstream Feather MIT notices. Full notices
+are served at `/licenses/inter.txt`, `/licenses/lucide.txt` and
+`/licenses/github-mark.txt`. The FAQ identifies their roles. No icon pack is a
+runtime dependency of the React component package.
 
 ## Verification
 

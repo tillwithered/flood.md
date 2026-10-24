@@ -65,3 +65,20 @@ contents to Flood.
 Use [GitHub issues](https://github.com/tillwithered/flood.md/issues) for reproducible
 bugs and API requests. For vulnerabilities, follow [SECURITY.md](../SECURITY.md)
 and avoid posting exploit details or credentials in a public issue.
+
+## Which fonts and icons does Flood use?
+
+Flood's component implementations are original. Fonts and icon artwork have their
+own authors and licenses:
+
+| Asset | Where it is used | License |
+| --- | --- | --- |
+| [Inter](https://github.com/rsms/inter) | Locally bundled variable font in the React stylesheet | [SIL Open Font License 1.1](/licenses/inter.txt) |
+| [Lucide](https://github.com/lucide-icons/lucide) | Website icons and documentation examples | [ISC, with included Feather-derived MIT notices](/licenses/lucide.txt) |
+| [GitHub Primer Octicons](https://github.com/primer/octicons) | GitHub link mark on the website | [MIT](/licenses/github-mark.txt) |
+
+The React component package does not depend on an icon pack. IconSlot and
+IconButton accept SVG artwork from the host. Examples importing `lucide-react`
+require that optional dependency in your project; you may substitute your own
+icons. Preserve the corresponding license notices when redistributing assets.
+The full Inter font provenance and license accompany the installed package.

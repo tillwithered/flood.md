@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Stabilize playground scene dimensions and action feedback, simplify its header
+  and settings, and document third-party font/icon assets with full notices.
+
 - Keep ScrollArea rails clear of rounded clipping corners automatically; add
   default contentInset="scrollbar" safety padding. Explicit none allows host-managed
   padding; code blocks retain their existing inner spacing.
