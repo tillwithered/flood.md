@@ -113,3 +113,52 @@ test("InputGroup nested actions keep equal edge insets across sizes, focus and R
   }
   await page.evaluate(() => { document.documentElement.style.fontSize = "24px"; }); await checkInsets();
 });
+
+test("ButtonGroup supports icon-only and mixed actions with full separators", async ({ page }, info) => {
+  await page.goto("/components/button-group");
+  const stage = page.locator(".preview-stage"), group = stage.getByRole("group", { name: "Editing actions" });
+  for (const content of ["icons", "mixed"]) {
+    await chooseSelectOption(page.getByRole("combobox", { name: "ButtonGroup prop content", exact: true }), content);
+    await expect(group.getByRole("button")).toHaveCount(3);
+    await group.getByRole("button", { name: "History", exact: true }).click();
+    await expect(stage.getByRole("status")).toHaveText("History selected.");
+    const icon = group.locator(".flood-icon-button").last(), bounds = (await icon.boundingBox())!;
+    expect(bounds.width).toBeGreaterThanOrEqual(bounds.height);
+    await expect(icon).toHaveCSS("border-left-width", "1px");
+    await expect(icon).not.toHaveCSS("border-left-color", "rgba(0, 0, 0, 0)");
+    await expect(page.locator("#usage .site-code-block code")).toContainText("IconButton");
+    await expect(page.locator("#usage .site-code-block code")).toContainText("lucide-react");
+  }
+  await page.locator(".component-workbench").screenshot({ path: `.artifacts/mixed-group-${info.project.name}.png` });
+  await chooseSelectOption(page.getByRole("combobox", { name: "ButtonGroup prop content", exact: true }), "icons");
+  await chooseSelectOption(page.getByRole("combobox", { name: "ButtonGroup prop orientation", exact: true }), "vertical");
+  for (const button of await group.getByRole("button").all()) {
+    const box = (await button.boundingBox())!; expect(box.width).toBeCloseTo(box.height, 1);
+  }
+});
+
+test("InputGroup independently composes subdued labels and named actions at both edges", async ({ page }, info) => {
+  await page.goto("/components/input-group");
+  const shell = page.locator(".preview-stage .flood-input-group"), input = shell.getByRole("textbox");
+  const start = page.getByRole("combobox", { name: "InputGroup prop start", exact: true });
+  const end = page.getByRole("combobox", { name: "InputGroup prop end", exact: true });
+  expect(await shell.locator(".flood-input-group__addon--start").evaluate(node => getComputedStyle(node).color)).not.toBe(await input.evaluate(node => getComputedStyle(node).color));
+  for (const prefix of ["+7", "@", "$"]) {
+    await chooseSelectOption(start, prefix); await expect(shell.locator(".flood-input-group__addon--start")).toHaveText(prefix);
+    await expect(input).toHaveValue(prefix === "+7" ? "999 123 45 67" : prefix === "@" ? "flood" : "100");
+  }
+  await chooseSelectOption(start, "action"); await chooseSelectOption(end, "icon-action");
+  for (const name of ["Add", "Open"]) {
+    const action = shell.getByRole("button", { name, exact: true }); await action.click(); await expect(action).toBeFocused();
+    const outer = (await shell.boundingBox())!, inner = (await action.boundingBox())!;
+    const edge = name === "Add" ? inner.x - outer.x : outer.x + outer.width - inner.x - inner.width;
+    expect(edge).toBeCloseTo(inner.y - outer.y, 1);
+  }
+  await expect(page.locator("#usage .site-code-block code")).toContainText("IconButton");
+  await page.locator(".component-workbench").screenshot({ path: `.artifacts/two-actions-${info.project.name}.png` });
+  for (const suffix of ["kg", "USD", "%", "@company.com"]) {
+    await chooseSelectOption(end, suffix); await expect(shell.locator(".flood-input-group__addon--end")).toHaveText(suffix);
+  }
+  await chooseSelectOption(start, "none"); await chooseSelectOption(end, "none");
+  await expect(shell.locator(".flood-input-group__addon")).toHaveCount(0); await expect(input).toBeEditable();
+});

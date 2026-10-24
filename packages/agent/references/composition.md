@@ -80,3 +80,9 @@ Nested actions in InputGroup use the group's height and equal space-1 optical
 insets, with inner radius = field radius minus inset. Button size still controls
 text/icon/padding; do not compensate with extra margins. Touch targets may grow
 the shell. Text-only addons keep the field's reading padding.
+
+ButtonGroup accepts Button and named IconButton children, including mixed groups;
+full separators follow its orientation. InputGroup start/end independently accept
+short text, decorative icons or named actions. Plain addons are subtle; actions
+keep action colors. Explain units in the label/description. Prefixes are not masks
+or automatically submitted value fragments; compose complete values in the host.

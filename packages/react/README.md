@@ -130,7 +130,7 @@ It does not own choice values, implement a selection model or validate children.
 ## Current source: ButtonGroup and InputGroup
 
 ButtonGroup requires a label and direct Button/IconButton children of compatible
-sizes. It joins visible edges with finite field radii and one separator (inset for filled/ghost actions, full for outline), supports
+sizes. It joins visible edges with finite field radii and one full separator along the joined edge, supports
 horizontal/vertical orientation and keeps normal Tab/disabled/action behavior.
 It does not implement a toolbar or selection model. Do not wrap actions in extra
 DOM elements; fragments are fine. Avoid overflow clipping around focused actions.
@@ -217,3 +217,12 @@ fallback scrollbars retain their platform behavior.
 This export is an unreleased source addition beyond published 0.2.2. The website
 uses the same component for code, tables and navigation; Select reuses its internal
 scroll viewport. See [layout](../../docs/layout.md) for constrained compositions.
+
+InputGroup start/end are independent slots: use short prefixes (`https://`, `+7`,
+`@`, currency), suffixes (`kg`, `%`, `USD`) or named Button/IconButton actions on
+either side. Plain addons use subtle content color; actions retain their action
+color. Include necessary units/format in the accessible label or description.
+Prefixes are not masks and are not prepended to submitted values automatically;
+normalization and complete phone/URL values belong to the host. Do not hide an
+interactive addon from assistive technology. ButtonGroup supports text buttons,
+IconButton or a mixture; every icon-only action needs its own accessible name.

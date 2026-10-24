@@ -1,5 +1,5 @@
 import { Fragment, createElement, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Copy, Plus } from "lucide-react";
+import { ArrowRight, Copy, Plus, Undo2, Redo2, History } from "lucide-react";
 import * as Flood from "@flood-md/react";
 import type { ComponentPage } from "./component-catalog";
 import "./component-workbench.css";
@@ -21,8 +21,8 @@ const statusKnob = () => select("status", ["none", "error", "warning", "success"
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
   "scroll-area": [select("orientation", ["vertical", "horizontal", "both"], "vertical"), select("contentInset", ["scrollbar", "none"], "scrollbar")],
-  "button-group": [select("orientation", ["horizontal", "vertical"], "horizontal"), select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled")],
-  "input-group": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), statusKnob(), toggle("disabled"), toggle("readOnly")],
+  "button-group": [select("content", ["text", "icons", "mixed"], "text"), select("orientation", ["horizontal", "vertical"], "horizontal"), select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled")],
+  "input-group": [select("start", ["https://", "+7", "@", "$", "icon", "action", "none"], "https://"), select("end", ["action", "icon-action", "kg", "USD", "%", "@company.com", "none"], "action"), select("controlSize", ["sm", "md", "lg", "xl"], "md"), statusKnob(), toggle("disabled"), toggle("readOnly")],
   button: [select("variant", variants, "solid"), select("size", sizes, "md"), toggle("disabled"), toggle("loading")],
   "icon-button": [select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled"), toggle("loading")],
   input: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), statusKnob(), toggle("invalid"), toggle("disabled"), toggle("readOnly")],
@@ -55,7 +55,7 @@ function componentKnobs(component: ComponentPage): Knob[] {
   });
 }
 const initialValues = (component: ComponentPage): Values => Object.fromEntries(componentKnobs(component).map(knob => [knob.name, knob.initial]));
-const registry = { ...Flood, Plus, ArrowRight, Copy } as unknown as Record<string, Parameters<typeof createElement>[0]>;
+const registry = { ...Flood, Plus, ArrowRight, Copy, Undo2, Redo2, History } as unknown as Record<string, Parameters<typeof createElement>[0]>;
 const isBinding = (value: unknown): value is Binding => Boolean(value && typeof value === "object" && "expression" in value && "value" in value);
 
 function renderRecipe(node: ElementRecipe, extraProps: Record<string, unknown> = {}): ReactNode {
@@ -69,7 +69,7 @@ function renderRecipe(node: ElementRecipe, extraProps: Record<string, unknown> =
 
 function printRecipe(node: ElementRecipe, imports: Set<string>, icons: Set<string>, depth = 0): string {
   if (node.tag in Flood) imports.add(node.tag);
-  if (["Plus", "ArrowRight", "Copy"].includes(node.tag)) icons.add(node.tag);
+  if (["Plus", "ArrowRight", "Copy", "Undo2", "Redo2", "History"].includes(node.tag)) icons.add(node.tag);
   const pad = "  ".repeat(depth);
   const props = Object.entries(node.props ?? {}).filter(([key, value]) => value !== undefined && !(value === false && ["disabled", "loading", "invalid", "readOnly", "required"].includes(key))).map(([key, value]) => {
     if (isBinding(value)) return `${key}={${value.expression}}`;
@@ -116,12 +116,25 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
             as: "p", size: "compact", ...(horizontal ? { style: { width: "12rem", flex: "none" } } : {}),
           }, `Project note ${index + 1}: keep ideas together in one calm workspace.`)))));
     }
-    case "button-group": return element("Stack", { gap: "4" }, element("ButtonGroup", { label: "Editing actions", orientation: v.orientation }, ...["Undo", "Redo", "History"].map(label => element("Button", { variant: v.variant, size: v.size, disabled: v.disabled, onClick: binding(`() => setStatus(${JSON.stringify(label + " selected.")})`, () => actions.setStatus(label + " selected.")) }, label))), status);
+    case "button-group": return element("Stack", { gap: "4" }, element("ButtonGroup", { label: "Editing actions", orientation: v.orientation }, ...["Undo", "Redo", "History"].map((label, index) => {
+      const props = { variant: v.variant, size: v.size, disabled: v.disabled, onClick: binding(`() => setStatus(${JSON.stringify(label + " selected.")})`, () => actions.setStatus(label + " selected.")) };
+      const icon = element(["Undo2", "Redo2", "History"][index]);
+      return v.content === "icons" || (v.content === "mixed" && index === 2)
+        ? element("IconButton", { ...props, label }, icon)
+        : element("Button", props, ...(v.content === "mixed" ? [element("IconSlot", { size: v.size }, icon), label] : [label]));
+    })), status);
     case "input-group": {
       const actionSize = v.controlSize === "sm" ? "2xs" : "sm";
-      return element("Stack", { gap: "4" }, { tag: "Field", props: { label: "Website", status: fieldStatus, message: message ?? (v.readOnly ? "Read only. Select and copy." : undefined) }, field: element("InputGroup", {
-        start: "https://", end: binding(`<Button variant="subtle" size="${actionSize}" disabled={${String(v.disabled)}} onClick={() => setStatus("Opened locally.")}>Open</Button>`, createElement(Flood.Button, { variant: "subtle", size: actionSize, disabled: Boolean(v.disabled), onClick: () => actions.setStatus("Opened locally.") }, "Open")),
-        controlSize: v.controlSize, disabled: v.disabled, readOnly: v.readOnly, name: "website", defaultValue: "example.com",
+      const actionProps = { variant: "subtle", size: actionSize, disabled: Boolean(v.disabled), onClick: () => actions.setStatus("Opened locally.") } as const;
+      const button = binding(`<Button variant="subtle" size="${actionSize}" disabled={${String(v.disabled)}} onClick={() => setStatus("Opened locally.")}>Open</Button>`, createElement(Flood.Button, actionProps, "Open"));
+      const iconAction = binding(`<IconButton label="Open" variant="subtle" size="${actionSize}" disabled={${String(v.disabled)}} onClick={() => setStatus("Opened locally.")}><ArrowRight /></IconButton>`, createElement(Flood.IconButton, { ...actionProps, label: "Open" }, createElement(ArrowRight)));
+      const startAction = binding(`<IconButton label="Add" variant="subtle" size="${actionSize}" disabled={${String(v.disabled)}} onClick={() => setStatus("Added locally.")}><Plus /></IconButton>`, createElement(Flood.IconButton, { ...actionProps, label: "Add", onClick: () => actions.setStatus("Added locally.") }, createElement(Plus)));
+      const start = v.start === "none" ? undefined : v.start === "action" ? startAction : v.start === "icon" ? binding('<IconSlot><Copy /></IconSlot>', createElement(Flood.IconSlot, {}, createElement(Copy))) : v.start;
+      const end = v.end === "none" ? undefined : v.end === "action" ? button : v.end === "icon-action" ? iconAction : v.end;
+      const [label, value, type] = v.start === "+7" ? ["Phone number (+7)", "999 123 45 67", "tel"] : v.start === "@" ? ["Username", "flood", "text"] : v.start === "$" ? ["Amount in dollars", "100", "text"] : v.end === "kg" ? ["Weight in kilograms", "72", "text"] : ["Website", "example.com", "text"];
+      return element("Stack", { gap: "4" }, { tag: "Field", props: { label, status: fieldStatus, message: message ?? (v.readOnly ? "Read only. Select and copy." : undefined) }, field: element("InputGroup", {
+        key: `${v.start}-${v.end}`, start, end, type,
+        controlSize: v.controlSize, disabled: v.disabled, readOnly: v.readOnly, name: "website", defaultValue: value,
       }) }, status);
     }
     case "button": return element("Stack", { gap: "4" }, element("Inline", {}, element("Button", { variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, "Save changes")), status);
@@ -178,7 +191,13 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   const recipe = recipeFor(component.slug, values, { status, setStatus, checked: (checked) => change("checked", checked), copy });
   const imports = new Set<string>(["FloodRoot"]), icons = new Set<string>();
   const jsx = printRecipe(element("FloodRoot", {}, recipe), imports, icons, 2);
-  if ((component.slug === "code-snippet" && values.copyAction) || component.slug === "input-group") imports.add("Button");
+  if (component.slug === "code-snippet" && values.copyAction) imports.add("Button");
+  if (component.slug === "input-group") {
+    if (values.end === "action") imports.add("Button");
+    if (values.start === "action") { imports.add("IconButton"); icons.add("Plus"); }
+    if (values.start === "icon") { imports.add("IconSlot"); icons.add("Copy"); }
+    if (values.end === "icon-action") { imports.add("IconButton"); icons.add("ArrowRight"); }
+  }
   let preamble = "";
   const usesChecked = ["checkbox", "radio", "switch"].includes(component.slug);
   const usesStatus = ["button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));

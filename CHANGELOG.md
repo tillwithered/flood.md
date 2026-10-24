@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Refine InputGroup nested action insets, sizing and radii; soften filled ButtonGroup separators.
+- Refine InputGroup nested action insets, sizing and radii; support independent InputGroup addons and full ButtonGroup separators with mixed icon actions.
 
 - Add ButtonGroup for connected independent actions and InputGroup for a native
   text field with logical start/end adornments and one shared field perimeter.
