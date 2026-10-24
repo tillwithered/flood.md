@@ -107,9 +107,9 @@ export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function
 ) {
   return <div hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-input-group", `flood-control--${controlSize}`, className)} style={style}
     data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])} data-disabled={disabled || undefined} data-readonly={readOnly || undefined}>
-    {hasFieldContent(start) && <div className="flood-input-group__addon">{start}</div>}
+    {hasFieldContent(start) && <div className="flood-input-group__addon flood-input-group__addon--start">{start}</div>}
     <Input {...props} ref={ref} controlSize={controlSize} invalid={invalid} status={status} disabled={disabled} readOnly={readOnly} />
-    {hasFieldContent(end) && <div className="flood-input-group__addon">{end}</div>}
+    {hasFieldContent(end) && <div className="flood-input-group__addon flood-input-group__addon--end">{end}</div>}
   </div>;
 });
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {

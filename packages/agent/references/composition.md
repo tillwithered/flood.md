@@ -75,3 +75,8 @@ actions; they are not submitted values or labels. className/style own the wrappe
 Disable addon actions explicitly when the task needs it. Preserve a single field
 perimeter and distinguish input focus from action focus. Use supported installed
 exports; these constructs are source additions beyond published 0.2.2.
+
+Nested actions in InputGroup use the group's height and equal space-1 optical
+insets, with inner radius = field radius minus inset. Button size still controls
+text/icon/padding; do not compensate with extra margins. Touch targets may grow
+the shell. Text-only addons keep the field's reading padding.

@@ -89,3 +89,27 @@ test("InputGroup keeps logical slots, forced-color focus and coarse-pointer targ
     await expect(input).toBeFocused();
   } finally { await context.close(); }
 });
+
+
+test("InputGroup nested actions keep equal edge insets across sizes, focus and RTL", async ({ page }) => {
+  await page.goto("/components/input-group");
+  const shell = page.locator(".preview-stage .flood-input-group");
+  const action = shell.getByRole("button", { name: "Open", exact: true });
+  const checkInsets = async (rtl = false) => {
+    const outer = (await shell.boundingBox())!, inner = (await action.boundingBox())!;
+    const top = inner.y - outer.y, bottom = outer.y + outer.height - inner.y - inner.height;
+    const edge = rtl ? inner.x - outer.x : outer.x + outer.width - inner.x - inner.width;
+    expect(top).toBeGreaterThanOrEqual(4);
+    expect(top).toBeCloseTo(bottom, 1); expect(edge).toBeCloseTo(top, 1);
+    const radius = await action.evaluate(node => parseFloat(getComputedStyle(node).borderTopRightRadius));
+    const outerRadius = await shell.evaluate(node => parseFloat(getComputedStyle(node).borderTopRightRadius));
+    expect(radius + top).toBeCloseTo(outerRadius, 1);
+  };
+  for (const size of ["sm", "md", "lg", "xl"]) {
+    await chooseSelectOption(page.getByRole("combobox", { name: "InputGroup prop controlSize", exact: true }), size);
+    await checkInsets(); await shell.getByRole("textbox").focus(); await checkInsets();
+    await shell.evaluate(node => { node.setAttribute("dir", "rtl"); }); await checkInsets(true);
+    await shell.evaluate(node => { node.removeAttribute("dir"); });
+  }
+  await page.evaluate(() => { document.documentElement.style.fontSize = "24px"; }); await checkInsets();
+});

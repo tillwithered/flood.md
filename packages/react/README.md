@@ -130,7 +130,7 @@ It does not own choice values, implement a selection model or validate children.
 ## Current source: ButtonGroup and InputGroup
 
 ButtonGroup requires a label and direct Button/IconButton children of compatible
-sizes. It joins visible edges with finite field radii and one separator, supports
+sizes. It joins visible edges with finite field radii and one separator (inset for filled/ghost actions, full for outline), supports
 horizontal/vertical orientation and keeps normal Tab/disabled/action behavior.
 It does not implement a toolbar or selection model. Do not wrap actions in extra
 DOM elements; fragments are fine. Avoid overflow clipping around focused actions.
@@ -141,8 +141,11 @@ className/style target the wrapper. dir/lang/hidden apply to the shell as well.
 Use Field's callback or an associated Label. Adornments are visual and are not
 included in the submitted value or used as a replacement for a label.
 Native required, readOnly and disabled remain input states; host-owned addon
-buttons need their own names, callbacks and disabled policy. Choose action sizes
-that fit inside the field; content and touch targets can increase its height.
+buttons need their own names, callbacks and disabled policy. Direct Flood Button/IconButton addons inherit their height from the group, with
+an equal space-1 inset against the top, bottom and nearest logical edge; their
+finite radius follows the shell radius minus that inset. Their size prop still
+controls text, icon and horizontal padding. Coarse pointers grow the shell to
+preserve the nested action's touch target. Arbitrary addon content can grow it too.
 Input focus uses the shared perimeter, while an addon action keeps its own focus.
 Use scoped host layout for group width. Textarea/Select require other compositions.
 Both exports are unreleased beyond published 0.2.2.
