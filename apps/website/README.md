@@ -11,9 +11,9 @@ controls). Markdown prose, semantic HTML tables and page grids remain website
 content rather than pretending to be library components. Document scrollbars use
 the same foundation tokens through the explicit dark scope on the HTML root;
 page scrolling remains native with forced-color fallback and a stable gutter.
-It has a focused home page, eight documentation guides and an overview plus a
-detail page for each of the 47 exports in the 0.2.4 source candidate. Installation availability follows
-the verified publication gate in src/release.json.
+It has a focused home page, documentation guides, a catalog and a detail page
+for every documented export. Page inventory and counts follow the source catalog;
+installation availability follows the verified publication gate in src/release.json.
 
 ## Content
 

@@ -38,6 +38,16 @@ route inventory; `/robots.txt` advertises it. Canonical URLs use `https://flood.
 and omit query strings and trailing slashes. No artificial last-modified dates
 are emitted. Update the shared siteOrigin if the public domain changes.
 
+Catalog growth needs no separate SEO registration or page-count update. Adding a
+component requires its source export, catalog entry, category and working recipe;
+the existing build contract rejects missing documentation or recipe coverage.
+Each successful build regenerates HTML, metadata, Markdown and the sitemap from
+that inventory, and indexing tests visit every current public route. Keep stable
+component slugs across releases so existing search links keep working. A renamed
+or removed public URL needs an explicit redirect decision in the same change.
+New content reaches the public site through the normal verified main deployment;
+adding it only to a local branch does not publish or index it.
+
 `/playground` and `/playground/content` remain client-rendered verification
 surfaces and return `noindex, follow` in HTML and HTTP headers. Do not block them
 in robots.txt, which would prevent crawlers from seeing noindex. Markdown
