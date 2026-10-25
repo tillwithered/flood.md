@@ -36,6 +36,7 @@ import { ActionMenu } from "./menu.js";
 import { RovingToolbar } from "./toolbar.js";
 import { NumericStepper } from "./numeric-input.js";
 import { RangeControl } from "./slider.js";
+import { FilePicker } from "./file-input.js";
 import { SearchField, PasswordField } from "./text-inputs.js";
 import { SearchSelection } from "./combobox.js";
 
@@ -566,6 +567,17 @@ export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function
     {hasFieldContent(end) && <div className="flood-input-group__addon flood-input-group__addon--end">{typeof end === "string" ? <bdi dir="auto">{end}</bdi> : end}</div>}
   </div>;
 });
+export interface FileInputProps extends Omit<InputProps, "type" | "value" | "defaultValue" | "children" | "readOnly"> {
+  clearable?: boolean;
+  clearLabel?: string;
+  onFilesChange?: (files: readonly File[]) => void;
+}
+export const FileInput = forwardRef<HTMLInputElement, FileInputProps>(function FileInput(
+  { clearable = true, clearLabel = "Clear files", controlSize = "md", ...props }, ref,
+) {
+  return <FilePicker {...props} ref={ref} clearable={clearable} clearLabel={clearLabel} controlSize={controlSize} actionComponent={IconButton} iconComponent={IconSlot} />;
+});
+
 export interface SearchInputProps extends Omit<InputProps, "type" | "children"> {
   clearable?: boolean;
   clearLabel?: string;

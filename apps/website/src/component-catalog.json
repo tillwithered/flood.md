@@ -1010,5 +1010,21 @@
       "Use visible/onVisibleChange for controlled visibility or defaultVisible for an initial reveal. Translate showPasswordLabel/hidePasswordLabel. Read-only still permits inspection; disabled blocks actions. Native value/onChange, autocomplete, form and ref are preserved. Visibility does not change the value.",
       "Composes Flood InputGroup, IconSlot and IconButton using existing semantic geometry and feedback states. Available in the unpublished 0.2.5 candidate."
     ]
+  },
+  {
+    "slug": "file-input",
+    "name": "FileInput",
+    "group": "forms",
+    "description": "A native file picker with a compact selection summary and one clear action.",
+    "code": "<Field label=\"Attachments\" hint=\"Choose files from your device.\">\n  {control => <FileInput {...control} name=\"attachments\" multiple />}\n</Field>",
+    "imports": [
+      "Field",
+      "FileInput"
+    ],
+    "notes": [
+      "The browser owns FileList, native name/form/required/accept/multiple/capture behavior and the input ref. onChange retains the native event; onFilesChange receives a fresh array after selection or clear. No controlled value/defaultValue or readOnly mode is supplied.",
+      "clearable defaults to true. Localize placeholder and clearLabel. Clear restores input focus and empties the native selection; form reset clears the summary without emitting a change. Disabled includes inherited fieldset behavior. Cancelling the chooser preserves selection.",
+      "File names are shown as text, shortened visually when needed. This component only selects files; the host owns upload, progress and validation. accept is a chooser hint, not file validation. Available in the unpublished 0.2.5 candidate."
+    ]
   }
 ]

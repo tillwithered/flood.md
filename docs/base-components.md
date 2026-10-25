@@ -137,3 +137,14 @@ visible/onVisibleChange or defaultVisible, and localize showPasswordLabel and
 hidePasswordLabel. Revealing retains the value and caret; read-only permits reveal.
 Use autocomplete appropriate to the host form. Both accept accessible names via
 Field, aria-label or aria-labelledby. These controls add no authentication logic.
+
+
+FileInput (unpublished 0.2.5) composes a native file input with Flood field geometry,
+IconSlot and one optional clear IconButton. Pass Field's render props for its
+accessible name/description/status. Native name, form, required, accept, multiple,
+capture and input ref remain available. onChange is a native React change handler;
+onFilesChange receives a new readonly File array for selection and clear. Do not
+pass value/defaultValue/readOnly; FileList belongs to the browser. Uncontrolled
+form reset clears the summary; cancelling the chooser keeps its prior selection.
+Localize placeholder and clearLabel. Long names truncate visually, and the host
+owns upload, file validation and progress. accept only guides the chooser.

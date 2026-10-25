@@ -199,3 +199,14 @@ Read-only hides clear. PasswordInput has a single show/hide action with localize
 showPasswordLabel/hidePasswordLabel, controlled visible/onVisibleChange or initial
 defaultVisible. Read-only still allows reveal. Native refs, autocomplete and forms
 remain owned by the host. Do not add another suffix chevron or browser clear icon.
+
+
+FileInput (unpublished 0.2.5) composes a native file input with Flood field geometry,
+IconSlot and one optional clear IconButton. Pass Field's render props for its
+accessible name/description/status. Native name, form, required, accept, multiple,
+capture and input ref remain available. onChange is a native React change handler;
+onFilesChange receives a new readonly File array for selection and clear. Do not
+pass value/defaultValue/readOnly; FileList belongs to the browser. Uncontrolled
+form reset clears the summary; cancelling the chooser keeps its prior selection.
+Localize placeholder and clearLabel. Long names truncate visually, and the host
+owns upload, file validation and progress. accept only guides the chooser.

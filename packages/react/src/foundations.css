@@ -852,3 +852,17 @@
 .flood-root .flood-search-input input::-webkit-search-decoration { -webkit-appearance: none; }
 
 .flood-root .flood-password-input input::-ms-reveal { display: none; }
+
+/* Transparent native file control keeps browser activation, labels and validity. */
+.flood-root .flood-file-input { flex-wrap: nowrap; }
+.flood-root .flood-file-input__picker { position: relative; flex: 1 1 0; min-inline-size: 0; align-self: stretch; display: flex; align-items: center; min-block-size: calc(var(--flood-group-height) - 2 * var(--flood-group-inset)); }
+.flood-root .flood-file-input__native { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer; font: inherit; }
+.flood-root .flood-file-input__display { display: flex; align-items: center; gap: var(--flood-control-gap); min-inline-size: 0; inline-size: 100%; pointer-events: none; font-size: var(--flood-control-text); line-height: var(--flood-control-line); }
+.flood-root .flood-file-input__display > .flood-icon { flex: none; color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-file-input__display[data-empty] { color: var(--flood-sys-color-field-placeholder); }
+.flood-root .flood-file-input__summary { min-inline-size: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.flood-root .flood-file-input:has(.flood-file-input__native:focus-visible) { --flood-group-stroke: var(--flood-sys-focus-width); border-color: var(--flood-sys-color-focus-ring); }
+.flood-root .flood-file-input:has(.flood-file-input__native:disabled) { background: var(--flood-sys-color-field-disabled); color: var(--flood-sys-color-field-disabled-content); border-color: var(--flood-sys-color-field-border); }
+.flood-root .flood-file-input__native:disabled { cursor: not-allowed; }
+.flood-root .flood-file-input:has(.flood-file-input__native:disabled) .flood-file-input__display { color: var(--flood-sys-color-field-disabled-content); }
+@media (forced-colors: active) { .flood-root .flood-file-input:has(.flood-file-input__native:focus-visible) { border-color: Highlight; } }
