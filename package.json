@@ -23,6 +23,7 @@
     "verify": "npm run build && npm run check && npm test && npm run test:packages && npm run test:next && npm run site:check",
     "release:check": "node scripts/release.mjs --check",
     "release:publish": "node scripts/release.mjs",
+    "release:verify-registry": "node scripts/verify-registry.mjs",
     "start": "node apps/website/server.mjs",
     "site:check": "node scripts/site-contract.mjs check",
     "site:bundle": "node scripts/site-contract.mjs bundle",

@@ -19,6 +19,13 @@ internal versions remain aligned for every release.
 7. Verify the actual registry versions, install into a clean React project, and
    check the deployed landing page and its command.
 
+After publishing, the release workflow runs `release:verify-registry` against the
+actual npm versions. It creates a consumer outside the checkout, uses the installed
+CLI for init/doctor, compares registry integrity and every installed agent file,
+then builds Next.js and runs desktop/mobile hydration, form and foundation tests.
+The consumer receives no publisher credentials. Its report is retained as a CI
+artifact. Keep the website installation gate disabled until this step succeeds.
+
 Do not create a release until scope ownership and authentication are ready.
 After a partially completed publication, rerun the same workflow: it skips already
 published versions only after comparing package integrity with the local tarball.

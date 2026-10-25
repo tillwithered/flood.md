@@ -154,7 +154,7 @@
 .flood-root .flood-avatar[data-shape="rounded"] { border-radius: var(--flood-sys-radius-field); }
 .flood-avatar__fallback { max-inline-size: 100%; overflow: hidden; white-space: nowrap; }
 .flood-root .flood-avatar .flood-avatar__image { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; opacity: 0; }
-.flood-avatar__image[data-ready="true"] { opacity: 1; }
+.flood-root .flood-avatar .flood-avatar__image[data-ready="true"] { opacity: 1; }
 .flood-root :is(.flood-badge, .flood-skeleton, .flood-avatar)[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) { .flood-root .flood-skeleton[data-animate="true"] { animation: none; } }
 @media (forced-colors: active) {
