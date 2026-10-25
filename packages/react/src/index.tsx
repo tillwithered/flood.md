@@ -85,6 +85,29 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 export type FieldStatus = "error" | "warning" | "success" | "info";
 
 export type ContentSize = "sm" | "md" | "lg";
+export interface TagProps extends HTMLAttributes<HTMLSpanElement> {
+  size?: ContentSize;
+  icon?: ReactNode;
+  disabled?: boolean;
+  onRemove?: () => void;
+  removeLabel?: string;
+  removeButtonProps?: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "type" | "disabled" | "onClick" | "aria-label">;
+}
+/** @since 0.2.5 */
+export const Tag = forwardRef<HTMLSpanElement, TagProps>(function Tag(
+  { size = "md", icon, disabled = false, onRemove, removeLabel, removeButtonProps, className, children, ...props }, ref,
+) {
+  const label = removeLabel ?? (typeof children === "string" || typeof children === "number" ? `Remove ${children}` : "");
+  if (onRemove && !label.trim()) throw new Error("Flood Tag removal needs an accessible removeLabel for rich content");
+  const iconSize = size === "sm" ? "2xs" : size === "md" ? "xs" : "sm";
+  return <span {...props} ref={ref} className={classes("flood-tag", className)} data-size={size} data-disabled={disabled || undefined}>
+    {hasFieldContent(icon) && <IconSlot size={iconSize}>{icon}</IconSlot>}
+    <span className="flood-tag__label">{children}</span>
+    {onRemove && <IconButton {...removeButtonProps} type="button" className={classes("flood-tag__remove", removeButtonProps?.className)} label={label} variant="ghost" size={iconSize} disabled={disabled} onClick={() => { if (!disabled) onRemove(); }}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+    </IconButton>}
+  </span>;
+});
 export interface KbdProps extends HTMLAttributes<HTMLElement> { size?: ContentSize; }
 /** @since 0.2.4 */
 export const Kbd = forwardRef<HTMLElement, KbdProps>(function Kbd(
@@ -563,9 +586,22 @@ export interface ComboboxProps extends Omit<InputProps, "type" | "value" | "defa
 }
 /** @since 0.2.5 */
 export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Combobox(
-  { defaultValue = "", clearable = true, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select an option.", controlSize = "md", ...props }, ref,
+  { value, defaultValue = "", onValueChange, clearable = true, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select an option.", controlSize = "md", ...props }, ref,
 ) {
-  return <SearchSelection {...props} ref={ref} defaultValue={defaultValue} clearable={clearable} emptyMessage={emptyMessage} listLabel={listLabel} toggleLabel={toggleLabel} clearLabel={clearLabel} invalidSelectionMessage={invalidSelectionMessage} controlSize={controlSize} />;
+  return <SearchSelection {...props} ref={ref} multiple={false} selectedValues={value === undefined ? undefined : value ? [value] : []} initialValues={defaultValue ? [defaultValue] : []} onSelectionChange={next => onValueChange?.(next[0] ?? "")} clearable={clearable} emptyMessage={emptyMessage} listLabel={listLabel} toggleLabel={toggleLabel} clearLabel={clearLabel} invalidSelectionMessage={invalidSelectionMessage} controlSize={controlSize} />;
+});
+
+export interface MultiSelectProps extends Omit<ComboboxProps, "value" | "defaultValue" | "onValueChange"> {
+  value?: readonly string[];
+  defaultValue?: readonly string[];
+  onValueChange?: (value: string[]) => void;
+  removeItemLabel?: string;
+}
+/** @since 0.2.5 */
+export const MultiSelect = forwardRef<HTMLInputElement, MultiSelectProps>(function MultiSelect(
+  { value, defaultValue = [], onValueChange, removeItemLabel = "Remove", clearable = true, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select at least one option.", controlSize = "md", ...props }, ref,
+) {
+  return <SearchSelection {...props} ref={ref} multiple selectedValues={value} initialValues={defaultValue} onSelectionChange={onValueChange} removeItemLabel={removeItemLabel} clearable={clearable} emptyMessage={emptyMessage} listLabel={listLabel} toggleLabel={toggleLabel} clearLabel={clearLabel} invalidSelectionMessage={invalidSelectionMessage} controlSize={controlSize} />;
 });
 
 export interface NumberInputProps extends Omit<InputProps, "type" | "value" | "defaultValue" | "onChange" | "min" | "max" | "step" | "children"> {

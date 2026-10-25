@@ -15,6 +15,20 @@ test("Next hydrates searchable selection without changing the input boundary", a
   expect(errors).toEqual([]);
 });
 
+test("Next hydrates multiple selection and removable tags", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto(`${process.env.FLOOD_NEXT_TEST_URL ?? "http://127.0.0.1:3001"}/foundations`);
+  const input = page.getByRole("combobox", { name: "Runtimes", exact: true });
+  await input.fill("Vue"); await input.press("Enter");
+  await expect(page.locator('input[type="hidden"][name="runtimes"]')).toHaveCount(2);
+  await input.press("Escape");
+  const root = page.locator(".flood-multi-select").filter({has:input});
+  await root.getByRole("button", {name:"Remove Vue"}).click();
+  await expect(page.locator('input[type="hidden"][name="runtimes"]')).toHaveCount(1);
+  await expect(input).toBeFocused(); expect(errors).toEqual([]);
+});
+
 test("Next App Router renders, hydrates and submits Flood controls", async ({
   page,
 }) => {

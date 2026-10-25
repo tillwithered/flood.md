@@ -824,3 +824,25 @@
 .flood-root .flood-combobox__option-text { display: grid; gap: var(--flood-sys-space-1); min-inline-size: 0; }
 .flood-root .flood-combobox__description { color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); }
 @media (forced-colors: active) { .flood-root .flood-combobox__description { color: inherit; } }
+.flood-root .flood-tag { --flood-tag-height: var(--flood-sys-control-xs-height); display: inline-flex; align-items: center; gap: var(--flood-sys-space-1); box-sizing: border-box; min-inline-size: 0; max-inline-size: 100%; min-block-size: var(--flood-tag-height); padding: calc(var(--flood-sys-space-1) / 2) var(--flood-sys-space-2); border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-surface-raised); color: var(--flood-sys-color-content-default); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); letter-spacing: var(--flood-sys-type-compact-tracking); vertical-align: middle; }
+.flood-root .flood-tag[data-size="sm"] { --flood-tag-height: var(--flood-sys-control-2xs-height); font-size: var(--flood-sys-type-helper-size); }
+.flood-root .flood-tag[data-size="lg"] { --flood-tag-height: var(--flood-sys-control-sm-height); font-size: var(--flood-sys-type-body-size); }
+.flood-root .flood-tag__label { min-inline-size: 0; overflow-wrap: anywhere; }
+.flood-root .flood-tag:has(> .flood-tag__remove) { padding-inline-end: calc(var(--flood-sys-space-1) / 2); }
+.flood-root .flood-tag > .flood-tag__remove { --flood-control-height: calc(var(--flood-tag-height) - var(--flood-sys-space-1) - 2 * var(--flood-sys-stroke-width)); min-block-size: var(--flood-control-height); min-inline-size: var(--flood-control-height); flex: none; padding: 0; border-radius: var(--flood-sys-radius-action); }
+.flood-root .flood-tag[data-disabled="true"] { color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-tag[hidden] { display: none; }
+.flood-root .flood-multi-select__control { padding: calc(var(--flood-group-inset) - var(--flood-group-stroke)); gap: var(--flood-sys-space-1); }
+.flood-root .flood-multi-select__control > .flood-tag { --flood-tag-height: calc(var(--flood-group-height) - 2 * var(--flood-group-inset)); border-radius: max(0px, calc(var(--flood-sys-radius-field) - var(--flood-group-inset))); font-size: var(--flood-control-text); line-height: var(--flood-control-line); }
+@media (pointer: coarse) {
+  .flood-root .flood-tag:has(> .flood-tag__remove) { padding-block: 0; }
+  .flood-root .flood-tag > .flood-tag__remove { min-block-size: var(--flood-sys-size-touch); min-inline-size: var(--flood-sys-size-touch); }
+}
+@media (forced-colors: active) { .flood-root .flood-tag { background: Canvas; color: CanvasText; border-color: CanvasText; } }
+.flood-root .flood-multi-select__control:has(.flood-multi-select__editor > .flood-input:disabled) { background: var(--flood-sys-color-field-disabled); border-color: var(--flood-sys-color-field-border); }
+.flood-root .flood-multi-select__control:has(.flood-multi-select__editor > .flood-input:disabled) > .flood-tag { color: var(--flood-sys-color-content-subtle); }
+
+.flood-root .flood-multi-select__editor { display: flex; align-items: center; gap: var(--flood-sys-space-1); flex: 1 1 10rem; min-inline-size: min(100%, calc(var(--flood-group-height) + 4rem)); max-inline-size: 100%; }
+.flood-root .flood-multi-select__editor > .flood-input { inline-size: 0; min-inline-size: 0; flex: 1 1 0; min-block-size: calc(var(--flood-group-height) - 2 * var(--flood-group-inset)); border: 0; border-radius: 0; background: transparent; padding: 0 var(--flood-sys-space-2); }
+.flood-root .flood-multi-select__editor > .flood-input:focus-visible { outline: none; border: 0; padding: 0 var(--flood-sys-space-2); }
+.flood-root .flood-multi-select__control:has(.flood-multi-select__editor > .flood-input:focus-visible) { --flood-group-stroke: var(--flood-sys-focus-width); border-color: var(--flood-sys-color-focus-ring); border-style: solid; }

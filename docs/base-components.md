@@ -86,3 +86,37 @@ listbox; the shared native Popover layer and ScrollArea handle containment,
 positioning, clipping and scrolling. No arbitrary text submission, multi-selection,
 remote fetching or virtualization is supplied. Native Popover API is required,
 as for Flood Select. Test touch assistive technology on actual target devices.
+
+## Tags and multiple selection (0.2.5 candidate)
+
+Tag presents a compact noninteractive label with an optional decorative icon and
+removal action. The host owns removal and focus recovery when a standalone tag
+leaves a collection. Plain text supplies a default Remove name; rich content
+requires removeLabel. Translate removeLabel for localized applications. disabled
+prevents removal while keeping the label readable. removeButtonProps supplies
+native action details, including keyboard/focus handling; Tag owns button type,
+accessible name, disabled state and onRemove. A Tag does not select itself, link
+to a route, or expose the semantic tones of Badge.
+
+MultiSelect composes Tag and the shared Combobox search/layer model. Its public
+value/defaultValue are arrays of unique nonempty option IDs. onValueChange returns
+a fresh array. Forms submit one entry per valid selected option under the same
+name; empty selection submits no entries. Query text is not submitted. Native
+required validity means at least one selected option, including a locked selection.
+Uncontrolled reset restores the initial array; controlled selection stays host-owned.
+
+Enter toggles the active suggestion and keeps the list open. Backspace in an empty
+input removes the last editable tag; a logical backward arrow at the caret start
+focuses the last removable tag. Tag actions support logical arrows, Delete,
+Backspace, Enter/Space and Escape back to the input. The input is the ordinary Tab
+entry after hydration; standalone Tag actions retain normal native Tab order.
+Modified/IME text editing remains native. Disabled selected options cannot be
+removed, and Clear selection preserves them. Read-only blocks selection/removal
+while labels remain readable and selectable as text. Translate removeItemLabel
+and the inherited clear/toggle/list/empty/validation messages.
+
+Tags wrap naturally. The search input and suffix actions form a single editor row;
+they move together when tokens consume a line. Nested radii account for the field
+inset. Coarse-pointer removal targets remain distinct and at least size.touch.
+There is no arbitrary freeform tagging, remote data access, virtualization or
+standalone TagGroup selection/navigation engine in this candidate.

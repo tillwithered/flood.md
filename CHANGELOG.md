@@ -4,6 +4,8 @@
 
 ### 0.2.5 candidate
 
+- Add Tag with a named removal action and MultiSelect with shared search/layer behavior, removable selections, repeated form values, required validation and token-aware wrapping.
+
 - Add original NumberInput with native form validation and step actions, and a horizontal Slider supporting one value or an ordered range. Reuse Flood field geometry, labels, feedback and focus.
 - Keep exact internal versions aligned; this candidate is not yet published.
 - Add editable Combobox selection with local search, explicit option IDs, forms/reset, layered listbox, protected scrolling and translated action/message labels.

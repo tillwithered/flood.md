@@ -1,14 +1,22 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
-import { InputGroup, IconButton, ScrollArea, type ComboboxProps } from "./index.js";
-import { mergeDescriptions } from "./field-state.js";
+import { Input, InputGroup, IconButton, ScrollArea, Tag, type ComboboxProps, type InputProps, type ComboboxOption } from "./index.js";
+import { mergeDescriptions, resolveFieldStatus } from "./field-state.js";
 import { positionLayer, registerLayer } from "./overlay-runtime.js";
 
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 const searchable = (text: string) => text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
 
-/** Editable input plus a single-choice list. Search text is never a submitted value. */
-export const SearchSelection = forwardRef<HTMLInputElement, ComboboxProps>(function SearchSelection({
-  options, value, defaultValue = "", onValueChange, clearable = true,
+interface SearchSelectionProps extends Omit<ComboboxProps, "value" | "defaultValue" | "onValueChange"> {
+  selectedValues?: readonly string[];
+  initialValues: readonly string[];
+  onSelectionChange?: (value: string[]) => void;
+  multiple?: boolean;
+  removeItemLabel?: string;
+}
+
+/** Shared search/layer model. Public single and multiple value contracts stay distinct. */
+export const SearchSelection = forwardRef<HTMLInputElement, SearchSelectionProps>(function SearchSelection({
+  options, selectedValues: value, initialValues: defaultValue, onSelectionChange: onValueChange, multiple = false, removeItemLabel = "Remove", clearable = true,
   emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options",
   clearLabel = "Clear selection", invalidSelectionMessage = "Select an option.",
   controlSize = "md", readOnly, disabled, required, name, id: explicitId,
@@ -16,16 +24,19 @@ export const SearchSelection = forwardRef<HTMLInputElement, ComboboxProps>(funct
 }, forwardedRef) {
   if (new Set(options.map(option => option.value)).size !== options.length || options.some(option => !option.value || !option.label.trim())) throw new Error("Flood Combobox options need unique nonempty values and labels");
   if (![emptyMessage, listLabel, toggleLabel, clearLabel, invalidSelectionMessage].every(text => text.trim())) throw new Error("Flood Combobox messages and action labels must be nonempty");
+  for (const values of [defaultValue, value]) if (values !== undefined && (!Array.isArray(values) || new Set(values).size !== values.length || values.some(item => typeof item !== "string" || !item))) throw new Error("Flood selection values must be unique nonempty strings");
+  if (multiple && !removeItemLabel.trim()) throw new Error("Flood MultiSelect requires an accessible removal label");
   const generatedId = useId(), id = explicitId ?? `flood-combobox-${generatedId}`;
   const menuId = `${id}-options`, validationId = `${id}-validation`;
   const input = useRef<HTMLInputElement>(null), root = useRef<HTMLDivElement>(null), panel = useRef<HTMLDivElement>(null), viewport = useRef<HTMLDivElement>(null);
   useImperativeHandle(forwardedRef, () => input.current!, []);
-  const initial = useRef(defaultValue);
-  const [local, setLocal] = useState(defaultValue), [query, setQuery] = useState<string | null>(null);
+  const initial = useRef([...defaultValue]);
+  const [local, setLocal] = useState(() => [...defaultValue]), [query, setQuery] = useState<string | null>(null);
   const [open, setOpen] = useState(false), [activeValue, setActiveValue] = useState<string>();
   const [validation, setValidation] = useState("");
-  const selected = options.find(option => option.value === (value ?? local));
-  const displayed = query ?? selected?.label ?? "";
+  const selections = (value ?? local).map(id => options.find(option => option.value === id)).filter((option): option is ComboboxOption => Boolean(option));
+  const selected = selections[0], selectedIds = selections.map(option => option.value);
+  const displayed = query ?? (multiple ? "" : selected?.label ?? "");
   const filtered = query === null ? options : options.filter(option => searchable([option.label, ...(option.keywords ?? [])].join(" ")).includes(searchable(query)));
   const enabled = filtered.filter(option => !option.disabled);
   const active = enabled.find(option => option.value === activeValue) ?? enabled[0];
@@ -34,19 +45,30 @@ export const SearchSelection = forwardRef<HTMLInputElement, ComboboxProps>(funct
   current.current = { value, selected, readOnly, disabled };
   const close = () => { setOpen(false); setQuery(null); };
   const inert = () => Boolean(readOnly || disabled || input.current?.matches(":disabled"));
+  const publish = (next: string[]) => {
+    if (value === undefined) setLocal(next);
+    if (next.length !== selectedIds.length || next.some((id, index) => id !== selectedIds[index])) onValueChange?.([...next]);
+    setValidation("");
+  };
+  const remove = (id: string) => {
+    if (inert() || options.find(option => option.value === id)?.disabled) return;
+    publish(selectedIds.filter(value => value !== id)); input.current?.focus({ preventScroll: true });
+  };
   const select = (next: string) => {
     if (inert() || (next !== "" && !options.some(option => option.value === next && !option.disabled))) return;
-    if (value === undefined) setLocal(next);
-    if (next !== (selected?.value ?? "")) onValueChange?.(next);
-    setValidation(""); close(); input.current?.focus({ preventScroll: true });
+    if (multiple) {
+      publish(next === "" ? selections.filter(option => option.disabled).map(option => option.value) : selectedIds.includes(next) ? selectedIds.filter(id => id !== next) : [...selectedIds, next]);
+      if (next) { setQuery(""); setActiveValue(next); setOpen(true); } else close();
+    } else { publish(next ? [next] : []); close(); }
+    input.current?.focus({ preventScroll: true });
   };
   const show = () => {
     if (inert()) return;
     setActiveValue(selected?.value); setOpen(true);
   };
   useBrowserLayoutEffect(() => {
-    input.current?.setCustomValidity(required && !selected ? invalidSelectionMessage : "");
-  }, [required, selected?.value, invalidSelectionMessage]);
+    input.current?.setCustomValidity(required && !selections.length ? invalidSelectionMessage : "");
+  }, [required, selections.length, invalidSelectionMessage]);
   useEffect(() => {
     const form = input.current?.form;
     if (!form) return;
@@ -111,54 +133,85 @@ export const SearchSelection = forwardRef<HTMLInputElement, ComboboxProps>(funct
     const area = viewport.current, a = option.getBoundingClientRect(), b = area.getBoundingClientRect();
     if (a.top < b.top) area.scrollTop -= b.top - a.top;
     else if (a.bottom > b.bottom) area.scrollTop += a.bottom - b.bottom;
-  }, [open, active?.value, query]);
+  }, [open, active?.value, query, options]);
   const glyph = (clear: boolean) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{clear ? <path d="m6 6 12 12M18 6 6 18" /> : <path d="m6 9 6 6 6-6" />}</svg>;
-  return <div className="flood-combobox" ref={root} hidden={props.hidden} dir={props.dir} lang={props.lang}>
-    <InputGroup {...props} ref={input} id={id} type="text" value={displayed} disabled={disabled} readOnly={readOnly} required={required} controlSize={controlSize}
-      autoComplete={autoComplete} role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? menuId : undefined}
-      aria-activedescendant={open && active ? optionId(active.value) : undefined}
-      aria-describedby={mergeDescriptions(props["aria-describedby"], validation && validationId)}
-      invalid={props.invalid || Boolean(validation)} className={["flood-combobox__control", className].filter(Boolean).join(" ")}
-      onChange={event => {
+  const inputProps: InputProps & {type:"text"} = {
+    ...props, id, type:"text", value:displayed, disabled, readOnly, required:required && (!multiple || !selections.length), controlSize, autoComplete,
+    role:"combobox", "aria-autocomplete":"list", "aria-haspopup":"listbox", "aria-expanded":open, "aria-controls":open ? menuId : undefined,
+    "aria-required":required || undefined, "aria-activedescendant":open && active ? optionId(active.value) : undefined,
+    "aria-describedby":mergeDescriptions(props["aria-describedby"], validation && validationId, multiple && Boolean(selections.length) && `${id}-selection`),
+    invalid:props.invalid || Boolean(validation),
+    onChange:event => {
         if (inert()) return;
         const text = event.currentTarget.value; setQuery(text); setActiveValue(undefined); setOpen(true); setValidation("");
-        if (text === "" && selected) { if (value === undefined) setLocal(""); onValueChange?.(""); }
-      }}
-      onClick={event => { onClick?.(event); if (!event.defaultPrevented) show(); }}
-      onBlur={event => {
+        if (!multiple && text === "" && selected) publish([]);
+      },
+      onClick:event => { onClick?.(event); if (!event.defaultPrevented) show(); },
+      onBlur:event => {
         onBlur?.(event);
         if (event.defaultPrevented || root.current?.contains(event.relatedTarget as Node)) return;
         close();
-      }}
-      onInvalid={event => { onInvalid?.(event); if (!event.defaultPrevented) setValidation(event.currentTarget.validationMessage); }}
-      onKeyDown={event => {
+      },
+      onInvalid:event => { onInvalid?.(event); if (!event.defaultPrevented) setValidation(event.currentTarget.validationMessage); },
+      onKeyDown:event => {
         onKeyDown?.(event);
         if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || inert()) return;
-        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        const rtl = event.currentTarget.ownerDocument.defaultView?.getComputedStyle(event.currentTarget).direction === "rtl";
+        if (multiple && event.key === "Backspace" && displayed === "") {
+          const last = [...selections].reverse().find(option => !option.disabled);
+          if (last) { event.preventDefault(); remove(last.value); }
+        } else if (multiple && event.key === (rtl ? "ArrowRight" : "ArrowLeft") && event.currentTarget.selectionStart === 0 && event.currentTarget.selectionEnd === 0) {
+          const buttons = root.current?.querySelectorAll<HTMLButtonElement>(".flood-tag__remove:not(:disabled)");
+          if (buttons?.length) { event.preventDefault(); buttons[buttons.length - 1].focus(); }
+        } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
           event.preventDefault();
           if (!open) { setActiveValue(event.key === "ArrowUp" ? enabled.at(-1)?.value : selected?.value ?? enabled[0]?.value); setOpen(true); }
           else { const index = enabled.findIndex(option => option.value === active?.value); const next = (index + (event.key === "ArrowDown" ? 1 : -1) + enabled.length) % enabled.length; setActiveValue(enabled[next]?.value); }
         } else if (event.key === "Enter" && open) { event.preventDefault(); if (active) select(active.value); }
         else if (event.key === "Escape" && open) { event.preventDefault(); event.stopPropagation(); close(); }
         else if (event.key === "Tab") close();
-      }}
-      end={<span className="flood-combobox__actions">
-        {clearable && <IconButton label={clearLabel} variant="ghost" size={controlSize} className={!selected ? "flood-combobox__clear-empty" : undefined} disabled={disabled || readOnly || !selected} aria-hidden={!selected || undefined} tabIndex={-1}
+      },
+  };
+  const removable = selections.some(option => !option.disabled);
+  const actions = <span className="flood-combobox__actions">
+        {clearable && <IconButton label={clearLabel} variant="ghost" size={controlSize} className={!selected ? "flood-combobox__clear-empty" : undefined} disabled={disabled || readOnly || !selected || (multiple && !removable)} aria-hidden={!selected || undefined} tabIndex={-1}
           onPointerDown={event => event.preventDefault()} onClick={() => select("")}>{glyph(true)}</IconButton>}
         <IconButton label={toggleLabel} variant="ghost" size={controlSize} disabled={disabled || readOnly} tabIndex={-1} aria-expanded={open} aria-controls={open ? menuId : undefined}
           onPointerDown={event => event.preventDefault()} onClick={() => { if (open) close(); else show(); input.current?.focus({ preventScroll: true }); }}>{glyph(false)}</IconButton>
-      </span>} />
-    <input type="hidden" name={name} value={selected?.value ?? ""} disabled={disabled} form={props.form} />
+      </span>;
+  return <div className={multiple ? "flood-combobox flood-multi-select" : "flood-combobox"} ref={root} hidden={props.hidden} dir={props.dir} lang={props.lang}>
+    {multiple ? <div className={["flood-input-group", "flood-multi-select__control", `flood-control--${controlSize}`, className].filter(Boolean).join(" ")} style={props.style}
+      data-disabled={disabled || undefined} data-readonly={readOnly || undefined} data-status={resolveFieldStatus(props.status, props.invalid || Boolean(validation), props["aria-invalid"])}
+      onClick={event => { if (event.target === event.currentTarget && !inert()) { input.current?.focus(); show(); } }}>
+      {selections.map(option => <Tag key={option.value} size={controlSize === "sm" ? "sm" : controlSize === "md" ? "md" : "lg"} disabled={disabled || option.disabled}
+        onRemove={readOnly ? undefined : () => remove(option.value)} removeLabel={`${removeItemLabel} ${option.label}`}
+        removeButtonProps={{tabIndex:-1,onKeyDown:event => {
+          if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || inert()) return;
+          const rtl = event.currentTarget.ownerDocument.defaultView?.getComputedStyle(event.currentTarget).direction === "rtl";
+          const buttons = [...root.current!.querySelectorAll<HTMLButtonElement>(".flood-tag__remove:not(:disabled)")];
+          const index = buttons.indexOf(event.currentTarget);
+          if (event.key === "Backspace" || event.key === "Delete") { event.preventDefault(); remove(option.value); }
+          else if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); close(); input.current?.focus(); }
+          else if (event.key === (rtl ? "ArrowLeft" : "ArrowRight")) { event.preventDefault(); (buttons[index + 1] ?? input.current)?.focus(); }
+          else if (event.key === (rtl ? "ArrowRight" : "ArrowLeft")) { event.preventDefault(); (buttons[Math.max(0,index - 1)])?.focus(); }
+        }}}>{option.label}</Tag>)}
+      <div className="flood-multi-select__editor">
+        <Input {...inputProps} ref={input} style={undefined} />
+        {actions}
+      </div>
+    </div> : <InputGroup {...inputProps} ref={input} className={["flood-combobox__control", className].filter(Boolean).join(" ")} end={actions} />}
+    {(multiple ? selections : [selected]).map((option, index) => <input key={option?.value ?? index} type="hidden" name={name} value={option?.value ?? ""} disabled={disabled} form={props.form} />)}
+    {multiple && Boolean(selections.length) && <span id={`${id}-selection`} className="flood-visually-hidden">{selections.map(option => option.label).join(", ")}</span>}
     {open && <div ref={panel} popover="manual" className="flood-select__menu flood-combobox__menu"
       onPointerDown={event => { if (event.pointerType === "mouse") event.preventDefault(); }}>
-      <ScrollArea ref={viewport} id={menuId} role="listbox" aria-label={listLabel} orientation="vertical" tabIndex={-1} className="flood-select__viewport">
+      <ScrollArea ref={viewport} id={menuId} role="listbox" aria-label={listLabel} aria-multiselectable={multiple || undefined} orientation="vertical" tabIndex={-1} className="flood-select__viewport">
         {!filtered.length && <div className="flood-select__empty" role="option" aria-disabled="true" aria-selected="false">{emptyMessage}</div>}
-        {filtered.map(option => <div key={option.value} id={optionId(option.value)} role="option" aria-selected={option.value === selected?.value} aria-disabled={option.disabled || undefined}
+        {filtered.map(option => <div key={option.value} id={optionId(option.value)} role="option" aria-selected={selectedIds.includes(option.value)} aria-disabled={option.disabled || undefined}
           className="flood-select__option" data-active={option.value === active?.value || undefined}
           onPointerMove={event => { if (event.pointerType === "mouse" && !option.disabled) setActiveValue(option.value); }}
           onPointerDown={event => event.preventDefault()} onClick={() => select(option.value)}>
           <span className="flood-combobox__option-text"><span>{option.label}</span>{option.description && <span className="flood-combobox__description">{option.description}</span>}</span>
-          <span className="flood-select__selected" aria-hidden="true">{selected?.value === option.value ? "✓" : ""}</span>
+          <span className="flood-select__selected" aria-hidden="true">{selectedIds.includes(option.value) ? "✓" : ""}</span>
         </div>)}
       </ScrollArea>
     </div>}

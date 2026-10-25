@@ -820,3 +820,10 @@ Combobox adds editable single selection in the 0.2.5 candidate. Reuse Field for 
 label, use options with stable value/label pairs, and observe onValueChange for
 the selected ID. Search query text is not form data. See docs/base-components.md
 for reset, required, read-only, localized messages and native Popover requirements.
+
+Tag and MultiSelect are compatible additions in the unpublished 0.2.5 candidate.
+Tag labels an item and optionally requests host-owned removal. MultiSelect uses
+arrays of stable option IDs and composes those tags with the shared searchable
+selection model. See docs/base-components.md for keyboard behavior, locked values,
+readonly/required forms, focus recovery and relative nested geometry. Existing
+Combobox continues to accept and return a single string.

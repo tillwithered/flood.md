@@ -946,5 +946,37 @@
       "Native input ref, Field associations, required validity, controlled/uncontrolled value, forms/reset, read-only/disabled and IME editing are preserved. Options need unique nonempty values and labels. Disabled options remain discoverable and cannot be chosen.",
       "Use clearable for the visible clear action; translate clearLabel/toggleLabel/listLabel/emptyMessage/invalidSelectionMessage. The popup reuses Flood ScrollArea and layer positioning. No arbitrary text, multiple selection, async fetching or virtualization engine is supplied. Available in the unpublished 0.2.5 candidate."
     ]
+  },
+  {
+    "slug": "tag",
+    "name": "Tag",
+    "group": "content",
+    "description": "A compact label with an optional icon and a named removal action.",
+    "code": "<Tag onRemove={() => { /* Update the host collection. */ }}>Design</Tag>",
+    "imports": [
+      "Tag"
+    ],
+    "notes": [
+      "Tag is a label, not a status Badge or a selection toggle. The host owns removal; onRemove never hides the element automatically. Use ordinary noninteractive label content.",
+      "Plain text gets a default Remove label. Rich content needs explicit removeLabel. disabled prevents removal; size and decorative icon are independent. removeButtonProps customizes the nested native action while Tag owns type, name, disabled and removal.",
+      "Standalone removal is an ordinary Tab stop. MultiSelect supplies its composite keyboard model. Geometry uses relative Flood sizing; long labels wrap and touch targets remain distinct. Available in the unpublished 0.2.5 candidate."
+    ]
+  },
+  {
+    "slug": "multi-select",
+    "name": "MultiSelect",
+    "group": "forms",
+    "description": "Search a collection, choose multiple values and manage them as removable tags.",
+    "code": "<Field label=\"Frameworks\">\n  {control => <MultiSelect {...control} name=\"frameworks\" options={[{value:\"react\",label:\"React\"},{value:\"vue\",label:\"Vue\"},{value:\"svelte\",label:\"Svelte\"}]} defaultValue={[\"react\"]} placeholder=\"Search frameworks\" />}\n</Field>",
+    "imports": [
+      "Field",
+      "MultiSelect"
+    ],
+    "notes": [
+      "value/defaultValue are arrays of unique nonempty option IDs; onValueChange returns a new array. Native forms submit repeated entries with the same name, never typed query text. Uncontrolled reset restores initial values.",
+      "The shared Combobox search/layer model keeps focus in the input. Enter toggles the active option and the list stays open. Backspace in an empty input removes the last editable tag; a logical backward arrow at the start enters tag actions. Tag arrows, Delete/Backspace, Enter and Escape support keyboard editing.",
+      "Disabled selected options cannot be individually removed or cleared globally. Read-only permits copying but blocks selection and removal. Required means at least one valid selected ID. Translate removeItemLabel and the shared action/empty/validation messages.",
+      "No freeform values, remote fetching, virtualization or arbitrary tag selection engine is supplied. Available in the unpublished 0.2.5 candidate."
+    ]
   }
 ]

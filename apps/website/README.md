@@ -12,7 +12,7 @@ content rather than pretending to be library components. Document scrollbars use
 the same foundation tokens through the explicit dark scope on the HTML root;
 page scrolling remains native with forced-color fallback and a stable gutter.
 It has a focused home page, eight documentation guides and an overview plus a
-detail page for each of the 60 exports in the 0.2.5 source candidate. Installation availability follows
+detail page for each of the 62 exports in the 0.2.5 source candidate. Installation availability follows
 the verified publication gate in src/release.json.
 
 ## Content

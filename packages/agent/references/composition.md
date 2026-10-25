@@ -176,3 +176,13 @@ Use descriptive labels/keywords, keep disabled choices inert, and translate the
 list/clear/toggle/empty/validation messages. Read-only selection remains selectable
 for copying. Native forms/reset and required validity apply to the selected ID.
 Do not imply freeform values, async fetching, multiple selection or virtualization.
+
+Tag is label content with an optional named native removal action; it is not a
+status Badge or Toggle. The host owns removal/state and standalone focus recovery.
+Provide removeLabel for rich content and localization. MultiSelect composes Tag
+and the shared Combobox search/layer model with an array of selected option IDs.
+Never pass arrays to Combobox or submit search text as selected values. Use Field
+for associations/feedback. Preserve repeated form entries, reset and required
+selection validity. Disabled selected items stay selected through clear/remove;
+read-only blocks edits. Do not shrink touch targets to force tags into a row.
+Let tags wrap while the search editor and its suffix actions remain together.
