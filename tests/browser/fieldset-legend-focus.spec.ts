@@ -12,12 +12,15 @@ async function fixture() {
 import{createRoot}from ${file("node_modules/react-dom/client.js")};
 import{FloodRoot,Fieldset,Field,Button,Input,Checkbox,Link}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};
 const h=React.createElement;
+// A host can consume click before the utility's listener. Pointerup must still
+// finish its geometry hold without synthesizing activation.
+document.addEventListener('click',event=>{if(window.consumeLegendClick){window.consumeLegendClick=false;event.preventDefault();event.stopImmediatePropagation()}},true);
 function RichLegend(){const[count,C]=useState(0);return h('span',null,'Delivery preferences ',h(Button,{size:'sm',onClick:()=>C(n=>n+1)},'Update legend'),h('span',{'role':'status','aria-label':'Legend count'},String(count)),h(Checkbox,{label:'Allow receipt',name:'receipt',value:'yes',defaultChecked:true}));}
-function App(){const[hidden,H]=useState(false),[refResult,R]=useState(''),ref=useRef();return h(FloodRoot,null,h('h1',null,'Focusable hidden labels'),
+function App(){const[hidden,H]=useState(false),[refResult,R]=useState(''),[inspects,I]=useState(0),[fieldActions,A]=useState(0),ref=useRef();return h(FloodRoot,null,h('h1',null,'Focusable hidden labels'),
 h(Button,{onClick:()=>H(value=>!value)},'Toggle legend visibility'),h(Button,{id:'before-group'},'Before group'),
 h('form',{id:'legend-owner'},h(Fieldset,{legend:'Workspace preferences'},h(Fieldset,{id:'delivery',ref,disabled:true,hideLabel:hidden,legend:h(RichLegend)},h(Input,{'aria-label':'Disabled body',name:'body',defaultValue:'retained'}),h(Fieldset,{legend:'Nested details'},h(Input,{'aria-label':'Nested body',name:'nested',defaultValue:'nested'}))))),
-h(Button,{id:'after-group'},'After group'),h(Button,{onClick:()=>R(ref.current.tagName+':'+ref.current.firstElementChild.tagName)},'Inspect fieldset ref'),h('output',{'aria-label':'Fieldset ref'},refResult),
-h(Button,{id:'before-field'},'Before field'),h(Field,{id:'focus-project',hideLabel:true,label:h(React.Fragment,null,'Project name ',h(Link,{href:'#label-guide'},'Label guide'))},props=>h(Input,{...props,defaultValue:'Retained project'})),h('div',{id:'label-guide'},'Supporting explanation'));
+h(Button,{id:'after-group'},'After group'),h(Button,{onClick:()=>{I(n=>n+1);R(ref.current.tagName+':'+ref.current.firstElementChild.tagName)}},'Inspect fieldset ref'),h('output',{'aria-label':'Fieldset ref'},refResult),h('output',{'aria-label':'Inspect callbacks'},String(inspects)),
+h(Button,{id:'before-field'},'Before field'),h(Field,{id:'focus-project',hideLabel:true,label:h(React.Fragment,null,'Project name ',h(Link,{href:'#label-guide'},'Label guide'))},props=>h(Input,{...props,defaultValue:'Retained project'})),h(Button,{onClick:()=>A(n=>n+1)},'After field action'),h('output',{'aria-label':'Field callbacks'},String(fieldActions)),h('div',{id:'label-guide'},'Supporting explanation'));
 }createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
   const result = await build({ configFile: false, logLevel: "silent", define: { "process.env.NODE_ENV": JSON.stringify("development") }, build: { write: false, minify: true, cssCodeSplit: false, lib: { entry, formats: ["iife"], name: "LegendFocusFixture" } } });
   const outputs = (Array.isArray(result) ? result : [result]).flatMap(item => "output" in item ? item.output : []);
@@ -69,6 +72,26 @@ test("a nested disabled fieldset reveals its first legend on Tab without remount
   await info.attach("legend-keyboard-focus-enlarged-rtl.png",{body:await group.screenshot(),contentType:"image/png"});
   await page.getByRole("button", { name: "Inspect fieldset ref", exact: true }).click();
   await expect(page.locator('output[aria-label="Fieldset ref"]')).toHaveText("FIELDSET:LEGEND");
+  await expect(page.locator('output[aria-label="Inspect callbacks"]')).toHaveText("1");
+  await expect.poll(async () => (await legend.boundingBox())!.height).toBeLessThanOrEqual(1);
+  await expect(legend).not.toHaveAttribute("data-flood-focus-held", "");
+
+  // Real pointerdown must hold the revealed row even after its focus moves.
+  // A host-consumed click then exercises pointerup's no-click cleanup fallback.
+  await update.focus();
+  const destination = page.getByRole("button", { name: "Inspect fieldset ref", exact: true });
+  await destination.scrollIntoViewIfNeeded();
+  const target = (await destination.boundingBox())!;
+  await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2);
+  await page.mouse.down();
+  await expect(legend).toHaveAttribute("data-flood-focus-held", "");
+  expect((await legend.boundingBox())!.height).toBeGreaterThan(1);
+  await page.evaluate(() => { (window as unknown as { consumeLegendClick: boolean }).consumeLegendClick = true; });
+  await page.mouse.up();
+  await expect.poll(async () => (await legend.boundingBox())!.height).toBeLessThanOrEqual(1);
+  await expect(legend).not.toHaveAttribute("data-flood-focus-held", "");
+  await expect(page.locator('output[aria-label="Inspect callbacks"]')).toHaveText("1");
+  await expect(count).toHaveText("2");
 });
 
 test("a supporting link reveals a hidden Field label while preserving the input name", async ({ page }, info) => {
@@ -84,5 +107,11 @@ test("a supporting link reveals a hidden Field label while preserving the input 
   await expect(input).toHaveAccessibleName(/Project name/);
   await page.keyboard.press("Tab"); await expect(input).toBeFocused();
   expect((await label.boundingBox())!.height).toBeLessThanOrEqual(1);
+  await expect(input).toHaveValue("Retained project"); await expect(input).toHaveAccessibleName(/Project name/);
+  await page.locator("#before-field").focus(); await page.keyboard.press("Tab"); await expect(link).toBeFocused();
+  await page.getByRole("button", { name: "After field action", exact: true }).click();
+  await expect(page.locator('output[aria-label="Field callbacks"]')).toHaveText("1");
+  await expect.poll(async () => (await label.boundingBox())!.height).toBeLessThanOrEqual(1);
+  await expect(label).not.toHaveAttribute("data-flood-focus-held", "");
   await expect(input).toHaveValue("Retained project"); await expect(input).toHaveAccessibleName(/Project name/);
 });

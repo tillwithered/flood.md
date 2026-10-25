@@ -20,6 +20,7 @@ import {
   type TableHTMLAttributes,
   type ImgHTMLAttributes,
 } from "react";
+import { useFocusableHidden } from "./focusable-hidden.js";
 import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-state.js";
 import { SingleSelect } from "./select.js";
 import { MixedCheckbox } from "./checkbox.js";
@@ -657,12 +658,13 @@ export const Fieldset = forwardRef<HTMLFieldSetElement, FieldsetProps>(function 
 ) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
+  const legendRef = useFocusableHidden<HTMLLegendElement>(hideLabel);
   const hasHint = hasFieldContent(hint), hasError = hasFieldContent(error), hasMessage = hasFieldContent(message) && !hasError;
   const resolvedStatus = resolveFieldStatus(status, hasError, ariaInvalid);
   const description = mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && `${id}-message`);
   return <fieldset {...props} ref={ref} id={id} className={classes("flood-fieldset", className)} data-hide-label={hideLabel || undefined} data-status={resolvedStatus}
     aria-describedby={description} aria-invalid={resolvedStatus === "error" || ariaInvalid || undefined}>
-    <legend className={classes("flood-legend", hideLabel && "flood-visually-hidden--focusable")}>{legend}</legend>
+    <legend ref={legendRef} className={classes("flood-legend", hideLabel && "flood-visually-hidden--focusable")}>{legend}</legend>
     <div className="flood-fieldset__body">
       {hasHint && <div id={`${id}-hint`} className="flood-hint">{hint}</div>}
       {children}
@@ -773,6 +775,7 @@ export function Field({
 }: FieldProps) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
+  const labelRef = useFocusableHidden<HTMLLabelElement>(hideLabel);
   const hasMessage = hasFieldContent(message);
   const hasHint = hasFieldContent(hint);
   const hasError = hasFieldContent(error);
@@ -781,7 +784,7 @@ export function Field({
     mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && !hasError && `${id}-message`);
   return (
     <div className="flood-field" data-hide-label={hideLabel || undefined} data-status={resolvedStatus}>
-      <Label htmlFor={id} required={required} className={hideLabel ? "flood-visually-hidden--focusable" : undefined}>{label}</Label>
+      <Label ref={labelRef} htmlFor={id} required={required} className={hideLabel ? "flood-visually-hidden--focusable" : undefined}>{label}</Label>
       {children({
         id,
         "aria-describedby": description,
@@ -904,7 +907,8 @@ export interface VisuallyHiddenProps extends HTMLAttributes<HTMLElement> {
 export const VisuallyHidden = forwardRef<HTMLElement, VisuallyHiddenProps>(function VisuallyHidden(
   { as = "span", focusable = false, className, ...props }, ref,
 ) {
-  return createElement(as, { ...props, ref, className: classes(focusable ? "flood-visually-hidden--focusable" : "flood-visually-hidden", className) });
+  const hiddenRef = useFocusableHidden<HTMLElement>(focusable, ref);
+  return createElement(as, { ...props, ref: hiddenRef, className: classes(focusable ? "flood-visually-hidden--focusable" : "flood-visually-hidden", className) });
 });
 export interface AspectRatioProps extends HTMLAttributes<HTMLDivElement> {
   ratio?: number;

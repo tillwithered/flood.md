@@ -163,7 +163,7 @@
 }
 
 /* Keep real labels in the accessibility tree while removing their layout box. */
-.flood-visually-hidden, .flood-visually-hidden--focusable:not(:focus-within) { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.flood-visually-hidden, .flood-visually-hidden--focusable:not(:focus-within):not([data-flood-focus-held]) { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .flood-field[data-hide-label="true"], .flood-fieldset[data-hide-label="true"] { position: relative; }
 
 .flood-root .flood-tabs { display: grid; grid-template-rows: auto 1fr; min-inline-size: 0; box-sizing: border-box; overflow: clip; border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-field); background: var(--flood-sys-color-surface-default); }
@@ -465,7 +465,7 @@
 /* Keep legends in ordinary float/clear layout from their first render.
    WebKit otherwise retains the native legend row when it becomes absolute.
    The real legend and its React children remain mounted for group semantics. */
-.flood-root .flood-fieldset[data-hide-label="true"] > .flood-legend.flood-visually-hidden--focusable:not(:focus-within) { float: none; inline-size: 1px; block-size: 1px; margin: 0; min-inline-size: 0; min-block-size: 0; max-inline-size: 1px; max-block-size: 1px; line-height: 1px; }
+.flood-root .flood-fieldset[data-hide-label="true"] > .flood-legend.flood-visually-hidden--focusable:not(:focus-within):not([data-flood-focus-held]) { float: none; inline-size: 1px; block-size: 1px; margin: 0; min-inline-size: 0; min-block-size: 0; max-inline-size: 1px; max-block-size: 1px; line-height: 1px; }
 .flood-root .flood-fieldset:disabled :is(.flood-legend, .flood-label) { color: var(--flood-sys-color-field-disabled-content); }
 .flood-root .flood-label { color: var(--flood-sys-color-content-helper); font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); font-weight: var(--flood-sys-type-label-weight); letter-spacing: var(--flood-sys-type-label-tracking); }
 .flood-root :where(.flood-hint, .flood-error) { font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); font-weight: var(--flood-sys-type-helper-weight); letter-spacing: var(--flood-sys-type-helper-tracking); }
