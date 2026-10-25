@@ -60,6 +60,12 @@ export const RangeControl = forwardRef<HTMLFieldSetElement, Props>(function Rang
       onKeyDown?.(event);
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
       if (readOnly && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key)) event.preventDefault();
+      const index = inputs.current.indexOf(event.target as HTMLInputElement);
+      if (index < 0 || inert(event.currentTarget) || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
+      // Native WebKit does not reverse horizontal range keys in RTL.
+      const rtl = event.currentTarget.ownerDocument.defaultView?.getComputedStyle(event.currentTarget).direction === "rtl";
+      event.preventDefault();
+      update(index, values[index] + step * (event.key === (rtl ? "ArrowLeft" : "ArrowRight") ? 1 : -1));
     }}>
     {showValue && <div className="flood-slider__value" aria-hidden="true"><bdi dir="ltr">{values.join(" – ")}</bdi></div>}
     <div className="flood-slider__rail" style={{"--flood-slider-start": `${start}%`, "--flood-slider-end": `${100 - end}%`} as CSSProperties}
