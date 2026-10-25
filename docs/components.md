@@ -1,8 +1,8 @@
 # Components
 
-## Dark foundations · 0.2.4 source candidate
+## Dark foundations · 0.2.4
 
-This guide describes the **0.2.4 source candidate** API. See the [base component inventory](base-components.md)
+This guide describes the **0.2.4** API. See the [base component inventory](base-components.md)
 for the complete set. New APIs extend earlier 0.2 releases; source changes do not
 modify published npm versions. Existing 0.1.1 installs follow their
 version-specific guides.
@@ -382,7 +382,7 @@ package guide for detailed ownership, fallback and keyboard contracts.
 
 ## Badge, Spinner, Skeleton and Avatar · 0.2.4
 
-These original primitives are compatible additions in the 0.2.4 source candidate.
+These original primitives are compatible additions in the 0.2.4.
 Import Flood CSS and use FloodRoot. Verify registry publication before installing.
 Native span props and refs target their roots; className/style remain host overrides.
 

@@ -1,6 +1,6 @@
 # @flood-md/tokens
 
-Typed reference values and semantic CSS roles for Flood **0.2.4 source candidate**. Keep Flood
+Typed reference values and semantic CSS roles for Flood **0.2.4**. Keep Flood
 package versions aligned. Existing 0.1.1 installs use their earlier token contract.
 
 React consumers import @flood-md/react/styles.css and use FloodRoot. Token-only
@@ -32,7 +32,7 @@ Version 0.2.3 adds scrollbar size/inset/min-thumb roles and semantic thumb/hover
 colors, expanding the profile to 168 roles. Install matching package versions.
 
 
-The 0.2.4 source candidate adds sixteen semantic roles, bringing the dark profile
+Version 0.2.4 adds sixteen semantic roles, bringing the dark profile
 to 184 roles. Existing role values remain unchanged:
 
 - sys.color.accent.content and sys.color.loading.placeholder separate accent text

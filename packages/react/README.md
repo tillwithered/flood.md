@@ -3,7 +3,7 @@
 Original React 18.3/19 components for TypeScript and Next.js App Router. Native
 HTML semantics and refs, no third-party component library or Tailwind dependency.
 
-This package documents the **0.2.4 source candidate** API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.4** API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
 ```tsx
@@ -516,7 +516,7 @@ All three are available in 0.2.3. Use Flood styles and FloodRoot for the neutral
 
 ## Badge, Spinner, Skeleton and Avatar · 0.2.4
 
-These original primitives are compatible additions in the 0.2.4 source candidate.
+These original primitives are compatible additions in the 0.2.4.
 Import Flood CSS and use FloodRoot. Verify registry publication before installing.
 Native span props and refs target their roots; className/style remain host overrides.
 

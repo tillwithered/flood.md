@@ -1,8 +1,8 @@
-# flood.md — agent entry point · 0.2.4 source candidate
+# flood.md — agent entry point · 0.2.4
 
 Flood is an independent React/TypeScript design system supporting React18.3/19
-and Next.js App Router. This document describes an unpublished source candidate;
-a source version is not proof of npm availability. Existing projects follow their
+and Next.js App Router. This document describes version 0.2.4;
+verify registry availability before installation. Existing projects follow their
 installed flood.json, flood/DESIGN.md and declarations first. Keep exact Flood
 package versions aligned; never fabricate installation or publication success.
 

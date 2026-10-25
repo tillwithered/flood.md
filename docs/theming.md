@@ -1,4 +1,4 @@
-# Customization · 0.2.4 source candidate
+# Customization · 0.2.4
 
 Start with the neutral dark foundations profile. `FloodRoot` selects it locally;
 version 0.2.4 does not provide a light foundations profile or a theme editor.

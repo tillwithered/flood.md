@@ -34,12 +34,14 @@ test("content board composes named and decorative primitives without overflow", 
   await page.screenshot({ path: `.artifacts/content-primitives-${info.project.name}.png`, fullPage: true });
 });
 
-test("Avatar preserves geometry across pending load, error, removal and source retry", async ({ page }) => {
+test("Avatar preserves geometry across pending load, error, removal and source retry", async ({ page }, info) => {
   let finish: () => void = () => {};
   const pending = new Promise<void>(resolve => { finish = resolve; });
+  let requests = 0;
   await page.route("**/avatar-demo.svg", async route => {
     await pending;
-    await route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="48" height="48" fill="pink"/></svg>' });
+    const [width,height] = ++requests === 1 ? [120,40] : [40,120];
+    await route.fulfill({ contentType: "image/svg+xml", body: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="${width}" height="${height}" fill="pink"/><circle cx="${width/2}" cy="${height/2}" r="10" fill="white"/></svg>` });
   });
   await page.goto("/components/avatar", { waitUntil: "domcontentloaded" });
   const stage = page.locator(".workbench-stage");
@@ -49,6 +51,15 @@ test("Avatar preserves geometry across pending load, error, removal and source r
   await expect(avatar.locator("img")).toHaveCSS("opacity", "0");
   finish();
   await expect(avatar.locator("img")).toHaveCSS("opacity", "1");
+  await expect(avatar.locator("img")).toHaveJSProperty("naturalWidth",120);
+  const assertCover = async () => {
+    const root = await documentBox(avatar), image = await documentBox(avatar.locator("img"));
+    expect(image.width).toBeCloseTo(root.width,1);
+    expect(image.height).toBeCloseTo(root.height,1);
+    await expect(avatar.locator("img")).toHaveCSS("object-fit","cover");
+  };
+  await assertCover();
+  await info.attach("avatar-landscape-cover.png",{body:await avatar.screenshot(),contentType:"image/png"});
   expect(await documentBox(avatar)).toEqual(before);
   const source = page.getByRole("combobox", { name: "Avatar prop image" });
   await chooseSelectOption(source, "broken");
@@ -58,6 +69,12 @@ test("Avatar preserves geometry across pending load, error, removal and source r
   await chooseSelectOption(source, "loaded");
   await expect(avatar.locator("img")).toHaveCSS("opacity", "1");
   expect(await documentBox(avatar)).toEqual(before);
+  await expect(avatar.locator("img")).toHaveJSProperty("naturalHeight",120);
+  await assertCover();
+  await chooseSelectOption(page.getByRole("combobox",{name:"Avatar prop size",exact:true}),"lg");
+  await page.evaluate(()=>{document.documentElement.style.fontSize="24px";document.documentElement.dir="rtl";});
+  await assertCover();
+  await info.attach("avatar-portrait-enlarged-rtl-cover.png",{body:await avatar.screenshot(),contentType:"image/png"});
 });
 
 test("loading primitives respect reduced motion, forced colors and hidden attributes", async ({ page }) => {

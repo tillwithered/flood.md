@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.2.4 · 2026-10-26
+
+- Keep rectangular Avatar sources fitted to their full container after Image composition.
+
 - Keep hidden fieldset legends out of layout across repeated state changes, enlarged text and RTL; reveal rich external labels while a descendant has focus and preserve pointer activation as they collapse.
 
 - Add Container, Grid, AspectRatio, Image, List, VisuallyHidden and EmptyState; expose native Checkbox mixed state.
@@ -19,7 +23,7 @@
 - Keep Breadcrumb items at their natural width before wrapping the trail; only
   labels longer than the available row may break within words.
 
-0.2.4 candidate: add original Badge, Spinner, Skeleton, Avatar, Progress, Meter, Alert, DescriptionList, Table and Menu, generated component documentation and live previews. Button loading reuses Spinner without changing its public API. Add independent accent-content, loading-placeholder and indicator semantic roles (184 roles). Exact package versions are aligned; publication is pending.
+0.2.4: add original Badge, Spinner, Skeleton, Avatar, Progress, Meter, Alert, DescriptionList, Table and Menu, generated component documentation and live previews. Button loading reuses Spinner without changing its public API. Add independent accent-content, loading-placeholder and indicator semantic roles (184 roles). Exact package versions are aligned.
 
 ## 0.2.3 · 2026-10-25
 

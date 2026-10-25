@@ -4,9 +4,9 @@ An independent design system for **React, TypeScript and Next.js**. Original
 components, semantic tokens, a small installer, and versioned instructions for
 coding agents. No third-party UI component library or Tailwind dependency.
 
-## Base dark design system · 0.2.4 preview
+## Base dark design system · 0.2.4
 
-The 0.2.4 source candidate provides a dark foundations profile, 184 semantic token roles and
+Flood 0.2.4 provides a dark foundations profile, 184 semantic token roles and
 [Original primitives and controls](docs/base-components.md), including forms,
 selection groups, disclosures, overlays and navigation. A versioned agent bundle
 includes portable spacing and composition guidance. Use the matching installed
@@ -36,7 +36,7 @@ contract remains compatible outside FloodRoot.
 
 ## Connect
 
-This branch describes the 0.2.4 source candidate. Registry publication is pending; the installation commands apply after publication.
+Use matching published Flood packages. Verify registry availability before running the versioned installation command.
 
 ```sh
 npx @flood-md/cli@0.2.4 init

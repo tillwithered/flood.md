@@ -1,6 +1,6 @@
-# Installation · 0.2.4 source candidate
+# Installation · 0.2.4
 
-The commands below target the source candidate. Use them after registry publication is verified; for local evaluation, see the tarball instructions at the end of this guide.
+The commands below target version 0.2.4. Verify registry availability before installation; for local source evaluation, see the tarball instructions at the end of this guide.
 
 Use Node.js 22.12 or newer and an existing npm-based React/Next.js project.
 React 18.3/19 is supported; React 19 and Next.js App Router are integration targets.
