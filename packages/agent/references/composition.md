@@ -168,3 +168,11 @@ an ordered pair; use thumbLabels to distinguish bounds, preserve native keyboard
 controls and keep explanatory feedback visible. Range handles cannot cross.
 Both support controlled/uncontrolled state, form reset and read-only presentation.
 Available in the 0.2.5 source candidate; do not imply registry availability.
+
+Combobox is editable single selection from explicit option values. Use Field for
+its input name/description associations, never submit typed search text as an ID.
+Arrow keys move the active suggestion; Enter commits, Escape cancels the search.
+Use descriptive labels/keywords, keep disabled choices inert, and translate the
+list/clear/toggle/empty/validation messages. Read-only selection remains selectable
+for copying. Native forms/reset and required validity apply to the selected ID.
+Do not imply freeform values, async fetching, multiple selection or virtualization.

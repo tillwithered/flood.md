@@ -36,6 +36,7 @@ import { ActionMenu } from "./menu.js";
 import { RovingToolbar } from "./toolbar.js";
 import { NumericStepper } from "./numeric-input.js";
 import { RangeControl } from "./slider.js";
+import { SearchSelection } from "./combobox.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -541,6 +542,32 @@ export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function
     {hasFieldContent(end) && <div className="flood-input-group__addon flood-input-group__addon--end">{typeof end === "string" ? <bdi dir="auto">{end}</bdi> : end}</div>}
   </div>;
 });
+export interface ComboboxOption {
+  value: string;
+  label: string;
+  description?: string;
+  keywords?: readonly string[];
+  disabled?: boolean;
+}
+export interface ComboboxProps extends Omit<InputProps, "type" | "value" | "defaultValue" | "onChange" | "children"> {
+  options: readonly ComboboxOption[];
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  clearable?: boolean;
+  emptyMessage?: string;
+  listLabel?: string;
+  toggleLabel?: string;
+  clearLabel?: string;
+  invalidSelectionMessage?: string;
+}
+/** @since 0.2.5 */
+export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Combobox(
+  { defaultValue = "", clearable = true, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select an option.", controlSize = "md", ...props }, ref,
+) {
+  return <SearchSelection {...props} ref={ref} defaultValue={defaultValue} clearable={clearable} emptyMessage={emptyMessage} listLabel={listLabel} toggleLabel={toggleLabel} clearLabel={clearLabel} invalidSelectionMessage={invalidSelectionMessage} controlSize={controlSize} />;
+});
+
 export interface NumberInputProps extends Omit<InputProps, "type" | "value" | "defaultValue" | "onChange" | "min" | "max" | "step" | "children"> {
   value?: number | null;
   defaultValue?: number | null;

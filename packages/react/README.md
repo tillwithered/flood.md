@@ -815,3 +815,8 @@ Checkbox, Radio and Switch apply native hidden/dir/lang to their visible label w
 
 
 0.2.5 adds NumberInput (native numeric editing and integrated step actions) and Slider (one value or an ordered pair). Use matching declarations and the numeric controls guide in docs/base-components.md. Registry publication is separate from source availability.
+
+Combobox adds editable single selection in the 0.2.5 candidate. Reuse Field for the
+label, use options with stable value/label pairs, and observe onValueChange for
+the selected ID. Search query text is not form data. See docs/base-components.md
+for reset, required, read-only, localized messages and native Popover requirements.

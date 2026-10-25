@@ -64,3 +64,25 @@ hideLabel preserves the group legend. Provide feedback text alongside status.
 Read-only remains focusable. Touch assistive technology requires real-device
 verification before claiming complete support. No vertical or arbitrary-count
 multi-handle API is supplied in this release candidate.
+
+## Combobox (0.2.5 candidate)
+
+Combobox is editable single selection from a defined collection. Compose it with
+Field exactly like Input; its ref, id, required validation and native input events
+target the visible text input. Options contain unique nonempty value/label pairs,
+optional description/keywords and disabled state. Local search folds accents and
+case in labels/keywords. Only the chosen option ID is submitted under name; typed
+search text is transient. Enter commits the active option; Escape/Tab/outside
+interaction discards an uncommitted query. Emptying the field requests clearing.
+
+value/onValueChange give controlled selection; defaultValue gives uncontrolled
+selection, restored by form reset. An unavailable controlled ID displays/submits
+empty. readOnly preserves copying and blocks all selection/clear actions.
+Disabled choices remain discoverable but cannot be newly chosen. clearable only
+controls the visible clear action; keyboard text editing remains available.
+Translate listLabel/toggleLabel/clearLabel/emptyMessage/invalidSelectionMessage.
+The visible input retains focus with aria-activedescendant pointing into a
+listbox; the shared native Popover layer and ScrollArea handle containment,
+positioning, clipping and scrolling. No arbitrary text submission, multi-selection,
+remote fetching or virtualization is supplied. Native Popover API is required,
+as for Flood Select. Test touch assistive technology on actual target devices.
