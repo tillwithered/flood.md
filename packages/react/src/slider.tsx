@@ -48,7 +48,7 @@ export const RangeControl = forwardRef<HTMLFieldSetElement, Props>(function Rang
   const pointValue = (node: HTMLDivElement, clientX: number) => {
     const box = node.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (clientX - box.left) / box.width));
-    return min + (getComputedStyle(node).direction === "rtl" ? 1 - ratio : ratio) * (max - min);
+    return min + (node.ownerDocument.defaultView?.getComputedStyle(node).direction === "rtl" ? 1 - ratio : ratio) * (max - min);
   };
   const inert = (node: HTMLElement) => disabled || readOnly || Boolean(node.closest("fieldset:disabled"));
   const start = values.length === 1 ? 0 : percent(values[0]);
@@ -64,7 +64,7 @@ export const RangeControl = forwardRef<HTMLFieldSetElement, Props>(function Rang
     {showValue && <div className="flood-slider__value" aria-hidden="true"><bdi dir="ltr">{values.join(" – ")}</bdi></div>}
     <div className="flood-slider__rail" style={{"--flood-slider-start": `${start}%`, "--flood-slider-end": `${100 - end}%`} as CSSProperties}
       onPointerDown={event => {
-        if (event.target instanceof HTMLInputElement || inert(event.currentTarget) || event.button !== 0) return;
+        if (inputs.current.includes(event.target as HTMLInputElement) || inert(event.currentTarget) || event.button !== 0) return;
         event.preventDefault();
         const next = pointValue(event.currentTarget, event.clientX);
         const index = values.length === 2 && Math.abs(next - values[1]) <= Math.abs(next - values[0]) ? 1 : 0;

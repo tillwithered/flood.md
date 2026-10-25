@@ -52,4 +52,7 @@
 
 .workbench-stage:is([data-component="number-input"], [data-component="slider"]) > .flood-root { inline-size: min(100%, 26rem); }
 .workbench-stage[data-component="number-input"] .flood-field { grid-template-rows: auto auto minmax(1.5rem, auto); }
-.workbench-stage[data-component="slider"] .flood-fieldset__body { min-block-size: 6rem; }
+.workbench-stage[data-component="slider"] .flood-fieldset__body { grid-template-rows: minmax(1.25rem, auto) minmax(var(--flood-control-height), auto) minmax(1.5rem, auto); }
+.workbench-stage[data-component="slider"] .flood-slider__value { grid-row: 1; }
+.workbench-stage[data-component="slider"] .flood-slider__rail { grid-row: 2; }
+.workbench-stage[data-component="slider"] :is(.flood-message, .flood-error) { grid-row: 3; }

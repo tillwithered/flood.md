@@ -380,6 +380,8 @@
 .flood-root .flood-number-input > .flood-input::-webkit-inner-spin-button,
 .flood-root .flood-number-input > .flood-input::-webkit-outer-spin-button { appearance: none; margin: 0; }
 .flood-root .flood-slider { --flood-slider-thumb: var(--flood-control-icon); min-inline-size: 0; inline-size: 100%; }
+.flood-root .flood-slider > .flood-fieldset__body { gap: var(--flood-sys-space-1); }
+.flood-root .flood-slider > .flood-legend { margin-block-end: var(--flood-sys-space-1); }
 .flood-root .flood-slider__value { color: var(--flood-sys-color-content-subtle); font-size: var(--flood-control-text); font-variant-numeric: tabular-nums; line-height: var(--flood-control-line); }
 .flood-root .flood-slider__rail { position: relative; block-size: var(--flood-control-height); margin-inline: calc(var(--flood-slider-thumb) / 2); touch-action: pan-y; }
 .flood-root .flood-slider__track { position: absolute; inset-inline: 0; inset-block-start: calc(50% - var(--flood-sys-space-1) / 2); block-size: var(--flood-sys-space-1); border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-field-border); }
