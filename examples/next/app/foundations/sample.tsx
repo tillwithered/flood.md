@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import {
   FloodRoot, Heading, Text, Stack, Inline, Surface, Divider,
-  Button, IconButton, Field, Input, Textarea, Select, Checkbox, Radio, Switch, NumberInput, Slider,
+  Button, IconButton, Field, Input, Textarea, Select, Checkbox, Radio, Switch, NumberInput, Slider, Combobox,
   type ControlSize,
 } from "@flood-md/react";
 
@@ -109,6 +109,7 @@ export function FoundationForm() {
             <Heading size="section">Fields and feedback</Heading>
             <Field label="Seats">{control => <NumberInput {...control} name="seats" defaultValue={5} min={0} max={20} />}</Field>
             <Slider label="Budget range" name="budget" defaultValue={[20, 80]} step={5} />
+            <Field label="Runtime">{control => <Combobox {...control} name="runtime" options={[{value:"react",label:"React"},{value:"vue",label:"Vue"}]} placeholder="Choose a runtime" />}</Field>
             <Inline gap="4">
               {(["sm", "md", "lg", "xl"] as const).map((size) => <div key={size} style={{ flex: "1 1 9rem", minWidth: 0 }}><Field id={`field-${size}`} label={`Field ${size}`}>{(control) => <Input {...control} controlSize={size} placeholder="Enter a value" />}</Field></div>)}
             </Inline>
