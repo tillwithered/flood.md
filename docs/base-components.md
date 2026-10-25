@@ -1,8 +1,9 @@
 # Base component architecture
 
 The 0.2.4 source candidate uses original React18.3/19 components and TypeScript
-declarations. The [catalog](../components.md) and individual component pages are
-generated from the same source and declarations; use them as the inventory.
+declarations. The website catalog and individual component pages are generated
+from the [source catalog](../apps/website/src/component-catalog.json) and declarations.
+Use the catalog for inventory and the [component guide](components.md) for composition.
 Source availability does not establish npm publication. Match installed versions.
 
 ## Compose responsibilities

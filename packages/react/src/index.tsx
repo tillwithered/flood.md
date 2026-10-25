@@ -596,7 +596,7 @@ export interface CheckboxProps extends ChoiceProps {
 export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
   function Checkbox({ label, indeterminate = false, className, ...props }, ref) {
     return (
-      <label hidden={props.hidden} className={classes("flood-choice", className)}>
+      <label hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-choice", className)}>
         <MixedCheckbox {...props} ref={ref} indeterminate={indeterminate} />
         <span>{label}</span>
       </label>
@@ -608,7 +608,7 @@ export const Radio = forwardRef<HTMLInputElement, ChoiceProps>(function Radio(
   ref,
 ) {
   return (
-    <label hidden={props.hidden} className={classes("flood-choice", className)}>
+    <label hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-choice", className)}>
       <input {...props} ref={ref} type="radio" className="flood-check" />
       <span>{label}</span>
     </label>
@@ -619,7 +619,7 @@ export const Switch = forwardRef<HTMLInputElement, ChoiceProps>(function Switch(
   ref,
 ) {
   return (
-    <label hidden={props.hidden} className={classes("flood-choice", "flood-switch", className)}>
+    <label hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-choice", "flood-switch", className)}>
       <span>{label}</span>
       <input
         {...props}

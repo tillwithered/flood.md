@@ -181,7 +181,7 @@ test("forced-color numeric options commit zero through a real pointer",async({br
     const trigger=page.getByRole("combobox",{name:"Pagination prop siblingCount",exact:true});
     try {
       await chooseSelectOption(trigger,"0");
-      await expect(page.locator("#usage code")).toContainText("siblingCount={0}");
+      await expect(page.locator("#usage .site-code-block code")).toContainText("siblingCount={0}");
     } catch(error) {
       const history=await page.evaluate(()=>(window as unknown as {numericSelectHistory:unknown}).numericSelectHistory);
       console.log("NUMERIC_SELECT_DIAGNOSTIC",JSON.stringify(history));

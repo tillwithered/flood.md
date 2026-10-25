@@ -462,6 +462,9 @@
 .flood-root .flood-fieldset__body:has(> .flood-choice-group) { gap: var(--flood-sys-space-1); }
 .flood-root .flood-fieldset:has(> .flood-fieldset__body > .flood-choice-group) > .flood-legend { margin-block-end: var(--flood-sys-space-1); }
 .flood-root .flood-fieldset:has(> .flood-fieldset__body > .flood-hint) > .flood-legend { margin-block-end: var(--flood-sys-space-1); }
+/* Native legend layout can retain its text line box in WebKit. Bound that
+   line and override visible-legend spacing without removing its group name. */
+.flood-root .flood-fieldset[data-hide-label="true"] > .flood-legend.flood-visually-hidden { margin: 0; min-inline-size: 0; min-block-size: 0; max-inline-size: 1px; max-block-size: 1px; line-height: 1px; }
 .flood-root .flood-fieldset:disabled :is(.flood-legend, .flood-label) { color: var(--flood-sys-color-field-disabled-content); }
 .flood-root .flood-label { color: var(--flood-sys-color-content-helper); font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); font-weight: var(--flood-sys-type-label-weight); letter-spacing: var(--flood-sys-type-label-tracking); }
 .flood-root :where(.flood-hint, .flood-error) { font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); font-weight: var(--flood-sys-type-helper-weight); letter-spacing: var(--flood-sys-type-helper-tracking); }

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createElement as h} from "react";
 import {renderToStaticMarkup as render} from "react-dom/server";
-import {Container,Grid,AspectRatio,Image,List,VisuallyHidden,EmptyState,Checkbox,CodeSnippet} from "../packages/react/dist/index.js";
+import {Container,Grid,AspectRatio,Image,List,VisuallyHidden,EmptyState,Checkbox,Radio,Switch,CodeSnippet} from "../packages/react/dist/index.js";
 
 test("structural atoms retain native semantics in server markup",()=>{
  const html=render(h(Container,{size:"sm",gutter:"4",id:"content"},h(Grid,{columns:3},h(AspectRatio,{ratio:1.5},h(Image,{src:"/image.svg",alt:"Preview",width:300,height:200})))));
@@ -28,4 +28,12 @@ test("mixed choice and static empty content keep distinct semantics",()=>{
 test("code direction stays independent of host action layout",()=>{
  const html=render(h(CodeSnippet,{code:"npx flood",dir:"rtl"}));assert.match(html,/<div dir="rtl"/);assert.match(html,/<code dir="ltr"/);
  const override=render(h(CodeSnippet,{code:"مثال",codeDirection:"auto",dir:"rtl"}));assert.match(override,/<code dir="auto"/);
+});
+
+test("native choice scopes include their visible label",()=>{
+ for (const Choice of [Checkbox,Radio,Switch]) {
+  const html=render(h(Choice,{label:"Choice",dir:"rtl",lang:"ar",hidden:true}));
+  assert.match(html,/<label(?=[^>]*hidden="")(?=[^>]*dir="rtl")(?=[^>]*lang="ar")[^>]*>/);
+  assert.match(html,/<input(?=[^>]*dir="rtl")(?=[^>]*lang="ar")[^>]*>/);
+ }
 });

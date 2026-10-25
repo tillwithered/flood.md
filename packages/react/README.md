@@ -805,3 +805,5 @@ Dark foundations bundle both normal and italic Inter, including Cyrillic, with
 original OFL notices. Color alone never communicates validation or progress.
 
 CodeSnippet codeDirection defaults to ltr independently of RTL parent action layout; choose rtl/auto explicitly for content that needs it. Native dir still applies to the wrapper. Protected ScrollArea reveals focused descendants fully when needed, composes the host focus handler and avoids scrolling to nested top-layer controls.
+
+Checkbox, Radio and Switch apply native hidden/dir/lang to their visible label wrapper as well as the input, so a component-local language/direction applies to its whole choice.

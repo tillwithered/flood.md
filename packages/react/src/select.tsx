@@ -156,7 +156,13 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
   }, [choices, open, active, currentValue]);
   useEffect(() => {
     if (!open) return;
-    menu.current?.querySelector<HTMLElement>(`[data-option-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
+    const option = menu.current?.querySelector<HTMLElement>(`[data-option-index="${active}"]`), viewport = scrollViewport.current;
+    if (!option || !viewport) return;
+    // Reveal within the option viewport only. Scrolling ancestor documents can
+    // dismiss this popup before a pointer activation reaches the option.
+    const item = option.getBoundingClientRect(), bounds = viewport.getBoundingClientRect();
+    if (item.top < bounds.top) viewport.scrollTop -= bounds.top - item.top;
+    else if (item.bottom > bounds.bottom) viewport.scrollTop += item.bottom - bounds.bottom;
   }, [open, active]);
   useEffect(() => {
     if (!open) return;
@@ -230,7 +236,7 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
       onInvalid={(event) => { onInvalid?.(event); const prevented = event.defaultPrevented; event.preventDefault(); if (!prevented) { setValidation(event.currentTarget.validationMessage); trigger.current?.focus(); } }}
     >{children}</select>
     {open && <div ref={menu} id={menuId} role="listbox" aria-label={ariaLabel} aria-labelledby={ariaLabel ? undefined : labelledBy ?? triggerId} popover="manual"
-      className="flood-select__menu" onPointerDown={(event) => event.preventDefault()} onClick={(event) => event.preventDefault()} style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight || undefined }}>
+      className="flood-select__menu" onPointerDown={(event) => { if (event.pointerType === "mouse") event.preventDefault(); }} onClick={(event) => event.preventDefault()} style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight || undefined }}>
       <ScrollArea ref={scrollViewport} orientation="vertical" tabIndex={-1} className="flood-select__viewport" style={{ maxHeight: position.viewportHeight || undefined }}>
         {!choices.some((choice) => !choice.hidden) && <div className="flood-select__empty">No options</div>}
         {groups.map((group, index) => group.label ? <div key={index} role="group" aria-label={group.label}>
