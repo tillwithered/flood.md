@@ -73,7 +73,9 @@ export const RangeControl = forwardRef<HTMLFieldSetElement, Props>(function Rang
         if (inputs.current.includes(event.target as HTMLInputElement) || inert(event.currentTarget) || event.button !== 0) return;
         event.preventDefault();
         const next = pointValue(event.currentTarget, event.clientX);
-        const index = values.length === 2 && Math.abs(next - values[1]) <= Math.abs(next - values[0]) ? 1 : 0;
+        const lowerDistance = Math.abs(next - values[0]);
+        const upperDistance = values.length === 2 ? Math.abs(next - values[1]) : Infinity;
+        const index = upperDistance < lowerDistance || (values.length === 2 && upperDistance === lowerDistance && next >= values[0]) ? 1 : 0;
         drag.current = index; inputs.current[index]?.focus();
         event.currentTarget.setPointerCapture(event.pointerId); update(index, next);
       }}
