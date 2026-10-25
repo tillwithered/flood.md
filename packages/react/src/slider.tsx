@@ -10,7 +10,7 @@ export const RangeControl = forwardRef<HTMLFieldSetElement, Props>(function Rang
   min = 0, max = 100, step = 1, thumbLabels, showValue = true, readOnly = false,
   controlSize = "md", disabled, className, name, onKeyDown, ...props
 }, ref) {
-  if (![min, max, step].every(Number.isFinite) || min >= max || step <= 0) throw new Error("Flood Slider requires finite increasing bounds and a positive step");
+  if (![min, max, step, max - min, (max - min) / step].every(Number.isFinite) || min >= max || step <= 0) throw new Error("Flood Slider requires finite increasing bounds and a positive representable step");
   if (!label.trim()) throw new Error("Flood Slider requires an accessible label");
   const generatedId = useId();
   const id = props.id ?? `flood-slider-${generatedId}`;

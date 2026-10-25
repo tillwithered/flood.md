@@ -14,6 +14,6 @@ test("numeric SSR retains native inputs, labels, limits and ordered form entries
 test("numeric contracts reject ambiguous models and preserve empty input",()=>{
  assert.match(render(h(NumberInput,{"aria-label":"Optional count",defaultValue:null})),/value=""/);
  for(const props of [{step:0},{step:NaN},{min:20,max:10},{value:Infinity},{decreaseLabel:""}])assert.throws(()=>render(h(NumberInput,props)),/Flood NumberInput/);
- for(const props of [{defaultValue:[]},{defaultValue:[80,20]},{defaultValue:[1,2,3]},{min:1,max:1},{step:0},{value:[NaN]},{label:""},{thumbLabels:["",""]}])assert.throws(()=>render(h(Slider,{label:"Budget",...props})),/Flood Slider/);
+ for(const props of [{defaultValue:[]},{defaultValue:[80,20]},{defaultValue:[1,2,3]},{min:1,max:1},{min:-1e308,max:1e308},{step:1e-320},{step:0},{value:[NaN]},{label:""},{thumbLabels:["",""]}])assert.throws(()=>render(h(Slider,{label:"Budget",...props})),/Flood Slider/);
  const readonly=render(h(Slider,{label:"Read only",readOnly:true,defaultValue:[40]}));assert.match(readonly,/aria-readonly="true"/);assert.doesNotMatch(readonly,/disabled=""/);
 });
