@@ -570,6 +570,8 @@ export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function
 export interface FileInputProps extends Omit<InputProps, "type" | "value" | "defaultValue" | "children" | "readOnly"> {
   clearable?: boolean;
   clearLabel?: string;
+  selectionLabel?: string;
+  removeFileLabel?: string;
   onFilesChange?: (files: readonly File[]) => void;
 }
 export const FileInput = forwardRef<HTMLInputElement, FileInputProps>(function FileInput(

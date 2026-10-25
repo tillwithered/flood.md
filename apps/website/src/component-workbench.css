@@ -64,3 +64,5 @@
 .workbench-stage[data-component="multi-select"] .flood-multi-select { align-self: start; }
 
 .preview-stage :is(.flood-search-input, .flood-password-input) { width: min(100%, 26rem); }
+
+.component-workbench .workbench-stage[data-component="file-input"] { align-items: start; block-size: 26rem; }

@@ -866,3 +866,17 @@
 .flood-root .flood-file-input__native:disabled { cursor: not-allowed; }
 .flood-root .flood-file-input:has(.flood-file-input__native:disabled) .flood-file-input__display { color: var(--flood-sys-color-field-disabled-content); }
 @media (forced-colors: active) { .flood-root .flood-file-input:has(.flood-file-input__native:focus-visible) { border-color: Highlight; } }
+
+.flood-root .flood-file-input-field { min-inline-size: 0; inline-size: 100%; }
+.flood-root .flood-file-input__selection { margin-block-start: var(--flood-sys-space-2); }
+.flood-root .flood-file-input__selection > summary { display: flex; align-items: center; gap: var(--flood-sys-space-2); inline-size: fit-content; max-inline-size: 100%; padding: var(--flood-sys-space-1) 0; cursor: pointer; color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); }
+.flood-root .flood-file-input__selection > summary::before { content: "›"; display: inline-block; font-size: 1.25em; transform: rotate(0deg); }
+.flood-root .flood-file-input__selection[open] > summary::before { transform: rotate(90deg); }
+.flood-root .flood-file-input__selection > summary::-webkit-details-marker { display: none; }
+.flood-root .flood-file-input__count { font-variant-numeric: tabular-nums; }
+.flood-root .flood-file-input__list { list-style: none; padding: 0; margin: var(--flood-sys-space-1) 0 0; max-block-size: 12rem; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--flood-sys-color-content-subtle) transparent; }
+.flood-root .flood-file-input__file { display: flex; align-items: center; gap: var(--flood-sys-space-2); padding-block: var(--flood-sys-space-2); border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); }
+.flood-root .flood-file-input__metadata { display: grid; gap: var(--flood-sys-space-1); flex: 1 1 0; min-inline-size: 0; }
+.flood-root .flood-file-input__name { font-size: var(--flood-sys-type-helper-size); overflow-wrap: anywhere; }
+.flood-root .flood-file-input__size { font-size: var(--flood-sys-type-helper-size); color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-file-input__file > .flood-icon-button { flex: none; }

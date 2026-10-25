@@ -850,3 +850,12 @@ pass value/defaultValue/readOnly; FileList belongs to the browser. Uncontrolled
 form reset clears the summary; cancelling the chooser keeps its prior selection.
 Localize placeholder and clearLabel. Long names truncate visually, and the host
 owns upload, file validation and progress. accept only guides the chooser.
+
+
+FileInput multiple selection exposes a collapsible file list with full names and
+localized file sizes (lang controls number formatting), and a count in the picker.
+Translate selectionLabel and removeFileLabel. Individual removal updates the native
+FileList through DataTransfer, then emits the same change callbacks as selection.
+Focus moves to the next/previous remove action, or back to the input when empty.
+clearable=false disables individual and global removal UI. Picking again replaces
+the selection; cancel preserves it. The host remains responsible for upload.
