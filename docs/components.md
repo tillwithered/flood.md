@@ -490,7 +490,9 @@ explicit id/headers associations for complex spanning headers. Do not add anothe
 caption child. See [WAI table guidance](https://www.w3.org/WAI/tutorials/tables/).
 
 Table density defaults comfortable; compact reduces vertical cell padding.
-striped is false by default. data-numeric on a th or td uses logical end alignment,
+striped is false by default. Native tfoot rows use a quiet tinted background and
+medium-weight text to distinguish summaries; the top separator stays decorative.
+data-numeric on a th or td uses logical end alignment,
 tabular figures and no wrapping for numbers. data-align=start/center/end overrides
 alignment explicitly. Text cells wrap; set style.minWidth to preserve room for a
 wide table, and the containing ScrollArea handles overflow. The host owns dates,

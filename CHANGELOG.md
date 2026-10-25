@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Distinguish native Table footers with a quiet tint and medium-weight summary cells.
+
 - Keep Breadcrumb items at their natural width before wrapping the trail; only
   labels longer than the available row may break within words.
 

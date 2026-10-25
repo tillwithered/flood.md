@@ -19,6 +19,8 @@
 .flood-root .flood-table thead th { color: var(--flood-sys-color-content-subtle); border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
 .flood-root .flood-table tbody > tr:not(:last-child) > :is(th, td) { border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
 .flood-root .flood-table tfoot > tr:first-child > :is(th, td) { border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
+.flood-root .flood-table tfoot { background: color-mix(in srgb, var(--flood-sys-color-content-default) 8%, transparent); }
+.flood-root .flood-table tfoot :is(th, td) { font-weight: var(--flood-sys-type-label-weight); }
 .flood-root .flood-table[data-striped="true"] tbody > tr:nth-child(even) { background: color-mix(in srgb, var(--flood-sys-color-content-default) 4%, transparent); }
 .flood-root .flood-table [data-numeric] { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .flood-root .flood-table [data-align="center"] { text-align: center; }
@@ -27,6 +29,7 @@
 .flood-root :is(.flood-description-list, .flood-table-container, .flood-table)[hidden] { display: none; }
 @media (forced-colors: active) {
   .flood-root .flood-table[data-striped="true"] tbody > tr:nth-child(even) { background: Canvas; }
+  .flood-root .flood-table tfoot { background: Canvas; }
   .flood-root .flood-table :is(th, td), .flood-root .flood-description-list[data-dividers="true"] > .flood-description-list__item { border-color: CanvasText; }
 }
 
