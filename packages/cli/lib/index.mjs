@@ -41,8 +41,9 @@ async function projectManifest(root) {
   const info = await lstat(path).catch(() => {
     throw new Error("Run init inside a React project with a package.json.");
   });
-  if (info.isSymbolicLink() || info.nlink > 1) throw new Error("Refusing linked path: package.json");
+  if (info.isSymbolicLink()) throw new Error("Refusing linked path: package.json");
   if (!info.isFile()) throw new Error("package.json must be a regular file.");
+  if (info.nlink > 1) throw new Error("Refusing linked path: package.json");
   const manifest = await json(path).catch(() => {
     throw new Error("package.json must contain a valid project object.");
   });

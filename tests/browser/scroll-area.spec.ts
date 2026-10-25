@@ -139,6 +139,7 @@ test("classic browser scrollbars reserve space while ScrollArea still overlays t
 });
 
 test("touch swipes scroll the native viewport without dragging overlay chrome", async ({ browser }) => {
+  test.skip(browser.browserType().name() !== "chromium", "This gesture fixture uses Chromium CDP; wheel, keyboard and drag coverage runs on every engine.");
   const context = await browser.newContext({ baseURL: "http://127.0.0.1:4173", hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
   try {
     const page = await context.newPage(); await open(page);
