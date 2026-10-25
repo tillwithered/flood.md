@@ -846,3 +846,9 @@
 .flood-root .flood-multi-select__editor > .flood-input { inline-size: 0; min-inline-size: 0; flex: 1 1 0; min-block-size: calc(var(--flood-group-height) - 2 * var(--flood-group-inset)); border: 0; border-radius: 0; background: transparent; padding: 0 var(--flood-sys-space-2); }
 .flood-root .flood-multi-select__editor > .flood-input:focus-visible { outline: none; border: 0; padding: 0 var(--flood-sys-space-2); }
 .flood-root .flood-multi-select__control:has(.flood-multi-select__editor > .flood-input:focus-visible) { --flood-group-stroke: var(--flood-sys-focus-width); border-color: var(--flood-sys-color-focus-ring); border-style: solid; }
+
+/* Flood owns the single clear action; suppress duplicate browser decoration. */
+.flood-root .flood-search-input input::-webkit-search-cancel-button,
+.flood-root .flood-search-input input::-webkit-search-decoration { -webkit-appearance: none; }
+
+.flood-root .flood-password-input input::-ms-reveal { display: none; }

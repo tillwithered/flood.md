@@ -719,7 +719,7 @@
     "name": "Menu",
     "group": "overlays",
     "description": "An action menu with keyboard navigation, separators and explicit disabled/danger states.",
-    "code": "<Menu label=\"Project actions\"\n  trigger={props => <Button {...props}>Project actions</Button>}\n  items={[{id:\"rename\",label:\"RenameвЂ¦\"},{id:\"divider\",type:\"separator\"},{id:\"delete\",label:\"Delete project\",tone:\"danger\"}]}\n  onAction={id => console.log(id)}\n/>",
+    "code": "<Menu label=\"Project actions\"\n  trigger={props => <Button {...props}>Project actions</Button>}\n  items={[{id:\"rename\",label:\"Rename\u0432\u0402\u00a6\"},{id:\"divider\",type:\"separator\"},{id:\"delete\",label:\"Delete project\",tone:\"danger\"}]}\n  onAction={id => console.log(id)}\n/>",
     "imports": [
       "Menu",
       "Button"
@@ -979,6 +979,36 @@
       "Disabled selected options cannot be individually removed or cleared globally. Read-only permits copying but blocks selection and removal. Required means at least one valid selected ID. Translate removeItemLabel and the shared action/empty/validation messages.",
       "No freeform values, remote fetching, virtualization or arbitrary tag selection engine is supplied. Available in the unpublished 0.2.5 candidate.",
       "Only the disclosure chevron is shown by default. Set clearable to opt into the extra clear-selection action; individual MultiSelect tags retain their removal buttons."
+    ]
+  },
+  {
+    "slug": "search-input",
+    "name": "SearchInput",
+    "group": "forms",
+    "description": "A native search field with a leading search icon and one clear action.",
+    "code": "<Field label=\"Search\">\n  {control => <SearchInput {...control} name=\"search-input\" />}\n</Field>",
+    "imports": [
+      "Field",
+      "SearchInput"
+    ],
+    "notes": [
+      "Native onChange, name, form, reset, ref and Field associations are preserved. clearable defaults to true; read-only hides the clear action. Translate clearLabel. Enter keeps native form submission; filtering belongs to the host.",
+      "Composes Flood InputGroup, IconSlot and IconButton using existing semantic geometry and feedback states. Available in the unpublished 0.2.5 candidate."
+    ]
+  },
+  {
+    "slug": "password-input",
+    "name": "PasswordInput",
+    "group": "forms",
+    "description": "A password field with one named visibility action.",
+    "code": "<Field label=\"Password\">\n  {control => <PasswordInput {...control} name=\"password-input\" />}\n</Field>",
+    "imports": [
+      "Field",
+      "PasswordInput"
+    ],
+    "notes": [
+      "Use visible/onVisibleChange for controlled visibility or defaultVisible for an initial reveal. Translate showPasswordLabel/hidePasswordLabel. Read-only still permits inspection; disabled blocks actions. Native value/onChange, autocomplete, form and ref are preserved. Visibility does not change the value.",
+      "Composes Flood InputGroup, IconSlot and IconButton using existing semantic geometry and feedback states. Available in the unpublished 0.2.5 candidate."
     ]
   }
 ]

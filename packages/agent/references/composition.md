@@ -190,3 +190,12 @@ Let tags wrap while the search editor and its suffix actions remain together.
 Keep selection-field chrome calm: Combobox/MultiSelect show only the chevron by
 default. Add clearable=true only when a separate clear-selection action is useful;
 individual MultiSelect tags already expose named removal actions.
+
+
+SearchInput and PasswordInput are field controls in the unpublished 0.2.5 candidate.
+Compose them with Field and pass its control props. SearchInput uses native search
+editing and one clear action (clearable=true); the host owns filtering/submission.
+Read-only hides clear. PasswordInput has a single show/hide action with localized
+showPasswordLabel/hidePasswordLabel, controlled visible/onVisibleChange or initial
+defaultVisible. Read-only still allows reveal. Native refs, autocomplete and forms
+remain owned by the host. Do not add another suffix chevron or browser clear icon.

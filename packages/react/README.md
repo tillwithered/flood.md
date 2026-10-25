@@ -827,3 +827,15 @@ arrays of stable option IDs and composes those tags with the shared searchable
 selection model. See docs/base-components.md for keyboard behavior, locked values,
 readonly/required forms, focus recovery and relative nested geometry. Existing
 Combobox continues to accept and return a single string.
+
+
+SearchInput and PasswordInput join the unpublished 0.2.5 candidate. Both compose
+InputGroup with native input props, Field feedback, ref, sizes and form ownership.
+SearchInput uses type=search and a decorative leading icon; clearable defaults to
+true and clearLabel names its sole suffix action. Clearing dispatches native input
+editing, restores input focus and respects read-only/disabled. The host owns search
+results and submission. PasswordInput keeps one visibility action; use
+visible/onVisibleChange or defaultVisible, and localize showPasswordLabel and
+hidePasswordLabel. Revealing retains the value and caret; read-only permits reveal.
+Use autocomplete appropriate to the host form. Both accept accessible names via
+Field, aria-label or aria-labelledby. These controls add no authentication logic.

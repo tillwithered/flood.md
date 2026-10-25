@@ -125,3 +125,15 @@ Selection-field action defaults: Combobox and MultiSelect show only the disclosu
 chevron by default. Set clearable=true to add the explicit clear-selection action.
 MultiSelect tags keep their individual removal buttons; keyboard editing remains
 available. This default is part of the unpublished 0.2.5 design candidate.
+
+
+SearchInput and PasswordInput join the unpublished 0.2.5 candidate. Both compose
+InputGroup with native input props, Field feedback, ref, sizes and form ownership.
+SearchInput uses type=search and a decorative leading icon; clearable defaults to
+true and clearLabel names its sole suffix action. Clearing dispatches native input
+editing, restores input focus and respects read-only/disabled. The host owns search
+results and submission. PasswordInput keeps one visibility action; use
+visible/onVisibleChange or defaultVisible, and localize showPasswordLabel and
+hidePasswordLabel. Revealing retains the value and caret; read-only permits reveal.
+Use autocomplete appropriate to the host form. Both accept accessible names via
+Field, aria-label or aria-labelledby. These controls add no authentication logic.

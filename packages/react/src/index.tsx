@@ -36,6 +36,7 @@ import { ActionMenu } from "./menu.js";
 import { RovingToolbar } from "./toolbar.js";
 import { NumericStepper } from "./numeric-input.js";
 import { RangeControl } from "./slider.js";
+import { SearchField, PasswordField } from "./text-inputs.js";
 import { SearchSelection } from "./combobox.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
@@ -565,6 +566,28 @@ export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function
     {hasFieldContent(end) && <div className="flood-input-group__addon flood-input-group__addon--end">{typeof end === "string" ? <bdi dir="auto">{end}</bdi> : end}</div>}
   </div>;
 });
+export interface SearchInputProps extends Omit<InputProps, "type" | "children"> {
+  clearable?: boolean;
+  clearLabel?: string;
+}
+export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(function SearchInput(
+  { clearable = true, clearLabel = "Clear search", controlSize = "md", ...props }, ref,
+) {
+  return <SearchField {...props} ref={ref} clearable={clearable} clearLabel={clearLabel} controlSize={controlSize} group={InputGroup} action={IconButton} icon={IconSlot} />;
+});
+export interface PasswordInputProps extends Omit<InputProps, "type" | "children"> {
+  visible?: boolean;
+  defaultVisible?: boolean;
+  onVisibleChange?: (visible: boolean) => void;
+  showPasswordLabel?: string;
+  hidePasswordLabel?: string;
+}
+export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(function PasswordInput(
+  { defaultVisible = false, showPasswordLabel = "Show password", hidePasswordLabel = "Hide password", controlSize = "md", ...props }, ref,
+) {
+  return <PasswordField {...props} ref={ref} defaultVisible={defaultVisible} showPasswordLabel={showPasswordLabel} hidePasswordLabel={hidePasswordLabel} controlSize={controlSize} group={InputGroup} action={IconButton} icon={IconSlot} />;
+});
+
 export interface ComboboxOption {
   value: string;
   label: string;

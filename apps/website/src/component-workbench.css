@@ -62,3 +62,5 @@
 .workbench-stage[data-component="multi-select"] > .flood-root { inline-size: min(100%, 26rem); }
 .workbench-stage[data-component="multi-select"] .flood-field { grid-template-rows: auto minmax(calc(var(--flood-sys-control-md-height) * 3), auto) minmax(1.5rem, auto); }
 .workbench-stage[data-component="multi-select"] .flood-multi-select { align-self: start; }
+
+.preview-stage :is(.flood-search-input, .flood-password-input) { width: min(100%, 26rem); }
