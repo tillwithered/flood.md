@@ -20,7 +20,7 @@ in the build stage.
 
 The runtime also includes `apps/website/routes.mjs` and its catalog JSON inventory,
 which define the explicit page allowlist.
-Known `/docs` and `/components` pages serve the website entry; unknown paths
+Known `/docs` and `/components` pages serve their own prerendered HTML; unknown paths
 return 404. Documentation Markdown is bundled at build time from `docs/` and
 does not depend on a live GitHub connection.
 
@@ -28,6 +28,42 @@ The build also emits canonical Markdown counterparts for the documentation and
 component pages. For example `/docs/installation.md` and `/components/button.md`
 return `text/markdown` with the default documented example. The contextual Copy for agent action includes the current lab settings and
 links to the installed-version rules. Raw files keep the default example.
+
+## Search indexing
+
+The build generates visible page content before JavaScript runs, individual
+titles/descriptions, canonical URLs and Open Graph metadata for public pages.
+`/sitemap.xml` lists the home, guides, catalog and components from the shared
+route inventory; `/robots.txt` advertises it. Canonical URLs use `https://flood.md`
+and omit query strings and trailing slashes. No artificial last-modified dates
+are emitted. Update the shared siteOrigin if the public domain changes.
+
+`/playground` and `/playground/content` remain client-rendered verification
+surfaces and return `noindex, follow` in HTML and HTTP headers. Do not block them
+in robots.txt, which would prevent crawlers from seeing noindex. Markdown
+counterparts remain available for agent use and return noindex plus an HTTP
+canonical Link to their HTML equivalent. HTML path aliases redirect permanently;
+unknown paths retain real 404 responses.
+
+After deployment, check the raw response of a guide and a component, not only
+the browser DOM: the heading, text/API, description and canonical must already
+be present. Also check sitemap/robots, a Markdown response, redirects and 404s.
+`site:verify-deploy` probes representative prerendered pages and search files.
+
+If a CDN or hosting layer generates robots.txt, inspect the public response and
+ensure it retains sitemap discovery and permits the public pages. A locally
+correct file does not prove the edge serves it unchanged.
+
+Search Console can be used by the domain owner to submit the sitemap and inspect
+the indexed/rendered HTML. That account setup is separate from the repository.
+Successful build, deployment or sitemap submission does not guarantee indexing
+or a particular ranking. No analytics service is added by this work.
+
+For an isolated browser run alongside another checkout, set
+`FLOOD_WEBSITE_TEST_URL=http://127.0.0.1:4273` and
+`FLOOD_NEXT_TEST_URL=http://127.0.0.1:3101` using your shell's environment syntax,
+then run `npm run test:browser`. The test servers use the selected ports; defaults
+remain 4173 and 3001. Use free loopback ports for local verification.
 
 ## Hosting contract
 

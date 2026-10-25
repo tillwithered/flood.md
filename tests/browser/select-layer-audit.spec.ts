@@ -89,7 +89,7 @@ test("Select mirrors native focus callbacks without treating its bridge as outsi
 });
 
 test("touch option activation fires once, preserves host focus and cannot click through", async ({ browser }) => {
-  const context = await browser.newContext({ baseURL: "http://127.0.0.1:4173", viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+  const context = await browser.newContext({ baseURL: (process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173"), viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   try {
     const page = await context.newPage();
     await open(page);

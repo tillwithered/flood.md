@@ -71,7 +71,7 @@ test("connected constructs reflow with long content and enlarged text", async ({
 });
 
 test("InputGroup keeps logical slots, forced-color focus and coarse-pointer targets", async ({ browser }) => {
-  const context = await browser.newContext({ baseURL: "http://127.0.0.1:4173", hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  const context = await browser.newContext({ baseURL: (process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173"), hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
   try {
     const page = await context.newPage(); await page.goto("/components/input-group");
     const shell = page.locator(".preview-stage .flood-input-group"), input = shell.getByRole("textbox");

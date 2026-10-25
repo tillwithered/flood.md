@@ -88,7 +88,7 @@ test("Navigation playgrounds reflow, expose valid recipes and preserve panel beh
 });
 
 test("Navigation keeps touch targets and forced-color selection cues",async({browser})=>{
-  const context=await browser.newContext({baseURL:"http://127.0.0.1:4173",hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
+  const context=await browser.newContext({baseURL:(process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173"),hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
   try{const page=await context.newPage();await open(page);
     const list=page.getByRole("tablist",{name:"Automatic"}),first=list.getByRole("tab",{name:"Alpha"});
     expect((await first.boundingBox())!.height).toBeGreaterThanOrEqual(43.99);

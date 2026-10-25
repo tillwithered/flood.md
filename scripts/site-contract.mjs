@@ -60,6 +60,14 @@ export async function verifySite(base, { expectedCommit, expectedVersion, expect
   const manifest = JSON.parse((await read('/agent/manifest.json', 'application/json')).body);
   if (manifest.schemaVersion !== 1 || !Array.isArray(manifest.files) || !manifest.files.length) throw new Error('Missing agent bundle inventory');
   if (manifest.version !== metadata.version) throw new Error('Agent bundle version differs from the website release');
+  // Verify actual deployed HTML, not just the source marker or a browser title.
+  for (const [path, title] of [['/', 'Good interfaces'], ['/docs/installation', 'Installation'], ['/components/button', 'Button']]) {
+    const { body } = await read(path, 'text/html');
+    if (!body.includes('<h1') || !body.includes(title) || body.includes('Loading documentation…') || !body.includes(`rel="canonical" href="https://flood.md${path}"`)) throw new Error(path + ': missing prerendered content or canonical');
+  }
+  const sitemap = (await read('/sitemap.xml', 'application/xml')).body;
+  if (!sitemap.includes('<loc>https://flood.md/components/button</loc>') || sitemap.includes('/playground')) throw new Error('Invalid public sitemap');
+  if (!(await read('/robots.txt', 'text/plain')).body.includes('Sitemap: https://flood.md/sitemap.xml')) throw new Error('Missing sitemap discovery');
   const paths = new Map([['/llms.txt', 'text/plain'], ['/schema/config.json', 'application/json'], ['/components/button.md', 'text/markdown']]);
   for (const file of manifest.files) {
     if (typeof file.source !== 'string' || file.source.startsWith('/') || file.source.split(/[\\/]/).some(part => !part || part === '..' || part === '.')) throw new Error('Unsafe agent reference');

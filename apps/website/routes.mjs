@@ -15,3 +15,19 @@ export const pagePaths = new Set([
   "/", "/playground", "/playground/content", "/components", ...docPages.map(page => page.path),
   ...componentSlugs.map(slug => `/components/${slug}`),
 ]);
+
+export const siteOrigin = "https://flood.md";
+export const indexablePaths = [...pagePaths].filter(path => !path.startsWith("/playground"));
+
+/** Public URL metadata shares the navigation and component inventories. */
+export function pageMetadata(path) {
+  if (!pagePaths.has(path)) throw new Error(`Unknown website page: ${path}`);
+  const doc = docPages.find(page => page.path === path);
+  const component = catalog.find(page => path === `/components/${page.slug}`);
+  const title = path === "/" ? "flood.md — Good interfaces start with a little Flood."
+    : `${doc?.label ?? component?.name ?? (path === "/components" ? "Components" : path === "/playground" ? "Playground" : "Content playground")} — flood.md`;
+  const description = doc?.description ?? component?.description ?? (path === "/components"
+    ? "Explore Flood's original React components, live examples and TypeScript API references."
+    : "Good interfaces start with a little Flood. A calm React design system with native components, dark foundations and instructions for your agent.");
+  return { title, description, canonical: siteOrigin + path, indexable: indexablePaths.includes(path) };
+}

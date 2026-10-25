@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { pagePaths } from "./routes.mjs";
+import { pagePaths, siteOrigin } from "./routes.mjs";
 
 const root = fileURLToPath(new URL("./dist", import.meta.url));
 const types = {
@@ -15,6 +15,7 @@ const types = {
   ".json": "application/json; charset=utf-8",
   ".txt": "text/plain; charset=utf-8",
   ".md": "text/markdown; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8",
 };
 const server = createServer(async (request, response) => {
   try {
@@ -31,9 +32,15 @@ const server = createServer(async (request, response) => {
       response.end();
       return;
     }
+    const normalized = pathname === "/index.html" ? "/" : pathname.replace(/\/index\.html$|\/$/, "") || "/";
+    if (normalized !== pathname && pagePaths.has(normalized)) {
+      response.writeHead(301, { Location: normalized + new URL(request.url, "http://localhost").search });
+      response.end();
+      return;
+    }
     const file = resolve(
       root,
-      `.${pagePaths.has(pathname) ? "/index.html" : pathname}`,
+      `.${pagePaths.has(pathname) ? pathname === "/" ? "/index.html" : `${pathname}/index.html` : pathname}`,
     );
     if (!file.startsWith(root + sep)) {
       response.writeHead(403);
@@ -44,6 +51,11 @@ const server = createServer(async (request, response) => {
     response.writeHead(200, {
       "Content-Type": types[extname(file)] ?? "application/octet-stream",
       "X-Content-Type-Options": "nosniff",
+      ...(pathname.startsWith("/playground") ? { "X-Robots-Tag": "noindex, follow" } : {}),
+      ...(pathname.endsWith(".md") && pagePaths.has(pathname.slice(0, -3)) ? {
+        "X-Robots-Tag": "noindex, follow",
+        Link: `<${siteOrigin}${pathname.slice(0, -3)}>; rel="canonical"`,
+      } : {}),
       "Cache-Control": pathname.startsWith("/assets/")
         ? "public, max-age=31536000, immutable"
         : "no-cache",

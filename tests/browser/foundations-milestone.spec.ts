@@ -65,7 +65,7 @@ test("coarse pointer controls retain usable adjacent targets in served pages",as
   const context=await browser.newContext({hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
   try{
     const page=await context.newPage();
-    await page.goto("http://127.0.0.1:4173/components/button-group");
+    await page.goto((process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173") + "/components/button-group");
     const buttons=page.locator(".workbench-stage .flood-button-group > button");await expect(buttons).toHaveCount(3);
     const boxes=await buttons.evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};}));
     for(const box of boxes)expect(box.h).toBeGreaterThanOrEqual(44);
@@ -73,7 +73,7 @@ test("coarse pointer controls retain usable adjacent targets in served pages",as
     await chooseSelectOption(page.getByRole("combobox",{name:"ButtonGroup prop content",exact:true}),"icons");
     const iconBoxes=await page.locator(".workbench-stage .flood-icon-button").evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return{w:r.width,h:r.height};}));
     for(const box of iconBoxes){expect(box.w).toBeGreaterThanOrEqual(44);expect(box.h).toBeGreaterThanOrEqual(44);}
-    await page.goto("http://127.0.0.1:4173/components/checkbox-group");
+    await page.goto((process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173") + "/components/checkbox-group");
     const rows=page.locator(".workbench-stage .flood-choice-group > .flood-choice");
     const rowBoxes=await rows.evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return{y:r.y,h:r.height};}));
     for(const box of rowBoxes)expect(box.h).toBeGreaterThanOrEqual(44);

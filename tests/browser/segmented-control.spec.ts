@@ -89,7 +89,7 @@ test("SegmentedControl geometry is concentric and remains stable across choices 
 });
 
 test("SegmentedControl preserves touch targets and forced-color selection",async({browser})=>{
-  const context=await browser.newContext({baseURL:"http://127.0.0.1:4173",hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
+  const context=await browser.newContext({baseURL:(process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173"),hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
   try{const page=await context.newPage();await page.goto("/components/segmented-control");
     const group=page.locator(".preview-stage").getByRole("radiogroup");
     for(const radio of await group.getByRole("radio").all()){const box=(await radio.boundingBox())!;expect(box.width).toBeGreaterThanOrEqual(44);expect(box.height).toBeGreaterThanOrEqual(44)}
