@@ -1,10 +1,10 @@
 # Components
 
-## Dark foundations · 0.2.3
+## Dark foundations · 0.2.4 source candidate
 
-This guide describes the **0.2.3** API. See the [base component inventory](base-components.md)
-for the complete set. The 0.2.3 APIs extend earlier 0.2 releases; they do not
-modify older npm versions. Existing 0.1.1 installs follow their
+This guide describes the **0.2.4 source candidate** API. See the [base component inventory](base-components.md)
+for the complete set. New APIs extend earlier 0.2 releases; source changes do not
+modify published npm versions. Existing 0.1.1 installs follow their
 version-specific guides.
 
 Import the same stylesheet and wrap new compositions in `FloodRoot` to select

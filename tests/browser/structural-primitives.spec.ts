@@ -22,7 +22,7 @@ createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
   const result=await build({configFile:false,logLevel:"silent",define:{"process.env.NODE_ENV":JSON.stringify("development")},build:{write:false,minify:true,cssCodeSplit:false,lib:{entry,formats:["iife"],name:"StructuralFixture"}}});
   const outputs=(Array.isArray(result)?result:[result]).flatMap(v=>"output"in v?v.output:[]);
   const js=outputs.filter(v=>v.type==="chunk").map(v=>v.type==="chunk"?v.code:"").join("\n"),css=outputs.filter(v=>v.type==="asset"&&v.fileName.endsWith(".css")).map(v=>v.type==="asset"?String(v.source):"").join("\n");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Structural verification</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css}body{margin:16px}#app>.flood-root{display:grid;gap:16px;min-width:0}#media{max-width:30rem}</style></head><body><header><h1>Structural verification</h1></header><main id="app"></main><script>${js.replace(/<\/script/gi,"<\\/script")}</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Structural verification</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css}body{margin:16px}header{overflow-wrap:anywhere}#app>.flood-root{display:grid;gap:16px;min-width:0}#media{max-width:30rem}</style></head><body><header><h1>Structural verification</h1></header><main id="app"></main><script>${js.replace(/<\/script/gi,"<\\/script")}</script></body></html>`;
 }
 async function openFixture(page:Page){bundle??=fixture();await page.route("**/__structural.html",async route=>route.fulfill({contentType:"text/html",body:await bundle}));await page.goto("/__structural.html");}
 

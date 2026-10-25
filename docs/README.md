@@ -22,8 +22,8 @@ them without a separate content service.
 
 ## Versions
 
-This documentation describes **0.2.3**. Use matching exact versions of the
-Flood packages. Documentation on `main` can describe later work; the
+This branch documents the **0.2.4 source candidate**; source availability does
+not establish npm publication. Use matching exact versions of the Flood packages. Documentation on `main` can describe later work; the
 [release tags](https://github.com/tillwithered/flood.md/releases) preserve the
 source and docs for each release. Installed `flood/DESIGN.md` takes precedence
 over website guidance when working in an existing project.

@@ -25,6 +25,48 @@ for(const [slug,component,name,role,wrapper] of [
       const style = getComputedStyle(node), parent = node.parentElement!, root = node.closest(".flood-root");
       const rect = (element: Element) => { const box = element.getBoundingClientRect(); return {x:box.x,y:box.y,width:box.width,height:box.height,top:box.top,bottom:box.bottom}; };
       const range = document.createRange(); range.selectNodeContents(node); const textBox = range.getBoundingClientRect();
+      const legendProbes: unknown[] = [];
+      if (node.tagName === "LEGEND" && root) {
+        // Connected isolated clones are needed for real native fieldset layout;
+        // none of these comparisons mutate the React-owned heading or controls.
+        const scope = root.cloneNode(false) as HTMLElement;
+        scope.removeAttribute("id"); scope.setAttribute("aria-hidden", "true");
+        for (const [property,value] of Object.entries({position:"absolute",left:"-10000px",top:"0",width:`${parent.getBoundingClientRect().width}px`,visibility:"hidden","pointer-events":"none"})) scope.style.setProperty(property,value,"important");
+        document.body.append(scope);
+        try {
+          for (const variant of ["initial-hidden","hide-after-visible-layout","replace-hidden-legend","float-left","float-left-static","physical-dimensions","forced-layout","always-float-inline-start","always-float-left"]) {
+            const host = parent.cloneNode(true) as HTMLElement;
+            // Isolate native radio/form ownership as well as visual geometry.
+            for (const element of [host,...Array.from(host.querySelectorAll("[id],[name],[form]"))]) { element.removeAttribute("id"); element.removeAttribute("name"); element.removeAttribute("form"); }
+            let legend = host.querySelector("legend")!;
+            const body = host.querySelector<HTMLElement>(":scope > .flood-fieldset__body");
+            const initiallyHidden = variant === "initial-hidden";
+            if (!initiallyHidden) {
+              host.removeAttribute("data-hide-label"); legend.classList.remove("flood-visually-hidden");
+              if (variant.startsWith("always-float")) {
+                legend.style.cssFloat = variant === "always-float-left" ? "left" : "inline-start";
+                legend.style.width = "100%";
+                if (body) body.style.clear = "both";
+              }
+            }
+            scope.append(host);
+            const measure = () => {
+              const computed = getComputedStyle(legend), hostBox = host.getBoundingClientRect(), bodyBox = body?.getBoundingClientRect();
+              return {legend:rect(legend),host:rect(host),bodyTop:bodyBox ? bodyBox.top-hostBox.top : null,
+                computed:Object.fromEntries(["position","float","width","height","inline-size","block-size","max-height","max-block-size","line-height","margin-top","margin-bottom","margin-block-end"].map(property => [property,computed.getPropertyValue(property)])),inlineStyle:legend.getAttribute("style")};
+            };
+            const before = measure();
+            if (!initiallyHidden) { host.setAttribute("data-hide-label","true"); legend.classList.add("flood-visually-hidden"); }
+            if (variant.startsWith("always-float")) legend.style.removeProperty("width");
+            if (variant === "replace-hidden-legend") { const replacement = legend.cloneNode(true) as HTMLLegendElement; legend.replaceWith(replacement); legend = replacement; }
+            if (variant === "float-left" || variant === "float-left-static") legend.style.cssFloat = "left";
+            if (variant === "float-left-static") legend.style.position = "static";
+            if (variant === "physical-dimensions") Object.assign(legend.style,{width:"1px",height:"1px",minWidth:"0",minHeight:"0",maxWidth:"1px",maxHeight:"1px",margin:"0",marginBlockEnd:"0",clip:"rect(0px, 0px, 0px, 0px)"});
+            if (variant === "forced-layout") { void host.offsetHeight; void legend.offsetHeight; void getComputedStyle(legend).height; }
+            legendProbes.push({variant,before,after:measure()}); host.remove();
+          }
+        } finally { scope.remove(); }
+      }
       return {
         tag:node.tagName,className:node.className,domBox:rect(node),
         clientRects:Array.from(node.getClientRects(), box => ({x:box.x,y:box.y,width:box.width,height:box.height})),
@@ -40,8 +82,10 @@ for(const [slug,component,name,role,wrapper] of [
         bodyBox:parent.querySelector(":scope > .flood-fieldset__body") ? rect(parent.querySelector(":scope > .flood-fieldset__body")!) : null,
         root:root ? {className:root.className,foundations:root.getAttribute("data-flood-foundations"),theme:root.getAttribute("data-flood-theme")} : null,
         stylesheets:Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'), link => link.href),
+        legendProbes,
       };
     });
+    if (titleDiagnostics.legendProbes.length) await info.attach(`hidden-legend-${slug}.json`,{body:JSON.stringify({component,project:info.project.name,playwrightTitleBox,...titleDiagnostics},null,2),contentType:"application/json"});
     expect(playwrightTitleBox?.height ?? Infinity, JSON.stringify({component,project:info.project.name,playwrightTitleBox,...titleDiagnostics},null,2)).toBeLessThanOrEqual(1);
     expect((await host.boundingBox())!.height).toBeLessThan(before.height-2);
     const box=(await host.boundingBox())!;
