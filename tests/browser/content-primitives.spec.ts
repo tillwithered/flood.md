@@ -37,10 +37,9 @@ test("content board composes named and decorative primitives without overflow", 
 test("Avatar preserves geometry across pending load, error, removal and source retry", async ({ page }, info) => {
   let finish: () => void = () => {};
   const pending = new Promise<void>(resolve => { finish = resolve; });
-  let requests = 0;
   await page.route("**/avatar-demo.svg", async route => {
     await pending;
-    const [width,height] = ++requests === 1 ? [120,40] : [40,120];
+    const [width,height] = [120,40];
     await route.fulfill({ contentType: "image/svg+xml", body: `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="${width}" height="${height}" fill="pink"/><circle cx="${width/2}" cy="${height/2}" r="10" fill="white"/></svg>` });
   });
   await page.goto("/components/avatar", { waitUntil: "domcontentloaded" });
@@ -69,12 +68,12 @@ test("Avatar preserves geometry across pending load, error, removal and source r
   await chooseSelectOption(source, "loaded");
   await expect(avatar.locator("img")).toHaveCSS("opacity", "1");
   expect(await documentBox(avatar)).toEqual(before);
-  await expect(avatar.locator("img")).toHaveJSProperty("naturalHeight",120);
+  await expect(avatar.locator("img")).toHaveJSProperty("naturalHeight",40);
   await assertCover();
   await chooseSelectOption(page.getByRole("combobox",{name:"Avatar prop size",exact:true}),"lg");
   await page.evaluate(()=>{document.documentElement.style.fontSize="24px";document.documentElement.dir="rtl";});
   await assertCover();
-  await info.attach("avatar-portrait-enlarged-rtl-cover.png",{body:await avatar.screenshot(),contentType:"image/png"});
+  await info.attach("avatar-landscape-enlarged-rtl-cover.png",{body:await avatar.screenshot(),contentType:"image/png"});
 });
 
 test("loading primitives respect reduced motion, forced colors and hidden attributes", async ({ page }) => {

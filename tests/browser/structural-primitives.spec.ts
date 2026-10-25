@@ -8,9 +8,11 @@ async function fixture(){
   const file=(p:string)=>JSON.stringify(resolve(p).replaceAll("\\","/"));
   const directory=resolve(`.artifacts/structural-${process.pid}`),entry=resolve(directory,"entry.mjs");await mkdir(directory,{recursive:true});
   await writeFile(entry,`import React,{StrictMode,useState,useRef} from ${file("node_modules/react/index.js")};import{createRoot}from ${file("node_modules/react-dom/client.js")};
-import{FloodRoot,Container,Grid,Surface,AspectRatio,Image,List,VisuallyHidden,EmptyState,Checkbox,Button,Link}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};
+import{FloodRoot,Container,Grid,Surface,AspectRatio,Image,List,VisuallyHidden,EmptyState,Checkbox,Button,Link,Avatar}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};
 const h=React.createElement,source='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200"><rect width="300" height="200" fill="pink"/></svg>');
+const avatarSource=(width,height)=>'data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+height+'"><rect width="'+width+'" height="'+height+'" fill="pink"/></svg>');
 function App(){const[mixed,M]=useState(true),[checked,C]=useState(false),[result,R]=useState(''),[loaded,L]=useState(false),[broken,B]=useState(false),ref=useRef();return h(FloodRoot,null,
+h('div',{id:'avatar-gallery'},h(Avatar,{name:'Landscape avatar',src:avatarSource(120,40)}),h(Avatar,{name:'Portrait avatar',src:avatarSource(40,120),size:'lg',shape:'rounded'})),
 h(Container,{id:'container',size:'sm',gutter:'4'},h('div',{id:'contained'},'Content')),
 h(Grid,{id:'adaptive'},...[1,2,3].map(v=>h(Surface,{key:v,padding:'2'},'Item '+v))),h(Grid,{id:'fixed',columns:3},...[1,2,3].map(v=>h('div',{key:v},'Cell '+v))),
 h(AspectRatio,{id:'media',ratio:1.5},h(Image,{src:source,alt:'Geometry sample',width:300,height:200,fit:'contain',onLoad:()=>L(true)})),h('output',{'aria-label':'Image lifecycle'},loaded?'loaded':''),h(Image,{src:'/missing-structural.svg',alt:'Unavailable sample',onError:()=>B(true)}),h('output',{'aria-label':'Image error'},broken?'failed':''),
@@ -47,4 +49,22 @@ test("Static empty content and structural composition pass automated semantics",
 });
 test("served Inter loads the actual italic face for Latin and Cyrillic emphasis",async({page})=>{
  const fontResponses:Array<number>=[];page.on('response',response=>{if(response.url().includes('InterVariable-Italic'))fontResponses.push(response.status())});await page.goto('/components/text');await expect(page.locator('.workbench-stage')).toBeVisible();const faces=await page.evaluate(async()=>{const result=await document.fonts.load('italic 400 16px "Inter"','Flood Ёжик');const em=document.createElement('em');em.textContent='Flood Ёжик';document.querySelector('.workbench-stage .flood-root')!.append(em);const style=getComputedStyle(em);return{faces:result.map(face=>({family:face.family,style:face.style,status:face.status})),style:style.fontStyle,family:style.fontFamily};});expect(faces.faces.some(face=>face.style==='italic'&&face.status==='loaded')).toBe(true);expect(faces.style).toBe('italic');expect(faces.family).toContain('Inter');expect(fontResponses).toContain(200);
+});
+
+
+test("Avatar covers both intrinsic orientations without exposing fallback at enlarged RTL sizes",async({page},info)=>{
+ await openFixture(page);
+ for(const base of [16,24]){
+  await page.evaluate(value=>{document.documentElement.style.fontSize=value+"px";document.documentElement.dir=value===24?"rtl":"ltr";},base);
+  for(const [name,wide] of [["Landscape avatar",true],["Portrait avatar",false]] as const){
+   const avatar=page.getByRole("img",{name,exact:true}),image=avatar.locator("img");
+   await expect(image).toHaveCSS("opacity","1");
+   const metrics=await image.evaluate(node=>{const img=node as HTMLImageElement,r=img.getBoundingClientRect(),a=img.parentElement!.getBoundingClientRect();return{naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,width:r.width,height:r.height,avatarWidth:a.width,avatarHeight:a.height};});
+   expect(metrics.naturalWidth>metrics.naturalHeight).toBe(wide);
+   expect(metrics.width).toBeCloseTo(metrics.avatarWidth,1);
+   expect(metrics.height).toBeCloseTo(metrics.avatarHeight,1);
+   await expect(image).toHaveCSS("object-fit","cover");
+   await info.attach(`avatar-${wide?"landscape":"portrait"}-${base}.png`,{body:await avatar.screenshot(),contentType:"image/png"});
+  }
+ }
 });
