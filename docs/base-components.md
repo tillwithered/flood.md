@@ -1,6 +1,6 @@
 # Base component inventory
 
-The Flood 0.2.4 source candidate exports **44 components**, using original Flood implementations,
+The Flood 0.2.4 source candidate exports **46 components**, using original Flood implementations,
 React 18.3/19 APIs and TypeScript declarations. Import
 `@flood-md/react/styles.css` once and place new compositions inside `FloodRoot`.
 
@@ -154,4 +154,6 @@ Badge is a noninteractive status/metadata label. Avatar exposes a named image or
 
 Preview all four at `/playground/content`. Source availability does not imply npm publication.
 
-Progress displays task completion; Meter displays a bounded measurement. Alert provides static or explicitly announced inline feedback. These 0.2.4 additions bring the source candidate to 44 components.
+Progress displays task completion; Meter displays a bounded measurement. Alert provides static or explicitly announced inline feedback. These 0.2.4 additions bring the source candidate to 46 components.
+
+DescriptionList and Table add native related-property groups and data tables with horizontal Flood scrolling. The 0.2.4 source candidate now contains 46 components; no DataTable engine is included.

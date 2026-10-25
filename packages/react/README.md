@@ -597,3 +597,54 @@ See the [WAI Meter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/meter/),
   Free some space before your next upload.
 </Alert>
 ```
+
+
+## DescriptionList and Table · 0.2.4
+
+DescriptionList renders native dl groups, each with dt and dd. items is a readonly
+array of {id, term, description}; IDs must be unique and nonempty, and are React
+keys rather than DOM anchors. term is text and description is ReactNode, so a
+value can include a Badge, Link or other meaningful content. The host formats
+values and supplies fallback text for missing data. An empty items array stays
+an empty list, without invented placeholder content. Native dl props,
+className/style and HTMLDListElement ref target the list.
+
+layout defaults inline: term and value share a row. It becomes stacked below a
+22rem component container width, independently of viewport width. layout=stacked
+always puts the value below its term. Density defaults compact; comfortable adds
+space between pairs, without inflating the term/value relationship. dividers is
+false by default and adds quiet separators when enabled. This is not an editable
+form and its terms do not label controls; use Field/Fieldset for form inputs.
+
+Table wraps an actual HTML table in Flood's horizontal ScrollArea. caption is
+required and must be meaningful; hideCaption visually hides it without removing
+the accessible table name. children owns native thead/tbody/tfoot/colgroup markup
+and th/td associations. Supply scope=col or scope=row for simple headers, and
+explicit id/headers associations for complex spanning headers. Do not add another
+caption child. See [WAI table guidance](https://www.w3.org/WAI/tutorials/tables/).
+
+Table density defaults comfortable; compact reduces vertical cell padding.
+striped is false by default. data-numeric on a th or td uses logical end alignment,
+tabular figures and no wrapping for numbers. data-align=start/center/end overrides
+alignment explicitly. Text cells wrap; set style.minWidth to preserve room for a
+wide table, and the containing ScrollArea handles overflow. The host owns dates,
+units, totals, empty rows/colSpan and any cell actions. Avoid interactive whole rows.
+
+Native table props, className/style and HTMLTableElement ref target the table,
+not its viewport. dir/lang/hidden also govern the containing scroll area.
+scrollLabel names that viewport independently and defaults to caption. The native
+table keeps its own caption; viewport keyboard scrolling does not turn it into a
+grid widget. Keep action controls inside cells normally focusable. No sorting,
+selection, data fetching, pagination, sticky header or virtualization is implied.
+This is the compositional table primitive, not a DataTable engine.
+
+```tsx
+<DescriptionList items={[
+  {id:"project",term:"Project",description:"Flood"},
+  {id:"version",term:"Version",description:"0.2.4"},
+]} />
+<Table caption="Workspace projects" style={{minWidth:"32rem"}}>
+  <thead><tr><th scope="col">Project</th><th scope="col" data-numeric>Members</th></tr></thead>
+  <tbody><tr><th scope="row">Flood</th><td data-numeric>12</td></tr></tbody>
+</Table>
+```

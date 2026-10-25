@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Avatar, Badge, Button, FloodRoot, Heading, Inline, Link, Meter, Progress, Skeleton, Spinner, Stack, Surface, Text } from "@flood-md/react";
+import { Alert, Avatar, Badge, Button, DescriptionList, FloodRoot, Heading, Inline, Link, Meter, Progress, Skeleton, Spinner, Stack, Surface, Table, Text } from "@flood-md/react";
 import { SiteHeader } from "./site-header";
 import release from "./release.json";
 import "./content-board.css";
@@ -73,6 +73,31 @@ export default function ContentBoard() {
             <Alert tone="neutral" icon={null}>A quiet note without a heading or icon.</Alert>
           </div>
         </Stack></Surface>
+      </section>
+      <section id="data" className="content-board-feedback" aria-labelledby="data-title">
+        <Stack gap="2"><Heading id="data-title" level={2} size="page">Details, in their place.</Heading><Text as="p" size="compact" tone="subtle">Related properties and native tables, with room for real content.</Text></Stack>
+        <div className="content-board-grid">
+          <Surface padding="6"><Stack gap="6">
+            <Inline gap="4"><Heading level={3} size="section">DescriptionList</Heading><Link href="/components/description-list">Explore</Link></Inline>
+            <DescriptionList aria-label="Project details" dividers items={[
+              {id:"project",term:"Project",description:"Flood design system"},
+              {id:"status",term:"Status",description:<Badge tone="success" size="sm">Active</Badge>},
+              {id:"version",term:"Version",description:release.version},
+              {id:"owner",term:"Owner",description:<Link href="https://github.com/tillwithered/flood.md">Design team</Link>},
+              {id:"description",term:"Description",description:"An independent foundation for thoughtful interfaces."},
+            ]} />
+          </Stack></Surface>
+          <Surface padding="6"><Stack gap="4">
+            <Inline gap="4"><Heading level={3} size="section">Table</Heading><Link href="/components/table">Explore</Link></Inline>
+            <Table caption="Workspace projects" style={{minWidth:"32rem"}}>
+              <thead><tr><th scope="col">Project</th><th scope="col">Status</th><th scope="col" data-numeric>Members</th><th scope="col" data-numeric>Storage</th></tr></thead>
+              <tbody><tr><th scope="row">Flood</th><td><Badge tone="success" size="sm">Active</Badge></td><td data-numeric>12</td><td data-numeric>24 GB</td></tr>
+                <tr><th scope="row">Portal</th><td><Badge size="sm">Draft</Badge></td><td data-numeric>8</td><td data-numeric>16 GB</td></tr>
+                <tr><th scope="row">Studio</th><td><Badge tone="success" size="sm">Active</Badge></td><td data-numeric>20</td><td data-numeric>10 GB</td></tr></tbody>
+              <tfoot><tr><th scope="row" colSpan={2}>Total</th><td data-numeric>40</td><td data-numeric>50 GB</td></tr></tfoot>
+            </Table>
+          </Stack></Surface>
+        </div>
       </section>
       <Link href="/components">Browse all components</Link>
     </main>

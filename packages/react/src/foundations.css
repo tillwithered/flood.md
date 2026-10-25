@@ -1,5 +1,35 @@
 @import "@flood-md/tokens/foundations.css";
 
+.flood-root .flood-description-list { --flood-data-padding: var(--flood-sys-space-2); container: flood-description / inline-size; box-sizing: border-box; min-inline-size: 0; inline-size: 100%; margin: 0; color: var(--flood-sys-color-content-default); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
+.flood-root .flood-description-list[data-density="comfortable"] { --flood-data-padding: var(--flood-sys-space-3); }
+.flood-root .flood-description-list__item { display: grid; grid-template-columns: minmax(0, min(10rem, 35%)) minmax(0, 1fr); column-gap: var(--flood-sys-space-3); row-gap: var(--flood-sys-space-1); padding-block: var(--flood-data-padding); }
+.flood-root .flood-description-list__item:first-child { padding-block-start: 0; }
+.flood-root .flood-description-list__item:last-child { padding-block-end: 0; }
+.flood-root .flood-description-list[data-dividers="true"] > .flood-description-list__item + .flood-description-list__item { border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
+.flood-root .flood-description-list :is(dt, dd) { margin: 0; min-inline-size: 0; overflow-wrap: anywhere; }
+.flood-root .flood-description-list dt { color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-description-list[data-layout="stacked"] > .flood-description-list__item { grid-template-columns: minmax(0, 1fr); }
+@container flood-description (max-width: 22rem) { .flood-root .flood-description-list__item { grid-template-columns: minmax(0, 1fr); } }
+.flood-root .flood-table-container { min-inline-size: 0; max-inline-size: 100%; inline-size: 100%; }
+.flood-root .flood-table { --flood-data-padding: var(--flood-sys-space-3); inline-size: 100%; border-collapse: collapse; border-spacing: 0; text-align: start; color: var(--flood-sys-color-content-default); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
+.flood-root .flood-table[data-density="compact"] { --flood-data-padding: var(--flood-sys-space-2); }
+.flood-root .flood-table caption { text-align: start; padding-block-end: var(--flood-sys-space-3); font-weight: var(--flood-sys-type-label-weight); color: var(--flood-sys-color-content-default); }
+.flood-root .flood-table :is(th, td) { text-align: start; vertical-align: top; padding: var(--flood-data-padding) var(--flood-sys-space-3); overflow-wrap: anywhere; }
+.flood-root .flood-table th { font-weight: var(--flood-sys-type-label-weight); }
+.flood-root .flood-table thead th { color: var(--flood-sys-color-content-subtle); border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
+.flood-root .flood-table tbody > tr:not(:last-child) > :is(th, td) { border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
+.flood-root .flood-table tfoot > tr:first-child > :is(th, td) { border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
+.flood-root .flood-table[data-striped="true"] tbody > tr:nth-child(even) { background: color-mix(in srgb, var(--flood-sys-color-content-default) 4%, transparent); }
+.flood-root .flood-table [data-numeric] { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flood-root .flood-table [data-align="center"] { text-align: center; }
+.flood-root .flood-table [data-align="end"] { text-align: end; }
+.flood-root .flood-table [data-align="start"] { text-align: start; }
+.flood-root :is(.flood-description-list, .flood-table-container, .flood-table)[hidden] { display: none; }
+@media (forced-colors: active) {
+  .flood-root .flood-table[data-striped="true"] tbody > tr:nth-child(even) { background: Canvas; }
+  .flood-root .flood-table :is(th, td), .flood-root .flood-description-list[data-dividers="true"] > .flood-description-list__item { border-color: CanvasText; }
+}
+
 .flood-root .flood-indicator { --flood-indicator-color: var(--flood-sys-color-indicator-fill); --flood-indicator-size: var(--flood-sys-size-indicator-md); position: relative; min-inline-size: 0; inline-size: 100%; box-sizing: border-box; }
 .flood-root .flood-indicator[data-size="sm"] { --flood-indicator-size: var(--flood-sys-size-indicator-sm); }
 .flood-root .flood-indicator[data-size="lg"] { --flood-indicator-size: var(--flood-sys-size-indicator-lg); }

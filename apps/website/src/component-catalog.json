@@ -678,5 +678,38 @@
       "Title is optional. Icons are original decorative glyphs; pass icon={null} to omit or supply noninteractive artwork. Meaning must remain in the text.",
       "Native div props and ref target the message root. Available in 0.2.4."
     ]
+  },
+  {
+    "slug": "description-list",
+    "name": "DescriptionList",
+    "group": "content",
+    "description": "Related terms and descriptions with native list semantics and responsive grouping.",
+    "code": "<DescriptionList items={[\n  {id:\"project\",term:\"Project\",description:\"Flood\"},\n  {id:\"version\",term:\"Version\",description:\"0.2.4\"},\n]} />",
+    "imports": [
+      "DescriptionList"
+    ],
+    "notes": [
+      "Renders native dl/dt/dd groups. IDs are stable React keys, not generated DOM anchors; require unique nonempty IDs.",
+      "Inline layout becomes stacked when the component container is narrow. Stacked layout is always one column.",
+      "Density and dividers affect presentation. Values may contain React content; the host owns formatting and missing-value text.",
+      "Native dl props, className/style and HTMLDListElement ref target the list. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "table",
+    "name": "Table",
+    "group": "content",
+    "description": "A native data table with caption, density and a protected horizontal scroll area.",
+    "code": "<Table caption=\"Projects\">\n  <thead><tr><th scope=\"col\">Project</th><th scope=\"col\" data-numeric>Members</th></tr></thead>\n  <tbody><tr><th scope=\"row\">Flood</th><td data-numeric>12</td></tr></tbody>\n</Table>",
+    "imports": [
+      "Table"
+    ],
+    "notes": [
+      "Caption is required and remains the accessible table name with hideCaption. Supply table sections and correct native header/cell associations.",
+      "Native table props, className/style and HTMLTableElement ref target the actual table. Set style.minWidth when horizontal overflow is preferable to compressed columns.",
+      "Flood ScrollArea owns horizontal scrolling and keyboard access. scrollLabel can name its viewport independently; dir and hidden apply to the containing scroll area too.",
+      "Use data-numeric on headers/cells for end alignment and tabular figures; data-align=start/center/end gives logical alignment. No automatic sorting, selection, pagination or data access.",
+      "Striped and compact/comfortable density are opt-in presentation. Available in 0.2.4."
+    ]
   }
 ]

@@ -9,6 +9,7 @@
 .workbench-stage > .flood-root:has(> .flood-field, > .flood-stack > .flood-field, > .flood-fieldset, > .flood-stack > .flood-fieldset) { inline-size: min(100%, 26rem); }
 .workbench-stage > .flood-root:has(> .flood-stack .flood-code-snippet) { inline-size: min(100%, 28rem); }
 .workbench-stage[data-component="label"] > .flood-root { inline-size: min(100%, 26rem); }
+.workbench-stage[data-component="table"] > .flood-root { inline-size: 100%; max-inline-size: 42rem; }
 .workbench-stage:is([data-component="progress"], [data-component="meter"]) .flood-indicator { display: grid; grid-template-rows: minmax(1.25rem, auto) .5rem; gap: var(--flood-sys-space-2); }
 .workbench-stage:is([data-component="progress"], [data-component="meter"]) .flood-indicator__caption { grid-row: 1; margin-block-end: 0; }
 .workbench-stage:is([data-component="progress"], [data-component="meter"]) .flood-indicator__track { grid-row: 2; align-self: center; }

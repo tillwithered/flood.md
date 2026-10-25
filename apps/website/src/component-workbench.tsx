@@ -20,6 +20,8 @@ const select = (name: string, options: string[], initial: string): Knob => ({ na
 const statusKnob = () => select("status", ["none", "error", "warning", "success", "info"], "none");
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
+  "description-list": [select("layout", ["inline", "stacked"], "inline"), select("density", ["compact", "comfortable"], "compact"), toggle("dividers"), toggle("longValue")],
+  table: [select("density", ["compact", "comfortable"], "comfortable"), toggle("striped"), toggle("hideCaption"), select("minWidth", ["auto", "32rem", "48rem"], "32rem"), toggle("empty"), toggle("footer", true)],
   progress: [select("value", ["0", "25", "50", "75", "100"], "50"), toggle("indeterminate"), select("size", ["sm", "md", "lg"], "md"), select("tone", ["neutral", "accent", "info", "success", "warning", "error"], "accent"), toggle("showValue", true)],
   meter: [select("value", ["0", "25", "50", "75", "100"], "50"), select("size", ["sm", "md", "lg"], "md"), select("tone", ["neutral", "accent", "info", "success", "warning", "error"], "neutral"), toggle("showValue", true)],
   alert: [select("tone", ["neutral", "info", "success", "warning", "error"], "info"), select("announcement", ["off", "polite", "assertive"], "off"), toggle("showTitle", true), toggle("showIcon", true)],
@@ -128,6 +130,11 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     onChange: binding("(event) => setChecked(event.currentTarget.checked)", (event: { currentTarget: { checked: boolean } }) => actions.checked(event.currentTarget.checked)),
   };
   switch (slug) {
+    case "description-list": return element("div", {style:{width:"28rem",maxWidth:"100%"}}, element("DescriptionList", {"aria-label":"Project details",layout:v.layout,density:v.density,dividers:v.dividers,items:[{id:"project",term:"Project",description:"Flood design system"},{id:"version",term:"Version",description:release.version},{id:"owner",term:"Owner",description:v.longValue?"design-system-maintainers@a-very-long-example-company.example":"Design team"}]}));
+    case "table": return element("Table", {caption:"Workspace projects",density:v.density,striped:v.striped,hideCaption:v.hideCaption,style:{minWidth:v.minWidth}},
+      element("thead", {}, element("tr", {}, ...["Project", "Status", "Members", "Storage"].map((name,index)=>element("th",{scope:"col",...(index>1?{"data-numeric":true}:{})},name)))),
+      element("tbody", {}, ...(v.empty?[element("tr",{},element("td",{colSpan:4},"No projects yet."))]:[["Flood","Active","12","24 GB"],["Portal","Draft","8","16 GB"],["Studio","Active","20","10 GB"]].map(([name,status,members,storage])=>element("tr",{},element("th",{scope:"row"},name),element("td",{},element("Badge",{tone:status==="Active"?"success":"neutral",size:"sm"},status)),element("td",{"data-numeric":true},members),element("td",{"data-numeric":true},storage))))),
+      ...(v.footer&&!v.empty?[element("tfoot",{},element("tr",{},element("th",{scope:"row",colSpan:2},"Total"),element("td",{"data-numeric":true},"40"),element("td",{"data-numeric":true},"50 GB")))]:[]));
     case "progress": return element("div", {style:{width:"22rem",maxWidth:"100%"}}, element("Progress", {label:"Uploading files",value:v.indeterminate?undefined:Number(v.value),size:v.size,tone:v.tone,hideLabel:v.hideLabel,valueText:v.showValue?(v.indeterminate?"Estimating…":`${v.value}%`):undefined}));
     case "meter": return element("div", {style:{width:"22rem",maxWidth:"100%"}}, element("Meter", {label:"Storage used",value:Number(v.value),size:v.size,tone:v.tone,hideLabel:v.hideLabel,valueText:v.showValue?`${v.value} of 100 GB`:undefined}));
     case "alert": return element("div", {style:{width:"26rem",maxWidth:"100%"}}, element("Alert", {title:v.showTitle?({neutral:"Project note",info:"A new version is available",success:"Changes saved",warning:"Storage is almost full",error:"Changes could not be saved"} as Record<string,string>)[String(v.tone)]:undefined,tone:v.tone,announcement:v.announcement,icon:v.showIcon?undefined:null}, "Your work stays here. Choose the next step when you are ready."));
@@ -297,7 +304,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
 
   const controls = componentKnobs(component);
   const hasFocusAction = ["input", "input-group", "textarea", "select"].includes(component.slug);
-  const spacious = ["accordion", "input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
+  const spacious = ["table", "description-list", "accordion", "input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
   const labelFor = (knob: Knob) => knob.label ?? ({ controlSize: "Size", contentInset: "Content clearance", readOnly: "Read only", copyAction: "Copy button", label: "Accessible name" } as Record<string, string>)[knob.name] ?? knob.name[0].toUpperCase() + knob.name.slice(1);
   return <section className="component-workbench" aria-label={`${component.name} live playground`}>
     <div className="workbench-title"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setPagination({slug:component.slug,page:1}); setResetKey((key) => key + 1); }}>Reset</Flood.Button></Flood.Inline></div>

@@ -43,3 +43,5 @@ versions and owned files; it does not validate application behavior or CSS impor
 0.2.4 adds Badge, Spinner, Skeleton and Avatar. Read their matching component Markdown pages.
 
 Progress, Meter and Alert are included in this source candidate. Use Progress for task completion, Meter for bounded values; Alert announcements default off.
+
+DescriptionList renders native readonly term/value groups; Table retains caption and header/cell semantics with Flood horizontal scrolling. No DataTable behavior is implied.

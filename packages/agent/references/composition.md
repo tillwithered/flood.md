@@ -147,3 +147,6 @@ Use Badge for noninteractive metadata with meaningful text. Spinner is indetermi
 
 
 Progress is task completion; omit value for unknown progress. Meter is a bounded measurement and always requires value. Both need label and finite increasing ranges; invalid values throw. Use valueText for localized units and hideLabel for visually hidden captions. Wrapper refs and native div props do not replace the internal range semantics. Alert is inline feedback: title optional, host actions inside children, icon=null to omit artwork. Tone and announcement are independent. No task manager, validation engine, automatic dismissal or Toast queue is supplied. Available in 0.2.4.
+
+
+DescriptionList uses native dl/dt/dd for related readonly properties; use unique item IDs, meaningful term text and formatted description content. Inline layout stacks according to container width; it does not label editable controls. Table owns caption and a horizontal Flood ScrollArea. Supply native table sections and correct th scope/id/headers relationships; className/style/ref target the actual table. Use data-numeric for numeric cells and style.minWidth for wide tables. Cell actions stay ordinary focusable controls; do not imply DataTable sorting, selection or fetching. Available in 0.2.4.

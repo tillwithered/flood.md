@@ -67,3 +67,6 @@ For 0.2.4 loading primitives: localize standalone Spinner label, avoid duplicate
 
 
 Progress and Meter are not live regions. Keep their labels even with hideLabel, and provide meaningful valueText when percentages would be misleading. Unknown Progress omits aria-valuenow; Meter has no unknown state. Alert defaults to silent static content; opt into announcement=polite (status) or assertive (alert) only for the required urgency. Do not move focus to these messages or claim every screen reader announces initial markup. Verify with actual assistive technology.
+
+
+Retain DescriptionList native dl/dt/dd semantics without redundant ARIA term/definition roles. Table needs a meaningful caption (hideCaption keeps its name) and host-owned header associations; never convert table rows into display:block cards without preserving relationships. Name the horizontal scroll viewport, retain keyboard scrolling and check that focusable cell controls remain reachable. Native table ref points to table, not viewport.

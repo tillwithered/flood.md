@@ -17,6 +17,7 @@ import {
   type FieldsetHTMLAttributes,
   type RefCallback,
   type RefObject,
+  type TableHTMLAttributes,
 } from "react";
 import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-state.js";
 import { SingleSelect } from "./select.js";
@@ -27,6 +28,7 @@ import { AnchoredOverlay, ModalOverlay } from "./overlays.js";
 import { TabNavigation, BreadcrumbNavigation, PageNavigation } from "./navigation.js";
 import { AvatarArtwork } from "./avatar.js";
 import { ValueIndicator, FeedbackMessage } from "./feedback.js";
+import { DescribedData, TabularData } from "./data-display.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -75,6 +77,40 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 export type FieldStatus = "error" | "warning" | "success" | "info";
 
 export type ContentSize = "sm" | "md" | "lg";
+export type DataDensity = "compact" | "comfortable";
+export interface DescriptionItem {
+  id: string;
+  term: string;
+  description: ReactNode;
+}
+export interface DescriptionListProps extends Omit<HTMLAttributes<HTMLDListElement>, "children"> {
+  items: readonly DescriptionItem[];
+  layout?: "inline" | "stacked";
+  density?: DataDensity;
+  dividers?: boolean;
+}
+/** @since 0.2.4 */
+export const DescriptionList = forwardRef<HTMLDListElement, DescriptionListProps>(function DescriptionList(
+  { items, layout = "inline", density = "compact", dividers = false, ...props }, ref,
+) {
+  return <DescribedData {...props} ref={ref} items={items} layout={layout} density={density} dividers={dividers} />;
+});
+
+export interface TableProps extends Omit<TableHTMLAttributes<HTMLTableElement>, "children"> {
+  caption: string;
+  children: ReactNode;
+  hideCaption?: boolean;
+  density?: DataDensity;
+  striped?: boolean;
+  scrollLabel?: string;
+}
+/** @since 0.2.4 */
+export const Table = forwardRef<HTMLTableElement, TableProps>(function Table(
+  { caption, children, hideCaption = false, density = "comfortable", striped = false, scrollLabel, ...props }, ref,
+) {
+  return <TabularData {...props} ref={ref} caption={caption} hideCaption={hideCaption} density={density} striped={striped} scrollLabel={scrollLabel}>{children}</TabularData>;
+});
+
 export type SemanticTone = "neutral" | "accent" | "error" | "warning" | "success" | "info";
 export type BadgeTone = SemanticTone;
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
