@@ -56,3 +56,6 @@
 .workbench-stage[data-component="slider"] .flood-slider__value { grid-row: 1; }
 .workbench-stage[data-component="slider"] .flood-slider__rail { grid-row: 2; }
 .workbench-stage[data-component="slider"] :is(.flood-message, .flood-error) { grid-row: 3; }
+
+.workbench-stage[data-component="combobox"] > .flood-root { inline-size: min(100%, 26rem); }
+.workbench-stage[data-component="combobox"] .flood-field { grid-template-rows: auto auto minmax(1.5rem, auto); }

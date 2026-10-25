@@ -6,6 +6,7 @@
 
 - Add original NumberInput with native form validation and step actions, and a horizontal Slider supporting one value or an ordered range. Reuse Flood field geometry, labels, feedback and focus.
 - Keep exact internal versions aligned; this candidate is not yet published.
+- Add editable Combobox selection with local search, explicit option IDs, forms/reset, layered listbox, protected scrolling and translated action/message labels.
 
 ## 0.2.4 · 2026-10-26
 

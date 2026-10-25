@@ -930,5 +930,21 @@
       "Horizontal only. Direction follows the host, including RTL. Native range inputs retain keyboard behavior; pointer selection chooses the nearest handle. Names submit one or two entries; uncontrolled reset restores defaults.",
       "hideLabel preserves the accessible legend; showValue only controls the visible numeric readout. Read-only prevents edits while keeping focus. Use hint/message/error for meaning beyond color. Touch assistive technology needs device testing. Available in the 0.2.5 source candidate."
     ]
+  },
+  {
+    "slug": "combobox",
+    "name": "Combobox",
+    "group": "forms",
+    "description": "Search a defined collection and commit one option while focus stays in the input.",
+    "code": "<Field label=\"Framework\">\n  {(control) => <Combobox {...control} name=\"framework\" options={[{value: \"react\", label: \"React\"}, {value: \"vue\", label: \"Vue\"}, {value: \"svelte\", label: \"Svelte\"}]} placeholder=\"Choose a framework\" />}\n</Field>",
+    "imports": [
+      "Field",
+      "Combobox"
+    ],
+    "notes": [
+      "Typing filters labels and optional keywords; labels remain presentation and only the selected option value is submitted. Enter commits the active option. Escape/Tab/outside interaction discard an uncommitted query. Emptying the input clears selection.",
+      "Native input ref, Field associations, required validity, controlled/uncontrolled value, forms/reset, read-only/disabled and IME editing are preserved. Options need unique nonempty values and labels. Disabled options remain discoverable and cannot be chosen.",
+      "Use clearable for the visible clear action; translate clearLabel/toggleLabel/listLabel/emptyMessage/invalidSelectionMessage. The popup reuses Flood ScrollArea and layer positioning. No arbitrary text, multiple selection, async fetching or virtualization engine is supplied. Available in the unpublished 0.2.5 candidate."
+    ]
   }
 ]
