@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { isAbsolute, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
+import { createServer } from "node:net";
 
 const workspace = fileURLToPath(new URL("../", import.meta.url));
 const json = async path => JSON.parse(await readFile(path, "utf8"));
@@ -23,8 +24,8 @@ const env = Object.fromEntries(["PATH", "SystemRoot", "WINDIR", "TEMP", "TMP", "
 Object.assign(env, { CI: "true", NEXT_TELEMETRY_DISABLED: "1", NPM_CONFIG_CACHE: join(sandbox, "cache"), NPM_CONFIG_USERCONFIG: userConfig });
 const npmCli = process.env.npm_execpath;
 if (!npmCli) throw new Error("Run through npm run release:verify-registry");
-function run(command, args, cwd = project) {
-  const result = spawnSync(command, args, { cwd, env, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
+function run(command, args, cwd = project, extraEnv = {}) {
+  const result = spawnSync(command, args, { cwd, env: { ...env, ...extraEnv }, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
   if (result.status !== 0) throw new Error(result.stderr || result.stdout || "Consumer command failed");
   return result.stdout;
 }
@@ -71,18 +72,24 @@ await writeFile(join(project, "registry-check.mjs"), `import assert from 'node:a
 run(process.execPath, ["registry-check.mjs"]);
 for (const file of ["app", "tsconfig.json", "next-env.d.ts"]) await cp(join(workspace, "examples/next", file), join(project, file), { recursive: true });
 npm(["run", "build"]);
-const server = spawn(process.execPath, [join(project, "node_modules/next/dist/bin/next"), "start", "--hostname", "127.0.0.1", "--port", "3001"], { cwd: project, env, stdio: ["ignore", "pipe", "pipe"] });
+// Never reuse the checkout's fixed-port Next server as registry evidence.
+const probe = createServer();
+await new Promise((resolve,reject)=>{probe.once("error",reject);probe.listen(0,"127.0.0.1",resolve);});
+const port = probe.address().port;
+await new Promise((resolve,reject)=>probe.close(error=>error?reject(error):resolve()));
+const baseURL = `http://127.0.0.1:${port}`;
+const server = spawn(process.execPath, [join(project, "node_modules/next/dist/bin/next"), "start", "--hostname", "127.0.0.1", "--port", String(port)], { cwd: project, env, stdio: ["ignore", "pipe", "pipe"] });
 let serverLog = "";
 server.stdout.on("data", chunk => { serverLog = (serverLog + chunk).slice(-12000); });
 server.stderr.on("data", chunk => { serverLog = (serverLog + chunk).slice(-12000); });
 try {
   const readyBy = Date.now() + 30_000;
   while (true) {
-    try { if ((await fetch("http://127.0.0.1:3001", { signal: AbortSignal.timeout(2000) })).ok) break; } catch {}
+    try { if ((await fetch(baseURL, { signal: AbortSignal.timeout(2000) })).ok) break; } catch {}
     if (server.exitCode !== null || Date.now() >= readyBy) throw new Error("Registry Next server did not become ready: " + serverLog);
     await new Promise(resolve => setTimeout(resolve, 300));
   }
-  run(process.execPath, [join(workspace, "node_modules/@playwright/test/cli.js"), "test", "--config=playwright.registry.config.ts"], workspace);
+  run(process.execPath, [join(workspace, "node_modules/@playwright/test/cli.js"), "test", "--config=playwright.registry.config.ts"], workspace, { FLOOD_NEXT_TEST_URL: baseURL });
 } finally { server.kill("SIGTERM"); }
 await mkdir(join(workspace, ".artifacts"), { recursive: true });
 await writeFile(join(workspace, ".artifacts/registry-verification.json"), JSON.stringify({ version, exports: catalog.length, agentFiles: manifest.files.length, registryIntegrity: registry, cli: "passed", reactSSR: "passed", nextBuild: "passed", nextBrowser: "passed" }, null, 2));

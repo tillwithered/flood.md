@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { chooseSelectOption, selectBridge } from "./select-helpers";
 
-const url = "http://127.0.0.1:3001/foundations";
+const url = (process.env.FLOOD_NEXT_TEST_URL ?? "http://127.0.0.1:3001") + "/foundations";
 
 test("dark foundations hydrate with the bundled Inter font and accessible primitives", async ({ page }, testInfo) => {
   const errors: string[] = [];
