@@ -944,7 +944,8 @@
     "notes": [
       "Typing filters labels and optional keywords; labels remain presentation and only the selected option value is submitted. Enter commits the active option. Escape/Tab/outside interaction discard an uncommitted query. Emptying the input clears selection.",
       "Native input ref, Field associations, required validity, controlled/uncontrolled value, forms/reset, read-only/disabled and IME editing are preserved. Options need unique nonempty values and labels. Disabled options remain discoverable and cannot be chosen.",
-      "Use clearable for the visible clear action; translate clearLabel/toggleLabel/listLabel/emptyMessage/invalidSelectionMessage. The popup reuses Flood ScrollArea and layer positioning. No arbitrary text, multiple selection, async fetching or virtualization engine is supplied. Available in the unpublished 0.2.5 candidate."
+      "Use clearable for the visible clear action; translate clearLabel/toggleLabel/listLabel/emptyMessage/invalidSelectionMessage. The popup reuses Flood ScrollArea and layer positioning. No arbitrary text, multiple selection, async fetching or virtualization engine is supplied. Available in the unpublished 0.2.5 candidate.",
+      "Only the disclosure chevron is shown by default. Set clearable to opt into the extra clear-selection action; individual MultiSelect tags retain their removal buttons."
     ]
   },
   {
@@ -976,7 +977,8 @@
       "value/defaultValue are arrays of unique nonempty option IDs; onValueChange returns a new array. Native forms submit repeated entries with the same name, never typed query text. Uncontrolled reset restores initial values.",
       "The shared Combobox search/layer model keeps focus in the input. Enter toggles the active option and the list stays open. Backspace in an empty input removes the last editable tag; a logical backward arrow at the start enters tag actions. Tag arrows, Delete/Backspace, Enter and Escape support keyboard editing.",
       "Disabled selected options cannot be individually removed or cleared globally. Read-only permits copying but blocks selection and removal. Required means at least one valid selected ID. Translate removeItemLabel and the shared action/empty/validation messages.",
-      "No freeform values, remote fetching, virtualization or arbitrary tag selection engine is supplied. Available in the unpublished 0.2.5 candidate."
+      "No freeform values, remote fetching, virtualization or arbitrary tag selection engine is supplied. Available in the unpublished 0.2.5 candidate.",
+      "Only the disclosure chevron is shown by default. Set clearable to opt into the extra clear-selection action; individual MultiSelect tags retain their removal buttons."
     ]
   }
 ]

@@ -14,3 +14,8 @@ test('Combobox rejects ambiguous option identities and retains controlled preced
  const html=render(h(Combobox,{options,value:'vue',defaultValue:'react','aria-label':'Framework',readOnly:true}));assert.match(html,/value="Vue"/);assert.match(html,/readonly=""/i);assert.match(html,/value="vue"/);assert.throws(()=>render(h(Combobox,{options,listLabel:''})),/nonempty/);
 });
 
+
+test('selection fields keep only the disclosure action by default',()=>{
+ const single=render(h(Combobox,{options,defaultValue:'react','aria-label':'Framework'}));assert.doesNotMatch(single,/aria-label="Clear selection"/);assert.match(single,/aria-label="Show options"/);
+ assert.match(render(h(Combobox,{options,defaultValue:'react',clearable:true})),/aria-label="Clear selection"/);
+});

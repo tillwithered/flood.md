@@ -16,7 +16,7 @@ interface SearchSelectionProps extends Omit<ComboboxProps, "value" | "defaultVal
 
 /** Shared search/layer model. Public single and multiple value contracts stay distinct. */
 export const SearchSelection = forwardRef<HTMLInputElement, SearchSelectionProps>(function SearchSelection({
-  options, selectedValues: value, initialValues: defaultValue, onSelectionChange: onValueChange, multiple = false, removeItemLabel = "Remove", clearable = true,
+  options, selectedValues: value, initialValues: defaultValue, onSelectionChange: onValueChange, multiple = false, removeItemLabel = "Remove", clearable = false,
   emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options",
   clearLabel = "Clear selection", invalidSelectionMessage = "Select an option.",
   controlSize = "md", readOnly, disabled, required, name, id: explicitId,

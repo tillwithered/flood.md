@@ -186,3 +186,7 @@ for associations/feedback. Preserve repeated form entries, reset and required
 selection validity. Disabled selected items stay selected through clear/remove;
 read-only blocks edits. Do not shrink touch targets to force tags into a row.
 Let tags wrap while the search editor and its suffix actions remain together.
+
+Keep selection-field chrome calm: Combobox/MultiSelect show only the chevron by
+default. Add clearable=true only when a separate clear-selection action is useful;
+individual MultiSelect tags already expose named removal actions.

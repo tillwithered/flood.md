@@ -120,3 +120,8 @@ they move together when tokens consume a line. Nested radii account for the fiel
 inset. Coarse-pointer removal targets remain distinct and at least size.touch.
 There is no arbitrary freeform tagging, remote data access, virtualization or
 standalone TagGroup selection/navigation engine in this candidate.
+
+Selection-field action defaults: Combobox and MultiSelect show only the disclosure
+chevron by default. Set clearable=true to add the explicit clear-selection action.
+MultiSelect tags keep their individual removal buttons; keyboard editing remains
+available. This default is part of the unpublished 0.2.5 design candidate.

@@ -19,3 +19,8 @@ test('MultiSelect rejects ambiguous values and keeps controlled and readonly mod
  for(const props of [{defaultValue:['react','react']},{value:['']},{removeItemLabel:''}])assert.throws(()=>render(h(MultiSelect,{options,...props})),/Flood/);
  const html=render(h(MultiSelect,{options,value:['vue'],defaultValue:['react'],readOnly:true,'aria-label':'Frameworks'}));assert.match(html,/type="hidden"[^>]*value="vue"/);assert.doesNotMatch(html,/aria-label="Remove Vue"/);assert.doesNotMatch(html,/type="hidden"[^>]*value="react"/);
 });
+
+test('multiple selection retains per-item removal with an opt-in global clear action',()=>{
+ const html=render(h(MultiSelect,{options,defaultValue:['react'],'aria-label':'Frameworks'}));assert.match(html,/aria-label="Remove React"/);assert.doesNotMatch(html,/aria-label="Clear selection"/);assert.match(html,/aria-label="Show options"/);
+ assert.match(render(h(MultiSelect,{options,defaultValue:['react'],clearable:true})),/aria-label="Clear selection"/);
+});

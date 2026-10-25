@@ -586,7 +586,7 @@ export interface ComboboxProps extends Omit<InputProps, "type" | "value" | "defa
 }
 /** @since 0.2.5 */
 export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Combobox(
-  { value, defaultValue = "", onValueChange, clearable = true, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select an option.", controlSize = "md", ...props }, ref,
+  { value, defaultValue = "", onValueChange, clearable = false, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select an option.", controlSize = "md", ...props }, ref,
 ) {
   return <SearchSelection {...props} ref={ref} multiple={false} selectedValues={value === undefined ? undefined : value ? [value] : []} initialValues={defaultValue ? [defaultValue] : []} onSelectionChange={next => onValueChange?.(next[0] ?? "")} clearable={clearable} emptyMessage={emptyMessage} listLabel={listLabel} toggleLabel={toggleLabel} clearLabel={clearLabel} invalidSelectionMessage={invalidSelectionMessage} controlSize={controlSize} />;
 });
@@ -599,7 +599,7 @@ export interface MultiSelectProps extends Omit<ComboboxProps, "value" | "default
 }
 /** @since 0.2.5 */
 export const MultiSelect = forwardRef<HTMLInputElement, MultiSelectProps>(function MultiSelect(
-  { value, defaultValue = [], onValueChange, removeItemLabel = "Remove", clearable = true, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select at least one option.", controlSize = "md", ...props }, ref,
+  { value, defaultValue = [], onValueChange, removeItemLabel = "Remove", clearable = false, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select at least one option.", controlSize = "md", ...props }, ref,
 ) {
   return <SearchSelection {...props} ref={ref} multiple selectedValues={value} initialValues={defaultValue} onSelectionChange={onValueChange} removeItemLabel={removeItemLabel} clearable={clearable} emptyMessage={emptyMessage} listLabel={listLabel} toggleLabel={toggleLabel} clearLabel={clearLabel} invalidSelectionMessage={invalidSelectionMessage} controlSize={controlSize} />;
 });
