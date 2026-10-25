@@ -34,6 +34,8 @@ import { ValueIndicator, FeedbackMessage } from "./feedback.js";
 import { DescribedData, TabularData } from "./data-display.js";
 import { ActionMenu } from "./menu.js";
 import { RovingToolbar } from "./toolbar.js";
+import { NumericStepper } from "./numeric-input.js";
+import { RangeControl } from "./slider.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -539,6 +541,43 @@ export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function
     {hasFieldContent(end) && <div className="flood-input-group__addon flood-input-group__addon--end">{typeof end === "string" ? <bdi dir="auto">{end}</bdi> : end}</div>}
   </div>;
 });
+export interface NumberInputProps extends Omit<InputProps, "type" | "value" | "defaultValue" | "onChange" | "min" | "max" | "step" | "children"> {
+  value?: number | null;
+  defaultValue?: number | null;
+  onValueChange?: (value: number | null) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  decreaseLabel?: string;
+  increaseLabel?: string;
+}
+/** @since 0.2.5 */
+export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(function NumberInput(
+  { defaultValue = 0, step = 1, controlSize = "md", decreaseLabel = "Decrease value", increaseLabel = "Increase value", ...props }, ref,
+) {
+  return <NumericStepper {...props} ref={ref} defaultValue={defaultValue} step={step} controlSize={controlSize} decreaseLabel={decreaseLabel} increaseLabel={increaseLabel} inputComponent={InputGroup} buttonComponent={IconButton} />;
+});
+
+export interface SliderProps extends Omit<FieldsetProps, "legend" | "children" | "defaultValue" | "onChange"> {
+  label: string;
+  value?: readonly number[];
+  defaultValue?: readonly number[];
+  onValueChange?: (value: number[]) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  thumbLabels?: readonly string[];
+  showValue?: boolean;
+  readOnly?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+}
+/** @since 0.2.5 */
+export const Slider = forwardRef<HTMLFieldSetElement, SliderProps>(function Slider(
+  { defaultValue = [50], min = 0, max = 100, step = 1, showValue = true, readOnly = false, controlSize = "md", ...props }, ref,
+) {
+  return <RangeControl {...props} ref={ref} defaultValue={defaultValue} min={min} max={max} step={step} showValue={showValue} readOnly={readOnly} controlSize={controlSize} fieldsetComponent={Fieldset} />;
+});
+
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   status?: FieldStatus;
   invalid?: boolean;

@@ -3,7 +3,7 @@
 Original React 18.3/19 components for TypeScript and Next.js App Router. Native
 HTML semantics and refs, no third-party component library or Tailwind dependency.
 
-This package documents the **0.2.4** API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.5** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
 ```tsx
@@ -812,3 +812,6 @@ original OFL notices. Color alone never communicates validation or progress.
 CodeSnippet codeDirection defaults to ltr independently of RTL parent action layout; choose rtl/auto explicitly for content that needs it. Native dir still applies to the wrapper. Protected ScrollArea reveals focused descendants fully when needed, composes the host focus handler and avoids scrolling to nested top-layer controls.
 
 Checkbox, Radio and Switch apply native hidden/dir/lang to their visible label wrapper as well as the input, so a component-local language/direction applies to its whole choice.
+
+
+0.2.5 adds NumberInput (native numeric editing and integrated step actions) and Slider (one value or an ordered pair). Use matching declarations and the numeric controls guide in docs/base-components.md. Registry publication is separate from source availability.

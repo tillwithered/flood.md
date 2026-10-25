@@ -56,3 +56,11 @@ agent and CLI 0.2.0 are verified on npm and a real CLI installation succeeds.
 The candidate's site and plain-text endpoint must say that publication is
 pending. After registry verification, enable the installation command in a
 separate change. Do not describe an unsubmitted candidate as staged on npm.
+
+## Numeric controls: next small cohort
+
+The 0.2.5 source candidate adds NumberInput and Slider. These are compatible
+additions under the documented pre-1.0 patch policy; existing component APIs and
+token values remain unchanged. Prepare all four packages together and keep the
+website publication flag false until actual registry installation is verified.
+NumberInput/Slider behavior and limitations are documented in base-components.md.

@@ -49,3 +49,7 @@
 }
 
 .workbench-stage:is([data-component="container"], [data-component="grid"]) > .flood-root { inline-size: 100%; }
+
+.workbench-stage:is([data-component="number-input"], [data-component="slider"]) > .flood-root { inline-size: min(100%, 26rem); }
+.workbench-stage[data-component="number-input"] .flood-field { grid-template-rows: auto auto minmax(1.5rem, auto); }
+.workbench-stage[data-component="slider"] .flood-fieldset__body { min-block-size: 6rem; }

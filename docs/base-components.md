@@ -1,6 +1,6 @@
 # Base component architecture
 
-The 0.2.4 uses original React18.3/19 components and TypeScript
+The 0.2.5 uses original React18.3/19 components and TypeScript
 declarations. The website catalog and individual component pages are generated
 from the [source catalog](../apps/website/src/component-catalog.json) and declarations.
 Use the catalog for inventory and the [component guide](components.md) for composition.
@@ -40,3 +40,27 @@ Hidden slots must not reserve empty visual groups. Preserve labels, descriptions
 focus, RTL and narrow-width access. Keep specialized native structures (caption,
 legend, li, th) rather than replacing them with generic wrappers for apparent reuse.
 See [foundations](foundations.md), [layout](layout.md) and [agent guide](agents.md).
+
+## Numeric controls (0.2.5 candidate)
+
+NumberInput composes InputGroup, Input and two named IconButton actions. Ref, id,
+name, form, required, native validation and Field associations target the real
+number input. Values are finite numbers or null for empty input. onValueChange
+reports edits and steps. min/max clamp typed values on blur; step mismatch keeps
+native validation rather than silently rewriting a deliberate typed value.
+Uncontrolled form reset restores the initial value. Controlled state belongs to
+the host. readOnly preserves selection and prevents step actions. Translate
+increaseLabel/decreaseLabel for localized applications. This API does not format
+currency, parse locale group separators or intercept mouse-wheel scrolling.
+
+Slider uses one value or an ordered pair in value/defaultValue and returns a new
+array through onValueChange. Each native range input remains a separate keyboard
+and assistive-technology target. Values snap to min-based steps, handles cannot
+cross and Tab order stays stable. Supply thumbLabels for translated, contextual
+names. A shared name submits one or two form entries; uncontrolled reset restores
+initial values. Horizontal geometry follows inherited RTL. min/max must be finite
+and increasing and step positive. showValue controls the visible readout;
+hideLabel preserves the group legend. Provide feedback text alongside status.
+Read-only remains focusable. Touch assistive technology requires real-device
+verification before claiming complete support. No vertical or arbitrary-count
+multi-handle API is supplied in this release candidate.

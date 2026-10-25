@@ -1,6 +1,6 @@
-# Foundations tokens · 0.2.4
+# Foundations tokens · 0.2.5
 
-This guide describes the **0.2.4** foundation exports. Keep Flood packages at
+This guide describes the **0.2.5** foundation exports. Keep Flood packages at
 matching exact versions. Existing 0.1.1 installs use their earlier token contract.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).
@@ -206,7 +206,7 @@ Version 0.2.2 adds these exports without replacing an existing npm version.
 Publication must be verified separately; source version numbers are not proof.
 
 
-Version 0.2.4 adds sixteen semantic roles, bringing the dark profile
+Version 0.2.5 adds sixteen semantic roles, bringing the dark profile
 to 184 roles. Existing role values remain unchanged:
 
 - sys.color.accent.content and sys.color.loading.placeholder separate accent text

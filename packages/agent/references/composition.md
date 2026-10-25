@@ -159,3 +159,12 @@ Toolbar groups actions with one Tab entry after hydration. Use Button/IconButton
 Card is structured Surface containment: title/description/header actions, body children and footer. Missing slots add no empty sections. Choose compact/comfortable density; preserve the tight title-description relationship. Use appropriate headingLevel. Keep root noninteractive and place named controls inside, never a card-wide click handler around nested actions. Use Surface for unstructured containment.
 
 Compose lower-level responsibilities: Container/Grid and Stack/Inline arrange; Surface contains; Card structures; Image/AspectRatio reserve media; List preserves native li. EmptyState composes the shared typography/icon/action atoms. Use VisuallyHidden for supplemental noninteractive text or focusable reveal for skip links. Do not replace native caption/legend structures with generic wrappers solely for reuse. Mixed Checkbox is host-owned aggregation, with checked still controlling submission.
+
+NumberInput composes InputGroup/Input/IconButton for finite numeric values or null.
+Use Field for label and feedback, min/max/step for native validity and explicit
+translated increaseLabel/decreaseLabel for step actions. Do not replace it with a
+styled text box that loses numeric forms. Slider receives an array of one value or
+an ordered pair; use thumbLabels to distinguish bounds, preserve native keyboard
+controls and keep explanatory feedback visible. Range handles cannot cross.
+Both support controlled/uncontrolled state, form reset and read-only presentation.
+Available in the 0.2.5 source candidate; do not imply registry availability.

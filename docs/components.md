@@ -1,8 +1,8 @@
 # Components
 
-## Dark foundations · 0.2.4
+## Dark foundations · 0.2.5
 
-This guide describes the **0.2.4** API. See the [base component inventory](base-components.md)
+This guide describes the **0.2.5** API. See the [base component inventory](base-components.md)
 for the complete set. New APIs extend earlier 0.2 releases; source changes do not
 modify published npm versions. Existing 0.1.1 installs follow their
 version-specific guides.
@@ -380,9 +380,9 @@ These three APIs are available in 0.2.3. See the
 package guide for detailed ownership, fallback and keyboard contracts.
 
 
-## Badge, Spinner, Skeleton and Avatar · 0.2.4
+## Badge, Spinner, Skeleton and Avatar · 0.2.5
 
-These original primitives are compatible additions in the 0.2.4.
+These original primitives are compatible additions in the 0.2.5.
 Import Flood CSS and use FloodRoot. Verify registry publication before installing.
 Native span props and refs target their roots; className/style remain host overrides.
 
@@ -422,7 +422,7 @@ source. The root stays the same size. This API does not upload or crop images.
 ```
 
 
-## Progress, Meter and Alert · 0.2.4
+## Progress, Meter and Alert · 0.2.5
 
 Progress describes task completion. label is required; max defaults to 100 and
 value is a finite number in 0..max. Omit value for indeterminate progress; its
@@ -470,7 +470,7 @@ See the [WAI Meter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/meter/),
 ```
 
 
-## DescriptionList and Table · 0.2.4
+## DescriptionList and Table · 0.2.5
 
 DescriptionList renders native dl groups, each with dt and dd. items is a readonly
 array of {id, term, description}; IDs must be unique and nonempty, and are React
@@ -514,7 +514,7 @@ This is the compositional table primitive, not a DataTable engine.
 ```tsx
 <DescriptionList items={[
   {id:"project",term:"Project",description:"Flood"},
-  {id:"version",term:"Version",description:"0.2.4"},
+  {id:"version",term:"Version",description:"0.2.5"},
 ]} />
 <Table caption="Workspace projects" style={{minWidth:"32rem"}}>
   <thead><tr><th scope="col">Project</th><th scope="col" data-numeric>Members</th></tr></thead>
@@ -523,7 +523,7 @@ This is the compositional table primitive, not a DataTable engine.
 ```
 
 
-## Menu · 0.2.4
+## Menu · 0.2.5
 
 Menu is an original action menu using Flood's positioning/layer stack and the
 native Popover API. label names the menu; there is no extra visible caption.
@@ -577,7 +577,7 @@ See [WAI Menu Button](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/) and
 />
 ```
 
-### Toolbar and Kbd (0.2.4)
+### Toolbar and Kbd (0.2.5)
 
 Toolbar groups Button, IconButton, Toggle, native buttons/links and Menu triggers
 under one named action panel. After hydration it uses one Tab entry, directional
@@ -602,7 +602,7 @@ interactive. Menu shortcut hints reuse Kbd and remain hidden from item names.
 <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>
 ```
 
-### Card (0.2.4)
+### Card (0.2.5)
 
 Card composes Surface into a header, body and footer. Optional title, description,
 actions and footer accept React content; children are the body. Missing slots
@@ -626,7 +626,7 @@ No data access, selection or interactive-card behavior is implied.
 </Card>
 ```
 
-## Structural, media and accessible primitives · 0.2.4
+## Structural, media and accessible primitives · 0.2.5
 
 Container centers a max-width box with logical gutters. size sm/md/lg uses
 40/64/80rem bounds including padding; full removes the max. gutter uses Space.

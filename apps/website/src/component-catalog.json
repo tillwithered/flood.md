@@ -719,7 +719,7 @@
     "name": "Menu",
     "group": "overlays",
     "description": "An action menu with keyboard navigation, separators and explicit disabled/danger states.",
-    "code": "<Menu label=\"Project actions\"\n  trigger={props => <Button {...props}>Project actions</Button>}\n  items={[{id:\"rename\",label:\"Rename\u0432\u0402\u00a6\"},{id:\"divider\",type:\"separator\"},{id:\"delete\",label:\"Delete project\",tone:\"danger\"}]}\n  onAction={id => console.log(id)}\n/>",
+    "code": "<Menu label=\"Project actions\"\n  trigger={props => <Button {...props}>Project actions</Button>}\n  items={[{id:\"rename\",label:\"RenameвЂ¦\"},{id:\"divider\",type:\"separator\"},{id:\"delete\",label:\"Delete project\",tone:\"danger\"}]}\n  onAction={id => console.log(id)}\n/>",
     "imports": [
       "Menu",
       "Button"
@@ -898,6 +898,37 @@
       "Static by default, without status/alert announcements or automatic focus. Host owns whether a result change should be announced.",
       "Choose headingLevel for the page hierarchy. Density controls relative padding. Host actions remain ordinary named controls; no loading, fetching or error recovery engine is supplied.",
       "Available in the 0.2.4 source candidate; use matching installed declarations."
+    ]
+  },
+  {
+    "slug": "number-input",
+    "name": "NumberInput",
+    "group": "forms",
+    "description": "A native numeric field with integrated decrement and increment actions.",
+    "code": "<Field label=\"Seats\">\n  {(control) => <NumberInput {...control} name=\"seats\" defaultValue={5} min={0} max={20} />}\n</Field>",
+    "imports": [
+      "Field",
+      "NumberInput"
+    ],
+    "notes": [
+      "Values are finite numbers or null for an empty field. onValueChange reports edits and button/arrow steps; native min/max/step validity remains available. Out-of-bound typed values clamp on blur; a step mismatch remains native validation.",
+      "Ref and native form attributes target the input. Controlled value stays host-owned; uncontrolled form reset restores the initial value. Buttons use explicit accessible names, which can be translated.",
+      "Use Field for labels and feedback. Read-only remains selectable and prevents stepping. No currency/locale formatting or wheel interception is supplied. Available in the 0.2.5 source candidate."
+    ]
+  },
+  {
+    "slug": "slider",
+    "name": "Slider",
+    "group": "forms",
+    "description": "One value or an ordered range with native keyboard controls on a shared rail.",
+    "code": "<Slider label=\"Price range\" name=\"price\" defaultValue={[25, 75]} min={0} max={100} />",
+    "imports": [
+      "Slider"
+    ],
+    "notes": [
+      "value/defaultValue contain one number or an ordered pair. onValueChange returns a new array. Values snap to min-based steps and thumbs cannot cross; Tab order stays stable. Supply thumbLabels to translate or explain each handle.",
+      "Horizontal only. Direction follows the host, including RTL. Native range inputs retain keyboard behavior; pointer selection chooses the nearest handle. Names submit one or two entries; uncontrolled reset restores defaults.",
+      "hideLabel preserves the accessible legend; showValue only controls the visible numeric readout. Read-only prevents edits while keeping focus. Use hint/message/error for meaning beyond color. Touch assistive technology needs device testing. Available in the 0.2.5 source candidate."
     ]
   }
 ]

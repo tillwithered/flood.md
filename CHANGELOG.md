@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### 0.2.5 candidate
+
+- Add original NumberInput with native form validation and step actions, and a horizontal Slider supporting one value or an ordered range. Reuse Flood field geometry, labels, feedback and focus.
+- Keep exact internal versions aligned; this candidate is not yet published.
+
 ## 0.2.4 · 2026-10-26
 
 - Keep rectangular Avatar sources fitted to their full container after Image composition.

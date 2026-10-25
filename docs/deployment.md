@@ -89,3 +89,12 @@ Runtime artifacts contain built public assets, server/routes and catalog data,
 plus a non-root runtime Dockerfile. They contain no account configuration, npm
 credentials, source dependency tree or private Design Lab notes. Inspect a local
 artifact with `npm run site:bundle`; this does not upload or deploy anything.
+
+Publication-only website checks: CI uses a smaller route only when the entire diff
+is the boolean published switch in apps/website/src/release.json at the same
+version, with no extra fields. It still builds packages/site, checks TypeScript,
+runs unit and isolated-runtime checks and exercises landing/docs/playgrounds in
+Chromium. Mixed, unknown, version, dependency and component changes retain full
+React consumer, Next and browser-engine verification. Release publication always
+uses the full pipeline. The required verify status and checked runtime artifact
+remain unchanged.
