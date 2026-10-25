@@ -16,12 +16,17 @@ export const FilePicker = forwardRef<HTMLInputElement, Props>(function FilePicke
   const input = useRef<HTMLInputElement>(null);
   useImperativeHandle(ref, () => input.current!, []);
   const [files, setFiles] = useState<File[]>([]);
+  const selected = useRef<File[]>([]);
+  const replacing = useRef(false);
   useEffect(() => {
     const form = input.current?.form;
     if (!form) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const reset = (event: Event) => { timer = setTimeout(() => {
-      if (!event.defaultPrevented && input.current) setFiles(Array.from(input.current.files ?? []));
+      if (!event.defaultPrevented && input.current) {
+        selected.current = Array.from(input.current.files ?? []);
+        setFiles(selected.current);
+      }
     }, 0); };
     form.addEventListener("reset", reset);
     return () => { form.removeEventListener("reset", reset); clearTimeout(timer); };
@@ -29,8 +34,7 @@ export const FilePicker = forwardRef<HTMLInputElement, Props>(function FilePicke
   const clear = () => {
     const node = input.current;
     if (!node || node.matches(":disabled")) return;
-    node.value = "";
-    node.dispatchEvent(new node.ownerDocument.defaultView!.Event("change", {bubbles: true}));
+    notify([]);
     node.focus();
   };
   const notify = (next: readonly File[]) => {
@@ -39,7 +43,9 @@ export const FilePicker = forwardRef<HTMLInputElement, Props>(function FilePicke
     const transfer = new node.ownerDocument.defaultView!.DataTransfer();
     next.forEach(file => transfer.items.add(file));
     node.files = transfer.files;
-    node.dispatchEvent(new node.ownerDocument.defaultView!.Event("change", {bubbles:true}));
+    replacing.current = true;
+    try { node.dispatchEvent(new node.ownerDocument.defaultView!.Event("change", {bubbles:true})); }
+    finally { replacing.current = false; }
   };
   const summary = multiple && files.length ? `${selectionLabel} (${files.length})` : files[0]?.name ?? "";
   const cross = <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>;
@@ -51,10 +57,25 @@ export const FilePicker = forwardRef<HTMLInputElement, Props>(function FilePicke
       <input {...props} ref={input} type="file" disabled={disabled} multiple={multiple}
         aria-invalid={invalid || status === "error" || props["aria-invalid"]}
         className="flood-file-input__native" onChange={event => {
-          const files = Array.from(event.currentTarget.files ?? []);
-          setFiles(files);
+          const node = event.currentTarget;
+          const picked = Array.from(node.files ?? []);
+          let next = picked;
+          if (multiple && !replacing.current && picked.length > 0) {
+            const seen = new Set<string>();
+            next = [...selected.current, ...picked].filter(file => {
+              const identity = JSON.stringify([file.name, file.size, file.type, file.lastModified, file.webkitRelativePath]);
+              if (seen.has(identity)) return false;
+              seen.add(identity);
+              return true;
+            });
+            const transfer = new node.ownerDocument.defaultView!.DataTransfer();
+            next.forEach(file => transfer.items.add(file));
+            node.files = transfer.files;
+          }
+          selected.current = next;
+          setFiles(next);
           onChange?.(event);
-          onFilesChange?.(files);
+          onFilesChange?.(next);
         }}/>
       <span className="flood-file-input__display" aria-hidden="true" data-empty={files.length === 0 || undefined}>
         <Icon size={controlSize}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V3m-4 4 4-4 4 4M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></svg></Icon>

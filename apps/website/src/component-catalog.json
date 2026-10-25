@@ -1025,7 +1025,7 @@
       "The browser owns FileList, native name/form/required/accept/multiple/capture behavior and the input ref. onChange retains the native event; onFilesChange receives a fresh array after selection or clear. No controlled value/defaultValue or readOnly mode is supplied.",
       "clearable defaults to true. Localize placeholder and clearLabel. Clear restores input focus and empties the native selection; form reset clears the summary without emitting a change. Disabled includes inherited fieldset behavior. Cancelling the chooser preserves selection.",
       "File names are shown as text, shortened visually when needed. This component only selects files; the host owns upload, progress and validation. accept is a chooser hint, not file validation. Available in the unpublished 0.2.5 candidate.",
-      "Multiple selection shows a compact count and a collapsible list with full file names and localized sizes. Removing one file updates the native FileList and preserves keyboard focus; clearable=false hides both individual and global removal. Translate selectionLabel/removeFileLabel. Choosing again replaces the current selection, matching native file behavior."
+      "Multiple selection shows a compact count and a collapsible list with full file names and localized sizes. Removing one file updates the native FileList and preserves keyboard focus; clearable=false hides both individual and global removal. Translate selectionLabel/removeFileLabel. In multiple mode, choosing again appends files. Repeated files are deduplicated by name, size, type, lastModified and relative path. Single mode replaces its selection."
     ]
   }
 ]

@@ -217,5 +217,6 @@ localized file sizes (lang controls number formatting), and a count in the picke
 Translate selectionLabel and removeFileLabel. Individual removal updates the native
 FileList through DataTransfer, then emits the same change callbacks as selection.
 Focus moves to the next/previous remove action, or back to the input when empty.
-clearable=false disables individual and global removal UI. Picking again replaces
-the selection; cancel preserves it. The host remains responsible for upload.
+clearable=false disables individual and global removal UI. In multiple mode, picking again appends files to the current selection; cancel
+preserves it. Repeated files are deduplicated by name, size, type, lastModified and
+relative path, without reading their contents. Single mode replaces its selection. The host remains responsible for upload.
