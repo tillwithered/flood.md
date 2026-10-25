@@ -48,7 +48,9 @@
 .flood-root .flood-tabs__panel:focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: calc(-1 * var(--flood-sys-focus-width)); }
 .flood-root :is(.flood-breadcrumb, .flood-pagination) { min-inline-size: 0; max-inline-size: 100%; font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
 .flood-root :is(.flood-breadcrumb ol, .flood-pagination ul) { display: flex; flex-wrap: wrap; align-items: center; padding: 0; margin: 0; list-style: none; gap: var(--flood-sys-space-2); }
-.flood-root .flood-breadcrumb li { display: inline-flex; align-items: center; gap: var(--flood-sys-space-2); min-inline-size: 0; max-inline-size: 100%; overflow-wrap: anywhere; }
+.flood-root .flood-breadcrumb { inline-size: max-content; }
+.flood-root .flood-breadcrumb li { display: inline-flex; align-items: center; flex: 0 0 auto; inline-size: max-content; gap: var(--flood-sys-space-2); min-inline-size: 0; max-inline-size: 100%; overflow-wrap: anywhere; }
+.flood-root .flood-breadcrumb li > :not(.flood-breadcrumb__separator) { min-inline-size: 0; }
 .flood-root .flood-breadcrumb a { display: inline-flex; align-items: center; min-block-size: var(--flood-sys-control-sm-height); color: var(--flood-sys-color-content-subtle); text-decoration: none; }
 .flood-root .flood-breadcrumb a:hover { text-decoration: underline; }
 .flood-root .flood-breadcrumb [aria-current="page"] { color: var(--flood-sys-color-content-default); }
@@ -60,7 +62,7 @@
 .flood-root .flood-pagination .flood-page[aria-current="page"] { background: var(--flood-sys-color-selection-background); color: var(--flood-sys-color-selection-content); }
 .flood-root .flood-pagination .flood-page:is(:disabled, [aria-disabled="true"]) { color: var(--flood-sys-color-field-disabled-content); cursor: default; }
 .flood-root .flood-page-gap { padding-inline: var(--flood-sys-space-1); color: var(--flood-sys-color-content-subtle); }
-@media (pointer: coarse) { .flood-root .flood-pagination .flood-page { min-inline-size: var(--flood-sys-size-touch); } .flood-root .flood-breadcrumb a { min-block-size: var(--flood-sys-size-touch); min-inline-size: var(--flood-sys-size-touch); } }
+@media (pointer: coarse) { .flood-root .flood-pagination .flood-page { min-inline-size: var(--flood-sys-size-touch); } .flood-root .flood-breadcrumb li > a.flood-link { min-block-size: var(--flood-sys-size-touch); min-inline-size: var(--flood-sys-size-touch); } }
 @media (forced-colors: active) {
   .flood-root .flood-tabs .flood-tab[aria-selected="true"]:not(:disabled), .flood-root .flood-pagination .flood-page[aria-current="page"]:not(:disabled):not([aria-disabled="true"]) { forced-color-adjust: none; background: Highlight; color: HighlightText; box-shadow: none; }
 }
