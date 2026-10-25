@@ -4,10 +4,10 @@ An independent design system for **React, TypeScript and Next.js**. Original
 components, semantic tokens, a small installer, and versioned instructions for
 coding agents. No third-party UI component library or Tailwind dependency.
 
-## Base dark design system · 0.2.3
+## Base dark design system · 0.2.4 preview
 
-Flood 0.2.3 provides a dark foundations profile, 168 semantic token roles and
-[37 original primitives and controls](docs/base-components.md), including forms,
+The 0.2.4 source candidate provides a dark foundations profile, 170 semantic token roles and
+[41 original primitives and controls](docs/base-components.md), including forms,
 selection groups, disclosures, overlays and navigation. A versioned agent bundle
 includes portable spacing and composition guidance. Use the matching installed
 guide and declarations when upgrading.
@@ -36,8 +36,10 @@ contract remains compatible outside FloodRoot.
 
 ## Connect
 
+This branch describes the 0.2.4 source candidate. Registry publication is pending; the installation commands apply after publication.
+
 ```sh
-npx @flood-md/cli@0.2.3 init
+npx @flood-md/cli@0.2.4 init
 ```
 
 Run in an existing npm-based React or Next.js project. Use `init --dry-run` to see
@@ -56,7 +58,7 @@ export function Example() {
 ```
 
 Give an agent `https://flood.md/llms.txt`. The guide
-uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.3 doctor` checks
+uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.4 doctor` checks
 installed versions and owned instruction files.
 
 ## Documentation
@@ -81,7 +83,7 @@ variables; host application owns layout, data fetching and side effects.
 ## Develop
 
 See [foundations](docs/foundations.md) and the [component guide](docs/components.md)
-for 0.2.3. Existing 0.1.1 projects should follow their matching guides. The Next.js
+for 0.2.4. Existing 0.1.1 projects should follow their matching guides. The Next.js
 example includes `/foundations` and `/team` for reviewing the current source.
 
 Node.js 22.12+ (Node 24 recommended), npm 11.

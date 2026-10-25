@@ -61,3 +61,6 @@ configurable. Provide a visible title and safe initialFocusRef when needed. Clos
 Popover/Dialog children unmount; host owns persistent values and controlled open.
 Modern native APIs required. DOM/theme scope stays intact; no body portal needed.
 Available in 0.2.3.
+
+
+For 0.2.4 loading primitives: localize standalone Spinner label, avoid duplicate live announcements, and keep Skeleton hidden from AT. Reduced motion stops their animations. Avatar exposes one named image, or decorative presentation when the adjacent text already supplies identity. Badge text must express status without relying on its color.

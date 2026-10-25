@@ -1,6 +1,6 @@
 # Base component inventory
 
-Flood 0.2.3 exports **37 components**, using original Flood implementations,
+The Flood 0.2.4 source candidate exports **41 components**, using original Flood implementations,
 React 18.3/19 APIs and TypeScript declarations. Import
 `@flood-md/react/styles.css` once and place new compositions inside `FloodRoot`.
 
@@ -102,7 +102,7 @@ documentation and checks. Breaking changes require a separate version decision.
 
 ## Scope and customization
 
-The base profile is dark only and contains 168 public semantic token roles.
+The base profile is dark only and contains 170 public semantic token roles.
 Override `--flood-sys-*` variables on the foundation scope. The bundled Inter
 font retains its OFL license. Legacy controls outside FloodRoot keep their
 earlier light/dark contract; legacy variables do not automatically override the
@@ -147,3 +147,9 @@ Tabs changes panels rather than form values; use SegmentedControl for modes.
 Breadcrumb/Pagination retain native link semantics and host route ownership.
 See the React package guide for selection fallback, keyboard, retained form state,
 localization, count validation and compactness contracts.
+
+## Identity, metadata and loading · 0.2.4
+
+Badge is a noninteractive status/metadata label. Avatar exposes a named image or a decorative identity beside visible text, with a fixed-size fallback. Spinner indicates indeterminate loading; Skeleton reserves layout space and is hidden from assistive technology.
+
+Preview all four at `/playground/content`. Source availability does not imply npm publication.

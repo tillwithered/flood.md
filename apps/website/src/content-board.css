@@ -1,0 +1,6 @@
+.content-board { padding-block: var(--flood-sys-space-8); display: grid; gap: var(--flood-sys-space-8); }
+.content-board-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--flood-sys-space-4); }
+.content-board-grid > .flood-surface { min-inline-size: 0; }
+.content-board-grid .flood-button { inline-size: fit-content; }
+.content-board-skeleton { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--flood-sys-space-3); }
+@media (max-width: 48rem) { .content-board-grid { grid-template-columns: minmax(0, 1fr); } }

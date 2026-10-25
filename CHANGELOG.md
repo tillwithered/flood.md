@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-No unreleased changes.
+0.2.4 candidate: add original Badge, Spinner, Skeleton and Avatar, generated component documentation and live previews. Button loading reuses Spinner without changing its public API. Add independent accent-content and loading-placeholder semantic colors (170 roles). Exact package versions are aligned; publication is pending.
 
 ## 0.2.3 · 2026-10-25
 

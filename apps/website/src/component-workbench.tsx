@@ -20,6 +20,10 @@ const select = (name: string, options: string[], initial: string): Knob => ({ na
 const statusKnob = () => select("status", ["none", "error", "warning", "success", "info"], "none");
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
+  badge: [select("tone", ["neutral", "accent", "success", "warning", "error", "info"], "neutral"), select("variant", ["subtle", "outline"], "subtle"), select("size", ["sm", "md", "lg"], "md")],
+  spinner: [select("size", ["sm", "md", "lg"], "md"), toggle("decorative")],
+  skeleton: [select("shape", ["text", "rounded", "circle"], "text"), toggle("animate", true)],
+  avatar: [select("size", ["sm", "md", "lg"], "md"), select("shape", ["circle", "rounded"], "circle"), select("image", ["loaded", "missing", "broken"], "loaded"), toggle("decorative")],
   tabs: [select("activationMode", ["automatic", "manual"], "automatic"), select("orientation", ["horizontal", "vertical"], "horizontal"), select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("disabled"), toggle("disableLast")],
   breadcrumb: [select("separator", ["/", "›"], "/"), toggle("currentLink")],
   pagination: [select("pageCount", ["1", "5", "20", "100"], "20"), select("siblingCount", ["0", "1", "2"], "1"), select("controlSize", ["sm", "md", "lg", "xl"], "sm"), toggle("links"), toggle("disabled")],
@@ -121,6 +125,10 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     onChange: binding("(event) => setChecked(event.currentTarget.checked)", (event: { currentTarget: { checked: boolean } }) => actions.checked(event.currentTarget.checked)),
   };
   switch (slug) {
+    case "badge": return element("Badge", {tone:v.tone, variant:v.variant, size:v.size}, ({neutral:"Draft",accent:"Beta",success:"Active",warning:"Pending",error:"Failed",info:"Updated"} as Record<string,string>)[String(v.tone)]);
+    case "spinner": return element("Spinner", {size:v.size,decorative:v.decorative,label:"Loading workspace"});
+    case "skeleton": return element("div", {style:{width:"16rem",maxWidth:"100%"}}, element("Skeleton", {shape:v.shape,animate:v.animate}));
+    case "avatar": return element("Avatar", {name:"Alex Morgan",size:v.size,shape:v.shape,decorative:v.decorative,src:v.image === "loaded" ? "/avatar-demo.svg" : v.image === "broken" ? "/missing-avatar.png" : undefined});
     case "tabs": return element("Tabs", {label:"Project sections", items:[{value:"overview",label:"Overview",content:"Keep the project context in one place."},{value:"activity",label:"Activity",content:"Recent changes and project updates."},{value:"settings",label:"Settings",content:"Choose the settings that fit this project.",disabled:Boolean(v.disableLast)}], activationMode:v.activationMode,orientation:v.orientation,controlSize:v.controlSize,disabled:v.disabled,style:{width:"26rem",maxWidth:"100%",minHeight:"12rem"}});
     case "breadcrumb": return element("Stack", {gap:"4"}, element("Breadcrumb", {items:[{label:"Workspace",href:"#workspace"},{label:"Projects",href:"#projects"},{label:"Flood",...(v.currentLink?{href:"#flood"}:{})}],separator:v.separator,
       onClick:binding('event => { event.preventDefault(); setStatus("Navigation stays in this preview."); }', (event:{preventDefault:()=>void})=>{event.preventDefault();actions.setStatus("Navigation stays in this preview.")})}),status);

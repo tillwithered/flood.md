@@ -1,17 +1,17 @@
-# Flood design system · 0.2.3
+# Flood design system · 0.2.4
 
 Read project-root flood.json and installed declarations with this contract.
 The source bundle's SKILL.md routes to focused composition, accessibility,
 customization and verification references. Its routing matrix names prerequisites
 and sources of truth; flood/rules.json indexes observable checks. Read only the
-relevant reference. This expanded bundle belongs to 0.2.3; existing installations
+relevant reference. This expanded bundle belongs to 0.2.4; existing installations
 keep their matching guide set.
 
 React + TypeScript and Next.js App Router. Use this guide with matching installed
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-This guide covers all 37 exports in 0.2.3 and their layout refinements. Confirm
+This guide covers all 41 exports in 0.2.4 and their layout refinements. Confirm
 the matching installed declarations before using APIs absent from older versions.
 
 ## Connect
@@ -158,3 +158,6 @@ export function Profile() {
   );
 }
 ```
+
+
+0.2.4 adds Badge, Spinner, Skeleton and Avatar. Read references/composition.md and references/accessibility.md for status announcements, fallback geometry and decorative naming. Button loading reuses Spinner. These APIs are not present in 0.2.3.

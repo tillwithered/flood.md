@@ -16,7 +16,7 @@ them without a separate content service.
 | [Components](components.md) | Available controls, props and form composition |
 | [Base component inventory](base-components.md) | Available primitives and controls in the base release |
 | [Customization](theming.md) | Scoped dark foundations overrides and legacy theme boundaries |
-| [Foundations](foundations.md) | Typed semantic tokens and neutral dark profile for 0.2.3 |
+| [Foundations](foundations.md) | Typed semantic tokens and neutral dark profile for 0.2.4 |
 | [Agents](agents.md) | Installing and using the matching agent instructions |
 | [FAQ](faq.md) | Compatibility, customization, updates and common problems |
 

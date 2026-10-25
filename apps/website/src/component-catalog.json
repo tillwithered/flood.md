@@ -569,5 +569,66 @@
     "imports": [
       "Pagination"
     ]
+  },
+  {
+    "slug": "badge",
+    "name": "Badge",
+    "group": "content",
+    "description": "A compact, noninteractive label for status and metadata.",
+    "code": "<Badge tone=\"success\">Active</Badge>",
+    "imports": [
+      "Badge"
+    ],
+    "notes": [
+      "Use text to communicate status; color is supplementary.",
+      "Tone, size and visual variant are independent. This is not a selectable or removable chip.",
+      "Available in 0.2.4. Use FloodRoot for the neutral dark recipe."
+    ]
+  },
+  {
+    "slug": "spinner",
+    "name": "Spinner",
+    "group": "feedback",
+    "description": "A sized loading indicator with an optional accessible status label.",
+    "code": "<Spinner label=\"Loading workspace\" />",
+    "imports": [
+      "Spinner"
+    ],
+    "notes": [
+      "Standalone indicators expose a status with a localizable label. Decorative indicators are hidden from assistive technology.",
+      "Button loading uses this indicator decoratively and keeps the button name. Do not announce every spinner in a busy area.",
+      "Use Progress when completion is measurable. Reduced motion stops rotation. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "skeleton",
+    "name": "Skeleton",
+    "group": "feedback",
+    "description": "A decorative placeholder that reserves space for loading content.",
+    "code": "<Stack gap=\"2\">\n  <Skeleton width=\"65%\" />\n  <Skeleton />\n  <Skeleton width=\"80%\" />\n</Stack>",
+    "imports": [
+      "Stack",
+      "Skeleton"
+    ],
+    "notes": [
+      "Always hidden from assistive technology. The host owns loading announcements and aria-busy on the relevant region.",
+      "Width and height accept CSS dimensions; style overrides them. Match the final content geometry.",
+      "Animation can be disabled; reduced motion and forced colors disable the pulse. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "avatar",
+    "name": "Avatar",
+    "group": "content",
+    "description": "A stable identity image with initials or an explicit text fallback.",
+    "code": "<Avatar name=\"Alex Morgan\" />",
+    "imports": [
+      "Avatar"
+    ],
+    "notes": [
+      "Name supplies the accessible image name; decorative suppresses duplicate naming next to an equivalent visible name.",
+      "Fallback remains visible until the image loads and after a load error. Changing src starts a fresh load lifecycle.",
+      "Native span props and ref target the root. Size and shape do not change during loading. Available in 0.2.4."
+    ]
   }
 ]

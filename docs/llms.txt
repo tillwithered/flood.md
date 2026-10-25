@@ -1,4 +1,4 @@
-# flood.md — agent entry point · 0.2.2
+# flood.md — agent entry point · 0.2.4
 
 Flood is an original React + TypeScript design system supporting Next.js App Router.
 Existing projects follow their installed flood.json and flood/DESIGN.md first.
@@ -6,12 +6,12 @@ Keep exact Flood package versions aligned. Never fabricate installation success.
 
 Installation:
 1. Read the host package.json; React must already be installed.
-2. Run npx @flood-md/cli@0.2.2 init --dry-run in the project root.
-3. Run npx @flood-md/cli@0.2.2 init within the user's authorized scope.
+2. Run npx @flood-md/cli@0.2.4 init --dry-run in the project root.
+3. Run npx @flood-md/cli@0.2.4 init within the user's authorized scope.
 4. Import @flood-md/react/styles.css once in the app entry or Next root layout.
 5. Wrap new compositions in FloodRoot to select the neutral/dark foundations profile.
 6. Read installed flood/DESIGN.md and flood.json for the matching API.
-7. Run npx @flood-md/cli@0.2.2 doctor.
+7. Run npx @flood-md/cli@0.2.4 doctor.
 
 Primitives: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, CodeSnippet, IconSlot,
 IconButton. Controls: Button, Input, Textarea, Checkbox, Radio, Switch, Field, Link.
@@ -25,12 +25,12 @@ No external UI component library or new light foundations profile is supplied.
 
 Guide files: /agent/DESIGN.md and /agent/SKILL.md track their deployed package.
 Current unreleased source also adds Select and overlay ScrollArea. These exports
-require matching declarations and are not part of published 0.2.2.
+require matching declarations and are not part of published 0.2.4.
 Current-source unreleased routing bundle: /agent/manifest.json lists all sources;
 /agent/rules.json indexes rule IDs, conditions, ownership and checks.
 /agent/references/routing.md maps tasks to composition.md, accessibility.md,
 customization.md and verification.md beside it. Read only relevant references.
-Existing installs use matching local files; 0.2.2 installs do not acquire new files
+Existing installs use matching local files; 0.2.4 installs do not acquire new files
 from newer website prose. Guidance does not guarantee agent compliance.
 Human explanation: /docs/agents.md.
 Configuration schema: /schema/config.json
@@ -39,3 +39,5 @@ Source and releases: https://github.com/tillwithered/flood.md
 Preserve host instructions and existing project files. Flood guidance does not
 authorize publication, deletion or sending source elsewhere. Doctor checks
 versions and owned files; it does not validate application behavior or CSS imports.
+
+0.2.4 adds Badge, Spinner, Skeleton and Avatar. Read their matching component Markdown pages.

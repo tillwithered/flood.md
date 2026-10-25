@@ -25,6 +25,7 @@ import { ChoiceGroup } from "./choice-group.js";
 import { Disclosure } from "./disclosure.js";
 import { AnchoredOverlay, ModalOverlay } from "./overlays.js";
 import { TabNavigation, BreadcrumbNavigation, PageNavigation } from "./navigation.js";
+import { AvatarArtwork } from "./avatar.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -63,7 +64,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           className,
         )}
       >
-        {loading && <span className="flood-spinner" aria-hidden="true" />}
+        {loading && <Spinner decorative />}
         {children}
       </button>
     );
@@ -71,6 +72,69 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 export type FieldStatus = "error" | "warning" | "success" | "info";
+
+export type ContentSize = "sm" | "md" | "lg";
+export type BadgeTone = "neutral" | "accent" | "error" | "warning" | "success" | "info";
+export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+  size?: ContentSize;
+  tone?: BadgeTone;
+  variant?: "subtle" | "outline";
+}
+/** @since 0.2.4 */
+export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
+  { size = "md", tone = "neutral", variant = "subtle", className, ...props }, ref,
+) {
+  return <span {...props} ref={ref} className={classes("flood-badge", className)} data-size={size} data-tone={tone} data-variant={variant} />;
+});
+
+export interface SpinnerProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "role" | "aria-label" | "aria-hidden"> {
+  size?: ContentSize;
+  label?: string;
+  decorative?: boolean;
+}
+/** @since 0.2.4 */
+export const Spinner = forwardRef<HTMLSpanElement, SpinnerProps>(function Spinner(
+  { size = "md", label = "Loading", decorative = false, className, ...props }, ref,
+) {
+  return <span {...props} ref={ref} className={classes("flood-loading", className)} data-size={size}
+    role={decorative ? undefined : "status"} aria-hidden={decorative || undefined}>
+    <span className="flood-spinner" aria-hidden="true" />
+    {!decorative && <span className="flood-visually-hidden">{label}</span>}
+  </span>;
+});
+
+export interface SkeletonProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "role" | "tabIndex" | "aria-label" | "aria-hidden"> {
+  shape?: "text" | "rounded" | "circle";
+  width?: CSSProperties["width"];
+  height?: CSSProperties["height"];
+  animate?: boolean;
+}
+/** @since 0.2.4 */
+export const Skeleton = forwardRef<HTMLSpanElement, SkeletonProps>(function Skeleton(
+  { shape = "text", width, height, animate = true, className, style, ...props }, ref,
+) {
+  return <span {...props} ref={ref} className={classes("flood-skeleton", className)} data-shape={shape} data-animate={animate}
+    aria-hidden="true" style={{ width, height, ...style }} />;
+});
+
+export interface AvatarProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "role" | "aria-label" | "aria-hidden"> {
+  name: string;
+  src?: string;
+  fallback?: string;
+  size?: ContentSize;
+  shape?: "circle" | "rounded";
+  decorative?: boolean;
+}
+/** @since 0.2.4 */
+export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(function Avatar(
+  { name, src, fallback, size = "md", shape = "circle", decorative = false, className, ...props }, ref,
+) {
+  const initials = name.trim().split(/\s+/u).filter(Boolean).slice(0, 2).map(word => Array.from(word)[0]).join("").toUpperCase();
+  return <span {...props} ref={ref} className={classes("flood-avatar", className)} data-size={size} data-shape={shape}
+    role={decorative ? undefined : "img"} aria-label={decorative ? undefined : name} aria-hidden={decorative || undefined}>
+    <AvatarArtwork key={src ?? ""} src={src} fallback={fallback ?? (initials || "?")} />
+  </span>;
+});
 
 export interface TabItem {
   value: string;

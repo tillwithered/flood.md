@@ -1,5 +1,34 @@
 @import "@flood-md/tokens/foundations.css";
 
+.flood-root .flood-badge { --flood-badge-color: var(--flood-sys-color-content-default); display: inline-flex; align-items: center; vertical-align: middle; gap: var(--flood-sys-space-1); box-sizing: border-box; max-inline-size: 100%; min-inline-size: 0; padding: var(--flood-sys-space-1) var(--flood-sys-space-2); border: var(--flood-sys-stroke-width) solid transparent; border-radius: var(--flood-sys-radius-action); background: color-mix(in srgb, var(--flood-badge-color) 9%, var(--flood-sys-color-surface-canvas)); color: var(--flood-badge-color); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); font-weight: var(--flood-sys-type-label-weight); letter-spacing: var(--flood-sys-type-helper-tracking); overflow-wrap: anywhere; }
+.flood-root .flood-badge[data-size="sm"] { padding-block: 0; }
+.flood-root .flood-badge[data-size="lg"] { padding-inline: var(--flood-sys-space-3); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
+.flood-root .flood-badge[data-tone="accent"] { --flood-badge-color: var(--flood-sys-color-accent-content); }
+.flood-root .flood-badge[data-tone="error"] { --flood-badge-color: var(--flood-sys-color-feedback-error); }
+.flood-root .flood-badge[data-tone="warning"] { --flood-badge-color: var(--flood-sys-color-feedback-warning); }
+.flood-root .flood-badge[data-tone="success"] { --flood-badge-color: var(--flood-sys-color-feedback-success); }
+.flood-root .flood-badge[data-tone="info"] { --flood-badge-color: var(--flood-sys-color-feedback-info); }
+.flood-root .flood-badge[data-variant="outline"] { background: transparent; border-color: color-mix(in srgb, var(--flood-badge-color) 25%, var(--flood-sys-color-border-decorative)); }
+.flood-root .flood-badge > svg { flex: none; inline-size: 1em; block-size: 1em; }
+.flood-root .flood-skeleton { display: block; flex: none; box-sizing: border-box; inline-size: 100%; block-size: 1rem; max-inline-size: 100%; border-radius: var(--flood-sys-radius-indicator); background: var(--flood-sys-color-loading-placeholder); }
+.flood-root .flood-skeleton[data-shape="rounded"] { block-size: 6rem; border-radius: var(--flood-sys-radius-field); }
+.flood-root .flood-skeleton[data-shape="circle"] { inline-size: 2.5rem; block-size: 2.5rem; border-radius: var(--flood-sys-radius-action); }
+.flood-root .flood-skeleton[data-animate="true"] { animation: flood-skeleton-pulse 1.8s ease-in-out infinite; }
+@keyframes flood-skeleton-pulse { 50% { opacity: .5; } }
+.flood-root .flood-avatar { --flood-avatar-size: var(--flood-sys-control-md-height); position: relative; display: inline-grid; place-items: center; vertical-align: middle; flex: none; inline-size: var(--flood-avatar-size); block-size: var(--flood-avatar-size); box-sizing: border-box; overflow: hidden; border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-surface-overlay); color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-compact-size); font-weight: var(--flood-sys-type-label-weight); line-height: 1; user-select: none; }
+.flood-root .flood-avatar[data-size="sm"] { --flood-avatar-size: var(--flood-sys-control-sm-height); font-size: var(--flood-sys-type-helper-size); }
+.flood-root .flood-avatar[data-size="lg"] { --flood-avatar-size: var(--flood-sys-control-xl-height); }
+.flood-root .flood-avatar[data-shape="rounded"] { border-radius: var(--flood-sys-radius-field); }
+.flood-avatar__fallback { max-inline-size: 100%; overflow: hidden; white-space: nowrap; }
+.flood-avatar__image { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; opacity: 0; }
+.flood-avatar__image[data-ready="true"] { opacity: 1; }
+.flood-root :is(.flood-badge, .flood-skeleton, .flood-avatar)[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .flood-root .flood-skeleton[data-animate="true"] { animation: none; } }
+@media (forced-colors: active) {
+  .flood-root :is(.flood-badge, .flood-avatar) { color: CanvasText; background: Canvas; border: 1px solid CanvasText; }
+  .flood-root .flood-skeleton { background: GrayText; animation: none; }
+}
+
 /* Keep real labels in the accessibility tree while removing their layout box. */
 .flood-visually-hidden { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .flood-field[data-hide-label="true"], .flood-fieldset[data-hide-label="true"] { position: relative; }

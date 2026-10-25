@@ -1,6 +1,6 @@
-# Foundations tokens · 0.2.3
+# Foundations tokens · 0.2.4 source candidate
 
-This guide describes the **0.2.3** foundation exports. Keep Flood packages at
+This guide describes the **0.2.4 source candidate** foundation exports. Keep Flood packages at
 matching exact versions. Existing 0.1.1 installs use their earlier token contract.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).
@@ -199,3 +199,6 @@ overrides do not automatically override separately scoped foundation roles.
 
 Version 0.2.2 adds these exports without replacing an existing npm version.
 Publication must be verified separately; source version numbers are not proof.
+
+
+The 0.2.4 source candidate adds `sys.color.accent.content` for accent metadata and `sys.color.loading.placeholder` for decorative loading fills (170 public roles total). Accent content is independent from the focus ring. Existing role values remain unchanged.

@@ -373,3 +373,45 @@ Use compact counts on narrow hosts; wrapping preserves navigation without clippi
 
 These three APIs are available in 0.2.3. See the
 package guide for detailed ownership, fallback and keyboard contracts.
+
+
+## Badge, Spinner, Skeleton and Avatar · 0.2.4
+
+These original primitives are compatible additions in the 0.2.4 source candidate.
+Import Flood CSS and use FloodRoot. Verify registry publication before installing.
+Native span props and refs target their roots; className/style remain host overrides.
+
+Badge is a noninteractive span: size sm/md/lg, tone neutral/accent/error/warning/
+success/info and variant subtle/outline. Its text carries the meaning; color is
+supplementary. It has no selection, dismissal, click-action or live-region model.
+Use a separate named action when needed instead of treating it as a button.
+
+Spinner defaults to size md and label="Loading". Localize label for standalone
+status. decorative hides it and its label from assistive technology. Button
+loading uses the same Spinner decoratively, inherits its icon size and retains
+its accessible button name and aria-busy. Announcements belong at the appropriate
+host level; do not create one live region for each decorative loading graphic.
+Reduced motion stops rotation. This indicator does not measure completion.
+
+Skeleton is always aria-hidden. shape is text/rounded/circle; width and height
+accept CSS dimensions (numbers are React CSS pixels), and style overrides them.
+Prefer relative dimensions. For a circle supply equal dimensions. animate defaults
+true; reduced motion and forced colors stop animation. Match the final geometry;
+Skeleton does not fetch, detect loading or announce changes. The host owns busy
+state, loading text and replacement with real content. Do not add interactive children.
+
+Avatar requires name, accepts src, fallback text, size sm/md/lg, shape circle/
+rounded and decorative. The root exposes one named image; the internal image has
+empty alt and is hidden from assistive technology. Use decorative beside an
+already visible equivalent name. Defaults use the first letters of the first two
+whitespace-separated name parts; override fallback for your locale or naming rules.
+The image overlays the fallback only after successful load; an error retains the
+fallback. A new src remounts the image load state, including returning to an earlier
+source. The root stays the same size. This API does not upload or crop images.
+
+```tsx
+<Badge tone="success">Active</Badge>
+<Spinner label="Loading workspace" />
+<Skeleton width="12rem" />
+<Avatar name="Alex Morgan" src="/team/alex.webp" />
+```

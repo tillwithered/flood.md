@@ -139,3 +139,8 @@ last item current. Pagination is controlled page/pageCount with onPageChange or
 getHref; host owns data/routes and empty states. Counts must be positive safe
 integers in range; siblingCount 0/1/2 bounds window size. Native modifier navigation,
 localized names, unavailable endpoints and narrow wrapping stay intact. Available in 0.2.3.
+
+
+## Metadata, loading and identity · 0.2.4
+
+Use Badge for noninteractive metadata with meaningful text. Spinner is indeterminate loading; use decorative inside a control already named by its owner. Button loading already composes it. Skeleton reserves geometry and is always hidden from AT; the host owns aria-busy and loading text. Avatar requires name and supports src/fallback; choose decorative beside an equivalent visible name. Keep image and fallback geometry fixed. None of these primitives fetch data or provide upload behavior.
