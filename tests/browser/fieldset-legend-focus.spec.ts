@@ -32,7 +32,7 @@ async function open(page: Page) {
   await expect(page.getByRole("heading", { name: "Focusable hidden labels" })).toBeVisible();
 }
 
-test("a nested disabled fieldset reveals its first legend on Tab without remounting rich state", async ({ page }) => {
+test("a nested disabled fieldset reveals its first legend on Tab without remounting rich state", async ({ page }, info) => {
   await open(page);
   const group = page.locator("#delivery"), legend = group.locator(":scope > legend"), update = group.getByRole("button", { name: "Update legend", exact: true });
   const receipt = group.getByRole("checkbox", { name: "Allow receipt", exact: true }), count = group.getByRole("status", { name: "Legend count", exact: true });
@@ -48,6 +48,7 @@ test("a nested disabled fieldset reveals its first legend on Tab without remount
   await page.locator("#before-group").focus(); await page.keyboard.press("Tab");
   await expect(update).toBeFocused(); await expect(update).toBeInViewport(); expect((await legend.boundingBox())!.height).toBeGreaterThan(1);
   await expect(update).toHaveCSS("outline-style", "solid");
+  await info.attach("legend-keyboard-focus.png",{body:await group.screenshot(),contentType:"image/png"});
   await expect(count).toHaveText("1"); await page.keyboard.press("Enter"); await expect(count).toHaveText("2");
   await page.keyboard.press("Tab"); await expect(receipt).toBeFocused(); await page.keyboard.press("Space"); await expect(receipt).toBeChecked();
   expect(await page.locator("#legend-owner").evaluate(node => [...new FormData(node as HTMLFormElement)])).toEqual([["receipt", "yes"]]);
@@ -65,11 +66,12 @@ test("a nested disabled fieldset reveals its first legend on Tab without remount
   await page.locator("#before-group").focus(); await page.keyboard.press("Tab");
   await expect(update).toBeFocused(); await expect(update).toBeInViewport(); expect((await legend.boundingBox())!.height).toBeGreaterThan(1);
   await expect(group).toHaveAccessibleName(/Delivery preferences/); await expect(count).toHaveText("2");
+  await info.attach("legend-keyboard-focus-enlarged-rtl.png",{body:await group.screenshot(),contentType:"image/png"});
   await page.getByRole("button", { name: "Inspect fieldset ref", exact: true }).click();
   await expect(page.locator('output[aria-label="Fieldset ref"]')).toHaveText("FIELDSET:LEGEND");
 });
 
-test("a supporting link reveals a hidden Field label while preserving the input name", async ({ page }) => {
+test("a supporting link reveals a hidden Field label while preserving the input name", async ({ page }, info) => {
   await open(page);
   const label = page.locator('label[for="focus-project"]'), input = page.getByRole("textbox", { name: /Project name/ });
   const link = label.getByRole("link", { name: "Label guide", exact: true });
@@ -78,6 +80,7 @@ test("a supporting link reveals a hidden Field label while preserving the input 
   await page.locator("#before-field").focus(); await page.keyboard.press("Tab");
   await expect(link).toBeFocused(); await expect(link).toBeInViewport(); expect((await label.boundingBox())!.height).toBeGreaterThan(1);
   await expect(link).toHaveCSS("outline-style", "solid");
+  await info.attach("field-supporting-link-focus.png",{body:await input.locator("..").screenshot(),contentType:"image/png"});
   await expect(input).toHaveAccessibleName(/Project name/);
   await page.keyboard.press("Tab"); await expect(input).toBeFocused();
   expect((await label.boundingBox())!.height).toBeLessThanOrEqual(1);
