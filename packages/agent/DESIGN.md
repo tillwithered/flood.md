@@ -11,7 +11,7 @@ React + TypeScript and Next.js App Router. Use this guide with matching installe
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-This guide covers all 47 exports in 0.2.4 and their layout refinements. Confirm
+This guide covers all 49 exports in 0.2.4 and their layout refinements. Confirm
 the matching installed declarations before using APIs absent from older versions.
 
 ## Connect
@@ -167,3 +167,28 @@ Progress, Meter and Alert are also available in 0.2.4. Distinguish task completi
 DescriptionList and Table are also available in 0.2.4. Preserve native description-list/table structure, table captions and header relationships. Range of displayed data and formatting remain host-owned; DataTable behavior is outside these primitives.
 
 Menu adds a real action-menu keyboard contract in 0.2.4; it reuses the layer engine and ScrollArea while remaining distinct from Select and Popover. onAction business effects belong to the host.
+
+### Toolbar and Kbd (0.2.4)
+
+Toolbar groups Button, IconButton, Toggle, native buttons/links and Menu triggers
+under one named action panel. After hydration it uses one Tab entry, directional
+arrows, Home/End and optional looping. Disabled/hidden actions are skipped. Arrows
+move focus, not activation. Horizontal order follows writing direction. In vertical
+toolbars open Menu with Enter/Space; horizontal menus retain Up/Down opening.
+Keep text inputs and independent selection widgets outside this action-only API.
+Native child handlers and refs remain attached; Toolbar owns their tabIndex while
+mounted and restores original attributes on cleanup. Without JavaScript, native
+child Tab order remains available. Use a meaningful required label.
+
+Kbd renders native kbd markup with sm/md/lg sizes and relative keycap heights.
+It displays a key or combination; the host implements real shortcuts. It is not
+interactive. Menu shortcut hints reuse Kbd and remain hidden from item names.
+
+```tsx
+<Toolbar label="Editor actions">
+  <Button variant="ghost">Undo</Button>
+  <Toggle variant="ghost">Bold</Toggle>
+  <Button variant="ghost">Share</Button>
+</Toolbar>
+<Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>
+```

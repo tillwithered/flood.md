@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import type { MenuProps, OverlayTriggerProps } from "./index.js";
-import { Button } from "./index.js";
+import { Button, Kbd } from "./index.js";
 import { OverlayScrollArea } from "./scroll-area.js";
 import { positionLayer, registerLayer, returnFocus, tabbables } from "./overlay-runtime.js";
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -93,7 +93,7 @@ export const ActionMenu = forwardRef<HTMLDivElement, MenuProps>(function ActionM
           onClick={event => { if (item.disabled) { event.preventDefault(); return; } request(false); onAction?.(item.id); }}>
           {hasIcons && <span className="flood-menu__icon" aria-hidden="true">{item.icon}</span>}
           <span className="flood-menu__label">{item.label}</span>
-          {item.shortcut && <span className="flood-menu__shortcut" aria-hidden="true">{item.shortcut}</span>}
+          {item.shortcut && <span className="flood-menu__shortcut" aria-hidden="true"><Kbd>{item.shortcut}</Kbd></span>}
         </Button>)}
     </OverlayScrollArea>}
   </div></>;

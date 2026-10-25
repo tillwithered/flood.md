@@ -71,7 +71,13 @@ const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
 import { Tabs, Breadcrumb, Pagination, type TabsProps, type BreadcrumbProps, type PaginationProps, Tooltip, Popover, Dialog, type TooltipProps, type PopoverProps, type DialogProps, type OverlayTriggerProps, Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
-import { Menu, type MenuProps, DescriptionList, Table, type DescriptionListProps, type TableProps, Progress, Meter, Alert, type ProgressProps, type MeterProps, type AlertProps, Badge, Spinner, Skeleton, Avatar, type BadgeProps, type SpinnerProps, type SkeletonProps, type AvatarProps, Link, type LinkProps } from '@flood-md/react';
+import { Toolbar, Kbd, type ToolbarProps, type KbdProps, Menu, type MenuProps, DescriptionList, Table, type DescriptionListProps, type TableProps, Progress, Meter, Alert, type ProgressProps, type MeterProps, type AlertProps, Badge, Spinner, Skeleton, Avatar, type BadgeProps, type SpinnerProps, type SkeletonProps, type AvatarProps, Link, type LinkProps } from '@flood-md/react';
+const toolbar: ToolbarProps = {label:'Actions',orientation:'vertical',loop:false};
+createElement(Toolbar,{...toolbar,ref:createRef<HTMLDivElement>()},createElement('button',null,'Action'));
+const key: KbdProps = {size:'lg'};
+createElement(Kbd,{...key,ref:createRef<HTMLElement>()},'Enter');
+// @ts-expect-error Toolbar needs a name.
+const unnamedToolbar: ToolbarProps = {};
 const actionMenu: MenuProps = {label:'Actions',trigger:props=>createElement('button',props,'Actions'),items:[{id:'open',label:'Open'},{id:'divider',type:'separator'},{id:'delete',label:'Delete',tone:'danger'}],onAction:id=>id satisfies string};
 createElement(Menu,{...actionMenu,ref:createRef<HTMLDivElement>()});
 // @ts-expect-error Action labels are required.
@@ -227,10 +233,11 @@ void scroll; void scrollElement; void badScroll; void scrollRole;
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {Link,Badge,Spinner,Skeleton,Avatar,Progress,Meter,Alert,DescriptionList,Table,Menu} from '@flood-md/react';
+import {Link,Badge,Spinner,Skeleton,Avatar,Progress,Meter,Alert,DescriptionList,Table,Menu,Toolbar,Kbd} from '@flood-md/react';
 import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb, Pagination} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
+  h(Toolbar,{label:'Tools'},h('button',null,'Undo')),h(Kbd,null,'Enter'),
   h(Menu,{label:'Actions',trigger:p=>h('button',p,'Actions'),items:[{id:'open',label:'Open'}]}),
   h(DescriptionList,{items:[{id:'name',term:'Name',description:'Flood'}]}),h(Table,{caption:'Projects'},h('tbody',null,h('tr',null,h('td',null,'Flood')))),
   h(Progress,{label:'Upload',value:50}),h(Meter,{label:'Storage',value:75}),h(Alert,{title:'Saved'},'Ready'),

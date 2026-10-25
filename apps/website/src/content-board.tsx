@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Alert, Avatar, Badge, Button, DescriptionList, FloodRoot, Heading, IconButton, Inline, Link, Menu, Meter, Progress, Skeleton, Spinner, Stack, Surface, Table, Text, type MenuItem } from "@flood-md/react";
-import { Archive, Copy, Ellipsis, Pencil, Trash2 } from "lucide-react";
+import { Alert, Avatar, Badge, Button, DescriptionList, FloodRoot, Heading, IconButton, Inline, Link, Menu, Meter, Progress, Skeleton, Spinner, Stack, Surface, Table, Text, Toolbar, Kbd, Toggle, Divider, type MenuItem } from "@flood-md/react";
+import { Archive, Copy, Ellipsis, Pencil, Trash2, Bold, Italic, Undo2 } from "lucide-react";
 import { SiteHeader } from "./site-header";
 import release from "./release.json";
 import "./content-board.css";
@@ -50,6 +50,22 @@ export default function ContentBoard() {
           <Button variant="subtle" size="sm" onClick={() => setImage(value => !value)}>{image ? "Show initials" : "Show image"}</Button>
         </Stack></Surface>
       </div>
+      <section id="toolbar" className="content-board-feedback" aria-labelledby="toolbar-title">
+        <Stack gap="2"><Heading id="toolbar-title" level={2} size="page">Actions, together.</Heading><Text as="p" size="compact" tone="subtle">One panel. One Tab entry. Arrow keys move between actions.</Text></Stack>
+        <Surface padding="6"><Stack gap="6">
+          <Inline gap="4"><Link href="/components/toolbar">Toolbar</Link><Link href="/components/kbd">Kbd</Link></Inline>
+          <Toolbar label="Document actions">
+            <IconButton label="Undo" variant="ghost" size="sm" onClick={() => setMenuStatus("Last edit undone locally.")}><Undo2 /></IconButton>
+            <Divider aria-orientation="vertical" />
+            <Toggle aria-label="Bold" iconOnly variant="ghost" size="sm"><Bold /></Toggle>
+            <Toggle aria-label="Italic" iconOnly variant="ghost" size="sm"><Italic /></Toggle>
+            <Divider aria-orientation="vertical" />
+            <Menu label="Document options" trigger={props => <IconButton {...props} label="Document options" variant="ghost" size="sm"><Ellipsis /></IconButton>} items={[{id:"duplicate",label:"Duplicate"},{id:"export",label:"Export…"}]} onAction={id => setMenuStatus(`${id} requested locally.`)} />
+            <Button variant="subtle" size="sm" onClick={() => setMenuStatus("Share requested locally.")}>Share</Button>
+          </Toolbar>
+          <Inline gap="2"><Text size="helper" tone="subtle">Keyboard hint</Text><Kbd>Ctrl</Kbd><Text size="helper" tone="subtle">+</Text><Kbd>K</Kbd><Text size="helper" tone="subtle">Display only in this demo</Text></Inline>
+        </Stack></Surface>
+      </section>
       <section id="feedback" className="content-board-feedback" aria-labelledby="feedback-title">
         <Stack gap="2"><Heading id="feedback-title" level={2} size="page">Feedback, at the right volume.</Heading>
           <Text as="p" size="compact" tone="subtle">Progress, bounded values and messages with a clear purpose.</Text></Stack>

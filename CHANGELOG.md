@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add Toolbar directional action navigation and native Kbd key hints; Menu shortcuts reuse Kbd.
+
 - Distinguish native Table footers with a quiet tint and medium-weight summary cells.
 
 - Keep Breadcrumb items at their natural width before wrapping the trail; only

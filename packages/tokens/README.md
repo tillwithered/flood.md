@@ -32,8 +32,8 @@ Version 0.2.3 adds scrollbar size/inset/min-thumb roles and semantic thumb/hover
 colors, expanding the profile to 168 roles. Install matching package versions.
 
 
-The 0.2.4 source candidate adds nine semantic roles, bringing the dark profile
-to 177 roles. Existing role values remain unchanged:
+The 0.2.4 source candidate adds twelve semantic roles, bringing the dark profile
+to 180 roles. Existing role values remain unchanged:
 
 - sys.color.accent.content and sys.color.loading.placeholder separate accent text
   and loading fills from focus and action states.
@@ -41,3 +41,5 @@ to 177 roles. Existing role values remain unchanged:
   bounded indicators without borrowing control or focus roles.
 - sys.color.action.danger.content styles destructive actions independently from
   validation messages and keyboard focus.
+
+- sys.size.keycap.sm/md/lg provide independent relative heights for keyboard hints.

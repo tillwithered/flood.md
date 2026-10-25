@@ -73,3 +73,5 @@ Retain DescriptionList native dl/dt/dd semantics without redundant ARIA term/def
 
 
 Menu: preserve menu/menuitem/separator semantics and trigger aria-haspopup/expanded/controls. Disabled items remain arrow-focusable with aria-disabled and must never activate. Use arrows/Home/End/typeahead within the menu, Escape to close, Tab out and Shift+Tab to trigger. Do not turn ordinary navigation lists into application menus. Restore focus unless the host deliberately moved it; test nested Dialog behavior and actual assistive technology separately.
+
+Toolbar requires a meaningful label. After hydration it manages child tabIndex, skips hidden/disabled actions, supports Home/End, orientation and RTL, and restores original child tabIndex attributes on cleanup. Native child handlers/refs remain attached. Before JavaScript native child Tab order remains. Kbd has native keyboard-input semantics and adds no focus stop or handler; do not present unimplemented bindings as working shortcuts.

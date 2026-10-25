@@ -20,6 +20,8 @@ const select = (name: string, options: string[], initial: string): Knob => ({ na
 const statusKnob = () => select("status", ["none", "error", "warning", "success", "info"], "none");
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
+  toolbar: [select("orientation", ["horizontal", "vertical"], "horizontal"), toggle("loop", true), toggle("disableUndo")],
+  kbd: [select("size", ["sm", "md", "lg"], "sm")],
   menu: [select("controlSize", ["sm", "md", "lg", "xl"], "sm"), select("side", ["top", "bottom", "left", "right"], "bottom"), select("align", ["start", "center", "end"], "start"), toggle("icons", true), toggle("shortcuts"), toggle("iconTrigger"), toggle("disableArchive", true), toggle("disabled")],
   "description-list": [select("layout", ["inline", "stacked"], "inline"), select("density", ["compact", "comfortable"], "compact"), toggle("dividers"), toggle("longValue")],
   table: [select("density", ["compact", "comfortable"], "comfortable"), toggle("striped"), toggle("hideCaption"), select("minWidth", ["auto", "32rem", "48rem"], "32rem"), toggle("empty"), toggle("footer", true)],
@@ -131,6 +133,13 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     onChange: binding("(event) => setChecked(event.currentTarget.checked)", (event: { currentTarget: { checked: boolean } }) => actions.checked(event.currentTarget.checked)),
   };
   switch (slug) {
+    case "kbd": return element("Inline", {gap:"2"}, element("Kbd", {size:v.size}, "Ctrl"), element("Text", {size:"compact",tone:"subtle"}, "+"), element("Kbd", {size:v.size}, "K"));
+    case "toolbar": return element("Stack", {gap:"4"}, element("Toolbar", {label:"Editor actions",orientation:v.orientation,loop:v.loop},
+      element("IconButton", {label:"Undo",variant:"ghost",size:"sm",disabled:v.disableUndo,onClick:binding('() => setStatus("Undone locally.")',()=>actions.setStatus("Undone locally."))},element("Undo2")),
+      element("Toggle", {"aria-label":"Bold",iconOnly:true,variant:"ghost",size:"sm"},element("Bold")),
+      element("Toggle", {"aria-label":"Italic",iconOnly:true,variant:"ghost",size:"sm"},element("Italic")),
+      element("Divider", {"aria-orientation":v.orientation === "vertical"?"horizontal":"vertical"}),
+      element("Button", {variant:"ghost",size:"sm",onClick:binding('() => setStatus("Shared locally.")',()=>actions.setStatus("Shared locally."))},"Share")),status);
     case "menu": {
       const entries = [{id:"rename",label:"Rename…",glyph:"Pencil",shortcut:"F2"},{id:"duplicate",label:"Duplicate",glyph:"Copy",shortcut:"⌘D"},{id:"archive",label:"Archive",glyph:"Archive",disabled:Boolean(v.disableArchive)},{id:"separator",type:"separator"},{id:"delete",label:"Delete project",glyph:"Trash2",tone:"danger"}];
       const glyphs = {Pencil,Copy,Archive,Trash2};
@@ -304,7 +313,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   if (component.slug === "segmented-control" && values.content !== "text") { icons.add("CalendarDays"); icons.add("CalendarRange"); icons.add("Calendar"); }
   let preamble = "";
   const usesChecked = ["checkbox", "radio", "switch"].includes(component.slug);
-  const usesStatus = ["menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
+  const usesStatus = ["toolbar", "menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
   if (usesChecked) preamble += `  const [checked, setChecked] = useState(${JSON.stringify(Boolean(values.checked))});\n`;
   if (usesStatus) preamble += '  const [status, setStatus] = useState("");\n';
   if (component.slug==="pagination") preamble += `  const [page, setPage] = useState(${currentPage});\n`;

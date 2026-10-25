@@ -717,7 +717,7 @@
     "name": "Menu",
     "group": "overlays",
     "description": "An action menu with keyboard navigation, separators and explicit disabled/danger states.",
-    "code": "<Menu label=\"Project actions\"\n  trigger={props => <Button {...props}>Project actions</Button>}\n  items={[{id:\"rename\",label:\"Rename…\"},{id:\"divider\",type:\"separator\"},{id:\"delete\",label:\"Delete project\",tone:\"danger\"}]}\n  onAction={id => console.log(id)}\n/>",
+    "code": "<Menu label=\"Project actions\"\n  trigger={props => <Button {...props}>Project actions</Button>}\n  items={[{id:\"rename\",label:\"Rename\u0432\u0402\u00a6\"},{id:\"divider\",type:\"separator\"},{id:\"delete\",label:\"Delete project\",tone:\"danger\"}]}\n  onAction={id => console.log(id)}\n/>",
     "imports": [
       "Menu",
       "Button"
@@ -729,6 +729,38 @@
       "Escape closes and restores trigger focus. Tab moves to the next control after the trigger; Shift+Tab returns to the trigger. Outside interaction dismisses without stealing deliberately moved focus.",
       "Shortcut text is a visual hint, not an implemented key binding. Only action items are supported: no href, submenus, checkbox/radio selection or asynchronous task manager.",
       "Controlled open needs host updates; onAction requests closure before calling the host. Modern native Popover API required. Native div props/ref target the popup. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "toolbar",
+    "name": "Toolbar",
+    "group": "actions",
+    "description": "A compact action panel with one Tab entry and directional keyboard navigation.",
+    "code": "<Toolbar label=\"Editor actions\">\n  <Button variant=\"ghost\">Undo</Button>\n  <Toggle variant=\"ghost\">Bold</Toggle>\n  <Button variant=\"ghost\">Share</Button>\n</Toolbar>",
+    "imports": [
+      "Toolbar",
+      "Button",
+      "Toggle"
+    ],
+    "notes": [
+      "Use Button, IconButton, Toggle, native buttons/links and Menu triggers. Keep inputs, Select, Tabs and ToggleGroup outside this action-only toolbar.",
+      "Arrows move focus without activation; Home/End jump to the ends. Disabled and hidden actions are skipped. One Tab entry is established after hydration; before JavaScript native child tab order remains.",
+      "Horizontal arrows follow writing direction. Vertical arrows move between actions; open a vertical toolbar Menu with Enter/Space. Horizontal menus retain ArrowUp/Down opening.",
+      "loop defaults to true. Native div props/ref target the toolbar; preserve a meaningful label. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "kbd",
+    "name": "Kbd",
+    "group": "typography",
+    "description": "A quiet native keyboard-input label for keys and shortcut hints.",
+    "code": "<Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>",
+    "imports": [
+      "Kbd"
+    ],
+    "notes": [
+      "Native kbd markup, not a button or a shortcut handler. The application implements and documents actual bindings.",
+      "Sizes sm/md/lg use relative keycap tokens. Native props/ref target the kbd element. Available in 0.2.4."
     ]
   }
 ]

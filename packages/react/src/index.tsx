@@ -30,6 +30,7 @@ import { AvatarArtwork } from "./avatar.js";
 import { ValueIndicator, FeedbackMessage } from "./feedback.js";
 import { DescribedData, TabularData } from "./data-display.js";
 import { ActionMenu } from "./menu.js";
+import { RovingToolbar } from "./toolbar.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -78,6 +79,25 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 export type FieldStatus = "error" | "warning" | "success" | "info";
 
 export type ContentSize = "sm" | "md" | "lg";
+export interface KbdProps extends HTMLAttributes<HTMLElement> { size?: ContentSize; }
+/** @since 0.2.4 */
+export const Kbd = forwardRef<HTMLElement, KbdProps>(function Kbd(
+  { size = "sm", className, ...props }, ref,
+) {
+  return <kbd {...props} ref={ref} className={classes("flood-kbd", className)} data-size={size} />;
+});
+
+export interface ToolbarProps extends Omit<HTMLAttributes<HTMLDivElement>, "role"> {
+  label: string;
+  orientation?: "horizontal" | "vertical";
+  loop?: boolean;
+}
+/** @since 0.2.4 */
+export const Toolbar = forwardRef<HTMLDivElement, ToolbarProps>(function Toolbar(
+  { label, orientation = "horizontal", loop = true, ...props }, ref,
+) {
+  return <RovingToolbar {...props} ref={ref} label={label} orientation={orientation} loop={loop} />;
+});
 export type DataDensity = "compact" | "comfortable";
 export interface DescriptionItem {
   id: string;

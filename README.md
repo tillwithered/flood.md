@@ -6,8 +6,8 @@ coding agents. No third-party UI component library or Tailwind dependency.
 
 ## Base dark design system · 0.2.4 preview
 
-The 0.2.4 source candidate provides a dark foundations profile, 177 semantic token roles and
-[47 original primitives and controls](docs/base-components.md), including forms,
+The 0.2.4 source candidate provides a dark foundations profile, 180 semantic token roles and
+[49 original primitives and controls](docs/base-components.md), including forms,
 selection groups, disclosures, overlays and navigation. A versioned agent bundle
 includes portable spacing and composition guidance. Use the matching installed
 guide and declarations when upgrading.

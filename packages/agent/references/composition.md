@@ -153,3 +153,5 @@ DescriptionList uses native dl/dt/dd for related readonly properties; use unique
 
 
 Menu is a dedicated action-menu contract, not Popover with arbitrary buttons. Forward supplied trigger props/ref to Button/IconButton. Use unique IDs and nonempty labels; separators are noninteractive, disabled items discoverable but inert, danger is visual intent only. onAction requests closing then calls host logic. No href, submenu or checkbox/radio behavior is supplied. Items/shortcuts do not install global key bindings. Place Table row actions inside a cell, with an IconButton name that includes the row identity. Available in 0.2.4.
+
+Toolbar groups actions with one Tab entry after hydration. Use Button/IconButton/Toggle, native buttons/links and Menu triggers. Arrows move focus; Enter/Space activate the native control. Keep independent selection widgets and text fields outside this action-only toolbar. In a vertical toolbar Enter/Space opens Menu; Up/Down remain toolbar navigation. Use Kbd for display-only keyboard hints and implement actual bindings in the host. Available in 0.2.4.

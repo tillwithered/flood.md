@@ -705,3 +705,28 @@ See [WAI Menu Button](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/) and
   onAction={id => chooseProjectAction(id)}
 />
 ```
+
+### Toolbar and Kbd (0.2.4)
+
+Toolbar groups Button, IconButton, Toggle, native buttons/links and Menu triggers
+under one named action panel. After hydration it uses one Tab entry, directional
+arrows, Home/End and optional looping. Disabled/hidden actions are skipped. Arrows
+move focus, not activation. Horizontal order follows writing direction. In vertical
+toolbars open Menu with Enter/Space; horizontal menus retain Up/Down opening.
+Keep text inputs and independent selection widgets outside this action-only API.
+Native child handlers and refs remain attached; Toolbar owns their tabIndex while
+mounted and restores original attributes on cleanup. Without JavaScript, native
+child Tab order remains available. Use a meaningful required label.
+
+Kbd renders native kbd markup with sm/md/lg sizes and relative keycap heights.
+It displays a key or combination; the host implements real shortcuts. It is not
+interactive. Menu shortcut hints reuse Kbd and remain hidden from item names.
+
+```tsx
+<Toolbar label="Editor actions">
+  <Button variant="ghost">Undo</Button>
+  <Toggle variant="ghost">Bold</Toggle>
+  <Button variant="ghost">Share</Button>
+</Toolbar>
+<Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>
+```
