@@ -45,3 +45,5 @@ versions and owned files; it does not validate application behavior or CSS impor
 Progress, Meter and Alert are included in this source candidate. Use Progress for task completion, Meter for bounded values; Alert announcements default off.
 
 DescriptionList renders native readonly term/value groups; Table retains caption and header/cell semantics with Flood horizontal scrolling. No DataTable behavior is implied.
+
+Menu supplies an action-only popup contract; forward its trigger props/ref, preserve disabled-item semantics and host-owned onAction effects. It is distinct from Select/Popover.

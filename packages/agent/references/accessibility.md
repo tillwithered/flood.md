@@ -70,3 +70,6 @@ Progress and Meter are not live regions. Keep their labels even with hideLabel, 
 
 
 Retain DescriptionList native dl/dt/dd semantics without redundant ARIA term/definition roles. Table needs a meaningful caption (hideCaption keeps its name) and host-owned header associations; never convert table rows into display:block cards without preserving relationships. Name the horizontal scroll viewport, retain keyboard scrolling and check that focusable cell controls remain reachable. Native table ref points to table, not viewport.
+
+
+Menu: preserve menu/menuitem/separator semantics and trigger aria-haspopup/expanded/controls. Disabled items remain arrow-focusable with aria-disabled and must never activate. Use arrows/Home/End/typeahead within the menu, Escape to close, Tab out and Shift+Tab to trigger. Do not turn ordinary navigation lists into application menus. Restore focus unless the host deliberately moved it; test nested Dialog behavior and actual assistive technology separately.

@@ -11,7 +11,7 @@ React + TypeScript and Next.js App Router. Use this guide with matching installe
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-This guide covers all 46 exports in 0.2.4 and their layout refinements. Confirm
+This guide covers all 47 exports in 0.2.4 and their layout refinements. Confirm
 the matching installed declarations before using APIs absent from older versions.
 
 ## Connect
@@ -165,3 +165,5 @@ export function Profile() {
 Progress, Meter and Alert are also available in 0.2.4. Distinguish task completion from bounded measurements, preserve names/units, and select alert announcement priority explicitly.
 
 DescriptionList and Table are also available in 0.2.4. Preserve native description-list/table structure, table captions and header relationships. Range of displayed data and formatting remain host-owned; DataTable behavior is outside these primitives.
+
+Menu adds a real action-menu keyboard contract in 0.2.4; it reuses the layer engine and ScrollArea while remaining distinct from Select and Popover. onAction business effects belong to the host.

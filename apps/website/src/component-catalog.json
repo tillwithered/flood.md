@@ -711,5 +711,24 @@
       "Use data-numeric on headers/cells for end alignment and tabular figures; data-align=start/center/end gives logical alignment. No automatic sorting, selection, pagination or data access.",
       "Striped and compact/comfortable density are opt-in presentation. Available in 0.2.4."
     ]
+  },
+  {
+    "slug": "menu",
+    "name": "Menu",
+    "group": "overlays",
+    "description": "An action menu with keyboard navigation, separators and explicit disabled/danger states.",
+    "code": "<Menu label=\"Project actions\"\n  trigger={props => <Button {...props}>Project actions</Button>}\n  items={[{id:\"rename\",label:\"Rename…\"},{id:\"divider\",type:\"separator\"},{id:\"delete\",label:\"Delete project\",tone:\"danger\"}]}\n  onAction={id => console.log(id)}\n/>",
+    "imports": [
+      "Menu",
+      "Button"
+    ],
+    "notes": [
+      "Forward all supplied trigger props and ref to one native button or Flood Button/IconButton. Label names the menu; action labels remain visible.",
+      "Enter/Space and ArrowDown open at the first item; ArrowUp opens at the last. Inside use arrows, Home/End and label-prefix typeahead.",
+      "Disabled items stay keyboard-focusable with aria-disabled but cannot activate. Separators are noninteractive; action IDs must be unique and nonempty. At least one action is required.",
+      "Escape closes and restores trigger focus. Tab moves to the next control after the trigger; Shift+Tab returns to the trigger. Outside interaction dismisses without stealing deliberately moved focus.",
+      "Shortcut text is a visual hint, not an implemented key binding. Only action items are supported: no href, submenus, checkbox/radio selection or asynchronous task manager.",
+      "Controlled open needs host updates; onAction requests closure before calling the host. Modern native Popover API required. Native div props/ref target the popup. Available in 0.2.4."
+    ]
   }
 ]

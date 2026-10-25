@@ -4,4 +4,6 @@
 .content-board-grid .flood-button { inline-size: fit-content; }
 .content-board-skeleton { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--flood-sys-space-3); }
 .content-board-feedback { display: grid; gap: var(--flood-sys-space-6); scroll-margin-block-start: var(--flood-sys-space-6); }
+.content-board-menu-stage { min-block-size: 18rem; display: grid; place-items: center; }
+.content-board-menu-status { min-block-size: 1.5rem; }
 @media (max-width: 48rem) { .content-board-grid { grid-template-columns: minmax(0, 1fr); } }

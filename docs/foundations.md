@@ -201,6 +201,12 @@ Version 0.2.2 adds these exports without replacing an existing npm version.
 Publication must be verified separately; source version numbers are not proof.
 
 
-The 0.2.4 source candidate adds `sys.color.accent.content` for accent metadata and `sys.color.loading.placeholder` for decorative loading fills (170 public roles total). Accent content is independent from the focus ring. Existing role values remain unchanged.
+The 0.2.4 source candidate adds nine semantic roles, bringing the dark profile
+to 177 roles. Existing role values remain unchanged:
 
-The same 0.2.4 candidate adds sys.color.indicator.track/fill/accent and sys.size.indicator.sm/md/lg: 176 public roles total. These separate indicator styling from action, focus and loading-placeholder roles. Existing role values stay unchanged.
+- sys.color.accent.content and sys.color.loading.placeholder separate accent text
+  and loading fills from focus and action states.
+- sys.color.indicator.track/fill/accent and sys.size.indicator.sm/md/lg control
+  bounded indicators without borrowing control or focus roles.
+- sys.color.action.danger.content styles destructive actions independently from
+  validation messages and keyboard focus.

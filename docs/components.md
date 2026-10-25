@@ -516,3 +516,58 @@ This is the compositional table primitive, not a DataTable engine.
   <tbody><tr><th scope="row">Flood</th><td data-numeric>12</td></tr></tbody>
 </Table>
 ```
+
+
+## Menu · 0.2.4
+
+Menu is an original action menu using Flood's positioning/layer stack and the
+native Popover API. label names the menu; there is no extra visible caption.
+trigger is a render function receiving OverlayTriggerProps: forward all props
+and ref to one persistent Button/IconButton/native button, and compose existing
+handlers rather than replacing the supplied ones. The trigger exposes
+aria-haspopup=menu, aria-expanded and aria-controls. disabled affects the trigger,
+not actions inside a menu the controlled host keeps open.
+
+items is a readonly array of action items {id,label,icon?,shortcut?,disabled?,tone?}
+or separators {id,type:"separator"}. IDs must be unique and nonempty, action
+labels nonempty, and at least one action must exist. The optional item type is
+item. Icons must be decorative, noninteractive artwork. shortcut is display-only,
+not an installed keyboard binding or part of the accessible action name. Destructive
+actions use tone=danger; that visual treatment does not perform confirmation or
+execute any business operation. Disabled items remain focusable with aria-disabled,
+but neither pointer nor keyboard activation calls onAction or closes the menu.
+
+Enter/Space/ArrowDown open at the first action; ArrowUp opens at the last.
+Inside: Up/Down wrap, Home/End choose edges, printable label-prefix typeahead
+matches items (repeated characters cycle). Separators are not focusable. Enter
+or Space activates through a native button. Escape closes the top menu and
+returns focus. Tab moves to the next focusable control after the trigger;
+Shift+Tab returns to the trigger. The menu does not trap focus. Outside pointer
+or focus departure requests dismissal and preserves deliberately moved focus.
+
+open/onOpenChange is controlled, or use defaultOpen for initial local state.
+The host may refuse a close request. onAction(id) requests closing before calling
+the host; the host owns business logic, asynchronous work and errors. If it moves
+focus elsewhere or opens a Dialog, normal focus restoration must not steal it.
+Actions mount while open and unmount on close. The persistent popup ref and native
+div props/className/style target its panel. Engine-owned coordinates and available
+space variables belong to positioning; side/align follow Popover conventions.
+controlSize is sm/md/lg/xl (sm default); pointer-coarse targets retain touch size.
+
+The popup uses Flood ScrollArea for long action lists, bounded to the available
+viewport. Its inner corners follow shell padding and border geometry. Focus is
+inset to stay visible. There is no href/navigation-item, submenu, checkbox/radio,
+context-menu trigger or menubar contract in this first action-menu component.
+Use ordinary Link for ordinary navigation; keep different selection models separate.
+
+See [WAI Menu Button](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/) and
+[Menu keyboard patterns](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/).
+
+```tsx
+<Menu label="Project actions"
+  trigger={props => <Button {...props}>Project actions</Button>}
+  items={[{id:"rename",label:"Rename…"},{id:"divider",type:"separator"},
+    {id:"delete",label:"Delete project",tone:"danger"}]}
+  onAction={id => chooseProjectAction(id)}
+/>
+```

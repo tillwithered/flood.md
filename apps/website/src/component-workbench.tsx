@@ -1,5 +1,5 @@
 import { Fragment, createElement, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, Copy, Plus, Undo2, Redo2, History, Bold, Italic, Underline, CalendarDays, CalendarRange, Calendar } from "lucide-react";
+import { ArrowRight, Copy, Plus, Undo2, Redo2, History, Bold, Italic, Underline, CalendarDays, CalendarRange, Calendar, Pencil, Archive, Trash2, Ellipsis } from "lucide-react";
 import * as Flood from "@flood-md/react";
 import type { ComponentPage } from "./component-catalog";
 import "./component-workbench.css";
@@ -20,6 +20,7 @@ const select = (name: string, options: string[], initial: string): Knob => ({ na
 const statusKnob = () => select("status", ["none", "error", "warning", "success", "info"], "none");
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
+  menu: [select("controlSize", ["sm", "md", "lg", "xl"], "sm"), select("side", ["top", "bottom", "left", "right"], "bottom"), select("align", ["start", "center", "end"], "start"), toggle("icons", true), toggle("shortcuts"), toggle("iconTrigger"), toggle("disableArchive", true), toggle("disabled")],
   "description-list": [select("layout", ["inline", "stacked"], "inline"), select("density", ["compact", "comfortable"], "compact"), toggle("dividers"), toggle("longValue")],
   table: [select("density", ["compact", "comfortable"], "comfortable"), toggle("striped"), toggle("hideCaption"), select("minWidth", ["auto", "32rem", "48rem"], "32rem"), toggle("empty"), toggle("footer", true)],
   progress: [select("value", ["0", "25", "50", "75", "100"], "50"), toggle("indeterminate"), select("size", ["sm", "md", "lg"], "md"), select("tone", ["neutral", "accent", "info", "success", "warning", "error"], "accent"), toggle("showValue", true)],
@@ -130,6 +131,15 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     onChange: binding("(event) => setChecked(event.currentTarget.checked)", (event: { currentTarget: { checked: boolean } }) => actions.checked(event.currentTarget.checked)),
   };
   switch (slug) {
+    case "menu": {
+      const entries = [{id:"rename",label:"Rename…",glyph:"Pencil",shortcut:"F2"},{id:"duplicate",label:"Duplicate",glyph:"Copy",shortcut:"⌘D"},{id:"archive",label:"Archive",glyph:"Archive",disabled:Boolean(v.disableArchive)},{id:"separator",type:"separator"},{id:"delete",label:"Delete project",glyph:"Trash2",tone:"danger"}];
+      const glyphs = {Pencil,Copy,Archive,Trash2};
+      const objects = entries.map(({glyph,shortcut,...item})=>({...item,...(v.shortcuts&&shortcut?{shortcut}:{}),...(v.icons&&glyph?{icon:createElement(glyphs[glyph as keyof typeof glyphs])}:{})}));
+      const source = `[${entries.map(({glyph,shortcut,...item})=>JSON.stringify({...item,...(v.shortcuts&&shortcut?{shortcut}:{})}).replace(/}$/,v.icons&&glyph?`,"icon":<${glyph} />}`:"}")).join(", ")}]`;
+      return element("Stack",{gap:"4"},element("Menu",{label:"Project actions",items:binding(source,objects),side:v.side,align:v.align,controlSize:v.controlSize,disabled:v.disabled,
+        onAction:binding('(id) => setStatus(`Selected ${id}.`)',(id:string)=>actions.setStatus(`Selected ${id}.`)),
+        trigger:v.iconTrigger?binding('(trigger) => <IconButton {...trigger} label="Project actions"><Ellipsis /></IconButton>',(p:Flood.OverlayTriggerProps)=>createElement(Flood.IconButton,{...p,label:"Project actions"},createElement(Ellipsis))):binding('(trigger) => <Button {...trigger} variant="subtle">Project actions</Button>',(p:Flood.OverlayTriggerProps)=>createElement(Flood.Button,{...p,variant:"subtle"},"Project actions"))}),status);
+    }
     case "description-list": return element("div", {style:{width:"28rem",maxWidth:"100%"}}, element("DescriptionList", {"aria-label":"Project details",layout:v.layout,density:v.density,dividers:v.dividers,items:[{id:"project",term:"Project",description:"Flood design system"},{id:"version",term:"Version",description:release.version},{id:"owner",term:"Owner",description:v.longValue?"design-system-maintainers@a-very-long-example-company.example":"Design team"}]}));
     case "table": return element("Table", {caption:"Workspace projects",density:v.density,striped:v.striped,hideCaption:v.hideCaption,style:{minWidth:v.minWidth}},
       element("thead", {}, element("tr", {}, ...["Project", "Status", "Members", "Storage"].map((name,index)=>element("th",{scope:"col",...(index>1?{"data-numeric":true}:{})},name)))),
@@ -283,6 +293,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   const jsx = printRecipe(element("FloodRoot", {}, recipe), imports, icons, 2);
   if (component.slug === "code-snippet" && values.copyAction) imports.add("Button");
   if (["tooltip", "popover", "dialog"].includes(component.slug)) imports.add("Button");
+  if (component.slug === "menu") { imports.add(values.iconTrigger ? "IconButton" : "Button"); if (values.iconTrigger) icons.add("Ellipsis"); if (values.icons) for (const name of ["Pencil", "Copy", "Archive", "Trash2"]) icons.add(name); }
   if (component.slug === "input-group") {
     if (values.end === "action") imports.add("Button");
     if (values.start === "action") { imports.add("IconButton"); icons.add("Plus"); }
@@ -293,7 +304,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   if (component.slug === "segmented-control" && values.content !== "text") { icons.add("CalendarDays"); icons.add("CalendarRange"); icons.add("Calendar"); }
   let preamble = "";
   const usesChecked = ["checkbox", "radio", "switch"].includes(component.slug);
-  const usesStatus = ["breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
+  const usesStatus = ["menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
   if (usesChecked) preamble += `  const [checked, setChecked] = useState(${JSON.stringify(Boolean(values.checked))});\n`;
   if (usesStatus) preamble += '  const [status, setStatus] = useState("");\n';
   if (component.slug==="pagination") preamble += `  const [page, setPage] = useState(${currentPage});\n`;

@@ -150,3 +150,6 @@ Progress is task completion; omit value for unknown progress. Meter is a bounded
 
 
 DescriptionList uses native dl/dt/dd for related readonly properties; use unique item IDs, meaningful term text and formatted description content. Inline layout stacks according to container width; it does not label editable controls. Table owns caption and a horizontal Flood ScrollArea. Supply native table sections and correct th scope/id/headers relationships; className/style/ref target the actual table. Use data-numeric for numeric cells and style.minWidth for wide tables. Cell actions stay ordinary focusable controls; do not imply DataTable sorting, selection or fetching. Available in 0.2.4.
+
+
+Menu is a dedicated action-menu contract, not Popover with arbitrary buttons. Forward supplied trigger props/ref to Button/IconButton. Use unique IDs and nonempty labels; separators are noninteractive, disabled items discoverable but inert, danger is visual intent only. onAction requests closing then calls host logic. No href, submenu or checkbox/radio behavior is supplied. Items/shortcuts do not install global key bindings. Place Table row actions inside a cell, with an IconButton name that includes the row identity. Available in 0.2.4.

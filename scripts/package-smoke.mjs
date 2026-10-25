@@ -71,7 +71,11 @@ const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
 import { Tabs, Breadcrumb, Pagination, type TabsProps, type BreadcrumbProps, type PaginationProps, Tooltip, Popover, Dialog, type TooltipProps, type PopoverProps, type DialogProps, type OverlayTriggerProps, Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
-import { DescriptionList, Table, type DescriptionListProps, type TableProps, Progress, Meter, Alert, type ProgressProps, type MeterProps, type AlertProps, Badge, Spinner, Skeleton, Avatar, type BadgeProps, type SpinnerProps, type SkeletonProps, type AvatarProps, Link, type LinkProps } from '@flood-md/react';
+import { Menu, type MenuProps, DescriptionList, Table, type DescriptionListProps, type TableProps, Progress, Meter, Alert, type ProgressProps, type MeterProps, type AlertProps, Badge, Spinner, Skeleton, Avatar, type BadgeProps, type SpinnerProps, type SkeletonProps, type AvatarProps, Link, type LinkProps } from '@flood-md/react';
+const actionMenu: MenuProps = {label:'Actions',trigger:props=>createElement('button',props,'Actions'),items:[{id:'open',label:'Open'},{id:'divider',type:'separator'},{id:'delete',label:'Delete',tone:'danger'}],onAction:id=>id satisfies string};
+createElement(Menu,{...actionMenu,ref:createRef<HTMLDivElement>()});
+// @ts-expect-error Action labels are required.
+const badMenu: MenuProps = {...actionMenu,items:[{id:'open'}]};
 const descriptions: DescriptionListProps = {items:[{id:'project',term:'Project',description:'Flood'}],layout:'inline',density:'compact',dividers:true};
 const table: TableProps = {caption:'Projects',children:createElement('tbody',null,createElement('tr',null,createElement('td',null,'Flood'))),density:'comfortable',hideCaption:true};
 createElement(DescriptionList,{...descriptions,ref:createRef<HTMLDListElement>()});
@@ -223,10 +227,11 @@ void scroll; void scrollElement; void badScroll; void scrollRole;
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {Link,Badge,Spinner,Skeleton,Avatar,Progress,Meter,Alert,DescriptionList,Table} from '@flood-md/react';
+import {Link,Badge,Spinner,Skeleton,Avatar,Progress,Meter,Alert,DescriptionList,Table,Menu} from '@flood-md/react';
 import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb, Pagination} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
+  h(Menu,{label:'Actions',trigger:p=>h('button',p,'Actions'),items:[{id:'open',label:'Open'}]}),
   h(DescriptionList,{items:[{id:'name',term:'Name',description:'Flood'}]}),h(Table,{caption:'Projects'},h('tbody',null,h('tr',null,h('td',null,'Flood')))),
   h(Progress,{label:'Upload',value:50}),h(Meter,{label:'Storage',value:75}),h(Alert,{title:'Saved'},'Ready'),
   h(Badge,{tone:'success'},'Active'),h(Spinner,{label:'Loading workspace'}),h(Skeleton,{shape:'circle'}),h(Avatar,{name:'Alex Morgan',src:'/alex.svg'}),
@@ -247,7 +252,7 @@ const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
 if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')||!html.includes('aria-expanded=')||!html.includes('flood-accordion')||!html.includes('flood-dialog')||!html.includes('role="tooltip"')||!html.includes('role="tablist"')||!html.includes('flood-pagination')||!html.includes('flood-breadcrumb')) throw Error('React compatibility render');
-for(const name of ['flood-badge','flood-loading','flood-skeleton','flood-avatar','flood-indicator','flood-alert','flood-description-list','flood-table']) if(!html.includes(name)) throw Error('Missing content export '+name);
+for(const name of ['flood-badge','flood-loading','flood-skeleton','flood-avatar','flood-indicator','flood-alert','flood-description-list','flood-table','flood-menu']) if(!html.includes(name)) throw Error('Missing content export '+name);
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")

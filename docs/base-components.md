@@ -1,6 +1,6 @@
 # Base component inventory
 
-The Flood 0.2.4 source candidate exports **46 components**, using original Flood implementations,
+The Flood 0.2.4 source candidate exports **47 components**, using original Flood implementations,
 React 18.3/19 APIs and TypeScript declarations. Import
 `@flood-md/react/styles.css` once and place new compositions inside `FloodRoot`.
 
@@ -102,7 +102,7 @@ documentation and checks. Breaking changes require a separate version decision.
 
 ## Scope and customization
 
-The base profile is dark only and contains 176 public semantic token roles.
+The base profile is dark only and contains 177 public semantic token roles.
 Override `--flood-sys-*` variables on the foundation scope. The bundled Inter
 font retains its OFL license. Legacy controls outside FloodRoot keep their
 earlier light/dark contract; legacy variables do not automatically override the
@@ -154,6 +154,8 @@ Badge is a noninteractive status/metadata label. Avatar exposes a named image or
 
 Preview all four at `/playground/content`. Source availability does not imply npm publication.
 
-Progress displays task completion; Meter displays a bounded measurement. Alert provides static or explicitly announced inline feedback. These 0.2.4 additions bring the source candidate to 46 components.
+Progress displays task completion; Meter displays a bounded measurement. Alert provides static or explicitly announced inline feedback. These 0.2.4 additions bring the source candidate to 47 components.
 
-DescriptionList and Table add native related-property groups and data tables with horizontal Flood scrolling. The 0.2.4 source candidate now contains 46 components; no DataTable engine is included.
+DescriptionList and Table add native related-property groups and data tables with horizontal Flood scrolling. The 0.2.4 source candidate now contains 47 components; no DataTable engine is included.
+
+Menu adds keyboard action navigation, separators, discoverable disabled items and destructive-action appearance. The source candidate now exports 47 components.

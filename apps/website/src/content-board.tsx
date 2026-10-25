@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Alert, Avatar, Badge, Button, DescriptionList, FloodRoot, Heading, Inline, Link, Meter, Progress, Skeleton, Spinner, Stack, Surface, Table, Text } from "@flood-md/react";
+import { Alert, Avatar, Badge, Button, DescriptionList, FloodRoot, Heading, IconButton, Inline, Link, Menu, Meter, Progress, Skeleton, Spinner, Stack, Surface, Table, Text, type MenuItem } from "@flood-md/react";
+import { Archive, Copy, Ellipsis, Pencil, Trash2 } from "lucide-react";
 import { SiteHeader } from "./site-header";
 import release from "./release.json";
 import "./content-board.css";
+
+const projectActions: readonly MenuItem[] = [{id:"rename",label:"Rename…",icon:<Pencil />},{id:"duplicate",label:"Duplicate",icon:<Copy />},{id:"archive",label:"Archive",icon:<Archive />,disabled:true},{id:"divider",type:"separator"},{id:"delete",label:"Delete project",icon:<Trash2 />,tone:"danger"}];
 
 export default function ContentBoard() {
   const [image, setImage] = useState(true);
@@ -10,6 +13,7 @@ export default function ContentBoard() {
   const [progress, setProgress] = useState(60);
   const [unknown, setUnknown] = useState(false);
   const [storage, setStorage] = useState(75);
+  const [menuStatus, setMenuStatus] = useState("");
   return <FloodRoot className="site-root"><div className="site-shell">
     <SiteHeader path="/playground/content" />
     <main id="main-content" className="content-board">
@@ -90,14 +94,20 @@ export default function ContentBoard() {
           <Surface padding="6"><Stack gap="4">
             <Inline gap="4"><Heading level={3} size="section">Table</Heading><Link href="/components/table">Explore</Link></Inline>
             <Table caption="Workspace projects" style={{minWidth:"32rem"}}>
-              <thead><tr><th scope="col">Project</th><th scope="col">Status</th><th scope="col" data-numeric>Members</th><th scope="col" data-numeric>Storage</th></tr></thead>
-              <tbody><tr><th scope="row">Flood</th><td><Badge tone="success" size="sm">Active</Badge></td><td data-numeric>12</td><td data-numeric>24 GB</td></tr>
-                <tr><th scope="row">Portal</th><td><Badge size="sm">Draft</Badge></td><td data-numeric>8</td><td data-numeric>16 GB</td></tr>
-                <tr><th scope="row">Studio</th><td><Badge tone="success" size="sm">Active</Badge></td><td data-numeric>20</td><td data-numeric>10 GB</td></tr></tbody>
-              <tfoot><tr><th scope="row" colSpan={2}>Total</th><td data-numeric>40</td><td data-numeric>50 GB</td></tr></tfoot>
+              <thead><tr><th scope="col">Project</th><th scope="col">Status</th><th scope="col" data-numeric>Members</th><th scope="col" data-numeric>Storage</th><th scope="col"><span className="flood-visually-hidden">Actions</span></th></tr></thead>
+              <tbody>{[{name:"Flood",status:"Active",members:12,storage:"24 GB"},{name:"Portal",status:"Draft",members:8,storage:"16 GB"},{name:"Studio",status:"Active",members:20,storage:"10 GB"}].map(project=><tr key={project.name}><th scope="row">{project.name}</th><td><Badge tone={project.status==="Active"?"success":"neutral"} size="sm">{project.status}</Badge></td><td data-numeric>{project.members}</td><td data-numeric>{project.storage}</td><td><Menu label={`${project.name} actions`} align="end" items={projectActions} onAction={id=>setMenuStatus(`${project.name}: ${id} selected.`)} trigger={props=><IconButton {...props} size="sm" label={`Actions for ${project.name}`}><Ellipsis /></IconButton>} /></td></tr>)}</tbody>
+              <tfoot><tr><th scope="row" colSpan={2}>Total</th><td data-numeric>40</td><td data-numeric>50 GB</td><td /></tr></tfoot>
             </Table>
           </Stack></Surface>
         </div>
+      </section>
+      <section id="menu" className="content-board-feedback" aria-labelledby="menu-title">
+        <Stack gap="2"><Heading id="menu-title" level={2} size="page">Actions, within reach.</Heading><Text as="p" size="compact" tone="subtle">A compact action menu with keyboard navigation and clear priorities.</Text></Stack>
+        <Surface padding="6"><Stack gap="4">
+          <Inline gap="4"><Heading level={3} size="section">Menu</Heading><Link href="/components/menu">Explore</Link></Inline>
+          <div className="content-board-menu-stage"><Menu label="Project actions" items={projectActions} onAction={id=>setMenuStatus(`${id} selected.`)} trigger={props=><Button {...props} variant="subtle">Project actions</Button>} /></div>
+          <Text role="status" size="helper" tone="subtle" className="content-board-menu-status">{menuStatus}</Text>
+        </Stack></Surface>
       </section>
       <Link href="/components">Browse all components</Link>
     </main>

@@ -12,7 +12,7 @@ test("content board composes named and decorative primitives without overflow", 
   await page.goto("/playground/content");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Small pieces, more possibilities.");
   const board = page.locator(".content-board");
-  await expect(board.getByRole("status")).toHaveCount(3);
+  await expect(board.locator('.flood-loading[role="status"]')).toHaveCount(3);
   await expect(board.getByRole("button", { name: "Saving", exact: true })).toBeDisabled();
   await expect(board.getByRole("button", { name: "Saving", exact: true })).toHaveAttribute("aria-busy", "true");
   const avatar = board.locator(".flood-avatar").first();

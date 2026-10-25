@@ -29,6 +29,7 @@ import { TabNavigation, BreadcrumbNavigation, PageNavigation } from "./navigatio
 import { AvatarArtwork } from "./avatar.js";
 import { ValueIndicator, FeedbackMessage } from "./feedback.js";
 import { DescribedData, TabularData } from "./data-display.js";
+import { ActionMenu } from "./menu.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -265,6 +266,36 @@ export const Pagination = forwardRef<HTMLElement, PaginationProps>(function Pagi
 export interface OverlayTriggerProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   ref: RefCallback<HTMLButtonElement>;
 }
+export interface MenuActionItem {
+  id: string;
+  type?: "item";
+  label: string;
+  icon?: ReactNode;
+  shortcut?: string;
+  disabled?: boolean;
+  tone?: "default" | "danger";
+}
+export interface MenuSeparator { id: string; type: "separator"; }
+export type MenuItem = MenuActionItem | MenuSeparator;
+export interface MenuProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role"> {
+  label: string;
+  trigger: (props: OverlayTriggerProps) => ReactNode;
+  items: readonly MenuItem[];
+  onAction?: (id: string) => void;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  side?: "top" | "bottom" | "left" | "right";
+  align?: "start" | "center" | "end";
+  controlSize?: "sm" | "md" | "lg" | "xl";
+}
+/** @since 0.2.4 */
+export const Menu = forwardRef<HTMLDivElement, MenuProps>(function Menu(
+  { defaultOpen = false, disabled = false, side = "bottom", align = "start", controlSize = "sm", ...props }, ref,
+) {
+  return <ActionMenu {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} side={side} align={align} controlSize={controlSize} />;
+});
 export interface TooltipProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "content" | "title" | "role"> {
   content: string;
   trigger: (props: OverlayTriggerProps) => ReactNode;
