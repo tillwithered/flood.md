@@ -10,7 +10,9 @@ test("ButtonGroup names independent native actions without changing their semant
   assert.match(html, /data-orientation="vertical"/);
   assert.match(html, /type="submit"/);
   assert.match(html, /disabled=""/);
-  assert.doesNotMatch(html, /role="toolbar"|tabindex=/);
+  // The protected scroll viewport is programmatically focusable, but adds no Tab stop.
+  assert.doesNotMatch(html, /role="toolbar"|tabindex="(?:0|[1-9][0-9]*)"/);
+  for (const button of html.match(/<button\b[^>]*>/g) ?? []) assert.doesNotMatch(button, /tabindex=/);
 });
 
 test("InputGroup keeps Field associations on one native input and does not submit adornments", () => {

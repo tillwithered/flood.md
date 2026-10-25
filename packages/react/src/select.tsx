@@ -5,7 +5,7 @@ import {
   type ChangeEvent, type ReactNode,
 } from "react";
 import type { SelectProps } from "./index.js";
-import { OverlayScrollArea } from "./scroll-area.js";
+import { ScrollArea } from "./index.js";
 
 interface Choice { value: string; label: string; disabled: boolean; hidden: boolean; group?: string }
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -231,12 +231,12 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
     >{children}</select>
     {open && <div ref={menu} id={menuId} role="listbox" aria-label={ariaLabel} aria-labelledby={ariaLabel ? undefined : labelledBy ?? triggerId} popover="manual"
       className="flood-select__menu" onPointerDown={(event) => event.preventDefault()} onClick={(event) => event.preventDefault()} style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight || undefined }}>
-      <OverlayScrollArea ref={scrollViewport} orientation="vertical" tabIndex={-1} className="flood-select__viewport" style={{ maxHeight: position.viewportHeight || undefined }}>
+      <ScrollArea ref={scrollViewport} orientation="vertical" tabIndex={-1} className="flood-select__viewport" style={{ maxHeight: position.viewportHeight || undefined }}>
         {!choices.some((choice) => !choice.hidden) && <div className="flood-select__empty">No options</div>}
         {groups.map((group, index) => group.label ? <div key={index} role="group" aria-label={group.label}>
           <div className="flood-select__group" aria-hidden="true">{group.label}</div>{group.items.map(renderOption)}
         </div> : <Fragment key={index}>{group.items.map(renderOption)}</Fragment>)}
-      </OverlayScrollArea>
+      </ScrollArea>
     </div>}
     {validation && <span className="flood-select__validation" id={validationId} role="alert">{validation}</span>}
   </span>;

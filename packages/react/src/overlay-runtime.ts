@@ -17,11 +17,16 @@ export function placeOverlay(anchor:Rect, size:{width:number;height:number}, vie
 }
 
 export function tabbables(root:HTMLElement) {
-  const candidates=Array.from(root.querySelectorAll<HTMLElement>('a[href],button,input,select,textarea,[tabindex],[contenteditable="true"],iframe')).filter(node=>
-    node.tabIndex>=0&&!node.matches(':disabled,input[type="hidden"]')&&!node.closest('[hidden],[inert]')&&node.getClientRects().length>0&&getComputedStyle(node).visibility!=="hidden");
+  const candidates=Array.from(root.querySelectorAll<HTMLElement>('a[href],button,input,select,textarea,[tabindex],[contenteditable]:not([contenteditable="false"]),details > summary:first-of-type,audio[controls],video[controls],iframe')).filter(node=>{
+    // Editing roots and native media may report -1 without an explicit tabindex
+    // while still participating in sequential focus. Nested editing hosts do not.
+    const implicit=!node.hasAttribute("tabindex")&&((node.isContentEditable&&!node.parentElement?.isContentEditable)||node.matches("audio[controls],video[controls]"));
+    return (node.tabIndex>=0||implicit)&&!node.matches(':disabled,input[type="hidden"]')&&!node.closest('[hidden],[inert]')&&node.getClientRects().length>0&&getComputedStyle(node).visibility!=="hidden";
+  });
   return candidates.filter(node=>{
-    if(!(node instanceof HTMLInputElement)||node.type!=="radio"||!node.name)return true;
-    const group=candidates.filter((other):other is HTMLInputElement=>other instanceof HTMLInputElement&&other.type==="radio"&&other.name===node.name&&other.form===node.form);
+    if(node.localName!=="input"||(node as HTMLInputElement).type!=="radio"||!(node as HTMLInputElement).name)return true;
+    const radio=node as HTMLInputElement;
+    const group=candidates.filter((other):other is HTMLInputElement=>other.localName==="input"&&(other as HTMLInputElement).type==="radio"&&(other as HTMLInputElement).name===radio.name&&(other as HTMLInputElement).form===radio.form);
     return node===(group.find(other=>other.checked)??group[0]);
   }).sort((a,b)=>(a.tabIndex>0?a.tabIndex:Infinity)-(b.tabIndex>0?b.tabIndex:Infinity));
 }
@@ -32,7 +37,7 @@ export function registerLayer(document:Document,layer:Layer) {
   let layers=stacks.get(document);
   if(!layers){layers=[];stacks.set(document,layers);}
   layers.push(layer);
-  const top=()=>layers!.filter(item=>item.panel.isConnected&&(item.panel instanceof HTMLDialogElement?item.panel.open:item.panel.matches(":popover-open"))).at(-1);
+  const top=()=>layers!.filter(item=>item.panel.isConnected&&(item.panel.localName==="dialog"?(item.panel as HTMLDialogElement).open:item.panel.matches(":popover-open"))).at(-1);
   const key=(event:KeyboardEvent)=>{if(event.defaultPrevented||event.key!=="Escape"||top()!==layer)return;event.preventDefault();event.stopPropagation();layer.close();};
   const pointer=(event:PointerEvent)=>{
     if(event.defaultPrevented||top()!==layer)return;

@@ -47,3 +47,5 @@
   .workbench-controls > label.workbench-control:only-of-type { flex-basis: 100%; }
   .workbench-controls:has(.workbench-control:not(.workbench-control--toggle)) :is(.workbench-control--toggle, .workbench-focus) { margin-block-start: 0; }
 }
+
+.workbench-stage:is([data-component="container"], [data-component="grid"]) > .flood-root { inline-size: 100%; }

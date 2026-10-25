@@ -18,9 +18,11 @@ import {
   type RefCallback,
   type RefObject,
   type TableHTMLAttributes,
+  type ImgHTMLAttributes,
 } from "react";
 import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-state.js";
 import { SingleSelect } from "./select.js";
+import { MixedCheckbox } from "./checkbox.js";
 import { OverlayScrollArea } from "./scroll-area.js";
 import { ChoiceGroup } from "./choice-group.js";
 import { Disclosure } from "./disclosure.js";
@@ -158,7 +160,7 @@ export const Spinner = forwardRef<HTMLSpanElement, SpinnerProps>(function Spinne
   return <span {...props} ref={ref} className={classes("flood-loading", className)} data-size={size}
     role={decorative ? undefined : "status"} aria-hidden={decorative || undefined}>
     <span className="flood-spinner" aria-hidden="true" />
-    {!decorative && <span className="flood-visually-hidden">{label}</span>}
+    {!decorative && <VisuallyHidden>{label}</VisuallyHidden>}
   </span>;
 });
 
@@ -404,7 +406,7 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(function Acc
   if (expansionMode === "single" && new Set(expanded).size > 1) throw new Error("Flood single Accordion accepts at most one value");
   return <div {...props} ref={ref} role="group" aria-label={label} className={classes("flood-accordion", className)} onKeyDown={event => {
     onKeyDown?.(event);
-    if (event.defaultPrevented) return;
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
     const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(":scope > .flood-disclosure > .flood-disclosure__heading > .flood-disclosure__trigger:not(:disabled)"));
     const index = buttons.indexOf(event.target as HTMLButtonElement);
     if (index < 0) return;
@@ -468,10 +470,10 @@ export const ToggleGroup = forwardRef<HTMLDivElement, ToggleGroupProps>(function
   if (new Set(options.map(option => option.value)).size !== options.length) throw new Error("Flood toggle option values must be unique");
   if (selectionMode === "single" && new Set(selected).size > 1) throw new Error("Flood single ToggleGroup accepts at most one value");
   if (iconOnly && options.some(option => !option.icon)) throw new Error("Flood icon-only toggle options require icons");
-  return <div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} data-selection-mode={selectionMode}
+  return <ScrollArea orientation="horizontal" tabIndex={-1} role="group" aria-label={`${label} scrolling`} className="flood-connected-scroll" hidden={props.hidden} dir={props.dir} lang={props.lang} style={{maxInlineSize:"100%"}}><div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} data-selection-mode={selectionMode}
     className={classes("flood-button-group", "flood-toggle-group", className)} onKeyDown={event => {
       onKeyDown?.(event);
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
       const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(":scope > .flood-toggle:not(:disabled)"));
       const index = buttons.indexOf(event.target as HTMLButtonElement);
       if (index < 0) return;
@@ -487,7 +489,7 @@ export const ToggleGroup = forwardRef<HTMLDivElement, ToggleGroupProps>(function
         if (value === undefined) setLocal(next);
         onValueChange?.([...next]);
       }}>{iconOnly ? option.icon : <>{option.icon && <IconSlot size={size}>{option.icon}</IconSlot>}{option.label}</>}</Toggle>)}
-  </div>;
+  </div></ScrollArea>;
 });
 
 export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "role"> {
@@ -498,7 +500,7 @@ export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "
 export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(function ButtonGroup(
   { label, orientation = "horizontal", className, ...props }, ref,
 ) {
-  return <div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} className={classes("flood-button-group", className)} />;
+  return <ScrollArea orientation="horizontal" tabIndex={-1} role="group" aria-label={`${label} scrolling`} className="flood-connected-scroll" hidden={props.hidden} dir={props.dir} lang={props.lang} style={{maxInlineSize:"100%"}}><div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} className={classes("flood-button-group", className)} /></ScrollArea>;
 });
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -531,9 +533,9 @@ export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function
 ) {
   return <div hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-input-group", `flood-control--${controlSize}`, className)} style={style}
     data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])} data-disabled={disabled || undefined} data-readonly={readOnly || undefined}>
-    {hasFieldContent(start) && <div className="flood-input-group__addon flood-input-group__addon--start">{start}</div>}
+    {hasFieldContent(start) && <div className="flood-input-group__addon flood-input-group__addon--start">{typeof start === "string" ? <bdi dir="auto">{start}</bdi> : start}</div>}
     <Input {...props} ref={ref} controlSize={controlSize} invalid={invalid} status={status} disabled={disabled} readOnly={readOnly} />
-    {hasFieldContent(end) && <div className="flood-input-group__addon flood-input-group__addon--end">{end}</div>}
+    {hasFieldContent(end) && <div className="flood-input-group__addon flood-input-group__addon--end">{typeof end === "string" ? <bdi dir="auto">{end}</bdi> : end}</div>}
   </div>;
 });
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -568,7 +570,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   const listbox = multiple || (size !== undefined && size > 1);
   if (!listbox) return <SingleSelect {...props} status={status} invalid={invalid} controlSize={controlSize} className={className} size={size} ref={ref} />;
   return (
-    <span className={classes("flood-select", `flood-control--${controlSize}`, listbox && "flood-select--listbox")}>
+    <span hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-select", `flood-control--${controlSize}`, listbox && "flood-select--listbox")}>
       <select
         {...props}
         ref={ref}
@@ -588,11 +590,14 @@ export interface ChoiceProps extends Omit<
 > {
   label: ReactNode;
 }
-export const Checkbox = forwardRef<HTMLInputElement, ChoiceProps>(
-  function Checkbox({ label, className, ...props }, ref) {
+export interface CheckboxProps extends ChoiceProps {
+  indeterminate?: boolean;
+}
+export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
+  function Checkbox({ label, indeterminate = false, className, ...props }, ref) {
     return (
-      <label className={classes("flood-choice", className)}>
-        <input {...props} ref={ref} type="checkbox" className="flood-check" />
+      <label hidden={props.hidden} className={classes("flood-choice", className)}>
+        <MixedCheckbox {...props} ref={ref} indeterminate={indeterminate} />
         <span>{label}</span>
       </label>
     );
@@ -603,7 +608,7 @@ export const Radio = forwardRef<HTMLInputElement, ChoiceProps>(function Radio(
   ref,
 ) {
   return (
-    <label className={classes("flood-choice", className)}>
+    <label hidden={props.hidden} className={classes("flood-choice", className)}>
       <input {...props} ref={ref} type="radio" className="flood-check" />
       <span>{label}</span>
     </label>
@@ -614,7 +619,7 @@ export const Switch = forwardRef<HTMLInputElement, ChoiceProps>(function Switch(
   ref,
 ) {
   return (
-    <label className={classes("flood-choice", "flood-switch", className)}>
+    <label hidden={props.hidden} className={classes("flood-choice", "flood-switch", className)}>
       <span>{label}</span>
       <input
         {...props}
@@ -708,7 +713,7 @@ export const SegmentedControl = forwardRef<HTMLFieldSetElement, SegmentedControl
       {iconOnly ? <span className="flood-segmented__name">{option.label}</span> : option.label}
     </> }))} onKeyDown={event => {
       onKeyDown?.(event);
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
       const inputs = Array.from(event.currentTarget.querySelectorAll<HTMLInputElement>(":scope > .flood-fieldset__body > .flood-choice-group > .flood-choice > input[type=radio]:not(:disabled)"));
       const index = inputs.indexOf(event.target as HTMLInputElement);
       if (index < 0) return;
@@ -864,6 +869,104 @@ export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(function Surface
   return <div {...props} ref={ref} data-flood-elevation={elevation} className={classes("flood-surface", className)} style={{ background: `var(--flood-sys-color-surface-${elevation})`, padding: `var(--flood-sys-space-${padding})`, ...style }} />;
 });
 
+export interface ContainerProps extends HTMLAttributes<HTMLDivElement> {
+  size?: "sm" | "md" | "lg" | "full";
+  gutter?: Space;
+}
+/** Centered content with logical gutters; max width includes padding. @since 0.2.4 */
+export const Container = forwardRef<HTMLDivElement, ContainerProps>(function Container(
+  { size = "lg", gutter = "6", className, style, ...props }, ref,
+) {
+  return <div {...props} ref={ref} className={classes("flood-container", className)} style={{
+    "--flood-container-max": size === "full" ? "none" : `var(--flood-sys-size-container-${size})`,
+    "--flood-container-gutter": `var(--flood-sys-space-${gutter})`, ...style,
+  } as CSSProperties} />;
+});
+export interface GridProps extends HTMLAttributes<HTMLDivElement> {
+  columns?: 1 | 2 | 3 | 4 | 6 | 12;
+  minItemWidth?: string;
+  gap?: Space;
+}
+/** Auto-fit by default; explicit columns retain their count at every width. @since 0.2.4 */
+export const Grid = forwardRef<HTMLDivElement, GridProps>(function Grid(
+  { columns, minItemWidth, gap = "4", className, style, ...props }, ref,
+) {
+  return <div {...props} ref={ref} className={classes("flood-grid", className)} style={{
+    gridTemplateColumns: columns ? `repeat(${columns}, minmax(0, 1fr))` : undefined,
+    "--flood-grid-min": minItemWidth, "--flood-layout-gap": `var(--flood-sys-space-${gap})`, ...style,
+  } as CSSProperties} />;
+});
+export interface VisuallyHiddenProps extends HTMLAttributes<HTMLElement> {
+  as?: "span" | "div";
+  focusable?: boolean;
+}
+/** Nonvisual content, with optional reveal when a descendant receives focus. @since 0.2.4 */
+export const VisuallyHidden = forwardRef<HTMLElement, VisuallyHiddenProps>(function VisuallyHidden(
+  { as = "span", focusable = false, className, ...props }, ref,
+) {
+  return createElement(as, { ...props, ref, className: classes(focusable ? "flood-visually-hidden--focusable" : "flood-visually-hidden", className) });
+});
+export interface AspectRatioProps extends HTMLAttributes<HTMLDivElement> {
+  ratio?: number;
+}
+/** Reserve media geometry. Child content may overflow rather than being clipped. @since 0.2.4 */
+export const AspectRatio = forwardRef<HTMLDivElement, AspectRatioProps>(function AspectRatio(
+  { ratio = 16 / 9, className, style, children, ...props }, ref,
+) {
+  if (!Number.isFinite(ratio) || ratio <= 0) throw new RangeError("Flood AspectRatio requires a finite positive ratio");
+  return <div {...props} ref={ref} className={classes("flood-aspect-ratio", className)} style={{ aspectRatio: String(ratio), ...style }}>
+    <div className="flood-aspect-ratio__content">{children}</div>
+  </div>;
+});
+export interface ImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, "alt"> {
+  alt: string;
+  fit?: "cover" | "contain";
+}
+/** Native image semantics, explicit alternative text and bounded media fitting. @since 0.2.4 */
+export const Image = forwardRef<HTMLImageElement, ImageProps>(function Image(
+  { alt, fit = "cover", className, ...props }, ref,
+) {
+  if (typeof alt !== "string") throw new TypeError("Flood Image requires explicit alt text (empty for decorative images)");
+  return <img {...props} ref={ref} alt={alt} data-fit={fit} className={classes("flood-image", className)} />;
+});
+export interface ListProps extends Omit<HTMLAttributes<HTMLUListElement | HTMLOListElement>, "role"> {
+  ordered?: boolean;
+  start?: number;
+  reversed?: boolean;
+  marker?: boolean;
+  gap?: Space;
+}
+/** Native list items supplied by the host; hidden markers retain list semantics. @since 0.2.4 */
+export const List = forwardRef<HTMLUListElement | HTMLOListElement, ListProps>(function List(
+  { ordered = false, start, reversed, marker = true, gap = "2", className, style, ...props }, ref,
+) {
+  if (start !== undefined && !Number.isSafeInteger(start)) throw new RangeError("Flood List start requires a safe integer");
+  return createElement(ordered ? "ol" : "ul", { ...props, ref, start: ordered ? start : undefined,
+    reversed: ordered ? reversed : undefined, role: marker ? undefined : "list", "data-marker": marker,
+    className: classes("flood-list", className), style: { "--flood-layout-gap": `var(--flood-sys-space-${gap})`, ...style } as CSSProperties });
+});
+export interface EmptyStateProps extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "children"> {
+  title: string;
+  description?: ReactNode;
+  icon?: ReactNode;
+  actions?: ReactNode;
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+  density?: "compact" | "comfortable";
+}
+/** Static empty content, not loading, an error boundary or a live announcement. @since 0.2.4 */
+export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(function EmptyState(
+  { title, description, icon, actions, headingLevel = 2, density = "comfortable", className, ...props }, ref,
+) {
+  if (typeof title !== "string" || !title.trim()) throw new Error("Flood EmptyState requires a nonempty title");
+  return <Stack {...props} ref={ref} gap="4" data-density={density} className={classes("flood-empty-state", className)}>
+    {hasFieldContent(icon) && <div className="flood-empty-state__icon"><IconSlot size="2xl">{icon}</IconSlot></div>}
+    <Stack gap="1"><Heading level={headingLevel} size="section">{title}</Heading>
+      {hasFieldContent(description) && <Text as="div" size="compact" tone="subtle">{description}</Text>}
+    </Stack>
+    {hasFieldContent(actions) && <Inline gap="2" className="flood-empty-state__actions">{actions}</Inline>}
+  </Stack>;
+});
+
 export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   title?: ReactNode;
   description?: ReactNode;
@@ -877,7 +980,7 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, "title">
 export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
   { title, description, actions, footer, headingLevel = 2, density = "comfortable", elevation = "default", children, className, ...props }, ref,
 ) {
-  const present = (value: ReactNode) => value !== null && value !== undefined && typeof value !== "boolean";
+  const present = hasFieldContent;
   const heading = present(title), hint = present(description), action = present(actions);
   return <Surface {...props} ref={ref} elevation={elevation} padding={density === "compact" ? "4" : "6"}
     data-density={density} className={classes("flood-card", className)}>
@@ -920,15 +1023,16 @@ export const Divider = forwardRef<HTMLHRElement, HTMLAttributes<HTMLHRElement>>(
 
 export interface CodeSnippetProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   code: string;
+  codeDirection?: "ltr" | "rtl" | "auto";
   action?: ReactNode;
 }
 /** Selectable code with an optional host-owned action; no clipboard side effects. */
 export const CodeSnippet = forwardRef<HTMLDivElement, CodeSnippetProps>(function CodeSnippet(
-  { code, action, className, ...props }, ref,
+  { code, codeDirection = "ltr", action, className, ...props }, ref,
 ) {
   return (
     <div {...props} ref={ref} className={classes("flood-code-snippet", className)}>
-      <code className="flood-code-snippet__code">{code}</code>
+      <code dir={codeDirection} className="flood-code-snippet__code">{code}</code>
       {action != null && <div className="flood-code-snippet__action">{action}</div>}
     </div>
   );

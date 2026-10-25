@@ -1,7 +1,6 @@
 import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import type { MenuProps, OverlayTriggerProps } from "./index.js";
-import { Button, Kbd } from "./index.js";
-import { OverlayScrollArea } from "./scroll-area.js";
+import { Button, Kbd, ScrollArea } from "./index.js";
 import { positionLayer, registerLayer, returnFocus, tabbables } from "./overlay-runtime.js";
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
@@ -85,7 +84,7 @@ export const ActionMenu = forwardRef<HTMLDivElement, MenuProps>(function ActionM
       }
       if (next >= 0 && all[next]) { event.preventDefault(); all[next].focus({ preventScroll: true }); all[next].scrollIntoView({ block: "nearest", inline: "nearest" }); }
     }}>
-    {open && <OverlayScrollArea orientation="vertical" role="group" tabIndex={-1} className="flood-menu__viewport">
+    {open && <ScrollArea orientation="vertical" role="group" tabIndex={-1} className="flood-menu__viewport">
       {items.map(item => item.type === "separator" ? <div key={item.id} role="separator" className="flood-menu__separator" /> :
         <Button key={item.id} role="menuitem" tabIndex={-1} variant="ghost" size={controlSize} aria-label={item.label} aria-disabled={item.disabled || undefined}
           data-label={item.label} data-tone={item.tone} className="flood-menu__item"
@@ -95,6 +94,6 @@ export const ActionMenu = forwardRef<HTMLDivElement, MenuProps>(function ActionM
           <span className="flood-menu__label">{item.label}</span>
           {item.shortcut && <span className="flood-menu__shortcut" aria-hidden="true"><Kbd>{item.shortcut}</Kbd></span>}
         </Button>)}
-    </OverlayScrollArea>}
+    </ScrollArea>}
   </div></>;
 });

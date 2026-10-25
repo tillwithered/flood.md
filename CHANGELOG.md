@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add Container, Grid, AspectRatio, Image, List, VisuallyHidden and EmptyState; expose native Checkbox mixed state.
+- Reuse shared atoms in navigation/disclosure/feedback/media and protected ScrollArea in composed controls.
+- Preserve modified/IME keys, nested layer Escape, cross-document/native focus targets and RTL switch geometry.
+- Keep connected actions readable at narrow widths; fix enlarged documentation wrapping and missing-slot spacing.
+- Bundle the matching italic Inter font; reject linked project manifests/directories in the CLI and isolate token diagnostic property paths.
+
 - Add structured Card surfaces with optional header actions, footer and compact/comfortable density.
 
 - Add Toolbar directional action navigation and native Kbd key hints; Menu shortcuts reuse Kbd.

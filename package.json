@@ -26,7 +26,8 @@
     "start": "node apps/website/server.mjs",
     "site:check": "node scripts/site-contract.mjs check",
     "site:bundle": "node scripts/site-contract.mjs bundle",
-    "site:verify-deploy": "node scripts/site-contract.mjs wait"
+    "site:verify-deploy": "node scripts/site-contract.mjs wait",
+    "test:browser:engines": "playwright test --config=playwright.engines.config.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",

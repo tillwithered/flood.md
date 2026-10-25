@@ -228,7 +228,8 @@
     "notes": [
       "Use checked/onChange for controlled state or defaultChecked for native state.",
       "Labels stay visible. Disabled does not mean read-only; explain unavailable choices outside the disabled control when needed.",
-      "The control and visible label form one content-width unit with an 8px-at-16px-root internal gap. Use an explicit parent gap=\"4\" (16px at that root) between units; the glyph keeps its token-defined size."
+      "The control and visible label form one content-width unit with an 8px-at-16px-root internal gap. Use an explicit parent gap=\"4\" (16px at that root) between units; the glyph keeps its token-defined size.",
+      "indeterminate sets the native mixed state after hydration; checked still controls form submission. The host owns select-all aggregation and updates. Radio and Switch do not expose this prop."
     ],
     "imports": [
       "Checkbox"
@@ -272,7 +273,8 @@
     "code": "<CodeSnippet code=\"git status --short\" />",
     "notes": [
       "CodeSnippet escapes code content and uses the semantic system monospace font stack.",
-      "The host implements copy behavior, failure handling and feedback. No clipboard or network API runs inside the component."
+      "The host implements copy behavior, failure handling and feedback. No clipboard or network API runs inside the component.",
+      "Code text defaults to LTR independently of parent layout. codeDirection can be ltr/rtl/auto; native dir still controls the wrapper and action layout."
     ],
     "imports": [
       "CodeSnippet"
@@ -780,6 +782,122 @@
       "Title uses Heading at headingLevel (2 by default); choose the level according to the page. Supply phrasing content for the title. Description accepts supporting React content.",
       "Density compact/comfortable controls padding and section rhythm using existing semantic spacing. Header actions wrap naturally; content is never clipped to the radius.",
       "Root HTMLDivElement ref and native div props/style/className target the surface. The title prop is content, not the native HTML tooltip attribute. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "container",
+    "name": "Container",
+    "group": "layout",
+    "description": "Centered content with token widths and logical gutters.",
+    "code": "<Container size=\"md\" gutter=\"6\"><Text as=\"p\">Content stays within a readable width.</Text></Container>",
+    "imports": [
+      "Container",
+      "Text"
+    ],
+    "notes": [
+      "Max width includes gutters (border-box). Sizes sm/md/lg use relative semantic roles; full removes the maximum.",
+      "Native div props/ref target the container. Gutter uses Space; it does not add vertical spacing or breakpoints.",
+      "Available in the 0.2.4 source candidate; use matching installed declarations."
+    ]
+  },
+  {
+    "slug": "grid",
+    "name": "Grid",
+    "group": "layout",
+    "description": "An adaptive content grid with optional fixed columns.",
+    "code": "<Grid minItemWidth=\"16rem\" gap=\"4\"><Surface>First</Surface><Surface>Second</Surface></Grid>",
+    "imports": [
+      "Grid",
+      "Surface"
+    ],
+    "notes": [
+      "Default auto-fit columns clamp their minimum to available width, so narrow parents retain a single column.",
+      "Explicit columns retain their count; choose this deliberately. minItemWidth applies only to automatic columns and accepts a CSS length.",
+      "Cells remain ordinary content, not an ARIA grid. Use native tables for tabular relationships and host media/container queries for deliberate breakpoints.",
+      "Available in the 0.2.4 source candidate; use matching installed declarations."
+    ]
+  },
+  {
+    "slug": "visually-hidden",
+    "name": "VisuallyHidden",
+    "group": "typography",
+    "description": "Nonvisual content with optional reveal when keyboard focus enters.",
+    "code": "<Text>Project updated.</Text><VisuallyHidden>Changes save automatically.</VisuallyHidden>",
+    "imports": [
+      "Text",
+      "VisuallyHidden"
+    ],
+    "notes": [
+      "Content remains in the accessibility tree. Default is for noninteractive text only.",
+      "Use focusable for a skip link or another focusable descendant: the wrapper becomes visible while it contains focus. Supply visible focus styling on the actual control.",
+      "This is not aria-hidden, display:none or a conditional unmount. as accepts span/div.",
+      "Available in the 0.2.4 source candidate; use matching installed declarations."
+    ]
+  },
+  {
+    "slug": "aspect-ratio",
+    "name": "AspectRatio",
+    "group": "layout",
+    "description": "Reserved media proportions that respond to their containing width.",
+    "code": "<AspectRatio ratio={16 / 9}><Image src=\"/flood-mark.png\" alt=\"Flood logo\" fit=\"contain\" /></AspectRatio>",
+    "imports": [
+      "AspectRatio",
+      "Image"
+    ],
+    "notes": [
+      "ratio must be finite and positive. The root reserves media geometry before image loading.",
+      "Direct img/video/iframe children fill the reserved box. Content can overflow; the component does not clip focus, menus or arbitrarily tall text.",
+      "Host media owns alt, captions, controls and loading. Native props/ref target the outer div.",
+      "Available in the 0.2.4 source candidate; use matching installed declarations."
+    ]
+  },
+  {
+    "slug": "image",
+    "name": "Image",
+    "group": "content",
+    "description": "A native responsive image with explicit alternative text and media fitting.",
+    "code": "<Image src=\"/flood-mark.png\" alt=\"Flood logo\" width={160} height={160} fit=\"contain\" />",
+    "imports": [
+      "Image"
+    ],
+    "notes": [
+      "alt is required; an empty string is appropriate for decorative imagery beside equivalent visible content.",
+      "Native src/srcSet/sizes/loading/decoding/dimensions, handlers and HTMLImageElement ref are preserved. Supply width/height or AspectRatio to reserve geometry.",
+      "fit cover/contain changes object-fit, not fetching, optimization or fallback behavior. Avatar composes Image with its own load/fallback lifecycle.",
+      "Available in the 0.2.4 source candidate; use matching installed declarations."
+    ]
+  },
+  {
+    "slug": "list",
+    "name": "List",
+    "group": "content",
+    "description": "Native ordered or unordered content with token spacing and optional markers.",
+    "code": "<List><li>Install the matching packages.</li><li>Import the stylesheet.</li><li>Compose with Flood.</li></List>",
+    "imports": [
+      "List"
+    ],
+    "notes": [
+      "Supply native li children. ordered chooses ol; start/reversed apply only to ordered lists. start must be a safe integer.",
+      "Hiding markers retains an explicit list role for browser/assistive-technology consistency. Content may include links or controls without changing its content-list semantics.",
+      "This is not ListBox, a selection model or a keyboard-navigation engine.",
+      "Available in the 0.2.4 source candidate; use matching installed declarations."
+    ]
+  },
+  {
+    "slug": "empty-state",
+    "name": "EmptyState",
+    "group": "feedback",
+    "description": "A quiet explanation and optional next action when content is absent.",
+    "code": "<EmptyState title=\"No projects yet\" description=\"Create a project to get started.\" actions={<Button>Create project</Button>} />",
+    "imports": [
+      "EmptyState",
+      "Button"
+    ],
+    "notes": [
+      "Composes Stack, Heading, Text, IconSlot and Inline. Optional icon is decorative; title and description explain the missing content.",
+      "Static by default, without status/alert announcements or automatic focus. Host owns whether a result change should be announced.",
+      "Choose headingLevel for the page hierarchy. Density controls relative padding. Host actions remain ordinary named controls; no loading, fetching or error recovery engine is supplied.",
+      "Available in the 0.2.4 source candidate; use matching installed declarations."
     ]
   }
 ]

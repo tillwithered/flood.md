@@ -26,3 +26,5 @@ Never infer npm publication, a deployment or a backend save from a local build.
 Updating an installed guide is a review/merge task: preserve customized files;
 do not rerun init to overwrite them. No reference grants authority to deploy,
 delete data or transmit private source.
+
+Check both normal and italic font loading where emphasis is used; matching font-family text alone does not establish that the face loaded. For responsive geometry verify320px plus enlarged root text/RTL in the actual served production assets, not only injected source CSS. Exercise local overflow by focusing the final action/item and verify content is not beneath a scrollbar. Test failed/missing images and absent component slots without inventing loading/fallback promises.

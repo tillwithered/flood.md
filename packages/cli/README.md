@@ -16,3 +16,9 @@ Read the skill's routing reference for the task/source/check matrix. Doctor chec
 the complete guide set and package alignment; it does not validate application
 behavior, CSS imports or agent compliance. Merge customized guide upgrades
 deliberately; init has no overwrite mode.
+
+Init and doctor reject linked project-directory ancestry. Init also requires a
+regular nonlinked package.json (including no hardlinks), validates its project
+object and React dependency, and rechecks paths after npm before owned writes.
+These checks do not sandbox npm or stop an external process from racing filesystem
+changes; run installs only in a trusted project and inspect npm failures.

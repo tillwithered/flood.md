@@ -1,6 +1,6 @@
 import { forwardRef } from "react";
 import type { DescriptionListProps, TableProps } from "./index.js";
-import { OverlayScrollArea } from "./scroll-area.js";
+import { ScrollArea } from "./index.js";
 
 export const DescribedData = forwardRef<HTMLDListElement, DescriptionListProps>(function DescribedData(
   { items, layout, density, dividers, className, ...props }, ref,
@@ -19,12 +19,12 @@ export const TabularData = forwardRef<HTMLTableElement, TableProps>(function Tab
   { caption, children, hideCaption, density, striped, scrollLabel, className, hidden, dir, lang, ...props }, ref,
 ) {
   return <div className="flood-table-container" hidden={hidden} dir={dir} lang={lang}>
-    <OverlayScrollArea orientation="horizontal" aria-label={scrollLabel ?? caption}>
+    <ScrollArea orientation="horizontal" aria-label={scrollLabel ?? caption}>
       <table {...props} ref={ref} hidden={hidden} dir={dir} lang={lang}
         className={["flood-table", className].filter(Boolean).join(" ")} data-density={density} data-striped={striped}>
         <caption className={hideCaption ? "flood-visually-hidden" : undefined}>{caption}</caption>
         {children}
       </table>
-    </OverlayScrollArea>
+    </ScrollArea>
   </div>;
 });

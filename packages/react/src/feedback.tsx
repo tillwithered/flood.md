@@ -1,5 +1,6 @@
 import { forwardRef, useId } from "react";
 import type { AlertProps, ProgressProps } from "./index.js";
+import { VisuallyHidden } from "./index.js";
 
 export function validateRange(value: number | undefined, min: number, max: number, allowUnknown: boolean) {
   if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min || !Number.isFinite(max - min))
@@ -17,12 +18,10 @@ export const ValueIndicator = forwardRef<HTMLDivElement, IndicatorProps>(functio
   validateRange(value, min, max, kind === "progress");
   const unknown = value === undefined;
   const percent = unknown ? undefined : ((value - min) / (max - min)) * 100;
+  const caption = <><span id={labelId}>{label}</span>{valueText && <span className="flood-indicator__value" aria-hidden="true">{valueText}</span>}</>;
   return <div {...props} ref={ref} className={["flood-indicator", className].filter(Boolean).join(" ")}
     data-kind={kind} data-size={size} data-tone={tone} data-indeterminate={unknown}>
-    <div className={hideLabel ? "flood-visually-hidden" : "flood-indicator__caption"}>
-      <span id={labelId}>{label}</span>
-      {valueText && <span className="flood-indicator__value" aria-hidden="true">{valueText}</span>}
-    </div>
+    {hideLabel ? <VisuallyHidden as="div">{caption}</VisuallyHidden> : <div className="flood-indicator__caption">{caption}</div>}
     <div className="flood-indicator__track" role={kind === "meter" ? "meter" : "progressbar"}
       aria-labelledby={labelId} aria-valuemin={min} aria-valuemax={max} aria-valuenow={value} aria-valuetext={valueText}>
       <span className="flood-indicator__fill" style={{ inlineSize: percent === undefined ? undefined : `${percent}%` }} />

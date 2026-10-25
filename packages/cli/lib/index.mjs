@@ -1,5 +1,5 @@
 import { readFile, writeFile, mkdir, lstat } from "node:fs/promises";
-import { resolve, join } from "node:path";
+import { resolve, join, parse, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
@@ -18,6 +18,38 @@ if (agentManifest.schemaVersion !== 1 || agentManifest.version !== VERSION || !A
     new Set(agentManifest.files.map(file => file.target)).size !== agentManifest.files.length)
   throw new Error("Invalid Flood agent file manifest.");
 export const AGENT_FILES = Object.freeze(agentManifest.files.map(file => Object.freeze({ ...file })));
+
+async function projectDirectory(root) {
+  const absolute = resolve(root);
+  const anchor = parse(absolute).root;
+  let current = anchor;
+  // Inspect prefixes before descendants so a linked ancestor cannot redirect
+  // either package.json reads or subsequent npm/configuration writes.
+  for (const part of ["", ...relative(anchor, absolute).split(sep).filter(Boolean)]) {
+    if (part) current = join(current, part);
+    const info = await lstat(current).catch(() => {
+      throw new Error("Run Flood inside an existing project directory.");
+    });
+    if (info.isSymbolicLink()) throw new Error(`Refusing linked project directory: ${current}`);
+    if (!info.isDirectory()) throw new Error("Run Flood inside a regular project directory.");
+  }
+  return absolute;
+}
+
+async function projectManifest(root) {
+  const path = join(root, "package.json");
+  const info = await lstat(path).catch(() => {
+    throw new Error("Run init inside a React project with a package.json.");
+  });
+  if (info.isSymbolicLink() || info.nlink > 1) throw new Error("Refusing linked path: package.json");
+  if (!info.isFile()) throw new Error("package.json must be a regular file.");
+  const manifest = await json(path).catch(() => {
+    throw new Error("package.json must contain a valid project object.");
+  });
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest))
+    throw new Error("package.json must contain a valid project object.");
+  return manifest;
+}
 
 async function inspectTarget(root, relative) {
   let current = root;
@@ -64,10 +96,9 @@ export async function initProject(
   root,
   { dryRun = false, installer = install, log = console.log } = {},
 ) {
-  const manifest = await json(join(root, "package.json")).catch(() => {
-    throw new Error("Run init inside a React project with a package.json.");
-  });
-  if (!(manifest.dependencies?.react || manifest.devDependencies?.react))
+  root = await projectDirectory(root);
+  const manifest = await projectManifest(root);
+  if (![manifest.dependencies?.react, manifest.devDependencies?.react].some(value => typeof value === "string" && value.trim()))
     throw new Error(
       "React was not found. Create a React or Next.js project first.",
     );
@@ -86,6 +117,8 @@ export async function initProject(
     ...file, content: await readFile(agentFile(file.source)),
   })));
   await installer(root);
+  await projectDirectory(root);
+  await projectManifest(root);
   const config = {
     $schema: "https://flood.md/schema/config.json",
     version: VERSION,
@@ -113,6 +146,7 @@ export async function initProject(
 }
 
 export async function doctor(root, log = console.log) {
+  root = await projectDirectory(root);
   const configInfo = await inspectTarget(root, "flood.json");
   if (!configInfo?.isFile()) throw new Error("No regular flood.json. Run init first.");
   const config = await json(join(root, "flood.json")).catch(() => {

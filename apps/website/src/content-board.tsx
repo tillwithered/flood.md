@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, Switch, Alert, Avatar, Badge, Button, DescriptionList, FloodRoot, Heading, IconButton, Inline, Link, Menu, Meter, Progress, Skeleton, Spinner, Stack, Surface, Table, Text, Toolbar, Kbd, Toggle, Divider, type MenuItem } from "@flood-md/react";
+import { Container, Grid, AspectRatio, Image, List, EmptyState, Card, Switch, Alert, Avatar, Badge, Button, DescriptionList, FloodRoot, Heading, IconButton, Inline, Link, Menu, Meter, Progress, Skeleton, Spinner, Stack, Surface, Table, Text, Toolbar, Kbd, Toggle, Divider, type MenuItem } from "@flood-md/react";
 import { Archive, Copy, Ellipsis, Pencil, Trash2, Bold, Italic, Undo2 } from "lucide-react";
 import { SiteHeader } from "./site-header";
 import release from "./release.json";
@@ -51,6 +51,16 @@ export default function ContentBoard() {
           <Button variant="subtle" size="sm" onClick={() => setImage(value => !value)}>{image ? "Show initials" : "Show image"}</Button>
         </Stack></Surface>
       </div>
+      <section id="foundations" className="content-board-feedback" aria-labelledby="foundation-pieces-title">
+        <Stack gap="2"><Heading id="foundation-pieces-title" level={2} size="page">A foundation to build on.</Heading><Text as="p" size="compact" tone="subtle">Layout, media, content and an empty beginning, composed from the same pieces.</Text></Stack>
+        <Container size="lg" gutter="0"><Grid minItemWidth="20rem" gap="4">
+          <Card title="Media and content" headingLevel={3} description="Geometry stays in place while content loads.">
+            <Stack gap="4"><AspectRatio ratio={2}><Image src="/flood-mark.png" alt="Flood logo" fit="contain" width={1280} height={1280} /></AspectRatio>
+              <List><li>Container and Grid handle layout.</li><li>AspectRatio reserves media space.</li><li>Image and List keep native semantics.</li></List></Stack>
+          </Card>
+          <Card><EmptyState title="No projects yet" headingLevel={3} description="A clear next step, without extra noise." icon={<Pencil />} actions={<Button size="sm" onClick={()=>setCardStatus("Creation requested locally.")}>Create project</Button>} /></Card>
+        </Grid></Container>
+      </section>
       <section id="cards" className="content-board-feedback" aria-labelledby="cards-title">
         <Stack gap="2"><Heading id="cards-title" level={2} size="page">A place for the whole picture.</Heading><Text as="p" size="compact" tone="subtle">Structured content, quiet surfaces, independent actions.</Text><Link href="/components/card">Explore Card</Link></Stack>
         <div className="content-board-grid">

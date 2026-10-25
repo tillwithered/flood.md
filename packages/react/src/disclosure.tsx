@@ -1,4 +1,5 @@
 import {createElement, forwardRef, useEffect, useId, useLayoutEffect, useRef, useImperativeHandle, type HTMLAttributes} from "react";
+import { Button } from "./index.js";
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 interface Props extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   title: string;
@@ -21,10 +22,10 @@ export const Disclosure = forwardRef<HTMLDivElement, Props>(function Disclosure(
     if (!expanded && focusedInside.current && !disabled && (panel.current?.contains(active ?? null) || active === panel.current?.ownerDocument.body)) trigger.current?.focus();
     if (!expanded) focusedInside.current = false;
   }, [expanded, disabled]);
-  const button = <button ref={trigger} id={`${id}-trigger`} type="button" disabled={disabled} aria-expanded={expanded} aria-controls={`${id}-panel`}
-    className={`flood-button flood-button--ghost flood-button--${controlSize} flood-disclosure__trigger`} onClick={() => onExpandedChange(!expanded)}>
+  const button = <Button ref={trigger} variant="ghost" size={controlSize} id={`${id}-trigger`} type="button" disabled={disabled} aria-expanded={expanded} aria-controls={`${id}-panel`}
+    className="flood-disclosure__trigger" onClick={() => onExpandedChange(!expanded)}>
     <span className="flood-disclosure__title">{title}</span><span className="flood-disclosure__indicator" aria-hidden="true" />
-  </button>;
+  </Button>;
   return <div {...props} id={id} ref={root} data-open={expanded} className={["flood-disclosure", `flood-control--${controlSize}`, className].filter(Boolean).join(" ")}>
     {createElement(headingLevel ? `h${headingLevel}` : "div", {className:"flood-disclosure__heading"}, button)}
     <div ref={panel} id={`${id}-panel`} className="flood-disclosure__panel" hidden={!expanded}

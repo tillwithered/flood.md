@@ -6,8 +6,15 @@ import {mergeDescriptions} from "./field-state.js";
 const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffect;
 function useCurrent<T>(value:T){const ref=useRef(value);useBrowserLayoutEffect(()=>{ref.current=value});return ref;}
 function focusContent(panel:HTMLElement,preferred?:HTMLElement|null){
-  const target=preferred?.isConnected&&panel.contains(preferred)?preferred:panel.querySelector<HTMLElement>('[autofocus],[data-flood-autofocus]')??tabbables(panel.querySelector<HTMLElement>(".flood-overlay-body")??panel)[0]??tabbables(panel)[0]??panel;
-  target.focus({preventScroll:true});
+  const available=(node:HTMLElement|null|undefined):node is HTMLElement=>Boolean(node?.isConnected&&panel.contains(node)&&!node.matches(":disabled")&&!node.closest("[hidden],[inert]")&&node.getClientRects().length&&getComputedStyle(node).visibility!=="hidden");
+  const candidates=[preferred,...panel.querySelectorAll<HTMLElement>('[autofocus],[data-flood-autofocus]'),...tabbables(panel.querySelector<HTMLElement>(".flood-overlay-body")??panel),...tabbables(panel),panel];
+  for(const target of candidates){
+    if(!available(target))continue;
+    const previous=panel.ownerDocument.activeElement;
+    target.focus({preventScroll:true});
+    // A host focus handler may intentionally redirect focus elsewhere.
+    if(panel.ownerDocument.activeElement===target||panel.ownerDocument.activeElement!==previous)return;
+  }
 }
 function OverlayClose({label,onClick}:{label:string;onClick:()=>void}){
   return <IconButton label={label} size="sm" variant="subtle" className="flood-overlay-close" onClick={onClick}>
@@ -48,7 +55,7 @@ export const AnchoredOverlay=forwardRef<HTMLDivElement,AnchoredProps>(function A
       const update=()=>{if(!alive)return;if(anchor.current?.isConnected)positionLayer(anchor.current,element,side,align);frame=view.requestAnimationFrame(update)};
       frame=view.requestAnimationFrame(update);
     };
-    frame=view.requestAnimationFrame(start);
+    start();
     const toggle=(event:Event)=>{
       if(!alive||(event as ToggleEvent).newState!=="closed"||element.matches(":popover-open")||!current.current.open)return;
       current.current.request(false);

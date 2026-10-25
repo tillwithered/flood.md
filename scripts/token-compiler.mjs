@@ -369,7 +369,12 @@ export function compileTokens(source, version) {
         const item = resolved.get(id);
         let group = definitions;
         const parts = id.split(".");
-        for (const part of parts.slice(0, -1)) group = group[part] ??= {};
+        for (const part of parts.slice(0, -1)) {
+          // Legal token names can match inherited Object properties. Never follow
+          // prototypes while constructing the resolved diagnostic document.
+          if (!Object.hasOwn(group, part)) group[part] = {};
+          group = group[part];
+        }
         group[parts.at(-1)] = {
           $type: token.$type,
           $value: item.value,

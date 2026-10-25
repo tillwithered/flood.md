@@ -37,7 +37,10 @@
       "verify": [
         "Rendered narrow/wide screen",
         "Intrinsic actions and responsive form parent",
-        "Close choice label and independent group spacing"
+        "Close choice label and independent group spacing",
+        "Reuse shared atoms while preserving specialized native semantics",
+        "Container/grid/media geometry at320px and enlarged RTL text",
+        "No invisible focusable content without reveal behavior"
       ]
     },
     {

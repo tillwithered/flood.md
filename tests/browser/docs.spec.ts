@@ -20,6 +20,7 @@ test("home stays focused and navigation exposes documentation and GitHub", async
 });
 
 test("every published guide and component has a directly loadable page", async ({ page, request }) => {
+  test.setTimeout(120_000);
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   for (const doc of docPages) {

@@ -754,3 +754,54 @@ No data access, selection or interactive-card behavior is implied.
   <Text as="p" size="compact">A calm place for the next idea.</Text>
 </Card>
 ```
+
+## Structural, media and accessible primitives · 0.2.4
+
+Container centers a max-width box with logical gutters. size sm/md/lg uses
+40/64/80rem bounds including padding; full removes the max. gutter uses Space.
+Grid defaults to auto-fit with a16rem semantic minimum clamped to available
+width. gap uses Space. minItemWidth overrides the auto minimum; explicit columns
+(1/2/3/4/6/12) remain fixed. Grid is ordinary layout, never an ARIA grid widget.
+
+VisuallyHidden preserves content in the accessibility tree using span/div. Default
+is for noninteractive content. Use focusable for a skip link: focus-within reveals
+its wrapper; style the actual link's focus. This is different from aria-hidden or
+conditional rendering. Native captions/legends may use the same hiding utility
+without an invalid generic wrapper. Spinner and hidden indicator captions compose
+VisuallyHidden.
+
+AspectRatio reserves responsive media geometry before loading, accepting a finite
+positive ratio (16/9 default). Direct img/video/iframe children fill its box. It
+does not clip focus or make arbitrary long content fit; the host owns alternative
+text, captions, media controls and deliberate cropping. Image is a native img
+with required alt (empty for decorative content), cover/contain fit and preserved
+srcSet/sizes/loading/decoding/dimensions/events/ref. No optimizer, fetch engine or
+fallback is implied. Avatar composes Image for its own loading lifecycle. Supply
+image dimensions or AspectRatio to reserve space.
+
+List renders native ul/ol with native li children and token gap. ordered selects
+ol; start/reversed apply there. start must be a safe integer. marker=false retains
+explicit list semantics for platforms that drop lists without visible markers.
+This is content, not ListBox selection or arrow navigation.
+
+EmptyState composes Stack, Heading, Text, IconSlot and Inline. Required title,
+optional description, decorative icon and actions explain absent content; choose
+headingLevel for the host hierarchy. It is static, with no automatic focus or
+announcement. compact/comfortable density controls padding. The host implements
+real actions and decides whether asynchronously changed results need announcing.
+
+Checkbox adds indeterminate for a host-controlled mixed presentation after
+hydration. checked independently determines form submission; mixed does not mean
+a third submitted value. The host owns aggregate/select-all values. Native reset
+and ref access remain available. Radio and Switch do not expose indeterminate.
+
+ButtonGroup/ToggleGroup retain their keyboard contracts and locally scroll when
+a connected row cannot fit. InputGroup actions keep words intact and can wrap to
+a new row while the input retains usable space. Plain string adornments are bidi
+isolated; for protocols/phones with explicit direction pass a bdi dir=ltr node.
+Keep very long addon content concise. Hidden native choices hide their label too.
+
+Dark foundations bundle both normal and italic Inter, including Cyrillic, with
+original OFL notices. Color alone never communicates validation or progress.
+
+CodeSnippet codeDirection defaults to ltr independently of RTL parent action layout; choose rtl/auto explicitly for content that needs it. Native dir still applies to the wrapper. Protected ScrollArea reveals focused descendants fully when needed, composes the host focus handler and avoids scrolling to nested top-layer controls.

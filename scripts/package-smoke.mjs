@@ -30,7 +30,7 @@ for (const name of ["tokens", "react", "agent", "cli"]) {
   );
   assert.ok(packed.files.some((file) => file.path === "LICENSE"));
   if (name === "react") {
-    for (const path of ["dist/foundations.css", "dist/fonts/InterVariable.woff2", "dist/fonts/LICENSE.txt"])
+    for (const path of ["dist/foundations.css", "dist/fonts/InterVariable.woff2", "dist/fonts/InterVariable-Italic.woff2", "dist/fonts/LICENSE.txt"])
       assert.ok(packed.files.some((file) => file.path === path), `Missing ${path}`);
   }
   archives.push(resolve(".artifacts", packed.filename));
@@ -71,7 +71,15 @@ const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
 import { Tabs, Breadcrumb, Pagination, type TabsProps, type BreadcrumbProps, type PaginationProps, Tooltip, Popover, Dialog, type TooltipProps, type PopoverProps, type DialogProps, type OverlayTriggerProps, Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
-import { Card, type CardProps, Toolbar, Kbd, type ToolbarProps, type KbdProps, Menu, type MenuProps, DescriptionList, Table, type DescriptionListProps, type TableProps, Progress, Meter, Alert, type ProgressProps, type MeterProps, type AlertProps, Badge, Spinner, Skeleton, Avatar, type BadgeProps, type SpinnerProps, type SkeletonProps, type AvatarProps, Link, type LinkProps } from '@flood-md/react';
+import { Container, Grid, AspectRatio, Image, List, VisuallyHidden, EmptyState, type CheckboxProps, type ContainerProps, type GridProps, type AspectRatioProps, type ImageProps, type ListProps, type VisuallyHiddenProps, type EmptyStateProps, Card, type CardProps, Toolbar, Kbd, type ToolbarProps, type KbdProps, Menu, type MenuProps, DescriptionList, Table, type DescriptionListProps, type TableProps, Progress, Meter, Alert, type ProgressProps, type MeterProps, type AlertProps, Badge, Spinner, Skeleton, Avatar, type BadgeProps, type SpinnerProps, type SkeletonProps, type AvatarProps, Link, type LinkProps } from '@flood-md/react';
+createElement(Container,{size:'lg',gutter:'4',ref:createRef<HTMLDivElement>()},createElement(Grid,{columns:3,minItemWidth:'16rem'},'Content'));
+createElement(AspectRatio,{ratio:16/9},createElement(Image,{src:'/image.png',alt:'Preview',fit:'contain',ref:createRef<HTMLImageElement>()}));
+createElement(List,{ordered:true,start:2,marker:false,ref:createRef<HTMLUListElement|HTMLOListElement>()},createElement('li',null,'First'));
+createElement(VisuallyHidden,{focusable:true},createElement('a',{href:'#main'},'Skip to main'));
+createElement(EmptyState,{title:'No items',actions:createElement('button',null,'Add')});
+const mixed: CheckboxProps = {label:'Select all',indeterminate:true,name:'all'};
+// @ts-expect-error Images require a deliberate alternative text decision.
+const unnamedImage: ImageProps = {src:'/preview.png'};
 const card: CardProps = {title:'Details',description:'Project settings',headingLevel:3,density:'compact',footer:createElement('button',null,'Save')};
 createElement(Card,{...card,ref:createRef<HTMLDivElement>()},'Body');
 // @ts-expect-error Card does not supply link-wrapper behavior.
@@ -237,10 +245,11 @@ void scroll; void scrollElement; void badScroll; void scrollRole;
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {Link,Badge,Spinner,Skeleton,Avatar,Progress,Meter,Alert,DescriptionList,Table,Menu,Toolbar,Kbd,Card} from '@flood-md/react';
+import {Link,Badge,Spinner,Skeleton,Avatar,Progress,Meter,Alert,DescriptionList,Table,Menu,Toolbar,Kbd,Card,Container,Grid,AspectRatio,Image,List,VisuallyHidden,EmptyState} from '@flood-md/react';
 import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb, Pagination} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
+  h(Container,null,h(Grid,null,h(AspectRatio,null,h(Image,{src:'/preview.png',alt:'Preview'})))),h(List,null,h('li',null,'First')),h(VisuallyHidden,null,'Hidden description'),h(EmptyState,{title:'No items'}),
   h(Card,{title:'Details',description:'Project settings',footer:h('button',null,'Save')},'Body'),
   h(Toolbar,{label:'Tools'},h('button',null,'Undo')),h(Kbd,null,'Enter'),
   h(Menu,{label:'Actions',trigger:p=>h('button',p,'Actions'),items:[{id:'open',label:'Open'}]}),
@@ -264,7 +273,7 @@ const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
 if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')||!html.includes('aria-expanded=')||!html.includes('flood-accordion')||!html.includes('flood-dialog')||!html.includes('role="tooltip"')||!html.includes('role="tablist"')||!html.includes('flood-pagination')||!html.includes('flood-breadcrumb')) throw Error('React compatibility render');
-for(const name of ['flood-card','flood-toolbar','flood-kbd','flood-badge','flood-loading','flood-skeleton','flood-avatar','flood-indicator','flood-alert','flood-description-list','flood-table','flood-menu']) if(!html.includes(name)) throw Error('Missing content export '+name);
+for(const name of ['flood-container','flood-grid','flood-aspect-ratio','flood-image','flood-list','flood-empty-state','flood-card','flood-toolbar','flood-kbd','flood-badge','flood-loading','flood-skeleton','flood-avatar','flood-indicator','flood-alert','flood-description-list','flood-table','flood-menu']) if(!html.includes(name)) throw Error('Missing content export '+name);
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")

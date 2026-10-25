@@ -3,7 +3,7 @@ import { chooseSelectOption } from "./select-helpers";
 
 test("connected actions retain Tab order, visible end corners and RTL/vertical seams", async ({ page }) => {
   await page.goto("/components/button-group");
-  const group = page.locator(".preview-stage").getByRole("group", { name: "Editing actions" });
+  const group = page.locator(".preview-stage").getByRole("group", { name: "Editing actions", exact: true });
   const buttons = group.getByRole("button", { includeHidden: true });
   await buttons.nth(0).focus(); await page.keyboard.press("ArrowRight");
   await expect(buttons.nth(0)).toBeFocused();
@@ -100,10 +100,14 @@ test("InputGroup nested actions keep equal edge insets across sizes, focus and R
     const top = inner.y - outer.y, bottom = outer.y + outer.height - inner.y - inner.height;
     const edge = rtl ? inner.x - outer.x : outer.x + outer.width - inner.x - inner.width;
     expect(top).toBeGreaterThanOrEqual(4);
-    expect(top).toBeCloseTo(bottom, 1); expect(edge).toBeCloseTo(top, 1);
+    const input = (await shell.getByRole("textbox").boundingBox())!;
+    const wrapped = inner.y >= input.y + input.height;
+    if (!wrapped) expect(top).toBeCloseTo(bottom, 1);
+    else expect(inner.y - input.y - input.height).toBeGreaterThanOrEqual(0);
+    expect(edge).toBeCloseTo(bottom, 1);
     const radius = await action.evaluate(node => parseFloat(getComputedStyle(node).borderTopRightRadius));
     const outerRadius = await shell.evaluate(node => parseFloat(getComputedStyle(node).borderTopRightRadius));
-    expect(radius + top).toBeCloseTo(outerRadius, 1);
+    expect(radius + bottom).toBeCloseTo(outerRadius, 1);
   };
   for (const size of ["sm", "md", "lg", "xl"]) {
     await chooseSelectOption(page.getByRole("combobox", { name: "InputGroup prop controlSize", exact: true }), size);
@@ -116,7 +120,7 @@ test("InputGroup nested actions keep equal edge insets across sizes, focus and R
 
 test("ButtonGroup supports icon-only and mixed actions with full separators", async ({ page }, info) => {
   await page.goto("/components/button-group");
-  const stage = page.locator(".preview-stage"), group = stage.getByRole("group", { name: "Editing actions" });
+  const stage = page.locator(".preview-stage"), group = stage.getByRole("group", { name: "Editing actions", exact: true });
   for (const content of ["icons", "mixed"]) {
     await chooseSelectOption(page.getByRole("combobox", { name: "ButtonGroup prop content", exact: true }), content);
     await expect(group.getByRole("button")).toHaveCount(3);

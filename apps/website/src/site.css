@@ -161,7 +161,7 @@ html { scroll-behavior: smooth; color-scheme: dark; background: var(--flood-sys-
 .table-scroll table { inline-size: 100%; border-collapse: collapse; font-size: var(--flood-sys-type-compact-size); line-height: 1.6; }
 .table-scroll :is(th,td) { text-align: start; padding: .75rem 1rem; border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); overflow-wrap: anywhere; }
 .table-scroll th { font-weight: 500; color: var(--flood-sys-color-content-subtle); white-space: nowrap; }
-.usage-notes { margin: 0; padding-inline-start: 1.25rem; color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-compact-size); line-height: 1.7; }
+.usage-notes { min-inline-size: 0; overflow-wrap: anywhere; margin: 0; padding-inline-start: 1.25rem; color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-compact-size); line-height: 1.7; }
 .usage-notes li + li { margin-block-start: .5rem; }
 .table-scroll tr:last-child td { border-block-end: 0; }
 .component-catalog section:first-child h2 { margin-block-start: 0; }
