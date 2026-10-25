@@ -46,8 +46,10 @@ when a read-only field uses a dashed resting perimeter.
 External-label visibility: source Field/Fieldset hideLabel preserves the actual
 label/legend and accessible name while removing its visual row. RadioGroup,
 CheckboxGroup and SegmentedControl inherit it. Keep label/legend supplied and
-textual; do not hide interactive label content. Use it only where surrounding
-context supplies the visible meaning. Input/Textarea/Select/InputGroup configure
+textual and keep actions visibly discoverable. In 0.2.4 a hidden Field label or
+Fieldset legend reveals while its descendant has focus, preserving native names
+and child state. Use hideLabel only where surrounding context supplies the
+visible meaning. Input/Textarea/Select/InputGroup configure
 this on their Field wrapper, not the control. Placeholder never replaces naming;
 choice option labels and button names have separate contracts. Available in 0.2.3.
 

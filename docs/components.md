@@ -284,8 +284,8 @@ These API additions are available in 0.2.3.
 
 `Field` and `Fieldset` accept `hideLabel`, inherited by `RadioGroup`,
 `CheckboxGroup` and `SegmentedControl`. The actual label/legend remains available
-to assistive technology and retains its association, but no longer occupies a
-layout row. Keep the required `label`/`legend` prop supplied. Use this where the
+to assistive technology and retains its association without a layout row while
+it has no focused descendants. Keep the required `label`/`legend` prop supplied. Use this where the
 surrounding interface already makes the visible purpose clear. Descriptions,
 required semantics and validation continue to work.
 
@@ -297,8 +297,13 @@ For Input, Textarea, Select and InputGroup, apply this to the enclosing Field:
 </Field>
 ```
 
-Do not use placeholder as a replacement name, hide interactive label content,
-or remove the individual labels of choices. ButtonGroup/ToggleGroup already
+Do not use placeholder as a replacement name or remove individual choice labels.
+Prefer textual labels. When a legitimate supporting link in a Field label or a
+control in a Fieldset's first legend receives focus, the hidden label/legend is
+revealed until focus leaves it. This preserves visible keyboard focus without
+remounting rich content or changing the native disabled-fieldset legend exception.
+Do not put another labelable control, such as a button or input, inside a Field
+label; a supporting link must not replace the control's actual name. ButtonGroup/ToggleGroup already
 have accessible group names without a visible heading. `hideLabel` is a
 compatible addition in 0.2.3.
 

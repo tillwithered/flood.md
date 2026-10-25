@@ -662,7 +662,7 @@ export const Fieldset = forwardRef<HTMLFieldSetElement, FieldsetProps>(function 
   const description = mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && `${id}-message`);
   return <fieldset {...props} ref={ref} id={id} className={classes("flood-fieldset", className)} data-hide-label={hideLabel || undefined} data-status={resolvedStatus}
     aria-describedby={description} aria-invalid={resolvedStatus === "error" || ariaInvalid || undefined}>
-    <legend className={classes("flood-legend", hideLabel && "flood-visually-hidden")}>{legend}</legend>
+    <legend className={classes("flood-legend", hideLabel && "flood-visually-hidden--focusable")}>{legend}</legend>
     <div className="flood-fieldset__body">
       {hasHint && <div id={`${id}-hint`} className="flood-hint">{hint}</div>}
       {children}
@@ -781,7 +781,7 @@ export function Field({
     mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && !hasError && `${id}-message`);
   return (
     <div className="flood-field" data-hide-label={hideLabel || undefined} data-status={resolvedStatus}>
-      <Label htmlFor={id} required={required} className={hideLabel ? "flood-visually-hidden" : undefined}>{label}</Label>
+      <Label htmlFor={id} required={required} className={hideLabel ? "flood-visually-hidden--focusable" : undefined}>{label}</Label>
       {children({
         id,
         "aria-describedby": description,

@@ -314,11 +314,16 @@ Available in 0.2.3. Use matching installed declarations.
 
 Field and Fieldset accept hideLabel (false by default). It visually hides the real
 Label or legend, preserving its association and accessible name, while removing
-the label's layout row and spacing. The required label/legend prop remains required.
+the label's layout row and spacing while it has no focused descendants. The
+required label/legend prop remains required.
 RadioGroup, CheckboxGroup and SegmentedControl inherit hideLabel. Required native
 controls, descriptions, error/status, group names and form behavior are unchanged.
 Keep essential instructions in a visible hint/message when they are needed.
-Use textual label content; do not put interactive elements inside hidden labels.
+Prefer textual label content. Hidden labels/legends reveal while a descendant
+has focus, then hide again when focus leaves. A supporting link in a Field label
+or a control in a Fieldset first legend therefore retains visible keyboard focus;
+React child state, refs and native first-legend disabled exceptions are preserved.
+Do not nest another labelable control (button/input) inside a Field label.
 
 For Input/Textarea/Select/InputGroup apply hideLabel to their surrounding Field,
 not the native control. Input aria-label/aria-labelledby remain available when

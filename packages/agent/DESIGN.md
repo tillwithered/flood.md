@@ -230,7 +230,9 @@ is for noninteractive content. Use focusable for a skip link: focus-within revea
 its wrapper; style the actual link's focus. This is different from aria-hidden or
 conditional rendering. Native captions/legends may use the same hiding utility
 without an invalid generic wrapper. Spinner and hidden indicator captions compose
-VisuallyHidden.
+VisuallyHidden. Field hideLabel and Fieldset hideLabel use focusable hiding so
+valid interactive label/legend descendants reveal their label while focused;
+keep primary actions visible in ordinary compositions.
 
 AspectRatio reserves responsive media geometry before loading, accepting a finite
 positive ratio (16/9 default). Direct img/video/iframe children fill its box. It

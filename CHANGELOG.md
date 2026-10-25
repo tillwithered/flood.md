@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Keep hidden fieldset legends out of layout across repeated state changes, enlarged text and RTL.
+- Keep hidden fieldset legends out of layout across repeated state changes, enlarged text and RTL; reveal rich external labels while a descendant has focus.
 
 - Add Container, Grid, AspectRatio, Image, List, VisuallyHidden and EmptyState; expose native Checkbox mixed state.
 - Reuse shared atoms in navigation/disclosure/feedback/media and protected ScrollArea in composed controls.
