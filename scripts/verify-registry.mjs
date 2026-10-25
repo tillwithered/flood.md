@@ -89,8 +89,18 @@ try {
     if (server.exitCode !== null || Date.now() >= readyBy) throw new Error("Registry Next server did not become ready: " + serverLog);
     await new Promise(resolve => setTimeout(resolve, 300));
   }
-  run(process.execPath, [join(workspace, "node_modules/@playwright/test/cli.js"), "test", "--config=playwright.registry.config.ts"], workspace, { FLOOD_NEXT_TEST_URL: baseURL });
-} finally { server.kill("SIGTERM"); }
+  await new Promise((resolve,reject)=>{
+    const browser = spawn(process.execPath, [join(workspace, "node_modules/@playwright/test/cli.js"), "test", "--config=playwright.registry.config.ts"], {cwd:workspace,env:{...env,FLOOD_NEXT_TEST_URL:baseURL},stdio:"inherit"});
+    browser.once("error",reject);
+    browser.once("exit",code=>code===0?resolve():reject(new Error("Registry browser verification failed")));
+  });
+} finally {
+  if (server.pid && server.exitCode === null) {
+    const exited = new Promise(resolve=>server.once("exit",resolve));
+    const forced = setTimeout(()=>server.kill("SIGKILL"),5000);
+    server.kill("SIGTERM"); await exited; clearTimeout(forced);
+  }
+}
 await mkdir(join(workspace, ".artifacts"), { recursive: true });
 await writeFile(join(workspace, ".artifacts/registry-verification.json"), JSON.stringify({ version, exports: catalog.length, agentFiles: manifest.files.length, registryIntegrity: registry, cli: "passed", reactSSR: "passed", nextBuild: "passed", nextBrowser: "passed" }, null, 2));
 console.log(`Registry ${version} verified: CLI, ${catalog.length} exports, ${manifest.files.length} agent files, React SSR and clean Next build/browser tests.`);
