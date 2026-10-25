@@ -1,15 +1,18 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { readFile } from "node:fs/promises";
+
+const catalog = JSON.parse(await readFile("apps/website/src/component-catalog.json", "utf8")) as Array<{group: string}>;
 
 test("catalog categories, search and canonical Markdown agree", async ({ page, request }, info) => {
   await page.goto("/components");
   if (info.project.name === "mobile") await page.getByText("Browse documentation", { exact: true }).click();
   const sidebar = page.locator(info.project.name === "mobile" ? ".mobile-navigation" : ".desktop-sidebar");
   const search = sidebar.getByRole("searchbox", { name: "Search components" });
-  await expect(page.locator(".catalog-card")).toHaveCount(57);
+  await expect(page.locator(".catalog-card")).toHaveCount(catalog.length);
   await expect(page.getByRole("navigation", { name: "Component categories" }).getByRole("link")).toHaveCount(9);
   await search.fill("forms");
-  await expect(page.locator(".catalog-card")).toHaveCount(13);
+  await expect(page.locator(".catalog-card")).toHaveCount(catalog.filter(component => component.group === "forms").length);
   await expect(page.locator(".component-catalog h2")).toHaveText("Forms");
   await search.fill("  SCROLL area  ");
   await expect(page.locator(".catalog-card")).toHaveCount(2);
@@ -18,7 +21,7 @@ test("catalog categories, search and canonical Markdown agree", async ({ page, r
   await expect(page.locator(".catalog-card")).toHaveCount(0);
   await expect(page.locator(".component-catalog")).toContainText("No components found");
   await search.press("Escape");
-  await expect(page.locator(".catalog-card")).toHaveCount(57);
+  await expect(page.locator(".catalog-card")).toHaveCount(catalog.length);
   const markdown = await (await request.get("/components.md")).text();
   for (const name of ["Setup", "Layout", "Typography", "Actions", "Forms", "Navigation", "Content", "Overlays", "Feedback"]) expect(markdown).toContain(`## ${name}`);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
