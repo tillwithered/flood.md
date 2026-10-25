@@ -762,5 +762,24 @@
       "Native kbd markup, not a button or a shortcut handler. The application implements and documents actual bindings.",
       "Sizes sm/md/lg use relative keycap tokens. Native props/ref target the kbd element. Available in 0.2.4."
     ]
+  },
+  {
+    "slug": "card",
+    "name": "Card",
+    "group": "content",
+    "description": "A structured surface for a heading, supporting content and independent actions.",
+    "code": "<Card title=\"Project details\" description=\"Keep your team in sync.\"\n  footer={<Button variant=\"subtle\">Open project</Button>}>\n  <Text as=\"p\" size=\"compact\">A calm place for the next idea.</Text>\n</Card>",
+    "imports": [
+      "Card",
+      "Button",
+      "Text"
+    ],
+    "notes": [
+      "Card composes Surface with optional title, description, header actions, children and footer. Missing slots add no empty wrapper or reserved space.",
+      "Use Surface for unstructured containment; use Card when its header/body/footer structure is useful. Card is a noninteractive div, not a button or link. Put named actions inside.",
+      "Title uses Heading at headingLevel (2 by default); choose the level according to the page. Supply phrasing content for the title. Description accepts supporting React content.",
+      "Density compact/comfortable controls padding and section rhythm using existing semantic spacing. Header actions wrap naturally; content is never clipped to the radius.",
+      "Root HTMLDivElement ref and native div props/style/className target the surface. The title prop is content, not the native HTML tooltip attribute. Available in 0.2.4."
+    ]
   }
 ]

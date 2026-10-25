@@ -864,6 +864,35 @@ export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(function Surface
   return <div {...props} ref={ref} data-flood-elevation={elevation} className={classes("flood-surface", className)} style={{ background: `var(--flood-sys-color-surface-${elevation})`, padding: `var(--flood-sys-space-${padding})`, ...style }} />;
 });
 
+export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
+  title?: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  footer?: ReactNode;
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+  density?: "compact" | "comfortable";
+  elevation?: "default" | "raised";
+}
+/** A structured content surface, not an interactive wrapper. @since 0.2.4 */
+export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
+  { title, description, actions, footer, headingLevel = 2, density = "comfortable", elevation = "default", children, className, ...props }, ref,
+) {
+  const present = (value: ReactNode) => value !== null && value !== undefined && typeof value !== "boolean";
+  const heading = present(title), hint = present(description), action = present(actions);
+  return <Surface {...props} ref={ref} elevation={elevation} padding={density === "compact" ? "4" : "6"}
+    data-density={density} className={classes("flood-card", className)}>
+    {(heading || hint || action) && <div className="flood-card__header">
+      {(heading || hint) && <div className="flood-card__intro">
+        {heading && <Heading level={headingLevel} size="section">{title}</Heading>}
+        {hint && <Text as="div" size="compact" tone="subtle">{description}</Text>}
+      </div>}
+      {action && <div className="flood-card__actions">{actions}</div>}
+    </div>}
+    {present(children) && <div className="flood-card__body">{children}</div>}
+    {present(footer) && <div className="flood-card__footer">{footer}</div>}
+  </Surface>;
+});
+
 export interface IconSlotProps extends HTMLAttributes<HTMLSpanElement> {
   size?: ControlSize;
   label?: string;

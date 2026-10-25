@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Avatar, Badge, Button, DescriptionList, FloodRoot, Heading, IconButton, Inline, Link, Menu, Meter, Progress, Skeleton, Spinner, Stack, Surface, Table, Text, Toolbar, Kbd, Toggle, Divider, type MenuItem } from "@flood-md/react";
+import { Card, Switch, Alert, Avatar, Badge, Button, DescriptionList, FloodRoot, Heading, IconButton, Inline, Link, Menu, Meter, Progress, Skeleton, Spinner, Stack, Surface, Table, Text, Toolbar, Kbd, Toggle, Divider, type MenuItem } from "@flood-md/react";
 import { Archive, Copy, Ellipsis, Pencil, Trash2, Bold, Italic, Undo2 } from "lucide-react";
 import { SiteHeader } from "./site-header";
 import release from "./release.json";
@@ -8,6 +8,7 @@ import "./content-board.css";
 const projectActions: readonly MenuItem[] = [{id:"rename",label:"Rename…",icon:<Pencil />},{id:"duplicate",label:"Duplicate",icon:<Copy />},{id:"archive",label:"Archive",icon:<Archive />,disabled:true},{id:"divider",type:"separator"},{id:"delete",label:"Delete project",icon:<Trash2 />,tone:"danger"}];
 
 export default function ContentBoard() {
+  const [cardStatus, setCardStatus] = useState("");
   const [image, setImage] = useState(true);
   const [animate, setAnimate] = useState(true);
   const [progress, setProgress] = useState(60);
@@ -50,6 +51,20 @@ export default function ContentBoard() {
           <Button variant="subtle" size="sm" onClick={() => setImage(value => !value)}>{image ? "Show initials" : "Show image"}</Button>
         </Stack></Surface>
       </div>
+      <section id="cards" className="content-board-feedback" aria-labelledby="cards-title">
+        <Stack gap="2"><Heading id="cards-title" level={2} size="page">A place for the whole picture.</Heading><Text as="p" size="compact" tone="subtle">Structured content, quiet surfaces, independent actions.</Text><Link href="/components/card">Explore Card</Link></Stack>
+        <div className="content-board-grid">
+          <Card title="Flood workspace" headingLevel={3} description="Everything your team is building." actions={<Badge tone="success">Active</Badge>}
+            footer={<Inline gap="3"><Button variant="subtle" size="sm" onClick={()=>setCardStatus("Workspace opened locally.")}>Open workspace</Button><Button variant="ghost" size="sm" onClick={()=>setCardStatus("Invitation requested locally.")}>Invite people</Button></Inline>}>
+            <DescriptionList items={[{id:"members",term:"Members",description:"12 people"},{id:"projects",term:"Projects",description:"3 active"},{id:"updated",term:"Updated",description:"Just now"}]} />
+          </Card>
+          <Card title="Notifications" headingLevel={3} description="Choose what reaches you." actions={<Menu label="Notification options" trigger={props=><IconButton {...props} label="Notification options" size="sm"><Ellipsis /></IconButton>} items={[{id:"reset",label:"Reset preferences"}]} onAction={()=>setCardStatus("Reset requested locally.")} />}
+            footer={<Inline gap="3"><Button variant="subtle" size="sm" onClick={()=>setCardStatus("Preferences saved locally.")}>Save preferences</Button><Text size="helper" tone="subtle">Only affects this preview</Text></Inline>}>
+            <Stack gap="2"><Switch label="Product updates" defaultChecked /><Switch label="Weekly summary" defaultChecked /><Switch label="Community news" /></Stack>
+          </Card>
+        </div>
+        <Text role="status" size="helper" tone="subtle" style={{minHeight:"1.25rem"}}>{cardStatus}</Text>
+      </section>
       <section id="toolbar" className="content-board-feedback" aria-labelledby="toolbar-title">
         <Stack gap="2"><Heading id="toolbar-title" level={2} size="page">Actions, together.</Heading><Text as="p" size="compact" tone="subtle">One panel. One Tab entry. Arrow keys move between actions.</Text></Stack>
         <Surface padding="6"><Stack gap="6">

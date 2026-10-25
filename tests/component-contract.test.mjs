@@ -16,7 +16,7 @@ const prop = (contract, name, key) => byName(contract, name).props.find((entry) 
 
 test("real component contracts resolve aliases, native inheritance and explicit defaults", () => {
   const contract = readComponentContract(source);
-  assert.equal(contract.length, 49);
+  assert.equal(contract.length, 50);
   assert.match(prop(contract, "Button", "size").type, /"2xs".*"2xl"/);
   assert.equal(prop(contract, "Button", "loading").defaultValue, "false");
   assert.equal(prop(contract, "Button", "type").defaultValue, '"button"');

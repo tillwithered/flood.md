@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add structured Card surfaces with optional header actions, footer and compact/comfortable density.
+
 - Add Toolbar directional action navigation and native Kbd key hints; Menu shortcuts reuse Kbd.
 
 - Distinguish native Table footers with a quiet tint and medium-weight summary cells.

@@ -1,5 +1,17 @@
 @import "@flood-md/tokens/foundations.css";
 
+.flood-root .flood-card { display: flex; flex-direction: column; gap: var(--flood-sys-space-4); overflow-wrap: anywhere; }
+.flood-root .flood-card[data-density="compact"] { gap: var(--flood-sys-space-3); }
+.flood-root .flood-card__header { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--flood-sys-space-3); min-inline-size: 0; }
+.flood-root .flood-card__intro { display: grid; gap: var(--flood-sys-space-1); flex: 1 1 12rem; min-inline-size: 0; }
+.flood-root .flood-card__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--flood-sys-space-2); min-inline-size: 0; max-inline-size: 100%; }
+.flood-root :is(.flood-card__body, .flood-card__footer) { min-inline-size: 0; }
+.flood-root .flood-card__footer { margin-block-start: auto; border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); padding-block-start: var(--flood-sys-space-4); }
+.flood-root .flood-card[data-density="compact"] > .flood-card__footer { padding-block-start: var(--flood-sys-space-3); }
+.flood-root .flood-card > .flood-card__footer:only-child { border: 0; padding: 0; }
+.flood-root .flood-card[hidden] { display: none; }
+@media (forced-colors: active) { .flood-root .flood-card { border: var(--flood-sys-stroke-width) solid CanvasText; background: Canvas !important; color: CanvasText; } }
+
 .flood-root .flood-kbd { display: inline-flex; flex: none; align-items: center; justify-content: center; vertical-align: middle; box-sizing: border-box; min-inline-size: var(--flood-sys-size-keycap-sm); min-block-size: var(--flood-sys-size-keycap-sm); padding-inline: var(--flood-sys-space-1); border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-indicator); background: var(--flood-sys-color-surface-default); color: var(--flood-sys-color-content-subtle); font-family: var(--flood-sys-font-mono); font-size: var(--flood-sys-type-helper-size); font-weight: var(--flood-sys-type-helper-weight); line-height: var(--flood-sys-type-helper-line-height); white-space: nowrap; }
 .flood-root .flood-kbd[data-size="md"] { min-inline-size: var(--flood-sys-size-keycap-md); min-block-size: var(--flood-sys-size-keycap-md); font-size: var(--flood-sys-type-compact-size); }
 .flood-root .flood-kbd[data-size="lg"] { min-inline-size: var(--flood-sys-size-keycap-lg); min-block-size: var(--flood-sys-size-keycap-lg); font-size: var(--flood-sys-type-body-size); }

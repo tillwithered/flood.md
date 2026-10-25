@@ -730,3 +730,27 @@ interactive. Menu shortcut hints reuse Kbd and remain hidden from item names.
 </Toolbar>
 <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>
 ```
+
+### Card (0.2.4)
+
+Card composes Surface into a header, body and footer. Optional title, description,
+actions and footer accept React content; children are the body. Missing slots
+create no empty section. Use Surface when only a background/padding is needed.
+
+Card is a noninteractive div. Put Button, Link or Menu in actions/footer and keep
+its container out of the Tab order. Do not make the entire card clickable around
+nested controls. Native div props, styles and HTMLDivElement ref target the root.
+The title prop is heading content, not an HTML tooltip; supply phrasing content.
+headingLevel defaults to 2; choose the correct hierarchy for the host page.
+
+Compact/comfortable density controls existing spacing tokens. Header actions wrap
+without clipping menus or focus indicators. Footer uses a quiet separator; a
+footer-only card has no redundant separator. Elevation is default or raised.
+No data access, selection or interactive-card behavior is implied.
+
+```tsx
+<Card title="Project details" description="Keep your team in sync."
+  footer={<Button variant="subtle">Open project</Button>}>
+  <Text as="p" size="compact">A calm place for the next idea.</Text>
+</Card>
+```
