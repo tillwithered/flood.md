@@ -860,3 +860,13 @@ Focus moves to the next/previous remove action, or back to the input when empty.
 clearable=false disables individual and global removal UI. In multiple mode, picking again appends files to the current selection; cancel
 preserves it. Repeated files are deduplicated by name, size, type, lastModified and
 relative path, without reading their contents. Single mode replaces its selection. The host remains responsible for upload.
+
+
+AlertDialog (unpublished 0.2.5) is a concise confirmation, composed from Flood's
+native modal layer and Button. Supply title, description, trigger and onConfirm.
+Cancel receives initial focus; Escape cancels; outside clicks do not dismiss.
+Tab containment, background inertness, scroll lock and return focus reuse Dialog.
+Translate confirmLabel/cancelLabel. onConfirm runs before requesting close, while
+onCancel covers Cancel/Escape. Use open/onOpenChange for controlled state and
+confirmDisabled to disable confirmation. Callbacks are not awaited; the host owns
+async requests, pending UI and errors. Use Dialog for forms/complex content.

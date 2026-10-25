@@ -79,7 +79,8 @@ export const AnchoredOverlay=forwardRef<HTMLDivElement,AnchoredProps>(function A
   </div></>;
 });
 
-export const ModalOverlay=forwardRef<HTMLDialogElement,DialogProps>(function ModalOverlay({title,description,trigger,children,open:controlled,defaultOpen=false,onOpenChange,disabled=false,closeLabel="Close",closeOnOutsideClick=true,initialFocusRef,id:explicitId,className,onKeyDown,"aria-describedby":describedBy,...props},forwardedRef){
+interface ModalOverlayProps extends DialogProps { showCloseButton?: boolean; role?: "dialog" | "alertdialog"; }
+export const ModalOverlay=forwardRef<HTMLDialogElement,ModalOverlayProps>(function ModalOverlay({showCloseButton=true,title,description,trigger,children,open:controlled,defaultOpen=false,onOpenChange,disabled=false,closeLabel="Close",closeOnOutsideClick=true,initialFocusRef,id:explicitId,className,onKeyDown,"aria-describedby":describedBy,...props},forwardedRef){
   const [local,setLocal]=useState(defaultOpen),open=controlled??local;
   const dialog=useRef<HTMLDialogElement>(null),anchor=useRef<HTMLButtonElement>(null),generated=useId(),id=explicitId??`flood-dialog-${generated}`;
   const request=(next:boolean)=>{if(controlled===undefined)setLocal(next);onOpenChange?.(next);};
@@ -111,7 +112,7 @@ export const ModalOverlay=forwardRef<HTMLDialogElement,DialogProps>(function Mod
       if(!first){event.preventDefault();return;}
       if(event.shiftKey&&(active===first||!items.includes(active as HTMLElement))){event.preventDefault();last?.focus();}
       else if(!event.shiftKey&&(active===last||!items.includes(active as HTMLElement))){event.preventDefault();first.focus();}
-    }}><div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{title}</h2><OverlayClose label={closeLabel} onClick={()=>request(false)} /></div>
+    }}><div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{title}</h2>{showCloseButton&&<OverlayClose label={closeLabel} onClick={()=>request(false)} />}</div>
     {description&&<p id={`${id}-description`} className="flood-overlay-description">{description}</p>}{open&&<div className="flood-overlay-body">{children}</div>}
   </dialog></>;
 });

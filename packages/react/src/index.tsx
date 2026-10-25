@@ -36,6 +36,7 @@ import { ActionMenu } from "./menu.js";
 import { RovingToolbar } from "./toolbar.js";
 import { NumericStepper } from "./numeric-input.js";
 import { RangeControl } from "./slider.js";
+import { ConfirmationDialog } from "./alert-dialog.js";
 import { FilePicker } from "./file-input.js";
 import { SearchField, PasswordField } from "./text-inputs.js";
 import { SearchSelection } from "./combobox.js";
@@ -390,6 +391,20 @@ export interface DialogProps extends Omit<HTMLAttributes<HTMLDialogElement>, "ch
 export const Dialog = forwardRef<HTMLDialogElement, DialogProps>(function Dialog(
   {defaultOpen = false, disabled = false, closeLabel = "Close", closeOnOutsideClick = true, ...props}, ref,
 ) { return <ModalOverlay {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} closeLabel={closeLabel} closeOnOutsideClick={closeOnOutsideClick} />; });
+
+export interface AlertDialogProps extends Omit<DialogProps, "children" | "role" | "description" | "closeLabel" | "closeOnOutsideClick" | "initialFocusRef"> {
+  description: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  confirmDisabled?: boolean;
+  onConfirm: () => void;
+  onCancel?: () => void;
+}
+export const AlertDialog = forwardRef<HTMLDialogElement, AlertDialogProps>(function AlertDialog(
+  {defaultOpen = false, confirmLabel = "Continue", cancelLabel = "Cancel", confirmDisabled = false, ...props}, ref,
+) {
+  return <ConfirmationDialog {...props} ref={ref} defaultOpen={defaultOpen} confirmLabel={confirmLabel} cancelLabel={cancelLabel} confirmDisabled={confirmDisabled} />;
+});
 
 export interface CollapsibleProps extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "onChange"> {
   title: string;

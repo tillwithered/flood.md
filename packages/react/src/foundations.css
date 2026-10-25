@@ -880,3 +880,10 @@
 .flood-root .flood-file-input__name { font-size: var(--flood-sys-type-helper-size); overflow-wrap: anywhere; }
 .flood-root .flood-file-input__size { font-size: var(--flood-sys-type-helper-size); color: var(--flood-sys-color-content-subtle); }
 .flood-root .flood-file-input__file > .flood-icon-button { flex: none; }
+
+.flood-root .flood-alert-dialog { inline-size: min(26rem, calc(100% - var(--flood-sys-space-8))); }
+.flood-root .flood-alert-dialog__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--flood-sys-space-2); margin-block-start: var(--flood-sys-space-6); }
+.flood-root .flood-alert-dialog__actions > .flood-button { max-inline-size: 100%; overflow-wrap: anywhere; }
+@media (max-width: 32rem) {
+  .flood-root .flood-alert-dialog__actions > .flood-button { inline-size: 100%; }
+}

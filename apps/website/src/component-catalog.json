@@ -1027,5 +1027,21 @@
       "File names are shown as text, shortened visually when needed. This component only selects files; the host owns upload, progress and validation. accept is a chooser hint, not file validation. Available in the unpublished 0.2.5 candidate.",
       "Multiple selection shows a compact count and a collapsible list with full file names and localized sizes. Removing one file updates the native FileList and preserves keyboard focus; clearable=false hides both individual and global removal. Translate selectionLabel/removeFileLabel. In multiple mode, choosing again appends files. Repeated files are deduplicated by name, size, type, lastModified and relative path. Single mode replaces its selection."
     ]
+  },
+  {
+    "slug": "alert-dialog",
+    "name": "AlertDialog",
+    "group": "overlays",
+    "description": "A focused confirmation with explicit cancel and continue actions.",
+    "code": "<AlertDialog title=\"Archive this project?\" description=\"You can restore it from the archive.\" confirmLabel=\"Archive project\" trigger={props => <Button {...props}>Archive project</Button>} onConfirm={() => { /* Archive in the host application. */ }} />",
+    "imports": [
+      "AlertDialog",
+      "Button"
+    ],
+    "notes": [
+      "Uses the original Flood Dialog modal layer with role=alertdialog, a required message and initial focus on Cancel. Tab stays inside the modal; Escape cancels and restores trigger focus. Outside clicks do not dismiss it. There is no extra close action competing with the explicit Cancel button.",
+      "onConfirm is a host callback followed by a close request. onCancel handles the Cancel button and Escape, not confirmation. Use open/onOpenChange for host-controlled state and confirmDisabled to prevent confirmation while unavailable. Async work/errors belong to the host; callbacks are not awaited.",
+      "Translate title, description, confirmLabel and cancelLabel. Use ordinary Dialog for forms and exploratory content. Available in the unpublished 0.2.5 candidate."
+    ]
   }
 ]
