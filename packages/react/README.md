@@ -3,7 +3,7 @@
 Original React 18.3/19 components for TypeScript and Next.js App Router. Native
 HTML semantics and refs, no third-party component library or Tailwind dependency.
 
-This package documents the **0.2.3** API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.4** API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
 ```tsx
@@ -314,11 +314,16 @@ Available in 0.2.3. Use matching installed declarations.
 
 Field and Fieldset accept hideLabel (false by default). It visually hides the real
 Label or legend, preserving its association and accessible name, while removing
-the label's layout row and spacing. The required label/legend prop remains required.
+the label's layout row and spacing while it has no focused descendants. The
+required label/legend prop remains required.
 RadioGroup, CheckboxGroup and SegmentedControl inherit hideLabel. Required native
 controls, descriptions, error/status, group names and form behavior are unchanged.
 Keep essential instructions in a visible hint/message when they are needed.
-Use textual label content; do not put interactive elements inside hidden labels.
+Prefer textual label content. Hidden labels/legends reveal while a descendant
+has focus, then hide again when focus leaves. A supporting link in a Field label
+or a control in a Fieldset first legend therefore retains visible keyboard focus;
+React child state, refs and native first-legend disabled exceptions are preserved.
+Do not nest another labelable control (button/input) inside a Field label.
 
 For Input/Textarea/Select/InputGroup apply hideLabel to their surrounding Field,
 not the native control. Input aria-label/aria-labelledby remain available when
@@ -507,3 +512,303 @@ The native nav ref is HTMLElement. This component does not fetch data or own URL
 ```
 
 All three are available in 0.2.3. Use Flood styles and FloodRoot for the neutral dark profile.
+
+
+## Badge, Spinner, Skeleton and Avatar · 0.2.4
+
+These original primitives are compatible additions in the 0.2.4.
+Import Flood CSS and use FloodRoot. Verify registry publication before installing.
+Native span props and refs target their roots; className/style remain host overrides.
+
+Badge is a noninteractive span: size sm/md/lg, tone neutral/accent/error/warning/
+success/info and variant subtle/outline. Its text carries the meaning; color is
+supplementary. It has no selection, dismissal, click-action or live-region model.
+Use a separate named action when needed instead of treating it as a button.
+
+Spinner defaults to size md and label="Loading". Localize label for standalone
+status. decorative hides it and its label from assistive technology. Button
+loading uses the same Spinner decoratively, inherits its icon size and retains
+its accessible button name and aria-busy. Announcements belong at the appropriate
+host level; do not create one live region for each decorative loading graphic.
+Reduced motion stops rotation. This indicator does not measure completion.
+
+Skeleton is always aria-hidden. shape is text/rounded/circle; width and height
+accept CSS dimensions (numbers are React CSS pixels), and style overrides them.
+Prefer relative dimensions. For a circle supply equal dimensions. animate defaults
+true; reduced motion and forced colors stop animation. Match the final geometry;
+Skeleton does not fetch, detect loading or announce changes. The host owns busy
+state, loading text and replacement with real content. Do not add interactive children.
+
+Avatar requires name, accepts src, fallback text, size sm/md/lg, shape circle/
+rounded and decorative. The root exposes one named image; the internal image has
+empty alt and is hidden from assistive technology. Use decorative beside an
+already visible equivalent name. Defaults use the first letters of the first two
+whitespace-separated name parts; override fallback for your locale or naming rules.
+The image overlays the fallback only after successful load; an error retains the
+fallback. A new src remounts the image load state, including returning to an earlier
+source. The root stays the same size. This API does not upload or crop images.
+
+```tsx
+<Badge tone="success">Active</Badge>
+<Spinner label="Loading workspace" />
+<Skeleton width="12rem" />
+<Avatar name="Alex Morgan" src="/team/alex.webp" />
+```
+
+
+## Progress, Meter and Alert · 0.2.4
+
+Progress describes task completion. label is required; max defaults to 100 and
+value is a finite number in 0..max. Omit value for indeterminate progress; its
+progressbar then omits aria-valuenow. Meter describes a measurement in a bounded
+range, such as storage or battery. It requires value, with min=0 and max=100 by
+default. Require finite min < max, a finite range span, and min <= value <= max.
+Invalid ranges/values throw RangeError; they are not silently clamped.
+
+Both support size sm/md/lg, semantic tone, hideLabel and valueText. Tone defaults
+to accent for Progress and neutral for Meter. valueText supplies localized,
+human-readable units; it also appears beside the caption. hideLabel visually
+hides the caption while retaining the accessible name and valueText. The bar's
+role is progressbar or meter; neither becomes a live region. Native div props,
+className/style and HTMLDivElement ref target the wrapper; the internal bar owns
+its ARIA range and label associations. Wrapper ARIA props stay on the wrapper; use valueText for range-specific wording. No keyboard model,
+threshold calculation, fetching, timers or task cancellation is built in.
+Reduced motion stops indeterminate movement and value transitions. Forced colors
+preserves the track boundary and fill. Use a host loading message when needed.
+
+Alert is an inline message, with optional plain-text title and React children.
+Tones are neutral/info/success/warning/error; info is the default. Meaning must
+remain in the text. Original decorative status glyphs are included; icon accepts
+noninteractive host artwork, and icon={null} removes it without an empty column.
+The title is message content, not the root's HTML title tooltip or a document heading.
+Native div props/className/style/ref target the root.
+
+announcement defaults to off for static messages. polite uses role=status;
+assertive uses role=alert. Choose urgency deliberately for dynamically inserted
+content. Announcements depend on actual assistive technology; initial static
+markup is not guaranteed to be read aloud. No focus movement, auto-dismiss,
+timeout or built-in close/action button is supplied. Compose named host actions
+inside children when needed. Alert is separate from Dialog and future Toast.
+
+See the [WAI Meter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/meter/),
+[Alert pattern](https://www.w3.org/WAI/ARIA/apg/patterns/alert/) and
+[progressbar definition](https://www.w3.org/TR/wai-aria-1.2/#progressbar).
+
+```tsx
+<Progress label="Uploading files" value={60} valueText="60%" />
+<Progress label="Preparing workspace" />
+<Meter label="Storage used" min={0} max={100} value={75} valueText="75 of 100 GB" />
+<Alert tone="warning" title="Storage is almost full">
+  Free some space before your next upload.
+</Alert>
+```
+
+
+## DescriptionList and Table · 0.2.4
+
+DescriptionList renders native dl groups, each with dt and dd. items is a readonly
+array of {id, term, description}; IDs must be unique and nonempty, and are React
+keys rather than DOM anchors. term is text and description is ReactNode, so a
+value can include a Badge, Link or other meaningful content. The host formats
+values and supplies fallback text for missing data. An empty items array stays
+an empty list, without invented placeholder content. Native dl props,
+className/style and HTMLDListElement ref target the list.
+
+layout defaults inline: term and value share a row. It becomes stacked below a
+22rem component container width, independently of viewport width. layout=stacked
+always puts the value below its term. Density defaults compact; comfortable adds
+space between pairs, without inflating the term/value relationship. dividers is
+false by default and adds quiet separators when enabled. This is not an editable
+form and its terms do not label controls; use Field/Fieldset for form inputs.
+
+Table wraps an actual HTML table in Flood's horizontal ScrollArea. caption is
+required and must be meaningful; hideCaption visually hides it without removing
+the accessible table name. children owns native thead/tbody/tfoot/colgroup markup
+and th/td associations. Supply scope=col or scope=row for simple headers, and
+explicit id/headers associations for complex spanning headers. Do not add another
+caption child. See [WAI table guidance](https://www.w3.org/WAI/tutorials/tables/).
+
+Table density defaults comfortable; compact reduces vertical cell padding.
+striped is false by default. Native tfoot rows use a quiet tinted background and
+medium-weight text to distinguish summaries; the top separator stays decorative.
+data-numeric on a th or td uses logical end alignment,
+tabular figures and no wrapping for numbers. data-align=start/center/end overrides
+alignment explicitly. Text cells wrap; set style.minWidth to preserve room for a
+wide table, and the containing ScrollArea handles overflow. The host owns dates,
+units, totals, empty rows/colSpan and any cell actions. Avoid interactive whole rows.
+
+Native table props, className/style and HTMLTableElement ref target the table,
+not its viewport. dir/lang/hidden also govern the containing scroll area.
+scrollLabel names that viewport independently and defaults to caption. The native
+table keeps its own caption; viewport keyboard scrolling does not turn it into a
+grid widget. Keep action controls inside cells normally focusable. No sorting,
+selection, data fetching, pagination, sticky header or virtualization is implied.
+This is the compositional table primitive, not a DataTable engine.
+
+```tsx
+<DescriptionList items={[
+  {id:"project",term:"Project",description:"Flood"},
+  {id:"version",term:"Version",description:"0.2.4"},
+]} />
+<Table caption="Workspace projects" style={{minWidth:"32rem"}}>
+  <thead><tr><th scope="col">Project</th><th scope="col" data-numeric>Members</th></tr></thead>
+  <tbody><tr><th scope="row">Flood</th><td data-numeric>12</td></tr></tbody>
+</Table>
+```
+
+
+## Menu · 0.2.4
+
+Menu is an original action menu using Flood's positioning/layer stack and the
+native Popover API. label names the menu; there is no extra visible caption.
+trigger is a render function receiving OverlayTriggerProps: forward all props
+and ref to one persistent Button/IconButton/native button, and compose existing
+handlers rather than replacing the supplied ones. The trigger exposes
+aria-haspopup=menu, aria-expanded and aria-controls. disabled affects the trigger,
+not actions inside a menu the controlled host keeps open.
+
+items is a readonly array of action items {id,label,icon?,shortcut?,disabled?,tone?}
+or separators {id,type:"separator"}. IDs must be unique and nonempty, action
+labels nonempty, and at least one action must exist. The optional item type is
+item. Icons must be decorative, noninteractive artwork. shortcut is display-only,
+not an installed keyboard binding or part of the accessible action name. Destructive
+actions use tone=danger; that visual treatment does not perform confirmation or
+execute any business operation. Disabled items remain focusable with aria-disabled,
+but neither pointer nor keyboard activation calls onAction or closes the menu.
+
+Enter/Space/ArrowDown open at the first action; ArrowUp opens at the last.
+Inside: Up/Down wrap, Home/End choose edges, printable label-prefix typeahead
+matches items (repeated characters cycle). Separators are not focusable. Enter
+or Space activates through a native button. Escape closes the top menu and
+returns focus. Tab moves to the next focusable control after the trigger;
+Shift+Tab returns to the trigger. The menu does not trap focus. Outside pointer
+or focus departure requests dismissal and preserves deliberately moved focus.
+
+open/onOpenChange is controlled, or use defaultOpen for initial local state.
+The host may refuse a close request. onAction(id) requests closing before calling
+the host; the host owns business logic, asynchronous work and errors. If it moves
+focus elsewhere or opens a Dialog, normal focus restoration must not steal it.
+Actions mount while open and unmount on close. The persistent popup ref and native
+div props/className/style target its panel. Engine-owned coordinates and available
+space variables belong to positioning; side/align follow Popover conventions.
+controlSize is sm/md/lg/xl (sm default); pointer-coarse targets retain touch size.
+
+The popup uses Flood ScrollArea for long action lists, bounded to the available
+viewport. Its inner corners follow shell padding and border geometry. Focus is
+inset to stay visible. There is no href/navigation-item, submenu, checkbox/radio,
+context-menu trigger or menubar contract in this first action-menu component.
+Use ordinary Link for ordinary navigation; keep different selection models separate.
+
+See [WAI Menu Button](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/) and
+[Menu keyboard patterns](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/).
+
+```tsx
+<Menu label="Project actions"
+  trigger={props => <Button {...props}>Project actions</Button>}
+  items={[{id:"rename",label:"Rename…"},{id:"divider",type:"separator"},
+    {id:"delete",label:"Delete project",tone:"danger"}]}
+  onAction={id => chooseProjectAction(id)}
+/>
+```
+
+### Toolbar and Kbd (0.2.4)
+
+Toolbar groups Button, IconButton, Toggle, native buttons/links and Menu triggers
+under one named action panel. After hydration it uses one Tab entry, directional
+arrows, Home/End and optional looping. Disabled/hidden actions are skipped. Arrows
+move focus, not activation. Horizontal order follows writing direction. In vertical
+toolbars open Menu with Enter/Space; horizontal menus retain Up/Down opening.
+Keep text inputs and independent selection widgets outside this action-only API.
+Native child handlers and refs remain attached; Toolbar owns their tabIndex while
+mounted and restores original attributes on cleanup. Without JavaScript, native
+child Tab order remains available. Use a meaningful required label.
+
+Kbd renders native kbd markup with sm/md/lg sizes and relative keycap heights.
+It displays a key or combination; the host implements real shortcuts. It is not
+interactive. Menu shortcut hints reuse Kbd and remain hidden from item names.
+
+```tsx
+<Toolbar label="Editor actions">
+  <Button variant="ghost">Undo</Button>
+  <Toggle variant="ghost">Bold</Toggle>
+  <Button variant="ghost">Share</Button>
+</Toolbar>
+<Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>
+```
+
+### Card (0.2.4)
+
+Card composes Surface into a header, body and footer. Optional title, description,
+actions and footer accept React content; children are the body. Missing slots
+create no empty section. Use Surface when only a background/padding is needed.
+
+Card is a noninteractive div. Put Button, Link or Menu in actions/footer and keep
+its container out of the Tab order. Do not make the entire card clickable around
+nested controls. Native div props, styles and HTMLDivElement ref target the root.
+The title prop is heading content, not an HTML tooltip; supply phrasing content.
+headingLevel defaults to 2; choose the correct hierarchy for the host page.
+
+Compact/comfortable density controls existing spacing tokens. Header actions wrap
+without clipping menus or focus indicators. Footer uses a quiet separator; a
+footer-only card has no redundant separator. Elevation is default or raised.
+No data access, selection or interactive-card behavior is implied.
+
+```tsx
+<Card title="Project details" description="Keep your team in sync."
+  footer={<Button variant="subtle">Open project</Button>}>
+  <Text as="p" size="compact">A calm place for the next idea.</Text>
+</Card>
+```
+
+## Structural, media and accessible primitives · 0.2.4
+
+Container centers a max-width box with logical gutters. size sm/md/lg uses
+40/64/80rem bounds including padding; full removes the max. gutter uses Space.
+Grid defaults to auto-fit with a16rem semantic minimum clamped to available
+width. gap uses Space. minItemWidth overrides the auto minimum; explicit columns
+(1/2/3/4/6/12) remain fixed. Grid is ordinary layout, never an ARIA grid widget.
+
+VisuallyHidden preserves content in the accessibility tree using span/div. Default
+is for noninteractive content. Use focusable for a skip link: focus-within reveals
+its wrapper; style the actual link's focus. This is different from aria-hidden or
+conditional rendering. Native captions/legends may use the same hiding utility
+without an invalid generic wrapper. Spinner and hidden indicator captions compose
+VisuallyHidden.
+
+AspectRatio reserves responsive media geometry before loading, accepting a finite
+positive ratio (16/9 default). Direct img/video/iframe children fill its box. It
+does not clip focus or make arbitrary long content fit; the host owns alternative
+text, captions, media controls and deliberate cropping. Image is a native img
+with required alt (empty for decorative content), cover/contain fit and preserved
+srcSet/sizes/loading/decoding/dimensions/events/ref. No optimizer, fetch engine or
+fallback is implied. Avatar composes Image for its own loading lifecycle. Supply
+image dimensions or AspectRatio to reserve space.
+
+List renders native ul/ol with native li children and token gap. ordered selects
+ol; start/reversed apply there. start must be a safe integer. marker=false retains
+explicit list semantics for platforms that drop lists without visible markers.
+This is content, not ListBox selection or arrow navigation.
+
+EmptyState composes Stack, Heading, Text, IconSlot and Inline. Required title,
+optional description, decorative icon and actions explain absent content; choose
+headingLevel for the host hierarchy. It is static, with no automatic focus or
+announcement. compact/comfortable density controls padding. The host implements
+real actions and decides whether asynchronously changed results need announcing.
+
+Checkbox adds indeterminate for a host-controlled mixed presentation after
+hydration. checked independently determines form submission; mixed does not mean
+a third submitted value. The host owns aggregate/select-all values. Native reset
+and ref access remain available. Radio and Switch do not expose indeterminate.
+
+ButtonGroup/ToggleGroup retain their keyboard contracts and locally scroll when
+a connected row cannot fit. InputGroup actions keep words intact and can wrap to
+a new row while the input retains usable space. Plain string adornments are bidi
+isolated; for protocols/phones with explicit direction pass a bdi dir=ltr node.
+Keep very long addon content concise. Hidden native choices hide their label too.
+
+Dark foundations bundle both normal and italic Inter, including Cyrillic, with
+original OFL notices. Color alone never communicates validation or progress.
+
+CodeSnippet codeDirection defaults to ltr independently of RTL parent action layout; choose rtl/auto explicitly for content that needs it. Native dir still applies to the wrapper. Protected ScrollArea reveals focused descendants fully when needed, composes the host focus handler and avoids scrolling to nested top-layer controls.
+
+Checkbox, Radio and Switch apply native hidden/dir/lang to their visible label wrapper as well as the input, so a component-local language/direction applies to its whole choice.

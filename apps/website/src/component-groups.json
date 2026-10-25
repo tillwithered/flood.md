@@ -38,5 +38,10 @@
     "id": "overlays",
     "label": "Overlays",
     "description": "Provide contextual help, floating content and modal tasks."
+  },
+  {
+    "id": "feedback",
+    "label": "Feedback",
+    "description": "Explain loading, progress and changes in state."
   }
 ]

@@ -17,14 +17,23 @@ import {
   type FieldsetHTMLAttributes,
   type RefCallback,
   type RefObject,
+  type TableHTMLAttributes,
+  type ImgHTMLAttributes,
 } from "react";
+import { useFocusableHidden } from "./focusable-hidden.js";
 import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-state.js";
 import { SingleSelect } from "./select.js";
+import { MixedCheckbox } from "./checkbox.js";
 import { OverlayScrollArea } from "./scroll-area.js";
 import { ChoiceGroup } from "./choice-group.js";
 import { Disclosure } from "./disclosure.js";
 import { AnchoredOverlay, ModalOverlay } from "./overlays.js";
 import { TabNavigation, BreadcrumbNavigation, PageNavigation } from "./navigation.js";
+import { AvatarArtwork } from "./avatar.js";
+import { ValueIndicator, FeedbackMessage } from "./feedback.js";
+import { DescribedData, TabularData } from "./data-display.js";
+import { ActionMenu } from "./menu.js";
+import { RovingToolbar } from "./toolbar.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -63,7 +72,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           className,
         )}
       >
-        {loading && <span className="flood-spinner" aria-hidden="true" />}
+        {loading && <Spinner decorative />}
         {children}
       </button>
     );
@@ -71,6 +80,163 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 export type FieldStatus = "error" | "warning" | "success" | "info";
+
+export type ContentSize = "sm" | "md" | "lg";
+export interface KbdProps extends HTMLAttributes<HTMLElement> { size?: ContentSize; }
+/** @since 0.2.4 */
+export const Kbd = forwardRef<HTMLElement, KbdProps>(function Kbd(
+  { size = "sm", className, ...props }, ref,
+) {
+  return <kbd {...props} ref={ref} className={classes("flood-kbd", className)} data-size={size} />;
+});
+
+export interface ToolbarProps extends Omit<HTMLAttributes<HTMLDivElement>, "role"> {
+  label: string;
+  orientation?: "horizontal" | "vertical";
+  loop?: boolean;
+}
+/** @since 0.2.4 */
+export const Toolbar = forwardRef<HTMLDivElement, ToolbarProps>(function Toolbar(
+  { label, orientation = "horizontal", loop = true, ...props }, ref,
+) {
+  return <RovingToolbar {...props} ref={ref} label={label} orientation={orientation} loop={loop} />;
+});
+export type DataDensity = "compact" | "comfortable";
+export interface DescriptionItem {
+  id: string;
+  term: string;
+  description: ReactNode;
+}
+export interface DescriptionListProps extends Omit<HTMLAttributes<HTMLDListElement>, "children"> {
+  items: readonly DescriptionItem[];
+  layout?: "inline" | "stacked";
+  density?: DataDensity;
+  dividers?: boolean;
+}
+/** @since 0.2.4 */
+export const DescriptionList = forwardRef<HTMLDListElement, DescriptionListProps>(function DescriptionList(
+  { items, layout = "inline", density = "compact", dividers = false, ...props }, ref,
+) {
+  return <DescribedData {...props} ref={ref} items={items} layout={layout} density={density} dividers={dividers} />;
+});
+
+export interface TableProps extends Omit<TableHTMLAttributes<HTMLTableElement>, "children"> {
+  caption: string;
+  children: ReactNode;
+  hideCaption?: boolean;
+  density?: DataDensity;
+  striped?: boolean;
+  scrollLabel?: string;
+}
+/** @since 0.2.4 */
+export const Table = forwardRef<HTMLTableElement, TableProps>(function Table(
+  { caption, children, hideCaption = false, density = "comfortable", striped = false, scrollLabel, ...props }, ref,
+) {
+  return <TabularData {...props} ref={ref} caption={caption} hideCaption={hideCaption} density={density} striped={striped} scrollLabel={scrollLabel}>{children}</TabularData>;
+});
+
+export type SemanticTone = "neutral" | "accent" | "error" | "warning" | "success" | "info";
+export type BadgeTone = SemanticTone;
+export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+  size?: ContentSize;
+  tone?: BadgeTone;
+  variant?: "subtle" | "outline";
+}
+/** @since 0.2.4 */
+export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
+  { size = "md", tone = "neutral", variant = "subtle", className, ...props }, ref,
+) {
+  return <span {...props} ref={ref} className={classes("flood-badge", className)} data-size={size} data-tone={tone} data-variant={variant} />;
+});
+
+export interface SpinnerProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "role" | "aria-label" | "aria-hidden"> {
+  size?: ContentSize;
+  label?: string;
+  decorative?: boolean;
+}
+/** @since 0.2.4 */
+export const Spinner = forwardRef<HTMLSpanElement, SpinnerProps>(function Spinner(
+  { size = "md", label = "Loading", decorative = false, className, ...props }, ref,
+) {
+  return <span {...props} ref={ref} className={classes("flood-loading", className)} data-size={size}
+    role={decorative ? undefined : "status"} aria-hidden={decorative || undefined}>
+    <span className="flood-spinner" aria-hidden="true" />
+    {!decorative && <VisuallyHidden>{label}</VisuallyHidden>}
+  </span>;
+});
+
+export interface SkeletonProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "role" | "tabIndex" | "aria-label" | "aria-hidden"> {
+  shape?: "text" | "rounded" | "circle";
+  width?: CSSProperties["width"];
+  height?: CSSProperties["height"];
+  animate?: boolean;
+}
+/** @since 0.2.4 */
+export const Skeleton = forwardRef<HTMLSpanElement, SkeletonProps>(function Skeleton(
+  { shape = "text", width, height, animate = true, className, style, ...props }, ref,
+) {
+  return <span {...props} ref={ref} className={classes("flood-skeleton", className)} data-shape={shape} data-animate={animate}
+    aria-hidden="true" style={{ width, height, ...style }} />;
+});
+
+export interface AvatarProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "role" | "aria-label" | "aria-hidden"> {
+  name: string;
+  src?: string;
+  fallback?: string;
+  size?: ContentSize;
+  shape?: "circle" | "rounded";
+  decorative?: boolean;
+}
+/** @since 0.2.4 */
+export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(function Avatar(
+  { name, src, fallback, size = "md", shape = "circle", decorative = false, className, ...props }, ref,
+) {
+  const initials = name.trim().split(/\s+/u).filter(Boolean).slice(0, 2).map(word => Array.from(word)[0]).join("").toUpperCase();
+  return <span {...props} ref={ref} className={classes("flood-avatar", className)} data-size={size} data-shape={shape}
+    role={decorative ? undefined : "img"} aria-label={decorative ? undefined : name} aria-hidden={decorative || undefined}>
+    <AvatarArtwork key={src ?? ""} src={src} fallback={fallback ?? (initials || "?")} />
+  </span>;
+});
+
+export interface ProgressProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role"> {
+  label: string;
+  value?: number;
+  max?: number;
+  valueText?: string;
+  size?: ContentSize;
+  tone?: SemanticTone;
+  hideLabel?: boolean;
+}
+/** @since 0.2.4 */
+export const Progress = forwardRef<HTMLDivElement, ProgressProps>(function Progress(
+  { label, value, max = 100, valueText, size = "md", tone = "accent", hideLabel = false, ...props }, ref,
+) {
+  return <ValueIndicator {...props} ref={ref} kind="progress" label={label} value={value} min={0} max={max} valueText={valueText} size={size} tone={tone} hideLabel={hideLabel} />;
+});
+
+export interface MeterProps extends Omit<ProgressProps, "value"> {
+  value: number;
+  min?: number;
+}
+/** @since 0.2.4 */
+export const Meter = forwardRef<HTMLDivElement, MeterProps>(function Meter(
+  { label, value, min = 0, max = 100, valueText, size = "md", tone = "neutral", hideLabel = false, ...props }, ref,
+) {
+  return <ValueIndicator {...props} ref={ref} kind="meter" label={label} value={value} min={min} max={max} valueText={valueText} size={size} tone={tone} hideLabel={hideLabel} />;
+});
+
+export interface AlertProps extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "role" | "aria-live"> {
+  title?: string;
+  tone?: "neutral" | FieldStatus;
+  icon?: ReactNode;
+  announcement?: "off" | "polite" | "assertive";
+}
+/** @since 0.2.4 */
+export const Alert = forwardRef<HTMLDivElement, AlertProps>(function Alert(
+  { title, tone = "info", icon, announcement = "off", ...props }, ref,
+) {
+  return <FeedbackMessage {...props} ref={ref} title={title} tone={tone} icon={icon} announcement={announcement} />;
+});
 
 export interface TabItem {
   value: string;
@@ -123,6 +289,36 @@ export const Pagination = forwardRef<HTMLElement, PaginationProps>(function Pagi
 export interface OverlayTriggerProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   ref: RefCallback<HTMLButtonElement>;
 }
+export interface MenuActionItem {
+  id: string;
+  type?: "item";
+  label: string;
+  icon?: ReactNode;
+  shortcut?: string;
+  disabled?: boolean;
+  tone?: "default" | "danger";
+}
+export interface MenuSeparator { id: string; type: "separator"; }
+export type MenuItem = MenuActionItem | MenuSeparator;
+export interface MenuProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role"> {
+  label: string;
+  trigger: (props: OverlayTriggerProps) => ReactNode;
+  items: readonly MenuItem[];
+  onAction?: (id: string) => void;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  side?: "top" | "bottom" | "left" | "right";
+  align?: "start" | "center" | "end";
+  controlSize?: "sm" | "md" | "lg" | "xl";
+}
+/** @since 0.2.4 */
+export const Menu = forwardRef<HTMLDivElement, MenuProps>(function Menu(
+  { defaultOpen = false, disabled = false, side = "bottom", align = "start", controlSize = "sm", ...props }, ref,
+) {
+  return <ActionMenu {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} side={side} align={align} controlSize={controlSize} />;
+});
 export interface TooltipProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "content" | "title" | "role"> {
   content: string;
   trigger: (props: OverlayTriggerProps) => ReactNode;
@@ -211,7 +407,7 @@ export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(function Acc
   if (expansionMode === "single" && new Set(expanded).size > 1) throw new Error("Flood single Accordion accepts at most one value");
   return <div {...props} ref={ref} role="group" aria-label={label} className={classes("flood-accordion", className)} onKeyDown={event => {
     onKeyDown?.(event);
-    if (event.defaultPrevented) return;
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
     const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(":scope > .flood-disclosure > .flood-disclosure__heading > .flood-disclosure__trigger:not(:disabled)"));
     const index = buttons.indexOf(event.target as HTMLButtonElement);
     if (index < 0) return;
@@ -275,10 +471,10 @@ export const ToggleGroup = forwardRef<HTMLDivElement, ToggleGroupProps>(function
   if (new Set(options.map(option => option.value)).size !== options.length) throw new Error("Flood toggle option values must be unique");
   if (selectionMode === "single" && new Set(selected).size > 1) throw new Error("Flood single ToggleGroup accepts at most one value");
   if (iconOnly && options.some(option => !option.icon)) throw new Error("Flood icon-only toggle options require icons");
-  return <div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} data-selection-mode={selectionMode}
+  return <ScrollArea orientation="horizontal" tabIndex={-1} role="group" aria-label={`${label} scrolling`} className="flood-connected-scroll" hidden={props.hidden} dir={props.dir} lang={props.lang} style={{maxInlineSize:"100%"}}><div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} data-selection-mode={selectionMode}
     className={classes("flood-button-group", "flood-toggle-group", className)} onKeyDown={event => {
       onKeyDown?.(event);
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
       const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(":scope > .flood-toggle:not(:disabled)"));
       const index = buttons.indexOf(event.target as HTMLButtonElement);
       if (index < 0) return;
@@ -294,7 +490,7 @@ export const ToggleGroup = forwardRef<HTMLDivElement, ToggleGroupProps>(function
         if (value === undefined) setLocal(next);
         onValueChange?.([...next]);
       }}>{iconOnly ? option.icon : <>{option.icon && <IconSlot size={size}>{option.icon}</IconSlot>}{option.label}</>}</Toggle>)}
-  </div>;
+  </div></ScrollArea>;
 });
 
 export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "role"> {
@@ -305,7 +501,7 @@ export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "
 export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(function ButtonGroup(
   { label, orientation = "horizontal", className, ...props }, ref,
 ) {
-  return <div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} className={classes("flood-button-group", className)} />;
+  return <ScrollArea orientation="horizontal" tabIndex={-1} role="group" aria-label={`${label} scrolling`} className="flood-connected-scroll" hidden={props.hidden} dir={props.dir} lang={props.lang} style={{maxInlineSize:"100%"}}><div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} className={classes("flood-button-group", className)} /></ScrollArea>;
 });
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -338,9 +534,9 @@ export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function
 ) {
   return <div hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-input-group", `flood-control--${controlSize}`, className)} style={style}
     data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])} data-disabled={disabled || undefined} data-readonly={readOnly || undefined}>
-    {hasFieldContent(start) && <div className="flood-input-group__addon flood-input-group__addon--start">{start}</div>}
+    {hasFieldContent(start) && <div className="flood-input-group__addon flood-input-group__addon--start">{typeof start === "string" ? <bdi dir="auto">{start}</bdi> : start}</div>}
     <Input {...props} ref={ref} controlSize={controlSize} invalid={invalid} status={status} disabled={disabled} readOnly={readOnly} />
-    {hasFieldContent(end) && <div className="flood-input-group__addon flood-input-group__addon--end">{end}</div>}
+    {hasFieldContent(end) && <div className="flood-input-group__addon flood-input-group__addon--end">{typeof end === "string" ? <bdi dir="auto">{end}</bdi> : end}</div>}
   </div>;
 });
 export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -375,7 +571,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   const listbox = multiple || (size !== undefined && size > 1);
   if (!listbox) return <SingleSelect {...props} status={status} invalid={invalid} controlSize={controlSize} className={className} size={size} ref={ref} />;
   return (
-    <span className={classes("flood-select", `flood-control--${controlSize}`, listbox && "flood-select--listbox")}>
+    <span hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-select", `flood-control--${controlSize}`, listbox && "flood-select--listbox")}>
       <select
         {...props}
         ref={ref}
@@ -395,11 +591,14 @@ export interface ChoiceProps extends Omit<
 > {
   label: ReactNode;
 }
-export const Checkbox = forwardRef<HTMLInputElement, ChoiceProps>(
-  function Checkbox({ label, className, ...props }, ref) {
+export interface CheckboxProps extends ChoiceProps {
+  indeterminate?: boolean;
+}
+export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
+  function Checkbox({ label, indeterminate = false, className, ...props }, ref) {
     return (
-      <label className={classes("flood-choice", className)}>
-        <input {...props} ref={ref} type="checkbox" className="flood-check" />
+      <label hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-choice", className)}>
+        <MixedCheckbox {...props} ref={ref} indeterminate={indeterminate} />
         <span>{label}</span>
       </label>
     );
@@ -410,7 +609,7 @@ export const Radio = forwardRef<HTMLInputElement, ChoiceProps>(function Radio(
   ref,
 ) {
   return (
-    <label className={classes("flood-choice", className)}>
+    <label hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-choice", className)}>
       <input {...props} ref={ref} type="radio" className="flood-check" />
       <span>{label}</span>
     </label>
@@ -421,7 +620,7 @@ export const Switch = forwardRef<HTMLInputElement, ChoiceProps>(function Switch(
   ref,
 ) {
   return (
-    <label className={classes("flood-choice", "flood-switch", className)}>
+    <label hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-choice", "flood-switch", className)}>
       <span>{label}</span>
       <input
         {...props}
@@ -459,12 +658,13 @@ export const Fieldset = forwardRef<HTMLFieldSetElement, FieldsetProps>(function 
 ) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
+  const legendRef = useFocusableHidden<HTMLLegendElement>(hideLabel);
   const hasHint = hasFieldContent(hint), hasError = hasFieldContent(error), hasMessage = hasFieldContent(message) && !hasError;
   const resolvedStatus = resolveFieldStatus(status, hasError, ariaInvalid);
   const description = mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && `${id}-message`);
   return <fieldset {...props} ref={ref} id={id} className={classes("flood-fieldset", className)} data-hide-label={hideLabel || undefined} data-status={resolvedStatus}
     aria-describedby={description} aria-invalid={resolvedStatus === "error" || ariaInvalid || undefined}>
-    <legend className={classes("flood-legend", hideLabel && "flood-visually-hidden")}>{legend}</legend>
+    <legend ref={legendRef} className={classes("flood-legend", hideLabel && "flood-visually-hidden--focusable")}>{legend}</legend>
     <div className="flood-fieldset__body">
       {hasHint && <div id={`${id}-hint`} className="flood-hint">{hint}</div>}
       {children}
@@ -515,7 +715,7 @@ export const SegmentedControl = forwardRef<HTMLFieldSetElement, SegmentedControl
       {iconOnly ? <span className="flood-segmented__name">{option.label}</span> : option.label}
     </> }))} onKeyDown={event => {
       onKeyDown?.(event);
-      if (event.defaultPrevented) return;
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
       const inputs = Array.from(event.currentTarget.querySelectorAll<HTMLInputElement>(":scope > .flood-fieldset__body > .flood-choice-group > .flood-choice > input[type=radio]:not(:disabled)"));
       const index = inputs.indexOf(event.target as HTMLInputElement);
       if (index < 0) return;
@@ -575,6 +775,7 @@ export function Field({
 }: FieldProps) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
+  const labelRef = useFocusableHidden<HTMLLabelElement>(hideLabel);
   const hasMessage = hasFieldContent(message);
   const hasHint = hasFieldContent(hint);
   const hasError = hasFieldContent(error);
@@ -583,7 +784,7 @@ export function Field({
     mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && !hasError && `${id}-message`);
   return (
     <div className="flood-field" data-hide-label={hideLabel || undefined} data-status={resolvedStatus}>
-      <Label htmlFor={id} required={required} className={hideLabel ? "flood-visually-hidden" : undefined}>{label}</Label>
+      <Label ref={labelRef} htmlFor={id} required={required} className={hideLabel ? "flood-visually-hidden--focusable" : undefined}>{label}</Label>
       {children({
         id,
         "aria-describedby": description,
@@ -671,6 +872,134 @@ export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(function Surface
   return <div {...props} ref={ref} data-flood-elevation={elevation} className={classes("flood-surface", className)} style={{ background: `var(--flood-sys-color-surface-${elevation})`, padding: `var(--flood-sys-space-${padding})`, ...style }} />;
 });
 
+export interface ContainerProps extends HTMLAttributes<HTMLDivElement> {
+  size?: "sm" | "md" | "lg" | "full";
+  gutter?: Space;
+}
+/** Centered content with logical gutters; max width includes padding. @since 0.2.4 */
+export const Container = forwardRef<HTMLDivElement, ContainerProps>(function Container(
+  { size = "lg", gutter = "6", className, style, ...props }, ref,
+) {
+  return <div {...props} ref={ref} className={classes("flood-container", className)} style={{
+    "--flood-container-max": size === "full" ? "none" : `var(--flood-sys-size-container-${size})`,
+    "--flood-container-gutter": `var(--flood-sys-space-${gutter})`, ...style,
+  } as CSSProperties} />;
+});
+export interface GridProps extends HTMLAttributes<HTMLDivElement> {
+  columns?: 1 | 2 | 3 | 4 | 6 | 12;
+  minItemWidth?: string;
+  gap?: Space;
+}
+/** Auto-fit by default; explicit columns retain their count at every width. @since 0.2.4 */
+export const Grid = forwardRef<HTMLDivElement, GridProps>(function Grid(
+  { columns, minItemWidth, gap = "4", className, style, ...props }, ref,
+) {
+  return <div {...props} ref={ref} className={classes("flood-grid", className)} style={{
+    gridTemplateColumns: columns ? `repeat(${columns}, minmax(0, 1fr))` : undefined,
+    "--flood-grid-min": minItemWidth, "--flood-layout-gap": `var(--flood-sys-space-${gap})`, ...style,
+  } as CSSProperties} />;
+});
+export interface VisuallyHiddenProps extends HTMLAttributes<HTMLElement> {
+  as?: "span" | "div";
+  focusable?: boolean;
+}
+/** Nonvisual content, with optional reveal when a descendant receives focus. @since 0.2.4 */
+export const VisuallyHidden = forwardRef<HTMLElement, VisuallyHiddenProps>(function VisuallyHidden(
+  { as = "span", focusable = false, className, ...props }, ref,
+) {
+  const hiddenRef = useFocusableHidden<HTMLElement>(focusable, ref);
+  return createElement(as, { ...props, ref: hiddenRef, className: classes(focusable ? "flood-visually-hidden--focusable" : "flood-visually-hidden", className) });
+});
+export interface AspectRatioProps extends HTMLAttributes<HTMLDivElement> {
+  ratio?: number;
+}
+/** Reserve media geometry. Child content may overflow rather than being clipped. @since 0.2.4 */
+export const AspectRatio = forwardRef<HTMLDivElement, AspectRatioProps>(function AspectRatio(
+  { ratio = 16 / 9, className, style, children, ...props }, ref,
+) {
+  if (!Number.isFinite(ratio) || ratio <= 0) throw new RangeError("Flood AspectRatio requires a finite positive ratio");
+  return <div {...props} ref={ref} className={classes("flood-aspect-ratio", className)} style={{ aspectRatio: String(ratio), ...style }}>
+    <div className="flood-aspect-ratio__content">{children}</div>
+  </div>;
+});
+export interface ImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, "alt"> {
+  alt: string;
+  fit?: "cover" | "contain";
+}
+/** Native image semantics, explicit alternative text and bounded media fitting. @since 0.2.4 */
+export const Image = forwardRef<HTMLImageElement, ImageProps>(function Image(
+  { alt, fit = "cover", className, ...props }, ref,
+) {
+  if (typeof alt !== "string") throw new TypeError("Flood Image requires explicit alt text (empty for decorative images)");
+  return <img {...props} ref={ref} alt={alt} data-fit={fit} className={classes("flood-image", className)} />;
+});
+export interface ListProps extends Omit<HTMLAttributes<HTMLUListElement | HTMLOListElement>, "role"> {
+  ordered?: boolean;
+  start?: number;
+  reversed?: boolean;
+  marker?: boolean;
+  gap?: Space;
+}
+/** Native list items supplied by the host; hidden markers retain list semantics. @since 0.2.4 */
+export const List = forwardRef<HTMLUListElement | HTMLOListElement, ListProps>(function List(
+  { ordered = false, start, reversed, marker = true, gap = "2", className, style, ...props }, ref,
+) {
+  if (start !== undefined && !Number.isSafeInteger(start)) throw new RangeError("Flood List start requires a safe integer");
+  return createElement(ordered ? "ol" : "ul", { ...props, ref, start: ordered ? start : undefined,
+    reversed: ordered ? reversed : undefined, role: marker ? undefined : "list", "data-marker": marker,
+    className: classes("flood-list", className), style: { "--flood-layout-gap": `var(--flood-sys-space-${gap})`, ...style } as CSSProperties });
+});
+export interface EmptyStateProps extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "children"> {
+  title: string;
+  description?: ReactNode;
+  icon?: ReactNode;
+  actions?: ReactNode;
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+  density?: "compact" | "comfortable";
+}
+/** Static empty content, not loading, an error boundary or a live announcement. @since 0.2.4 */
+export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(function EmptyState(
+  { title, description, icon, actions, headingLevel = 2, density = "comfortable", className, ...props }, ref,
+) {
+  if (typeof title !== "string" || !title.trim()) throw new Error("Flood EmptyState requires a nonempty title");
+  return <Stack {...props} ref={ref} gap="4" data-density={density} className={classes("flood-empty-state", className)}>
+    {hasFieldContent(icon) && <div className="flood-empty-state__icon"><IconSlot size="2xl">{icon}</IconSlot></div>}
+    <Stack gap="1"><Heading level={headingLevel} size="section">{title}</Heading>
+      {hasFieldContent(description) && <Text as="div" size="compact" tone="subtle">{description}</Text>}
+    </Stack>
+    {hasFieldContent(actions) && <Inline gap="2" className="flood-empty-state__actions">{actions}</Inline>}
+  </Stack>;
+});
+
+export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
+  title?: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  footer?: ReactNode;
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+  density?: "compact" | "comfortable";
+  elevation?: "default" | "raised";
+}
+/** A structured content surface, not an interactive wrapper. @since 0.2.4 */
+export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
+  { title, description, actions, footer, headingLevel = 2, density = "comfortable", elevation = "default", children, className, ...props }, ref,
+) {
+  const present = hasFieldContent;
+  const heading = present(title), hint = present(description), action = present(actions);
+  return <Surface {...props} ref={ref} elevation={elevation} padding={density === "compact" ? "4" : "6"}
+    data-density={density} className={classes("flood-card", className)}>
+    {(heading || hint || action) && <div className="flood-card__header">
+      {(heading || hint) && <div className="flood-card__intro">
+        {heading && <Heading level={headingLevel} size="section">{title}</Heading>}
+        {hint && <Text as="div" size="compact" tone="subtle">{description}</Text>}
+      </div>}
+      {action && <div className="flood-card__actions">{actions}</div>}
+    </div>}
+    {present(children) && <div className="flood-card__body">{children}</div>}
+    {present(footer) && <div className="flood-card__footer">{footer}</div>}
+  </Surface>;
+});
+
 export interface IconSlotProps extends HTMLAttributes<HTMLSpanElement> {
   size?: ControlSize;
   label?: string;
@@ -698,15 +1027,16 @@ export const Divider = forwardRef<HTMLHRElement, HTMLAttributes<HTMLHRElement>>(
 
 export interface CodeSnippetProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   code: string;
+  codeDirection?: "ltr" | "rtl" | "auto";
   action?: ReactNode;
 }
 /** Selectable code with an optional host-owned action; no clipboard side effects. */
 export const CodeSnippet = forwardRef<HTMLDivElement, CodeSnippetProps>(function CodeSnippet(
-  { code, action, className, ...props }, ref,
+  { code, codeDirection = "ltr", action, className, ...props }, ref,
 ) {
   return (
     <div {...props} ref={ref} className={classes("flood-code-snippet", className)}>
-      <code className="flood-code-snippet__code">{code}</code>
+      <code dir={codeDirection} className="flood-code-snippet__code">{code}</code>
       {action != null && <div className="flood-code-snippet__action">{action}</div>}
     </div>
   );

@@ -9,6 +9,7 @@ import { SiteHeader } from "./site-header";
 
 const Documentation = lazy(() => import("./documentation"));
 const Examples = lazy(() => import("./examples"));
+const ContentBoard = lazy(() => import("./content-board"));
 const repository = "https://github.com/tillwithered/flood.md";
 const command = `npx @flood-md/cli@${release.version} init`;
 const path = window.location.pathname;
@@ -44,6 +45,7 @@ function Home() {
 }
 
 function App() {
+  if (path === "/playground/content") return <Suspense fallback={<p>Loading components…</p>}><ContentBoard /></Suspense>;
   if (path === "/playground") return <Suspense fallback={<p>Loading examples…</p>}><Examples /></Suspense>;
   const home = path === "/";
   return <FloodRoot className={`site-root ${home ? "home-site" : "docs-site"}`}>

@@ -1,17 +1,17 @@
-# Flood design system · 0.2.3
+# Flood design system · 0.2.4
 
 Read project-root flood.json and installed declarations with this contract.
 The source bundle's SKILL.md routes to focused composition, accessibility,
 customization and verification references. Its routing matrix names prerequisites
 and sources of truth; flood/rules.json indexes observable checks. Read only the
-relevant reference. This expanded bundle belongs to 0.2.3; existing installations
+relevant reference. This expanded bundle belongs to 0.2.4; existing installations
 keep their matching guide set.
 
 React + TypeScript and Next.js App Router. Use this guide with matching installed
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-This guide covers all 37 exports in 0.2.3 and their layout refinements. Confirm
+This guide covers the supported exports in 0.2.4 and their layout refinements. Confirm
 the matching installed declarations before using APIs absent from older versions.
 
 ## Connect
@@ -158,3 +158,116 @@ export function Profile() {
   );
 }
 ```
+
+
+0.2.4 adds Badge, Spinner, Skeleton and Avatar. Read references/composition.md and references/accessibility.md for status announcements, fallback geometry and decorative naming. Button loading reuses Spinner. These APIs are not present in 0.2.3.
+
+Progress, Meter and Alert are also available in 0.2.4. Distinguish task completion from bounded measurements, preserve names/units, and select alert announcement priority explicitly.
+
+DescriptionList and Table are also available in 0.2.4. Preserve native description-list/table structure, table captions and header relationships. Range of displayed data and formatting remain host-owned; DataTable behavior is outside these primitives.
+
+Menu adds a real action-menu keyboard contract in 0.2.4; it reuses the layer engine and ScrollArea while remaining distinct from Select and Popover. onAction business effects belong to the host.
+
+### Toolbar and Kbd (0.2.4)
+
+Toolbar groups Button, IconButton, Toggle, native buttons/links and Menu triggers
+under one named action panel. After hydration it uses one Tab entry, directional
+arrows, Home/End and optional looping. Disabled/hidden actions are skipped. Arrows
+move focus, not activation. Horizontal order follows writing direction. In vertical
+toolbars open Menu with Enter/Space; horizontal menus retain Up/Down opening.
+Keep text inputs and independent selection widgets outside this action-only API.
+Native child handlers and refs remain attached; Toolbar owns their tabIndex while
+mounted and restores original attributes on cleanup. Without JavaScript, native
+child Tab order remains available. Use a meaningful required label.
+
+Kbd renders native kbd markup with sm/md/lg sizes and relative keycap heights.
+It displays a key or combination; the host implements real shortcuts. It is not
+interactive. Menu shortcut hints reuse Kbd and remain hidden from item names.
+
+```tsx
+<Toolbar label="Editor actions">
+  <Button variant="ghost">Undo</Button>
+  <Toggle variant="ghost">Bold</Toggle>
+  <Button variant="ghost">Share</Button>
+</Toolbar>
+<Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>
+```
+
+### Card (0.2.4)
+
+Card composes Surface into a header, body and footer. Optional title, description,
+actions and footer accept React content; children are the body. Missing slots
+create no empty section. Use Surface when only a background/padding is needed.
+
+Card is a noninteractive div. Put Button, Link or Menu in actions/footer and keep
+its container out of the Tab order. Do not make the entire card clickable around
+nested controls. Native div props, styles and HTMLDivElement ref target the root.
+The title prop is heading content, not an HTML tooltip; supply phrasing content.
+headingLevel defaults to 2; choose the correct hierarchy for the host page.
+
+Compact/comfortable density controls existing spacing tokens. Header actions wrap
+without clipping menus or focus indicators. Footer uses a quiet separator; a
+footer-only card has no redundant separator. Elevation is default or raised.
+No data access, selection or interactive-card behavior is implied.
+
+```tsx
+<Card title="Project details" description="Keep your team in sync."
+  footer={<Button variant="subtle">Open project</Button>}>
+  <Text as="p" size="compact">A calm place for the next idea.</Text>
+</Card>
+```
+
+## Structural, media and accessible primitives · 0.2.4
+
+Container centers a max-width box with logical gutters. size sm/md/lg uses
+40/64/80rem bounds including padding; full removes the max. gutter uses Space.
+Grid defaults to auto-fit with a16rem semantic minimum clamped to available
+width. gap uses Space. minItemWidth overrides the auto minimum; explicit columns
+(1/2/3/4/6/12) remain fixed. Grid is ordinary layout, never an ARIA grid widget.
+
+VisuallyHidden preserves content in the accessibility tree using span/div. Default
+is for noninteractive content. Use focusable for a skip link: focus-within reveals
+its wrapper; style the actual link's focus. This is different from aria-hidden or
+conditional rendering. Native captions/legends may use the same hiding utility
+without an invalid generic wrapper. Spinner and hidden indicator captions compose
+VisuallyHidden. Field hideLabel and Fieldset hideLabel use focusable hiding so
+valid interactive label/legend descendants reveal their label while focused;
+keep primary actions visible in ordinary compositions.
+
+AspectRatio reserves responsive media geometry before loading, accepting a finite
+positive ratio (16/9 default). Direct img/video/iframe children fill its box. It
+does not clip focus or make arbitrary long content fit; the host owns alternative
+text, captions, media controls and deliberate cropping. Image is a native img
+with required alt (empty for decorative content), cover/contain fit and preserved
+srcSet/sizes/loading/decoding/dimensions/events/ref. No optimizer, fetch engine or
+fallback is implied. Avatar composes Image for its own loading lifecycle. Supply
+image dimensions or AspectRatio to reserve space.
+
+List renders native ul/ol with native li children and token gap. ordered selects
+ol; start/reversed apply there. start must be a safe integer. marker=false retains
+explicit list semantics for platforms that drop lists without visible markers.
+This is content, not ListBox selection or arrow navigation.
+
+EmptyState composes Stack, Heading, Text, IconSlot and Inline. Required title,
+optional description, decorative icon and actions explain absent content; choose
+headingLevel for the host hierarchy. It is static, with no automatic focus or
+announcement. compact/comfortable density controls padding. The host implements
+real actions and decides whether asynchronously changed results need announcing.
+
+Checkbox adds indeterminate for a host-controlled mixed presentation after
+hydration. checked independently determines form submission; mixed does not mean
+a third submitted value. The host owns aggregate/select-all values. Native reset
+and ref access remain available. Radio and Switch do not expose indeterminate.
+
+ButtonGroup/ToggleGroup retain their keyboard contracts and locally scroll when
+a connected row cannot fit. InputGroup actions keep words intact and can wrap to
+a new row while the input retains usable space. Plain string adornments are bidi
+isolated; for protocols/phones with explicit direction pass a bdi dir=ltr node.
+Keep very long addon content concise. Hidden native choices hide their label too.
+
+Dark foundations bundle both normal and italic Inter, including Cyrillic, with
+original OFL notices. Color alone never communicates validation or progress.
+
+CodeSnippet codeDirection defaults to ltr independently of RTL parent action layout; choose rtl/auto explicitly for content that needs it. Native dir still applies to the wrapper. Protected ScrollArea reveals focused descendants fully when needed, composes the host focus handler and avoids scrolling to nested top-layer controls.
+
+Checkbox, Radio and Switch apply native hidden/dir/lang to their visible label wrapper as well as the input, so a component-local language/direction applies to its whole choice.

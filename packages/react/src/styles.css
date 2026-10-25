@@ -1,6 +1,15 @@
 @import "@flood-md/tokens/tokens.css";
 @import "./foundations.css";
 
+/* A named loading indicator; buttons opt into decorative presentation. */
+.flood-loading { --flood-loading-size: 1.25rem; display: inline-flex; position: relative; flex: none; vertical-align: middle; inline-size: var(--flood-loading-size); block-size: var(--flood-loading-size); }
+.flood-loading[data-size="sm"] { --flood-loading-size: 1rem; }
+.flood-loading[data-size="lg"] { --flood-loading-size: 1.5rem; }
+.flood-loading > .flood-spinner { display: block; box-sizing: border-box; width: 100%; height: 100%; }
+.flood-root .flood-loading .flood-spinner { inline-size: 100%; block-size: 100%; }
+.flood-root .flood-button .flood-loading { --flood-loading-size: var(--flood-control-icon); }
+.flood-loading[hidden] { display: none; }
+
 :where(.flood-button, .flood-input, .flood-choice, .flood-field, .flood-link) {
   box-sizing: border-box;
   font-family: var(--flood-font-sans);

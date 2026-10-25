@@ -12,6 +12,6 @@ export const docPages = [
 ];
 export const componentSlugs = catalog.map(component => component.slug);
 export const pagePaths = new Set([
-  "/", "/playground", "/components", ...docPages.map(page => page.path),
+  "/", "/playground", "/playground/content", "/components", ...docPages.map(page => page.path),
   ...componentSlugs.map(slug => `/components/${slug}`),
 ]);

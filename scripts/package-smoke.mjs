@@ -30,7 +30,7 @@ for (const name of ["tokens", "react", "agent", "cli"]) {
   );
   assert.ok(packed.files.some((file) => file.path === "LICENSE"));
   if (name === "react") {
-    for (const path of ["dist/foundations.css", "dist/fonts/InterVariable.woff2", "dist/fonts/LICENSE.txt"])
+    for (const path of ["dist/foundations.css", "dist/fonts/InterVariable.woff2", "dist/fonts/InterVariable-Italic.woff2", "dist/fonts/LICENSE.txt"])
       assert.ok(packed.files.some((file) => file.path === path), `Missing ${path}`);
   }
   archives.push(resolve(".artifacts", packed.filename));
@@ -71,7 +71,59 @@ const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
 import { Tabs, Breadcrumb, Pagination, type TabsProps, type BreadcrumbProps, type PaginationProps, Tooltip, Popover, Dialog, type TooltipProps, type PopoverProps, type DialogProps, type OverlayTriggerProps, Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
-import { Link, type LinkProps } from '@flood-md/react';
+import { Container, Grid, AspectRatio, Image, List, VisuallyHidden, EmptyState, type CheckboxProps, type ContainerProps, type GridProps, type AspectRatioProps, type ImageProps, type ListProps, type VisuallyHiddenProps, type EmptyStateProps, Card, type CardProps, Toolbar, Kbd, type ToolbarProps, type KbdProps, Menu, type MenuProps, DescriptionList, Table, type DescriptionListProps, type TableProps, Progress, Meter, Alert, type ProgressProps, type MeterProps, type AlertProps, Badge, Spinner, Skeleton, Avatar, type BadgeProps, type SpinnerProps, type SkeletonProps, type AvatarProps, Link, type LinkProps } from '@flood-md/react';
+createElement(Container,{size:'lg',gutter:'4',ref:createRef<HTMLDivElement>()},createElement(Grid,{columns:3,minItemWidth:'16rem'},'Content'));
+createElement(AspectRatio,{ratio:16/9},createElement(Image,{src:'/image.png',alt:'Preview',fit:'contain',ref:createRef<HTMLImageElement>()}));
+createElement(List,{ordered:true,start:2,marker:false,ref:createRef<HTMLUListElement|HTMLOListElement>()},createElement('li',null,'First'));
+createElement(VisuallyHidden,{focusable:true},createElement('a',{href:'#main'},'Skip to main'));
+createElement(EmptyState,{title:'No items',actions:createElement('button',null,'Add')});
+const mixed: CheckboxProps = {label:'Select all',indeterminate:true,name:'all'};
+// @ts-expect-error Images require a deliberate alternative text decision.
+const unnamedImage: ImageProps = {src:'/preview.png'};
+const card: CardProps = {title:'Details',description:'Project settings',headingLevel:3,density:'compact',footer:createElement('button',null,'Save')};
+createElement(Card,{...card,ref:createRef<HTMLDivElement>()},'Body');
+// @ts-expect-error Card does not supply link-wrapper behavior.
+const linkedCard: CardProps = {href:'/project'};
+const toolbar: ToolbarProps = {label:'Actions',orientation:'vertical',loop:false};
+createElement(Toolbar,{...toolbar,ref:createRef<HTMLDivElement>()},createElement('button',null,'Action'));
+const key: KbdProps = {size:'lg'};
+createElement(Kbd,{...key,ref:createRef<HTMLElement>()},'Enter');
+// @ts-expect-error Toolbar needs a name.
+const unnamedToolbar: ToolbarProps = {};
+const actionMenu: MenuProps = {label:'Actions',trigger:props=>createElement('button',props,'Actions'),items:[{id:'open',label:'Open'},{id:'divider',type:'separator'},{id:'delete',label:'Delete',tone:'danger'}],onAction:id=>id satisfies string};
+createElement(Menu,{...actionMenu,ref:createRef<HTMLDivElement>()});
+// @ts-expect-error Action labels are required.
+const badMenu: MenuProps = {...actionMenu,items:[{id:'open'}]};
+const descriptions: DescriptionListProps = {items:[{id:'project',term:'Project',description:'Flood'}],layout:'inline',density:'compact',dividers:true};
+const table: TableProps = {caption:'Projects',children:createElement('tbody',null,createElement('tr',null,createElement('td',null,'Flood'))),density:'comfortable',hideCaption:true};
+createElement(DescriptionList,{...descriptions,ref:createRef<HTMLDListElement>()});
+createElement(Table,{...table,ref:createRef<HTMLTableElement>(),onClick:event=>event.currentTarget.rows.length});
+// @ts-expect-error Stable identity is required for description items.
+const missingIdentity: DescriptionListProps = {items:[{term:'Project',description:'Flood'}]};
+// @ts-expect-error Table requires its accessible caption.
+const unnamedTable: TableProps = {children:null};
+const taskProgress: ProgressProps = {label:'Upload',value:50,max:100,hideLabel:true};
+const boundedMeter: MeterProps = {label:'Storage',value:10,min:-20,max:20,valueText:'10 GB'};
+const inlineAlert: AlertProps = {title:'Saved',tone:'success',announcement:'polite',icon:null};
+createElement(Progress,{...taskProgress,ref:createRef<HTMLDivElement>()});
+createElement(Meter,{...boundedMeter,ref:createRef<HTMLDivElement>()});
+createElement(Alert,{...inlineAlert,ref:createRef<HTMLDivElement>()});
+// @ts-expect-error Meter requires a known value.
+const unknownMeter: MeterProps = {label:'Storage'};
+// @ts-expect-error Alert announcement must name a supported urgency.
+const badAnnouncement: AlertProps = {announcement:'always'};
+const badge: BadgeProps = {tone:'success',variant:'outline',size:'sm'};
+const spinner: SpinnerProps = {label:'Loading',decorative:false,size:'lg'};
+const skeleton: SkeletonProps = {shape:'circle',width:'2rem',height:'2rem',animate:false};
+const avatar: AvatarProps = {name:'Alex Morgan',src:'/alex.png',fallback:'AM',decorative:true};
+createElement(Badge,{...badge,ref:createRef<HTMLSpanElement>()});
+createElement(Spinner,{...spinner,ref:createRef<HTMLSpanElement>()});
+createElement(Skeleton,{...skeleton,ref:createRef<HTMLSpanElement>()});
+createElement(Avatar,{...avatar,ref:createRef<HTMLSpanElement>()});
+// @ts-expect-error Avatar requires an accessible identity even in a decorative composition.
+const badAvatar: AvatarProps = {src:'/alex.png'};
+// @ts-expect-error Skeleton is decorative and does not accept focusable child content.
+const badSkeleton: SkeletonProps = {children:'Interactive'};
 const navigationLink: LinkProps = {href:'/docs',variant:'subtle',size:'sm',target:'_blank',rel:'noopener'};
 createElement(Link,{...navigationLink,ref:createRef<HTMLAnchorElement>()});
 // @ts-expect-error Navigation has no button disabled contract.
@@ -193,10 +245,17 @@ void scroll; void scrollElement; void badScroll; void scrollRole;
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {Link} from '@flood-md/react';
+import {Link,Badge,Spinner,Skeleton,Avatar,Progress,Meter,Alert,DescriptionList,Table,Menu,Toolbar,Kbd,Card,Container,Grid,AspectRatio,Image,List,VisuallyHidden,EmptyState} from '@flood-md/react';
 import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb, Pagination} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
+  h(Container,null,h(Grid,null,h(AspectRatio,null,h(Image,{src:'/preview.png',alt:'Preview'})))),h(List,null,h('li',null,'First')),h(VisuallyHidden,null,'Hidden description'),h(EmptyState,{title:'No items'}),
+  h(Card,{title:'Details',description:'Project settings',footer:h('button',null,'Save')},'Body'),
+  h(Toolbar,{label:'Tools'},h('button',null,'Undo')),h(Kbd,null,'Enter'),
+  h(Menu,{label:'Actions',trigger:p=>h('button',p,'Actions'),items:[{id:'open',label:'Open'}]}),
+  h(DescriptionList,{items:[{id:'name',term:'Name',description:'Flood'}]}),h(Table,{caption:'Projects'},h('tbody',null,h('tr',null,h('td',null,'Flood')))),
+  h(Progress,{label:'Upload',value:50}),h(Meter,{label:'Storage',value:75}),h(Alert,{title:'Saved'},'Ready'),
+  h(Badge,{tone:'success'},'Active'),h(Spinner,{label:'Loading workspace'}),h(Skeleton,{shape:'circle'}),h(Avatar,{name:'Alex Morgan',src:'/alex.svg'}),
   h(Link,{href:'/docs',variant:'subtle',size:'sm'},'Documentation'),
   h(Toggle,{defaultPressed:true},'Bold'),
   h(Tabs,{label:'Sections',items:[{value:'a',label:'Alpha',content:'Content'}]}),
@@ -214,6 +273,7 @@ const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
 if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')||!html.includes('aria-expanded=')||!html.includes('flood-accordion')||!html.includes('flood-dialog')||!html.includes('role="tooltip"')||!html.includes('role="tablist"')||!html.includes('flood-pagination')||!html.includes('flood-breadcrumb')) throw Error('React compatibility render');
+for(const name of ['flood-container','flood-grid','flood-aspect-ratio','flood-image','flood-list','flood-empty-state','flood-card','flood-toolbar','flood-kbd','flood-badge','flood-loading','flood-skeleton','flood-avatar','flood-indicator','flood-alert','flood-description-list','flood-table','flood-menu']) if(!html.includes(name)) throw Error('Missing content export '+name);
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")

@@ -46,8 +46,10 @@ when a read-only field uses a dashed resting perimeter.
 External-label visibility: source Field/Fieldset hideLabel preserves the actual
 label/legend and accessible name while removing its visual row. RadioGroup,
 CheckboxGroup and SegmentedControl inherit it. Keep label/legend supplied and
-textual; do not hide interactive label content. Use it only where surrounding
-context supplies the visible meaning. Input/Textarea/Select/InputGroup configure
+textual and keep actions visibly discoverable. In 0.2.4 a hidden Field label or
+Fieldset legend reveals while its descendant has focus, preserving native names
+and child state. Use hideLabel only where surrounding context supplies the
+visible meaning. Input/Textarea/Select/InputGroup configure
 this on their Field wrapper, not the control. Placeholder never replaces naming;
 choice option labels and button names have separate contracts. Available in 0.2.3.
 
@@ -61,3 +63,17 @@ configurable. Provide a visible title and safe initialFocusRef when needed. Clos
 Popover/Dialog children unmount; host owns persistent values and controlled open.
 Modern native APIs required. DOM/theme scope stays intact; no body portal needed.
 Available in 0.2.3.
+
+
+For 0.2.4 loading primitives: localize standalone Spinner label, avoid duplicate live announcements, and keep Skeleton hidden from AT. Reduced motion stops their animations. Avatar exposes one named image, or decorative presentation when the adjacent text already supplies identity. Badge text must express status without relying on its color.
+
+
+Progress and Meter are not live regions. Keep their labels even with hideLabel, and provide meaningful valueText when percentages would be misleading. Unknown Progress omits aria-valuenow; Meter has no unknown state. Alert defaults to silent static content; opt into announcement=polite (status) or assertive (alert) only for the required urgency. Do not move focus to these messages or claim every screen reader announces initial markup. Verify with actual assistive technology.
+
+
+Retain DescriptionList native dl/dt/dd semantics without redundant ARIA term/definition roles. Table needs a meaningful caption (hideCaption keeps its name) and host-owned header associations; never convert table rows into display:block cards without preserving relationships. Name the horizontal scroll viewport, retain keyboard scrolling and check that focusable cell controls remain reachable. Native table ref points to table, not viewport.
+
+
+Menu: preserve menu/menuitem/separator semantics and trigger aria-haspopup/expanded/controls. Disabled items remain arrow-focusable with aria-disabled and must never activate. Use arrows/Home/End/typeahead within the menu, Escape to close, Tab out and Shift+Tab to trigger. Do not turn ordinary navigation lists into application menus. Restore focus unless the host deliberately moved it; test nested Dialog behavior and actual assistive technology separately.
+
+Toolbar requires a meaningful label. After hydration it manages child tabIndex, skips hidden/disabled actions, supports Home/End, orientation and RTL, and restores original child tabIndex attributes on cleanup. Native child handlers/refs remain attached. Before JavaScript native child Tab order remains. Kbd has native keyboard-input semantics and adds no focus stop or handler; do not present unimplemented bindings as working shortcuts.

@@ -5,7 +5,8 @@ import {
   type ChangeEvent, type ReactNode,
 } from "react";
 import type { SelectProps } from "./index.js";
-import { OverlayScrollArea } from "./scroll-area.js";
+import { ScrollArea } from "./index.js";
+import { positionLayer, registerLayer, returnFocus } from "./overlay-runtime.js";
 
 interface Choice { value: string; label: string; disabled: boolean; hidden: boolean; group?: string }
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -36,8 +37,8 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
   const [choices, setChoices] = useState(() => initialChoices(children));
   const [selected, setSelected] = useState(() => String(defaultValue ?? initialChoices(children).find((choice) => !choice.disabled && !choice.hidden)?.value ?? ""));
   const [open, setOpen] = useState(false), [active, setActive] = useState(-1);
+  const activeIndex = useRef(active); activeIndex.current = active;
   const [validation, setValidation] = useState("");
-  const [position, setPosition] = useState({ left: 0, top: 0, width: 0, maxHeight: 0, viewportHeight: 0 });
   const controlled = value !== undefined;
   const currentValue = controlled ? String(value) : selected;
   const current = useRef({ controlled, value: currentValue });
@@ -128,46 +129,75 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
       if (enabled(fresh[index])) { setActive(index); break; }
     }
   }
+  function revealOption(index: number) {
+    const option = menu.current?.querySelector<HTMLElement>(`[data-option-index="${index}"]`), viewport = scrollViewport.current;
+    if (!option || !viewport) return;
+    const item = option.getBoundingClientRect(), bounds = viewport.getBoundingClientRect();
+    if (item.top < bounds.top) viewport.scrollTop -= bounds.top - item.top;
+    else if (item.bottom > bounds.bottom) viewport.scrollTop += item.bottom - bounds.bottom;
+  }
   useBrowserLayoutEffect(() => {
     if (!open || !menu.current || !trigger.current) return;
-    const popup = menu.current, button = trigger.current;
-    if (typeof popup.showPopover === "function" && !popup.matches(":popover-open")) popup.showPopover();
-    const rect = button.getBoundingClientRect();
-    const rootSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
-    const length = (name: string) => { const raw = getComputedStyle(button).getPropertyValue(name).trim(); return parseFloat(raw) * (raw.endsWith("rem") ? rootSize : 1); };
-    const gap = length("--flood-sys-space-2") || 0;
-    const below = Math.max(0, innerHeight - rect.bottom - gap * 2), above = Math.max(0, rect.top - gap * 2);
-    const maxHeight = Math.min(length("--flood-sys-control-md-height") * 8, Math.max(below, above));
-    const width = Math.min(rect.width, Math.max(0, innerWidth - gap * 2));
-    popup.style.width = `${width}px`;
-    popup.style.maxHeight = `${maxHeight}px`;
-    const popupStyle = getComputedStyle(popup);
-    const inset = parseFloat(popupStyle.paddingTop) + parseFloat(popupStyle.paddingBottom) + parseFloat(popupStyle.borderTopWidth) + parseFloat(popupStyle.borderBottomWidth);
-    const viewportHeight = Math.max(0, maxHeight - inset);
-    if (scrollViewport.current) scrollViewport.current.style.maxHeight = `${viewportHeight}px`;
-    const height = popup.getBoundingClientRect().height;
-    const top = below >= height || below >= above ? rect.bottom + gap : Math.max(gap, rect.top - gap - height);
-    setPosition({ left: Math.max(gap, Math.min(rect.left, innerWidth - gap - width)), top, width, maxHeight, viewportHeight });
-  }, [open, choices]);
+    const popup = menu.current, button = trigger.current, document = popup.ownerDocument, view = document.defaultView!;
+    let alive = true, frame = 0, lastViewportHeight = -1, unregister = () => {};
+    const assign = (element: HTMLElement, property: string, value: string) => {
+      if (element.style.getPropertyValue(property) !== value) element.style.setProperty(property, value);
+    };
+    const update = () => {
+      if (!alive) return;
+      if (!button.isConnected || !button.getClientRects().length) { setOpen(false); return; }
+      const rect = button.getBoundingClientRect(), visual = view.visualViewport;
+      const viewportTop = visual?.offsetTop ?? 0, viewportWidth = visual?.width ?? view.innerWidth, viewportHeight = visual?.height ?? view.innerHeight;
+      const rootSize = parseFloat(view.getComputedStyle(document.documentElement).fontSize);
+      const length = (name: string) => { const raw = view.getComputedStyle(button).getPropertyValue(name).trim(); return parseFloat(raw) * (raw.endsWith("rem") ? rootSize : 1); };
+      const gap = length("--flood-sys-space-2") || 0;
+      const below = Math.max(0, viewportTop + viewportHeight - rect.bottom - gap * 2), above = Math.max(0, rect.top - viewportTop - gap * 2);
+      const maxHeight = Math.min(length("--flood-sys-control-md-height") * 8, Math.max(below, above));
+      assign(popup, "width", `${Math.min(rect.width, Math.max(0, viewportWidth - gap * 2))}px`);
+      assign(popup, "max-height", `${maxHeight}px`);
+      // The shared positioner reads column-gap as its placement gap. On this
+      // block listbox it does not add layout space between options.
+      assign(popup, "column-gap", "var(--flood-sys-space-2)");
+      const css = view.getComputedStyle(popup);
+      const inset = parseFloat(css.paddingTop) + parseFloat(css.paddingBottom) + parseFloat(css.borderTopWidth) + parseFloat(css.borderBottomWidth);
+      const optionHeight = Math.max(0, maxHeight - inset);
+      if (scrollViewport.current) assign(scrollViewport.current, "max-height", `${optionHeight}px`);
+      positionLayer(button, popup, "bottom", "start");
+      if (optionHeight !== lastViewportHeight) { lastViewportHeight = optionHeight; revealOption(activeIndex.current); }
+      frame = view.requestAnimationFrame(update);
+    };
+    const start = () => {
+      if (!alive || !button.isConnected) return;
+      const parent = button.closest("dialog");
+      if (parent && !parent.open) { frame = view.requestAnimationFrame(start); return; }
+      if (typeof popup.showPopover !== "function") throw new Error("Flood Select requires the native Popover API");
+      popup.style.visibility = "hidden"; popup.showPopover(); update();
+      unregister = registerLayer(document, {
+        panel: popup,
+        // Native callbacks are mirrored on the hidden select inside this span.
+        // Those synthetic focus events belong to this control, not outside it.
+        anchor: () => trigger.current?.parentElement ?? trigger.current,
+        close: () => setOpen(false),
+      });
+    };
+    const toggle = (event: Event) => {
+      if (alive && (event as ToggleEvent).newState === "closed" && !popup.matches(":popover-open")) setOpen(false);
+    };
+    popup.addEventListener("toggle", toggle);
+    start();
+    return () => {
+      alive = false; view.cancelAnimationFrame(frame); unregister(); popup.removeEventListener("toggle", toggle);
+      returnFocus(popup, trigger.current);
+      if (popup.matches(":popover-open")) popup.hidePopover();
+    };
+  }, [open]);
   useEffect(() => {
     if (!open || (choices[active] && enabled(choices[active]))) return;
     const selectedIndex = choices.findIndex((choice) => choice.value === currentValue && enabled(choice));
     setActive(selectedIndex >= 0 ? selectedIndex : choices.findIndex(enabled));
   }, [choices, open, active, currentValue]);
-  useEffect(() => {
-    if (!open) return;
-    menu.current?.querySelector<HTMLElement>(`[data-option-index="${active}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [open, active]);
-  useEffect(() => {
-    if (!open) return;
-    const outside = (event: PointerEvent) => { if (event.target instanceof Node && !trigger.current?.contains(event.target) && !menu.current?.contains(event.target)) setOpen(false); };
-    const scroll = (event: Event) => { if (event.target instanceof Node && menu.current?.contains(event.target)) return; setOpen(false); };
-    const resize = () => setOpen(false);
-    document.addEventListener("pointerdown", outside, true);
-    document.addEventListener("scroll", scroll, true);
-    window.addEventListener("resize", resize);
-    return () => { document.removeEventListener("pointerdown", outside, true); document.removeEventListener("scroll", scroll, true); window.removeEventListener("resize", resize); };
-  }, [open]);
+  useEffect(() => { if (open) revealOption(active); }, [open, active]);
+
 
   const displayed = choices.find((choice) => choice.value === currentValue)?.label ?? "Select an option";
   const descriptions = [describedBy, validation && validationId].filter(Boolean).join(" ") || undefined;
@@ -183,8 +213,8 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
   const renderOption = ({ choice, index }: { choice: Choice; index: number }) => <div key={`${index}-${choice.value}`}
     id={`${menuId}-${index}`} role="option" aria-selected={choice.value === currentValue} aria-disabled={choice.disabled || undefined}
     className="flood-select__option" data-active={index === active || undefined} data-option-index={index}
-    onPointerDown={(event) => event.preventDefault()} onPointerMove={() => { if (enabled(choice)) setActive(index); }}
-    onClick={() => { if (enabled(choice)) { commit(index); trigger.current?.focus(); } }}>
+    onPointerDown={(event) => { if (event.pointerType === "mouse") event.preventDefault(); }} onPointerMove={() => { if (enabled(choice)) setActive(index); }}
+    onClick={() => { if (enabled(choice)) commit(index); }}>
     <span>{choice.label}</span><span className="flood-select__selected" aria-hidden="true">{choice.value === currentValue ? "✓" : ""}</span>
   </div>;
   return <span className={`flood-select flood-select--custom flood-control--${controlSize}`} dir={nativeProps.dir} lang={nativeProps.lang} hidden={nativeProps.hidden}>
@@ -198,7 +228,7 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
       aria-required={required || undefined} aria-expanded={open} aria-haspopup="listbox" aria-controls={menuId}
       aria-activedescendant={open && active >= 0 && choices[active] && !choices[active].hidden ? `${menuId}-${active}` : undefined}
       onFocus={(event) => { if (onFocus) mirror(new FocusEvent("focusin", { bubbles: true, relatedTarget: event.relatedTarget })); }}
-      onBlur={(event) => { if (onBlur) mirror(new FocusEvent("focusout", { bubbles: true, relatedTarget: event.relatedTarget })); setOpen(false); }}
+      onBlur={(event) => { if (onBlur) mirror(new FocusEvent("focusout", { bubbles: true, relatedTarget: event.relatedTarget })); }}
       onClick={() => { if (onClick && !mirror(new MouseEvent("click", { bubbles: true, cancelable: true }))) return; if (open) setOpen(false); else openMenu(); }}
       onKeyUp={(event) => { if (onKeyUp) mirror(new KeyboardEvent("keyup", { key: event.key, bubbles: true, cancelable: true })); }}
       onKeyDown={(event) => {
@@ -230,13 +260,13 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
       onInvalid={(event) => { onInvalid?.(event); const prevented = event.defaultPrevented; event.preventDefault(); if (!prevented) { setValidation(event.currentTarget.validationMessage); trigger.current?.focus(); } }}
     >{children}</select>
     {open && <div ref={menu} id={menuId} role="listbox" aria-label={ariaLabel} aria-labelledby={ariaLabel ? undefined : labelledBy ?? triggerId} popover="manual"
-      className="flood-select__menu" onPointerDown={(event) => event.preventDefault()} onClick={(event) => event.preventDefault()} style={{ left: position.left, top: position.top, width: position.width, maxHeight: position.maxHeight || undefined }}>
-      <OverlayScrollArea ref={scrollViewport} orientation="vertical" tabIndex={-1} className="flood-select__viewport" style={{ maxHeight: position.viewportHeight || undefined }}>
+      className="flood-select__menu" onPointerDown={(event) => { if (event.pointerType === "mouse") event.preventDefault(); }} onClick={(event) => event.preventDefault()}>
+      <ScrollArea ref={scrollViewport} orientation="vertical" tabIndex={-1} className="flood-select__viewport">
         {!choices.some((choice) => !choice.hidden) && <div className="flood-select__empty">No options</div>}
         {groups.map((group, index) => group.label ? <div key={index} role="group" aria-label={group.label}>
           <div className="flood-select__group" aria-hidden="true">{group.label}</div>{group.items.map(renderOption)}
         </div> : <Fragment key={index}>{group.items.map(renderOption)}</Fragment>)}
-      </OverlayScrollArea>
+      </ScrollArea>
     </div>}
     {validation && <span className="flood-select__validation" id={validationId} role="alert">{validation}</span>}
   </span>;

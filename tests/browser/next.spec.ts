@@ -6,7 +6,7 @@ test("Next App Router renders, hydrates and submits Flood controls", async ({
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("http://127.0.0.1:3001");
+  await page.goto((process.env.FLOOD_NEXT_TEST_URL ?? "http://127.0.0.1:3001"));
   await expect(
     page.getByRole("heading", { name: "Flood + Next.js" }),
   ).toBeVisible();

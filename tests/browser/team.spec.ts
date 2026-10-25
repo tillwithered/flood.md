@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-const url = "http://127.0.0.1:3001/team";
+const url = (process.env.FLOOD_NEXT_TEST_URL ?? "http://127.0.0.1:3001") + "/team";
 
 test("team settings validate, save native form values and reset", async ({ page }) => {
   const errors: string[] = [];

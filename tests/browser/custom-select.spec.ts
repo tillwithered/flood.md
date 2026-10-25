@@ -163,3 +163,30 @@ test("touch selection uses the Flood popup with full touch row targets", async (
     await expect(selectBridge(trigger)).toHaveValue("alpha");
   } finally { await context.close(); }
 });
+
+test("forced-color numeric options commit zero through a real pointer",async({browser},info)=>{
+  const context=await browser.newContext({baseURL:"http://127.0.0.1:4173",hasTouch:true,isMobile:true,viewport:{width:390,height:844},forcedColors:"active"});
+  try {
+    const page=await context.newPage();
+    await page.addInitScript(()=>{
+      const history:Array<Record<string,unknown>>=[];
+      (window as unknown as {numericSelectHistory:typeof history}).numericSelectHistory=history;
+      for(const type of ["pointerdown","pointerup","click","input","change","scroll"])document.addEventListener(type,event=>{
+        const target=event.target as HTMLElement;
+        history.push({type,tag:target?.localName,role:target?.getAttribute?.("role"),text:target?.textContent?.slice(0,35),value:(target as HTMLSelectElement)?.value,trusted:event.isTrusted});
+        if(history.length>30)history.shift();
+      },true);
+    });
+    await page.goto("/components/pagination");
+    const trigger=page.getByRole("combobox",{name:"Pagination prop siblingCount",exact:true});
+    try {
+      await chooseSelectOption(trigger,"0");
+      await expect(page.locator("#usage .site-code-block code")).toContainText("siblingCount={0}");
+    } catch(error) {
+      const history=await page.evaluate(()=>(window as unknown as {numericSelectHistory:unknown}).numericSelectHistory);
+      console.log("NUMERIC_SELECT_DIAGNOSTIC",JSON.stringify(history));
+      await info.attach("numeric-select-events",{body:JSON.stringify(history,null,2),contentType:"application/json"});
+      throw error;
+    }
+  } finally {await context.close()}
+});

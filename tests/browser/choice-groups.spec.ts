@@ -27,7 +27,7 @@ h('form',{id:'required'},h(RadioGroup,{name:'requiredChoice',legend:'Required',o
   const outputs = (Array.isArray(result) ? result : [result]).flatMap(item => "output" in item ? item.output : []);
   const js = outputs.filter(item => item.type === "chunk").map(item => item.type === "chunk" ? item.code : "").join("\n");
   const css = outputs.filter(item => item.type === "asset" && item.fileName.endsWith(".css")).map(item => item.type === "asset" ? String(item.source) : "").join("\n");
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><style>${css}</style></head><body><main id="app"></main><script>${js.replace(/<\/script/gi, "<\\/script")}</script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style></head><body><main id="app"></main><script>${js.replace(/<\/script/gi, "<\\/script")}</script></body></html>`;
 }
 async function open(page: Page) {
   bundle ??= fixture(); const html = await bundle;
@@ -104,7 +104,8 @@ test("compact groups preserve coarse-pointer target size and nonoverlapping rows
   try {
     const page = await context.newPage(); await open(page);
     const rows = await page.getByRole("group", { name: "Many", exact: true }).locator(".flood-choice").evaluateAll(nodes => nodes.map(node => ({ top: node.getBoundingClientRect().top, bottom: node.getBoundingClientRect().bottom, height: node.getBoundingClientRect().height })));
-    expect(rows.every(row => row.height >= 44)).toBe(true);
+    const environment=await page.evaluate(()=>({coarse:matchMedia("(pointer:coarse)").matches,width:innerWidth,rootFont:getComputedStyle(document.documentElement).fontSize}));
+    expect(rows.every(row => row.height >= 44),JSON.stringify({environment,rows})).toBe(true);
     expect(rows.slice(1).every((row, index) => row.top >= rows[index].bottom)).toBe(true);
   } finally { await context.close(); }
 });

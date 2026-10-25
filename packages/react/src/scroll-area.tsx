@@ -74,7 +74,7 @@ function cornerBounds(node: HTMLElement, axis: Axis, crossStart: number, crossEn
 
 /** Original overlay chrome; the viewport itself remains a browser-native scroll container. */
 export const OverlayScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function OverlayScrollArea({
-  orientation = "vertical", contentInset = "none", children, className, style, tabIndex = 0, role, ...props
+  orientation = "vertical", contentInset = "none", children, className, style, tabIndex = 0, role, onFocus, ...props
 }, forwardedRef) {
   const id = useId();
   const viewport = useRef<HTMLDivElement>(null), content = useRef<HTMLDivElement>(null);
@@ -185,9 +185,20 @@ export const OverlayScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(fun
     "--flood-scroll-content-block": measurements.horizontal.visible ? "calc(var(--flood-sys-scrollbar-size) + 2 * var(--flood-sys-scrollbar-inset))" : "0px",
   } as CSSProperties : undefined;
   const named = props["aria-label"] || props["aria-labelledby"];
-  return <div className="flood-scroll-area" style={rootStyle}>
+  return <div className="flood-scroll-area" hidden={props.hidden} dir={props.dir} lang={props.lang} style={rootStyle}>
     <div {...props} id={props.id ?? `flood-scroll-${id}`} ref={viewport} tabIndex={tabIndex} role={role ?? (named ? "region" : undefined)}
       className={["flood-scroll-area__viewport", className].filter(Boolean).join(" ")} style={style}
+      onFocus={event => {
+        onFocus?.(event); if (event.defaultPrevented || event.target === event.currentTarget) return;
+        const target = event.target as HTMLElement, node = event.currentTarget;
+        if (node.ownerDocument.activeElement !== target) return;
+        const layer = target.closest("[popover], dialog[open]");
+        if (layer && node.contains(layer)) return;
+        const box = target.getBoundingClientRect(), bounds = node.getBoundingClientRect();
+        const outsideX = orientation !== "vertical" && (box.left < bounds.left || box.right > bounds.right);
+        const outsideY = orientation !== "horizontal" && (box.top < bounds.top || box.bottom > bounds.bottom);
+        if (outsideX || outsideY) target.scrollIntoView({block:"nearest",inline:"nearest"});
+      }}
       data-orientation={orientation} data-scrollbars={measurements.enhanced ? "overlay" : undefined}>
       <div className="flood-scroll-area__content" ref={content} style={contentStyle}>{children}</div>
     </div>

@@ -30,3 +30,13 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
       - run: npm run release:publish
+      - run: npm run release:verify-registry
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: registry-verification
+          path: |
+            .artifacts/registry-verification.json
+            .artifacts/registry-browser-results.json
+          if-no-files-found: ignore
+          retention-days: 14

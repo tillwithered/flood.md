@@ -69,7 +69,7 @@ test("display heading and code snippet retain native semantics and escaped conte
   assert.match(html, /<h1 class="flood-heading flood-type--display">A foundation<\/h1>/);
   assert.match(html, /<p class="flood-text flood-type--lead flood-tone--default">A calm introduction<\/p>/);
   assert.match(html, /id="install" aria-describedby="copy-status"/);
-  assert.match(html, /<code class="flood-code-snippet__code">&lt;script&gt;/);
+  assert.match(html, /<code(?=[^>]*dir="ltr")(?=[^>]*class="flood-code-snippet__code")[^>]*>&lt;script&gt;/);
   assert.doesNotMatch(html, /<script>/);
   assert.match(html, /aria-label="Copy command"/);
   const withoutAction = renderToStaticMarkup(createElement(CodeSnippet, { code: "npm install example" }));

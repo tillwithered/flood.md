@@ -1,6 +1,6 @@
-# Foundations tokens · 0.2.3
+# Foundations tokens · 0.2.4
 
-This guide describes the **0.2.3** foundation exports. Keep Flood packages at
+This guide describes the **0.2.4** foundation exports. Keep Flood packages at
 matching exact versions. Existing 0.1.1 installs use their earlier token contract.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).
@@ -68,16 +68,19 @@ prepend `--flood-`. The generated typed lookup is the complete contract.
 
 | Family | Roles |
 | --- | --- |
-| `font` | `sans` (Inter, Arial, sans-serif) |
-| `type` | `large`, `page`, `section`, `body`, `compact`, `label`, `helper`, `control`; each has `size`, `line-height`, `weight`, `tracking` |
+| `font` | `sans` (Inter, Arial, sans-serif), `mono` |
+| `type` | `display`, `lead`, `large`, `page`, `section`, `body`, `compact`, `label`, `helper`, `control`; each has `size`, `line-height`, `weight`, `tracking` |
 | `space` | `0`, `1`, `2`, `3`, `4`, `6`, `8`, `12`; one step = .25rem |
 | `radius` | `field` 1rem, `block` 1.5rem, `surface` 2rem, `action` pill, `indicator` .375rem |
 | `control` | `2xs`, `xs`, `sm`, `md`, `lg`, `xl`, `2xl`; each has `height`, `text-size`, `line-height`, `padding-inline`, `icon-size`, `gap` |
-| `size` | `touch`, `choice`, `switch-width`, `switch-height`, `switch-thumb` |
-| `color.action` | `primary`, `subtle`, `on-surface`, `ghost`; each has `rest`, `hover`, `pressed`, `content`, `disabled`, `disabled-content` |
+| `size` | `touch`, `choice`, `switch-width`, `switch-height`, `switch-thumb`, `indicator.sm/md/lg`, `keycap.sm/md/lg`, `container.sm/md/lg`, `grid.min-item` |
+| `color.action` | `primary`, `subtle`, `on-surface`, `ghost`; each has `rest`, `hover`, `pressed`, `content`, `disabled`, `disabled-content`; destructive action content has its own `danger.content` |
 | `color.field` | `background`, `border`, `boundary`, `content`, `placeholder`, `disabled`, `disabled-content` |
 | `color.feedback` | `error`, `success`, `warning`, `info` |
 | `color.selection` | `background`, `content` |
+| `focus`, `stroke` | Focus width/offset and decorative stroke width; independent of field validation |
+| `scrollbar` | `size`, `inset`, `min-thumb`; thumb colors live under color.scrollbar |
+| `color` | Surface/content, decorative border/divider, accent, focus, loading placeholder, indicator track/fill/accent and scrollbar rest/hover |
 | `motion` | `duration-fast`, `duration-normal`, `duration-reduced`, `easing` |
 | `layer` | `base`, `sticky`, `popover`, `modal`, `toast` |
 
@@ -86,13 +89,15 @@ prepend `--flood-`. The generated typed lookup is the complete contract.
 Size equivalents assume a 16px root for illustration. Flood does not set the
 host's root font size. Sizes use rem, line heights use ratios and tracking uses
 em. Font weights are 400/500. The React stylesheet bundles the Inter variable
-font and its SIL Open Font License; it loads locally from the installed package.
+normal/italic fonts and their SIL Open Font License; it loads locally from the installed package.
 The token-only stylesheet does not load fonts: token-only consumers supply
 their own font setup with Latin/Cyrillic coverage as needed. Fallback metrics
 can differ.
 
 | Role | Size / line height | Weight | Tracking |
 | --- | --- | --- | --- |
+| display | 88 / 98.56 | 500 | -.04em |
+| lead | 22 / 31.9 | 400 | -.01em |
 | large | 32 / 40 | 500 | -.02em |
 | page | 24 / 32 | 500 | -.02em |
 | section | 20 / 28 | 500 | -.015em |
@@ -199,3 +204,18 @@ overrides do not automatically override separately scoped foundation roles.
 
 Version 0.2.2 adds these exports without replacing an existing npm version.
 Publication must be verified separately; source version numbers are not proof.
+
+
+Version 0.2.4 adds sixteen semantic roles, bringing the dark profile
+to 184 roles. Existing role values remain unchanged:
+
+- sys.color.accent.content and sys.color.loading.placeholder separate accent text
+  and loading fills from focus and action states.
+- sys.color.indicator.track/fill/accent and sys.size.indicator.sm/md/lg control
+  bounded indicators without borrowing control or focus roles.
+- sys.color.action.danger.content styles destructive actions independently from
+  validation messages and keyboard focus.
+
+- sys.size.keycap.sm/md/lg provide independent relative heights for keyboard hints.
+
+- sys.size.container.sm/md/lg and sys.size.grid.min-item supply relative layout bounds.

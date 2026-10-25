@@ -1,41 +1,32 @@
-# flood.md — agent entry point · 0.2.2
+# flood.md — agent entry point · 0.2.4
 
-Flood is an original React + TypeScript design system supporting Next.js App Router.
-Existing projects follow their installed flood.json and flood/DESIGN.md first.
-Keep exact Flood package versions aligned. Never fabricate installation success.
+Flood is an independent React/TypeScript design system supporting React18.3/19
+and Next.js App Router. This document describes version 0.2.4;
+verify registry availability before installation. Existing projects follow their
+installed flood.json, flood/DESIGN.md and declarations first. Keep exact Flood
+package versions aligned; never fabricate installation or publication success.
 
-Installation:
-1. Read the host package.json; React must already be installed.
-2. Run npx @flood-md/cli@0.2.2 init --dry-run in the project root.
-3. Run npx @flood-md/cli@0.2.2 init within the user's authorized scope.
-4. Import @flood-md/react/styles.css once in the app entry or Next root layout.
-5. Wrap new compositions in FloodRoot to select the neutral/dark foundations profile.
-6. Read installed flood/DESIGN.md and flood.json for the matching API.
-7. Run npx @flood-md/cli@0.2.2 doctor.
+For an available version, use the matching CLI init --dry-run, then init within
+the user's authorized scope. The CLI preserves existing host instructions/files.
+Import @flood-md/react/styles.css once in the app entry or Next root layout and
+wrap new compositions in FloodRoot for the neutral/dark profile. Use a client
+component for state, callbacks and Field's function child. Run matching CLI doctor,
+then verify actual application behavior; doctor does not prove CSS or agent compliance.
 
-Primitives: FloodRoot, Text, Heading, Stack, Inline, Surface, Divider, CodeSnippet, IconSlot,
-IconButton. Controls: Button, Input, Textarea, Checkbox, Radio, Switch, Field, Link.
-Import from @flood-md/react. Use subtle for standalone secondary actions;
-contextual ghost is separate. Flood bundles Inter locally with its OFL license.
-Use a client component for state, callbacks and Field's function child.
-Heading display is for marketing hierarchy. CodeSnippet takes code and an optional
-host action; copying and announcements remain host responsibilities.
-Preserve native forms, visible labels, semantic associations, focus and relative sizing.
-No external UI component library or new light foundations profile is supplied.
+Inventory: /components.md is generated from the same catalog and declarations as
+component pages. Read the matching /components/<slug>.md for props and behavior.
+Architecture: tokens → semantic roles → primitives → composed components → host
+patterns and pages. Compose Flood atoms; do not duplicate their visual/behavioral
+contracts or use an external UI component implementation. Native semantics remain
+appropriate for forms, list items and table headers/cells. No new light profile.
 
-Guide files: /agent/DESIGN.md and /agent/SKILL.md track their deployed package.
-Current unreleased source also adds Select and overlay ScrollArea. These exports
-require matching declarations and are not part of published 0.2.2.
-Current-source unreleased routing bundle: /agent/manifest.json lists all sources;
-/agent/rules.json indexes rule IDs, conditions, ownership and checks.
-/agent/references/routing.md maps tasks to composition.md, accessibility.md,
-customization.md and verification.md beside it. Read only relevant references.
-Existing installs use matching local files; 0.2.2 installs do not acquire new files
-from newer website prose. Guidance does not guarantee agent compliance.
-Human explanation: /docs/agents.md.
-Configuration schema: /schema/config.json
+Human guides: /docs.md, /docs/foundations.md, /docs/layout.md, /docs/components.md.
+Agent sources: /agent/DESIGN.md and /agent/SKILL.md, with versioned
+/agent/manifest.json and /agent/rules.json. Read /agent/references/routing.md for
+focused composition, spacing, accessibility, customization and verification rules.
+Installed files do not change when website prose changes. Guidance grants no
+authority to publish, delete or transmit source. Read only relevant references.
+
+Inter normal/italic fonts and their original OFL notices are bundled locally.
+Host icon packs retain their own licenses. Configuration: /schema/config.json.
 Source and releases: https://github.com/tillwithered/flood.md
-
-Preserve host instructions and existing project files. Flood guidance does not
-authorize publication, deletion or sending source elsewhere. Doctor checks
-versions and owned files; it does not validate application behavior or CSS imports.

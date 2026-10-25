@@ -139,3 +139,23 @@ last item current. Pagination is controlled page/pageCount with onPageChange or
 getHref; host owns data/routes and empty states. Counts must be positive safe
 integers in range; siblingCount 0/1/2 bounds window size. Native modifier navigation,
 localized names, unavailable endpoints and narrow wrapping stay intact. Available in 0.2.3.
+
+
+## Metadata, loading and identity · 0.2.4
+
+Use Badge for noninteractive metadata with meaningful text. Spinner is indeterminate loading; use decorative inside a control already named by its owner. Button loading already composes it. Skeleton reserves geometry and is always hidden from AT; the host owns aria-busy and loading text. Avatar requires name and supports src/fallback; choose decorative beside an equivalent visible name. Keep image and fallback geometry fixed. None of these primitives fetch data or provide upload behavior.
+
+
+Progress is task completion; omit value for unknown progress. Meter is a bounded measurement and always requires value. Both need label and finite increasing ranges; invalid values throw. Use valueText for localized units and hideLabel for visually hidden captions. Wrapper refs and native div props do not replace the internal range semantics. Alert is inline feedback: title optional, host actions inside children, icon=null to omit artwork. Tone and announcement are independent. No task manager, validation engine, automatic dismissal or Toast queue is supplied. Available in 0.2.4.
+
+
+DescriptionList uses native dl/dt/dd for related readonly properties; use unique item IDs, meaningful term text and formatted description content. Inline layout stacks according to container width; it does not label editable controls. Table owns caption and a horizontal Flood ScrollArea. Supply native table sections and correct th scope/id/headers relationships; className/style/ref target the actual table. Use data-numeric for numeric cells and style.minWidth for wide tables. Cell actions stay ordinary focusable controls; do not imply DataTable sorting, selection or fetching. Available in 0.2.4.
+
+
+Menu is a dedicated action-menu contract, not Popover with arbitrary buttons. Forward supplied trigger props/ref to Button/IconButton. Use unique IDs and nonempty labels; separators are noninteractive, disabled items discoverable but inert, danger is visual intent only. onAction requests closing then calls host logic. No href, submenu or checkbox/radio behavior is supplied. Items/shortcuts do not install global key bindings. Place Table row actions inside a cell, with an IconButton name that includes the row identity. Available in 0.2.4.
+
+Toolbar groups actions with one Tab entry after hydration. Use Button/IconButton/Toggle, native buttons/links and Menu triggers. Arrows move focus; Enter/Space activate the native control. Keep independent selection widgets and text fields outside this action-only toolbar. In a vertical toolbar Enter/Space opens Menu; Up/Down remain toolbar navigation. Use Kbd for display-only keyboard hints and implement actual bindings in the host. Available in 0.2.4.
+
+Card is structured Surface containment: title/description/header actions, body children and footer. Missing slots add no empty sections. Choose compact/comfortable density; preserve the tight title-description relationship. Use appropriate headingLevel. Keep root noninteractive and place named controls inside, never a card-wide click handler around nested actions. Use Surface for unstructured containment.
+
+Compose lower-level responsibilities: Container/Grid and Stack/Inline arrange; Surface contains; Card structures; Image/AspectRatio reserve media; List preserves native li. EmptyState composes the shared typography/icon/action atoms. Use VisuallyHidden for supplemental noninteractive text or focusable reveal for skip links. Do not replace native caption/legend structures with generic wrappers solely for reuse. Mixed Checkbox is host-owned aggregation, with checked still controlling submission.

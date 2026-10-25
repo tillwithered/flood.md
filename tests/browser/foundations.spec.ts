@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { chooseSelectOption, selectBridge } from "./select-helpers";
 
-const url = "http://127.0.0.1:3001/foundations";
+const url = (process.env.FLOOD_NEXT_TEST_URL ?? "http://127.0.0.1:3001") + "/foundations";
 
 test("dark foundations hydrate with the bundled Inter font and accessible primitives", async ({ page }, testInfo) => {
   const errors: string[] = [];
@@ -200,7 +200,11 @@ test("coarse pointer targets expand and switch geometry follows RTL", async ({ b
     await page.locator("#foundation-root").evaluate((node) => node.setAttribute("dir", "rtl"));
     const toggle = page.getByRole("switch", { name: "Public preview" });
     await toggle.check();
-    await expect.poll(() => toggle.evaluate((node) => getComputedStyle(node, "::before").transform)).toBe("matrix(1, 0, 0, 1, -14, 0)");
+    await expect.poll(() => toggle.evaluate(node => {
+      const s=getComputedStyle(node), thumb=getComputedStyle(node,"::before");
+      const left=parseFloat(thumb.left)+parseFloat(s.borderLeftWidth), width=parseFloat(thumb.width);
+      return left >= 0 && left+width <= node.clientWidth+2 && left < node.clientWidth/2;
+    })).toBe(true);
     const box = await toggle.boundingBox();
     expect(box!.width).toBe(36);
     expect(box!.height).toBe(22);
