@@ -16,6 +16,20 @@ npm run dev
 Create a topic branch and open a pull request against main. Explain the user-facing
 change and validation. Main requires the GitHub Actions verify check before merge.
 
+Name branches after the work, using lowercase hyphenated topics:
+
+| Purpose | Example |
+| --- | --- |
+| Feature | `feat/base-components` |
+| Correction | `fix/icon-alignment` |
+| Documentation | `docs/installation-guide` |
+| Repository maintenance | `chore/repository-naming` |
+| Release | `release/0.2.3-installation` |
+
+Branch names, commit subjects and PR titles describe the change rather than the
+tool or assistant used to author it. CI verifies every pull request and pushes
+to main, independently of the topic branch's name.
+
 ```sh
 npm run verify
 npx playwright install chromium

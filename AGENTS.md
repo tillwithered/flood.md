@@ -15,6 +15,9 @@ the public product, website, documentation, examples and verification tooling.
 - Keep account-specific infrastructure, operational journals and internal plans
   outside this repository. See CONTRIBUTING.md for the public boundary.
 - Use topic branches and pull requests; main requires the verify check before merge.
+- Name branches by purpose: feat/<topic>, fix/<topic>, docs/<topic>,
+  chore/<topic>, or release/<version>-<topic>. Use lowercase hyphenated topics.
+  Branches, commits and PR titles describe the change, never its authoring tool.
 - Keep user docs in docs/ and version-specific agent sources in packages/agent/.
 - Validate with `npm run verify`; run browser tests for behavior/style changes.
 - Release and deployment process lives in `docs/releases.md` and `docs/deployment.md`.
