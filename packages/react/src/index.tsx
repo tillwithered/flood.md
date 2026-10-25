@@ -392,6 +392,17 @@ export const Dialog = forwardRef<HTMLDialogElement, DialogProps>(function Dialog
   {defaultOpen = false, disabled = false, closeLabel = "Close", closeOnOutsideClick = true, ...props}, ref,
 ) { return <ModalOverlay {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} closeLabel={closeLabel} closeOnOutsideClick={closeOnOutsideClick} />; });
 
+export interface DrawerProps extends DialogProps {
+  side?: "start" | "end" | "top" | "bottom";
+  size?: "sm" | "md" | "lg";
+  footer?: ReactNode;
+}
+export const Drawer = forwardRef<HTMLDialogElement, DrawerProps>(function Drawer(
+  {side = "end", size = "md", defaultOpen = false, closeLabel = "Close", closeOnOutsideClick = true, className, footer, ...props}, ref,
+) {
+  return <ModalOverlay {...props} ref={ref} defaultOpen={defaultOpen} closeLabel={closeLabel} closeOnOutsideClick={closeOnOutsideClick} className={classes("flood-drawer", className)} data-side={side} data-size={size} scrollBody footer={footer} />;
+});
+
 export interface AlertDialogProps extends Omit<DialogProps, "children" | "role" | "description" | "closeLabel" | "closeOnOutsideClick" | "initialFocusRef"> {
   description: string;
   confirmLabel?: string;

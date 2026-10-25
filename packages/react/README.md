@@ -870,3 +870,13 @@ Translate confirmLabel/cancelLabel. onConfirm runs before requesting close, whil
 onCancel covers Cancel/Escape. Use open/onOpenChange for controlled state and
 confirmDisabled to disable confirmation. Callbacks are not awaited; the host owns
 async requests, pending UI and errors. Use Dialog for forms/complex content.
+
+
+Drawer (unpublished 0.2.5) reuses Dialog's modal behavior with an edge-panel layout.
+side is logical start/end (default end) or top/bottom; size sm/md/lg sets the
+cross-axis extent to 20/26/34rem within the viewport. Vertical panels fill height,
+horizontal panels fill width. Use footer for host-owned actions; only body content
+scrolls with Flood ScrollArea. Header/close action/footer remain visible. Native
+ref, controlled open/onOpenChange, outside dismissal and initialFocusRef match
+Dialog. Translate closeLabel/title/description; reduced motion disables entry
+animation. Closing is immediate. There is no swipe/drag gesture or auto-save logic.

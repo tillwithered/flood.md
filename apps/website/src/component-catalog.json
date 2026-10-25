@@ -1043,5 +1043,23 @@
       "onConfirm is a host callback followed by a close request. onCancel handles the Cancel button and Escape, not confirmation. Use open/onOpenChange for host-controlled state and confirmDisabled to prevent confirmation while unavailable. Async work/errors belong to the host; callbacks are not awaited.",
       "Translate title, description, confirmLabel and cancelLabel. Use ordinary Dialog for forms and exploratory content. Available in the unpublished 0.2.5 candidate."
     ]
+  },
+  {
+    "slug": "drawer",
+    "name": "Drawer",
+    "group": "overlays",
+    "description": "A modal edge panel with a steady header, scrollable body and optional footer.",
+    "code": "<Drawer title=\"Project settings\" description=\"Keep the details close.\" trigger={props => <Button {...props}>Open settings</Button>}>\n  <Field label=\"Project name\">{control => <Input {...control} defaultValue=\"Flood\" />}</Field>\n</Drawer>",
+    "imports": [
+      "Drawer",
+      "Button",
+      "Field",
+      "Input"
+    ],
+    "notes": [
+      "Uses Flood native Dialog focus containment, scroll lock, background inertness, nested layers and return focus. Escape and the named close IconButton dismiss it; closeOnOutsideClick defaults to true. Controlled open/onOpenChange and initialFocusRef match Dialog.",
+      "side is logical start/end or physical top/bottom. size sets 20/26/34rem for sm/md/lg, capped to the viewport. Vertical drawers occupy the viewport height; horizontal drawers occupy its width. Entry motion respects reduced motion; closing is immediate.",
+      "The header and optional footer stay visible while the body scrolls with Flood ScrollArea. Footer actions are host-owned, without implicit save or close. No swipe/drag gesture or nested navigation engine is included. Available in the unpublished 0.2.5 candidate."
+    ]
   }
 ]

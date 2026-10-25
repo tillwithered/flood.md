@@ -1,6 +1,6 @@
 import {forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState} from "react";
 import type {TooltipProps,PopoverProps,DialogProps,OverlayTriggerProps} from "./index.js";
-import {IconButton} from "./index.js";
+import {IconButton,ScrollArea} from "./index.js";
 import {positionLayer,registerLayer,returnFocus,lockScroll,tabbables} from "./overlay-runtime.js";
 import {mergeDescriptions} from "./field-state.js";
 const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffect;
@@ -79,8 +79,8 @@ export const AnchoredOverlay=forwardRef<HTMLDivElement,AnchoredProps>(function A
   </div></>;
 });
 
-interface ModalOverlayProps extends DialogProps { showCloseButton?: boolean; role?: "dialog" | "alertdialog"; }
-export const ModalOverlay=forwardRef<HTMLDialogElement,ModalOverlayProps>(function ModalOverlay({showCloseButton=true,title,description,trigger,children,open:controlled,defaultOpen=false,onOpenChange,disabled=false,closeLabel="Close",closeOnOutsideClick=true,initialFocusRef,id:explicitId,className,onKeyDown,"aria-describedby":describedBy,...props},forwardedRef){
+interface ModalOverlayProps extends DialogProps { showCloseButton?: boolean; role?: "dialog" | "alertdialog"; scrollBody?: boolean; footer?: import("react").ReactNode; }
+export const ModalOverlay=forwardRef<HTMLDialogElement,ModalOverlayProps>(function ModalOverlay({showCloseButton=true,scrollBody=false,footer,title,description,trigger,children,open:controlled,defaultOpen=false,onOpenChange,disabled=false,closeLabel="Close",closeOnOutsideClick=true,initialFocusRef,id:explicitId,className,onKeyDown,"aria-describedby":describedBy,...props},forwardedRef){
   const [local,setLocal]=useState(defaultOpen),open=controlled??local;
   const dialog=useRef<HTMLDialogElement>(null),anchor=useRef<HTMLButtonElement>(null),generated=useId(),id=explicitId??`flood-dialog-${generated}`;
   const request=(next:boolean)=>{if(controlled===undefined)setLocal(next);onOpenChange?.(next);};
@@ -113,6 +113,6 @@ export const ModalOverlay=forwardRef<HTMLDialogElement,ModalOverlayProps>(functi
       if(event.shiftKey&&(active===first||!items.includes(active as HTMLElement))){event.preventDefault();last?.focus();}
       else if(!event.shiftKey&&(active===last||!items.includes(active as HTMLElement))){event.preventDefault();first.focus();}
     }}><div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{title}</h2>{showCloseButton&&<OverlayClose label={closeLabel} onClick={()=>request(false)} />}</div>
-    {description&&<p id={`${id}-description`} className="flood-overlay-description">{description}</p>}{open&&<div className="flood-overlay-body">{children}</div>}
+    {description&&<p id={`${id}-description`} className="flood-overlay-description">{description}</p>}{open&&(scrollBody?<div className="flood-drawer__body"><ScrollArea className="flood-overlay-body" style={{height:"100%"}}>{children}</ScrollArea></div>:<div className="flood-overlay-body">{children}</div>)}{open&&footer&&<div className="flood-drawer__footer">{footer}</div>}
   </dialog></>;
 });

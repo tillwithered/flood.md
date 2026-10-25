@@ -44,6 +44,8 @@ export function registerLayer(document:Document,layer:Layer) {
     const path=event.composedPath();
     if(layer.modal){const rect=layer.panel.getBoundingClientRect();if(event.clientX>=rect.left&&event.clientX<=rect.right&&event.clientY>=rect.top&&event.clientY<=rect.bottom)return;}
     else if(path.includes(layer.panel)||path.includes(layer.anchor() as EventTarget))return;
+    // A modal backdrop must not move focus to the document after close cleanup.
+    if(layer.modal)event.preventDefault();
     (layer.outside??layer.close)();
   };
   const focus=(event:FocusEvent)=>{
