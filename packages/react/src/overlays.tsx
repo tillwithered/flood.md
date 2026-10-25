@@ -95,6 +95,7 @@ export const ModalOverlay=forwardRef<HTMLDialogElement,ModalOverlayProps>(functi
     const parent=element.parentElement?.closest("dialog");if(parent&&!parent.open){frame=view.requestAnimationFrame(start);return;}
     if(typeof element.showModal!=="function")throw new Error("Flood Dialog requires native showModal");
     const previous=document.activeElement as HTMLElement|null;
+    if(scrollBody)element.dataset.drawerDirection=getComputedStyle(element).direction;
     element.showModal();const unlock=lockScroll(document);
     const unregister=registerLayer(document,{panel:element,anchor:()=>anchor.current,modal:true,close:()=>current.current.request(false),outside:()=>{if(current.current.closeOnOutsideClick)current.current.request(false)}});
     // Escape always closes, even when outside dismissal is disabled.
