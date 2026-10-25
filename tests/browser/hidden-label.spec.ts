@@ -20,7 +20,29 @@ for(const [slug,component,name,role,wrapper] of [
     const choice=stage.getByRole(role,{name,exact:true});await expect(choice).toHaveCount(1);
     await page.getByRole("checkbox",{name:`${component} ${wrapper?"Field wrapper":"prop"} hideLabel`,exact:true}).check();
     await expect(choice).toHaveCount(1);await expect(title).toHaveClass(/flood-visually-hidden/);
-    expect((await title.boundingBox())!.height).toBeLessThanOrEqual(1);
+    const playwrightTitleBox = await title.boundingBox();
+    const titleDiagnostics = await title.evaluate(node => {
+      const style = getComputedStyle(node), parent = node.parentElement!, root = node.closest(".flood-root");
+      const rect = (element: Element) => { const box = element.getBoundingClientRect(); return {x:box.x,y:box.y,width:box.width,height:box.height,top:box.top,bottom:box.bottom}; };
+      const range = document.createRange(); range.selectNodeContents(node); const textBox = range.getBoundingClientRect();
+      return {
+        tag:node.tagName,className:node.className,domBox:rect(node),
+        clientRects:Array.from(node.getClientRects(), box => ({x:box.x,y:box.y,width:box.width,height:box.height})),
+        textBox:{x:textBox.x,y:textBox.y,width:textBox.width,height:textBox.height},
+        offsetHeight:(node as HTMLElement).offsetHeight,clientHeight:node.clientHeight,scrollHeight:node.scrollHeight,
+        computed:Object.fromEntries([
+          "position","display","width","height","inline-size","block-size",
+          "min-width","max-width","min-height","max-height","min-inline-size","max-inline-size","min-block-size","max-block-size",
+          "font-size","line-height","margin-top","margin-bottom","margin-block-start","margin-block-end","padding-top","padding-bottom",
+          "top","bottom","inset-block-start","inset-block-end","overflow","clip","clip-path","white-space","box-sizing","transform",
+        ].map(property => [property,style.getPropertyValue(property)])),
+        parent:{tag:parent.tagName,className:parent.className,hideLabel:parent.getAttribute("data-hide-label"),role:parent.getAttribute("role"),box:rect(parent)},
+        bodyBox:parent.querySelector(":scope > .flood-fieldset__body") ? rect(parent.querySelector(":scope > .flood-fieldset__body")!) : null,
+        root:root ? {className:root.className,foundations:root.getAttribute("data-flood-foundations"),theme:root.getAttribute("data-flood-theme")} : null,
+        stylesheets:Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]'), link => link.href),
+      };
+    });
+    expect(playwrightTitleBox?.height ?? Infinity, JSON.stringify({component,project:info.project.name,playwrightTitleBox,...titleDiagnostics},null,2)).toBeLessThanOrEqual(1);
     expect((await host.boundingBox())!.height).toBeLessThan(before.height-2);
     const box=(await host.boundingBox())!;
     const content=slug==="input-group"? (await host.locator(":scope > .flood-input-group").boundingBox())! : role==="textbox"||role==="combobox"? (await choice.boundingBox())! : (await host.locator(":scope > .flood-fieldset__body").boundingBox())!;
