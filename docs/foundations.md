@@ -202,3 +202,5 @@ Publication must be verified separately; source version numbers are not proof.
 
 
 The 0.2.4 source candidate adds `sys.color.accent.content` for accent metadata and `sys.color.loading.placeholder` for decorative loading fills (170 public roles total). Accent content is independent from the focus ring. Existing role values remain unchanged.
+
+The same 0.2.4 candidate adds sys.color.indicator.track/fill/accent and sys.size.indicator.sm/md/lg: 176 public roles total. These separate indicator styling from action, focus and loading-placeholder roles. Existing role values stay unchanged.

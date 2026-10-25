@@ -549,3 +549,51 @@ source. The root stays the same size. This API does not upload or crop images.
 <Skeleton width="12rem" />
 <Avatar name="Alex Morgan" src="/team/alex.webp" />
 ```
+
+
+## Progress, Meter and Alert · 0.2.4
+
+Progress describes task completion. label is required; max defaults to 100 and
+value is a finite number in 0..max. Omit value for indeterminate progress; its
+progressbar then omits aria-valuenow. Meter describes a measurement in a bounded
+range, such as storage or battery. It requires value, with min=0 and max=100 by
+default. Require finite min < max, a finite range span, and min <= value <= max.
+Invalid ranges/values throw RangeError; they are not silently clamped.
+
+Both support size sm/md/lg, semantic tone, hideLabel and valueText. Tone defaults
+to accent for Progress and neutral for Meter. valueText supplies localized,
+human-readable units; it also appears beside the caption. hideLabel visually
+hides the caption while retaining the accessible name and valueText. The bar's
+role is progressbar or meter; neither becomes a live region. Native div props,
+className/style and HTMLDivElement ref target the wrapper; the internal bar owns
+its ARIA range and label associations. Wrapper ARIA props stay on the wrapper; use valueText for range-specific wording. No keyboard model,
+threshold calculation, fetching, timers or task cancellation is built in.
+Reduced motion stops indeterminate movement and value transitions. Forced colors
+preserves the track boundary and fill. Use a host loading message when needed.
+
+Alert is an inline message, with optional plain-text title and React children.
+Tones are neutral/info/success/warning/error; info is the default. Meaning must
+remain in the text. Original decorative status glyphs are included; icon accepts
+noninteractive host artwork, and icon={null} removes it without an empty column.
+The title is message content, not the root's HTML title tooltip or a document heading.
+Native div props/className/style/ref target the root.
+
+announcement defaults to off for static messages. polite uses role=status;
+assertive uses role=alert. Choose urgency deliberately for dynamically inserted
+content. Announcements depend on actual assistive technology; initial static
+markup is not guaranteed to be read aloud. No focus movement, auto-dismiss,
+timeout or built-in close/action button is supplied. Compose named host actions
+inside children when needed. Alert is separate from Dialog and future Toast.
+
+See the [WAI Meter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/meter/),
+[Alert pattern](https://www.w3.org/WAI/ARIA/apg/patterns/alert/) and
+[progressbar definition](https://www.w3.org/TR/wai-aria-1.2/#progressbar).
+
+```tsx
+<Progress label="Uploading files" value={60} valueText="60%" />
+<Progress label="Preparing workspace" />
+<Meter label="Storage used" min={0} max={100} value={75} valueText="75 of 100 GB" />
+<Alert tone="warning" title="Storage is almost full">
+  Free some space before your next upload.
+</Alert>
+```

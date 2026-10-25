@@ -630,5 +630,53 @@
       "Fallback remains visible until the image loads and after a load error. Changing src starts a fresh load lifecycle.",
       "Native span props and ref target the root. Size and shape do not change during loading. Available in 0.2.4."
     ]
+  },
+  {
+    "slug": "progress",
+    "name": "Progress",
+    "group": "feedback",
+    "description": "Completion of a task, with a determinate or unknown value.",
+    "code": "<Progress label=\"Uploading files\" value={60} valueText=\"60%\" />",
+    "imports": [
+      "Progress"
+    ],
+    "notes": [
+      "Omit value for indeterminate progress. The accessible progressbar omits aria-valuenow in that state.",
+      "Max defaults to 100; values must be finite and inside 0..max. Invalid ranges throw instead of silently inventing a percentage.",
+      "hideLabel removes the caption visually while keeping the accessible name. valueText supplies human-readable units.",
+      "This is not a live region or a task manager. Native div props, className/style and ref target the wrapper. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "meter",
+    "name": "Meter",
+    "group": "feedback",
+    "description": "A measured value within a meaningful, finite range.",
+    "code": "<Meter label=\"Storage used\" value={75} valueText=\"75 of 100 GB\" />",
+    "imports": [
+      "Meter"
+    ],
+    "notes": [
+      "Use Meter for storage, battery or other bounded measurements; use Progress for task completion.",
+      "Value is required. Min defaults to 0 and max to 100; require min < max and min <= value <= max. Invalid values throw.",
+      "Use valueText for meaningful units; hideLabel keeps the accessible name. Tone is host-owned and does not calculate warning thresholds.",
+      "Native div props, className/style and ref target the wrapper. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "alert",
+    "name": "Alert",
+    "group": "feedback",
+    "description": "An inline message with a quiet boundary and explicit announcement priority.",
+    "code": "<Alert tone=\"warning\" title=\"Storage is almost full\">\n  Free some space before your next upload.\n</Alert>",
+    "imports": [
+      "Alert"
+    ],
+    "notes": [
+      "announcement defaults off: a static message does not automatically interrupt a screen reader. Polite uses role=status; assertive uses role=alert.",
+      "Use assertive for newly inserted urgent messages, and verify with actual assistive technology. No focus movement, timeout or automatic dismissal is implemented.",
+      "Title is optional. Icons are original decorative glyphs; pass icon={null} to omit or supply noninteractive artwork. Meaning must remain in the text.",
+      "Native div props and ref target the message root. Available in 0.2.4."
+    ]
   }
 ]

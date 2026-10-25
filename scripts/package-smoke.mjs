@@ -71,7 +71,17 @@ const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
 import { Tabs, Breadcrumb, Pagination, type TabsProps, type BreadcrumbProps, type PaginationProps, Tooltip, Popover, Dialog, type TooltipProps, type PopoverProps, type DialogProps, type OverlayTriggerProps, Collapsible, Accordion, type CollapsibleProps, type AccordionProps, SegmentedControl, type SegmentedControlProps, Toggle, ToggleGroup, type ToggleProps, type ToggleGroupProps, ButtonGroup, InputGroup, type ButtonGroupProps, type InputGroupProps, RadioGroup, CheckboxGroup, type RadioGroupProps, type CheckboxGroupProps, Label, Fieldset, type LabelProps, type FieldsetProps, ScrollArea, type ScrollAreaProps, Select, type SelectProps, type HeadingProps, type TextProps, type InputProps, type IconButtonProps, type CodeSnippetProps } from '@flood-md/react';
-import { Badge, Spinner, Skeleton, Avatar, type BadgeProps, type SpinnerProps, type SkeletonProps, type AvatarProps, Link, type LinkProps } from '@flood-md/react';
+import { Progress, Meter, Alert, type ProgressProps, type MeterProps, type AlertProps, Badge, Spinner, Skeleton, Avatar, type BadgeProps, type SpinnerProps, type SkeletonProps, type AvatarProps, Link, type LinkProps } from '@flood-md/react';
+const taskProgress: ProgressProps = {label:'Upload',value:50,max:100,hideLabel:true};
+const boundedMeter: MeterProps = {label:'Storage',value:10,min:-20,max:20,valueText:'10 GB'};
+const inlineAlert: AlertProps = {title:'Saved',tone:'success',announcement:'polite',icon:null};
+createElement(Progress,{...taskProgress,ref:createRef<HTMLDivElement>()});
+createElement(Meter,{...boundedMeter,ref:createRef<HTMLDivElement>()});
+createElement(Alert,{...inlineAlert,ref:createRef<HTMLDivElement>()});
+// @ts-expect-error Meter requires a known value.
+const unknownMeter: MeterProps = {label:'Storage'};
+// @ts-expect-error Alert announcement must name a supported urgency.
+const badAnnouncement: AlertProps = {announcement:'always'};
 const badge: BadgeProps = {tone:'success',variant:'outline',size:'sm'};
 const spinner: SpinnerProps = {label:'Loading',decorative:false,size:'lg'};
 const skeleton: SkeletonProps = {shape:'circle',width:'2rem',height:'2rem',animate:false};
@@ -205,10 +215,11 @@ void scroll; void scrollElement; void badScroll; void scrollRole;
   await writeFile(join(root, "react-compat.mjs"), `
 import {createElement as h} from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {Link,Badge,Spinner,Skeleton,Avatar} from '@flood-md/react';
+import {Link,Badge,Spinner,Skeleton,Avatar,Progress,Meter,Alert} from '@flood-md/react';
 import {FloodRoot, Heading, Field, Input, Select, ScrollArea, IconButton, Toggle, ToggleGroup, SegmentedControl, Collapsible, Accordion, Tooltip, Popover, Dialog, Tabs, Breadcrumb, Pagination} from '@flood-md/react';
 const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Heading,{level:1},'Ready'),
+  h(Progress,{label:'Upload',value:50}),h(Meter,{label:'Storage',value:75}),h(Alert,{title:'Saved'},'Ready'),
   h(Badge,{tone:'success'},'Active'),h(Spinner,{label:'Loading workspace'}),h(Skeleton,{shape:'circle'}),h(Avatar,{name:'Alex Morgan',src:'/alex.svg'}),
   h(Link,{href:'/docs',variant:'subtle',size:'sm'},'Documentation'),
   h(Toggle,{defaultPressed:true},'Bold'),
@@ -227,7 +238,7 @@ const html=renderToStaticMarkup(h(FloodRoot,null,
   h(Field,{label:'Visibility',required:true},p=>h(Select,{...p,name:'visibility',defaultValue:'team'},h('option',{value:'private'},'Private'),h('option',{value:'team'},'Team'))),
   h(IconButton,{label:'Add'},'+')));
 if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')||!html.includes('aria-expanded=')||!html.includes('flood-accordion')||!html.includes('flood-dialog')||!html.includes('role="tooltip"')||!html.includes('role="tablist"')||!html.includes('flood-pagination')||!html.includes('flood-breadcrumb')) throw Error('React compatibility render');
-for(const name of ['flood-badge','flood-loading','flood-skeleton','flood-avatar']) if(!html.includes(name)) throw Error('Missing content export '+name);
+for(const name of ['flood-badge','flood-loading','flood-skeleton','flood-avatar','flood-indicator','flood-alert']) if(!html.includes(name)) throw Error('Missing content export '+name);
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")

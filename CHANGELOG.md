@@ -5,7 +5,7 @@
 - Keep Breadcrumb items at their natural width before wrapping the trail; only
   labels longer than the available row may break within words.
 
-0.2.4 candidate: add original Badge, Spinner, Skeleton and Avatar, generated component documentation and live previews. Button loading reuses Spinner without changing its public API. Add independent accent-content and loading-placeholder semantic colors (170 roles). Exact package versions are aligned; publication is pending.
+0.2.4 candidate: add original Badge, Spinner, Skeleton, Avatar, Progress, Meter and Alert, generated component documentation and live previews. Button loading reuses Spinner without changing its public API. Add independent accent-content, loading-placeholder and indicator semantic roles (176 roles). Exact package versions are aligned; publication is pending.
 
 ## 0.2.3 · 2026-10-25
 

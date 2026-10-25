@@ -144,3 +144,6 @@ localized names, unavailable endpoints and narrow wrapping stay intact. Availabl
 ## Metadata, loading and identity · 0.2.4
 
 Use Badge for noninteractive metadata with meaningful text. Spinner is indeterminate loading; use decorative inside a control already named by its owner. Button loading already composes it. Skeleton reserves geometry and is always hidden from AT; the host owns aria-busy and loading text. Avatar requires name and supports src/fallback; choose decorative beside an equivalent visible name. Keep image and fallback geometry fixed. None of these primitives fetch data or provide upload behavior.
+
+
+Progress is task completion; omit value for unknown progress. Meter is a bounded measurement and always requires value. Both need label and finite increasing ranges; invalid values throw. Use valueText for localized units and hideLabel for visually hidden captions. Wrapper refs and native div props do not replace the internal range semantics. Alert is inline feedback: title optional, host actions inside children, icon=null to omit artwork. Tone and announcement are independent. No task manager, validation engine, automatic dismissal or Toast queue is supplied. Available in 0.2.4.

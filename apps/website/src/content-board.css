@@ -3,4 +3,5 @@
 .content-board-grid > .flood-surface { min-inline-size: 0; }
 .content-board-grid .flood-button { inline-size: fit-content; }
 .content-board-skeleton { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--flood-sys-space-3); }
+.content-board-feedback { display: grid; gap: var(--flood-sys-space-6); scroll-margin-block-start: var(--flood-sys-space-6); }
 @media (max-width: 48rem) { .content-board-grid { grid-template-columns: minmax(0, 1fr); } }

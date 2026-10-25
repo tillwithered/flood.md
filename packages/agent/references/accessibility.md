@@ -64,3 +64,6 @@ Available in 0.2.3.
 
 
 For 0.2.4 loading primitives: localize standalone Spinner label, avoid duplicate live announcements, and keep Skeleton hidden from AT. Reduced motion stops their animations. Avatar exposes one named image, or decorative presentation when the adjacent text already supplies identity. Badge text must express status without relying on its color.
+
+
+Progress and Meter are not live regions. Keep their labels even with hideLabel, and provide meaningful valueText when percentages would be misleading. Unknown Progress omits aria-valuenow; Meter has no unknown state. Alert defaults to silent static content; opt into announcement=polite (status) or assertive (alert) only for the required urgency. Do not move focus to these messages or claim every screen reader announces initial markup. Verify with actual assistive technology.

@@ -1,5 +1,45 @@
 @import "@flood-md/tokens/foundations.css";
 
+.flood-root .flood-indicator { --flood-indicator-color: var(--flood-sys-color-indicator-fill); --flood-indicator-size: var(--flood-sys-size-indicator-md); position: relative; min-inline-size: 0; inline-size: 100%; box-sizing: border-box; }
+.flood-root .flood-indicator[data-size="sm"] { --flood-indicator-size: var(--flood-sys-size-indicator-sm); }
+.flood-root .flood-indicator[data-size="lg"] { --flood-indicator-size: var(--flood-sys-size-indicator-lg); }
+.flood-root .flood-indicator[data-tone="accent"] { --flood-indicator-color: var(--flood-sys-color-indicator-accent); }
+.flood-root .flood-indicator[data-tone="error"] { --flood-indicator-color: var(--flood-sys-color-feedback-error); }
+.flood-root .flood-indicator[data-tone="warning"] { --flood-indicator-color: var(--flood-sys-color-feedback-warning); }
+.flood-root .flood-indicator[data-tone="success"] { --flood-indicator-color: var(--flood-sys-color-feedback-success); }
+.flood-root .flood-indicator[data-tone="info"] { --flood-indicator-color: var(--flood-sys-color-feedback-info); }
+.flood-root .flood-indicator__caption { display: flex; justify-content: space-between; align-items: baseline; gap: var(--flood-sys-space-3); margin-block-end: var(--flood-sys-space-2); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); overflow-wrap: anywhere; }
+.flood-root .flood-indicator__value { color: var(--flood-sys-color-content-subtle); text-align: end; font-variant-numeric: tabular-nums; }
+.flood-root .flood-indicator__track { display: flex; block-size: var(--flood-indicator-size); overflow: hidden; border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-indicator-track); }
+.flood-root .flood-indicator__fill { display: block; flex: none; block-size: 100%; border-radius: inherit; background: var(--flood-indicator-color); transition: inline-size var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing); }
+.flood-root .flood-indicator[data-indeterminate="true"] .flood-indicator__fill { inline-size: 100%; background: linear-gradient(90deg, transparent, var(--flood-indicator-color), transparent); background-size: 200% 100%; animation: flood-indeterminate 1.4s linear infinite; }
+@keyframes flood-indeterminate { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.flood-root .flood-alert { --flood-alert-color: var(--flood-sys-color-content-subtle); position: relative; display: flex; align-items: flex-start; gap: var(--flood-sys-space-3); box-sizing: border-box; min-inline-size: 0; padding: var(--flood-sys-space-4); border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-field); background: color-mix(in srgb, var(--flood-alert-color) 4%, var(--flood-sys-color-surface-canvas)); color: var(--flood-sys-color-content-default); }
+.flood-root .flood-alert[data-tone="info"] { --flood-alert-color: var(--flood-sys-color-feedback-info); }
+.flood-root .flood-alert[data-tone="success"] { --flood-alert-color: var(--flood-sys-color-feedback-success); }
+.flood-root .flood-alert[data-tone="warning"] { --flood-alert-color: var(--flood-sys-color-feedback-warning); }
+.flood-root .flood-alert[data-tone="error"] { --flood-alert-color: var(--flood-sys-color-feedback-error); }
+.flood-root .flood-alert__icon { display: inline-flex; flex: none; inline-size: var(--flood-sys-control-md-icon-size); block-size: var(--flood-sys-control-md-icon-size); color: var(--flood-alert-color); }
+.flood-root .flood-alert__icon > svg { inline-size: 100%; block-size: 100%; }
+.flood-root .flood-alert__content { flex: 1 1 auto; min-inline-size: 0; overflow-wrap: anywhere; font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
+.flood-root .flood-alert__title { margin: 0; font: inherit; font-weight: var(--flood-sys-type-label-weight); }
+.flood-root .flood-alert__title + .flood-alert__body { margin-block-start: var(--flood-sys-space-1); }
+.flood-root .flood-alert__body { color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-alert__body > :first-child { margin-block-start: 0; }
+.flood-root .flood-alert__body > :last-child { margin-block-end: 0; }
+.flood-root :is(.flood-alert, .flood-indicator)[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .flood-root .flood-indicator__fill { transition: none; }
+  .flood-root .flood-indicator[data-indeterminate="true"] .flood-indicator__fill { animation: none; background: var(--flood-indicator-color); inline-size: 35%; }
+}
+@media (forced-colors: active) {
+  .flood-root .flood-indicator__track { forced-color-adjust: none; background: Canvas; outline: 1px solid CanvasText; }
+  .flood-root .flood-indicator__fill { forced-color-adjust: none; background: Highlight; }
+  .flood-root .flood-indicator[data-indeterminate="true"] .flood-indicator__fill { animation: none; background: Highlight; inline-size: 35%; }
+  .flood-root .flood-alert { background: Canvas; color: CanvasText; border-color: CanvasText; }
+  .flood-root :is(.flood-alert__icon, .flood-alert__body) { color: CanvasText; }
+}
+
 .flood-root .flood-badge { --flood-badge-color: var(--flood-sys-color-content-default); display: inline-flex; align-items: center; vertical-align: middle; gap: var(--flood-sys-space-1); box-sizing: border-box; max-inline-size: 100%; min-inline-size: 0; padding: var(--flood-sys-space-1) var(--flood-sys-space-2); border: var(--flood-sys-stroke-width) solid transparent; border-radius: var(--flood-sys-radius-action); background: color-mix(in srgb, var(--flood-badge-color) 9%, var(--flood-sys-color-surface-canvas)); color: var(--flood-badge-color); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); font-weight: var(--flood-sys-type-label-weight); letter-spacing: var(--flood-sys-type-helper-tracking); overflow-wrap: anywhere; }
 .flood-root .flood-badge[data-size="sm"] { padding-block: 0; }
 .flood-root .flood-badge[data-size="lg"] { padding-inline: var(--flood-sys-space-3); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }

@@ -11,7 +11,7 @@ React + TypeScript and Next.js App Router. Use this guide with matching installe
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-This guide covers all 41 exports in 0.2.4 and their layout refinements. Confirm
+This guide covers all 44 exports in 0.2.4 and their layout refinements. Confirm
 the matching installed declarations before using APIs absent from older versions.
 
 ## Connect
@@ -161,3 +161,5 @@ export function Profile() {
 
 
 0.2.4 adds Badge, Spinner, Skeleton and Avatar. Read references/composition.md and references/accessibility.md for status announcements, fallback geometry and decorative naming. Button loading reuses Spinner. These APIs are not present in 0.2.3.
+
+Progress, Meter and Alert are also available in 0.2.4. Distinguish task completion from bounded measurements, preserve names/units, and select alert announcement priority explicitly.

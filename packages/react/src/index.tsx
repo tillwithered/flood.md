@@ -26,6 +26,7 @@ import { Disclosure } from "./disclosure.js";
 import { AnchoredOverlay, ModalOverlay } from "./overlays.js";
 import { TabNavigation, BreadcrumbNavigation, PageNavigation } from "./navigation.js";
 import { AvatarArtwork } from "./avatar.js";
+import { ValueIndicator, FeedbackMessage } from "./feedback.js";
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -74,7 +75,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 export type FieldStatus = "error" | "warning" | "success" | "info";
 
 export type ContentSize = "sm" | "md" | "lg";
-export type BadgeTone = "neutral" | "accent" | "error" | "warning" | "success" | "info";
+export type SemanticTone = "neutral" | "accent" | "error" | "warning" | "success" | "info";
+export type BadgeTone = SemanticTone;
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   size?: ContentSize;
   tone?: BadgeTone;
@@ -134,6 +136,46 @@ export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(function Avatar(
     role={decorative ? undefined : "img"} aria-label={decorative ? undefined : name} aria-hidden={decorative || undefined}>
     <AvatarArtwork key={src ?? ""} src={src} fallback={fallback ?? (initials || "?")} />
   </span>;
+});
+
+export interface ProgressProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role"> {
+  label: string;
+  value?: number;
+  max?: number;
+  valueText?: string;
+  size?: ContentSize;
+  tone?: SemanticTone;
+  hideLabel?: boolean;
+}
+/** @since 0.2.4 */
+export const Progress = forwardRef<HTMLDivElement, ProgressProps>(function Progress(
+  { label, value, max = 100, valueText, size = "md", tone = "accent", hideLabel = false, ...props }, ref,
+) {
+  return <ValueIndicator {...props} ref={ref} kind="progress" label={label} value={value} min={0} max={max} valueText={valueText} size={size} tone={tone} hideLabel={hideLabel} />;
+});
+
+export interface MeterProps extends Omit<ProgressProps, "value"> {
+  value: number;
+  min?: number;
+}
+/** @since 0.2.4 */
+export const Meter = forwardRef<HTMLDivElement, MeterProps>(function Meter(
+  { label, value, min = 0, max = 100, valueText, size = "md", tone = "neutral", hideLabel = false, ...props }, ref,
+) {
+  return <ValueIndicator {...props} ref={ref} kind="meter" label={label} value={value} min={min} max={max} valueText={valueText} size={size} tone={tone} hideLabel={hideLabel} />;
+});
+
+export interface AlertProps extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "role" | "aria-live"> {
+  title?: string;
+  tone?: "neutral" | FieldStatus;
+  icon?: ReactNode;
+  announcement?: "off" | "polite" | "assertive";
+}
+/** @since 0.2.4 */
+export const Alert = forwardRef<HTMLDivElement, AlertProps>(function Alert(
+  { title, tone = "info", icon, announcement = "off", ...props }, ref,
+) {
+  return <FeedbackMessage {...props} ref={ref} title={title} tone={tone} icon={icon} announcement={announcement} />;
 });
 
 export interface TabItem {

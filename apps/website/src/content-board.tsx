@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Avatar, Badge, Button, FloodRoot, Heading, Inline, Link, Skeleton, Spinner, Stack, Surface, Text } from "@flood-md/react";
+import { Alert, Avatar, Badge, Button, FloodRoot, Heading, Inline, Link, Meter, Progress, Skeleton, Spinner, Stack, Surface, Text } from "@flood-md/react";
 import { SiteHeader } from "./site-header";
 import release from "./release.json";
 import "./content-board.css";
@@ -7,12 +7,15 @@ import "./content-board.css";
 export default function ContentBoard() {
   const [image, setImage] = useState(true);
   const [animate, setAnimate] = useState(true);
+  const [progress, setProgress] = useState(60);
+  const [unknown, setUnknown] = useState(false);
+  const [storage, setStorage] = useState(75);
   return <FloodRoot className="site-root"><div className="site-shell">
     <SiteHeader path="/playground/content" />
     <main id="main-content" className="content-board">
       <Stack gap="2"><Text size="helper" tone="subtle">Component preview · {release.version}</Text>
         <Heading level={1} size="page">Small pieces, more possibilities.</Heading>
-        <Text as="p" size="compact" tone="subtle">Four original components for status, loading and identity.</Text>
+        <Text as="p" size="compact" tone="subtle">Original components for status, loading, identity and feedback.</Text>
       </Stack>
       <div className="content-board-grid">
         <Surface padding="6"><Stack gap="6">
@@ -43,6 +46,34 @@ export default function ContentBoard() {
           <Button variant="subtle" size="sm" onClick={() => setImage(value => !value)}>{image ? "Show initials" : "Show image"}</Button>
         </Stack></Surface>
       </div>
+      <section id="feedback" className="content-board-feedback" aria-labelledby="feedback-title">
+        <Stack gap="2"><Heading id="feedback-title" level={2} size="page">Feedback, at the right volume.</Heading>
+          <Text as="p" size="compact" tone="subtle">Progress, bounded values and messages with a clear purpose.</Text></Stack>
+        <div className="content-board-grid">
+          <Surface padding="6"><Stack gap="6">
+            <Inline gap="4"><Heading level={3} size="section">Progress</Heading><Link href="/components/progress">Explore</Link></Inline>
+            <Progress label="Uploading files" value={unknown ? undefined : progress} valueText={unknown ? "Estimating…" : `${progress}%`} />
+            <Progress label="Preparing workspace" value={35} tone="neutral" size="sm" />
+            <Inline gap="2"><Button variant="subtle" size="sm" onClick={() => setProgress(value => value >= 100 ? 0 : Math.min(100, value + 20))}>Advance</Button><Button variant="subtle" size="sm" aria-pressed={unknown} onClick={() => setUnknown(value => !value)}>Indeterminate</Button></Inline>
+          </Stack></Surface>
+          <Surface padding="6"><Stack gap="6">
+            <Inline gap="4"><Heading level={3} size="section">Meter</Heading><Link href="/components/meter">Explore</Link></Inline>
+            <Meter label="Storage used" value={storage} valueText={`${storage} of 100 GB`} tone={storage >= 90 ? "warning" : "neutral"} />
+            <Meter label="Battery" value={82} valueText="82% remaining" tone="success" size="sm" />
+            <Button variant="subtle" size="sm" onClick={() => setStorage(value => value >= 100 ? 25 : Math.min(100, value + 25))}>Use more storage</Button>
+          </Stack></Surface>
+        </div>
+        <Surface padding="6"><Stack gap="4">
+          <Inline gap="4"><Heading level={3} size="section">Alert</Heading><Link href="/components/alert">Explore</Link></Inline>
+          <div className="content-board-grid">
+            <Alert title="A new version is available">Review the changes when you are ready.</Alert>
+            <Alert tone="success" title="Changes saved">Your workspace is up to date.</Alert>
+            <Alert tone="warning" title="Storage is almost full">Free some space before your next upload.</Alert>
+            <Alert tone="error" title="Changes could not be saved">Check your connection and try again.</Alert>
+            <Alert tone="neutral" icon={null}>A quiet note without a heading or icon.</Alert>
+          </div>
+        </Stack></Surface>
+      </section>
       <Link href="/components">Browse all components</Link>
     </main>
   </div></FloodRoot>;

@@ -41,3 +41,5 @@ authorize publication, deletion or sending source elsewhere. Doctor checks
 versions and owned files; it does not validate application behavior or CSS imports.
 
 0.2.4 adds Badge, Spinner, Skeleton and Avatar. Read their matching component Markdown pages.
+
+Progress, Meter and Alert are included in this source candidate. Use Progress for task completion, Meter for bounded values; Alert announcements default off.
