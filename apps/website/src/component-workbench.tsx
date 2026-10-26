@@ -20,6 +20,10 @@ const select = (name: string, options: string[], initial: string): Knob => ({ na
 const statusKnob = () => select("status", ["none", "error", "warning", "success", "info"], "none");
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
+  "data-list": [select("density", ["compact", "comfortable"], "comfortable"),toggle("dividers",true),toggle("showDescription",true),toggle("showMedia",true),toggle("showMetadata",true),toggle("showActions",true),toggle("longTitle")],
+  "data-list-item": [select("density", ["compact", "comfortable"], "comfortable"),toggle("showDescription",true),toggle("showMedia",true),toggle("showMetadata",true),toggle("showActions",true),toggle("longTitle")],
+  "check-card": [select("density", ["compact", "comfortable"], "comfortable"),toggle("showDescription",true),toggle("showMetadata",true),toggle("indeterminate"),toggle("readOnly"),toggle("disabled")],
+  "radio-card": [select("density", ["compact", "comfortable"], "comfortable"),toggle("showDescription",true),toggle("showMetadata",true),toggle("readOnly"),toggle("disabled")],
   "color-swatch": [select("size", ["sm", "md", "lg"], "md"), select("value", ["#ff47a8", "#ffffff", "#78b8ff"], "#ff47a8")],
   "color-picker": [select("controlSize", ["sm", "md", "lg"], "md"), toggle("hideLabel"), toggle("readOnly"), toggle("disabled"), toggle("presets", true)],
   "hover-card": [select("side", ["top", "bottom", "left", "right"], "bottom"), select("align", ["start", "center", "end"], "center"), toggle("disabled")],
@@ -203,6 +207,10 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     onChange: binding("(event) => setChecked(event.currentTarget.checked)", (event: { currentTarget: { checked: boolean } }) => actions.checked(event.currentTarget.checked)),
   };
   switch (slug) {
+    case "data-list":
+    case "data-list-item": return element("div",{style:{width:"34rem",maxWidth:"100%"}},element("DataList",{density:v.density,dividers:slug==="data-list"?v.dividers:true},...["Design system",...(slug==="data-list"?["Website","Agent guides"]:[])].map((title,index)=>element("DataListItem",{title:binding(`<Link href="#project-${index}">${v.longTitle?title+" — foundations, components and documentation":title}</Link>`,<Flood.Link href={`#project-${index}`}>{v.longTitle?title+" — foundations, components and documentation":title}</Flood.Link>),description:v.showDescription?["Foundations and reusable components","Documentation and live examples","Design instructions for your agent"][index]:undefined,media:v.showMedia?binding(`<Avatar name=${JSON.stringify(title)} size="sm" />`,<Flood.Avatar name={title} size="sm"/>):undefined,metadata:v.showMetadata?"Updated today":undefined,actions:v.showActions?binding('<Button variant="subtle" size="sm" onClick={() => setStatus("Action completed locally.")}>Manage</Button>',<Flood.Button variant="subtle" size="sm" onClick={()=>actions.setStatus("Action completed locally.")}>Manage</Flood.Button>):undefined}))),status);
+    case "check-card": return element("div",{style:{width:"28rem",maxWidth:"100%"}},element("CheckCard",{label:"Product updates",description:v.showDescription?"A monthly summary of new features and improvements.":undefined,metadata:v.showMetadata?"Monthly":undefined,name:"updates",value:"product",density:v.density,indeterminate:v.indeterminate,readOnly:v.readOnly,disabled:v.disabled}));
+    case "radio-card": return element("div",{style:{width:"28rem",maxWidth:"100%"}},element("Fieldset",{legend:"Plan"},element("Stack",{gap:"2"},element("RadioCard",{name:"preview-plan",value:"starter",label:"Starter",description:v.showDescription?"For personal projects and your next idea.":undefined,metadata:v.showMetadata?"Free":undefined,defaultChecked:true,density:v.density,readOnly:v.readOnly,disabled:v.disabled}),element("RadioCard",{name:"preview-plan",value:"team",label:"Team",description:v.showDescription?"For collaborating on shared projects.":undefined,metadata:v.showMetadata?"$12 / month":undefined,density:v.density,readOnly:v.readOnly,disabled:v.disabled}))));
     case "color-swatch": return element("ColorSwatch", {label:"Accent color",value:v.value,size:v.size});
     case "color-picker": return element("div",{style:{width:"24rem",maxWidth:"100%"}},element("ColorPicker",{label:"Accent color",defaultValue:"#ff47a8",name:"accent",controlSize:v.controlSize,hideLabel:v.hideLabel,readOnly:v.readOnly,disabled:v.disabled,presets:v.presets?["#ff47a8","#ffffff","#78b8ff","#65c99c"]:undefined}));
     case "hover-card": return element("HoverCard",{title:"Alex Morgan",side:v.side,align:v.align,disabled:v.disabled,trigger:binding('(props) => <Button {...props} variant="subtle">Alex Morgan</Button>',(props:Flood.OverlayTriggerProps)=><Flood.Button {...props} variant="subtle">Alex Morgan</Flood.Button>)},element("Stack",{gap:"3"},text("Designer building calm interfaces with Flood."),element("Link",{href:"https://github.com/tillwithered"},"View profile")));
@@ -459,7 +467,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   const imports = new Set<string>(["FloodRoot"]), icons = new Set<string>();
   const jsx = printRecipe(element("FloodRoot", {}, recipe), imports, icons, 2);
   if (component.slug === "code-snippet" && values.copyAction) imports.add("Button");
-  if (["tooltip", "popover", "dialog", "alert-dialog", "drawer"].includes(component.slug)) imports.add("Button");
+  if (["tooltip", "popover", "dialog", "alert-dialog", "drawer", "hover-card"].includes(component.slug)) imports.add("Button");
   if (component.slug === "menu") { imports.add(values.iconTrigger ? "IconButton" : "Button"); if (values.iconTrigger) icons.add("Ellipsis"); if (values.icons) for (const name of ["Pencil", "Copy", "Archive", "Trash2"]) icons.add(name); }
   if (component.slug === "input-group") {
     if (values.end === "action") imports.add("Button");
@@ -473,13 +481,14 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   if (component.slug === "toast-region") preamble += '  const [notifications, setNotifications] = useState([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]);\n';
   const usesPresence = component.slug === "tag";
   if (usesPresence) { preamble += `  const [visible, setVisible] = useState(${JSON.stringify(Boolean(values.visible))});\n`; if (values.icon) icons.add("Plus"); }
+  if (["data-list", "data-list-item"].includes(component.slug)) { imports.add("Link"); if(values.showMedia)imports.add("Avatar"); if(values.showActions)imports.add("Button"); }
   const usesChecked = ["checkbox", "radio", "switch"].includes(component.slug);
   if (component.slug === "section" && values.showActions) imports.add("Button");
   if (component.slug === "split") { imports.add("Surface"); imports.add("Text"); }
   if (component.slug === "resizable-panels") { imports.add("Surface"); imports.add("Text"); }
   if (component.slug === "card") { if (values.showActions) imports.add("Badge"); if (values.showFooter) imports.add("Button"); }
   if (component.slug === "empty-state") { if (values.showIcon) icons.add("Plus"); if (values.showActions) imports.add("Button"); }
-  const usesStatus = ["context-menu", "command-list", "steps", "section", "drawer", "alert-dialog", "empty-state", "card", "toolbar", "menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
+  const usesStatus = ["data-list", "data-list-item","context-menu", "command-list", "steps", "section", "drawer", "alert-dialog", "empty-state", "card", "toolbar", "menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
   if (usesChecked) preamble += `  const [checked, setChecked] = useState(${JSON.stringify(Boolean(values.checked))});\n`;
   if (component.slug === "menu" && ["preferences", "mixed"].includes(String(values.scenario))) preamble += '  const [notificationsEnabled, setNotificationsEnabled] = useState(true);\n  const [density, setDensity] = useState("Compact");\n';
   if (usesStatus) preamble += '  const [status, setStatus] = useState("");\n';
@@ -491,7 +500,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
 
   const controls = componentKnobs(component).filter(knob => !(component.slug === "menu" && values.scenario === "preferences" && ["icons", "shortcuts", "disableArchive"].includes(knob.name)));
   const hasFocusAction = ["input", "input-group", "textarea", "select"].includes(component.slug);
-  const spacious = ["color-picker", "date-time-picker", "tree-select", "tree", "navigation-tree", "list-box", "navigation-list", "steps", "section", "center", "container", "grid", "aspect-ratio", "empty-state", "card", "table", "description-list", "accordion", "input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
+  const spacious = ["data-list", "data-list-item", "check-card", "radio-card","color-picker", "date-time-picker", "tree-select", "tree", "navigation-tree", "list-box", "navigation-list", "steps", "section", "center", "container", "grid", "aspect-ratio", "empty-state", "card", "table", "description-list", "accordion", "input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
   const labelFor = (knob: Knob) => knob.label ?? ({ controlSize: "Size", contentInset: "Content clearance", readOnly: "Read only", copyAction: "Copy button", label: "Accessible name" } as Record<string, string>)[knob.name] ?? knob.name[0].toUpperCase() + knob.name.slice(1);
   return <section className="component-workbench" aria-label={`${component.name} live playground`}>
     <div className="workbench-title"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setPagination({slug:component.slug,page:1}); setResetKey((key) => key + 1); setMenuChecked(true); setMenuDensity("Compact"); setNotifications([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]); }}>Reset</Flood.Button></Flood.Inline></div>

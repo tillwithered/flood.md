@@ -386,3 +386,11 @@ remains the standalone single/multiple control. DateTimePicker composes civil
 date and clock time with separate form values and no inferred timezone. Use
 application validation for relationships between the parts. Recipes for Select
 all, split actions and form submission live in the public user documentation.
+
+DataList/DataListItem are native list content, not selection widgets. Keep links
+in the title and actions separate; do not turn the whole row into a button.
+CheckCard/RadioCard compose the native choice primitives into clickable labels.
+Keep their description, icon and metadata noninteractive. Use one radio name and
+an enclosing Fieldset for exclusive choices; derive aggregate checkbox state
+in the host. Read-only choice cards preserve submission and block editing; apply
+readOnly to an entire radio group consistently.

@@ -61,11 +61,59 @@ import { PairedDateRangeField } from "./date-range-field.js";
 import { CalendarDateRangePicker } from "./date-range-picker.js";
 import { ContextActionMenu } from "./context-menu.js";
 import { SelectionTree } from "./tree.js";
+import { CheckableCard, ExclusiveCard } from "./collection-cards.js";
 import { ColorPreview, ColorEditor } from "./color-controls.js";
 import { HoverPreview } from "./hover-card.js";
 import { HierarchicalSelect } from "./tree-select.js";
 import { CivilDateTimePicker } from "./date-time-picker.js";
 import { HierarchicalNavigation } from "./navigation-tree.js";
+
+export interface DataListProps extends Omit<HTMLAttributes<HTMLUListElement>, "role"> {
+  density?: "compact" | "comfortable";
+  dividers?: boolean;
+}
+/** A native list; links and actions stay independent. @since 0.2.8 */
+export const DataList = /* @__PURE__ */ forwardRef<HTMLUListElement,DataListProps>(function DataList({density="comfortable",dividers=true,className,...props},ref){
+  return <ul {...props} ref={ref} role="list" data-density={density} data-dividers={dividers} className={classes("flood-data-list",className)}/>;
+});
+export interface DataListItemProps extends Omit<HTMLAttributes<HTMLLIElement>, "title" | "children"> {
+  title: ReactNode;
+  description?: ReactNode;
+  media?: ReactNode;
+  metadata?: ReactNode;
+  actions?: ReactNode;
+}
+/** A structured list row, never an interactive wrapper. @since 0.2.8 */
+export const DataListItem = /* @__PURE__ */ forwardRef<HTMLLIElement,DataListItemProps>(function DataListItem({title,description,media,metadata,actions,className,...props},ref){
+  return <li {...props} ref={ref} className={classes("flood-data-list-item",className)}>
+    {hasFieldContent(media)&&<div className="flood-data-list-item__media">{media}</div>}
+    <div className="flood-data-list-item__copy"><div className="flood-data-list-item__title">{title}</div>
+      {hasFieldContent(description)&&<div className="flood-data-list-item__description">{description}</div>}
+    </div>
+    {(hasFieldContent(metadata)||hasFieldContent(actions))&&<div className="flood-data-list-item__trailing">
+      {hasFieldContent(metadata)&&<div className="flood-data-list-item__metadata">{metadata}</div>}
+      {hasFieldContent(actions)&&<div className="flood-data-list-item__actions">{actions}</div>}
+    </div>}
+  </li>;
+});
+export interface CheckCardProps extends Omit<CheckboxProps,"label" | "children"> {
+  label: string;
+  description?: ReactNode;
+  icon?: ReactNode;
+  metadata?: ReactNode;
+  density?: "compact" | "comfortable";
+}
+/** A native checkbox inside a clickable noninteractive content card. @since 0.2.8 */
+export const CheckCard = /* @__PURE__ */ forwardRef<HTMLInputElement,CheckCardProps>(function CheckCard(props,ref){return <CheckableCard {...props} ref={ref}/>;});
+export interface RadioCardProps extends Omit<ChoiceProps,"label" | "children"> {
+  label: string;
+  description?: ReactNode;
+  icon?: ReactNode;
+  metadata?: ReactNode;
+  density?: "compact" | "comfortable";
+}
+/** Give exclusive choices the same native name and an enclosing Fieldset. @since 0.2.8 */
+export const RadioCard = /* @__PURE__ */ forwardRef<HTMLInputElement,RadioCardProps>(function RadioCard(props,ref){return <ExclusiveCard {...props} ref={ref}/>;});
 
 export interface ColorSwatchProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "color"> {
   value: string; label: string; size?: "sm" | "md" | "lg";

@@ -1683,5 +1683,65 @@
     "imports": [
       "DateTimePicker"
     ]
+  },
+  {
+    "slug": "data-list",
+    "name": "DataList",
+    "group": "content",
+    "description": "A native list of structured rows with independent links and actions.",
+    "code": "<DataList>\n  <DataListItem title=\"Design system\" description=\"Foundations and components\" metadata=\"Updated today\" />\n  <DataListItem title=\"Website\" description=\"Documentation and examples\" metadata=\"Updated yesterday\" />\n</DataList>",
+    "notes": [
+      "This is a ul/li list, not a listbox or data grid.",
+      "Keep navigation in the title link and actions in their own buttons."
+    ],
+    "imports": [
+      "DataList",
+      "DataListItem"
+    ]
+  },
+  {
+    "slug": "data-list-item",
+    "name": "DataListItem",
+    "group": "content",
+    "description": "A structured list row with media, supporting text, metadata and actions.",
+    "code": "<DataList>\n  <DataListItem title=\"Design system\" description=\"Foundations and components\" metadata=\"Updated today\" />\n</DataList>",
+    "notes": [
+      "Render inside DataList or another native list.",
+      "The row is not clickable; supply a Link as title when navigation is needed."
+    ],
+    "imports": [
+      "DataList",
+      "DataListItem"
+    ]
+  },
+  {
+    "slug": "check-card",
+    "name": "CheckCard",
+    "group": "forms",
+    "description": "A native checkbox presented as a selectable content card.",
+    "code": "<CheckCard label=\"Product updates\" description=\"A monthly summary of new features.\" name=\"updates\" value=\"product\" />",
+    "notes": [
+      "Uses native checkbox semantics, including mixed state, required and form reset.",
+      "Content is noninteractive: do not nest links or actions inside a card label."
+    ],
+    "imports": [
+      "CheckCard"
+    ]
+  },
+  {
+    "slug": "radio-card",
+    "name": "RadioCard",
+    "group": "forms",
+    "description": "A native radio choice presented as a selectable content card.",
+    "code": "<Fieldset legend=\"Plan\">\n  <Stack gap=\"2\">\n    <RadioCard name=\"plan\" value=\"starter\" label=\"Starter\" description=\"For your next idea.\" metadata=\"Free\" defaultChecked />\n    <RadioCard name=\"plan\" value=\"team\" label=\"Team\" description=\"For working together.\" metadata=\"$12 / month\" />\n  </Stack>\n</Fieldset>",
+    "notes": [
+      "Group choices in a Fieldset and give them the same name.",
+      "Native arrow-key behavior, forms and reset remain available. Apply readOnly consistently to the whole group."
+    ],
+    "imports": [
+      "Fieldset",
+      "Stack",
+      "RadioCard"
+    ]
   }
 ]

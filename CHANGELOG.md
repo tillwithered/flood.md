@@ -3,6 +3,7 @@
 ## 0.2.8 — source preview
 
 - Add HoverCard, ColorSwatch, ColorPicker, TreeSelect and DateTimePicker.
+- Add native DataList/DataListItem rows and CheckCard/RadioCard choices.
 - Add recipes for aggregate selection, split actions and form submission.
 - Keep opaque RGB colors, single tree selection and civil date/time contracts explicit.
 - Registry publication and deployment are verified separately.
