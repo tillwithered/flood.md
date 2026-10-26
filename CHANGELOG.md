@@ -2,6 +2,10 @@
 
 ## 0.2.7 - Unreleased
 
+- Preserve cancelled selection resets, clear obsolete validation after external corrections and recognize reordered controlled tag acceptance.
+
+- Add Tree for hierarchical selection and NavigationTree for nested native destinations.
+
 - Add nested Menu items and ContextMenu with shared native layers, hover intent and scoped keyboard navigation.
 
 - Add continuous date ranges, ResizablePanels and ErrorSummary; document the CommandList/Dialog palette recipe.

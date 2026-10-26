@@ -1579,5 +1579,33 @@
       "Uses the same Menu items, preferences, nested layers, typeahead and keyboard navigation. Leaf commands close the tree; Escape unwinds one level and restores the real source focus.",
       "disabled preserves the native browser context menu. Controlled open and onAction remain host-owned. Provide a visible Menu action as a primary alternative on touch devices. Introduced in 0.2.7."
     ]
+  },
+  {
+    "slug": "tree",
+    "name": "Tree",
+    "group": "forms",
+    "description": "A selectable application hierarchy with independent expansion and keyboard focus.",
+    "code": "<Tree label=\"Project files\" items={[{value:\"source\",label:\"Source\",children:[{value:\"button\",label:\"Button.tsx\"}]}]} />",
+    "imports": ["Tree"],
+    "notes": [
+      "Tree uses tree/treeitem/group semantics, logical arrows, Home/End and typeahead. Moving focus does not select an item. Enter/Space explicitly selects; multiple selection does not cascade.",
+      "Items have globally unique values. Expansion uses expandedValues/defaultExpandedValues/onExpandedValuesChange; selection uses value/defaultValue/onValueChange. Controlled refusal preserves the host state.",
+      "Read-only allows browsing without selecting. Disabled items remain discoverable but cannot select or expand. hasChildren/loading represent host-owned deferred branches; no fetching or virtualization is built in.",
+      "Application selection writes no form values. Use NavigationTree for ordinary native links. Introduced in 0.2.7."
+    ]
+  },
+  {
+    "slug": "navigation-tree",
+    "name": "NavigationTree",
+    "group": "navigation",
+    "description": "Nested native navigation links with separate disclosure controls.",
+    "code": "<NavigationTree label=\"Documentation\" defaultExpandedValues={[\"start\"]} items={[{value:\"start\",label:\"Getting started\",children:[{value:\"installation\",label:\"Installation\",href:\"/docs/installation\"}]}]} />",
+    "imports": ["NavigationTree"],
+    "notes": [
+      "Native nav, lists and anchors preserve ordinary Tab order and browser modifier navigation. This component does not use ARIA tree/menu/tab roles.",
+      "A branch may have both href and children: its native link navigates while a separate disclosure button expands. currentValue marks the matching destination; ancestors are expanded explicitly by the host.",
+      "Expansion is controlled or uncontrolled through expandedValues/defaultExpandedValues/onExpandedValuesChange. Translate disclosure names with expandLabel; content can render host-owned loading or empty branch content.",
+      "Item values must be globally unique and children acyclic. Disabled destinations have no active href; parent disability does not propagate to children. Introduced in 0.2.7."
+    ]
   }
 ]

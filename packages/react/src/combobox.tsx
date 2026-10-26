@@ -67,18 +67,26 @@ export const SearchSelection = forwardRef<HTMLInputElement, SearchSelectionProps
     setActiveValue(selected?.value); setOpen(true);
   };
   useBrowserLayoutEffect(() => {
-    input.current?.setCustomValidity(required && !selections.length ? invalidSelectionMessage : "");
-  }, [required, selections.length, invalidSelectionMessage]);
+    const control = input.current;
+    control?.setCustomValidity(required && !selections.length ? invalidSelectionMessage : "");
+    if (validation && control?.validity.valid) setValidation("");
+  });
   useEffect(() => {
     const form = input.current?.form;
     if (!form) return;
-    const reset = (event: Event) => queueMicrotask(() => {
-      if (event.defaultPrevented) return;
-      if (current.current.value === undefined) setLocal(initial.current);
-      setQuery(null); setOpen(false); setValidation("");
-    });
+    const timers = new Set<ReturnType<typeof setTimeout>>();
+    const reset = (event: Event) => {
+      // React may cancel reset in its delegated handler after this native listener.
+      const timer = setTimeout(() => {
+        timers.delete(timer);
+        if (event.defaultPrevented || !input.current) return;
+        if (current.current.value === undefined) setLocal(initial.current);
+        setQuery(null); setOpen(false); setValidation("");
+      }, 0);
+      timers.add(timer);
+    };
     form.addEventListener("reset", reset);
-    return () => form.removeEventListener("reset", reset);
+    return () => { form.removeEventListener("reset", reset); timers.forEach(clearTimeout); };
   }, [props.form]);
   useEffect(() => {
     const control = input.current, Observer = control?.ownerDocument.defaultView?.MutationObserver;

@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { readComponentContract, readRecipeSlugs } from "../scripts/component-contract.mjs";
 
 const source = await readFile("packages/react/src/index.tsx", "utf8");
+const catalog = JSON.parse(await readFile("apps/website/src/component-catalog.json", "utf8"));
 test("recipe coverage detects added, duplicate and unsupported preview cases", () => {
   const recipe = 'function recipeFor(slug) { switch(slug) { case "button": return 1; case "input": case "textarea": return 2; default: return null; } }';
   assert.deepEqual(readRecipeSlugs(recipe), ["button", "input", "textarea"]);
@@ -16,7 +17,7 @@ const prop = (contract, name, key) => byName(contract, name).props.find((entry) 
 
 test("real component contracts resolve aliases, native inheritance and explicit defaults", () => {
   const contract = readComponentContract(source);
-  assert.equal(contract.length, 87);
+  assert.deepEqual(contract.map(entry => entry.name).sort(), catalog.map(entry => entry.name).sort());
   assert.match(prop(contract, "Button", "size").type, /"2xs".*"2xl"/);
   assert.equal(prop(contract, "Button", "loading").defaultValue, "false");
   assert.equal(prop(contract, "Button", "type").defaultValue, '"button"');
@@ -33,7 +34,7 @@ test("real component contracts resolve aliases, native inheritance and explicit 
 });
 
 test("new optional props and new runtime component exports are discovered without a catalog edit", () => {
-  const expanded = source.replace('loading?: boolean;', 'loading?: boolean;\n  emphasis?: "quiet" | "loud";') + `
+  const expanded = source.replace(/(export interface ButtonProps[\s\S]*?)(loading\?: boolean;)/, '$1$2\n  emphasis?: "quiet" | "loud";') + `
 /** @since 0.2.3 */
 export interface NoticeProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   message: string;

@@ -40,11 +40,13 @@ export const FreeTagEntry = forwardRef<HTMLInputElement, TagInputProps>(function
   };
   useBrowserLayoutEffect(() => {
     const request = pending.current;
-    if (request && same(tags,request.tags)) {
+    if (request && request.tags.every(tag => tags.includes(tag))) {
       pending.current = undefined;
       setDraft(current => current === request.draft ? request.remaining : current);
     }
-    input.current?.setCustomValidity(required && tags.length === 0 ? requiredMessage : "");
+    const control = input.current;
+    control?.setCustomValidity(required && tags.length === 0 ? requiredMessage : "");
+    if (validation && control?.validity.valid) setValidation("");
   });
   useEffect(() => {
     const owner = input.current?.form;
@@ -65,6 +67,8 @@ export const FreeTagEntry = forwardRef<HTMLInputElement, TagInputProps>(function
   },[form]);
   const remove = (tag: string) => {
     if (blocked()) return;
+    // Removal is a separate edit, not acceptance of a pending addition.
+    pending.current = undefined;
     publish(tags.filter(value => value !== tag));
     input.current?.focus({preventScroll:true});
   };

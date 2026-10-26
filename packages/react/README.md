@@ -6,6 +6,14 @@ HTML semantics and refs, no third-party component library or Tailwind dependency
 This package documents the **0.2.7** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
+Version 0.2.7 adds Tree for application object selection and NavigationTree for
+nested native links. Both use globally unique item values and independent
+controlled/uncontrolled expansion. Tree keeps keyboard focus separate from
+single/multiple selection, with host-owned deferred branches. NavigationTree
+preserves native links, modifier navigation and Tab order with separate disclosure
+buttons. Neither component fetches, virtualizes or writes form values. See
+`docs/components/tree.md` and `docs/components/navigation-tree.md` for usage.
+
 ```tsx
 import "@flood-md/react/styles.css";
 import { Button, FloodRoot, Heading, Stack, Text } from "@flood-md/react";

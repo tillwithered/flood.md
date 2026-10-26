@@ -60,6 +60,68 @@ import { DateRangeCalendar } from "./range-calendar.js";
 import { PairedDateRangeField } from "./date-range-field.js";
 import { CalendarDateRangePicker } from "./date-range-picker.js";
 import { ContextActionMenu } from "./context-menu.js";
+import { SelectionTree } from "./tree.js";
+import { HierarchicalNavigation } from "./navigation-tree.js";
+
+export interface TreeItem {
+  value: string;
+  label: string;
+  description?: string;
+  icon?: ReactNode;
+  children?: readonly TreeItem[];
+  hasChildren?: boolean;
+  loading?: boolean;
+  disabled?: boolean;
+  readOnly?: boolean;
+  selectable?: boolean;
+}
+export interface TreeProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "onSelect" | "defaultValue" | "onChange"> {
+  label: string;
+  hideLabel?: boolean;
+  items: readonly TreeItem[];
+  value?: string | readonly string[];
+  defaultValue?: string | readonly string[];
+  onValueChange?: (value: string | string[]) => void;
+  multiple?: boolean;
+  expandedValues?: readonly string[];
+  defaultExpandedValues?: readonly string[];
+  onExpandedValuesChange?: (values: string[]) => void;
+  disabled?: boolean;
+  readOnly?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  emptyMessage?: string;
+  loadingMessage?: string;
+  unloadedMessage?: string;
+  readOnlyMessage?: string;
+}
+/** @since 0.2.7 */
+export const Tree = forwardRef<HTMLDivElement, TreeProps>(function Tree(props, ref) {
+  return <SelectionTree {...props} ref={ref} />;
+});
+export interface NavigationTreeItem {
+  value: string;
+  label: string;
+  href?: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+  children?: readonly NavigationTreeItem[];
+  content?: ReactNode;
+  linkProps?: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "children" | "aria-current">;
+}
+export interface NavigationTreeProps extends Omit<HTMLAttributes<HTMLElement>, "children" | "onChange"> {
+  label: string;
+  items: readonly NavigationTreeItem[];
+  currentValue?: string;
+  expandedValues?: readonly string[];
+  defaultExpandedValues?: readonly string[];
+  onExpandedValuesChange?: (values: string[]) => void;
+  expandLabel?: (item: NavigationTreeItem, expanded: boolean) => string;
+  size?: ContentSize;
+}
+/** @since 0.2.7 */
+export const NavigationTree = forwardRef<HTMLElement, NavigationTreeProps>(function NavigationTree(props, ref) {
+  return <HierarchicalNavigation {...props} ref={ref} />;
+});
 
 export interface ErrorSummaryItem { id: string; fieldId: string; message: string; }
 export interface ErrorSummaryProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title" | "onSelect" | "role" | "aria-live"> {

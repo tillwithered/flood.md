@@ -63,3 +63,8 @@ input focus/paste/key handlers remain available; a host-cancelled event is respe
 The first version intentionally excludes server saving, suggestions, drag reorder,
 CSV parsing, async tag validation and a generic clear-all action. Geometry reuses
 Flood Tag, Input and field tokens, including nested radii and touch targets.
+
+Controlled acceptance may reorder the requested tags: once every requested value
+is present, the matching submitted draft clears. A refused or incomplete response
+retains the draft, and delayed acceptance never replaces text entered since that
+request. The host owns tag order; Flood does not sort it.

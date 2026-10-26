@@ -1,5 +1,11 @@
 # Compose an interface
 
+Use Tree for hierarchical application selection, with explicit value and expansion
+ownership. Use NavigationTree for nested destinations: preserve native links and
+their browser behavior rather than forcing a website sidebar into tree/menu roles.
+Do not infer cascading selection, lazy fetching, form submission or expansion of
+current-page ancestors. Keep item values globally unique and text labels present.
+
 For spacing, density or nested-geometry decisions, read [Spacing](spacing.md).
 Measure the complete row geometry before adding a gap to repeated controls.
 
