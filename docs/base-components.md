@@ -248,7 +248,9 @@ or mutate an editor. Keep its meaning explicit near the corresponding input.
 CopyButton writes its value through the browser Clipboard API on activation. A
 secure context and clipboard permission are required. onCopied/onCopyError let the
 host react; manual fallback belongs to the host. Localize all result labels. Labels
-reserve their shared width and a polite status announces success/failure.
+reserve their shared width as centered icon–label pairs; the icon–text gap stays
+constant in each state. Defaults are Copy / Copied / Failed. A polite status
+announces success/failure. This refinement is part of the unpublished 0.2.5 candidate.
 
 ToastRegion takes a host-owned items array and onDismiss. IDs are unique/nonempty;
 limit controls the visible queue. Ordinary messages default to five seconds;

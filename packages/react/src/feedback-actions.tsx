@@ -1,9 +1,9 @@
 import {forwardRef, useEffect, useImperativeHandle, useRef, useState} from "react";
 import type {CopyButtonProps, ToastRegionProps, ToastItem} from "./index.js";
-import {Button, IconButton, IconSlot, VisuallyHidden} from "./index.js";
+import {Button, IconButton, IconSlot, Spinner, VisuallyHidden} from "./index.js";
 
 export const ClipboardAction = forwardRef<HTMLButtonElement, CopyButtonProps>(function ClipboardAction({
-  value, copyLabel = "Copy", copiedLabel = "Copied", errorLabel = "Copy failed",
+  value, copyLabel = "Copy", copiedLabel = "Copied", errorLabel = "Failed",
   resetDelay = 2000, onCopied, onCopyError, className, disabled, size = "md", variant = "subtle", ...props
 }, ref) {
   if (!Number.isFinite(resetDelay) || resetDelay < 0) throw new Error("Flood CopyButton resetDelay must be finite and nonnegative");
@@ -31,10 +31,12 @@ export const ClipboardAction = forwardRef<HTMLButtonElement, CopyButtonProps>(fu
     }
     onCopied?.();
   };
-  return <><Button {...props} ref={ref} type="button" size={size} variant={variant} disabled={disabled} loading={pending} aria-label={label}
+  return <><Button {...props} ref={ref} type="button" size={size} variant={variant} disabled={disabled || pending} aria-label={label}
     className={["flood-copy-button", className].filter(Boolean).join(" ")} onClick={event => { void copy(event.currentTarget); }}>
-    {!pending && <IconSlot size={size}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{phase === "copied" ? <path d="m5 12 4 4L19 6"/> : <><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/></>}</svg></IconSlot>}
-    <span className="flood-copy-button__labels" aria-hidden="true">{[copyLabel,copiedLabel,errorLabel].map((text,index) => <span key={index} data-visible={text === label || undefined}>{text}</span>)}</span>
+    <span className="flood-copy-button__labels" aria-hidden="true">{[copyLabel,copiedLabel,errorLabel].map((text,index) => <span key={index} data-visible={index === (phase === "copied" ? 1 : phase === "error" ? 2 : 0) || undefined}>
+      <IconSlot size={size}>{pending ? <Spinner decorative /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{index === 1 ? <path d="m5 12 4 4L19 6"/> : index === 2 ? <path d="m6 6 12 12M18 6 6 18"/> : <><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/></>}</svg>}</IconSlot>
+      <span>{text}</span>
+    </span>)}</span>
   </Button><VisuallyHidden role="status">{phase === "idle" ? "" : label}</VisuallyHidden></>;
 });
 

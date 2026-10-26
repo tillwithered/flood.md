@@ -1234,7 +1234,7 @@ export interface CopyButtonProps extends Omit<ButtonProps, "children" | "value" 
   onCopyError?: (error: unknown) => void;
 }
 export const CopyButton = forwardRef<HTMLButtonElement, CopyButtonProps>(function CopyButton(
-  {copyLabel = "Copy", copiedLabel = "Copied", errorLabel = "Copy failed", resetDelay = 2000, size = "md", variant = "subtle", ...props}, ref,
+  {copyLabel = "Copy", copiedLabel = "Copied", errorLabel = "Failed", resetDelay = 2000, size = "md", variant = "subtle", ...props}, ref,
 ) {
   return <ClipboardAction {...props} ref={ref} copyLabel={copyLabel} copiedLabel={copiedLabel} errorLabel={errorLabel} resetDelay={resetDelay} size={size} variant={variant} />;
 });

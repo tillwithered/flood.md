@@ -1,5 +1,5 @@
-.flood-root .flood-copy-button__labels { display: inline-grid; min-inline-size: 0; }
-.flood-root .flood-copy-button__labels > span { grid-area: 1 / 1; visibility: hidden; }
+.flood-root .flood-copy-button__labels { display: inline-grid; min-inline-size: 0; gap: inherit; }
+.flood-root .flood-copy-button__labels > span { grid-area: 1 / 1; visibility: hidden; display: inline-flex; align-items: center; justify-content: center; gap: inherit; }
 .flood-root .flood-copy-button__labels > span[data-visible] { visibility: visible; }
 .flood-root .flood-toast-region { position: fixed; z-index: var(--flood-sys-layer-toast); inline-size: min(24rem, calc(100vw - 2 * var(--flood-sys-space-4))); max-block-size: calc(100dvh - 2 * var(--flood-sys-space-4)); overflow: auto; outline-offset: 0; }
 .flood-root .flood-toast-region[data-placement^="bottom"] { inset-block-end: max(var(--flood-sys-space-4), env(safe-area-inset-bottom)); }
