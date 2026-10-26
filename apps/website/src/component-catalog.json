@@ -1299,7 +1299,7 @@
     "slug": "list-box",
     "name": "ListBox",
     "group": "forms",
-    "description": "A visible single or multiple selection collection with keyboard navigation.",
+    "description": "A named single or multiple selection list with native validation and semantic feedback.",
     "code": "<ListBox label=\"Framework\" name=\"framework\" defaultValue=\"react\" options={[{value:\"react\",label:\"React\"},{value:\"vue\",label:\"Vue\"},{value:\"svelte\",label:\"Svelte\"}]} />",
     "imports": [
       "ListBox"
@@ -1307,7 +1307,9 @@
     "notes": [
       "Use a scalar value/defaultValue in single mode and an array in multiple mode. onValueChange returns the matching shape. Stable, unique nonempty option IDs are submitted as repeated hidden native form fields when name is supplied. Uncontrolled reset restores the initial selection.",
       "The list owns one Tab stop and aria-activedescendant. Arrows/Home/End move through enabled options; single selection follows navigation. Space/Enter selects or toggles. Typing searches option-label prefixes. Disabled options cannot be selected; readOnly retains navigation and copying without changing the value.",
-      "Provide a clear label or use hideLabel with the accessible label preserved. Use disabled on the composite to remove its Tab stop. The list is not virtualized and does not fetch options. Available in 0.2.5."
+      "Provide a clear label or use hideLabel with the accessible label preserved. Use disabled on the composite to remove its Tab stop. The list is not virtualized and does not fetch options. Available in 0.2.5.",
+      "required validates accepted selection; readonly bypasses validation and disabled excludes form values.",
+      "description/message and status share the field feedback contract. validationMessage is a host-owned blocking constraint."
     ]
   },
   {

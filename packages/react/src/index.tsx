@@ -2084,6 +2084,13 @@ export const SkipLink = /* @__PURE__ */ forwardRef<HTMLAnchorElement, SkipLinkPr
 export interface ListBoxProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "defaultValue" | "onChange"> {
   label: string;
   hideLabel?: boolean;
+  required?: boolean;
+  requiredMessage?: string;
+  validationMessage?: string;
+  description?: string;
+  message?: string;
+  status?: FieldStatus;
+  invalid?: boolean;
   options: readonly ComboboxOption[];
   value?: string | readonly string[];
   defaultValue?: string | readonly string[];

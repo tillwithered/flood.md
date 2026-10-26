@@ -1,5 +1,11 @@
 # Flood design system · 0.2.8
 
+ListBox owns native required validation for accepted selection. Use its
+description/message/status props rather than duplicating feedback markup. Visual
+invalid/status flags alone do not block submission; validationMessage supplies a
+host-owned blocking constraint. Readonly retains values and bypasses validity;
+disabled excludes submission. TimePicker keeps its plain manual-selection list.
+
 Use TimePicker for civil time suggestions and DateTimeRangePicker for complete,
 ordered civil endpoints. Calendar switches day/month/year views in place. Resolve
 timezones and DST in the host. These are source APIs; check the installed version.

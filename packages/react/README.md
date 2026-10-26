@@ -15,6 +15,10 @@ DateTimePicker, DataList, DataListItem, CheckCard, RadioCard, DataTable, FileIte
 DateTimePicker retains separate civil date and clock fields without inferring a
 timezone. Each component has a live catalog example and public prop reference.
 
+ListBox in the 0.2.8 source also supports native required validation, descriptions,
+semantic feedback and host-owned validation messages. Readonly bypasses validity;
+disabled excludes form values. See its guide for controlled selection and reset.
+
 Version 0.2.7 adds Tree for application object selection and NavigationTree for
 nested native links. Both use globally unique item values and independent
 controlled/uncontrolled expansion. Tree keeps keyboard focus separate from

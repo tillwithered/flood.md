@@ -2,6 +2,8 @@
 
 ## 0.2.8 — source preview
 
+- Complete ListBox native required validation, feedback/status and accessible descriptions while retaining selection and reset contracts.
+
 - Unify Calendar day/month/year views without nested overlays; fold the unpublished MonthYearPicker into Calendar.
 - Refine time selection and reduce repeated labels in date/time ranges.
 - Add minimal Popover chrome, plain ListBox appearance and DateTimePicker field-label visibility for library compositions.
