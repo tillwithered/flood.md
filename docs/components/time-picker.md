@@ -26,3 +26,8 @@ with the selected suggestion visible. Its trailing action matches DatePicker.
 `onOpenChange` control the popup. `panelLabel` and `openTimeLabel` localize its
 names. Readonly fields retain values and prevent opening; disabled fields do not
 submit. Native reset restores the initial uncontrolled value unless cancelled.
+
+Precision is part of the value format. For a controlled format change, provide a
+matching canonical value. For an uncontrolled format switch, remount with
+`key={precision}` and a matching default, rather than changing an initial-only
+`defaultValue` on the existing instance.

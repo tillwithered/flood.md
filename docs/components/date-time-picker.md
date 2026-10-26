@@ -26,6 +26,10 @@ are YYYY-MM-DD; `minTime` / `maxTime` are clock bounds matching the precision.
 `step` is measured in seconds. There is no UTC conversion, DST resolution or
 combined datetime min/max. Preserve explicit timezone selection in your app.
 
+When changing precision, controlled time values must match the new format. For
+an uncontrolled example, use `key={precision}` with a matching default to start a
+fresh format-specific editor. Changing `defaultValue` alone does not reset state.
+
 `hideLabel` hides the group legend visually; the date and time keep their own
 labels. `dateLabel`, `timeLabel`, `order` and `locale` adapt the presentation.
 The pair stacks on narrow screens. `readOnly` preserves accepted values and
