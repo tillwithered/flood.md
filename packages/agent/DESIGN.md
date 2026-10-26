@@ -412,3 +412,9 @@ for identity. FileInput retains native form ownership; removing a display row
 does not alter its FileList. ImagePreview reuses Dialog; the host owns trusted
 URLs, blob URL lifetime, download permissions and image alt text. No built-in
 network, file reading or object URL creation is implied by these components.
+
+FileMeta combines a display format label and byte size in one quiet chip. FileItem
+and UploadItem place it with the filename, reserving the next line for status or
+supporting text. Filename extensions are display hints only, never validation.
+Override with format or hide the format using format=null; do not infer upload
+safety or MIME permissions from a visible chip.

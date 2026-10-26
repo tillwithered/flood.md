@@ -2,7 +2,9 @@
 .flood-root .flood-file-item__thumbnail { display:grid; place-items:center; flex:none; inline-size:var(--flood-sys-control-md-height); block-size:var(--flood-sys-control-md-height); border-radius:var(--flood-sys-radius-action); color:var(--flood-sys-color-content-subtle); overflow:hidden; background:var(--flood-sys-color-field-background); }
 .flood-root .flood-file-item__thumbnail img { display:block; inline-size:100%; block-size:100%; object-fit:cover; }
 .flood-root .flood-file-item__name { overflow-wrap:anywhere; }
-.flood-root .flood-file-item__metadata { display:flex; flex-wrap:wrap; gap:var(--flood-sys-space-2); font-size:var(--flood-sys-type-helper-size); }
+.flood-root .flood-file-item__heading { display:flex; align-items:baseline; flex-wrap:wrap; gap:var(--flood-sys-space-1) var(--flood-sys-space-2); min-inline-size:0; }
+.flood-root .flood-file-item__heading>.flood-file-item__name { min-inline-size:0; }
+.flood-root .flood-file-meta { flex:none; white-space:nowrap; color:var(--flood-sys-color-content-subtle); font-weight:400; }
 .flood-root .flood-file-item .flood-data-list-item__trailing { flex:none; max-inline-size:none; }
 .flood-root .flood-upload-item .flood-data-list-item__copy { align-self:center; }
 .flood-root .flood-upload-item__status-row { display:flex; align-items:center; gap:var(--flood-sys-space-2); min-inline-size:0; }

@@ -10,7 +10,7 @@ This package documents the **0.2.8** source API. Keep Flood package versions ali
 your installed declarations; source changes do not modify an existing npm release.
 
 Version 0.2.8 adds HoverCard, ColorSwatch, ColorPicker, TreeSelect,
-DateTimePicker, DataList, DataListItem, CheckCard, RadioCard, DataTable, FileItem/FileList, UploadItem/UploadList and ImagePreview. Color values are opaque RGB hex; TreeSelect selects one item;
+DateTimePicker, DataList, DataListItem, CheckCard, RadioCard, DataTable, FileItem/FileList, FileMeta, UploadItem/UploadList and ImagePreview. Color values are opaque RGB hex; TreeSelect selects one item;
 DateTimePicker retains separate civil date and clock fields without inferring a
 timezone. Each component has a live catalog example and public prop reference.
 

@@ -1,5 +1,5 @@
 import {forwardRef,useState,type ReactNode} from "react";
-import {DataListItem,IconSlot,IconButton,Link,Stack,StatusIndicator,Progress,Dialog,Image,Spinner,Text,type FileItemProps,type UploadItemProps,type ImagePreviewProps} from "./index.js";
+import {DataListItem,IconSlot,IconButton,Link,Badge,FileMeta,StatusIndicator,Progress,Dialog,Image,Spinner,Text,type FileMetaProps,type FileItemProps,type UploadItemProps,type ImagePreviewProps} from "./index.js";
 import {hasFieldContent} from "./field-state.js";
 const cx=(...parts:Array<string|undefined>)=>parts.filter(Boolean).join(" ");
 
@@ -8,6 +8,15 @@ function sizeText(bytes:number,locale?:string){
   const units=["B","kB","MB","GB","TB"],unit=bytes===0?0:Math.max(0,Math.min(4,Math.floor(Math.log10(bytes)/3)));
   return `${new Intl.NumberFormat(locale,{maximumFractionDigits:1}).format(bytes/1000**unit)} ${units[unit]}`;
 }
+export const FileMetadata = /* @__PURE__ */ forwardRef<HTMLSpanElement,FileMetaProps>(function FileMetadata({format,size,formatSize,className,...props},ref){
+  if(format!==undefined&&!format.trim())throw new Error("Flood FileMeta format must be nonempty when supplied");
+  if(size!==undefined&&(!Number.isFinite(size)||size<0))throw new Error("Flood file size must be finite and nonnegative");
+  if(format===undefined&&size===undefined)return null;
+  const bytes=size===undefined?undefined:(formatSize??((value:number)=>sizeText(value,props.lang)))(size);
+  return <Badge {...props} ref={ref} size="sm" tone="neutral" className={cx("flood-file-meta",className)}>
+    {format&&<span>{format}</span>}{format&&bytes&&<span aria-hidden="true">·</span>}{bytes&&<span>{bytes}</span>}
+  </Badge>;
+});
 function Glyph({kind}:{kind:"file"|"preview"|"remove"|"retry"|"cancel"}){
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     {kind==="file"?<><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></>:
@@ -17,19 +26,20 @@ function Glyph({kind}:{kind:"file"|"preview"|"remove"|"retry"|"cancel"}){
 }
 interface RowProps extends FileItemProps { extraActions?:ReactNode; }
 const FileRow = /* @__PURE__ */ forwardRef<HTMLLIElement,RowProps>(function FileRow({
-  name,size,mimeType,thumbnail,description,href,download=false,onPreview,onRemove,disabled=false,
+  name,size,mimeType,format,thumbnail,description,href,download=false,onPreview,onRemove,disabled=false,
   labels={},formatSize,className,extraActions,...props
 },ref){
   if(!name.trim())throw new Error("Flood FileItem requires a nonempty file name");
   if(size!==undefined&&(!Number.isFinite(size)||size<0))throw new Error("Flood file size must be finite and nonnegative");
-  const bytes=size===undefined?undefined:(formatSize??((value:number)=>sizeText(value,props.lang)))(size);
+  const extension=name.lastIndexOf(".")>0?name.slice(name.lastIndexOf(".")+1):"";
+  const displayedFormat=format===null?undefined:format??mimeType??(/^[a-z0-9]{1,12}$/i.test(extension)?extension.toUpperCase():undefined);
   return <DataListItem {...props} ref={ref} className={cx("flood-file-item",className)}
     media={<span className="flood-file-item__thumbnail" aria-hidden="true">{hasFieldContent(thumbnail)?thumbnail:<IconSlot size="lg"><Glyph kind="file"/></IconSlot>}</span>}
-    title={href&&!disabled?<Link href={href} download={download?name:undefined} className="flood-file-item__name">{name}</Link>:<span className="flood-file-item__name" dir="auto">{name}</span>}
-    description={(bytes||mimeType||hasFieldContent(description))?<Stack gap="1">
-      {(bytes||mimeType)&&<span className="flood-file-item__metadata">{bytes&&<span>{bytes}</span>}{mimeType&&<span>{mimeType}</span>}</span>}
-      {hasFieldContent(description)&&description}
-    </Stack>:undefined}
+    title={<span className="flood-file-item__heading">
+      {href&&!disabled?<Link href={href} download={download?name:undefined} className="flood-file-item__name">{name}</Link>:<span className="flood-file-item__name" dir="auto">{name}</span>}
+      <FileMeta format={displayedFormat} size={size} formatSize={formatSize} lang={props.lang}/>
+    </span>}
+    description={hasFieldContent(description)?description:undefined}
     actions={(onPreview||onRemove||hasFieldContent(extraActions))?<>
       {onPreview&&<IconButton label={`${labels.preview??"Preview"}: ${name}`} variant="ghost" size="sm" disabled={disabled} onClick={onPreview}><Glyph kind="preview"/></IconButton>}
       {extraActions}

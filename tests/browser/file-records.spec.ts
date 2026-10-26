@@ -6,12 +6,12 @@ let bundled:Promise<string>;
 async function fixture(){
   const file=(path:string)=>JSON.stringify(resolve(path).replaceAll("\\","/"));const directory=resolve(`.artifacts/file-records-${process.pid}`);await mkdir(directory,{recursive:true});const entry=resolve(directory,"entry.mjs");
   await writeFile(entry,`import React,{useState}from ${file("node_modules/react/index.js")};import{createRoot}from ${file("node_modules/react-dom/client.js")};
-import{FloodRoot,FileList,FileItem,UploadList,UploadItem,ImagePreview,Button,Checkbox}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};const h=React.createElement;
+import{FloodRoot,FileMeta,FileList,FileItem,UploadList,UploadItem,ImagePreview,Button,Checkbox}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};const h=React.createElement;
 function App(){const[state,S]=useState('uploading'),[removed,R]=useState(false),[disabled,D]=useState(false),[unknown,U]=useState(false),[count,C]=useState(0),[missing,M]=useState(false);return h(FloodRoot,null,h('h1',null,'File records'),
 h(FileList,{label:'Attachments'},h(FileItem,{id:'simple',name:'Empty.txt',size:0}),h(FileItem,{name:'Attachment-with-a-very-long-file-name-that-needs-to-wrap-properly-in-narrow-layouts.pdf',size:2400000,mimeType:'PDF',onPreview:()=>C(x=>x+1),onRemove:()=>R(true),hidden:removed,disabled}),h(FileItem,{id:'bare',name:'Bare.txt'})),
 h(UploadList,{label:'Uploads'},h(UploadItem,{name:'Cover.png',size:850000,state,progress:unknown?undefined:45,error:'Connection interrupted',disabled,onCancel:()=>S('cancelled'),onRetry:()=>S('uploading'),onRemove:()=>S('queued'),onPreview:()=>C(x=>x+1)})),
 h(ImagePreview,{title:'Cover preview',src:missing?'/missing-image.svg':'/test-image.svg',alt:'Preview artwork',caption:'Project artwork',trigger:props=>h(Button,props,'View image')}),
-h(Button,{onClick:()=>S('error')},'Fail upload'),h(Button,{onClick:()=>S('success')},'Complete upload'),h(Button,{onClick:()=>M(true)},'Missing image'),h(Checkbox,{label:'Disable actions',checked:disabled,onChange:e=>D(e.currentTarget.checked)}),h(Checkbox,{label:'Unknown progress',checked:unknown,onChange:e=>U(e.currentTarget.checked)}),h('output',{'aria-label':'Invocations'},count));}createRoot(document.getElementById('app')).render(h(App));`);
+h(Button,{onClick:()=>S('error')},'Fail upload'),h(Button,{onClick:()=>S('success')},'Complete upload'),h(Button,{onClick:()=>M(true)},'Missing image'),h(Checkbox,{label:'Disable actions',checked:disabled,onChange:e=>D(e.currentTarget.checked)}),h(Checkbox,{label:'Unknown progress',checked:unknown,onChange:e=>U(e.currentTarget.checked)}),h('div',{id:'metas'},h(FileMeta,{id:'both',format:'PDF',size:2400000,lang:'en'}),h(FileMeta,{id:'format-only',format:'SVG'}),h(FileMeta,{id:'size-only',size:0,lang:'en'}),h(FileMeta,{id:'no-meta'})),h('output',{'aria-label':'Invocations'},count));}createRoot(document.getElementById('app')).render(h(App));`);
   const result=await build({configFile:false,logLevel:"silent",define:{"process.env.NODE_ENV":JSON.stringify("production")},build:{write:false,cssCodeSplit:false,lib:{entry,formats:["iife"],name:"FileRecords"}}});
   const output=(Array.isArray(result)?result:[result]).flatMap(x=>"output"in x?x.output:[]);
   return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>File records</title><style>'+output.filter(x=>x.type==="asset"&&x.fileName.endsWith(".css")).map(x=>(x as any).source).join("")+'body{margin:1rem;background:#181818;color:white}main{max-width:34rem}</style></head><body><main id="app"></main><script>'+output.filter(x=>x.type==="chunk").map(x=>(x as any).code).join("")+'</script></body></html>';
@@ -53,4 +53,11 @@ test("ImagePreview is lazy, fits its image and restores trigger focus",async({pa
 test("ImagePreview shows failure feedback instead of a broken image",async({page})=>{
   await page.route("**/missing-image.svg",route=>route.fulfill({status:404,body:"missing"}));await open(page);await page.getByRole("button",{name:"Missing image",exact:true}).click();await page.getByRole("button",{name:"View image",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"Cover preview"});await expect(dialog.getByText("Could not load the image.",{exact:true})).toBeVisible();await expect(dialog.getByRole("img")).toHaveCount(0);
+});
+
+test("FileMeta combines format and size without empty separators and shares the filename row",async({page})=>{
+ await open(page);await expect(page.locator('#both')).toContainText('PDF');await expect(page.locator('#both')).toContainText('2.4 MB');
+ await expect(page.locator('#format-only')).toHaveText('SVG');await expect(page.locator('#size-only')).toHaveText('0 B');await expect(page.locator('#no-meta')).toHaveCount(0);
+ const name=(await page.locator('#simple .flood-file-item__name').boundingBox())!,chip=(await page.locator('#simple .flood-file-meta').boundingBox())!;
+ expect(chip.x).toBeGreaterThan(name.x+name.width);expect(chip.y).toBeLessThan(name.y+name.height);await expect(page.locator('#simple .flood-data-list-item__description')).toHaveCount(0);
 });

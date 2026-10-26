@@ -5,6 +5,7 @@
 - Add HoverCard, ColorSwatch, ColorPicker, TreeSelect and DateTimePicker.
 - Add native DataList/DataListItem rows and CheckCard/RadioCard choices.
 - Add file and upload rows/lists with a Dialog-based ImagePreview.
+- Add FileMeta for a compact format/size chip beside the filename.
 - Add client-side DataTable sorting, selection, paging and feedback states, plus a Filter bar recipe.
 - Add recipes for aggregate selection, split actions and form submission.
 - Keep opaque RGB colors, single tree selection and civil date/time contracts explicit.

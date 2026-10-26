@@ -1833,5 +1833,19 @@
       "ImagePreview",
       "Button"
     ]
+  },
+  {
+    "slug": "file-meta",
+    "name": "FileMeta",
+    "group": "content",
+    "description": "A compact combined file-format and byte-size chip.",
+    "code": "<FileMeta format=\"PDF\" size={2400000} />",
+    "notes": [
+      "The format label is display metadata, not validated MIME detection.",
+      "Size uses SI units; formatSize customizes the text. Missing values do not create empty chip slots."
+    ],
+    "imports": [
+      "FileMeta"
+    ]
   }
 ]

@@ -61,7 +61,7 @@ import { PairedDateRangeField } from "./date-range-field.js";
 import { CalendarDateRangePicker } from "./date-range-picker.js";
 import { ContextActionMenu } from "./context-menu.js";
 import { SelectionTree } from "./tree.js";
-import { FileRecord, UploadRecord, ModalImagePreview } from "./file-records.js";
+import { FileRecord, UploadRecord, ModalImagePreview, FileMetadata } from "./file-records.js";
 import { ManagedDataTable } from "./data-table.js";
 import { CheckableCard, ExclusiveCard } from "./collection-cards.js";
 import { ColorPreview, ColorEditor } from "./color-controls.js";
@@ -69,6 +69,14 @@ import { HoverPreview } from "./hover-card.js";
 import { HierarchicalSelect } from "./tree-select.js";
 import { CivilDateTimePicker } from "./date-time-picker.js";
 import { HierarchicalNavigation } from "./navigation-tree.js";
+
+export interface FileMetaProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children"> {
+  format?: string;
+  size?: number;
+  formatSize?: (bytes: number) => string;
+}
+/** A quiet combined format/size chip; display metadata only. @since 0.2.8 */
+export const FileMeta = /* @__PURE__ */ forwardRef<HTMLSpanElement,FileMetaProps>(function FileMeta(props,ref){return <FileMetadata {...props} ref={ref}/>;});
 
 export interface FileActionLabels {
   preview?: string; remove?: string; cancel?: string; retry?: string;
@@ -78,6 +86,7 @@ export interface FileItemProps extends Omit<HTMLAttributes<HTMLLIElement>, "chil
   name: string;
   size?: number;
   mimeType?: string;
+  format?: string | null;
   thumbnail?: ReactNode;
   description?: ReactNode;
   href?: string;

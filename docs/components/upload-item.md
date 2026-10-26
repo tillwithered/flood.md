@@ -1,6 +1,8 @@
 # UploadItem
 
 A FileItem composition that displays host-controlled upload state and progress.
+The top row combines the name with FileMeta (format and size). Upload status and
+its progress bar share one compact line beneath it.
 
 ```tsx
 <UploadList label="Uploads">

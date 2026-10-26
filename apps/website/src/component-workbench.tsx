@@ -20,6 +20,7 @@ const select = (name: string, options: string[], initial: string): Knob => ({ na
 const statusKnob = () => select("status", ["none", "error", "warning", "success", "info"], "none");
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
+  "file-meta": [select("format", ["PDF", "PNG", "SVG", "ZIP", "none"], "PDF"),select("size", ["0", "18400", "850000", "2400000"], "2400000"),toggle("showSize",true)],
   "file-item": [select("density", ["compact", "comfortable"], "comfortable"),toggle("showSize",true),toggle("showType",true),toggle("showActions",true),toggle("longName"),toggle("disabled")],
   "file-list": [select("density", ["compact", "comfortable"], "comfortable"),toggle("showSize",true),toggle("showType",true),toggle("showActions",true),toggle("longName"),toggle("disabled")],
   "upload-item": [select("state", ["queued", "uploading", "success", "error", "cancelled"], "uploading"),select("progress", ["unknown", "0", "25", "45", "75", "100"], "45"),toggle("showActions",true),toggle("disabled")],
@@ -215,10 +216,11 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     onChange: binding("(event) => setChecked(event.currentTarget.checked)", (event: { currentTarget: { checked: boolean } }) => actions.checked(event.currentTarget.checked)),
   };
   switch (slug) {
+    case "file-meta": return element("FileMeta",{format:v.format==="none"?undefined:v.format,size:v.showSize?Number(v.size):undefined});
     case "file-item":
     case "file-list": return element("div",{style:{width:"32rem",maxWidth:"100%"}},element("FileList",{label:"Attachments",density:v.density},...["brand",...(slug==="file-list"?["logo","cover"]:[])].map((id,index)=>{
       const name=v.longName?"Brand-guidelines-and-product-design-system-documentation-final-version.pdf":["Brand guidelines.pdf","Logo.svg","Cover.png"][index];
-      return element("FileItem",{name,size:v.showSize?[2400000,18400,850000][index]:undefined,mimeType:v.showType?["PDF","SVG","PNG"][index]:undefined,disabled:v.disabled,hidden:binding(`fileStates[${JSON.stringify(id)}] === "removed"`,actions.fileStates[id]==="removed"),onPreview:v.showActions?action:undefined,onRemove:v.showActions?binding(`() => setFileStates(current => ({...current, ${JSON.stringify(id)}: "removed"}))`,()=>actions.setFileState(id,"removed")):undefined});
+      return element("FileItem",{name,format:v.showType?undefined:null,size:v.showSize?[2400000,18400,850000][index]:undefined,mimeType:v.showType?["PDF","SVG","PNG"][index]:undefined,disabled:v.disabled,hidden:binding(`fileStates[${JSON.stringify(id)}] === "removed"`,actions.fileStates[id]==="removed"),onPreview:v.showActions?action:undefined,onRemove:v.showActions?binding(`() => setFileStates(current => ({...current, ${JSON.stringify(id)}: "removed"}))`,()=>actions.setFileState(id,"removed")):undefined});
     })),status);
     case "upload-item":
     case "upload-list": return element("div",{style:{width:"32rem",maxWidth:"100%"}},element("UploadList",{label:"Uploads",density:v.density??"comfortable"},...["brand",...(slug==="upload-list"?["logo","cover"]:[])].map((id,index)=>{
