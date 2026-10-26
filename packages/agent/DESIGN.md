@@ -1,5 +1,17 @@
 # Flood design system · 0.2.8
 
+## Composition is built from library primitives
+
+Use existing Flood components inside larger components, the website and playgrounds.
+Do not replace them with ordinary text or custom markup to fix a visual issue.
+When a small capability is missing, improve or create that reusable primitive
+first, then compose it. Preserve component anatomy and semantics. The manifest
+ships the composition skill from `references/flood-composition/SKILL.md` to
+project-root `.agents/skills/flood-ui/references/flood-composition/SKILL.md`.
+Apply that skill. Native semantic markup and neutral structural wrappers remain
+valid inside their proper owners.
+
+
 Readonly date/time entry bypasses native validity constraints while retaining
 accepted canonical values, including values outside current bounds, time steps or
 range availability. Do not silently clear those values. Partial, reversed ranges

@@ -59,8 +59,7 @@ export const UploadRecord = /* @__PURE__ */ forwardRef<HTMLLIElement,UploadItemP
   return <FileRow {...props} ref={ref} labels={labels} disabled={disabled} href={state==="success"?href:undefined}
     onPreview={state==="success"?onPreview:undefined} onRemove={active?undefined:onRemove} className={cx("flood-upload-item",className)}
     data-upload-state={state} description={<div className="flood-upload-item__status-row" data-progress={state==="uploading"||undefined}>
-      {state==="uploading"?<Text as="span" size="helper" tone="subtle" className="flood-upload-item__status-text">{status+percent}</Text>:
-        <StatusIndicator label={status+percent} tone={state==="error"?"error":state==="success"?"success":"neutral"} size="sm"/>}
+      <StatusIndicator label={status+percent} tone={state==="error"?"error":state==="success"?"success":"neutral"} size="sm"/>
       {state==="uploading"&&<Progress label={`${labels.uploading??"Uploading"}: ${props.name}`} value={progress} size="sm" hideLabel/>}
     </div>} extraActions={(active&&onCancel||retry&&onRetry)?<>
       {active&&onCancel&&<IconButton label={`${labels.cancel??"Cancel upload"}: ${props.name}`} variant="ghost" size="sm" disabled={disabled} onClick={onCancel}><Glyph kind="cancel"/></IconButton>}

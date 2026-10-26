@@ -4,6 +4,11 @@ Read [AGENTS.md](AGENTS.md), [architecture](docs/architecture.md) and the releva
 package guide before changing code. Flood authors its own controls and tokens;
 do not introduce a third-party UI component library.
 
+Build larger components and website UI from Flood's existing small components.
+If a needed capability is missing, improve or add the primitive first. Do not
+replace a shared component with local markup to solve a visual issue. See the
+[composition skill](packages/agent/references/flood-composition/SKILL.md).
+
 ## Local development
 
 Use Node.js 22.12 or newer (CI uses Node 24) and npm.

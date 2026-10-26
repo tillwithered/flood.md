@@ -5,6 +5,11 @@ the public product, website, documentation, examples and verification tooling.
 
 - Read `docs/architecture.md` and the relevant package README before editing.
 - Author original UI; no shadcn, Radix, Base UI or other component library.
+- Compose UI from Flood's existing primitives, including inside library components,
+  website and playgrounds. Never replace one with custom markup to fix appearance.
+  Improve a missing capability in the small primitive first, then compose it.
+  Follow [the composition skill](packages/agent/references/flood-composition/SKILL.md)
+  when building or reviewing UI.
 - Tokens are authored only in `packages/tokens/src/tokens.json`.
 - Preserve React 18/19 APIs and the React entry's `"use client"` directive.
 - Public API changes need docs, declaration output and a version decision.

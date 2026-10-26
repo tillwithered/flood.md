@@ -11,6 +11,7 @@ no authority to modify external services.
 | SKILL.md | Short entry and task router |
 | references/routing.md | Applicability, audience, prerequisites and governing source |
 | references/composition.md | Screen/form composition workflow |
+| references/flood-composition/SKILL.md | Full primitives-first composition skill routed from flood-ui |
 | references/spacing.md | Measured spacing, density, nested geometry and hit areas |
 | references/accessibility.md | Interaction and perception checks |
 | references/customization.md | Scoped semantic customization |

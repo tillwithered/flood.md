@@ -13,6 +13,20 @@ It identifies deployed status and entry points. Follow [installation](installati
 preview the matching CLI's init with --dry-run before applying it within the user's
 scope. The CLI does not install an agent runtime or require a hosted Flood service.
 
+## Compose from primitives
+
+The 0.2.8 source candidate includes the [Flood composition skill](../packages/agent/references/flood-composition/SKILL.md).
+The main Flood skill routes component, website and playground work to it. The
+manifest installs the full skill under
+`.agents/skills/flood-ui/references/flood-composition/SKILL.md`; it is loaded by
+that router rather than relying on independent discovery of nested skills.
+Existing installations must compare and merge new guidance deliberately.
+
+Reuse the existing library component; fix the relationship in its proper owner.
+If a reusable primitive is missing, build or extend it before the composition.
+Do not replace StatusIndicator with custom text, hide its anatomy, or duplicate
+a Badge/Progress/Dialog implementation just to make one layout fit.
+
 ## Files and responsibilities
 
 | Project file | For whom / when | Prerequisite | Source of truth | What to check |

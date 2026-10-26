@@ -1,5 +1,9 @@
 # Compose an interface
 
+Apply the [Flood composition skill](flood-composition/SKILL.md) before building
+or changing UI. Reuse the existing semantic primitive, including inside library
+components. Fix its layout or extend its API instead of substituting custom markup.
+
 Use Tree for hierarchical application selection, with explicit value and expansion
 ownership. Use NavigationTree for nested destinations: preserve native links and
 their browser behavior rather than forcing a website sidebar into tree/menu roles.

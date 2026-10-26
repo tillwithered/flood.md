@@ -2,6 +2,8 @@
 
 ## 0.2.8 — source preview
 
+- Add the primitives-first composition skill to the versioned agent bundle; preserve StatusIndicator in upload rows.
+
 - Add HoverCard, ColorSwatch, ColorPicker, TreeSelect and DateTimePicker.
 - Add native DataList/DataListItem rows and CheckCard/RadioCard choices.
 - Add file and upload rows/lists with a Dialog-based ImagePreview.

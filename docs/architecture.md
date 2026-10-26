@@ -34,6 +34,11 @@ npm itself can change package/lock files, so inspect its output before retrying.
 
 ## Component contracts
 
+Larger components, website UI and playgrounds compose existing Flood primitives.
+When a capability is missing, improve or add the small primitive first. Preserve
+its anatomy; do not replace it with custom markup to solve appearance. Apply the
+[composition skill](../packages/agent/references/flood-composition/SKILL.md).
+
 Native buttons and inputs keep platform semantics. Callbacks/ref/state belong in
 client components. Field supplies associations via a render callback. No data
 access is built into components. React package entry keeps `"use client"` in the
