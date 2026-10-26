@@ -2,6 +2,10 @@
 
 ## 0.2.7 - Unreleased
 
+- Add nested Menu items and ContextMenu with shared native layers, hover intent and scoped keyboard navigation.
+
+- Add continuous date ranges, ResizablePanels and ErrorSummary; document the CommandList/Dialog palette recipe.
+
 - Add TimeField, Calendar and composed DatePicker; refine segmented field click targets and placeholder geometry.
 
 - Add grouped CommandList and segmented DateField with canonical form contracts.

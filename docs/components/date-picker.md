@@ -54,3 +54,5 @@ the field label. `today` supplies a deterministic ISO date for rendering and tes
 
 The ref targets DateField's root div. This composition adds no date-range,
 non-Gregorian calendar, time-zone, backend or validation service API.
+
+The calendar panel follows the full field width and aligns to the field edges, rather than using the icon button as its geometry reference. ResizeObserver tracks responsive field changes; the panel is clamped to the available visual viewport on narrow screens.

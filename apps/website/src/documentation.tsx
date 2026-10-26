@@ -89,9 +89,10 @@ function Sidebar({ path, query, onQueryChange, visible = true }: { path: string;
       })}
       {results.length === 0 && <Text as="p" size="compact" tone="subtle" className="catalog-empty">No components found.</Text>}
     </>}
-    <div className="side-group"><Text size="helper" tone="subtle" className="side-label">Documentation</Text>
-      {docPages.map(page => <Link key={page.path} href={page.path} variant="ghost" size="sm" className="side-link" aria-current={path === page.path ? "page" : undefined}>{page.label}</Link>)}
-    </div>
+    {[{label:"Documentation",pages:docPages.filter(page=>page.group!=="recipes")},{label:"Recipes",pages:docPages.filter(page=>page.group==="recipes")}].map(group=>group.pages.length>0&&
+      <div className="side-group" key={group.label}><Text size="helper" tone="subtle" className="side-label">{group.label}</Text>
+        {group.pages.map(page => <Link key={page.path} href={page.path} variant="ghost" size="sm" className="side-link" aria-current={path === page.path ? "page" : undefined}>{page.label}</Link>)}
+      </div>)}
     {!inComponents && <div className="side-group"><Link href="/components" variant="ghost" size="sm" className="side-link catalog-link">All components <span>{componentPages.length}</span></Link></div>}
   </nav>;
 }

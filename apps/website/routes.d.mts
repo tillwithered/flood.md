@@ -1,4 +1,4 @@
-export const docPages: Array<{ path: string; label: string; file: string; description: string }>;
+export const docPages: Array<{ path: string; label: string; file: string; description: string; group?: "recipes" }>;
 export const componentSlugs: string[];
 export const pagePaths: Set<string>;
 export const siteOrigin: string;

@@ -1,4 +1,4 @@
-import {forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState} from "react";
+import {forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties} from "react";
 import type {DatePickerProps} from "./index.js";
 import {Calendar, DateField, IconButton, Popover} from "./index.js";
 
@@ -16,6 +16,8 @@ export const CalendarDatePicker = forwardRef<HTMLDivElement, DatePickerProps>(fu
   const triggerLabel = openCalendarLabel ?? `Open calendar: ${label}`;
   if (!panelLabel.trim() || !triggerLabel.trim()) throw new Error("Flood DatePicker calendar labels must be nonempty");
   const root = useRef<HTMLDivElement>(null);
+  const positionReference = useRef<HTMLElement | null>(null);
+  const [fieldWidth, setFieldWidth] = useState<number>();
   useImperativeHandle(forwardedRef, () => root.current!, []);
   const initial = useRef(defaultValue), [localValue, setLocalValue] = useState(defaultValue);
   const [localOpen, setLocalOpen] = useState(defaultOpen), [inheritedDisabled, setInheritedDisabled] = useState(false);
@@ -33,6 +35,17 @@ export const CalendarDatePicker = forwardRef<HTMLDivElement, DatePickerProps>(fu
     if (current.current.value === undefined) setLocalValue(next);
     current.current.onValueChange?.(next);
   };
+  useBrowserLayoutEffect(() => {
+    const control = root.current?.querySelector<HTMLElement>(".flood-date-field__control");
+    if (!control) return;
+    positionReference.current = control;
+    const update = () => { const width = control.getBoundingClientRect().width; if (width > 0) setFieldWidth(previous => previous === width ? previous : width); };
+    update();
+    const view = control.ownerDocument.defaultView;
+    const observer = view?.ResizeObserver ? new view.ResizeObserver(update) : undefined;
+    observer?.observe(control);
+    return () => { observer?.disconnect(); if (positionReference.current === control) positionReference.current = null; };
+  }, []);
   useBrowserLayoutEffect(() => {
     const node = root.current; if (!node) return;
     const update = () => setInheritedDisabled(nativeDisabled());
@@ -81,7 +94,8 @@ export const CalendarDatePicker = forwardRef<HTMLDivElement, DatePickerProps>(fu
         event.preventDefault(); requestOpen(true);
       }
     }}
-    end={<Popover title={panelLabel} className="flood-date-picker__panel" align="end"
+    end={<Popover title={panelLabel} className="flood-date-picker__panel" align="end" positionReference={positionReference}
+      style={{"--flood-date-picker-width": fieldWidth === undefined ? undefined : `${fieldWidth}px`} as CSSProperties}
       open={!blocked && requestedOpen} onOpenChange={requestOpen} disabled={blocked}
       trigger={trigger => <IconButton {...trigger} label={triggerLabel} variant="ghost" size={triggerSizes[controlSize]}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">

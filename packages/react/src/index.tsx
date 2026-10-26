@@ -18,6 +18,7 @@ import {
   type RefCallback,
   type RefObject,
   type Ref,
+  type MouseEvent as ReactMouseEvent,
   type TableHTMLAttributes,
   type ImgHTMLAttributes,
   type BlockquoteHTMLAttributes,
@@ -53,6 +54,93 @@ import { SegmentedDateField } from "./date-field.js";
 import { SegmentedTimeField } from "./time-field.js";
 import { DateCalendar } from "./calendar.js";
 import { CalendarDatePicker } from "./date-picker.js";
+import { ValidationErrorSummary } from "./error-summary.js";
+import { ResizablePaneGroup } from "./resizable-panels.js";
+import { DateRangeCalendar } from "./range-calendar.js";
+import { PairedDateRangeField } from "./date-range-field.js";
+import { CalendarDateRangePicker } from "./date-range-picker.js";
+import { ContextActionMenu } from "./context-menu.js";
+
+export interface ErrorSummaryItem { id: string; fieldId: string; message: string; }
+export interface ErrorSummaryProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title" | "onSelect" | "role" | "aria-live"> {
+  title: string;
+  errors: readonly ErrorSummaryItem[];
+  description?: ReactNode;
+  announcement?: "off" | "polite" | "assertive";
+  autoFocus?: boolean;
+  onSelect?: (error: ErrorSummaryItem, event: ReactMouseEvent<HTMLAnchorElement>) => void;
+}
+/** @since 0.2.7 */
+export const ErrorSummary = forwardRef<HTMLDivElement, ErrorSummaryProps>(function ErrorSummary(
+  { announcement = "off", autoFocus = false, ...props }, ref,
+) { return <ValidationErrorSummary {...props} ref={ref} announcement={announcement} autoFocus={autoFocus} />; });
+export interface ResizablePanelsProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "defaultValue" | "onChange"> {
+  label: string;
+  main: ReactNode;
+  secondary: ReactNode;
+  orientation?: "horizontal" | "vertical";
+  value?: number;
+  defaultValue?: number;
+  onValueChange?: (percent: number) => void;
+  onValueCommit?: (percent: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+  largeStep?: number;
+  disabled?: boolean;
+}
+/** @since 0.2.7 */
+export const ResizablePanels = forwardRef<HTMLDivElement, ResizablePanelsProps>(function ResizablePanels(
+  { orientation = "horizontal", defaultValue = 50, min = 10, max = 90, step = 1, largeStep = 10, ...props }, ref,
+) { return <ResizablePaneGroup {...props} ref={ref} orientation={orientation} defaultValue={defaultValue} min={min} max={max} step={step} largeStep={largeStep} />; });
+export interface DateRangeValue { start: string; end: string; }
+export interface RangeCalendarProps extends Omit<CalendarProps, "value" | "defaultValue" | "onValueChange" | "onDateSelect"> {
+  value?: DateRangeValue;
+  defaultValue?: DateRangeValue;
+  onValueChange?: (range: DateRangeValue) => void;
+  onRangeSelect?: (range: DateRangeValue) => void;
+  isRangeDisabled?: (range: DateRangeValue) => boolean;
+  rangeLabels?: { chooseStart?: string; chooseEnd?: string; unavailable?: string };
+}
+/** @since 0.2.7 */
+export const RangeCalendar = forwardRef<HTMLDivElement, RangeCalendarProps>(function RangeCalendar(
+  { weekStartsOn = 0, locale = "en-US", autoFocus = false, ...props }, ref,
+) { return <DateRangeCalendar {...props} ref={ref} weekStartsOn={weekStartsOn} locale={locale} autoFocus={autoFocus} />; });
+export interface DateRangeFieldProps extends Omit<DateFieldProps, "value" | "defaultValue" | "onValueChange" | "name" | "label" | "end"> {
+  label: string;
+  value?: DateRangeValue;
+  defaultValue?: DateRangeValue;
+  onValueChange?: (range: DateRangeValue) => void;
+  startName?: string;
+  endName?: string;
+  startLabel?: string;
+  endLabel?: string;
+  end?: ReactNode;
+  isDateDisabled?: (date: string) => boolean;
+  isRangeDisabled?: (range: DateRangeValue) => boolean;
+  rangeMessages?: { incomplete?: string; reversed?: string; unavailable?: string };
+}
+/** @since 0.2.7 */
+export const DateRangeField = forwardRef<HTMLDivElement, DateRangeFieldProps>(function DateRangeField(
+  { controlSize = "md", order = "month-day-year", startLabel = "Start date", endLabel = "End date", ...props }, ref,
+) { return <PairedDateRangeField {...props} ref={ref} controlSize={controlSize} order={order} startLabel={startLabel} endLabel={endLabel} />; });
+export interface DateRangePickerProps extends Omit<DateRangeFieldProps, "end"> {
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  calendarLabel?: string;
+  openCalendarLabel?: string;
+  locale?: string;
+  weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  today?: string;
+  previousMonthLabel?: string;
+  nextMonthLabel?: string;
+  rangeLabels?: RangeCalendarProps["rangeLabels"];
+}
+/** @since 0.2.7 */
+export const DateRangePicker = forwardRef<HTMLDivElement, DateRangePickerProps>(function DateRangePicker(
+  { controlSize = "md", defaultOpen = false, ...props }, ref,
+) { return <CalendarDateRangePicker {...props} ref={ref} controlSize={controlSize} defaultOpen={defaultOpen} />; });
 
 export interface DatePickerProps extends Omit<DateFieldProps, "end"> {
   open?: boolean;
@@ -143,6 +231,7 @@ export interface DateFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, "de
   order?: "month-day-year" | "day-month-year" | "year-month-day";
   segmentLabels?: Partial<Record<"day" | "month" | "year", string>>;
   messages?: { required?: string; invalid?: string; outOfRange?: string };
+  validationMessage?: string;
   end?: ReactNode;
 }
 /** @since 0.2.7 */
@@ -509,6 +598,25 @@ export interface MenuActionItem {
   tone?: "default" | "danger";
 }
 export interface MenuSeparator { id: string; type: "separator"; }
+export interface MenuSubmenuItem extends Omit<MenuActionItem, "type" | "tone" | "shortcut"> {
+  type: "submenu";
+  items: readonly MenuItem[];
+}
+export interface ContextMenuProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role"> {
+  label: string;
+  items: readonly MenuItem[];
+  onAction?: (id: string) => void;
+  children: ReactNode;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  disabled?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+}
+/** @since 0.2.7 */
+export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(function ContextMenu(
+  { defaultOpen = false, disabled = false, controlSize = "sm", ...props }, ref,
+) { return <ContextActionMenu {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} controlSize={controlSize} />; });
 export interface MenuCheckboxItem extends Omit<MenuActionItem, "type" | "tone"> {
   type: "checkbox";
   checked: boolean | "mixed";
@@ -522,7 +630,7 @@ export interface MenuRadioItem extends Omit<MenuActionItem, "type" | "tone"> {
   onCheckedChange: (checked: true) => void;
   closeOnSelect?: boolean;
 }
-export type MenuItem = MenuActionItem | MenuSeparator | MenuCheckboxItem | MenuRadioItem;
+export type MenuItem = MenuActionItem | MenuSeparator | MenuCheckboxItem | MenuRadioItem | MenuSubmenuItem;
 export interface MenuProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role"> {
   label: string;
   trigger: (props: OverlayTriggerProps) => ReactNode;
@@ -565,6 +673,7 @@ export interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, "chil
   align?: "start" | "center" | "end";
   closeLabel?: string;
   initialFocusRef?: RefObject<HTMLElement | null>;
+  positionReference?: RefObject<HTMLElement | null>;
 }
 export const Popover = forwardRef<HTMLDivElement, PopoverProps>(function Popover(
   {side = "bottom", align = "start", defaultOpen = false, disabled = false, closeLabel = "Close", ...props}, ref,

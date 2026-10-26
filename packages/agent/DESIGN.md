@@ -283,3 +283,5 @@ CommandList (0.2.7) filters and invokes commands without a submitted form select
 DateField (0.2.7) owns a civil date, not a timestamp or time zone. Preserve its labeled segments, explicit order, required/bounds checks, invalid-draft blocking and controlled ownership. Use canonical YYYY-MM-DD values; Calendar/DatePicker are separate components.
 
 TimeField uses explicit 24-hour canonical precision and seconds-based steps. Calendar is a Gregorian date collection; DatePicker composes DateField/Calendar/Popover rather than duplicating entry or layer behavior. Preserve reset/controlled ownership, labels, keyboard focus and invalid-draft submission checks. onDateSelect confirms activation even without a value change.
+
+Date ranges use {start,end} and support partial selection explicitly; never submit a partial or reversed range as valid. ResizablePanels owns geometry and separator keys, while the host owns persistence/content scrolling. ErrorSummary receives host errors and must target actual field IDs. ContextMenu and nested Menu share one layer engine; keep native outside-focus behavior and provide a visible Menu alternative for touch.

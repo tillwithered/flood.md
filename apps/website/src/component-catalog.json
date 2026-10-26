@@ -729,9 +729,10 @@
       "Enter/Space and ArrowDown open at the first item; ArrowUp opens at the last. Inside use arrows, Home/End and label-prefix typeahead.",
       "Disabled items stay keyboard-focusable with aria-disabled but cannot activate. Separators are noninteractive; action IDs must be unique and nonempty. At least one action is required.",
       "Escape closes and restores trigger focus. Tab moves to the next control after the trigger; Shift+Tab returns to the trigger. Outside interaction dismisses without stealing deliberately moved focus.",
-      "Shortcut text is a visual hint, not an implemented key binding. No href, submenus or asynchronous task manager are included. Checkbox/radio items are controlled preferences, available in 0.2.7.",
+      "Shortcut text is a visual hint, not an implemented key binding. No href or asynchronous task manager is included. Nested items use type=\"submenu\" and a nonempty items array. Checkbox/radio items are controlled preferences, available in 0.2.7.",
       "Controlled open needs host updates; onAction requests closure before calling the host. Modern native Popover API required. Native div props/ref target the popup. Available in 0.2.4.",
-      "Checkbox items take checked (boolean or mixed) and onCheckedChange. Radio items take a nonempty group label, checked and onCheckedChange; the host keeps one selected item per group. Keep each radio group contiguous. Preference items stay open by default; closeOnSelect opts into dismissal. They do not call onAction or submit form values."
+      "Checkbox items take checked (boolean or mixed) and onCheckedChange. Radio items take a nonempty group label, checked and onCheckedChange; the host keeps one selected item per group. Keep each radio group contiguous. Preference items stay open by default; closeOnSelect opts into dismissal. They do not call onAction or submit form values.",
+      "Submenus open by logical arrow, click/tap or cancellable mouse hover intent. Escape closes one level; Tab leaves the entire tree through the root trigger. IDs are unique across the tree and nested keyboard searches stay inside their own menu."
     ]
   },
   {
@@ -1481,6 +1482,102 @@
       "Read only and disabled prevent opening or date changes; native disabled fieldsets remain inert. Invalid/incomplete drafts retain native DateField validation.",
       "Controlled value and open state are independently host-owned. Native form reset restores the initial uncontrolled date and preserves cancelled resets. Translate calendarLabel/openCalendarLabel, month navigation, segment labels and messages.",
       "DateField remains the keyboard-entry primitive; Calendar remains independently usable. Introduced in the unpublished 0.2.7 source candidate."
+    ]
+  },
+  {
+    "slug": "error-summary",
+    "name": "ErrorSummary",
+    "group": "feedback",
+    "description": "A linked validation summary that focuses host-owned invalid fields.",
+    "code": "<ErrorSummary title=\"Review the form\" errors={[{id:\"project\",fieldId:\"project\",message:\"Enter a project name.\"}]} />",
+    "notes": [
+      "The host supplies errors; ErrorSummary does not infer validation or submit a form. Each entry links to an exact field ID.",
+      "Normal activation focuses the target while modifier navigation remains native. onSelect can cancel the action before focus moves.",
+      "announcement defaults to off. autoFocus opts into focus on appearance, not on every error update, and suppresses duplicate live announcements. Empty errors render nothing. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "ErrorSummary"
+    ]
+  },
+  {
+    "slug": "resizable-panels",
+    "name": "ResizablePanels",
+    "group": "layout",
+    "description": "Two panels separated by an accessible pointer and keyboard resize control.",
+    "code": "<ResizablePanels label=\"Resize workspace\" main={<Text>Navigation</Text>} secondary={<Text>Workspace</Text>} style={{height:\"16rem\"}} />",
+    "notes": [
+      "Percentages describe the main pane and exclude the dedicated separator track. The host supplies content and scrolling.",
+      "Drag the separator or use logical arrow keys, Home/End and Shift for large steps. Horizontal resizing follows RTL direction.",
+      "value/onValueChange keeps the host in control. onValueCommit reports an accepted completed interaction; pointer cancellation restores the initial uncontrolled size.",
+      "The separator occupies space so its touch area does not overlap panel content. Persisting layout and larger panel graphs belong to the host. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "ResizablePanels",
+      "Text"
+    ]
+  },
+  {
+    "slug": "range-calendar",
+    "name": "RangeCalendar",
+    "group": "forms",
+    "description": "A Gregorian grid for selecting and previewing one continuous date interval.",
+    "code": "<RangeCalendar label=\"Choose travel dates\" today=\"2026-10-26\" defaultValue={{start:\"2026-10-12\",end:\"2026-10-18\"}} />",
+    "notes": [
+      "The first activation chooses a start; the second completes a normalized ordered interval. Hover and focus can preview an unfinished interval without committing.",
+      "Controlled values include partial {start,end:\"\"}; the host must accept that partial value to advance selection. onRangeSelect confirms an enabled completed interval.",
+      "isDateDisabled controls endpoints. isRangeDisabled validates the entire interval; interior blocked dates are not inferred by scanning arbitrary date spans.",
+      "Reuses the Calendar grid, month navigation, focus and localization contracts. Translate rangeLabels for instruction messages. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "RangeCalendar"
+    ]
+  },
+  {
+    "slug": "date-range-field",
+    "name": "DateRangeField",
+    "group": "forms",
+    "description": "Two segmented date fields with one ordered range and atomic form values.",
+    "code": "<DateRangeField label=\"Travel dates\" startName=\"start\" endName=\"end\" defaultValue={{start:\"2026-10-12\",end:\"2026-10-18\"}} />",
+    "notes": [
+      "The value is {start,end}, with canonical YYYY-MM-DD dates or empty endpoints. Partial, reversed, unavailable and refused ranges block native submission.",
+      "Both named bridges represent one range contract. The group owns relationship validation while each DateField preserves its calendar validity and keyboard behavior.",
+      "Start/end names and labels are explicit; min/max, readonly/disabled, status and form reset follow the field contracts.",
+      "Use DateRangePicker for visual interval selection. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "DateRangeField"
+    ]
+  },
+  {
+    "slug": "date-range-picker",
+    "name": "DateRangePicker",
+    "group": "forms",
+    "description": "Paired date entry with one calendar popup for continuous interval selection.",
+    "code": "<DateRangePicker label=\"Travel dates\" startName=\"start\" endName=\"end\" today=\"2026-10-26\" defaultValue={{start:\"2026-10-12\",end:\"2026-10-18\"}} />",
+    "notes": [
+      "Composes DateRangeField, RangeCalendar and the existing Popover engine. One popup selects start and end; it closes after an enabled complete interval.",
+      "The popup follows the whole fields region width and clamps to the viewport. Text and calendar editing share the same partial/complete range contract.",
+      "Controlled range/open state and availability remain host-owned. Escape/outside dismissal does not turn an incomplete range into a valid submission.",
+      "Translate endpoint, calendar and range instruction labels. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "DateRangePicker"
+    ]
+  },
+  {
+    "slug": "context-menu",
+    "name": "ContextMenu",
+    "group": "overlays",
+    "description": "Context actions at the pointer or keyboard target, sharing the Menu interaction engine.",
+    "code": "<ContextMenu label=\"Project actions\" items={[{id:\"rename\",label:\"Rename\"},{id:\"duplicate\",label:\"Duplicate\"}]} onAction={id => console.log(id)}><Surface padding=\"6\">Right-click or use Shift+F10.</Surface></ContextMenu>",
+    "imports": [
+      "ContextMenu",
+      "Surface"
+    ],
+    "notes": [
+      "Right click opens at the pointer; ContextMenu or Shift+F10 opens near the actual focused target. The wrapper is keyboard-focusable and named.",
+      "Uses the same Menu items, preferences, nested layers, typeahead and keyboard navigation. Leaf commands close the tree; Escape unwinds one level and restores the real source focus.",
+      "disabled preserves the native browser context menu. Controlled open and onAction remain host-owned. Provide a visible Menu action as a primary alternative on touch devices. Introduced in 0.2.7."
     ]
   }
 ]

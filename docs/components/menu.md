@@ -34,3 +34,46 @@ Focus, typeahead and Escape follow the same contract for all three item types.
 This compatible addition is part of the unpublished 0.2.7 source candidate.
 
 The live playground separates action, preference and mixed examples. Keep destructive actions last in a separate group. Selection indicators occupy the trailing edge so combined icon/preference rows do not reserve two leading columns.
+
+## Submenus
+
+Use `type: "submenu"` with its own nonempty `items` array for a related group of
+commands or preferences. All IDs remain unique across the tree. Each level has
+its own radio groups, keyboard navigation and typeahead. Empty, separator-only
+child menus, duplicate IDs and cyclic item arrays are rejected.
+
+```tsx
+<Menu
+  label="Project actions"
+  trigger={props => <Button {...props}>Project actions</Button>}
+  items={[
+    {id: "rename", label: "Rename"},
+    {id: "export", type: "submenu", label: "Export", items: [
+      {id: "export-pdf", label: "PDF"},
+      {id: "export-text", label: "Plain text"},
+    ]},
+  ]}
+  onAction={id => handleAction(id)}
+/>
+```
+
+Right opens a submenu and Left returns to its parent in left-to-right layouts;
+the keys reverse in RTL. Enter and Space also open it. Escape dismisses only the
+deepest open level. A command requests dismissal of the whole tree; controlled
+`open` can refuse this request. Checkbox/radio preferences keep their current
+stay-open behavior at every level, unless `closeOnSelect` is set.
+
+Tab leaves the whole tree for the next stop after the original root trigger;
+Shift+Tab returns to that trigger. It does not navigate from an internal
+tabindex=-1 submenu item. Focus changes deliberately made by the host are
+preserved during cleanup.
+
+Mouse hover uses a cancellable 150ms intent delay. Leaving an item before the
+delay cancels opening; crossing another row briefly does not immediately switch
+an existing submenu. Moving into an open child panel keeps it open. Clicking a
+mouse-hover-opened parent keeps it open; touch taps explicitly toggle the child.
+Disabled submenu parents remain discoverable by keyboard but cannot open.
+
+Submenus use the same native top layer and floating material as Menu. Each
+viewport handles its own long content; no blanket nowrap rule is added. Use
+ContextMenu when activation belongs to a content region instead of a button.

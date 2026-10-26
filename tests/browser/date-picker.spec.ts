@@ -145,3 +145,20 @@ test("DatePicker keeps its calendar inside a narrow enlarged RTL viewport with a
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);
 });
+
+
+test("DatePicker popup tracks the whole field width and edges while resizing and clamps to viewport",async({page})=>{
+ await open(page);await page.getByRole('button',{name:'Choose delivery',exact:true}).click();
+ const field=page.locator('#delivery .flood-date-field__control');
+ const popup=page.getByRole('dialog',{name:'Delivery calendar',exact:true});
+ const geometry=async()=>{const a=(await field.boundingBox())!,b=(await popup.boundingBox())!;return{width:b.width-a.width,start:b.x-a.x,end:(b.x+b.width)-(a.x+a.width)};};
+ await expect.poll(async()=>Math.abs((await geometry()).width)).toBeLessThan(1);
+ await expect.poll(async()=>Math.abs((await geometry()).start)).toBeLessThan(1);
+ await expect.poll(async()=>Math.abs((await geometry()).end)).toBeLessThan(1);
+ await page.locator('#delivery').evaluate(node=>{node.style.width='18rem';});
+ await expect.poll(async()=>Math.abs((await geometry()).width)).toBeLessThan(1);
+ await expect.poll(async()=>Math.abs((await geometry()).end)).toBeLessThan(1);
+ await page.setViewportSize({width:320,height:900});
+ await page.locator('#delivery').evaluate(node=>{node.style.width='40rem';});
+ await expect.poll(async()=>{const b=(await popup.boundingBox())!;return b.x>=0 && b.x+b.width<=321 && b.width<320;}).toBe(true);
+});

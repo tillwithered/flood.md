@@ -30,7 +30,11 @@ blocks invalid submission and focuses an editable segment. `required` adds the
 empty-date constraint. Error text appears after leaving the field or attempting
 submission. `status` supports error, warning, success and info; `invalid` and
 affirmative `aria-invalid` override advisory colors. Host validation is separate
-from calendar validity; use native submit handling for application constraints.
+from calendar validity. `validationMessage` adds a native application constraint
+to the first visible segment and empties the named canonical value until cleared.
+Own calendar, required, bounds and controlled-refusal messages take priority;
+readonly/disabled retain native validation behavior. Use native submit handling
+for application work after validation passes.
 
 The segments are text inputs with spinbutton semantics and explicit numeric
 bounds. Type ASCII digits, paste a full ISO date into any segment, use Up/Down to

@@ -43,7 +43,9 @@ test("Tab and outside dismissal preserve intended focus, including host-owned fo
   await openFixture(page);const trigger=page.getByRole("button",{name:"Actions",exact:true});await trigger.click();await page.keyboard.press("Tab");
   await expect(page.getByRole("button",{name:"After",exact:true})).toBeFocused();await expect(page.getByRole("menu",{name:"Actions",exact:true})).toBeHidden();
   await trigger.click();await page.keyboard.press("Shift+Tab");await expect(trigger).toBeFocused();
-  await trigger.click();await page.getByRole("button",{name:"Before",exact:true}).click();await expect(page.getByRole("button",{name:"Before",exact:true})).toBeFocused();
+  await trigger.click();await page.getByRole("button",{name:"Before",exact:true}).click();await expect(page.getByRole("menu",{name:"Actions",exact:true})).toBeHidden();
+  // Safari intentionally does not pointer-focus buttons. A text field verifies native outside focus across engines.
+  await trigger.click();await page.getByRole("textbox",{name:"Action destination"}).click();await expect(page.getByRole("textbox",{name:"Action destination"})).toBeFocused();await expect(page.getByRole("menu",{name:"Actions",exact:true})).toBeHidden();
   await trigger.click();await page.getByRole("textbox",{name:"Action destination"}).focus();await expect(page.getByRole("textbox",{name:"Action destination"})).toBeFocused();
   await page.getByRole("button",{name:"Move focus",exact:true}).click();await page.getByRole("menuitem",{name:"Move to input"}).click();await expect(page.getByRole("textbox",{name:"Action destination"})).toBeFocused();
 });

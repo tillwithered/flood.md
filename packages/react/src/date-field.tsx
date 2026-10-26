@@ -1,15 +1,16 @@
-import {forwardRef, useEffect, useId, useImperativeHandle, useRef, useState} from "react";
+import {forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState} from "react";
 import type {DateFieldProps} from "./index.js";
 import {resolveFieldStatus, mergeDescriptions} from "./field-state.js";
 import {canonicalDate, dateInRange, daysInMonth, emptyDateParts, isEmptyDate, parseDate, stepDatePart, type DateParts, type DateSegment} from "./date-value.js";
 
 const orders: Record<string, DateSegment[]> = {"month-day-year":["month","day","year"], "day-month-year":["day","month","year"], "year-month-day":["year","month","day"]};
 const cx = (...values: Array<string | undefined | false>) => values.filter(Boolean).join(" ");
+const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export const SegmentedDateField = forwardRef<HTMLDivElement, DateFieldProps>(function SegmentedDateField({
   label, hideLabel = false, value, defaultValue = "", onValueChange, min, max,
   required = false, readOnly = false, disabled = false, name, form, controlSize = "md",
-  invalid = false, status, description, order = "month-day-year", segmentLabels, messages, end,
+  invalid = false, status, description, order = "month-day-year", segmentLabels, messages, validationMessage, end,
   id: explicitId, className, onBlur, onKeyDown, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props
 }, forwardedRef) {
   if (!label.trim()) throw new Error("Flood DateField requires a nonempty label");
@@ -38,13 +39,14 @@ export const SegmentedDateField = forwardRef<HTMLDivElement, DateFieldProps>(fun
   const inRange = !!canonical && dateInRange(canonical,min,max);
   const candidate = empty ? "" : inRange ? canonical : undefined;
   const pendingAcceptance = value !== undefined && candidate !== undefined && candidate !== value;
-  const message = pendingAcceptance ? messages?.invalid ?? "Enter a valid date." : empty ? (required ? messages?.required ?? "Enter a date." : "") : !canonical ? messages?.invalid ?? "Enter a valid date." : !inRange ? messages?.outOfRange ?? "Enter a date within the allowed range." : "";
+  const ownMessage = pendingAcceptance ? messages?.invalid ?? "Enter a valid date." : empty ? (required ? messages?.required ?? "Enter a date." : "") : !canonical ? messages?.invalid ?? "Enter a valid date." : !inRange ? messages?.outOfRange ?? "Enter a date within the allowed range." : "";
+  const message = ownMessage || (validationMessage?.trim() ? validationMessage : "");
   const current = useRef({value, committed, onValueChange, parts}); current.current = {value,committed,onValueChange,parts};
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     if (value !== undefined && value !== lastPublished.current) setParts(parseDate(value) ?? emptyDateParts());
     if (value !== undefined) lastPublished.current = value;
   }, [value]);
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     for (const part of ordered) inputs.current[part]?.setCustomValidity(part === ordered[0] && !effectiveDisabled && !readOnly ? message : "");
   }, [message,effectiveDisabled,readOnly,order]);
   useEffect(() => {
@@ -137,7 +139,7 @@ export const SegmentedDateField = forwardRef<HTMLDivElement, DateFieldProps>(fun
       </span>)}
       {end != null && <div className="flood-date-field__end">{end}</div>}
     </div>
-    <input ref={bridge} type="hidden" name={name} form={form} value={inRange && (value === undefined || canonical === value) ? canonical : ""} disabled={disabled}/>
+    <input ref={bridge} type="hidden" name={name} form={form} value={inRange && !message && (value === undefined || canonical === value) ? canonical : ""} disabled={disabled}/>
     {description && <div id={descriptionId} className="flood-date-field__description">{description}</div>}
     {errorShown && <div id={errorId} className="flood-date-field__error">{message}</div>}
   </div>;

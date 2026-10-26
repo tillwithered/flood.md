@@ -914,3 +914,9 @@ CommandList (0.2.7) provides grouped command filtering and invocation without a 
 DateField (0.2.7) edits a Gregorian civil date through native text segments, with ISO canonical values, bounds, explicit segment order and native invalid-draft form handling. It has no operating-system date popup. See [DateField](../../docs/components/date-field.md).
 
 TimeField, Calendar and DatePicker (0.2.7) complete the first single-date/time entry family. See [TimeField](../../docs/components/time-field.md), [Calendar](../../docs/components/calendar.md) and [DatePicker](../../docs/components/date-picker.md). Calendar onDateSelect reports enabled activation, including the already selected date; onValueChange requests only changed values. DateField end accepts an optional trailing action.
+
+Popover positionReference optionally supplies a connected same-document element ref for geometry while trigger semantics, dismissal and focus restoration remain on its button. DatePicker uses this to align its panel to the whole field, tracks field width responsively and clamps to the viewport. Available in the 0.2.7 source candidate.
+
+DateRangeField, RangeCalendar and DateRangePicker (0.2.7) share ordered range values and the original Calendar grid. ResizablePanels adds real pointer/keyboard geometry above static Split. ErrorSummary links host validation to native controls. See each generated catalog page and its guide under docs/components/. DateField validationMessage adds an external native constraint after the field's own date validity.
+
+Menu (0.2.7) supports recursive submenu items and ContextMenu reuses its native layer engine. Context triggers preserve the actual pointer/keyboard source; nested searches stay scoped, Escape unwinds one level and Tab exits through the root. See docs/components/menu.md and context-menu.md.

@@ -9,6 +9,7 @@ export const docPages = [
   { path: "/docs/theming", label: "Customization", file: "theming.md", description: "Adapt semantic roles to your project." },
   { path: "/docs/agents", label: "Agent guide", file: "agents.md", description: "Give your agent the matching design instructions." },
   { path: "/docs/faq", label: "FAQ", file: "faq.md", description: "Compatibility, customization and common questions." },
+  { path: "/docs/recipes/command-palette", label: "Command palette", file: "recipes/command-palette.md", description: "Compose Dialog and CommandList for application commands.", group: "recipes" },
 ];
 export const componentSlugs = catalog.map(component => component.slug);
 export const pagePaths = new Set([

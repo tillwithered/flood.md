@@ -1,4 +1,4 @@
-.flood-root .flood-date-picker__panel { inline-size:22rem; padding:var(--flood-sys-space-3); }
+.flood-root .flood-date-picker__panel { inline-size:min(var(--flood-date-picker-width,22rem),var(--flood-overlay-available-width,calc(100dvw - 1rem))); padding:var(--flood-sys-space-3); }
 .flood-root .flood-date-picker__panel > .flood-overlay-header { display:none; }
 .flood-root .flood-date-picker__panel > .flood-overlay-body { margin-block-start:0; }
 .flood-root .flood-date-picker__panel .flood-calendar { inline-size:100%; padding:0; border:0; border-radius:0; background:transparent; }

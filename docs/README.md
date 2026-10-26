@@ -19,6 +19,7 @@ them without a separate content service.
 | [Foundations](foundations.md) | Typed semantic tokens and neutral dark profile for 0.2.7 |
 | [Agents](agents.md) | Installing and using the matching agent instructions |
 | [FAQ](faq.md) | Compatibility, customization, updates and common problems |
+| [Command palette](recipes/command-palette.md) | Compose Dialog and CommandList with host-owned actions |
 
 ## Versions
 

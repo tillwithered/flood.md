@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
 import { docPages, componentSlugs } from "../apps/website/routes.mjs";
 import { componentMarkdown, catalogMarkdown } from "../apps/website/component-docs.mjs";
 import { readComponentContract, readRecipeSlugs } from "./component-contract.mjs";
@@ -29,7 +30,9 @@ for (const doc of docPages) {
     if (pin[1] !== release.version) throw new Error(`${doc.file}: stale install version ${pin[1]} (release ${release.version})`);
   }
   documents[doc.file] = content;
-  await writeFile(`${root}${doc.path}.md`, content);
+  const destination = `${root}${doc.path}.md`;
+  await mkdir(dirname(destination), { recursive: true });
+  await writeFile(destination, content);
 }
 await writeFile(`${root}/components.md`, catalogMarkdown(pages));
 for (const page of pages) await writeFile(`${root}/components/${page.slug}.md`, componentMarkdown(page));
