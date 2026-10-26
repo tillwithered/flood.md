@@ -37,7 +37,7 @@ test('PinInput alphanumeric catalog can erase a clicked first occupied slot and 
 
 test('PinInput occupied-slot editing supports removal, replacement, password masking and controlled refusal',async({page})=>{
  await open(page);
- const clickFirst=async(label:string)=>{const input=page.getByLabel(label,{exact:true}),slot=input.locator('..').locator('[data-pin-slot]').first(),box=await slot.boundingBox();await page.mouse.click(box!.x+box!.width/2,box!.y+box!.height/2);return input;};
+ const clickFirst=async(label:string)=>{const input=page.getByLabel(label,{exact:true});await input.scrollIntoViewIfNeeded();const slot=input.locator('..').locator('[data-pin-slot]').first(),box=await slot.boundingBox();await page.mouse.click(box!.x+box!.width/2,box!.y+box!.height/2);await expect(input).toBeFocused();return input;};
  const numeric=page.getByLabel('Verification code',{exact:true});
  for(let index=0;index<6;index++){await clickFirst('Verification code');await numeric.press('Backspace');}
  await expect(numeric).toHaveValue('');await expect(numeric.locator('..').locator('[data-pin-slot]')).toHaveText(['','','','','','']);
