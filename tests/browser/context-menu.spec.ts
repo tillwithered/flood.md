@@ -26,8 +26,12 @@ test('ContextMenu keyboard context activation and nested actions share Menu sema
 test('ContextMenu repositions an already open root to a new pointer request',async({page})=>{
  await open(page);const area=page.locator('#area');await area.click({button:'right',position:{x:20,y:20}});await expect(menu(page)).toBeVisible();const before=(await menu(page).boundingBox())!;
  const request=await area.evaluate(node=>{const event=new MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:300,clientY:270});node.dispatchEvent(event);return{x:event.clientX,y:event.clientY,prevented:event.defaultPrevented};});expect(request).toEqual({x:300,y:270,prevented:true});
- await expect.poll(async()=>Math.round((await menu(page).boundingBox())!.x)).toBe(300);
- const after=(await menu(page).boundingBox())!;expect(after.x).not.toBe(before.x);expect(Math.abs(after.y-278)).toBeLessThan(2);
+ const geometry=await menu(page).evaluate(node=>{const rect=node.getBoundingClientRect(),viewport=window.visualViewport;return{width:rect.width,gap:parseFloat(getComputedStyle(node).columnGap)||8,left:viewport?.offsetLeft??0,top:viewport?.offsetTop??0,widthAvailable:viewport?.width??innerWidth,heightAvailable:viewport?.height??innerHeight};});
+ const expectedLeft=Math.max(geometry.left+geometry.gap,Math.min(request.x,geometry.left+geometry.widthAvailable-geometry.gap-geometry.width));
+ await expect.poll(async()=>Math.abs((await menu(page).boundingBox())!.x-expectedLeft)).toBeLessThanOrEqual(1);
+ const after=(await menu(page).boundingBox())!;expect(after.x).not.toBe(before.x);expect(Math.abs(after.y-(request.y+geometry.gap))).toBeLessThan(2);
+ expect(after.x).toBeGreaterThanOrEqual(geometry.left+geometry.gap-1);expect(after.x+after.width).toBeLessThanOrEqual(geometry.left+geometry.widthAvailable-geometry.gap+1);expect(after.y+after.height).toBeLessThanOrEqual(geometry.top+geometry.heightAvailable-geometry.gap+1);
+ if(request.x+after.width<=geometry.left+geometry.widthAvailable-geometry.gap)expect(Math.abs(after.x-request.x)).toBeLessThanOrEqual(1);
 });
 
 test('ContextMenu disabled and host-cancelled activation preserve native event ownership',async({page})=>{

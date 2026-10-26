@@ -11,7 +11,23 @@ test('DateRangePicker Alt+Down, Escape, reset cancellation and native disabled/r
 });
 
 test('DateRangePicker geometry follows the full pair on resize and its calendar exposes valid semantics',async({page})=>{
- await openRanges(page);const picker=page.locator('#picker');await picker.evaluate(node=>{(node as HTMLElement).style.width='700px';});await page.getByRole('button',{name:'Open trip calendar',exact:true}).click();const popup=page.getByRole('dialog',{name:'Choose trip dates',exact:true});for(const width of [700,300]){await picker.evaluate((node,width)=>{(node as HTMLElement).style.width=width+'px';},width);await expect.poll(async()=>{const panel=await popup.boundingBox(),fields=await picker.locator('.flood-date-range-field__fields').boundingBox();return Math.abs(panel!.width-fields!.width);}).toBeLessThanOrEqual(1);const panel=(await popup.boundingBox())!,fields=(await picker.locator('.flood-date-range-field__fields').boundingBox())!;expect(Math.abs(panel.x-fields.x)).toBeLessThanOrEqual(1);}const results=await new AxeBuilder({page}).include('.flood-date-range-picker__panel').analyze();expect(results.violations).toEqual([]);
+ await openRanges(page);const picker=page.locator('#picker');await picker.evaluate(node=>{(node as HTMLElement).style.width='700px';});await page.getByRole('button',{name:'Open trip calendar',exact:true}).click();const popup=page.getByRole('dialog',{name:'Choose trip dates',exact:true});
+ for(const width of [700,300]){
+  await picker.evaluate((node,width)=>{(node as HTMLElement).style.width=width+'px';},width);
+  await expect.poll(async()=>{
+   const panel=await popup.boundingBox(),fields=await picker.locator('.flood-date-range-field__fields').boundingBox();
+   const available=await popup.evaluate(node=>parseFloat(getComputedStyle(node).getPropertyValue('--flood-overlay-available-width')));
+   return Math.abs(panel!.width-Math.min(fields!.width,available));
+  }).toBeLessThanOrEqual(1);
+  const panel=(await popup.boundingBox())!,fields=(await picker.locator('.flood-date-range-field__fields').boundingBox())!;
+  const viewport=await popup.evaluate(node=>{const view=node.ownerDocument.defaultView!,visual=view.visualViewport;return{left:visual?.offsetLeft??0,width:visual?.width??view.innerWidth,available:parseFloat(getComputedStyle(node).getPropertyValue('--flood-overlay-available-width'))};});
+  expect(panel.x).toBeGreaterThanOrEqual(viewport.left);expect(panel.x+panel.width).toBeLessThanOrEqual(viewport.left+viewport.width);
+  const inset=(viewport.width-viewport.available)/2;
+  if(fields.width<=viewport.available&&fields.x>=viewport.left+inset&&fields.x+fields.width<=viewport.left+viewport.width-inset){
+   expect(Math.abs(panel.x-fields.x)).toBeLessThanOrEqual(1);expect(Math.abs(panel.x+panel.width-fields.x-fields.width)).toBeLessThanOrEqual(1);
+  }
+ }
+ const results=await new AxeBuilder({page}).include('.flood-date-range-picker__panel').analyze();expect(results.violations).toEqual([]);
 });
 
 test('DateRangePicker touch range completion works with enlarged RTL without a second layer',async({browser,baseURL})=>{
