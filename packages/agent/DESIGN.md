@@ -1,11 +1,12 @@
 # Flood design system · 0.2.7
 
 Read project-root flood.json and installed declarations with this contract.
-The source bundle's SKILL.md routes to focused composition, accessibility,
-customization and verification references. Its routing matrix names prerequisites
-and sources of truth; flood/rules.json indexes observable checks. Read only the
-relevant reference. This expanded bundle belongs to 0.2.7; existing installations
-keep their matching guide set.
+The installed entry is .agents/skills/flood-ui/SKILL.md; its references live under
+.agents/skills/flood-ui/references/. Read only the relevant composition, spacing,
+accessibility, customization or verification reference. flood/manifest.json maps
+package sources to those installed paths; flood/rules.json indexes observable
+checks. In the Flood repository the corresponding sources are packages/agent/.
+This bundle belongs to 0.2.7; older installations keep their matching guide set.
 
 React + TypeScript and Next.js App Router. Use this guide with matching installed
 Flood packages and flood.json. The source repository's release status does not
@@ -30,6 +31,9 @@ child. Keep server data fetching in server components.
   does not associate a form control; use Field.
 - Reserve display for a marketing headline; preserve normal page/section sizes
   inside product UI. Hosts own responsive composition.
+- Use Tree for application-object selection and NavigationTree for nested URLs.
+  Their expansion and selection/current-location contracts are separate. Do not
+  turn ordinary website navigation into an ARIA tree or treat Tree as a form field.
 - Use CodeSnippet with a code string and optional action slot for commands or
   short examples. The host owns clipboard permission, feedback and errors;
   selectable wrapped code remains available when copying fails.
@@ -160,7 +164,10 @@ export function Profile() {
 ```
 
 
-0.2.5 adds Badge, Spinner, Skeleton and Avatar. Read references/composition.md and references/accessibility.md for status announcements, fallback geometry and decorative naming. Button loading reuses Spinner. These APIs are not present in 0.2.3.
+0.2.5 adds Badge, Spinner, Skeleton and Avatar. Read the installed composition and
+accessibility references under .agents/skills/flood-ui/references/ for status
+announcements, fallback geometry and decorative naming. Button loading reuses
+Spinner. These APIs are not present in 0.2.3.
 
 Progress, Meter and Alert are also available in 0.2.5. Distinguish task completion from bounded measurements, preserve names/units, and select alert announcement priority explicitly.
 
@@ -272,16 +279,93 @@ CodeSnippet codeDirection defaults to ltr independently of RTL parent action lay
 
 Checkbox, Radio and Switch apply native hidden/dir/lang to their visible label wrapper as well as the input, so a component-local language/direction applies to its whole choice.
 
-## Inline editing and free-form tags · 0.2.7
+## Base capabilities · 0.2.7
 
-Editable separates the draft from the committed value. Enter commits, Escape cancels, and blurAction selects commit/cancel/none. Controlled value/editing require host updates; keep labels localized and preserve IME input. TagInput accepts new free-form tokens; MultiSelect selects known option IDs. Only committed tags submit as repeated named form entries. Preserve readonly/disabled distinctions and required validity.
+The added exports are Editable, TagInput, CommandList, DateField, TimeField,
+Calendar, DatePicker, RangeCalendar, DateRangeField, DateRangePicker,
+ResizablePanels, ErrorSummary, ContextMenu, Tree and NavigationTree. Menu preference
+items and submenus extend Menu; a command palette is Dialog + CommandList
+composition, not a separate export. Use the matching installed declarations.
 
-Menu now supports controlled checkbox/radio preference items, with aria-checked and labeled contiguous radio groups. The host owns exclusivity and callbacks. Preferences remain open unless closeOnSelect is true; action items still dismiss and call onAction. Do not use Menu as a form selection control.
+### Editing and commands
 
-CommandList (0.2.7) filters and invokes commands without a submitted form selection. The host owns effects, navigation and modal lifecycle; compose with Dialog for a command palette. Preserve the input label, active option, disabled/loading behavior and host Escape handling.
+Editable separates draft and committed value. Enter commits, Escape cancels and
+blurAction selects commit/cancel/none. Controlled value/editing require host
+acceptance; only committed text submits. TagInput accepts free-form tokens while
+MultiSelect selects known option IDs. Only committed tags submit repeated named
+entries. Preserve IME, reset cancellation, required and readonly/disabled behavior.
 
-DateField (0.2.7) owns a civil date, not a timestamp or time zone. Preserve its labeled segments, explicit order, required/bounds checks, invalid-draft blocking and controlled ownership. Use canonical YYYY-MM-DD values; Calendar/DatePicker are separate components.
+CommandList filters and invokes commands without a submitted selection or modal
+lifecycle. The host owns effects, routing, shortcuts and closure. Compose Dialog
+around it for a command palette; preserve input naming, active-option semantics,
+disabled/loading states and existing Escape ownership.
 
-TimeField uses explicit 24-hour canonical precision and seconds-based steps. Calendar is a Gregorian date collection; DatePicker composes DateField/Calendar/Popover rather than duplicating entry or layer behavior. Preserve reset/controlled ownership, labels, keyboard focus and invalid-draft submission checks. onDateSelect confirms activation even without a value change.
+Menu preferences expose controlled aria-checked states and labelled radio groups;
+the host owns exclusivity. Preference activation stays open unless closeOnSelect
+requests dismissal; commands dismiss and call onAction. Nested submenus and
+ContextMenu reuse this action engine. ContextMenu opens from pointer context or
+ContextMenu/Shift+F10; provide a visible Menu alternative for touch. None is a
+native form-selection control or a data-fetching service.
 
-Date ranges use {start,end} and support partial selection explicitly; never submit a partial or reversed range as valid. ResizablePanels owns geometry and separator keys, while the host owns persistence/content scrolling. ErrorSummary receives host errors and must target actual field IDs. ContextMenu and nested Menu share one layer engine; keep native outside-focus behavior and provide a visible Menu alternative for touch.
+### Civil dates, time and ranges
+
+DateField owns canonical Gregorian YYYY-MM-DD dates, not timestamps or time zones.
+Keep labelled text segments, explicit order and native required/bounds validity.
+Invalid drafts cannot submit an old canonical date. validationMessage adds a host
+native constraint without overriding own calendar errors. TimeField uses 24-hour
+HH:mm or HH:mm:ss precision and seconds-based steps; do not invent AM/PM,
+overnight bounds, zone conversion or combined date-time semantics.
+
+Calendar owns a single-date grid. DatePicker composes DateField, Calendar and
+Popover, keeping native forms, controlled state and focus ownership intact.
+onDateSelect confirms allowed activation even when the value is unchanged.
+Translate calendar labels, segment names and validation messages. Calendar Intl
+formatting is explicitly Gregorian UTC, weekStartsOn remains explicit and today
+can provide deterministic rendering.
+
+RangeCalendar selects one inclusive interval start then end; hover/focus previews
+are uncommitted. DateRangeField owns paired text entry and atomic startName/endName
+bridges; DateRangePicker composes the pair with one popup. Values are {start,end}
+with empty strings for empty/partial endpoints. Controlled hosts must accept
+partial starts to advance calendar selection. Calendar gestures normalize earlier
+endpoints; typed reversed drafts stay editable and invalid. Partial, reversed,
+unavailable or refused pairs never submit one new endpoint beside an old one.
+isDateDisabled blocks endpoints; interior blocked dates are allowed unless
+isRangeDisabled rejects the interval. Apply the same predicates to typed entry.
+Escape/outside dismissal may leave an accepted partial range; do not manufacture
+completion to make the form valid. Preserve reset cancellation and return focus.
+
+### Hierarchy, layout and error ownership
+
+Tree selects application objects through independent value and expandedValues
+contracts. Keep globally unique item values and noninteractive icons/descriptions.
+Descriptions participate in each row's accessible name; descendant labels do not.
+Arrows/Home/End/typeahead move focus independently from selection. Collapsing
+retains known selected descendants; removed/nonselectable values are excluded
+from later selection requests. Deferred hasChildren/loading branches belong to
+the host; no fetching or virtualization is implied.
+
+Tree readonly prevents selection while retaining browse/expand behavior. Translate
+readOnlyMessage for the associated explanation; tree/treeitem do not support
+aria-readonly. Disabled rows remain discoverable but cannot select/expand; item
+restrictions do not implicitly cascade. Tree submits no form values and does not
+automatically inherit a native fieldset's disabled state.
+
+NavigationTree uses native nav/list/links and normal Tab order. A destination and
+its disclosure are separate controls, so expansion does not navigate. The host
+owns currentValue, hrefs and expanded ancestors. Preserve linkProps, modifier
+navigation, localized disclosure labels and distinct disabled states.
+
+ResizablePanels owns constrained pointer/keyboard geometry and separator keys;
+its value is the main pane's percentage after the separator. The host supplies
+vertical height, content scrolling and persistence. Preserve RTL, cancellation,
+focus transfer and inert zero-sized panes. Use static Split when resizing is not
+needed. ErrorSummary receives host errors with exact field IDs. It links/focuses
+those controls without validating, expanding sections or submitting. Opt into
+autofocus/announcement deliberately for the host's submission lifecycle.
+
+Required, status, loading, empty and readonly contracts are component-specific.
+Preserve native validity and cancelled resets where supported; do not infer a
+form contract from Tree/Menu/CommandList selection or active state. Package source
+availability and focused examples do not prove registry publication, deployment
+or accessibility of the host application.

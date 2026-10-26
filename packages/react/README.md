@@ -11,8 +11,10 @@ nested native links. Both use globally unique item values and independent
 controlled/uncontrolled expansion. Tree keeps keyboard focus separate from
 single/multiple selection, with host-owned deferred branches. NavigationTree
 preserves native links, modifier navigation and Tab order with separate disclosure
-buttons. Neither component fetches, virtualizes or writes form values. See
-`docs/components/tree.md` and `docs/components/navigation-tree.md` for usage.
+buttons. Neither component fetches, virtualizes or writes form values. See the
+[Tree](https://flood.md/components/tree) and
+[NavigationTree](https://flood.md/components/navigation-tree) guides; check their
+release status against your installed version.
 
 ```tsx
 import "@flood-md/react/styles.css";

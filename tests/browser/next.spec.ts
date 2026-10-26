@@ -5,6 +5,7 @@ test("Next hydrates searchable selection without changing the input boundary", a
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(`${process.env.FLOOD_NEXT_TEST_URL ?? "http://127.0.0.1:3001"}/foundations`);
+  await expect(page.locator('main[data-hydrated="true"]')).toBeVisible();
   const input = page.getByRole("combobox", { name: "Runtime", exact: true });
   await input.fill("Vue");
   await expect(page.getByRole("option", { name: "Vue", exact: true })).toBeVisible();
@@ -19,6 +20,7 @@ test("Next hydrates multiple selection and removable tags", async ({ page }) => 
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(`${process.env.FLOOD_NEXT_TEST_URL ?? "http://127.0.0.1:3001"}/foundations`);
+  await expect(page.locator('main[data-hydrated="true"]')).toBeVisible();
   const input = page.getByRole("combobox", { name: "Runtimes", exact: true });
   await input.fill("Vue"); await input.press("Enter");
   await expect(page.locator('input[type="hidden"][name="runtimes"]')).toHaveCount(2);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   FloodRoot, Heading, Text, Stack, Inline, Surface, Divider,
   Button, IconButton, Field, Input, Textarea, Select, Checkbox, Radio, Switch, NumberInput, Slider, Combobox, MultiSelect,
@@ -10,6 +10,8 @@ import {
 const sizes: ControlSize[] = ["2xs", "xs", "sm", "md", "lg", "xl", "2xl"];
 
 export function FoundationForm() {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const [error, setError] = useState<string>();
   const [status, setStatus] = useState("");
   const [submitted, setSubmitted] = useState("");
@@ -32,7 +34,7 @@ export function FoundationForm() {
 
   return (
     <FloodRoot id="foundation-root" style={{ minHeight: "100vh", padding: "var(--flood-sys-space-6)" }}>
-      <main style={{ maxWidth: "48rem", marginInline: "auto" }}>
+      <main data-hydrated={hydrated} style={{ maxWidth: "48rem", marginInline: "auto" }}>
         <Stack gap="8">
           <Stack gap="2">
             <Text size="helper">Flood · unreleased dark profile</Text>
