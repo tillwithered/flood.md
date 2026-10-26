@@ -1,8 +1,8 @@
 .component-workbench { border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-block); overflow: hidden; min-inline-size: 0; }
-.workbench-title { display: flex; align-items: center; justify-content: space-between; gap: var(--flood-sys-space-4); padding: var(--flood-sys-space-4) var(--flood-sys-space-6); }
+.workbench-title { display: flex; align-items: center; justify-content: space-between; gap: var(--flood-sys-space-4); padding: var(--flood-sys-space-4) var(--flood-sys-space-6); background: var(--flood-sys-color-surface-default); border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
 .workbench-actions { flex: none; max-inline-size: 100%; justify-content: flex-end; }
 .workbench-actions .flood-button { white-space: nowrap; }
-.component-workbench .workbench-stage { position: relative; box-sizing: border-box; block-size: 22rem; min-block-size: 0; padding: 3rem var(--flood-sys-space-6); display: grid; align-items: safe center; justify-items: safe center; overflow: auto; background-color: #241e24; background-image: radial-gradient(circle, rgb(255 140 190 / .09) .0625rem, transparent .0625rem); background-size: 1rem 1rem; }
+.component-workbench .workbench-stage { position: relative; box-sizing: border-box; block-size: 22rem; min-block-size: 0; padding: 3rem var(--flood-sys-space-6); display: grid; align-items: safe center; justify-items: safe center; overflow: auto; background-color: #1a161a; background-image: radial-gradient(circle, rgb(255 170 205 / .035) .045rem, transparent .045rem); background-size: 1.25rem 1.25rem; }
 .component-workbench .workbench-stage[data-size="compact"] { block-size: 16rem; }
 .component-workbench .workbench-stage[data-size="display"] { block-size: 26rem; }
 .workbench-stage > .flood-root { min-inline-size: 0; inline-size: fit-content; }

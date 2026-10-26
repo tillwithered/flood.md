@@ -98,7 +98,8 @@ ScrollArea powers bounded code, table and navigation regions; the website uses
 Flood controls for its own playground settings. npm run site:check tests a
 runtime-only deploy artifact; /site-release.json identifies its source commit.
 
-Component preview stages use a website-owned muted rose canvas and a quiet pink dotted grid.
+Component preview stages use a website-owned near-black rose canvas and a sparse, low-contrast pink dotted grid.
 The decoration stays outside the library theme and is removed in forced colors.
 The immediate FloodRoot hosting each example is transparent so it does not paint
 a rectangular canvas behind the component; component surfaces retain their fills.
+Preview headers and control footers share the same neutral surface and dividers.
