@@ -97,3 +97,6 @@ See [deployment](../../docs/deployment.md) for the hosting contract.
 ScrollArea powers bounded code, table and navigation regions; the website uses
 Flood controls for its own playground settings. npm run site:check tests a
 runtime-only deploy artifact; /site-release.json identifies its source commit.
+
+Component preview stages use a website-owned cool canvas and a quiet dotted grid.
+The decoration stays outside the library theme and is removed in forced colors.
