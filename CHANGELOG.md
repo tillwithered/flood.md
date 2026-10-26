@@ -4,6 +4,11 @@
 
 ### 0.2.5 candidate
 
+- Add 20 original content, form, navigation, layout and feedback components, with generated documentation and live recipes: AvatarGroup, StatusIndicator, Figure, Blockquote, InlineCode, Metric, Timeline, NavigationList, Steps, Section, Split, Center, SkipLink, ListBox, PinInput, Rating, Dropzone, CharacterCount, CopyButton and ToastRegion.
+- Add SearchInput, PasswordInput and FileInput with appendable multiple selection and individual removal; add AlertDialog and edge Drawer with contained scrolling.
+- Separate floating material from modal fills with quiet translucency, light shadows and opaque/system-color fallbacks; keep existing token values and aligned package versions.
+- Keep component preview canvases quiet and consistent across the catalog.
+
 - Add Tag with a named removal action and MultiSelect with shared search/layer behavior, removable selections, repeated form values, required validation and token-aware wrapping.
 
 - Add original NumberInput with native form validation and step actions, and a horizontal Slider supporting one value or an ordered range. Reuse Flood field geometry, labels, feedback and focus.

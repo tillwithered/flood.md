@@ -891,3 +891,9 @@ material. Select, Combobox, MultiSelect, Menu, Popover and Tooltip share it; Dia
 and Drawer retain surface.overlay. Backdrop filtering is progressive enhancement;
 reduced transparency uses the opaque fill and forced colors use system colors.
 Keep text opaque and evaluate it against the actual composited background.
+
+
+The unpublished 0.2.5 component expansion adds native content/typography,
+collection/form controls, navigation/layout and clipboard/notification primitives.
+See docs/base-components.md and the per-component catalog for contracts and limits.
+The CSS build assembles the original component styles into the shared stylesheet.

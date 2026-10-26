@@ -20,6 +20,29 @@ const select = (name: string, options: string[], initial: string): Knob => ({ na
 const statusKnob = () => select("status", ["none", "error", "warning", "success", "info"], "none");
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
+  "list-box": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("multiple"), toggle("hideLabel"), toggle("readOnly"), toggle("disabled")],
+  "pin-input": [select("length", ["4", "6", "8"], "6"), select("mode", ["numeric", "alphanumeric"], "numeric"), select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("mask"), toggle("hideLabel"), toggle("required"), toggle("readOnly"), toggle("disabled")],
+  rating: [select("max", ["3", "5", "10"], "5"), select("size", ["sm", "md", "lg"], "md"), toggle("hideLabel"), toggle("required"), toggle("readOnly"), toggle("disabled")],
+  dropzone: [toggle("multiple", true), toggle("clearable", true), toggle("required"), toggle("disabled")],
+  "character-count": [select("count", ["0", "24", "40", "48"], "24"), select("mode", ["count", "remaining"], "count")],
+
+  "navigation-list": [select("size", ["sm", "md", "lg"], "md"), select("currentValue", ["overview", "activity", "settings"], "overview"), toggle("grouped", true), toggle("showDescriptions")],
+  steps: [select("orientation", ["horizontal", "vertical"], "horizontal"), select("currentValue", ["details", "access", "review"], "access"), toggle("interactive"), toggle("error"), toggle("disableLast")],
+  section: [select("headingLevel", ["2", "3", "4", "5", "6"], "2"), toggle("showDescription", true), toggle("showActions", true)],
+  split: [select("side", ["start", "end"], "end"), select("ratio", ["balanced", "main", "aside"], "main"), select("collapseAt", ["sm", "md", "lg", "never"], "sm"), select("gap", spaces, "6")],
+  center: [toggle("inline"), select("maxWidth", ["16rem", "24rem", "100%"], "16rem"), select("minHeight", ["8rem", "12rem", "16rem"], "12rem")],
+  "skip-link": [],
+
+  "avatar-group": [select("size", ["sm", "md", "lg"], "md"), select("max", ["2", "3", "4", "5"], "4"), toggle("longNames")],
+  "status-indicator": [select("tone", ["neutral", "accent", "success", "warning", "error", "info"], "success"), select("size", ["sm", "md", "lg"], "md"), toggle("announce")],
+  figure: [select("captionPosition", ["before", "after"], "after"), toggle("showCaption", true)],
+  blockquote: [toggle("attribution", true)],
+  "inline-code": [select("size", ["sm", "md", "lg"], "md"), toggle("wrap", true), toggle("longValue")],
+  metric: [select("size", ["sm", "md", "lg"], "md"), select("direction", ["up", "down", "flat"], "up"), select("tone", ["neutral", "success", "warning", "error", "info"], "success"), toggle("trend", true), toggle("hint", true)],
+  timeline: [toggle("descriptions", true), toggle("times", true)],
+
+  "copy-button": [select("size", sizes, "md"), select("variant", variants, "subtle"), toggle("disabled")],
+  "toast-region": [select("status", ["success", "info", "warning", "error", "neutral"], "success"), select("limit", ["1", "2", "3"], "3"), toggle("autoDismiss")],
   "file-input": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("multiple", true), toggle("clearable", true), statusKnob(), toggle("required"), toggle("disabled")],
   "search-input": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("clearable", true), statusKnob(), toggle("disabled"), toggle("readOnly")],
   "password-input": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), statusKnob(), toggle("disabled"), toggle("readOnly")],
@@ -131,6 +154,9 @@ function printRecipe(node: ElementRecipe, imports: Set<string>, icons: Set<strin
 }
 
 interface PreviewActions {
+  notifications: Flood.ToastItem[];
+  addToast: () => void;
+  dismissToast: (id: string) => void;
   status: string;
   setStatus: (status: string) => void;
   checked: (value: boolean) => void;
@@ -153,6 +179,29 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
   };
   switch (slug) {
     case "tag": return element("Tag",{size:v.size,disabled:v.disabled,hidden:binding("!visible",!v.visible),icon:v.icon?binding("<Plus />",<Plus />):undefined,onRemove:v.removable?binding("() => setVisible(false)",()=>actions.visible(false)):undefined,removeLabel:"Remove Design"},v.longLabel?"Design systems and thoughtfully composed interfaces":"Design");
+    case "avatar-group": return element("AvatarGroup",{label:"Project collaborators",size:v.size,max:Number(v.max),items:[{id:"alex",name:v.longNames?"Alexandra Konstantinova":"Alex Morgan"},{id:"sam",name:"Sam Lee"},{id:"june",name:"June Park"},{id:"robin",name:"Robin Smith"},{id:"mika",name:"Mika Chen"}]});
+    case "status-indicator": return element("StatusIndicator",{label:({neutral:"Not started",accent:"In progress",success:"All systems operational",warning:"Needs attention",error:"Service interrupted",info:"Update available"} as Record<string,string>)[String(v.tone)],tone:v.tone,size:v.size,announce:v.announce});
+    case "figure": return element("Figure",{caption:v.showCaption?"A calm foundation for the next idea.":undefined,captionPosition:v.captionPosition},element("Surface",{padding:"8",elevation:"raised"},element("Text",{as:"p",size:"compact"},"Project preview")));
+    case "blockquote": return element("Blockquote",{attribution:v.attribution?"The Flood team":undefined},"Good interfaces make room for what matters.");
+    case "inline-code": return element("Text",{as:"p",size:"compact"},"Import ",element("InlineCode",{size:v.size,wrap:v.wrap},v.longValue?"@/ui/project-settings/notifications/preferences":"@/ui/button")," in your project.");
+    case "metric": return element("Metric",{label:"Monthly revenue",value:"$24,580",size:v.size,hint:v.hint?"Compared with the previous month.":undefined,trend:v.trend?{label:v.direction==="up"?"12.8% higher":v.direction==="down"?"4.2% lower":"No change",direction:v.direction,tone:v.tone}:undefined});
+    case "timeline": return element("Timeline",{label:"Project activity",items:[{id:"created",title:"Project created",state:"complete",description:v.descriptions?"Your workspace is ready.":undefined,dateTime:"2026-10-26T09:00:00Z",timeLabel:v.times?"09:00":undefined},{id:"review",title:"Design review",state:"current",description:v.descriptions?"Reviewing the dark foundations.":undefined,dateTime:"2026-10-26T10:30:00Z",timeLabel:v.times?"10:30":undefined},{id:"release",title:"Release",state:"upcoming",description:v.descriptions?"Publish when the review is complete.":undefined}]});
+
+    case "navigation-list": return element("div", {style:{width:"20rem",maxWidth:"100%"}}, element("NavigationList", {label:"Project navigation",currentValue:v.currentValue,size:v.size,items:[{value:"overview",label:"Overview",href:"#overview",group:v.grouped?"Workspace":undefined,description:v.showDescriptions?"Your project at a glance":undefined},{value:"activity",label:"Activity",href:"#activity",group:v.grouped?"Workspace":undefined,description:v.showDescriptions?"Recent changes and updates":undefined},{value:"settings",label:"Settings",href:"#settings",group:v.grouped?"Manage":undefined,description:v.showDescriptions?"Project preferences":undefined}]}));
+    case "steps": return element("div",{style:{width:"40rem",maxWidth:"100%"}},element("Steps",{label:"Project setup",orientation:v.orientation,currentValue:v.currentValue,items:[{value:"details",title:"Details",description:"Name your project"},{value:"access",title:"Access",description:"Invite your team",status:v.error?"error":undefined},{value:"review",title:"Review",description:"Check and finish",disabled:v.disableLast}],onStepChange:v.interactive?binding('(value) => setStatus(`Step requested: ${value}`)',(value:string)=>actions.setStatus(`Step requested: ${value}`)):undefined}),status);
+    case "section": return element("div",{style:{width:"36rem",maxWidth:"100%"}},element("Section",{title:"Project settings",description:v.showDescription?"Manage the details your team shares.":undefined,headingLevel:Number(v.headingLevel),actions:v.showActions?binding('<Button variant="subtle" size="sm" onClick={() => setStatus("Edit requested.")}>Edit</Button>',<Flood.Button variant="subtle" size="sm" onClick={()=>actions.setStatus("Edit requested.")}>Edit</Flood.Button>):undefined},element("Surface",{elevation:"raised",padding:"4"},text("Section content stays separate from its heading and supporting text."))),status);
+    case "split": return element("div",{style:{width:"42rem",maxWidth:"100%"}},element("Split",{side:v.side,ratio:v.ratio,collapseAt:v.collapseAt,gap:v.gap,main:binding('<Surface elevation="raised" padding="4"><Text as="p" size="compact">Main content</Text></Surface>',<Flood.Surface elevation="raised" padding="4"><Flood.Text as="p" size="compact">Main content</Flood.Text></Flood.Surface>),aside:binding('<Surface elevation="default" padding="4"><Text as="p" size="compact">Supporting content</Text></Surface>',<Flood.Surface elevation="default" padding="4"><Flood.Text as="p" size="compact">Supporting content</Flood.Text></Flood.Surface>)}));
+    case "center": return element("div",{style:{width:"36rem",maxWidth:"100%"}},element("Surface",{elevation:"raised",padding:"4"},element("Center",{inline:v.inline,maxWidth:v.maxWidth,minHeight:v.minHeight},element("Text",{as:"p",size:"compact"},"This content is centered within a constrained area."))));
+    case "skip-link": return element("Stack",{gap:"4"},element("SkipLink",{href:"#skip-link-example-content",id:"skip-link-example"},"Skip to example content"),element("Button",{variant:"subtle",onClick:binding('() => document.getElementById("skip-link-example")?.focus()',()=>document.getElementById("skip-link-example")?.focus())},"Focus skip link"),element("div",{id:"skip-link-example-content",tabIndex:-1},text("The skip link moves keyboard focus here. Press Tab to continue.")));
+
+    case "list-box": return element("ListBox", {key:String(v.multiple),label:"Framework",name:"framework",multiple:v.multiple,defaultValue:v.multiple?["react"]:"react",options:[{value:"react",label:"React",description:"Component-based interfaces"},{value:"vue",label:"Vue",description:"Progressive interfaces"},{value:"svelte",label:"Svelte"},{value:"locked",label:"Unavailable framework",disabled:true}],controlSize:v.controlSize,hideLabel:v.hideLabel,readOnly:v.readOnly,disabled:v.disabled,style:{width:"26rem",maxWidth:"100%"}});
+    case "pin-input": return element("PinInput", {key:String(v.length)+String(v.mode),label:"Verification code",name:"code",length:Number(v.length),mode:v.mode,controlSize:v.controlSize,mask:v.mask,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled});
+    case "rating": return element("Rating", {key:String(v.max),label:"Your experience",name:"experience",defaultValue:3,max:Number(v.max),size:v.size,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled});
+    case "dropzone": return element("Dropzone", {label:"Project attachments",name:"attachments",multiple:v.multiple,clearable:v.clearable,required:v.required,disabled:v.disabled,style:{width:"26rem",maxWidth:"100%"}});
+    case "character-count": return element("CharacterCount", {count:Number(v.count),max:40,mode:v.mode});
+
+    case "copy-button": return element("CopyButton",{value:"npm install @flood-md/react",size:v.size,variant:v.variant,disabled:v.disabled});
+    case "toast-region": return element("Stack",{gap:"4"},element("Button",{size:"sm",variant:"subtle",onClick:binding('() => setNotifications(current => [...current, {id: crypto.randomUUID(), title: "Changes saved", description: "Your project preferences are up to date.", duration: 0}])',actions.addToast)},"Show notification"),element("ToastRegion",{inline:true,hotkey:false,limit:Number(v.limit),items:binding(`notifications.map(item => ({...item, status: ${JSON.stringify(v.status)} as const, duration: ${v.autoDismiss?5000:0}}))`,actions.notifications.map(item=>({...item,status:v.status as Flood.ToastItem["status"],duration:v.autoDismiss?5000:0}))),onDismiss:binding('(id) => setNotifications(current => current.filter(item => item.id !== id))',actions.dismissToast)}));
     case "file-input": return {tag:"Field",props:{label:"Attachments",hideLabel:v.hideLabel,status:fieldStatus,message},field:element("FileInput",{name:"attachments",multiple:v.multiple,clearable:v.clearable,controlSize:v.controlSize,required:v.required,disabled:v.disabled})};
     case "search-input": case "password-input": return {tag:"Field",props:{label:slug === "search-input" ? "Search components" : "Password",hideLabel:v.hideLabel,status:fieldStatus,message},field:element(slug === "search-input" ? "SearchInput" : "PasswordInput",{name:slug,defaultValue:slug === "search-input" ? "Design systems" : "flood-demo-password",autoComplete:slug === "search-input" ? "off" : "new-password",controlSize:v.controlSize,disabled:v.disabled,readOnly:v.readOnly,...(slug === "search-input" ? {clearable:v.clearable} : {})})};
     case "multi-select": return {tag:"Field",props:{label:"Frameworks",hideLabel:v.hideLabel,status:fieldStatus,message},field:element("MultiSelect",{name:"frameworks",placeholder:"Search frameworks",defaultValue:["react","vue"],options:[{value:"react",label:v.longLabels?"React for thoughtfully composed product interfaces":"React",description:"Component-based interfaces"},{value:"vue",label:v.longLabels?"Vue for progressive web applications":"Vue"},{value:"svelte",label:"Svelte",disabled:Boolean(v.disableLast)}],clearable:v.clearable,controlSize:v.controlSize,required:v.required,disabled:v.disabled,readOnly:v.readOnly})};
@@ -320,6 +369,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   const [status, setStatus] = useState("");
   const [resetKey, setResetKey] = useState(0);
   const [pagination, setPagination] = useState({slug:component.slug,page:1});
+  const [notifications, setNotifications] = useState<Flood.ToastItem[]>([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]);
   const stage = useRef<HTMLDivElement>(null);
   const values = state.slug === component.slug ? state.values : initialValues(component);
   const change = (name: string, value: string | boolean) => { setState({ slug: component.slug, values: { ...values, ...(name === "status" ? { invalid: false, ...(component.slug === "field" ? { error: false } : {}) } : {}), [name]: value } }); setStatus(""); };
@@ -333,7 +383,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
     catch { setStatus("Select the code and copy it manually."); }
   };
   const currentPage=component.slug==="pagination"?Math.min(pagination.slug===component.slug?pagination.page:1,Number(values.pageCount)):1;
-  const recipe = recipeFor(component.slug, values, { status, setStatus, checked: (checked) => change("checked", checked), visible: visible => {
+  const recipe = recipeFor(component.slug, values, { notifications, addToast:()=>setNotifications(current=>[...current,{id:crypto.randomUUID(),title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]), dismissToast:id=>setNotifications(current=>current.filter(item=>item.id!==id)), status, setStatus, checked: (checked) => change("checked", checked), visible: visible => {
     change("visible", visible);
     if (!visible) queueMicrotask(() => stage.current?.ownerDocument.getElementById(`${id}-visible`)?.focus());
   }, copy, page:currentPage,setPage:page=>setPagination({slug:component.slug,page}) });
@@ -351,18 +401,21 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   if (component.slug === "toggle-group" && values.content !== "text") { icons.add("Bold"); icons.add("Italic"); icons.add("Underline"); }
   if (component.slug === "segmented-control" && values.content !== "text") { icons.add("CalendarDays"); icons.add("CalendarRange"); icons.add("Calendar"); }
   let preamble = "";
+  if (component.slug === "toast-region") preamble += '  const [notifications, setNotifications] = useState([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]);\n';
   const usesPresence = component.slug === "tag";
   if (usesPresence) { preamble += `  const [visible, setVisible] = useState(${JSON.stringify(Boolean(values.visible))});\n`; if (values.icon) icons.add("Plus"); }
   const usesChecked = ["checkbox", "radio", "switch"].includes(component.slug);
+  if (component.slug === "section" && values.showActions) imports.add("Button");
+  if (component.slug === "split") { imports.add("Surface"); imports.add("Text"); }
   if (component.slug === "card") { if (values.showActions) imports.add("Badge"); if (values.showFooter) imports.add("Button"); }
   if (component.slug === "empty-state") { if (values.showIcon) icons.add("Plus"); if (values.showActions) imports.add("Button"); }
-  const usesStatus = ["drawer", "alert-dialog", "empty-state", "card", "toolbar", "menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
+  const usesStatus = ["steps", "section", "drawer", "alert-dialog", "empty-state", "card", "toolbar", "menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
   if (usesChecked) preamble += `  const [checked, setChecked] = useState(${JSON.stringify(Boolean(values.checked))});\n`;
   if (usesStatus) preamble += '  const [status, setStatus] = useState("");\n';
   if (component.slug==="pagination") preamble += `  const [page, setPage] = useState(${currentPage});\n`;
   if (component.slug === "code-snippet" && values.copyAction) preamble += `  async function copy() {\n    try {\n      await navigator.clipboard.writeText(${JSON.stringify(String(values.code))});\n      setStatus("Copied command.");\n    } catch {\n      setStatus("Select the code and copy it manually.");\n    }\n  }\n`;
   const stylesheet = importMode === "project" ? "@/ui/styles.css" : "@flood-md/react/styles.css";
-  const code = '"use client";\n\n' + (usesPresence || usesChecked || usesStatus || component.slug==="pagination" ? 'import { useState } from "react";\n' : "") + importStatements([...imports].sort(), importMode) + "\n" + (icons.size ? `import { ${[...icons].sort().join(", ")} } from "lucide-react";\n` : "") + `import "${stylesheet}";\n\nexport function Example() {\n` + preamble + `  return (\n${jsx}\n  );\n}\n`;
+  const code = '"use client";\n\n' + (usesPresence || usesChecked || usesStatus || component.slug === "toast-region" || component.slug==="pagination" ? 'import { useState } from "react";\n' : "") + importStatements([...imports].sort(), importMode) + "\n" + (icons.size ? `import { ${[...icons].sort().join(", ")} } from "lucide-react";\n` : "") + `import "${stylesheet}";\n\nexport function Example() {\n` + preamble + `  return (\n${jsx}\n  );\n}\n`;
   useEffect(() => { callback.current(code); importsCallback.current?.([...imports].sort()); }, [code]);
 
   const controls = componentKnobs(component);
@@ -370,8 +423,8 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   const spacious = ["container", "grid", "aspect-ratio", "empty-state", "card", "table", "description-list", "accordion", "input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
   const labelFor = (knob: Knob) => knob.label ?? ({ controlSize: "Size", contentInset: "Content clearance", readOnly: "Read only", copyAction: "Copy button", label: "Accessible name" } as Record<string, string>)[knob.name] ?? knob.name[0].toUpperCase() + knob.name.slice(1);
   return <section className="component-workbench" aria-label={`${component.name} live playground`}>
-    <div className="workbench-title"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setPagination({slug:component.slug,page:1}); setResetKey((key) => key + 1); }}>Reset</Flood.Button></Flood.Inline></div>
-    <div className="workbench-stage preview-stage" data-component={component.slug} data-size={component.slug === "heading" ? "display" : spacious ? "regular" : "compact"} ref={stage} key={component.slug + resetKey}><Flood.FloodRoot>{renderRecipe(recipe)}</Flood.FloodRoot></div>
+    <div className="workbench-title"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setPagination({slug:component.slug,page:1}); setResetKey((key) => key + 1); setNotifications([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]); }}>Reset</Flood.Button></Flood.Inline></div>
+    <div className="workbench-stage preview-stage" data-component={component.slug} data-size={["heading", "timeline", "toast-region", "dropzone"].includes(component.slug) ? "display" : spacious ? "regular" : "compact"} ref={stage} key={component.slug + resetKey}><Flood.FloodRoot>{renderRecipe(recipe)}</Flood.FloodRoot></div>
     {controls.length > 0 && <div className="workbench-controls" aria-label={`${component.name} API controls`}>
       {controls.map((knob) => typeof knob.initial === "boolean" ?
         <div className="workbench-control workbench-control--toggle" key={knob.name}>

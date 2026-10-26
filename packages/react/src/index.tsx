@@ -19,6 +19,7 @@ import {
   type RefObject,
   type TableHTMLAttributes,
   type ImgHTMLAttributes,
+  type BlockquoteHTMLAttributes,
 } from "react";
 import { useFocusableHidden } from "./focusable-hidden.js";
 import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-state.js";
@@ -36,6 +37,10 @@ import { ActionMenu } from "./menu.js";
 import { RovingToolbar } from "./toolbar.js";
 import { NumericStepper } from "./numeric-input.js";
 import { RangeControl } from "./slider.js";
+import {GroupedAvatars, NamedStatus, CaptionedFigure, AttributedQuote, InlineCodeText, MeasuredValue, EventTimeline} from "./content-elements.js";
+import { NavigationMenu, StepSequence, ContentSection, SplitLayout, CenterLayout, SkipNavigation } from "./navigation-layout.js";
+import { CollectionListBox, SegmentedPinInput, StarRating, FileDropzone, SupportingCharacterCount } from "./form-controls.js";
+import { ClipboardAction, NotificationRegion } from "./feedback-actions.js";
 import { ConfirmationDialog } from "./alert-dialog.js";
 import { FilePicker } from "./file-input.js";
 import { SearchField, PasswordField } from "./text-inputs.js";
@@ -1217,3 +1222,277 @@ export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function S
 ) {
   return <OverlayScrollArea {...props} orientation={orientation} contentInset={contentInset} ref={ref} />;
 });
+
+
+export interface CopyButtonProps extends Omit<ButtonProps, "children" | "value" | "type" | "onClick" | "loading"> {
+  value: string;
+  copyLabel?: string;
+  copiedLabel?: string;
+  errorLabel?: string;
+  resetDelay?: number;
+  onCopied?: () => void;
+  onCopyError?: (error: unknown) => void;
+}
+export const CopyButton = forwardRef<HTMLButtonElement, CopyButtonProps>(function CopyButton(
+  {copyLabel = "Copy", copiedLabel = "Copied", errorLabel = "Copy failed", resetDelay = 2000, size = "md", variant = "subtle", ...props}, ref,
+) {
+  return <ClipboardAction {...props} ref={ref} copyLabel={copyLabel} copiedLabel={copiedLabel} errorLabel={errorLabel} resetDelay={resetDelay} size={size} variant={variant} />;
+});
+export interface ToastItem {
+  id: string;
+  title: string;
+  description?: string;
+  status?: FieldStatus | "neutral";
+  duration?: number;
+  action?: {label: string; onClick: () => void};
+}
+export interface ToastRegionProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role"> {
+  items: readonly ToastItem[];
+  onDismiss: (id: string) => void;
+  label?: string;
+  closeLabel?: string;
+  placement?: "top-start" | "top-end" | "bottom-start" | "bottom-end";
+  limit?: number;
+  inline?: boolean;
+  hotkey?: boolean;
+}
+export const ToastRegion = forwardRef<HTMLDivElement, ToastRegionProps>(function ToastRegion(
+  {label = "Notifications", closeLabel = "Dismiss notification", placement = "bottom-end", limit = 3, inline = false, hotkey = true, ...props}, ref,
+) {
+  return <NotificationRegion {...props} ref={ref} label={label} closeLabel={closeLabel} placement={placement} limit={limit} inline={inline} hotkey={hotkey} />;
+});
+
+
+export interface AvatarGroupItem {
+  id: string;
+  name: string;
+  src?: string;
+  fallback?: string;
+}
+export interface AvatarGroupProps extends Omit<HTMLAttributes<HTMLUListElement>, "children"> {
+  items: readonly AvatarGroupItem[];
+  label: string;
+  max?: number;
+  size?: ContentSize;
+  overflowLabel?: string;
+}
+export const AvatarGroup = forwardRef<HTMLUListElement, AvatarGroupProps>(function AvatarGroup(
+  {max = 4, size = "md", ...props}, ref,
+) { return <GroupedAvatars {...props} ref={ref} max={max} size={size}/>; });
+
+export interface StatusIndicatorProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children"> {
+  label: string;
+  tone?: SemanticTone;
+  size?: ContentSize;
+  announce?: boolean;
+}
+export const StatusIndicator = forwardRef<HTMLSpanElement, StatusIndicatorProps>(function StatusIndicator(
+  {tone = "neutral", size = "md", announce = false, ...props}, ref,
+) { return <NamedStatus {...props} ref={ref} tone={tone} size={size} announce={announce}/>; });
+
+export interface FigureProps extends HTMLAttributes<HTMLElement> {
+  caption?: ReactNode;
+  captionPosition?: "before" | "after";
+}
+export const Figure = forwardRef<HTMLElement, FigureProps>(function Figure(
+  {captionPosition = "after", ...props}, ref,
+) { return <CaptionedFigure {...props} ref={ref} captionPosition={captionPosition}/>; });
+
+export interface BlockquoteProps extends BlockquoteHTMLAttributes<HTMLQuoteElement> {
+  attribution?: ReactNode;
+}
+export const Blockquote = forwardRef<HTMLQuoteElement, BlockquoteProps>(function Blockquote(props, ref) {
+  return <AttributedQuote {...props} ref={ref}/>;
+});
+
+export interface InlineCodeProps extends HTMLAttributes<HTMLElement> {
+  size?: ContentSize;
+  wrap?: boolean;
+}
+export const InlineCode = forwardRef<HTMLElement, InlineCodeProps>(function InlineCode(
+  {size = "md", wrap = true, ...props}, ref,
+) { return <InlineCodeText {...props} ref={ref} size={size} wrap={wrap}/>; });
+
+export interface MetricTrend {
+  label: string;
+  direction: "up" | "down" | "flat";
+  tone?: SemanticTone;
+}
+export interface MetricProps extends Omit<HTMLAttributes<HTMLDListElement>, "children"> {
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+  trend?: MetricTrend;
+  size?: ContentSize;
+}
+export const Metric = forwardRef<HTMLDListElement, MetricProps>(function Metric(
+  {size = "md", ...props}, ref,
+) { return <MeasuredValue {...props} ref={ref} size={size}/>; });
+
+export interface TimelineItem {
+  id: string;
+  title: string;
+  description?: ReactNode;
+  state?: "complete" | "current" | "upcoming";
+  dateTime?: string;
+  timeLabel?: string;
+  icon?: ReactNode;
+}
+export interface TimelineProps extends Omit<HTMLAttributes<HTMLOListElement>, "children"> {
+  label: string;
+  items: readonly TimelineItem[];
+  stateLabels?: {complete?: string; current?: string; upcoming?: string};
+}
+export const Timeline = forwardRef<HTMLOListElement, TimelineProps>(function Timeline(props, ref) {
+  return <EventTimeline {...props} ref={ref}/>;
+});
+
+
+export interface NavigationListItem {
+  value: string;
+  label: string;
+  href: string;
+  description?: string;
+  icon?: ReactNode;
+  group?: string;
+  linkProps?: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "children" | "aria-current">;
+}
+export interface NavigationListProps extends Omit<HTMLAttributes<HTMLElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  items: readonly NavigationListItem[];
+  currentValue?: string;
+  size?: ContentSize;
+}
+export const NavigationList = forwardRef<HTMLElement, NavigationListProps>(function NavigationList(
+  {size = "md", ...props}, ref,
+) { return <NavigationMenu {...props} ref={ref} size={size} />; });
+
+export interface StepItem {
+  value: string;
+  title: string;
+  description?: string;
+  status?: "complete" | "upcoming" | "error";
+  disabled?: boolean;
+}
+export interface StepsProps extends Omit<HTMLAttributes<HTMLOListElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  items: readonly StepItem[];
+  currentValue?: string;
+  orientation?: "horizontal" | "vertical";
+  onStepChange?: (value: string) => void;
+  statusLabels?: {complete: string; current: string; upcoming: string; error: string};
+}
+export const Steps = forwardRef<HTMLOListElement, StepsProps>(function Steps(
+  {orientation = "horizontal", ...props}, ref,
+) { return <StepSequence {...props} ref={ref} orientation={orientation} />; });
+
+export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, "title"> {
+  title: string;
+  description?: ReactNode;
+  actions?: ReactNode;
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+}
+export const Section = forwardRef<HTMLElement, SectionProps>(function Section(
+  {headingLevel = 2, ...props}, ref,
+) { return <ContentSection {...props} ref={ref} headingLevel={headingLevel} />; });
+
+export interface SplitProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  main: ReactNode;
+  aside: ReactNode;
+  side?: "start" | "end";
+  ratio?: "balanced" | "main" | "aside";
+  collapseAt?: "sm" | "md" | "lg" | "never";
+  gap?: Space;
+}
+export const Split = forwardRef<HTMLDivElement, SplitProps>(function Split(
+  {side = "end", ratio = "main", collapseAt = "md", gap = "6", ...props}, ref,
+) { return <SplitLayout {...props} ref={ref} side={side} ratio={ratio} collapseAt={collapseAt} gap={gap} />; });
+
+export interface CenterProps extends HTMLAttributes<HTMLDivElement> {
+  inline?: boolean;
+  maxWidth?: string;
+  minHeight?: string;
+}
+export const Center = forwardRef<HTMLDivElement, CenterProps>(function Center(
+  {inline = false, ...props}, ref,
+) { return <CenterLayout {...props} ref={ref} inline={inline} />; });
+
+export interface SkipLinkProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> {
+  href: string;
+}
+export const SkipLink = forwardRef<HTMLAnchorElement, SkipLinkProps>(function SkipLink(
+  {children = "Skip to content", ...props}, ref,
+) { return <SkipNavigation {...props} ref={ref}>{children}</SkipNavigation>; });
+
+
+export interface ListBoxProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "defaultValue" | "onChange"> {
+  label: string;
+  hideLabel?: boolean;
+  options: readonly ComboboxOption[];
+  value?: string | readonly string[];
+  defaultValue?: string | readonly string[];
+  onValueChange?: (value: string | string[]) => void;
+  multiple?: boolean;
+  disabled?: boolean;
+  readOnly?: boolean;
+  name?: string;
+  form?: string;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+}
+export const ListBox = forwardRef<HTMLDivElement, ListBoxProps>(function ListBox(
+  {multiple = false, disabled = false, readOnly = false, hideLabel = false, controlSize = "md", ...props}, ref,
+) { return <CollectionListBox {...props} ref={ref} multiple={multiple} disabled={disabled} readOnly={readOnly} hideLabel={hideLabel} controlSize={controlSize} />; });
+
+export interface PinInputProps extends Omit<InputProps, "type" | "children" | "value" | "defaultValue" | "onChange" | "pattern" | "size"> {
+  label: string;
+  hideLabel?: boolean;
+  length?: number;
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  mode?: "numeric" | "alphanumeric";
+  mask?: boolean;
+}
+export const PinInput = forwardRef<HTMLInputElement, PinInputProps>(function PinInput(
+  {length = 6, mode = "numeric", mask = false, hideLabel = false, controlSize = "md", ...props}, ref,
+) { return <SegmentedPinInput {...props} ref={ref} length={length} mode={mode} mask={mask} hideLabel={hideLabel} controlSize={controlSize} />; });
+
+export interface RatingProps extends Omit<FieldsetHTMLAttributes<HTMLFieldSetElement>, "children" | "onChange" | "defaultValue"> {
+  label: string;
+  hideLabel?: boolean;
+  value?: number;
+  defaultValue?: number;
+  max?: number;
+  onValueChange?: (value: number) => void;
+  getValueLabel?: (value: number, max: number) => string;
+  readOnly?: boolean;
+  required?: boolean;
+  name: string;
+  form?: string;
+  size?: ContentSize;
+}
+export const Rating = forwardRef<HTMLFieldSetElement, RatingProps>(function Rating(
+  {max = 5, defaultValue = 0, hideLabel = false, readOnly = false, size = "md", ...props}, ref,
+) { return <StarRating {...props} ref={ref} max={max} defaultValue={defaultValue} hideLabel={hideLabel} readOnly={readOnly} size={size} />; });
+
+export interface DropzoneProps extends Omit<FileInputProps, "onDragEnter" | "onDragLeave" | "onDragOver" | "onDrop"> {
+  label: string;
+  description?: string;
+}
+export const Dropzone = forwardRef<HTMLInputElement, DropzoneProps>(function Dropzone(
+  {description = "Drop files here or choose from your device.", multiple = true, ...props}, ref,
+) { return <FileDropzone {...props} ref={ref} description={description} multiple={multiple} />; });
+
+export interface CharacterCountProps extends HTMLAttributes<HTMLOutputElement> {
+  value?: string;
+  count?: number;
+  max?: number;
+  mode?: "count" | "remaining";
+  label?: string;
+  overLimitLabel?: string;
+  htmlFor?: string;
+  form?: string;
+}
+export const CharacterCount = forwardRef<HTMLOutputElement, CharacterCountProps>(function CharacterCount(
+  {mode = "count", label = "Characters", overLimitLabel = "Over limit", ...props}, ref,
+) { return <SupportingCharacterCount {...props} ref={ref} mode={mode} label={label} overLimitLabel={overLimitLabel} />; });

@@ -178,3 +178,85 @@ scrolls with Flood ScrollArea. Header/close action/footer remain visible. Native
 ref, controlled open/onOpenChange, outside dismissal and initialFocusRef match
 Dialog. Translate closeLabel/title/description; reduced motion disables entry
 animation. Closing is immediate. There is no swipe/drag gesture or auto-save logic.
+
+
+## Expanded component set in the unpublished 0.2.5 candidate
+
+### Content and typography additions in 0.2.5
+
+AvatarGroup composes the existing Avatar in a native named list with static
+count overflow. It does not hide extra interactive items or invent an overflow
+menu. Keep unique item IDs, nonempty names and a positive max. Translate
+`overflowLabel` when its default English count is not suitable.
+
+StatusIndicator pairs a decorative dot with visible status text. Tone never
+replaces the wording. `announce` opts changing labels into a polite status region;
+static labels do not announce on every page load.
+
+Figure uses native figure/figcaption and keeps its host-provided media and caption
+in DOM order. The media still needs its own alt text or accessible name.
+Blockquote keeps cite as a source URL and optional attribution as visible credit.
+InlineCode is a native inline code fragment; it escapes text, performs no syntax
+highlighting and wraps long identifiers by default. Use CodeSnippet for code blocks.
+
+Metric is a labeled value expressed as a native definition list. Formatting,
+calculation and trend wording belong to the host. Direction and tone are separate:
+a lower error rate can be good. Include that meaning in the trend label.
+
+Timeline preserves supplied event order in a named ordered list, with at most one
+current event. Markers are decorative; localized state labels keep states readable
+to assistive technology. dateTime and the visible timeLabel are host-owned; no
+sorting, timezone conversion or live announcement is implied.
+
+
+### Navigation and composition
+
+NavigationList is a named native navigation list with grouped destinations and one
+aria-current page. The host owns URLs and currentValue. Steps is an ordered progress
+sequence; state labels carry meaning beyond color. It becomes interactive only
+with onStepChange, which requests a host-owned currentValue update. Disabled steps
+remain visible. Translate statusLabels; do not present Steps as tabs.
+
+Section owns a labelled native section, heading level, optional supporting text
+and header actions. Split composes main/aside content in a container-responsive
+two-pane grid; logical side and ratio do not introduce resizing gestures. Collapse
+thresholds follow the container, preserving DOM reading order. Center constrains
+and centers content without adding a content surface. SkipLink remains a native
+fragment link, is revealed on keyboard focus and focuses its existing target.
+
+### Form and collection controls
+
+ListBox is a visible collection for one ID or an array of IDs. It supports native
+hidden form values, reset, typeahead and directional keyboard selection. Options
+are local; there is no virtualization, remote fetching or freeform entry. PinInput
+is one native OTP editor with segmented visual slots, paste/edit/reset behavior,
+one-time-code autocomplete and numeric/alphanumeric modes. Its name submits the
+whole string; it does not verify an identity or send a code. Numeric mode uses
+ASCII digits; alphanumeric mode accepts Latin letters and digits.
+
+Rating uses a named native radio group. Supply label and name, keep current value
+within max and localize getValueLabel. Native required, disabled, forms and reset
+remain available. Read-only blocks changes while preserving inspection. Dropzone
+composes FileInput with a file-drop affordance; files stay in the real FileList and
+multiple picks/drops append with metadata deduplication. It does not upload files;
+the host owns file validation, server processing and progress. CharacterCount is
+an advisory output using a supplied string or count; it does not enforce a limit
+or mutate an editor. Keep its meaning explicit near the corresponding input.
+
+### Clipboard and notifications
+
+CopyButton writes its value through the browser Clipboard API on activation. A
+secure context and clipboard permission are required. onCopied/onCopyError let the
+host react; manual fallback belongs to the host. Localize all result labels. Labels
+reserve their shared width and a polite status announces success/failure.
+
+ToastRegion takes a host-owned items array and onDismiss. IDs are unique/nonempty;
+limit controls the visible queue. Ordinary messages default to five seconds;
+errors and messages with actions persist unless a duration is explicitly supplied.
+Zero duration persists. Visible timers pause on hover, focus and hidden documents;
+queued timers start when displayed. F8 focuses the first nonempty visible region;
+hotkey=false disables it. Error messages use alert announcements; other messages
+use polite status. Actions do not implicitly dismiss. Localize label, closeLabel
+and message/action text. inline embeds a region; fixed mode uses normal document
+stacking. A contextual notification inside a modal belongs in that modal's tree.
+There is no singleton store, upload engine or promise-notification API.

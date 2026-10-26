@@ -71,3 +71,7 @@
 @media (forced-colors: active) {
   .component-workbench .workbench-stage { background: Canvas; }
 }
+
+.workbench-stage:is([data-component="timeline"], [data-component="list-box"], [data-component="dropzone"], [data-component="toast-region"]) > .flood-root { inline-size: min(100%, 26rem); }
+
+.component-workbench .workbench-stage:is([data-component="toast-region"], [data-component="dropzone"]) { align-items: start; }

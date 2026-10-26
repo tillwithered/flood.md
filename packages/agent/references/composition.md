@@ -251,3 +251,14 @@ material. Select, Combobox, MultiSelect, Menu, Popover and Tooltip share it; Dia
 and Drawer retain surface.overlay. Backdrop filtering is progressive enhancement;
 reduced transparency uses the opaque fill and forced colors use system colors.
 Keep text opaque and evaluate it against the actual composited background.
+
+
+The unpublished 0.2.5 expansion includes AvatarGroup/StatusIndicator/Figure/
+Blockquote/InlineCode/Metric/Timeline; NavigationList/Steps/Section/Split/Center/
+SkipLink; ListBox/PinInput/Rating/Dropzone/CharacterCount; CopyButton/ToastRegion.
+Compose these before inventing equivalent host wrappers. Read each generated
+component contract and docs/base-components.md. Keep collection IDs stable, form
+names explicit, labels localized, state meaning independent of color and visible
+content within relative geometry. Native chooser/clipboard/OTP semantics do not
+supply upload/auth/server logic. Toast queues, actions and navigation state remain
+host-owned. No third-party component implementation was introduced.

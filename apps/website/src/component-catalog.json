@@ -1061,5 +1061,310 @@
       "side is logical start/end or physical top/bottom. size sets 20/26/34rem for sm/md/lg, capped to the viewport. Vertical drawers occupy the viewport height; horizontal drawers occupy its width. Entry motion respects reduced motion; closing is immediate.",
       "The header and optional footer stay visible while the body scrolls with Flood ScrollArea. Footer actions are host-owned, without implicit save or close. No swipe/drag gesture or nested navigation engine is included. Available in the unpublished 0.2.5 candidate."
     ]
+  },
+  {
+    "slug": "copy-button",
+    "name": "CopyButton",
+    "group": "actions",
+    "description": "A clipboard action with stable geometry and localized result feedback.",
+    "code": "<CopyButton value=\"npm install @flood-md/react\" />",
+    "imports": [
+      "CopyButton"
+    ],
+    "notes": [
+      "Copies only on a user click. Requires a secure context and Clipboard API; onCopyError receives unavailable/denied errors. The host owns any manual-copy fallback. Native button ref and disabled semantics are preserved.",
+      "Localize copyLabel/copiedLabel/errorLabel. resetDelay restores the idle state after success. Labels reserve their common width and a live status announces the result. No remote data transfer is built in. Available in the unpublished 0.2.5 candidate."
+    ]
+  },
+  {
+    "slug": "toast-region",
+    "name": "ToastRegion",
+    "group": "feedback",
+    "description": "A host-controlled notification queue with timed, pausable messages and actions.",
+    "code": "<ToastRegion items={[{id:\"saved\",title:\"Changes saved\",status:\"success\",duration:0}]} onDismiss={id => { /* Remove the item from host state. */ }} />",
+    "imports": [
+      "ToastRegion"
+    ],
+    "notes": [
+      "The host owns items and removes them onDismiss. IDs must be unique/nonempty. limit controls visible items; queued timers start only when visible. Ordinary messages default to five seconds; error/action messages persist unless duration is explicit. duration=0 persists.",
+      "Timers pause on hover, focus and hidden documents. F8 focuses the first visible region without interrupting initial task focus; hotkey=false disables it. Use a single main region per document. Localize label/closeLabel and message/action text. Error messages announce as alerts; others use polite status.",
+      "placement is logical start/end. inline embeds the region in a host container; fixed mode uses ordinary document stacking, so place a contextual region inside a modal if needed. Action callbacks do not dismiss automatically. No global notification store or promise API. Available in the unpublished 0.2.5 candidate."
+    ]
+  },
+  {
+    "slug": "avatar-group",
+    "name": "AvatarGroup",
+    "group": "content",
+    "description": "A compact collection of avatars with an accessible overflow count.",
+    "code": "<AvatarGroup label=\"Project collaborators\" items={[{id:\"alex\",name:\"Alex Morgan\"},{id:\"sam\",name:\"Sam Lee\"},{id:\"june\",name:\"June Park\"}]} max={2} />",
+    "imports": [
+      "AvatarGroup"
+    ],
+    "notes": [
+      "The native list composes Flood Avatar. IDs and names must be nonempty and unique IDs remain stable. max is a positive integer; the default shows four people.",
+      "Overflow is a static count, not a hidden interactive menu. Translate overflowLabel when needed; visible avatars retain their individual accessible names. Size follows Avatar. Intentional overlap never applies to interactive targets.",
+      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+    ]
+  },
+  {
+    "slug": "status-indicator",
+    "name": "StatusIndicator",
+    "group": "feedback",
+    "description": "A named state with a small decorative indicator, without a badge container.",
+    "code": "<StatusIndicator tone=\"success\" label=\"All systems operational\" />",
+    "imports": [
+      "StatusIndicator"
+    ],
+    "notes": [
+      "The visible label carries meaning; the dot is decorative and color is never the only signal. Use announce to opt into a polite status live region for changing messages.",
+      "Static labels do not announce by default. Tone is independent of wording and size. Use Badge for categorical labels and Alert for a message requiring more explanation.",
+      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+    ]
+  },
+  {
+    "slug": "figure",
+    "name": "Figure",
+    "group": "content",
+    "description": "A native figure that keeps media and its caption together.",
+    "code": "<Figure caption=\"A calm foundation for the next idea.\"><Surface padding=\"6\">Project preview</Surface></Figure>",
+    "imports": [
+      "Figure",
+      "Surface"
+    ],
+    "notes": [
+      "Composes native figure and figcaption. The host supplies the image, chart, code or other self-contained content, including its own alt text or accessible name.",
+      "captionPosition controls DOM reading order as well as placement. Caption content may contain links. Native hidden, dir, lang, style and ref target the figure.",
+      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+    ]
+  },
+  {
+    "slug": "blockquote",
+    "name": "Blockquote",
+    "group": "typography",
+    "description": "A quoted passage with an optional compact attribution.",
+    "code": "<Blockquote attribution=\"The Flood team\">Good interfaces make room for what matters.</Blockquote>",
+    "imports": [
+      "Blockquote"
+    ],
+    "notes": [
+      "Uses native blockquote; cite remains a source URL, while attribution is visible host-authored credit. Rich quote content and attribution are supported.",
+      "The logical leading rule follows RTL. Supply quotation punctuation as part of your actual content; the component does not invent a quotation or source.",
+      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+    ]
+  },
+  {
+    "slug": "inline-code",
+    "name": "InlineCode",
+    "group": "typography",
+    "description": "A small monospace code fragment that participates in running text.",
+    "code": "<Text as=\"p\">Import <InlineCode>@/ui/button</InlineCode> in your project.</Text>",
+    "imports": [
+      "Text",
+      "InlineCode"
+    ],
+    "notes": [
+      "Native code semantics, bundled monospace stack and a quiet inline surface. Content is text; no HTML parsing or syntax highlighting is performed.",
+      "wrap defaults to true for long identifiers. wrap=false preserves the fragment on one line and the host must manage overflow. Use CodeSnippet for blocks of code and Kbd for keyboard input.",
+      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+    ]
+  },
+  {
+    "slug": "metric",
+    "name": "Metric",
+    "group": "content",
+    "description": "A labeled value with optional contextual trend and supporting text.",
+    "code": "<Metric label=\"Monthly revenue\" value=\"$24,580\" trend={{direction:\"up\",label:\"12.8% higher\",tone:\"success\"}} hint=\"Compared with the previous month.\" />",
+    "imports": [
+      "Metric"
+    ],
+    "notes": [
+      "Native definition-list semantics associate the label with its value, trend and hint. Values may be rich content; the host owns currency, number and locale formatting.",
+      "Trend direction and semantic tone are independent: a decreasing failure rate can be good. Its label must communicate the change without relying on the decorative arrow or color. No automatic percentage calculation is performed.",
+      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+    ]
+  },
+  {
+    "slug": "timeline",
+    "name": "Timeline",
+    "group": "content",
+    "description": "An ordered sequence of events with state, context and optional time labels.",
+    "code": "<Timeline label=\"Project activity\" items={[{id:\"created\",title:\"Project created\",state:\"complete\"},{id:\"review\",title:\"Design review\",state:\"current\"},{id:\"release\",title:\"Release\",state:\"upcoming\"}]} />",
+    "imports": [
+      "Timeline"
+    ],
+    "notes": [
+      "The native ordered list is read in the supplied order; the component does not sort or group events. IDs/titles are nonempty, IDs are unique and at most one event may be current.",
+      "Each state has a visually hidden text equivalent; localize stateLabels. timeLabel is user-facing text and dateTime, when supplied, is the machine-readable time. Both are host-owned.",
+      "Markers and optional artwork are decorative. This is an event display, not a wizard or navigation control. Long descriptions and times wrap without changing marker alignment.",
+      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+    ]
+  },
+  {
+    "slug": "navigation-list",
+    "name": "NavigationList",
+    "group": "navigation",
+    "description": "A grouped list of native navigation links with a clear current destination.",
+    "code": "<NavigationList label=\"Project navigation\" currentValue=\"overview\" items={[{value:\"overview\",label:\"Overview\",href:\"/overview\",group:\"Workspace\"},{value:\"activity\",label:\"Activity\",href:\"/activity\",group:\"Workspace\"},{value:\"settings\",label:\"Settings\",href:\"/settings\",group:\"Manage\"}]} />",
+    "imports": [
+      "NavigationList"
+    ],
+    "notes": [
+      "NavigationList renders nav, lists and native anchors; it is not an ARIA menu or tablist. The host supplies unique stable item values, destinations and currentValue. Browser modifier/target navigation is preserved through item.linkProps.",
+      "Optional group names label contiguous item groups. Icons are decorative IconSlot content; descriptions remain associated link text. Size controls compact row density while coarse pointer targets remain usable. No routing engine, URL inference or disabled navigation simulation is supplied.",
+      "Original compatible addition in the unpublished 0.2.5 source candidate."
+    ]
+  },
+  {
+    "slug": "steps",
+    "name": "Steps",
+    "group": "navigation",
+    "description": "An ordered progress sequence with explicit current, completed, upcoming and error states.",
+    "code": "<Steps label=\"Project setup\" currentValue=\"access\" items={[{value:\"details\",title:\"Details\"},{value:\"access\",title:\"Access\"},{value:\"review\",title:\"Review\"}]} />",
+    "imports": [
+      "Steps"
+    ],
+    "notes": [
+      "Steps renders an ordered list, not tabs. currentValue identifies aria-current=step; preceding steps default to complete and later steps to upcoming. Item status may explicitly mark complete/upcoming/error. Omitted currentValue starts at the first step.",
+      "Without onStepChange, steps are informative content. Providing it renders native step buttons; the host owns navigation and currentValue updates. Disabled items only affect those actions. Every state has text through customizable statusLabels; color and icons are additional cues. Horizontal presentation stacks in narrow viewports.",
+      "Original compatible addition in the unpublished 0.2.5 source candidate."
+    ]
+  },
+  {
+    "slug": "section",
+    "name": "Section",
+    "group": "layout",
+    "description": "A named document section with a compact heading, supporting description and optional actions.",
+    "code": "<Section title=\"Project settings\" description=\"Manage details your team shares.\" headingLevel={2}>\n  <Text as=\"p\">Section content.</Text>\n</Section>",
+    "imports": [
+      "Section",
+      "Text"
+    ],
+    "notes": [
+      "Section renders a native section and heading. A generated heading ID labels the region; explicit id creates a deterministic heading ID. headingLevel follows the host document hierarchy.",
+      "The title and description share a close text column; actions align separately and wrap when necessary. It adds no surface or border. Compose Surface or another container inside when content needs its own background.",
+      "Original compatible addition in the unpublished 0.2.5 source candidate."
+    ]
+  },
+  {
+    "slug": "split",
+    "name": "Split",
+    "group": "layout",
+    "description": "A responsive main-and-supporting layout with logical pane placement and container-based collapse.",
+    "code": "<Split side=\"end\" ratio=\"main\" collapseAt=\"md\" main={<Text as=\"p\">Main content</Text>} aside={<Text as=\"p\">Supporting content</Text>} />",
+    "imports": [
+      "Split",
+      "Text"
+    ],
+    "notes": [
+      "main and aside are content slots in generic div panes; they do not introduce duplicate main landmarks. side places the supporting pane at logical start/end and preserves the same DOM reading order. ratio chooses equal panes or a 2:1 emphasis on main/aside.",
+      "Container queries collapse at sm=30rem, md=48rem or lg=64rem; never retains two columns. gap uses the spacing scale. This is layout composition, with no resizing gesture, saved pane sizes or splitter keyboard model.",
+      "Original compatible addition in the unpublished 0.2.5 source candidate."
+    ]
+  },
+  {
+    "slug": "center",
+    "name": "Center",
+    "group": "layout",
+    "description": "Center a constrained piece of content in both axes of an available region.",
+    "code": "<Center minHeight=\"12rem\" maxWidth=\"24rem\">\n  <Text as=\"p\">A focused message.</Text>\n</Center>",
+    "imports": [
+      "Center",
+      "Text"
+    ],
+    "notes": [
+      "Center supplies two-axis alignment with an inner content wrapper. minHeight sets the available vertical region; maxWidth constrains the content rather than the entire parent. Values are ordinary CSS lengths, preferably rem.",
+      "inline opts into inline-grid for centering within text or an inline composition. It adds no content semantics, surface, spacing between siblings or viewport positioning. Use Stack/Inline for collections and Container for page gutters.",
+      "Original compatible addition in the unpublished 0.2.5 source candidate."
+    ]
+  },
+  {
+    "slug": "skip-link",
+    "name": "SkipLink",
+    "group": "navigation",
+    "description": "A native skip-navigation link revealed on focus and aimed at a page content target.",
+    "code": "<SkipLink href=\"#main-content\" />\n<main id=\"main-content\" tabIndex={-1}>Page content</main>",
+    "imports": [
+      "SkipLink"
+    ],
+    "notes": [
+      "Place SkipLink early in DOM order and point href at a nonempty same-page fragment. The target should have tabIndex=-1 (or already be focusable). Native fragment navigation updates the URL; the component then focuses and reveals the target.",
+      "It stays visually hidden until focused. The click handler respects prevented events, modifier navigation and new-window targets. Reduced motion uses immediate scrolling. It does not create a focus trap or change the target tabindex.",
+      "Original compatible addition in the unpublished 0.2.5 source candidate."
+    ]
+  },
+  {
+    "slug": "list-box",
+    "name": "ListBox",
+    "group": "forms",
+    "description": "A visible single or multiple selection collection with keyboard navigation.",
+    "code": "<ListBox label=\"Framework\" name=\"framework\" defaultValue=\"react\" options={[{value:\"react\",label:\"React\"},{value:\"vue\",label:\"Vue\"},{value:\"svelte\",label:\"Svelte\"}]} />",
+    "imports": [
+      "ListBox"
+    ],
+    "notes": [
+      "Use a scalar value/defaultValue in single mode and an array in multiple mode. onValueChange returns the matching shape. Stable, unique nonempty option IDs are submitted as repeated hidden native form fields when name is supplied. Uncontrolled reset restores the initial selection.",
+      "The list owns one Tab stop and aria-activedescendant. Arrows/Home/End move through enabled options; single selection follows navigation. Space/Enter selects or toggles. Typing searches option-label prefixes. Disabled options cannot be selected; readOnly retains navigation and copying without changing the value.",
+      "Provide a clear label or use hideLabel with the accessible label preserved. Use disabled on the composite to remove its Tab stop. The list is not virtualized and does not fetch options. Available in the unpublished 0.2.5 candidate."
+    ]
+  },
+  {
+    "slug": "pin-input",
+    "name": "PinInput",
+    "group": "forms",
+    "description": "One native code editor presented as a compact row of character slots.",
+    "code": "<PinInput label=\"Verification code\" name=\"code\" length={6} autoComplete=\"one-time-code\" required />",
+    "imports": [
+      "PinInput"
+    ],
+    "notes": [
+      "One real native input preserves mobile one-time-code autofill, clipboard, selection, forms and required validity; decorative slots are hidden from assistive technology. Use its native ref for focus. The host owns verification and authentication.",
+      "length is an integer from 1 to 12. mode numeric permits ASCII digits; alphanumeric also permits ASCII letters. Paste strips separators and invalid characters, then respects the selection and length. Backspace and arrow editing remain native. Use mask to visually conceal the code.",
+      "Use value/onValueChange or defaultValue. Native form reset restores the initial uncontrolled value. Pattern validity requires a complete code when nonempty; required also rejects an empty code. Translate label and preserve its accessible name with hideLabel. Available in the unpublished 0.2.5 candidate."
+    ]
+  },
+  {
+    "slug": "rating",
+    "name": "Rating",
+    "group": "forms",
+    "description": "A compact star rating backed by a named native radio group.",
+    "code": "<Rating label=\"Your experience\" name=\"experience\" defaultValue={3} max={5} />",
+    "imports": [
+      "Rating"
+    ],
+    "notes": [
+      "Provide a nonempty name for native radio grouping and form submission. value/defaultValue are integers from zero (unselected) to max; max is an integer from 1 to 10. Uncontrolled native reset restores defaultValue. required uses native group validation.",
+      "Arrow keys follow logical direction, Home/End jump to the first/last value, and Space selects the focused radio. One radio is in Tab order. readOnly keeps the current selection focusable without allowing changes; disabled is native.",
+      "Use getValueLabel to localize each radio name. The stars are decorative; native named radios carry the value. hideLabel preserves the legend for assistive technology. No fractional values or review submission engine is included. Available in the unpublished 0.2.5 candidate."
+    ]
+  },
+  {
+    "slug": "dropzone",
+    "name": "Dropzone",
+    "group": "forms",
+    "description": "A file drop target composed with the native Flood FileInput.",
+    "code": "<Dropzone label=\"Project attachments\" name=\"attachments\" multiple accept=\".pdf,image/*\" />",
+    "imports": [
+      "Dropzone"
+    ],
+    "notes": [
+      "The existing FileInput remains the real chooser and successful native form control. Dropping files dispatches the same selection flow: multiple appends and deduplicates; single selection keeps the first dropped file. Native form reset and per-file removal remain intact.",
+      "The zone responds only to file drags and prevents navigation on file drop. Disabled fields reject drops. Translate label/description and FileInput action labels. The chooser remains keyboard accessible; dropping is an additional pointer workflow.",
+      "accept guides the native chooser; the host must validate dropped file types, size and contents. Directories, remote transfer, progress, server upload and image processing are outside this control. No file contents are read. Available in the unpublished 0.2.5 candidate."
+    ]
+  },
+  {
+    "slug": "character-count",
+    "name": "CharacterCount",
+    "group": "forms",
+    "description": "Supporting character or remaining-length feedback with an explicit over-limit message.",
+    "code": "<CharacterCount value=\"Make room for a clear idea.\" max={80} htmlFor=\"project-note\" />",
+    "imports": [
+      "CharacterCount"
+    ],
+    "notes": [
+      "Pass text through value or supply an explicit nonnegative integer count for a host-defined counting rule. The default text count uses Unicode code points, not UTF-16 code units or grapheme clusters. max is advisory and does not truncate or validate an editor.",
+      "mode remaining displays max minus count; count displays the current count and optional limit. An over-limit message is visible in addition to its semantic color. Translate label/overLimitLabel; lang formats the number.",
+      "Use htmlFor to associate supporting output with its editor and aria-describedby on the editor when appropriate. Live announcements default off to avoid announcing every keystroke; the host may opt into aria-live. Available in the unpublished 0.2.5 candidate."
+    ]
   }
 ]
