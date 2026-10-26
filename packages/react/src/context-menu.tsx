@@ -4,7 +4,7 @@ import {focusMenuEdge, MenuLayer, validateMenuTree} from "./menu.js";
 import {placeOverlay, positionLayer} from "./overlay-runtime.js";
 
 type Point = {x:number;y:number};
-export const ContextActionMenu = forwardRef<HTMLDivElement, ContextMenuProps>(function ContextActionMenu({
+export const ContextActionMenu = /* @__PURE__ */ forwardRef<HTMLDivElement, ContextMenuProps>(function ContextActionMenu({
   label, items, children, onAction, open:controlled, defaultOpen = false, onOpenChange,
   disabled = false, controlSize = "sm", className, tabIndex = 0, onContextMenu, onKeyDown, ...props
 }, forwardedRef) {

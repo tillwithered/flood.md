@@ -95,7 +95,7 @@ export interface TreeProps extends Omit<HTMLAttributes<HTMLDivElement>, "childre
   readOnlyMessage?: string;
 }
 /** @since 0.2.7 */
-export const Tree = forwardRef<HTMLDivElement, TreeProps>(function Tree(props, ref) {
+export const Tree = /* @__PURE__ */ forwardRef<HTMLDivElement, TreeProps>(function Tree(props, ref) {
   return <SelectionTree {...props} ref={ref} />;
 });
 export interface NavigationTreeItem {
@@ -119,7 +119,7 @@ export interface NavigationTreeProps extends Omit<HTMLAttributes<HTMLElement>, "
   size?: ContentSize;
 }
 /** @since 0.2.7 */
-export const NavigationTree = forwardRef<HTMLElement, NavigationTreeProps>(function NavigationTree(props, ref) {
+export const NavigationTree = /* @__PURE__ */ forwardRef<HTMLElement, NavigationTreeProps>(function NavigationTree(props, ref) {
   return <HierarchicalNavigation {...props} ref={ref} />;
 });
 
@@ -133,7 +133,7 @@ export interface ErrorSummaryProps extends Omit<HTMLAttributes<HTMLDivElement>, 
   onSelect?: (error: ErrorSummaryItem, event: ReactMouseEvent<HTMLAnchorElement>) => void;
 }
 /** @since 0.2.7 */
-export const ErrorSummary = forwardRef<HTMLDivElement, ErrorSummaryProps>(function ErrorSummary(
+export const ErrorSummary = /* @__PURE__ */ forwardRef<HTMLDivElement, ErrorSummaryProps>(function ErrorSummary(
   { announcement = "off", autoFocus = false, ...props }, ref,
 ) { return <ValidationErrorSummary {...props} ref={ref} announcement={announcement} autoFocus={autoFocus} />; });
 export interface ResizablePanelsProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "defaultValue" | "onChange"> {
@@ -152,7 +152,7 @@ export interface ResizablePanelsProps extends Omit<HTMLAttributes<HTMLDivElement
   disabled?: boolean;
 }
 /** @since 0.2.7 */
-export const ResizablePanels = forwardRef<HTMLDivElement, ResizablePanelsProps>(function ResizablePanels(
+export const ResizablePanels = /* @__PURE__ */ forwardRef<HTMLDivElement, ResizablePanelsProps>(function ResizablePanels(
   { orientation = "horizontal", defaultValue = 50, min = 10, max = 90, step = 1, largeStep = 10, ...props }, ref,
 ) { return <ResizablePaneGroup {...props} ref={ref} orientation={orientation} defaultValue={defaultValue} min={min} max={max} step={step} largeStep={largeStep} />; });
 export interface DateRangeValue { start: string; end: string; }
@@ -165,7 +165,7 @@ export interface RangeCalendarProps extends Omit<CalendarProps, "value" | "defau
   rangeLabels?: { chooseStart?: string; chooseEnd?: string; unavailable?: string };
 }
 /** @since 0.2.7 */
-export const RangeCalendar = forwardRef<HTMLDivElement, RangeCalendarProps>(function RangeCalendar(
+export const RangeCalendar = /* @__PURE__ */ forwardRef<HTMLDivElement, RangeCalendarProps>(function RangeCalendar(
   { weekStartsOn = 0, locale = "en-US", autoFocus = false, ...props }, ref,
 ) { return <DateRangeCalendar {...props} ref={ref} weekStartsOn={weekStartsOn} locale={locale} autoFocus={autoFocus} />; });
 export interface DateRangeFieldProps extends Omit<DateFieldProps, "value" | "defaultValue" | "onValueChange" | "name" | "label" | "end"> {
@@ -183,7 +183,7 @@ export interface DateRangeFieldProps extends Omit<DateFieldProps, "value" | "def
   rangeMessages?: { incomplete?: string; reversed?: string; unavailable?: string };
 }
 /** @since 0.2.7 */
-export const DateRangeField = forwardRef<HTMLDivElement, DateRangeFieldProps>(function DateRangeField(
+export const DateRangeField = /* @__PURE__ */ forwardRef<HTMLDivElement, DateRangeFieldProps>(function DateRangeField(
   { controlSize = "md", order = "month-day-year", startLabel = "Start date", endLabel = "End date", ...props }, ref,
 ) { return <PairedDateRangeField {...props} ref={ref} controlSize={controlSize} order={order} startLabel={startLabel} endLabel={endLabel} />; });
 export interface DateRangePickerProps extends Omit<DateRangeFieldProps, "end"> {
@@ -200,7 +200,7 @@ export interface DateRangePickerProps extends Omit<DateRangeFieldProps, "end"> {
   rangeLabels?: RangeCalendarProps["rangeLabels"];
 }
 /** @since 0.2.7 */
-export const DateRangePicker = forwardRef<HTMLDivElement, DateRangePickerProps>(function DateRangePicker(
+export const DateRangePicker = /* @__PURE__ */ forwardRef<HTMLDivElement, DateRangePickerProps>(function DateRangePicker(
   { controlSize = "md", defaultOpen = false, ...props }, ref,
 ) { return <CalendarDateRangePicker {...props} ref={ref} controlSize={controlSize} defaultOpen={defaultOpen} />; });
 
@@ -217,7 +217,7 @@ export interface DatePickerProps extends Omit<DateFieldProps, "end"> {
   nextMonthLabel?: string;
 }
 /** @since 0.2.7 */
-export const DatePicker = forwardRef<HTMLDivElement, DatePickerProps>(function DatePicker(
+export const DatePicker = /* @__PURE__ */ forwardRef<HTMLDivElement, DatePickerProps>(function DatePicker(
   { controlSize = "md", defaultOpen = false, ...props }, ref,
 ) { return <CalendarDatePicker {...props} ref={ref} controlSize={controlSize} defaultOpen={defaultOpen} />; });
 
@@ -243,7 +243,7 @@ export interface CalendarProps extends Omit<HTMLAttributes<HTMLDivElement>, "def
   nextMonthLabel?: string;
 }
 /** @since 0.2.7 */
-export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calendar(
+export const Calendar = /* @__PURE__ */ forwardRef<HTMLDivElement, CalendarProps>(function Calendar(
   { weekStartsOn = 0, locale = "en-US", autoFocus = false, ...props }, ref,
 ) { return <DateCalendar {...props} ref={ref} weekStartsOn={weekStartsOn} locale={locale} autoFocus={autoFocus} />; });
 export interface TimeFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange" | "children"> {
@@ -269,7 +269,7 @@ export interface TimeFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, "de
   messages?: { required?: string; invalid?: string; outOfRange?: string; stepMismatch?: string };
 }
 /** @since 0.2.7 */
-export const TimeField = forwardRef<HTMLDivElement, TimeFieldProps>(function TimeField(
+export const TimeField = /* @__PURE__ */ forwardRef<HTMLDivElement, TimeFieldProps>(function TimeField(
   { controlSize = "md", precision = "minute", ...props }, ref,
 ) { return <SegmentedTimeField {...props} ref={ref} controlSize={controlSize} precision={precision} />; });
 
@@ -297,7 +297,7 @@ export interface DateFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, "de
   end?: ReactNode;
 }
 /** @since 0.2.7 */
-export const DateField = forwardRef<HTMLDivElement, DateFieldProps>(function DateField(
+export const DateField = /* @__PURE__ */ forwardRef<HTMLDivElement, DateFieldProps>(function DateField(
   { controlSize = "md", order = "month-day-year", ...props }, ref,
 ) { return <SegmentedDateField {...props} ref={ref} controlSize={controlSize} order={order} />; });
 
@@ -325,7 +325,7 @@ export interface CommandListProps extends Omit<HTMLAttributes<HTMLDivElement>, "
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
 /** @since 0.2.7 */
-export const CommandList = forwardRef<HTMLInputElement, CommandListProps>(function CommandList(
+export const CommandList = /* @__PURE__ */ forwardRef<HTMLInputElement, CommandListProps>(function CommandList(
   { controlSize = "md", hideLabel = false, disabled = false, loading = false, ...props }, ref,
 ) { return <SearchCommandList {...props} ref={ref} controlSize={controlSize} hideLabel={hideLabel} disabled={disabled} loading={loading} />; });
 
@@ -340,7 +340,7 @@ export interface TagInputProps extends Omit<InputProps, "type" | "value" | "defa
   requiredMessage?: string;
 }
 /** @since 0.2.7 */
-export const TagInput = forwardRef<HTMLInputElement, TagInputProps>(function TagInput(
+export const TagInput = /* @__PURE__ */ forwardRef<HTMLInputElement, TagInputProps>(function TagInput(
   { controlSize = "md", hideLabel = false, removeLabel = "Remove", requiredMessage = "Add at least one tag.", ...props }, ref,
 ) { return <FreeTagEntry {...props} ref={ref} controlSize={controlSize} hideLabel={hideLabel} removeLabel={removeLabel} requiredMessage={requiredMessage} />; });
 
@@ -369,7 +369,7 @@ export interface EditableProps extends Omit<HTMLAttributes<HTMLDivElement>, "def
   form?: string;
 }
 /** @since 0.2.7 */
-export const Editable = forwardRef<HTMLDivElement, EditableProps>(function Editable(
+export const Editable = /* @__PURE__ */ forwardRef<HTMLDivElement, EditableProps>(function Editable(
   { controlSize = "md", blurAction = "commit", showActions = true, ...props }, ref,
 ) { return <InlineEditable {...props} ref={ref} controlSize={controlSize} blurAction={blurAction} showActions={showActions} />; });
 
@@ -382,7 +382,7 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ControlSize;
   loading?: boolean;
 }
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+export const Button = /* @__PURE__ */ forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
     {
       variant = "solid",
@@ -429,7 +429,7 @@ export interface TagProps extends HTMLAttributes<HTMLSpanElement> {
   removeButtonProps?: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "type" | "disabled" | "onClick" | "aria-label">;
 }
 /** @since 0.2.5 */
-export const Tag = forwardRef<HTMLSpanElement, TagProps>(function Tag(
+export const Tag = /* @__PURE__ */ forwardRef<HTMLSpanElement, TagProps>(function Tag(
   { size = "md", icon, disabled = false, onRemove, removeLabel, removeButtonProps, className, children, ...props }, ref,
 ) {
   const label = removeLabel ?? (typeof children === "string" || typeof children === "number" ? `Remove ${children}` : "");
@@ -445,7 +445,7 @@ export const Tag = forwardRef<HTMLSpanElement, TagProps>(function Tag(
 });
 export interface KbdProps extends HTMLAttributes<HTMLElement> { size?: ContentSize; }
 /** @since 0.2.4 */
-export const Kbd = forwardRef<HTMLElement, KbdProps>(function Kbd(
+export const Kbd = /* @__PURE__ */ forwardRef<HTMLElement, KbdProps>(function Kbd(
   { size = "sm", className, ...props }, ref,
 ) {
   return <kbd {...props} ref={ref} className={classes("flood-kbd", className)} data-size={size} />;
@@ -457,7 +457,7 @@ export interface ToolbarProps extends Omit<HTMLAttributes<HTMLDivElement>, "role
   loop?: boolean;
 }
 /** @since 0.2.4 */
-export const Toolbar = forwardRef<HTMLDivElement, ToolbarProps>(function Toolbar(
+export const Toolbar = /* @__PURE__ */ forwardRef<HTMLDivElement, ToolbarProps>(function Toolbar(
   { label, orientation = "horizontal", loop = true, ...props }, ref,
 ) {
   return <RovingToolbar {...props} ref={ref} label={label} orientation={orientation} loop={loop} />;
@@ -475,7 +475,7 @@ export interface DescriptionListProps extends Omit<HTMLAttributes<HTMLDListEleme
   dividers?: boolean;
 }
 /** @since 0.2.4 */
-export const DescriptionList = forwardRef<HTMLDListElement, DescriptionListProps>(function DescriptionList(
+export const DescriptionList = /* @__PURE__ */ forwardRef<HTMLDListElement, DescriptionListProps>(function DescriptionList(
   { items, layout = "inline", density = "compact", dividers = false, ...props }, ref,
 ) {
   return <DescribedData {...props} ref={ref} items={items} layout={layout} density={density} dividers={dividers} />;
@@ -490,7 +490,7 @@ export interface TableProps extends Omit<TableHTMLAttributes<HTMLTableElement>, 
   scrollLabel?: string;
 }
 /** @since 0.2.4 */
-export const Table = forwardRef<HTMLTableElement, TableProps>(function Table(
+export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(function Table(
   { caption, children, hideCaption = false, density = "comfortable", striped = false, scrollLabel, ...props }, ref,
 ) {
   return <TabularData {...props} ref={ref} caption={caption} hideCaption={hideCaption} density={density} striped={striped} scrollLabel={scrollLabel}>{children}</TabularData>;
@@ -504,7 +504,7 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: "subtle" | "outline";
 }
 /** @since 0.2.4 */
-export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
+export const Badge = /* @__PURE__ */ forwardRef<HTMLSpanElement, BadgeProps>(function Badge(
   { size = "md", tone = "neutral", variant = "subtle", className, ...props }, ref,
 ) {
   return <span {...props} ref={ref} className={classes("flood-badge", className)} data-size={size} data-tone={tone} data-variant={variant} />;
@@ -516,7 +516,7 @@ export interface SpinnerProps extends Omit<HTMLAttributes<HTMLSpanElement>, "chi
   decorative?: boolean;
 }
 /** @since 0.2.4 */
-export const Spinner = forwardRef<HTMLSpanElement, SpinnerProps>(function Spinner(
+export const Spinner = /* @__PURE__ */ forwardRef<HTMLSpanElement, SpinnerProps>(function Spinner(
   { size = "md", label = "Loading", decorative = false, className, ...props }, ref,
 ) {
   return <span {...props} ref={ref} className={classes("flood-loading", className)} data-size={size}
@@ -533,7 +533,7 @@ export interface SkeletonProps extends Omit<HTMLAttributes<HTMLSpanElement>, "ch
   animate?: boolean;
 }
 /** @since 0.2.4 */
-export const Skeleton = forwardRef<HTMLSpanElement, SkeletonProps>(function Skeleton(
+export const Skeleton = /* @__PURE__ */ forwardRef<HTMLSpanElement, SkeletonProps>(function Skeleton(
   { shape = "text", width, height, animate = true, className, style, ...props }, ref,
 ) {
   return <span {...props} ref={ref} className={classes("flood-skeleton", className)} data-shape={shape} data-animate={animate}
@@ -549,7 +549,7 @@ export interface AvatarProps extends Omit<HTMLAttributes<HTMLSpanElement>, "chil
   decorative?: boolean;
 }
 /** @since 0.2.4 */
-export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(function Avatar(
+export const Avatar = /* @__PURE__ */ forwardRef<HTMLSpanElement, AvatarProps>(function Avatar(
   { name, src, fallback, size = "md", shape = "circle", decorative = false, className, ...props }, ref,
 ) {
   const initials = name.trim().split(/\s+/u).filter(Boolean).slice(0, 2).map(word => Array.from(word)[0]).join("").toUpperCase();
@@ -569,7 +569,7 @@ export interface ProgressProps extends Omit<HTMLAttributes<HTMLDivElement>, "chi
   hideLabel?: boolean;
 }
 /** @since 0.2.4 */
-export const Progress = forwardRef<HTMLDivElement, ProgressProps>(function Progress(
+export const Progress = /* @__PURE__ */ forwardRef<HTMLDivElement, ProgressProps>(function Progress(
   { label, value, max = 100, valueText, size = "md", tone = "accent", hideLabel = false, ...props }, ref,
 ) {
   return <ValueIndicator {...props} ref={ref} kind="progress" label={label} value={value} min={0} max={max} valueText={valueText} size={size} tone={tone} hideLabel={hideLabel} />;
@@ -580,7 +580,7 @@ export interface MeterProps extends Omit<ProgressProps, "value"> {
   min?: number;
 }
 /** @since 0.2.4 */
-export const Meter = forwardRef<HTMLDivElement, MeterProps>(function Meter(
+export const Meter = /* @__PURE__ */ forwardRef<HTMLDivElement, MeterProps>(function Meter(
   { label, value, min = 0, max = 100, valueText, size = "md", tone = "neutral", hideLabel = false, ...props }, ref,
 ) {
   return <ValueIndicator {...props} ref={ref} kind="meter" label={label} value={value} min={min} max={max} valueText={valueText} size={size} tone={tone} hideLabel={hideLabel} />;
@@ -593,7 +593,7 @@ export interface AlertProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"
   announcement?: "off" | "polite" | "assertive";
 }
 /** @since 0.2.4 */
-export const Alert = forwardRef<HTMLDivElement, AlertProps>(function Alert(
+export const Alert = /* @__PURE__ */ forwardRef<HTMLDivElement, AlertProps>(function Alert(
   { title, tone = "info", icon, announcement = "off", ...props }, ref,
 ) {
   return <FeedbackMessage {...props} ref={ref} title={title} tone={tone} icon={icon} announcement={announcement} />;
@@ -618,7 +618,7 @@ export interface TabsProps extends Omit<HTMLAttributes<HTMLDivElement>, "childre
   disabled?: boolean;
   iconOnly?: boolean;
 }
-export const Tabs = forwardRef<HTMLDivElement, TabsProps>(function Tabs(
+export const Tabs = /* @__PURE__ */ forwardRef<HTMLDivElement, TabsProps>(function Tabs(
   {activationMode="automatic",orientation="horizontal",controlSize="md",disabled=false,iconOnly=false,...props},ref,
 ){return <TabNavigation {...props} ref={ref} activationMode={activationMode} orientation={orientation} controlSize={controlSize} disabled={disabled} iconOnly={iconOnly} />;});
 export interface BreadcrumbItem {label:string;href?:string;}
@@ -627,7 +627,7 @@ export interface BreadcrumbProps extends Omit<HTMLAttributes<HTMLElement>, "chil
   label?: string;
   separator?: string;
 }
-export const Breadcrumb = forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
+export const Breadcrumb = /* @__PURE__ */ forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
   {label="Breadcrumb",separator="/",...props},ref,
 ){return <BreadcrumbNavigation {...props} ref={ref} label={label} separator={separator} />;});
 export interface PaginationProps extends Omit<HTMLAttributes<HTMLElement>, "children" | "onChange"> {
@@ -643,7 +643,7 @@ export interface PaginationProps extends Omit<HTMLAttributes<HTMLElement>, "chil
   nextLabel?: string;
   pageLabel?: (page: number) => string;
 }
-export const Pagination = forwardRef<HTMLElement, PaginationProps>(function Pagination(
+export const Pagination = /* @__PURE__ */ forwardRef<HTMLElement, PaginationProps>(function Pagination(
   {siblingCount=1,controlSize="sm",disabled=false,label="Pagination",previousLabel="Previous page",nextLabel="Next page",...props},ref,
 ){return <PageNavigation {...props} ref={ref} siblingCount={siblingCount} controlSize={controlSize} disabled={disabled} label={label} previousLabel={previousLabel} nextLabel={nextLabel} />;});
 
@@ -676,7 +676,7 @@ export interface ContextMenuProps extends Omit<HTMLAttributes<HTMLDivElement>, "
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
 /** @since 0.2.7 */
-export const ContextMenu = forwardRef<HTMLDivElement, ContextMenuProps>(function ContextMenu(
+export const ContextMenu = /* @__PURE__ */ forwardRef<HTMLDivElement, ContextMenuProps>(function ContextMenu(
   { defaultOpen = false, disabled = false, controlSize = "sm", ...props }, ref,
 ) { return <ContextActionMenu {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} controlSize={controlSize} />; });
 export interface MenuCheckboxItem extends Omit<MenuActionItem, "type" | "tone"> {
@@ -707,7 +707,7 @@ export interface MenuProps extends Omit<HTMLAttributes<HTMLDivElement>, "childre
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
 /** @since 0.2.4 */
-export const Menu = forwardRef<HTMLDivElement, MenuProps>(function Menu(
+export const Menu = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuProps>(function Menu(
   { defaultOpen = false, disabled = false, side = "bottom", align = "start", controlSize = "sm", ...props }, ref,
 ) {
   return <ActionMenu {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} side={side} align={align} controlSize={controlSize} />;
@@ -720,7 +720,7 @@ export interface TooltipProps extends Omit<HTMLAttributes<HTMLDivElement>, "chil
   delay?: number;
   disabled?: boolean;
 }
-export const Tooltip = forwardRef<HTMLDivElement, TooltipProps>(function Tooltip(
+export const Tooltip = /* @__PURE__ */ forwardRef<HTMLDivElement, TooltipProps>(function Tooltip(
   {side = "top", align = "center", delay = 300, disabled = false, ...props}, ref,
 ) { return <AnchoredOverlay {...props} ref={ref} kind="tooltip" side={side} align={align} delay={delay} disabled={disabled} />; });
 export interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title" | "role"> {
@@ -737,7 +737,7 @@ export interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, "chil
   initialFocusRef?: RefObject<HTMLElement | null>;
   positionReference?: RefObject<HTMLElement | null>;
 }
-export const Popover = forwardRef<HTMLDivElement, PopoverProps>(function Popover(
+export const Popover = /* @__PURE__ */ forwardRef<HTMLDivElement, PopoverProps>(function Popover(
   {side = "bottom", align = "start", defaultOpen = false, disabled = false, closeLabel = "Close", ...props}, ref,
 ) { return <AnchoredOverlay {...props} ref={ref} kind="popover" side={side} align={align} defaultOpen={defaultOpen} disabled={disabled} closeLabel={closeLabel} />; });
 export interface DialogProps extends Omit<HTMLAttributes<HTMLDialogElement>, "children" | "title" | "role"> {
@@ -753,7 +753,7 @@ export interface DialogProps extends Omit<HTMLAttributes<HTMLDialogElement>, "ch
   closeOnOutsideClick?: boolean;
   initialFocusRef?: RefObject<HTMLElement | null>;
 }
-export const Dialog = forwardRef<HTMLDialogElement, DialogProps>(function Dialog(
+export const Dialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, DialogProps>(function Dialog(
   {defaultOpen = false, disabled = false, closeLabel = "Close", closeOnOutsideClick = true, ...props}, ref,
 ) { return <ModalOverlay {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} closeLabel={closeLabel} closeOnOutsideClick={closeOnOutsideClick} />; });
 
@@ -762,7 +762,7 @@ export interface DrawerProps extends DialogProps {
   size?: "sm" | "md" | "lg";
   footer?: ReactNode;
 }
-export const Drawer = forwardRef<HTMLDialogElement, DrawerProps>(function Drawer(
+export const Drawer = /* @__PURE__ */ forwardRef<HTMLDialogElement, DrawerProps>(function Drawer(
   {side = "end", size = "md", defaultOpen = false, closeLabel = "Close", closeOnOutsideClick = true, className, footer, ...props}, ref,
 ) {
   return <ModalOverlay {...props} ref={ref} defaultOpen={defaultOpen} closeLabel={closeLabel} closeOnOutsideClick={closeOnOutsideClick} className={classes("flood-drawer", className)} data-side={side} data-size={size} scrollBody footer={footer} />;
@@ -776,7 +776,7 @@ export interface AlertDialogProps extends Omit<DialogProps, "children" | "role" 
   onConfirm: () => void;
   onCancel?: () => void;
 }
-export const AlertDialog = forwardRef<HTMLDialogElement, AlertDialogProps>(function AlertDialog(
+export const AlertDialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, AlertDialogProps>(function AlertDialog(
   {defaultOpen = false, confirmLabel = "Continue", cancelLabel = "Cancel", confirmDisabled = false, ...props}, ref,
 ) {
   return <ConfirmationDialog {...props} ref={ref} defaultOpen={defaultOpen} confirmLabel={confirmLabel} cancelLabel={cancelLabel} confirmDisabled={confirmDisabled} />;
@@ -791,7 +791,7 @@ export interface CollapsibleProps extends Omit<HTMLAttributes<HTMLDivElement>, "
   controlSize?: "sm" | "md" | "lg" | "xl";
   headingLevel?: 2 | 3 | 4 | 5 | 6;
 }
-export const Collapsible = forwardRef<HTMLDivElement, CollapsibleProps>(function Collapsible(
+export const Collapsible = /* @__PURE__ */ forwardRef<HTMLDivElement, CollapsibleProps>(function Collapsible(
   {open, defaultOpen = false, onOpenChange, disabled = false, controlSize = "md", ...props}, ref,
 ) {
   const [local, setLocal] = useState(defaultOpen);
@@ -817,7 +817,7 @@ export interface AccordionProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
   controlSize?: "sm" | "md" | "lg" | "xl";
   headingLevel?: 2 | 3 | 4 | 5 | 6;
 }
-export const Accordion = forwardRef<HTMLDivElement, AccordionProps>(function Accordion(
+export const Accordion = /* @__PURE__ */ forwardRef<HTMLDivElement, AccordionProps>(function Accordion(
   {label, items, expansionMode = "single", value, defaultValue = [], onValueChange, disabled = false, controlSize = "md", headingLevel = 3, className, onKeyDown, ...props}, ref,
 ) {
   const [local, setLocal] = useState(() => [...new Set(defaultValue)]);
@@ -848,7 +848,7 @@ export interface ToggleProps extends Omit<ButtonProps, "aria-pressed" | "type" |
   iconOnly?: boolean;
 }
 /** A native toggle button; its accessible name stays stable when pressed. */
-export const Toggle = forwardRef<HTMLButtonElement, ToggleProps>(function Toggle(
+export const Toggle = /* @__PURE__ */ forwardRef<HTMLButtonElement, ToggleProps>(function Toggle(
   { pressed, defaultPressed = false, onPressedChange, iconOnly = false, size = "md", variant = "subtle", onClick, className, children, disabled, loading, ...props }, ref,
 ) {
   const [local, setLocal] = useState(defaultPressed);
@@ -882,7 +882,7 @@ export interface ToggleGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "
   iconOnly?: boolean;
 }
 /** Optional selections exposed as pressed buttons, not radios, tabs or a toolbar. */
-export const ToggleGroup = forwardRef<HTMLDivElement, ToggleGroupProps>(function ToggleGroup(
+export const ToggleGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, ToggleGroupProps>(function ToggleGroup(
   { label, options, selectionMode = "multiple", value, defaultValue = [], onValueChange, orientation = "horizontal", size = "md", variant = "subtle", disabled = false, iconOnly = false, className, onKeyDown, ...props }, ref,
 ) {
   const [local, setLocal] = useState(() => [...new Set(defaultValue)]);
@@ -917,7 +917,7 @@ export interface ButtonGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "
   orientation?: "horizontal" | "vertical";
 }
 /** Connected actions keep their ordinary Tab order; this is not a toolbar. */
-export const ButtonGroup = forwardRef<HTMLDivElement, ButtonGroupProps>(function ButtonGroup(
+export const ButtonGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, ButtonGroupProps>(function ButtonGroup(
   { label, orientation = "horizontal", className, ...props }, ref,
 ) {
   return <ScrollArea orientation="horizontal" tabIndex={-1} role="group" aria-label={`${label} scrolling`} className="flood-connected-scroll" hidden={props.hidden} dir={props.dir} lang={props.lang} style={{maxInlineSize:"100%"}}><div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} className={classes("flood-button-group", className)} /></ScrollArea>;
@@ -928,7 +928,7 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   invalid?: boolean;
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
-export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+export const Input = /* @__PURE__ */ forwardRef<HTMLInputElement, InputProps>(function Input(
   { invalid, status, controlSize = "md", className, ...props },
   ref,
 ) {
@@ -948,7 +948,7 @@ export interface InputGroupProps extends Omit<InputProps, "children" | "type"> {
   end?: ReactNode;
 }
 /** One real Input with host-owned logical start/end adornments. Ref and native attributes target the input. */
-export const InputGroup = forwardRef<HTMLInputElement, InputGroupProps>(function InputGroup(
+export const InputGroup = /* @__PURE__ */ forwardRef<HTMLInputElement, InputGroupProps>(function InputGroup(
   { start, end, controlSize = "md", className, style, invalid, status, disabled, readOnly, ...props }, ref,
 ) {
   return <div hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-input-group", `flood-control--${controlSize}`, className)} style={style}
@@ -965,7 +965,7 @@ export interface FileInputProps extends Omit<InputProps, "type" | "value" | "def
   removeFileLabel?: string;
   onFilesChange?: (files: readonly File[]) => void;
 }
-export const FileInput = forwardRef<HTMLInputElement, FileInputProps>(function FileInput(
+export const FileInput = /* @__PURE__ */ forwardRef<HTMLInputElement, FileInputProps>(function FileInput(
   { clearable = true, clearLabel = "Clear files", controlSize = "md", ...props }, ref,
 ) {
   return <FilePicker {...props} ref={ref} clearable={clearable} clearLabel={clearLabel} controlSize={controlSize} actionComponent={IconButton} iconComponent={IconSlot} />;
@@ -975,7 +975,7 @@ export interface SearchInputProps extends Omit<InputProps, "type" | "children"> 
   clearable?: boolean;
   clearLabel?: string;
 }
-export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(function SearchInput(
+export const SearchInput = /* @__PURE__ */ forwardRef<HTMLInputElement, SearchInputProps>(function SearchInput(
   { clearable = true, clearLabel = "Clear search", controlSize = "md", ...props }, ref,
 ) {
   return <SearchField {...props} ref={ref} clearable={clearable} clearLabel={clearLabel} controlSize={controlSize} group={InputGroup} action={IconButton} icon={IconSlot} />;
@@ -987,7 +987,7 @@ export interface PasswordInputProps extends Omit<InputProps, "type" | "children"
   showPasswordLabel?: string;
   hidePasswordLabel?: string;
 }
-export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(function PasswordInput(
+export const PasswordInput = /* @__PURE__ */ forwardRef<HTMLInputElement, PasswordInputProps>(function PasswordInput(
   { defaultVisible = false, showPasswordLabel = "Show password", hidePasswordLabel = "Hide password", controlSize = "md", ...props }, ref,
 ) {
   return <PasswordField {...props} ref={ref} defaultVisible={defaultVisible} showPasswordLabel={showPasswordLabel} hidePasswordLabel={hidePasswordLabel} controlSize={controlSize} group={InputGroup} action={IconButton} icon={IconSlot} />;
@@ -1013,7 +1013,7 @@ export interface ComboboxProps extends Omit<InputProps, "type" | "value" | "defa
   invalidSelectionMessage?: string;
 }
 /** @since 0.2.5 */
-export const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(function Combobox(
+export const Combobox = /* @__PURE__ */ forwardRef<HTMLInputElement, ComboboxProps>(function Combobox(
   { value, defaultValue = "", onValueChange, clearable = false, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select an option.", controlSize = "md", ...props }, ref,
 ) {
   return <SearchSelection {...props} ref={ref} multiple={false} selectedValues={value === undefined ? undefined : value ? [value] : []} initialValues={defaultValue ? [defaultValue] : []} onSelectionChange={next => onValueChange?.(next[0] ?? "")} clearable={clearable} emptyMessage={emptyMessage} listLabel={listLabel} toggleLabel={toggleLabel} clearLabel={clearLabel} invalidSelectionMessage={invalidSelectionMessage} controlSize={controlSize} />;
@@ -1026,7 +1026,7 @@ export interface MultiSelectProps extends Omit<ComboboxProps, "value" | "default
   removeItemLabel?: string;
 }
 /** @since 0.2.5 */
-export const MultiSelect = forwardRef<HTMLInputElement, MultiSelectProps>(function MultiSelect(
+export const MultiSelect = /* @__PURE__ */ forwardRef<HTMLInputElement, MultiSelectProps>(function MultiSelect(
   { value, defaultValue = [], onValueChange, removeItemLabel = "Remove", clearable = false, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select at least one option.", controlSize = "md", ...props }, ref,
 ) {
   return <SearchSelection {...props} ref={ref} multiple selectedValues={value} initialValues={defaultValue} onSelectionChange={onValueChange} removeItemLabel={removeItemLabel} clearable={clearable} emptyMessage={emptyMessage} listLabel={listLabel} toggleLabel={toggleLabel} clearLabel={clearLabel} invalidSelectionMessage={invalidSelectionMessage} controlSize={controlSize} />;
@@ -1043,7 +1043,7 @@ export interface NumberInputProps extends Omit<InputProps, "type" | "value" | "d
   increaseLabel?: string;
 }
 /** @since 0.2.5 */
-export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(function NumberInput(
+export const NumberInput = /* @__PURE__ */ forwardRef<HTMLInputElement, NumberInputProps>(function NumberInput(
   { defaultValue = 0, step = 1, controlSize = "md", decreaseLabel = "Decrease value", increaseLabel = "Increase value", ...props }, ref,
 ) {
   return <NumericStepper {...props} ref={ref} defaultValue={defaultValue} step={step} controlSize={controlSize} decreaseLabel={decreaseLabel} increaseLabel={increaseLabel} inputComponent={InputGroup} buttonComponent={IconButton} />;
@@ -1063,7 +1063,7 @@ export interface SliderProps extends Omit<FieldsetProps, "legend" | "children" |
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
 /** @since 0.2.5 */
-export const Slider = forwardRef<HTMLFieldSetElement, SliderProps>(function Slider(
+export const Slider = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, SliderProps>(function Slider(
   { defaultValue = [50], min = 0, max = 100, step = 1, showValue = true, readOnly = false, controlSize = "md", ...props }, ref,
 ) {
   return <RangeControl {...props} ref={ref} defaultValue={defaultValue} min={min} max={max} step={step} showValue={showValue} readOnly={readOnly} controlSize={controlSize} fieldsetComponent={Fieldset} />;
@@ -1074,7 +1074,7 @@ export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElemen
   invalid?: boolean;
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
-export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
+export const Textarea = /* @__PURE__ */ forwardRef<HTMLTextAreaElement, TextareaProps>(
   function Textarea({ invalid, status, controlSize = "md", className, ...props }, ref) {
     return (
       <textarea
@@ -1094,7 +1094,7 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
 /** Native select and option semantics with an independent visual control size. */
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select(
+export const Select = /* @__PURE__ */ forwardRef<HTMLSelectElement, SelectProps>(function Select(
   { invalid, status, controlSize = "md", className, multiple, size, ...props },
   ref,
 ) {
@@ -1124,7 +1124,7 @@ export interface ChoiceProps extends Omit<
 export interface CheckboxProps extends ChoiceProps {
   indeterminate?: boolean;
 }
-export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
+export const Checkbox = /* @__PURE__ */ forwardRef<HTMLInputElement, CheckboxProps>(
   function Checkbox({ label, indeterminate = false, className, ...props }, ref) {
     return (
       <label hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-choice", className)}>
@@ -1134,7 +1134,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
     );
   },
 );
-export const Radio = forwardRef<HTMLInputElement, ChoiceProps>(function Radio(
+export const Radio = /* @__PURE__ */ forwardRef<HTMLInputElement, ChoiceProps>(function Radio(
   { label, className, ...props },
   ref,
 ) {
@@ -1145,7 +1145,7 @@ export const Radio = forwardRef<HTMLInputElement, ChoiceProps>(function Radio(
     </label>
   );
 });
-export const Switch = forwardRef<HTMLInputElement, ChoiceProps>(function Switch(
+export const Switch = /* @__PURE__ */ forwardRef<HTMLInputElement, ChoiceProps>(function Switch(
   { label, className, ...props },
   ref,
 ) {
@@ -1167,7 +1167,7 @@ export interface LabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
   required?: boolean;
 }
 /** A native label; the required marker never substitutes for the control's required prop. */
-export const Label = forwardRef<HTMLLabelElement, LabelProps>(function Label(
+export const Label = /* @__PURE__ */ forwardRef<HTMLLabelElement, LabelProps>(function Label(
   { required, children, className, ...props }, ref,
 ) {
   return <label {...props} ref={ref} className={classes("flood-label", className)}>{children}{required && <span aria-hidden="true"> *</span>}</label>;
@@ -1183,7 +1183,7 @@ export interface FieldsetProps extends FieldsetHTMLAttributes<HTMLFieldSetElemen
   status?: FieldStatus;
 }
 /** A native group: disabled, form ownership and nested fieldsets retain browser behavior. */
-export const Fieldset = forwardRef<HTMLFieldSetElement, FieldsetProps>(function Fieldset(
+export const Fieldset = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, FieldsetProps>(function Fieldset(
   { legend, hideLabel = false, hint, error, message, status, children, className, id: explicitId, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props }, ref,
 ) {
   const generatedId = useId();
@@ -1218,7 +1218,7 @@ export interface RadioGroupProps extends Omit<FieldsetProps, "children" | "defau
   orientation?: "vertical" | "horizontal";
   required?: boolean;
 }
-export const RadioGroup = forwardRef<HTMLFieldSetElement, RadioGroupProps>(function RadioGroup(
+export const RadioGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, RadioGroupProps>(function RadioGroup(
   { value, defaultValue, onValueChange, orientation = "vertical", ...props }, ref,
 ) {
   return <ChoiceGroup {...props} ref={ref} kind="radio" orientation={orientation}
@@ -1234,7 +1234,7 @@ export interface SegmentedControlProps extends Omit<RadioGroupProps, "legend" | 
   fullWidth?: boolean;
 }
 /** A segmented presentation of native single-choice inputs, retaining forms and reset. */
-export const SegmentedControl = forwardRef<HTMLFieldSetElement, SegmentedControlProps>(function SegmentedControl(
+export const SegmentedControl = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, SegmentedControlProps>(function SegmentedControl(
   { label, options, controlSize = "md", iconOnly = false, fullWidth = false, orientation = "horizontal", className, onKeyDown, ...props }, ref,
 ) {
   if (iconOnly && options.some(option => !option.icon)) throw new Error("Flood icon-only segments require icons");
@@ -1264,7 +1264,7 @@ export interface CheckboxGroupProps extends Omit<FieldsetProps, "children" | "de
   onValueChange?: (value: string[]) => void;
   orientation?: "vertical" | "horizontal";
 }
-export const CheckboxGroup = forwardRef<HTMLFieldSetElement, CheckboxGroupProps>(function CheckboxGroup(
+export const CheckboxGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, CheckboxGroupProps>(function CheckboxGroup(
   { value, defaultValue = [], onValueChange, orientation = "vertical", ...props }, ref,
 ) {
   return <ChoiceGroup {...props} ref={ref} kind="checkbox" orientation={orientation}
@@ -1341,14 +1341,14 @@ export interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   variant?: "text" | "solid" | "subtle" | "outline" | "ghost";
   size?: ControlSize;
 }
-export const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link({ variant = "text", size = "md", className, ...props }, ref) {
+export const Link = /* @__PURE__ */ forwardRef<HTMLAnchorElement, LinkProps>(function Link({ variant = "text", size = "md", className, ...props }, ref) {
   return (
     <a {...props} ref={ref} className={classes("flood-link", variant !== "text" && "flood-link--button", variant !== "text" && "flood-button", variant !== "text" && `flood-button--${variant}`, variant !== "text" && `flood-button--${size}`, className)} />
   );
 });
 
 /** Explicit opt-in to the dark foundations profile; no global theme mutation. */
-export const FloodRoot = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
+export const FloodRoot = /* @__PURE__ */ forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   function FloodRoot({ className, ...props }, ref) {
     return <div {...props} ref={ref} data-flood-foundations="neutral" data-flood-theme="dark" className={classes("flood-root", className)} />;
   },
@@ -1359,7 +1359,7 @@ export interface TextProps extends HTMLAttributes<HTMLElement> {
   size?: "lead" | "body" | "compact" | "label" | "helper";
   tone?: "default" | "subtle" | "error" | "success" | "warning" | "info";
 }
-export const Text = forwardRef<HTMLElement, TextProps>(function Text(
+export const Text = /* @__PURE__ */ forwardRef<HTMLElement, TextProps>(function Text(
   { as = "span", size = "body", tone = "default", className, ...props }, ref,
 ) {
   return createElement(as, { ...props, ref, className: classes("flood-text", `flood-type--${size}`, `flood-tone--${tone}`, className) });
@@ -1369,7 +1369,7 @@ export interface HeadingProps extends HTMLAttributes<HTMLHeadingElement> {
   level?: 1 | 2 | 3 | 4 | 5 | 6;
   size?: "display" | "large" | "page" | "section";
 }
-export const Heading = forwardRef<HTMLHeadingElement, HeadingProps>(function Heading(
+export const Heading = /* @__PURE__ */ forwardRef<HTMLHeadingElement, HeadingProps>(function Heading(
   { level = 2, size = "page", className, ...props }, ref,
 ) {
   return createElement(`h${level}`, { ...props, ref, className: classes("flood-heading", `flood-type--${size}`, className) });
@@ -1379,7 +1379,7 @@ export type Space = "0" | "1" | "2" | "3" | "4" | "6" | "8" | "12";
 export interface LayoutProps extends HTMLAttributes<HTMLDivElement> {
   gap?: Space;
 }
-export const Stack = forwardRef<HTMLDivElement, LayoutProps>(function Stack(
+export const Stack = /* @__PURE__ */ forwardRef<HTMLDivElement, LayoutProps>(function Stack(
   { gap = "4", style, className, ...props }, ref,
 ) {
   return <div {...props} ref={ref} className={classes("flood-stack", className)} style={{ "--flood-layout-gap": `var(--flood-sys-space-${gap})`, ...style } as CSSProperties} />;
@@ -1387,7 +1387,7 @@ export const Stack = forwardRef<HTMLDivElement, LayoutProps>(function Stack(
 export interface InlineProps extends LayoutProps {
   align?: "start" | "center" | "end" | "baseline";
 }
-export const Inline = forwardRef<HTMLDivElement, InlineProps>(function Inline(
+export const Inline = /* @__PURE__ */ forwardRef<HTMLDivElement, InlineProps>(function Inline(
   { gap = "2", align = "center", style, className, ...props }, ref,
 ) {
   return <div {...props} ref={ref} className={classes("flood-inline", className)} style={{ "--flood-layout-gap": `var(--flood-sys-space-${gap})`, alignItems: align === "start" ? "flex-start" : align === "end" ? "flex-end" : align, ...style } as CSSProperties} />;
@@ -1396,7 +1396,7 @@ export interface SurfaceProps extends HTMLAttributes<HTMLDivElement> {
   elevation?: "default" | "raised" | "overlay";
   padding?: Space;
 }
-export const Surface = forwardRef<HTMLDivElement, SurfaceProps>(function Surface(
+export const Surface = /* @__PURE__ */ forwardRef<HTMLDivElement, SurfaceProps>(function Surface(
   { elevation = "default", padding = "6", style, className, ...props }, ref,
 ) {
   return <div {...props} ref={ref} data-flood-elevation={elevation} className={classes("flood-surface", className)} style={{ background: `var(--flood-sys-color-surface-${elevation})`, padding: `var(--flood-sys-space-${padding})`, ...style }} />;
@@ -1407,7 +1407,7 @@ export interface ContainerProps extends HTMLAttributes<HTMLDivElement> {
   gutter?: Space;
 }
 /** Centered content with logical gutters; max width includes padding. @since 0.2.4 */
-export const Container = forwardRef<HTMLDivElement, ContainerProps>(function Container(
+export const Container = /* @__PURE__ */ forwardRef<HTMLDivElement, ContainerProps>(function Container(
   { size = "lg", gutter = "6", className, style, ...props }, ref,
 ) {
   return <div {...props} ref={ref} className={classes("flood-container", className)} style={{
@@ -1421,7 +1421,7 @@ export interface GridProps extends HTMLAttributes<HTMLDivElement> {
   gap?: Space;
 }
 /** Auto-fit by default; explicit columns retain their count at every width. @since 0.2.4 */
-export const Grid = forwardRef<HTMLDivElement, GridProps>(function Grid(
+export const Grid = /* @__PURE__ */ forwardRef<HTMLDivElement, GridProps>(function Grid(
   { columns, minItemWidth, gap = "4", className, style, ...props }, ref,
 ) {
   return <div {...props} ref={ref} className={classes("flood-grid", className)} style={{
@@ -1434,7 +1434,7 @@ export interface VisuallyHiddenProps extends HTMLAttributes<HTMLElement> {
   focusable?: boolean;
 }
 /** Nonvisual content, with optional reveal when a descendant receives focus. @since 0.2.4 */
-export const VisuallyHidden = forwardRef<HTMLElement, VisuallyHiddenProps>(function VisuallyHidden(
+export const VisuallyHidden = /* @__PURE__ */ forwardRef<HTMLElement, VisuallyHiddenProps>(function VisuallyHidden(
   { as = "span", focusable = false, className, ...props }, ref,
 ) {
   const hiddenRef = useFocusableHidden<HTMLElement>(focusable, ref);
@@ -1444,7 +1444,7 @@ export interface AspectRatioProps extends HTMLAttributes<HTMLDivElement> {
   ratio?: number;
 }
 /** Reserve media geometry. Child content may overflow rather than being clipped. @since 0.2.4 */
-export const AspectRatio = forwardRef<HTMLDivElement, AspectRatioProps>(function AspectRatio(
+export const AspectRatio = /* @__PURE__ */ forwardRef<HTMLDivElement, AspectRatioProps>(function AspectRatio(
   { ratio = 16 / 9, className, style, children, ...props }, ref,
 ) {
   if (!Number.isFinite(ratio) || ratio <= 0) throw new RangeError("Flood AspectRatio requires a finite positive ratio");
@@ -1457,7 +1457,7 @@ export interface ImageProps extends Omit<ImgHTMLAttributes<HTMLImageElement>, "a
   fit?: "cover" | "contain";
 }
 /** Native image semantics, explicit alternative text and bounded media fitting. @since 0.2.4 */
-export const Image = forwardRef<HTMLImageElement, ImageProps>(function Image(
+export const Image = /* @__PURE__ */ forwardRef<HTMLImageElement, ImageProps>(function Image(
   { alt, fit = "cover", className, ...props }, ref,
 ) {
   if (typeof alt !== "string") throw new TypeError("Flood Image requires explicit alt text (empty for decorative images)");
@@ -1471,7 +1471,7 @@ export interface ListProps extends Omit<HTMLAttributes<HTMLUListElement | HTMLOL
   gap?: Space;
 }
 /** Native list items supplied by the host; hidden markers retain list semantics. @since 0.2.4 */
-export const List = forwardRef<HTMLUListElement | HTMLOListElement, ListProps>(function List(
+export const List = /* @__PURE__ */ forwardRef<HTMLUListElement | HTMLOListElement, ListProps>(function List(
   { ordered = false, start, reversed, marker = true, gap = "2", className, style, ...props }, ref,
 ) {
   if (start !== undefined && !Number.isSafeInteger(start)) throw new RangeError("Flood List start requires a safe integer");
@@ -1488,7 +1488,7 @@ export interface EmptyStateProps extends Omit<HTMLAttributes<HTMLDivElement>, "t
   density?: "compact" | "comfortable";
 }
 /** Static empty content, not loading, an error boundary or a live announcement. @since 0.2.4 */
-export const EmptyState = forwardRef<HTMLDivElement, EmptyStateProps>(function EmptyState(
+export const EmptyState = /* @__PURE__ */ forwardRef<HTMLDivElement, EmptyStateProps>(function EmptyState(
   { title, description, icon, actions, headingLevel = 2, density = "comfortable", className, ...props }, ref,
 ) {
   if (typeof title !== "string" || !title.trim()) throw new Error("Flood EmptyState requires a nonempty title");
@@ -1511,7 +1511,7 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, "title">
   elevation?: "default" | "raised";
 }
 /** A structured content surface, not an interactive wrapper. @since 0.2.4 */
-export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
+export const Card = /* @__PURE__ */ forwardRef<HTMLDivElement, CardProps>(function Card(
   { title, description, actions, footer, headingLevel = 2, density = "comfortable", elevation = "default", children, className, ...props }, ref,
 ) {
   const present = hasFieldContent;
@@ -1535,7 +1535,7 @@ export interface IconSlotProps extends HTMLAttributes<HTMLSpanElement> {
   label?: string;
 }
 /** Adapter for the host's SVG icon package; glyphs are not bundled. */
-export const IconSlot = forwardRef<HTMLSpanElement, IconSlotProps>(function IconSlot(
+export const IconSlot = /* @__PURE__ */ forwardRef<HTMLSpanElement, IconSlotProps>(function IconSlot(
   { size = "md", label, className, children, ...props }, ref,
 ) {
   return <span {...props} ref={ref} role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true} className={classes("flood-icon", `flood-icon--${size}`, className)}>{children}</span>;
@@ -1543,13 +1543,13 @@ export const IconSlot = forwardRef<HTMLSpanElement, IconSlotProps>(function Icon
 export interface IconButtonProps extends Omit<ButtonProps, "aria-label"> {
   label: string;
 }
-export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
+export const IconButton = /* @__PURE__ */ forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
   { label, size = "md", variant = "subtle", className, children, ...props }, ref,
 ) {
   return <Button {...props} ref={ref} size={size} variant={variant} aria-label={label} className={classes("flood-icon-button", className)}><IconSlot size={size}>{children}</IconSlot></Button>;
 });
 
-export const Divider = forwardRef<HTMLHRElement, HTMLAttributes<HTMLHRElement>>(
+export const Divider = /* @__PURE__ */ forwardRef<HTMLHRElement, HTMLAttributes<HTMLHRElement>>(
   function Divider({ className, ...props }, ref) {
     return <hr {...props} ref={ref} className={classes("flood-divider", className)} />;
   },
@@ -1561,7 +1561,7 @@ export interface CodeSnippetProps extends Omit<HTMLAttributes<HTMLDivElement>, "
   action?: ReactNode;
 }
 /** Selectable code with an optional host-owned action; no clipboard side effects. */
-export const CodeSnippet = forwardRef<HTMLDivElement, CodeSnippetProps>(function CodeSnippet(
+export const CodeSnippet = /* @__PURE__ */ forwardRef<HTMLDivElement, CodeSnippetProps>(function CodeSnippet(
   { code, codeDirection = "ltr", action, className, ...props }, ref,
 ) {
   return (
@@ -1577,7 +1577,7 @@ export interface ScrollAreaProps extends HTMLAttributes<HTMLDivElement> {
   contentInset?: "none" | "scrollbar";
 }
 /** Native scrolling with inset overlay tracks; the ref targets the scrollable viewport. */
-export const ScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function ScrollArea(
+export const ScrollArea = /* @__PURE__ */ forwardRef<HTMLDivElement, ScrollAreaProps>(function ScrollArea(
   { orientation = "vertical", contentInset = "scrollbar", ...props }, ref,
 ) {
   return <OverlayScrollArea {...props} orientation={orientation} contentInset={contentInset} ref={ref} />;
@@ -1593,7 +1593,7 @@ export interface CopyButtonProps extends Omit<ButtonProps, "children" | "value" 
   onCopied?: () => void;
   onCopyError?: (error: unknown) => void;
 }
-export const CopyButton = forwardRef<HTMLButtonElement, CopyButtonProps>(function CopyButton(
+export const CopyButton = /* @__PURE__ */ forwardRef<HTMLButtonElement, CopyButtonProps>(function CopyButton(
   {copyLabel = "Copy", copiedLabel = "Copied", errorLabel = "Failed", resetDelay = 2000, size = "md", variant = "subtle", ...props}, ref,
 ) {
   return <ClipboardAction {...props} ref={ref} copyLabel={copyLabel} copiedLabel={copiedLabel} errorLabel={errorLabel} resetDelay={resetDelay} size={size} variant={variant} />;
@@ -1616,7 +1616,7 @@ export interface ToastRegionProps extends Omit<HTMLAttributes<HTMLDivElement>, "
   inline?: boolean;
   hotkey?: boolean;
 }
-export const ToastRegion = forwardRef<HTMLDivElement, ToastRegionProps>(function ToastRegion(
+export const ToastRegion = /* @__PURE__ */ forwardRef<HTMLDivElement, ToastRegionProps>(function ToastRegion(
   {label = "Notifications", closeLabel = "Dismiss notification", placement = "bottom-end", limit = 3, inline = false, hotkey = true, ...props}, ref,
 ) {
   return <NotificationRegion {...props} ref={ref} label={label} closeLabel={closeLabel} placement={placement} limit={limit} inline={inline} hotkey={hotkey} />;
@@ -1636,7 +1636,7 @@ export interface AvatarGroupProps extends Omit<HTMLAttributes<HTMLUListElement>,
   size?: ContentSize;
   overflowLabel?: string;
 }
-export const AvatarGroup = forwardRef<HTMLUListElement, AvatarGroupProps>(function AvatarGroup(
+export const AvatarGroup = /* @__PURE__ */ forwardRef<HTMLUListElement, AvatarGroupProps>(function AvatarGroup(
   {max = 4, size = "md", ...props}, ref,
 ) { return <GroupedAvatars {...props} ref={ref} max={max} size={size}/>; });
 
@@ -1646,7 +1646,7 @@ export interface StatusIndicatorProps extends Omit<HTMLAttributes<HTMLSpanElemen
   size?: ContentSize;
   announce?: boolean;
 }
-export const StatusIndicator = forwardRef<HTMLSpanElement, StatusIndicatorProps>(function StatusIndicator(
+export const StatusIndicator = /* @__PURE__ */ forwardRef<HTMLSpanElement, StatusIndicatorProps>(function StatusIndicator(
   {tone = "neutral", size = "md", announce = false, ...props}, ref,
 ) { return <NamedStatus {...props} ref={ref} tone={tone} size={size} announce={announce}/>; });
 
@@ -1654,14 +1654,14 @@ export interface FigureProps extends HTMLAttributes<HTMLElement> {
   caption?: ReactNode;
   captionPosition?: "before" | "after";
 }
-export const Figure = forwardRef<HTMLElement, FigureProps>(function Figure(
+export const Figure = /* @__PURE__ */ forwardRef<HTMLElement, FigureProps>(function Figure(
   {captionPosition = "after", ...props}, ref,
 ) { return <CaptionedFigure {...props} ref={ref} captionPosition={captionPosition}/>; });
 
 export interface BlockquoteProps extends BlockquoteHTMLAttributes<HTMLQuoteElement> {
   attribution?: ReactNode;
 }
-export const Blockquote = forwardRef<HTMLQuoteElement, BlockquoteProps>(function Blockquote(props, ref) {
+export const Blockquote = /* @__PURE__ */ forwardRef<HTMLQuoteElement, BlockquoteProps>(function Blockquote(props, ref) {
   return <AttributedQuote {...props} ref={ref}/>;
 });
 
@@ -1669,7 +1669,7 @@ export interface InlineCodeProps extends HTMLAttributes<HTMLElement> {
   size?: ContentSize;
   wrap?: boolean;
 }
-export const InlineCode = forwardRef<HTMLElement, InlineCodeProps>(function InlineCode(
+export const InlineCode = /* @__PURE__ */ forwardRef<HTMLElement, InlineCodeProps>(function InlineCode(
   {size = "md", wrap = true, ...props}, ref,
 ) { return <InlineCodeText {...props} ref={ref} size={size} wrap={wrap}/>; });
 
@@ -1685,7 +1685,7 @@ export interface MetricProps extends Omit<HTMLAttributes<HTMLDListElement>, "chi
   trend?: MetricTrend;
   size?: ContentSize;
 }
-export const Metric = forwardRef<HTMLDListElement, MetricProps>(function Metric(
+export const Metric = /* @__PURE__ */ forwardRef<HTMLDListElement, MetricProps>(function Metric(
   {size = "md", ...props}, ref,
 ) { return <MeasuredValue {...props} ref={ref} size={size}/>; });
 
@@ -1703,7 +1703,7 @@ export interface TimelineProps extends Omit<HTMLAttributes<HTMLOListElement>, "c
   items: readonly TimelineItem[];
   stateLabels?: {complete?: string; current?: string; upcoming?: string};
 }
-export const Timeline = forwardRef<HTMLOListElement, TimelineProps>(function Timeline(props, ref) {
+export const Timeline = /* @__PURE__ */ forwardRef<HTMLOListElement, TimelineProps>(function Timeline(props, ref) {
   return <EventTimeline {...props} ref={ref}/>;
 });
 
@@ -1723,7 +1723,7 @@ export interface NavigationListProps extends Omit<HTMLAttributes<HTMLElement>, "
   currentValue?: string;
   size?: ContentSize;
 }
-export const NavigationList = forwardRef<HTMLElement, NavigationListProps>(function NavigationList(
+export const NavigationList = /* @__PURE__ */ forwardRef<HTMLElement, NavigationListProps>(function NavigationList(
   {size = "md", ...props}, ref,
 ) { return <NavigationMenu {...props} ref={ref} size={size} />; });
 
@@ -1742,7 +1742,7 @@ export interface StepsProps extends Omit<HTMLAttributes<HTMLOListElement>, "chil
   onStepChange?: (value: string) => void;
   statusLabels?: {complete: string; current: string; upcoming: string; error: string};
 }
-export const Steps = forwardRef<HTMLOListElement, StepsProps>(function Steps(
+export const Steps = /* @__PURE__ */ forwardRef<HTMLOListElement, StepsProps>(function Steps(
   {orientation = "horizontal", ...props}, ref,
 ) { return <StepSequence {...props} ref={ref} orientation={orientation} />; });
 
@@ -1753,7 +1753,7 @@ export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, "title">
   headingLevel?: 2 | 3 | 4 | 5 | 6;
   headingSize?: "display" | "large" | "page" | "section";
 }
-export const Section = forwardRef<HTMLElement, SectionProps>(function Section(
+export const Section = /* @__PURE__ */ forwardRef<HTMLElement, SectionProps>(function Section(
   {headingLevel = 2, headingSize = "section", ...props}, ref,
 ) { return <ContentSection {...props} ref={ref} headingLevel={headingLevel} headingSize={headingSize} />; });
 
@@ -1765,7 +1765,7 @@ export interface SplitProps extends Omit<HTMLAttributes<HTMLDivElement>, "childr
   collapseAt?: "sm" | "md" | "lg" | "never";
   gap?: Space;
 }
-export const Split = forwardRef<HTMLDivElement, SplitProps>(function Split(
+export const Split = /* @__PURE__ */ forwardRef<HTMLDivElement, SplitProps>(function Split(
   {side = "end", ratio = "main", collapseAt = "md", gap = "6", ...props}, ref,
 ) { return <SplitLayout {...props} ref={ref} side={side} ratio={ratio} collapseAt={collapseAt} gap={gap} />; });
 
@@ -1774,14 +1774,14 @@ export interface CenterProps extends HTMLAttributes<HTMLDivElement> {
   maxWidth?: string;
   minHeight?: string;
 }
-export const Center = forwardRef<HTMLDivElement, CenterProps>(function Center(
+export const Center = /* @__PURE__ */ forwardRef<HTMLDivElement, CenterProps>(function Center(
   {inline = false, ...props}, ref,
 ) { return <CenterLayout {...props} ref={ref} inline={inline} />; });
 
 export interface SkipLinkProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> {
   href: string;
 }
-export const SkipLink = forwardRef<HTMLAnchorElement, SkipLinkProps>(function SkipLink(
+export const SkipLink = /* @__PURE__ */ forwardRef<HTMLAnchorElement, SkipLinkProps>(function SkipLink(
   {children = "Skip to content", ...props}, ref,
 ) { return <SkipNavigation {...props} ref={ref}>{children}</SkipNavigation>; });
 
@@ -1800,7 +1800,7 @@ export interface ListBoxProps extends Omit<HTMLAttributes<HTMLDivElement>, "chil
   form?: string;
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
-export const ListBox = forwardRef<HTMLDivElement, ListBoxProps>(function ListBox(
+export const ListBox = /* @__PURE__ */ forwardRef<HTMLDivElement, ListBoxProps>(function ListBox(
   {multiple = false, disabled = false, readOnly = false, hideLabel = false, controlSize = "md", ...props}, ref,
 ) { return <CollectionListBox {...props} ref={ref} multiple={multiple} disabled={disabled} readOnly={readOnly} hideLabel={hideLabel} controlSize={controlSize} />; });
 
@@ -1814,7 +1814,7 @@ export interface PinInputProps extends Omit<InputProps, "type" | "children" | "v
   mode?: "numeric" | "alphanumeric";
   mask?: boolean;
 }
-export const PinInput = forwardRef<HTMLInputElement, PinInputProps>(function PinInput(
+export const PinInput = /* @__PURE__ */ forwardRef<HTMLInputElement, PinInputProps>(function PinInput(
   {length = 6, mode = "numeric", mask = false, hideLabel = false, controlSize = "md", ...props}, ref,
 ) { return <SegmentedPinInput {...props} ref={ref} length={length} mode={mode} mask={mask} hideLabel={hideLabel} controlSize={controlSize} />; });
 
@@ -1832,7 +1832,7 @@ export interface RatingProps extends Omit<FieldsetHTMLAttributes<HTMLFieldSetEle
   form?: string;
   size?: ContentSize;
 }
-export const Rating = forwardRef<HTMLFieldSetElement, RatingProps>(function Rating(
+export const Rating = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, RatingProps>(function Rating(
   {max = 5, defaultValue = 0, hideLabel = false, readOnly = false, size = "md", ...props}, ref,
 ) { return <StarRating {...props} ref={ref} max={max} defaultValue={defaultValue} hideLabel={hideLabel} readOnly={readOnly} size={size} />; });
 
@@ -1840,7 +1840,7 @@ export interface DropzoneProps extends Omit<FileInputProps, "onDragEnter" | "onD
   label: string;
   description?: string;
 }
-export const Dropzone = forwardRef<HTMLInputElement, DropzoneProps>(function Dropzone(
+export const Dropzone = /* @__PURE__ */ forwardRef<HTMLInputElement, DropzoneProps>(function Dropzone(
   {description = "Drop files here or choose from your device.", multiple = true, ...props}, ref,
 ) { return <FileDropzone {...props} ref={ref} description={description} multiple={multiple} />; });
 
@@ -1854,6 +1854,6 @@ export interface CharacterCountProps extends HTMLAttributes<HTMLOutputElement> {
   htmlFor?: string;
   form?: string;
 }
-export const CharacterCount = forwardRef<HTMLOutputElement, CharacterCountProps>(function CharacterCount(
+export const CharacterCount = /* @__PURE__ */ forwardRef<HTMLOutputElement, CharacterCountProps>(function CharacterCount(
   {mode = "count", label = "Characters", overLimitLabel = "Over limit", ...props}, ref,
 ) { return <SupportingCharacterCount {...props} ref={ref} mode={mode} label={label} overLimitLabel={overLimitLabel} />; });

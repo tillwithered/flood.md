@@ -4,7 +4,7 @@ import {Alert, Link, List, Text} from "./index.js";
 import {hasFieldContent, mergeDescriptions} from "./field-state.js";
 
 /** A host-owned validation summary; errors are never inferred from the form. */
-export const ValidationErrorSummary = forwardRef<HTMLDivElement, ErrorSummaryProps>(function ValidationErrorSummary({
+export const ValidationErrorSummary = /* @__PURE__ */ forwardRef<HTMLDivElement, ErrorSummaryProps>(function ValidationErrorSummary({
   title, errors, description, announcement = "off", autoFocus = false, onSelect,
   className, id: explicitId, tabIndex = -1, "aria-labelledby": labelledBy,
   "aria-describedby": describedBy, ...props

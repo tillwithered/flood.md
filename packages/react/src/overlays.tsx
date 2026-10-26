@@ -23,7 +23,7 @@ function OverlayClose({label,onClick}:{label:string;onClick:()=>void}){
 }
 
 type AnchoredProps=(TooltipProps|PopoverProps)&{kind:"tooltip"|"popover"};
-export const AnchoredOverlay=forwardRef<HTMLDivElement,AnchoredProps>(function AnchoredOverlay(allProps,forwardedRef){
+export const AnchoredOverlay=/* @__PURE__ */ forwardRef<HTMLDivElement,AnchoredProps>(function AnchoredOverlay(allProps,forwardedRef){
   const {kind,trigger,side="bottom",align="start",disabled=false,id:explicitId,className,style,...native}=allProps;
   const pop=allProps as PopoverProps,tip=allProps as TooltipProps;
   const [local,setLocal]=useState(kind==="popover"?Boolean(pop.defaultOpen):false);
@@ -81,7 +81,7 @@ export const AnchoredOverlay=forwardRef<HTMLDivElement,AnchoredProps>(function A
 });
 
 interface ModalOverlayProps extends DialogProps { showCloseButton?: boolean; role?: "dialog" | "alertdialog"; scrollBody?: boolean; footer?: import("react").ReactNode; }
-export const ModalOverlay=forwardRef<HTMLDialogElement,ModalOverlayProps>(function ModalOverlay({showCloseButton=true,scrollBody=false,footer,title,description,trigger,children,open:controlled,defaultOpen=false,onOpenChange,disabled=false,closeLabel="Close",closeOnOutsideClick=true,initialFocusRef,id:explicitId,className,onKeyDown,"aria-describedby":describedBy,...props},forwardedRef){
+export const ModalOverlay=/* @__PURE__ */ forwardRef<HTMLDialogElement,ModalOverlayProps>(function ModalOverlay({showCloseButton=true,scrollBody=false,footer,title,description,trigger,children,open:controlled,defaultOpen=false,onOpenChange,disabled=false,closeLabel="Close",closeOnOutsideClick=true,initialFocusRef,id:explicitId,className,onKeyDown,"aria-describedby":describedBy,...props},forwardedRef){
   const [local,setLocal]=useState(defaultOpen),open=controlled??local;
   const dialog=useRef<HTMLDialogElement>(null),anchor=useRef<HTMLButtonElement>(null),generated=useId(),id=explicitId??`flood-dialog-${generated}`;
   const request=(next:boolean)=>{if(controlled===undefined)setLocal(next);onOpenChange?.(next);};

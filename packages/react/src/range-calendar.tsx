@@ -3,7 +3,7 @@ import type {DateRangeValue,RangeCalendarProps} from "./index.js";
 import {CalendarGrid} from "./calendar.js";
 import {availableDateRange,checkDateRange,completeDateRange,emptyDateRange,orderedDateRange,sameDateRange} from "./date-range-value.js";
 
-export const DateRangeCalendar=forwardRef<HTMLDivElement,RangeCalendarProps>(function DateRangeCalendar({
+export const DateRangeCalendar=/* @__PURE__ */ forwardRef<HTMLDivElement,RangeCalendarProps>(function DateRangeCalendar({
   value,defaultValue=emptyDateRange(),onValueChange,onRangeSelect,isRangeDisabled,rangeLabels,
   min,max,isDateDisabled,className,...props
 },ref){

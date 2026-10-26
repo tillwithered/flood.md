@@ -8,7 +8,7 @@ import {availableDateRange,checkDateRange,completeDateRange,emptyDateRange,empty
 const cx=(...values:Array<string|false|undefined>)=>values.filter(Boolean).join(" ");
 const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffect;
 /** Two original DateFields share one atomic range contract and two canonical form bridges. */
-export const PairedDateRangeField=forwardRef<HTMLDivElement,DateRangeFieldProps>(function PairedDateRangeField({
+export const PairedDateRangeField=/* @__PURE__ */ forwardRef<HTMLDivElement,DateRangeFieldProps>(function PairedDateRangeField({
   label,hideLabel=false,value,defaultValue=emptyDateRange(),onValueChange,startName,endName,
   startLabel="Start date",endLabel="End date",min,max,required=false,disabled=false,readOnly=false,
   isDateDisabled,isRangeDisabled,rangeMessages,validationMessage,status,invalid,description,

@@ -3,7 +3,7 @@ import type {AlertDialogProps} from "./index.js";
 import {Button} from "./index.js";
 import {ModalOverlay} from "./overlays.js";
 
-export const ConfirmationDialog = forwardRef<HTMLDialogElement, AlertDialogProps>(function ConfirmationDialog({
+export const ConfirmationDialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, AlertDialogProps>(function ConfirmationDialog({
   open: controlled, defaultOpen = false, onOpenChange, onConfirm, onCancel,
   confirmLabel = "Continue", cancelLabel = "Cancel", confirmDisabled = false,
   className, ...props

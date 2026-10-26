@@ -4,7 +4,7 @@ import {Input, Label, ScrollArea, Surface, Text, VisuallyHidden, type CommandLis
 const searchable = (value: string) => value.normalize("NFKD").replace(/\p{M}/gu,"").toLowerCase();
 
 /** Searchable action suggestions. No selected form value or modal lifecycle. */
-export const SearchCommandList = forwardRef<HTMLInputElement, CommandListProps>(function SearchCommandList({
+export const SearchCommandList = /* @__PURE__ */ forwardRef<HTMLInputElement, CommandListProps>(function SearchCommandList({
   label, hideLabel = false, items, query, defaultQuery = "", onQueryChange, onAction,
   disabled = false, loading = false, placeholder = "Search commands…", emptyMessage = "No commands found.",
   loadingMessage = "Loading commands…", controlSize = "md", id: explicitId, className, onKeyDown, ...props

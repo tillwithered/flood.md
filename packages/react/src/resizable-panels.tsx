@@ -21,7 +21,7 @@ function lockDocument(document:Document,cursor:string) {
 }
 
 /** Two bounded panes with a dedicated separator track; percentages exclude that track. */
-export const ResizablePaneGroup = forwardRef<HTMLDivElement,ResizablePanelsProps>(function ResizablePaneGroup({
+export const ResizablePaneGroup = /* @__PURE__ */ forwardRef<HTMLDivElement,ResizablePanelsProps>(function ResizablePaneGroup({
   label,main,secondary,orientation="horizontal",value,defaultValue=50,onValueChange,onValueCommit,
   min=10,max=90,step=1,largeStep=10,disabled=false,id:explicitId,className,style,
   onPointerDown,onPointerMove,onPointerUp,onPointerCancel,onLostPointerCapture,onKeyDown,onKeyUp,onBlur,...props

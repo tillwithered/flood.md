@@ -4,7 +4,7 @@ const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLa
 const selector = 'button:not([role]),button[role="button"],a[href]:not([role]),a[href][role="link"]';
 const independent = '[role="menu"],[role="tablist"],[role="radiogroup"],[role="listbox"],[role="combobox"],.flood-toggle-group';
 
-export const RovingToolbar = forwardRef<HTMLDivElement, ToolbarProps>(function RovingToolbar(
+export const RovingToolbar = /* @__PURE__ */ forwardRef<HTMLDivElement, ToolbarProps>(function RovingToolbar(
   { label, orientation = "horizontal", loop = true, className, onKeyDown, onKeyDownCapture, onFocus, ...props }, ref,
 ) {
   const root = useRef<HTMLDivElement>(null), current = useRef<HTMLElement | null>(null), within = useRef(false);

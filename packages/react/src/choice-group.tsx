@@ -17,7 +17,7 @@ interface Props extends Omit<FieldsetProps, "children" | "defaultValue"> {
 }
 
 /** Private selection model; native inputs own keyboard, focus, forms and validity. */
-export const ChoiceGroup = forwardRef<HTMLFieldSetElement, Props>(function ChoiceGroup({
+export const ChoiceGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Props>(function ChoiceGroup({
   kind, name, options, selected, initial, onSelectionChange, required, orientation,
   fieldsetComponent: Group, choiceComponent: Choice, legend, ...props
 }, forwardedRef) {

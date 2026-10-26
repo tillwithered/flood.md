@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, type InputHTMLAttributes } from "react";
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
-export const MixedCheckbox = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & {indeterminate: boolean}>(function MixedCheckbox(
+export const MixedCheckbox = /* @__PURE__ */ forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & {indeterminate: boolean}>(function MixedCheckbox(
   {indeterminate, onChange, ...props}, ref,
 ) {
   const node = useRef<HTMLInputElement>(null), mixed = useRef(indeterminate);

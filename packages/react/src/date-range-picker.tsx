@@ -6,7 +6,7 @@ import {emptyDateRange} from "./date-range-value.js";
 
 const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffect;
 const triggerSizes={sm:"xs",md:"sm",lg:"md",xl:"lg"}as const;
-export const CalendarDateRangePicker=forwardRef<HTMLDivElement,DateRangePickerProps>(function CalendarDateRangePicker({
+export const CalendarDateRangePicker=/* @__PURE__ */ forwardRef<HTMLDivElement,DateRangePickerProps>(function CalendarDateRangePicker({
   value,defaultValue=emptyDateRange(),onValueChange,open:controlledOpen,defaultOpen=false,onOpenChange,
   label,calendarLabel,openCalendarLabel,locale,weekStartsOn,today,previousMonthLabel,nextMonthLabel,rangeLabels,
   disabled=false,readOnly=false,controlSize="md",min,max,isDateDisabled,isRangeDisabled,form,className,onKeyDown,...props

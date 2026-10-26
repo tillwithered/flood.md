@@ -8,7 +8,7 @@ interface Entry {item:TreeItem;parent?:string;level:number;position:number;size:
 const values=(value:string|readonly string[]|undefined):string[]=>[...new Set(typeof value==="string"?(value?[value]:[]):value??[])];
 
 /** Application selection, not navigation or a form field; expansion and selection are independent. */
-export const SelectionTree=forwardRef<HTMLDivElement,TreeProps>(function SelectionTree({
+export const SelectionTree=/* @__PURE__ */ forwardRef<HTMLDivElement,TreeProps>(function SelectionTree({
   label,hideLabel=false,items,value,defaultValue,onValueChange,multiple=false,
   expandedValues,defaultExpandedValues=[],onExpandedValuesChange,disabled=false,readOnly=false,
   controlSize="md",emptyMessage="No items.",loadingMessage="Loading…",unloadedMessage="Content not loaded.",readOnlyMessage="Selection is read only.",

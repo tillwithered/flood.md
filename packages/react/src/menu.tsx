@@ -57,7 +57,7 @@ interface MenuLayerProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"
 }
 
 /** Internal native top-layer engine shared by Menu and ContextMenu. */
-export const MenuLayer = forwardRef<HTMLDivElement, MenuLayerProps>(function MenuLayerRender({
+export const MenuLayer = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuLayerProps>(function MenuLayerRender({
   label, items, open, requestOpen, closeTree, anchor, rootAnchor, rootPanel, onAction,
   edge, nested = false, position, side = "bottom", align = "start", controlSize = "sm",
   id: explicitId, className, onKeyDown, ...props
@@ -268,7 +268,7 @@ export const MenuLayer = forwardRef<HTMLDivElement, MenuLayerProps>(function Men
   </div>;
 });
 
-export const ActionMenu = forwardRef<HTMLDivElement, MenuProps>(function ActionMenu({
+export const ActionMenu = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuProps>(function ActionMenu({
   label, trigger, items, onAction, open:controlled, defaultOpen, onOpenChange, disabled,
   side = "bottom", align = "start", controlSize = "sm", ...props
 }, forwardedRef) {

@@ -2,7 +2,9 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { gzipSync } from "node:zlib";
 import assert from "node:assert/strict";
+import { build } from "vite";
 import { initProject, doctor } from "../packages/cli/lib/index.mjs";
 
 const npmCli = process.env.npm_execpath;
@@ -50,14 +52,46 @@ try {
   await initProject(root, {
     installer: () =>
       npm(
-        ["install", "--ignore-scripts", "--no-audit", "--no-fund", ...archives],
+        ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--include=dev", ...archives],
         root,
       ),
   });
   await doctor(root);
+  const buttonEntry = join(root, "button-entry.mjs");
+  await writeFile(buttonEntry, "export {Button} from '@flood-md/react';\n");
+  const previousNodeEnv = process.env.NODE_ENV;
+  let bundledButton;
+  try {
+    bundledButton = await build({
+    root,
+    configFile: false,
+    logLevel: "silent",
+    build: {
+      write: false,
+      minify: true,
+      lib: { entry: buttonEntry, formats: ["es"] },
+      rollupOptions: {
+        external: id => id === "react" || id.startsWith("react/") || id === "react-dom" || id.startsWith("react-dom/") || /\.css(?:\?|$)/.test(id),
+      },
+    },
+    });
+  } finally {
+    // Vite sets NODE_ENV for its build; later npm installs must retain caller policy.
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+  }
+  const buttonChunks = (Array.isArray(bundledButton) ? bundledButton[0] : bundledButton).output.filter(file => file.type === "chunk");
+  assert.equal(buttonChunks.length, 1, "A single Button consumer should produce one independent JavaScript chunk");
+  assert.deepEqual(buttonChunks[0].exports, ["Button"], "Button must remain the consumer's usable public export");
+  const buttonCode = buttonChunks[0].code;
+  const buttonBytes = Buffer.byteLength(buttonCode);
+  const buttonGzipBytes = gzipSync(buttonCode).byteLength;
+  console.log(`Clean tarball Button bundle: ${buttonBytes} minified bytes, ${buttonGzipBytes} gzip bytes (React and CSS external).`);
+  assert.ok(buttonGzipBytes <= 8 * 1024, `Single Button import pulled excessive library code: ${buttonGzipBytes} gzip bytes exceeds 8192`);
+  await writeFile(join(root, "button.bundle.mjs"), buttonCode);
   await writeFile(
     join(root, "check.mjs"),
-    `import {createElement} from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {Button} from '@flood-md/react'; import {tokenNames} from '@flood-md/tokens/foundations'; import {readFileSync} from 'node:fs'; if(!renderToStaticMarkup(createElement(Button,null,'Ready')).includes('Ready')) throw Error('render failed'); const css=readFileSync(new URL(import.meta.resolve('@flood-md/react/styles.css')),'utf8'); if(!css.includes('@flood-md/tokens/tokens.css')) throw Error('missing token import'); if(tokenNames['sys.color.content.default']!=='--flood-sys-color-content-default') throw Error('foundation import failed'); for(const name of ['foundations.css','foundations.manifest.json','neutral.dark.tokens.json']) readFileSync(new URL(import.meta.resolve('@flood-md/tokens/'+name)));`,
+    `import {createElement} from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {Button} from '@flood-md/react'; import {Button as BundledButton} from './button.bundle.mjs'; import {tokenNames} from '@flood-md/tokens/foundations'; import {readFileSync} from 'node:fs'; if(!renderToStaticMarkup(createElement(Button,null,'Ready')).includes('Ready')) throw Error('render failed'); if(!renderToStaticMarkup(createElement(BundledButton,null,'Bundled ready')).includes('Bundled ready')) throw Error('bundled Button render failed'); const css=readFileSync(new URL(import.meta.resolve('@flood-md/react/styles.css')),'utf8'); if(!css.includes('@flood-md/tokens/tokens.css')) throw Error('missing token import'); if(tokenNames['sys.color.content.default']!=='--flood-sys-color-content-default') throw Error('foundation import failed'); for(const name of ['foundations.css','foundations.manifest.json','neutral.dark.tokens.json']) readFileSync(new URL(import.meta.resolve('@flood-md/tokens/'+name)));`,
   );
   const result = spawnSync(process.execPath, ["check.mjs"], {
     cwd: root,
@@ -401,7 +435,7 @@ assert.ok(navigation.includes('<nav')&&navigation.includes('<ul')&&navigation.in
 `);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")
-      npm(["install", "--ignore-scripts", "--no-audit", "--no-fund", `react@${reactVersion}`, `react-dom@${reactVersion}`, "@types/react@18", "@types/react-dom@18"], root);
+      npm(["install", "--ignore-scripts", "--no-audit", "--no-fund", "--include=dev", `react@${reactVersion}`, `react-dom@${reactVersion}`, "@types/react@18", "@types/react-dom@18"], root);
     // Compile against the independently installed matching major, not checkout declarations.
     checkConsumerTypes();
     const compatibility = spawnSync(process.execPath, ["react-compat.mjs"], { cwd: root, encoding: "utf8" });

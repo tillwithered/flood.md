@@ -7,7 +7,7 @@ const orders: Record<string, DateSegment[]> = {"month-day-year":["month","day","
 const cx = (...values: Array<string | undefined | false>) => values.filter(Boolean).join(" ");
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
-export const SegmentedDateField = forwardRef<HTMLDivElement, DateFieldProps>(function SegmentedDateField({
+export const SegmentedDateField = /* @__PURE__ */ forwardRef<HTMLDivElement, DateFieldProps>(function SegmentedDateField({
   label, hideLabel = false, value, defaultValue = "", onValueChange, min, max,
   required = false, readOnly = false, disabled = false, name, form, controlSize = "md",
   invalid = false, status, description, order = "month-day-year", segmentLabels, messages, validationMessage, end,

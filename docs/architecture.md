@@ -20,6 +20,13 @@ and agent files, and tells the user where to import CSS. It does not guess at
 source-code AST mutations or rewrite existing instructions. Components are
 dependencies, not copies, so upgrades follow ordinary package versioning.
 
+React component factory calls carry purity annotations so optimizing ES-module
+bundlers can remove unused components from named imports. Keep module
+initialization free of external side effects and preserve those annotations.
+The clean tarball consumer checks a real single-Button bundle independently of
+React and CSS. The explicit stylesheet remains the shared foundation stylesheet;
+JavaScript tree shaking does not imply per-component CSS delivery.
+
 `@flood-md/cli` uses Node built-ins and the matching agent package. The installer
 currently uses npm only; consumers may import the library without the CLI using
 another package manager. An npm failure does not write Flood configuration;

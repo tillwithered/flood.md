@@ -4,7 +4,7 @@ import {mergeDescriptions, resolveFieldStatus} from "./field-state.js";
 import {canonicalTime, emptyTimeParts, isEmptyTime, parseTime, stepTimePart, timeInRange, timeOnStep, type TimeParts, type TimeSegment} from "./time-value.js";
 const cx = (...values:Array<string|false|undefined>) => values.filter(Boolean).join(" ");
 
-export const SegmentedTimeField = forwardRef<HTMLDivElement,TimeFieldProps>(function SegmentedTimeField({
+export const SegmentedTimeField = /* @__PURE__ */ forwardRef<HTMLDivElement,TimeFieldProps>(function SegmentedTimeField({
   label,hideLabel=false,value,defaultValue="",onValueChange,precision="minute",min,max,step:explicitStep,
   required=false,readOnly=false,disabled=false,name,form,controlSize="md",invalid=false,status,description,
   segmentLabels,messages,id:explicitId,className,onKeyDown,onPaste,onBlur,"aria-describedby":describedBy,"aria-invalid":ariaInvalid,...props

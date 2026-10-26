@@ -7,7 +7,7 @@ const normalize = (values: readonly string[]) => [...new Set(values.map(value =>
 const same = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((value,index) => value === b[index]);
 
 /** Free text tokens. Known-option IDs and suggestion layers belong to MultiSelect. */
-export const FreeTagEntry = forwardRef<HTMLInputElement, TagInputProps>(function FreeTagEntry({
+export const FreeTagEntry = /* @__PURE__ */ forwardRef<HTMLInputElement, TagInputProps>(function FreeTagEntry({
   label, hideLabel = false, value, defaultValue = [], onValueChange, delimiters = [","], removeLabel = "Remove",
   requiredMessage = "Add at least one tag.", controlSize = "md", disabled, readOnly, required, name, form,
   id: explicitId, className, style, onKeyDown, onPaste, onInvalid, onCompositionStart, onCompositionEnd, ...props

@@ -6,7 +6,7 @@ const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLa
 const branch = (item: NavigationTreeItem) => item.children !== undefined || item.content !== undefined;
 
 /** Ordinary website navigation uses disclosure lists, not application tree selection semantics. */
-export const HierarchicalNavigation = forwardRef<HTMLElement, NavigationTreeProps>(function HierarchicalNavigation({
+export const HierarchicalNavigation = /* @__PURE__ */ forwardRef<HTMLElement, NavigationTreeProps>(function HierarchicalNavigation({
   label, items, currentValue, expandedValues, defaultExpandedValues = [], onExpandedValuesChange,
   expandLabel = (item, expanded) => `${expanded ? "Collapse" : "Expand"} ${item.label}`,
   size = "md", id: explicitId, className, tabIndex = -1, ...props

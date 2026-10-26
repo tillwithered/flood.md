@@ -4,7 +4,7 @@ import {Button, IconSlot, Link, ScrollArea} from "./index.js";
 import {pageWindow} from "./page-window.js";
 const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffect;
 
-export const TabNavigation=forwardRef<HTMLDivElement,TabsProps>(function TabNavigation({label,items,value,defaultValue,onValueChange,activationMode="automatic",orientation="horizontal",controlSize="md",disabled=false,iconOnly=false,className,onKeyDown,id:explicitId,...props},ref){
+export const TabNavigation=/* @__PURE__ */ forwardRef<HTMLDivElement,TabsProps>(function TabNavigation({label,items,value,defaultValue,onValueChange,activationMode="automatic",orientation="horizontal",controlSize="md",disabled=false,iconOnly=false,className,onKeyDown,id:explicitId,...props},ref){
   const generated=useId(),id=explicitId??`flood-tabs-${generated}`;
   const [local,setLocal]=useState(defaultValue),[focused,setFocused]=useState<string>();
   const root=useRef<HTMLDivElement>(null),list=useRef<HTMLDivElement>(null),focusedPanel=useRef<string|undefined>(undefined);
@@ -45,7 +45,7 @@ export const TabNavigation=forwardRef<HTMLDivElement,TabsProps>(function TabNavi
   </div>;
 });
 
-export const BreadcrumbNavigation=forwardRef<HTMLElement,BreadcrumbProps>(function BreadcrumbNavigation({items,label="Breadcrumb",separator="/",className,...props},ref){
+export const BreadcrumbNavigation=/* @__PURE__ */ forwardRef<HTMLElement,BreadcrumbProps>(function BreadcrumbNavigation({items,label="Breadcrumb",separator="/",className,...props},ref){
   return <nav {...props} ref={ref} aria-label={label} className={["flood-breadcrumb",className].filter(Boolean).join(" ")}><ol>
     {items.map((item,index)=><li key={index}>{index>0&&<span className="flood-breadcrumb__separator" aria-hidden="true">{separator}</span>}
       {item.href!==undefined?<Link href={item.href} aria-current={index===items.length-1?"page":undefined}>{item.label}</Link>:<span aria-current={index===items.length-1?"page":undefined}>{item.label}</span>}
@@ -53,7 +53,7 @@ export const BreadcrumbNavigation=forwardRef<HTMLElement,BreadcrumbProps>(functi
   </ol></nav>;
 });
 
-export const PageNavigation=forwardRef<HTMLElement,PaginationProps>(function PageNavigation({page,pageCount,onPageChange,getHref,siblingCount=1,controlSize="sm",disabled=false,label="Pagination",previousLabel="Previous page",nextLabel="Next page",pageLabel=page=>`Page ${page}`,className,...props},ref){
+export const PageNavigation=/* @__PURE__ */ forwardRef<HTMLElement,PaginationProps>(function PageNavigation({page,pageCount,onPageChange,getHref,siblingCount=1,controlSize="sm",disabled=false,label="Pagination",previousLabel="Previous page",nextLabel="Next page",pageLabel=page=>`Page ${page}`,className,...props},ref){
   const pages=pageWindow(page,pageCount,siblingCount);
   const control=(target:number,text:ReactNode,name:string,unavailable=false)=>{
     const inactive=disabled||unavailable,current=target===page;

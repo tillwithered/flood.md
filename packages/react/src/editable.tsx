@@ -6,7 +6,7 @@ const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLa
 const cx = (...values: Array<string | undefined | false>) => values.filter(Boolean).join(" ");
 
 /** A draft is private until explicitly committed; native forms receive committed text. */
-export const InlineEditable = forwardRef<HTMLDivElement, EditableProps>(function InlineEditable({
+export const InlineEditable = /* @__PURE__ */ forwardRef<HTMLDivElement, EditableProps>(function InlineEditable({
   label, hideLabel = false, value, defaultValue = "", onValueChange,
   editing, defaultEditing = false, onEditingChange, onCommit, onCancel,
   blurAction = "commit", readOnly = false, disabled = false, placeholder = "Empty",

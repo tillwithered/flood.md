@@ -6,7 +6,7 @@ const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLa
 const triggerSizes = {sm:"xs", md:"sm", lg:"md", xl:"lg"} as const;
 
 /** Calendar selection and keyboard date entry share one DateField value/form bridge. */
-export const CalendarDatePicker = forwardRef<HTMLDivElement, DatePickerProps>(function CalendarDatePicker({
+export const CalendarDatePicker = /* @__PURE__ */ forwardRef<HTMLDivElement, DatePickerProps>(function CalendarDatePicker({
   value, defaultValue = "", onValueChange, open: controlledOpen, defaultOpen = false, onOpenChange,
   calendarLabel, openCalendarLabel, locale, weekStartsOn, today, previousMonthLabel, nextMonthLabel,
   label, disabled = false, readOnly = false, controlSize = "md", min, max, form,

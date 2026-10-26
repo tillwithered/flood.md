@@ -2,6 +2,8 @@
 
 ## 0.2.7 - Unreleased
 
+- Enable removal of unused React component factories from named-import bundles; guard the installed single-Button bundle size.
+
 - Preserve readonly date/time form values under constraints and keep submenu hover intent across equivalent host rerenders.
 
 - Preserve cancelled selection resets, clear obsolete validation after external corrections and recognize reordered controlled tag acceptance.

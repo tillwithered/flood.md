@@ -7,7 +7,7 @@ interface Props extends NumberInputProps {
 }
 
 /** The browser owns decimal stepping, validity, editing and form submission. */
-export const NumericStepper = forwardRef<HTMLInputElement, Props>(function NumericStepper({
+export const NumericStepper = /* @__PURE__ */ forwardRef<HTMLInputElement, Props>(function NumericStepper({
   inputComponent: Group, buttonComponent: Action, value, defaultValue = 0,
   onValueChange, min, max, step = 1, disabled, readOnly, controlSize = "md",
   decreaseLabel = "Decrease value", increaseLabel = "Increase value", className,

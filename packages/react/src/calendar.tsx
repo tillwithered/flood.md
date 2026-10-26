@@ -17,7 +17,7 @@ export interface CalendarGridProps extends Omit<CalendarProps,"value"|"defaultVa
   footer?:ReactNode;
 }
 /** One original grid/focus engine shared by single-date and range calendars. */
-export const CalendarGrid=forwardRef<HTMLDivElement,CalendarGridProps>(function CalendarGrid({
+export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGridProps>(function CalendarGrid({
   label,selectedDate="",isSelected,dayMetadata,onDayActivate,onDayPreview,multiple=false,footer,visibleMonth,defaultVisibleMonth,onVisibleMonthChange,
   min,max,disabled=false,readOnly=false,isDateDisabled,weekStartsOn=0,locale="en-US",autoFocus=false,
   today,previousMonthLabel="Previous month",nextMonthLabel="Next month",id:explicitId,className,onKeyDown,onBlur,onPointerLeave,...props
@@ -114,7 +114,7 @@ export const CalendarGrid=forwardRef<HTMLDivElement,CalendarGridProps>(function 
   </div>;
 });
 
-export const DateCalendar=forwardRef<HTMLDivElement,CalendarProps>(function DateCalendar({value,defaultValue="",onValueChange,onDateSelect,...props},ref){
+export const DateCalendar=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarProps>(function DateCalendar({value,defaultValue="",onValueChange,onDateSelect,...props},ref){
   for(const date of [value,defaultValue])if(date!==undefined&&date!==""&&!parseDate(date))throw new Error("Flood Calendar value must be a valid ISO Gregorian date");
   const [local,setLocal]=useState(defaultValue),selected=value??local;
   return <CalendarGrid {...props} ref={ref} selectedDate={selected} onDayActivate={date=>{if(selected!==date){if(value===undefined)setLocal(date);onValueChange?.(date);}onDateSelect?.(date);}}/>;

@@ -5,7 +5,7 @@ import { hasFieldContent, mergeDescriptions, resolveFieldStatus } from "./field-
 interface Props extends SliderProps { fieldsetComponent: typeof Fieldset; }
 
 /** Native range inputs keep keyboard/AT interaction; the shared rail handles pointer selection. */
-export const RangeControl = forwardRef<HTMLFieldSetElement, Props>(function RangeControl({
+export const RangeControl = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Props>(function RangeControl({
   fieldsetComponent: Group, label, value, defaultValue = [50], onValueChange,
   min = 0, max = 100, step = 1, thumbLabels, showValue = true, readOnly = false,
   controlSize = "md", disabled, className, name, onKeyDown, ...props
