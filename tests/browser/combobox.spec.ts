@@ -39,3 +39,9 @@ test('Combobox popup reflows in RTL and enlarged text with protected scrolling',
  await open(page);await page.getByRole('checkbox',{name:'Many options'}).check();await page.setViewportSize({width:390,height:900});await page.evaluate(()=>{document.documentElement.style.fontSize='24px';document.documentElement.dir='rtl'});const input=page.getByRole('combobox',{name:'Framework',exact:true});await input.press('ArrowDown');const menu=page.getByRole('listbox',{name:'Options'});await expect(menu).toBeVisible();const box=(await menu.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(391);for(let i=0;i<15;i++)await input.press('ArrowDown');const active=await input.getAttribute('aria-activedescendant');await expect(page.locator('[id="'+active+'"]')).toBeInViewport();expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);await page.emulateMedia({forcedColors:'active'});await expect(menu).toBeVisible();await page.emulateMedia({forcedColors:'none'});await page.screenshot({path:'.artifacts/combobox-'+info.project.name+'.png',fullPage:true});
 });
 
+
+test('Combobox touch commits one option and returns focus to its input',async({browser})=>{
+ const context=await browser.newContext({baseURL:'http://127.0.0.1:4173',hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
+ try {const page=await context.newPage();await open(page);const input=page.getByRole('combobox',{name:'Framework',exact:true});await input.tap();await page.getByRole('option',{name:'Vue',exact:true}).tap();await expect(input).toHaveValue('Vue');await expect(input).toBeFocused();await expect(input).toHaveAttribute('aria-expanded','false');await input.click();await page.getByRole('option',{name:'Svelte',exact:true}).click();await expect(input).toHaveValue('Svelte');await expect(input).toBeFocused();}
+ finally {await context.close();}
+});

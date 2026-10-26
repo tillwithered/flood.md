@@ -155,7 +155,10 @@ export const SearchSelection = forwardRef<HTMLInputElement, SearchSelectionProps
       onInvalid:event => { onInvalid?.(event); if (!event.defaultPrevented) setValidation(event.currentTarget.validationMessage); },
       onKeyDown:event => {
         onKeyDown?.(event);
-        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || inert()) return;
+        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
+        // The composite owns Backspace; readonly selection must not become browser Back.
+        if (multiple && readOnly && event.key === "Backspace") event.preventDefault();
+        if (inert()) return;
         const rtl = event.currentTarget.ownerDocument.defaultView?.getComputedStyle(event.currentTarget).direction === "rtl";
         if (multiple && event.key === "Backspace" && displayed === "") {
           const last = [...selections].reverse().find(option => !option.disabled);
@@ -209,7 +212,11 @@ export const SearchSelection = forwardRef<HTMLInputElement, SearchSelectionProps
         {filtered.map(option => <div key={option.value} id={optionId(option.value)} role="option" aria-selected={selectedIds.includes(option.value)} aria-disabled={option.disabled || undefined}
           className="flood-select__option" data-active={option.value === active?.value || undefined}
           onPointerMove={event => { if (event.pointerType === "mouse" && !option.disabled) setActiveValue(option.value); }}
-          onPointerDown={event => event.preventDefault()} onClick={() => select(option.value)}>
+          onPointerDown={event => {
+            // Touch must retain its compatibility click and native scrolling.
+            if (event.pointerType === "mouse") event.preventDefault();
+          }}
+          onMouseDown={event => event.preventDefault()} onClick={() => select(option.value)}>
           <span className="flood-combobox__option-text"><span>{option.label}</span>{option.description && <span className="flood-combobox__description">{option.description}</span>}</span>
           <span className="flood-select__selected" aria-hidden="true">{selectedIds.includes(option.value) ? "✓" : ""}</span>
         </div>)}

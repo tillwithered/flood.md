@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page,type Locator} from '@playwright/test';
 import {build} from 'vite';
 import {resolve} from 'node:path';
 import {mkdir,writeFile} from 'node:fs/promises';
@@ -11,13 +11,23 @@ async function fixture(){
 }
 async function open(page:Page){bundle??=fixture();await page.route('**/__form-batch.html',async route=>route.fulfill({contentType:'text/html',body:await bundle}));await page.goto('/__form-batch.html');}
 const fieldValues=(page:Page,name:string)=>page.locator('#controls').evaluate((node:HTMLFormElement,key)=>new FormData(node).getAll(key),name);
+// Firefox discards ClipboardEventInit.clipboardData in synthetic events. Supply
+// the explicit snapshot so this fixture exercises the same paste payload in every engine.
+async function pasteText(input:Locator,text:string){
+ await input.evaluate((node,value)=>{
+  const data=new DataTransfer();data.setData('text/plain',value);
+  const event=new ClipboardEvent('paste',{bubbles:true,cancelable:true});
+  Object.defineProperty(event,'clipboardData',{value:data});node.dispatchEvent(event);
+ },text);
+}
+
 test('ListBox keyboard selection, controlled refusal, read-only and reset preserve form values',async({page})=>{
  await open(page);const single=page.getByRole('listbox',{name:'Framework',exact:true});await single.focus();await single.press('ArrowDown');expect(await fieldValues(page,'framework')).toEqual(['vue']);await single.press('ArrowDown');expect(await fieldValues(page,'framework')).toEqual(['svelte']);await single.press('r');expect(await fieldValues(page,'framework')).toEqual(['react']);
  const multi=page.getByRole('listbox',{name:'Frameworks',exact:true});await multi.focus();await multi.press('ArrowDown');expect(await fieldValues(page,'frameworks')).toEqual(['react']);await multi.press('Space');expect(await fieldValues(page,'frameworks')).toEqual(['react','vue']);await page.getByRole('listbox',{name:'Fixed framework',exact:true}).press('ArrowDown');await expect(page.locator('#request')).toHaveText('vue');await expect(page.getByRole('listbox',{name:'Fixed framework',exact:true}).getByRole('option',{name:'React',exact:true})).toHaveAttribute('aria-selected','true');
  await page.getByRole('checkbox',{name:'Read only',exact:true}).check();await single.press('ArrowDown');expect(await fieldValues(page,'framework')).toEqual(['react']);await page.getByRole('button',{name:'Reset controls',exact:true}).click();await expect(multi.getByRole('option',{name:'Vue',exact:true})).toHaveAttribute('aria-selected','false');expect(await fieldValues(page,'frameworks')).toEqual(['react']);
 });
 test('PinInput keeps one native editor, sanitized paste, native editing and reset',async({page})=>{
- await open(page);const input=page.getByRole('textbox',{name:'Verification code',exact:true});await input.fill('12');await input.press('Backspace');await expect(input).toHaveValue('1');await input.press('Control+A');await input.evaluate((node:HTMLInputElement)=>{const data=new DataTransfer();data.setData('text/plain','123 456');node.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));});await expect(input).toHaveValue('123456');expect(await fieldValues(page,'code')).toEqual(['123456']);expect(await input.evaluate((node:HTMLInputElement)=>node.checkValidity())).toBe(true);await input.fill('123');expect(await input.evaluate((node:HTMLInputElement)=>node.checkValidity())).toBe(false);await page.getByRole('checkbox',{name:'Read only',exact:true}).check();await input.evaluate((node:HTMLInputElement)=>{const data=new DataTransfer();data.setData('text/plain','654321');node.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));});await expect(input).toHaveValue('123');await page.getByRole('button',{name:'Reset controls',exact:true}).click();await expect(input).toHaveValue('123456');
+ await open(page);const input=page.getByRole('textbox',{name:'Verification code',exact:true});await input.fill('12');await input.press('Backspace');await expect(input).toHaveValue('1');await input.press('Control+A');await pasteText(input,'123 456');await expect(input).toHaveValue('123456');expect(await fieldValues(page,'code')).toEqual(['123456']);expect(await input.evaluate((node:HTMLInputElement)=>node.checkValidity())).toBe(true);await input.fill('123');expect(await input.evaluate((node:HTMLInputElement)=>node.checkValidity())).toBe(false);await page.getByRole('checkbox',{name:'Read only',exact:true}).check();await pasteText(input,'654321');await expect(input).toHaveValue('123');await page.getByRole('button',{name:'Reset controls',exact:true}).click();await expect(input).toHaveValue('123456');
 });
 test('Rating uses native required radio groups, read-only behavior and native reset',async({page})=>{
  await open(page);const group=page.getByRole('radiogroup',{name:'Experience',exact:true});await group.getByRole('radio',{name:'4 of 5 stars',exact:true}).click();expect(await fieldValues(page,'experience')).toEqual(['4']);await page.keyboard.press('ArrowLeft');await expect(group.getByRole('radio',{name:'3 of 5 stars',exact:true})).toBeChecked();await page.getByRole('checkbox',{name:'Read only',exact:true}).check();await group.getByRole('radio',{name:'5 of 5 stars',exact:true}).click();await expect(group.getByRole('radio',{name:'3 of 5 stars',exact:true})).toBeChecked();expect(await fieldValues(page,'experience')).toEqual(['3']);await page.getByRole('checkbox',{name:'Read only',exact:true}).uncheck();await group.getByRole('radio',{name:'1 of 5 stars',exact:true}).click();await page.getByRole('button',{name:'Reset controls',exact:true}).click();await expect(group.getByRole('radio',{name:'3 of 5 stars',exact:true})).toBeChecked();
@@ -44,5 +54,5 @@ test('PinInput occupied-slot editing supports removal, replacement, password mas
  await numeric.fill('123456');await clickFirst('Verification code');await numeric.press('9');await expect(numeric).toHaveValue('923456');await numeric.press('Control+A');await numeric.press('Backspace');await expect(numeric).toHaveValue('');
  const fixed=await clickFirst('Fixed code');await fixed.press('Backspace');await expect(page.locator('#request')).toHaveText('B12');await expect(fixed).toHaveValue('AB12');
  const masked=await clickFirst('Masked code');await masked.press('Backspace');await expect(masked).toHaveValue('A');await clickFirst('Masked code');await masked.press('Backspace');await expect(masked).toHaveValue('');
- await masked.evaluate((node:HTMLInputElement)=>{const data=new DataTransfer();data.setData('text/plain','a B12');node.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));});await expect(masked).toHaveValue('aB12');await masked.press('Control+A');await masked.press('Backspace');await expect(masked).toHaveValue('');await page.getByRole('button',{name:'Reset controls',exact:true}).click();await expect(masked).toHaveValue('1A');await expect(numeric).toHaveValue('123456');
+ await pasteText(masked,'a B12');await expect(masked).toHaveValue('aB12');await masked.press('Control+A');await masked.press('Backspace');await expect(masked).toHaveValue('');await page.getByRole('button',{name:'Reset controls',exact:true}).click();await expect(masked).toHaveValue('1A');await expect(numeric).toHaveValue('123456');
 });
