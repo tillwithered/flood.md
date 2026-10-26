@@ -179,6 +179,7 @@ html { scroll-behavior: smooth; color-scheme: dark; background: var(--flood-sys-
   .docs-layout { display: block; padding-block-start: 1rem; }
   .desktop-sidebar { display: none; }
   .mobile-navigation { display: block; margin-block-end: var(--flood-sys-space-8); }
+  .mobile-navigation .catalog-nav-tools { background: var(--flood-sys-color-surface-default); }
   .doc-heading .flood-heading { font-size: var(--flood-sys-type-page-size); }
   .preview-stage { min-block-size: 18rem; padding: 1.25rem; }
 }
