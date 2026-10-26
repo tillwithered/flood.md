@@ -19,7 +19,7 @@ h(AspectRatio,{id:'media',ratio:1.5},h(Image,{src:source,alt:'Geometry sample',w
 h(List,{id:'list',ordered:true,start:3,reversed:true,marker:false},h('li',null,'Third'),h('li',null,'Second')),
 h(Button,{id:'before'},'Before skip'),h(VisuallyHidden,{id:'skip',focusable:true},h(Link,{href:'#destination'},'Skip to destination')),h(Button,{id:'destination'},'Destination'),h(VisuallyHidden,{id:'supplement'},'Supplementary context'),
 h('form',{onSubmit:e=>{e.preventDefault();R(JSON.stringify([...new FormData(e.currentTarget)]))},onReset:()=>{C(false);M(true)}},h(Checkbox,{ref,label:'Select all',name:'all',value:'yes',checked,indeterminate:mixed,onChange:e=>C(e.currentTarget.checked)}),h(Checkbox,{label:'Hidden choice',hidden:true}),h(Button,{type:'submit'},'Submit'),h(Button,{type:'reset'},'Reset form'),h(Button,{onClick:()=>M(false)},'Resolve mixed'),h(Button,{onClick:()=>R(String(ref.current.indeterminate))},'Inspect ref')),
-h('output',{'aria-label':'Form result'},result),h(EmptyState,{id:'empty',title:'No projects',headingLevel:2,actions:h(Button,{onClick:()=>R('created')},'Create')}));}
+h('output',{'aria-label':'Form result'},result),h(EmptyState,{id:'empty',icon:h('svg',{viewBox:'0 0 24 24'},h('path',{d:'M12 5v14M5 12h14',fill:'none',stroke:'currentColor'})),title:'No projects',headingLevel:2,actions:h(Button,{onClick:()=>R('created')},'Create')}));}
 createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
   const result=await build({configFile:false,logLevel:"silent",define:{"process.env.NODE_ENV":JSON.stringify("development")},build:{write:false,minify:true,cssCodeSplit:false,lib:{entry,formats:["iife"],name:"StructuralFixture"}}});
   const outputs=(Array.isArray(result)?result:[result]).flatMap(v=>"output"in v?v.output:[]);
@@ -66,5 +66,17 @@ test("Avatar covers both intrinsic orientations without exposing fallback at enl
    await expect(image).toHaveCSS("object-fit","cover");
    await info.attach(`avatar-${wide?"landscape":"portrait"}-${base}.png`,{body:await avatar.screenshot(),contentType:"image/png"});
   }
+ }
+});
+
+test("EmptyState icon surface stays square and centers its glyph at enlarged root text",async({page})=>{
+ await openFixture(page);
+ for(const size of [16,20]){
+  await page.evaluate(size=>document.documentElement.style.fontSize=size+"px",size);
+  const geometry=await page.locator('#empty .flood-empty-state__icon').evaluate(surface=>{
+   const box=surface.getBoundingClientRect(),icon=surface.querySelector('.flood-icon')!.getBoundingClientRect();
+   return {width:box.width,height:box.height,dx:(icon.left+icon.width/2)-(box.left+box.width/2),dy:(icon.top+icon.height/2)-(box.top+box.height/2)};
+  });
+  expect(geometry.width).toBeCloseTo(geometry.height,1);expect(Math.abs(geometry.dx)).toBeLessThan(.5);expect(Math.abs(geometry.dy)).toBeLessThan(.5);
  }
 });

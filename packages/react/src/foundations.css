@@ -12,7 +12,7 @@
 .flood-root .flood-list[data-marker="false"] { list-style: none; padding: 0; }
 .flood-root .flood-empty-state { box-sizing: border-box; align-items: center; text-align: center; padding-block: var(--flood-sys-space-8); padding-inline: min(var(--flood-sys-space-8), 8%); }
 .flood-root .flood-empty-state[data-density="compact"] { padding-block: var(--flood-sys-space-6); padding-inline: min(var(--flood-sys-space-6), 8%); }
-.flood-root .flood-empty-state__icon { padding: var(--flood-sys-space-3); border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-surface-default); }
+.flood-root .flood-empty-state__icon { display:grid; place-items:center; flex:none; padding: var(--flood-sys-space-3); border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-surface-default); }
 .flood-root .flood-empty-state__actions { justify-content: center; }
 .flood-root :is(.flood-container, .flood-grid, .flood-aspect-ratio, .flood-list, .flood-image, .flood-empty-state)[hidden] { display: none; }
 

@@ -50,7 +50,7 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
           label={<VisuallyHidden>{labels.selectPage??"Select rows on this page"}</VisuallyHidden>}
           checked={all} indeterminate={some&&!all} disabled={blocked||pageChoices.length===0}
           onChange={event=>{const ids=new Set(selection);for(const row of pageChoices)event.currentTarget.checked?ids.add(row.id):ids.delete(row.id);select([...ids]);}}/></th>}
-        {columns.map(column=><th key={column.id} scope="col" aria-sort={sorting?.column===column.id?sorting.direction:undefined} style={{textAlign:column.align??"start",width:column.width}}>
+        {columns.map(column=><th key={column.id} scope="col" data-sortable={column.sortable||undefined} aria-sort={sorting?.column===column.id?sorting.direction:undefined} style={{textAlign:column.align??"start",width:column.width}}>
           {column.sortable?<Button variant="ghost" size="sm" disabled={blocked} className="flood-data-table__sort"
             aria-label={(labels.sort??((label:string)=>`Sort by ${label}`))(column.label)} onClick={()=>changeSort(column.id)}>
             {column.label}<IconSlot size="sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

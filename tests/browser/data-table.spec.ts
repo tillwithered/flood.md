@@ -18,6 +18,19 @@ h(Button,{onClick:()=>S('loading')},'Load'),h(Button,{onClick:()=>S('error')},'F
 }
 async function open(page:Page){bundled??=fixture();await page.route("**/__data-table.html",async route=>route.fulfill({contentType:"text/html",body:await bundled}));await page.goto("/__data-table.html");}
 const names=(page:Page)=>page.locator("tbody tr td:nth-child(2)").allTextContents();
+test("DataTable sort targets have side clearance while header text aligns with body cells",async({page})=>{
+  await open(page);
+  const geometry=await page.getByRole("button",{name:"Sort by Name"}).evaluate(button=>{
+    const text=[...button.childNodes].find(node=>node.nodeType===Node.TEXT_NODE)!;
+    const range=document.createRange();range.selectNodeContents(text);
+    const bounds=button.getBoundingClientRect(),label=range.getBoundingClientRect();
+    const body=button.closest("table")!.querySelector("tbody tr td:nth-child(2)")!;
+    const bodyRange=document.createRange();bodyRange.selectNodeContents(body);
+    return {inset:label.left-bounds.left,header:label.left,body:bodyRange.getBoundingClientRect().left};
+  });
+  expect(geometry.inset).toBeGreaterThanOrEqual(8);
+  expect(geometry.header).toBeCloseTo(geometry.body,0);
+});
 test("DataTable sorts rich numeric cells stably and leaves missing values last",async({page})=>{
   await open(page);const sort=page.getByRole("button",{name:"Sort by Score"});
   await sort.click();expect(await names(page)).toEqual(["Bravo","Charlie"]);await expect(page.getByRole("columnheader",{name:"Sort by Score"})).toHaveAttribute("aria-sort","ascending");
