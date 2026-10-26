@@ -68,9 +68,14 @@ export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGrid
     if((granularity==="month"&&view==="months")||granularity==="year"){
       if(readOnly)return;requestMonth(target);onDayActivate?.(view==="years"?`${period}-01-01`:`${period}-01`);return;
     }
+    if(baseView==="days")pendingFocus.current=`${target}-01`;
     requestMonth(target);setView(baseView);setFocusView(false);
     root.current?.ownerDocument.defaultView?.requestAnimationFrame(()=>{
-      if(baseView==="days")focusDay(`${visibleMonth??target}-01`);
+      if(baseView==="days"){
+        const pending=pendingFocus.current;
+        if(pending&&pending.slice(0,7)===root.current?.dataset.calendarMonth&&buttons.current.has(pending)){pendingFocus.current=undefined;focusDay(pending);}
+        else root.current?.querySelector<HTMLButtonElement>('button[data-calendar-date][tabindex="0"]')?.focus({preventScroll:true});
+      }
       else root.current?.querySelector<HTMLButtonElement>('[data-calendar-period][tabindex="0"]')?.focus({preventScroll:true});
     });
   };
@@ -123,7 +128,7 @@ export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGrid
         {showViewControls&&granularity!=="year"?<Button variant="outline" size="sm" disabled={effectiveDisabled} aria-label={`${viewNames.year}: ${year}`} aria-pressed={view==="years"} onClick={()=>view==="years"?restoreDays():switchView("years")}>{view==="years"?`${yearStart}–${Math.min(9999,yearStart+11)}`:year}</Button>:<span>{granularity==="year"?`${yearStart}–${Math.min(9999,yearStart+11)}`:year}</span>}
 
   </>;
-  return <div {...props} id={id} ref={root} className={cx("flood-calendar",className)} role="group" aria-label={label} data-disabled={effectiveDisabled||undefined} data-readonly={readOnly||undefined} data-view={view} data-calendar-direction={direction}
+  return <div {...props} id={id} ref={root} className={cx("flood-calendar",className)} role="group" aria-label={label} data-disabled={effectiveDisabled||undefined} data-readonly={readOnly||undefined} data-view={view} data-calendar-month={month} data-calendar-direction={direction}
     onBlur={event=>{onBlur?.(event);if(event.relatedTarget&&!event.currentTarget.contains(event.relatedTarget as Node))pendingFocus.current=undefined;}}
     onPointerLeave={event=>{onPointerLeave?.(event);if(event.defaultPrevented)return;const focused=root.current?.ownerDocument.activeElement as HTMLElement|null;onDayPreview?.(focused&&root.current?.contains(focused)?focused.dataset.calendarDate:undefined);}}
     onKeyDown={event=>{

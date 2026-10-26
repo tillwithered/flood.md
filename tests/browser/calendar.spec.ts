@@ -37,6 +37,12 @@ test('Calendar grid and selected day expose consistent accessible roles and name
  await open(page);await expect(page.locator('#basic [role="row"]')).toHaveCount(7);await expect(page.locator('#basic [role="gridcell"][aria-selected="true"]')).toHaveCount(1);await expect(page.locator('#basic [data-flood-autofocus="true"]')).toHaveCount(1);const results=await new AxeBuilder({page}).include('#basic').analyze();expect(results.violations).toEqual([]);
 });
 
+test('controlled period navigation restores focus to accepted days and preserves it on refusal',async({page})=>{
+ await open(page);const accepted=page.locator('#controlled');await accepted.getByRole('button',{name:'Month: February',exact:true}).click();await accepted.getByRole('button',{name:'June 2024',exact:true}).click();await expect(day(page,'controlled','2024-06-01')).toBeFocused();
+ await accepted.getByRole('button',{name:'Year: 2024',exact:true}).click();await accepted.getByRole('button',{name:'2023',exact:true}).click();await expect(day(page,'controlled','2023-06-01')).toBeFocused();
+ const refused=page.locator('#held');await refused.getByRole('button',{name:'Month: February',exact:true}).click();await refused.getByRole('button',{name:'March 2024',exact:true}).click();await expect(day(page,'held','2024-02-29')).toBeFocused();await expect(refused.getByRole('grid')).toHaveAccessibleName(/February 2024/);
+});
+
 test('Russian month names are capitalized and view buttons share a quiet outlined group',async({page})=>{
  await open(page);const calendar=page.locator('#localized'),month=calendar.getByRole('button',{name:'Month: Февраль',exact:true});await expect(month).toHaveText('Февраль');
  for(const button of [month,calendar.getByRole('button',{name:'Year: 2024',exact:true})]){await expect(button.locator('svg')).toHaveCount(0);expect(await button.evaluate(node=>getComputedStyle(node).backgroundColor)).toBe('rgba(0, 0, 0, 0)');}
