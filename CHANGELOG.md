@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.6 · 2026-10-26
+
+- Let Breadcrumb separators use their intrinsic flex width in Firefox/Zen, preventing the last character of fitting labels from wrapping. Preserve normal item wrapping, long-label reflow, spacing and existing API/token values.
+- Cover Grid and Stack alongside Pagination in Chromium, Firefox and WebKit, including constrained widths, enlarged text and RTL.
+
 ## 0.2.5 · 2026-10-26
 
 - Add 20 original content, form, navigation, layout and feedback components, with generated documentation and live recipes: AvatarGroup, StatusIndicator, Figure, Blockquote, InlineCode, Metric, Timeline, NavigationList, Steps, Section, Split, Center, SkipLink, ListBox, PinInput, Rating, Dropzone, CharacterCount, CopyButton and ToastRegion.

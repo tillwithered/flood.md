@@ -187,7 +187,7 @@
 .flood-root .flood-breadcrumb a { display: inline-flex; align-items: center; min-block-size: var(--flood-sys-control-sm-height); color: var(--flood-sys-color-content-subtle); text-decoration: none; }
 .flood-root .flood-breadcrumb a:hover { text-decoration: underline; }
 .flood-root .flood-breadcrumb [aria-current="page"] { color: var(--flood-sys-color-content-default); }
-.flood-root .flood-breadcrumb__separator { flex: none; color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-breadcrumb__separator { flex: none; min-inline-size: 0; color: var(--flood-sys-color-content-subtle); }
 .flood-root .flood-pagination ul { gap: var(--flood-sys-space-1); }
 .flood-root .flood-pagination .flood-page { min-inline-size: var(--flood-control-height); padding-inline: var(--flood-sys-space-1); text-decoration: none; }
 .flood-root .flood-pagination:dir(rtl) .flood-page > svg { transform: scaleX(-1); }

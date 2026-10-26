@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-for (const destination of [{slug:"pagination",label:"Pagination"},{slug:"stack",label:"Stack"}]) {
+for (const destination of [{slug:"pagination",label:"Pagination"},{slug:"stack",label:"Stack"},{slug:"grid",label:"Grid"}]) {
 test(`Breadcrumb keeps ${destination.label} labels whole and wraps items before breaking words`, async ({ page }, info) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.goto(`/components/${destination.slug}`);
