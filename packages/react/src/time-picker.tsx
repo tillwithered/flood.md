@@ -45,11 +45,11 @@ export const ClockTimePicker=/* @__PURE__ */ forwardRef<HTMLDivElement,TimePicke
     precision={precision} step={step} min={min} max={max} form={form} disabled={disabled} readOnly={readOnly} controlSize={controlSize}
     className={["flood-time-picker",className].filter(Boolean).join(" ")} onKeyDown={event=>{
       onKeyDown?.(event);if(!event.defaultPrevented&&!event.nativeEvent.isComposing&&event.keyCode!==229&&event.altKey&&event.key==="ArrowDown"&&(event.target as HTMLElement).matches("input[data-time-segment]")){event.preventDefault();request(true);}
-    }} end={<Popover title={title} open={!blocked&&requestedOpen} onOpenChange={request} disabled={blocked} initialFocusRef={list} positionReference={positionReference}
+    }} end={<Popover title={title} chrome="minimal" align="end" open={!blocked&&requestedOpen} onOpenChange={request} disabled={blocked} initialFocusRef={list} positionReference={positionReference}
       className="flood-time-picker__panel" style={{"--flood-time-picker-width":width?`${width}px`:undefined}as CSSProperties}
       trigger={trigger=><IconButton {...trigger} label={openTimeLabel??`Choose time: ${label}`} variant="ghost" size={triggerSizes[controlSize]}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></IconButton>}>
       <ScrollArea className="flood-time-picker__scroll" orientation="vertical" tabIndex={-1}>
-        <ListBox ref={list} label={title} hideLabel selectionBehavior="manual" options={options} value={options.some(option=>option.value===committed)?committed:""} controlSize={controlSize}
+        <ListBox ref={list} label={title} hideLabel appearance="plain" selectionBehavior="manual" options={options} value={options.some(option=>option.value===committed)?committed:""} controlSize={controlSize}
           onValueChange={next=>{change(typeof next==="string"?next:next[0]??"");request(false);}}/>
       </ScrollArea>
     </Popover>}/>;

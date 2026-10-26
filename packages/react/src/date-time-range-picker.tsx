@@ -33,7 +33,7 @@ export const CivilDateTimeRangePicker=/* @__PURE__ */ forwardRef<HTMLDivElement,
     const reset=(event:Event)=>{const timer=setTimeout(()=>{timers.delete(timer);if(event.defaultPrevented)return;if(value===undefined)setLocal(copy(initial.current));setProposal(undefined);},0);timers.add(timer);};
     owner.addEventListener("reset",reset);return()=>{owner.removeEventListener("reset",reset);timers.forEach(clearTimeout);};
   },[form,value===undefined]);
-  const shared={form,required,disabled,readOnly,controlSize,precision,order,locale,minDate,maxDate,step,timeInterval:interval,status};
+  const shared={form,required,disabled,readOnly,controlSize,precision,order,locale,minDate,maxDate,step,timeInterval:interval,status,hideFieldLabels:true};
   return <div {...props} ref={root} className={["flood-date-time-range-picker",className].filter(Boolean).join(" ")} onBlur={event=>{
     onBlur?.(event);if(!event.defaultPrevented&&!event.currentTarget.contains(event.relatedTarget as Node|null))setProposal(undefined);
   }}>

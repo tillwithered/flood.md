@@ -32,7 +32,7 @@ function useInheritedDisabled(ref: RefObject<HTMLInputElement | null>, disabled:
 }
 
 export const CollectionListBox = /* @__PURE__ */ forwardRef<HTMLDivElement, ListBoxProps>(function CollectionListBox({
-  label, hideLabel = false, options, value, defaultValue, onValueChange, multiple = false, selectionBehavior="automatic",
+  label, hideLabel = false, options, value, defaultValue, onValueChange, multiple = false, selectionBehavior="automatic", appearance="surface",
   disabled = false, readOnly = false, name, form, controlSize = "md", id: explicitId,
   className, onKeyDown, onFocus, ...props
 }, forwardedRef) {
@@ -73,8 +73,8 @@ export const CollectionListBox = /* @__PURE__ */ forwardRef<HTMLDivElement, List
       aria-label={props["aria-label"]} aria-labelledby={props["aria-label"] ? undefined : props["aria-labelledby"] ?? `${id}-label`}
       aria-multiselectable={multiple || undefined} aria-disabled={effectiveDisabled || undefined} aria-readonly={readOnly || undefined}
       aria-activedescendant={options[active] ? `${id}-option-${active}` : undefined}
-      className={cx("flood-list-box", `flood-control--${controlSize}`, className)}
-      onFocus={event => { onFocus?.(event); if (!options[active] || options[active].disabled) setActive(first); }}
+      data-appearance={appearance} className={cx("flood-list-box", `flood-control--${controlSize}`, className)}
+      onFocus={event => { onFocus?.(event); if (!options[active] || options[active].disabled) setActive(first); else root.current?.querySelector<HTMLElement>(`[id="${id}-option-${active}"]`)?.scrollIntoView({block:"nearest"}); }}
       onKeyDown={event => {
         onKeyDown?.(event);
         if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || blocked()) return;

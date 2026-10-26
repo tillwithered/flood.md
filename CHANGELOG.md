@@ -2,7 +2,11 @@
 
 ## 0.2.8 — source preview
 
-- Add TimePicker, MonthYearPicker and DateTimeRangePicker from existing primitives.
+- Unify Calendar day/month/year views without nested overlays; fold the unpublished MonthYearPicker into Calendar.
+- Refine time selection and reduce repeated labels in date/time ranges.
+- Add minimal Popover chrome, plain ListBox appearance and DateTimePicker field-label visibility for library compositions.
+
+- Add TimePicker and DateTimeRangePicker from existing primitives.
 - Add manual ListBox selection and a TimeField end slot; enable quick Calendar month/year navigation.
 
 - Add the primitives-first composition skill to the versioned agent bundle; preserve StatusIndicator in upload rows.

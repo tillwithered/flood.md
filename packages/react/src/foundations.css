@@ -211,6 +211,7 @@
 .flood-root .flood-overlay-close { flex: none; align-self: flex-start; }
 .flood-root .flood-overlay-title { margin: 0; min-inline-size: 0; font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); font-weight: var(--flood-sys-type-label-weight); overflow-wrap: anywhere; }
 .flood-root .flood-overlay-body { margin-block-start: var(--flood-sys-space-3); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
+.flood-root .flood-popover[data-chrome="minimal"] > .flood-overlay-body { margin-block-start:0; }
 .flood-root .flood-overlay-description { margin: var(--flood-sys-space-2) 0 0; color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
 .flood-root .flood-dialog { padding: var(--flood-sys-space-6); inline-size: min(32rem, calc(100% - var(--flood-sys-space-8))); max-inline-size: calc(100% - var(--flood-sys-space-8)); max-block-size: calc(100dvh - var(--flood-sys-space-8)); overflow: auto; }
 .flood-root .flood-dialog:not([open]) { display: none; }

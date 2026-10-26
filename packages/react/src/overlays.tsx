@@ -1,6 +1,6 @@
 import {forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState} from "react";
 import type {TooltipProps,PopoverProps,DialogProps,OverlayTriggerProps} from "./index.js";
-import {IconButton,ScrollArea} from "./index.js";
+import {IconButton,ScrollArea,VisuallyHidden} from "./index.js";
 import {positionLayer,registerLayer,returnFocus,lockScroll,tabbables} from "./overlay-runtime.js";
 import {mergeDescriptions} from "./field-state.js";
 const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffect;
@@ -72,11 +72,11 @@ export const AnchoredOverlay=/* @__PURE__ */ forwardRef<HTMLDivElement,AnchoredP
     onPointerLeave:()=>{hovered.current=false;leave();},onFocus:()=>{focused.current=true;enter(true)},onBlur:()=>{focused.current=false;leave()},
   }:{disabled,"aria-haspopup":"dialog","aria-expanded":open,"aria-controls":id,onClick:()=>request(!open)})};
   // Remove component-only props before forwarding native div attributes.
-  const {title:unusedTitle,content:unusedContent,children:unusedChildren,open:unusedOpen,defaultOpen:unusedDefault,onOpenChange:unusedChange,delay:unusedDelay,closeLabel:unusedClose,initialFocusRef:unusedFocus,positionReference:unusedPosition,...attributes}=native as Partial<PopoverProps&TooltipProps>;
+  const {title:unusedTitle,chrome:unusedChrome,content:unusedContent,children:unusedChildren,open:unusedOpen,defaultOpen:unusedDefault,onOpenChange:unusedChange,delay:unusedDelay,closeLabel:unusedClose,initialFocusRef:unusedFocus,positionReference:unusedPosition,...attributes}=native as Partial<PopoverProps&TooltipProps>;
   return <>{trigger(triggerProps)}<div {...attributes} ref={panel} id={id} popover="manual" role={kind==="tooltip"?"tooltip":"dialog"} aria-labelledby={kind==="popover"?`${id}-title`:undefined}
-    tabIndex={kind==="popover"?-1:undefined} className={["flood-overlay-panel",kind==="tooltip"?"flood-tooltip":"flood-popover",className].filter(Boolean).join(" ")} style={style}
+    tabIndex={kind==="popover"?-1:undefined} data-chrome={kind==="popover"?pop.chrome:undefined} className={["flood-overlay-panel",kind==="tooltip"?"flood-tooltip":"flood-popover",className].filter(Boolean).join(" ")} style={style}
     onPointerEnter={event=>{attributes.onPointerEnter?.(event);if(kind==="tooltip"){overPanel.current=true;clear()}}} onPointerLeave={event=>{attributes.onPointerLeave?.(event);if(kind==="tooltip"){overPanel.current=false;leave()}}}>
-    {kind==="tooltip"?tip.content:<><div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{pop.title}</h2><OverlayClose label={pop.closeLabel??"Close"} onClick={close} /></div>{open&&<div className="flood-overlay-body">{pop.children}</div>}</>}
+    {kind==="tooltip"?tip.content:<>{pop.chrome==="minimal"?<VisuallyHidden><h2 id={`${id}-title`}>{pop.title}</h2></VisuallyHidden>:<div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{pop.title}</h2><OverlayClose label={pop.closeLabel??"Close"} onClick={close} /></div>}{open&&<div className="flood-overlay-body">{pop.children}</div>}</>}
   </div></>;
 });
 

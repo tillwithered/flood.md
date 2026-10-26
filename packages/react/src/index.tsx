@@ -62,7 +62,6 @@ import { CalendarDateRangePicker } from "./date-range-picker.js";
 import { ContextActionMenu } from "./context-menu.js";
 import { SelectionTree } from "./tree.js";
 import { ClockTimePicker } from "./time-picker.js";
-import { MonthYearNavigation } from "./month-year-picker.js";
 import { CivilDateTimeRangePicker } from "./date-time-range-picker.js";
 import { FileRecord, UploadRecord, ModalImagePreview, FileMetadata } from "./file-records.js";
 import { ManagedDataTable } from "./data-table.js";
@@ -83,20 +82,6 @@ export interface TimePickerProps extends Omit<TimeFieldProps,"end"> {
 }
 /** @since 0.2.8 */
 export const TimePicker = /* @__PURE__ */ forwardRef<HTMLDivElement,TimePickerProps>(function TimePicker(props,ref){return <ClockTimePicker {...props} ref={ref}/>;});
-export interface MonthYearPickerProps extends Omit<HTMLAttributes<HTMLDivElement>,"children"|"onChange"|"defaultValue"> {
-  value: string;
-  onValueChange?: (month: string) => void;
-  min?: string;
-  max?: string;
-  locale?: string;
-  disabled?: boolean;
-  label?: string;
-  monthLabel?: string;
-  yearLabel?: string;
-  applyLabel?: string;
-}
-/** A controlled YYYY-MM navigator, independent of date selection. @since 0.2.8 */
-export const MonthYearPicker = /* @__PURE__ */ forwardRef<HTMLDivElement,MonthYearPickerProps>(function MonthYearPicker(props,ref){return <MonthYearNavigation {...props} ref={ref}/>;});
 export interface DateTimeRangeValue { start: DateTimeValue; end: DateTimeValue; }
 export interface DateTimeRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement>,"children"|"defaultValue"|"onChange"> {
   label: string;
@@ -338,6 +323,7 @@ export interface DateTimePickerProps extends Omit<HTMLAttributes<HTMLDivElement>
   validationMessage?: string;
   timeInterval?: number;
   hideLabel?: boolean;
+  hideFieldLabels?: boolean;
   value?: DateTimeValue;
   defaultValue?: DateTimeValue;
   onValueChange?: (value: DateTimeValue) => void;
@@ -459,7 +445,7 @@ export const ResizablePanels = /* @__PURE__ */ forwardRef<HTMLDivElement, Resiza
   { orientation = "horizontal", defaultValue = 50, min = 10, max = 90, step = 1, largeStep = 10, ...props }, ref,
 ) { return <ResizablePaneGroup {...props} ref={ref} orientation={orientation} defaultValue={defaultValue} min={min} max={max} step={step} largeStep={largeStep} />; });
 export interface DateRangeValue { start: string; end: string; }
-export interface RangeCalendarProps extends Omit<CalendarProps, "value" | "defaultValue" | "onValueChange" | "onDateSelect"> {
+export interface RangeCalendarProps extends Omit<CalendarProps, "value" | "defaultValue" | "onValueChange" | "onDateSelect" | "granularity"> {
   value?: DateRangeValue;
   defaultValue?: DateRangeValue;
   onValueChange?: (range: DateRangeValue) => void;
@@ -526,8 +512,10 @@ export const DatePicker = /* @__PURE__ */ forwardRef<HTMLDivElement, DatePickerP
 
 export interface CalendarProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange" | "children"> {
   label: string;
-  showMonthYearPicker?: boolean;
-  monthYearLabels?: {label?:string;month?:string;year?:string;apply?:string};
+  /** Values and bounds use YYYY-MM-DD, YYYY-MM or YYYY respectively. */
+  granularity?: "day" | "month" | "year";
+  showViewControls?: boolean;
+  viewLabels?: {month?:string;year?:string;previous?:string;next?:string};
   value?: string;
   defaultValue?: string;
   onValueChange?: (date: string) => void;
@@ -1031,6 +1019,7 @@ export const Tooltip = /* @__PURE__ */ forwardRef<HTMLDivElement, TooltipProps>(
 ) { return <AnchoredOverlay {...props} ref={ref} kind="tooltip" side={side} align={align} delay={delay} disabled={disabled} />; });
 export interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title" | "role"> {
   title: string;
+  chrome?: "default" | "minimal";
   trigger: (props: OverlayTriggerProps) => ReactNode;
   children?: ReactNode;
   open?: boolean;
@@ -2101,6 +2090,7 @@ export interface ListBoxProps extends Omit<HTMLAttributes<HTMLDivElement>, "chil
   onValueChange?: (value: string | string[]) => void;
   multiple?: boolean;
   selectionBehavior?: "automatic" | "manual";
+  appearance?: "surface" | "plain";
   disabled?: boolean;
   readOnly?: boolean;
   name?: string;

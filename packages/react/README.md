@@ -9,7 +9,7 @@ shared stylesheet explicitly; styles are not split by component.
 This package documents the **0.2.8** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
-Version 0.2.8 adds TimePicker, MonthYearPicker, DateTimeRangePicker,
+Version 0.2.8 adds TimePicker, DateTimeRangePicker, unified Calendar day/month/year views,
 HoverCard, ColorSwatch, ColorPicker, TreeSelect,
 DateTimePicker, DataList, DataListItem, CheckCard, RadioCard, DataTable, FileItem/FileList, FileMeta, UploadItem/UploadList and ImagePreview. Color values are opaque RGB hex; TreeSelect selects one item;
 DateTimePicker retains separate civil date and clock fields without inferring a

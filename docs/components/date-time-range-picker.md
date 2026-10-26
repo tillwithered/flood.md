@@ -28,3 +28,6 @@ Native reset restores uncontrolled defaults and respects reset cancellation.
 
 Use `hideLabel`, endpoint labels, field labels, `locale`, `order`, `controlSize`,
 `description` and `status` to adapt the composition.
+
+Only the range legend and Start/End legends are visible. Individual field labels
+remain accessible to assistive technology without repeating four extra headings.

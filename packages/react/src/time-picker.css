@@ -1,2 +1,2 @@
-.flood-root .flood-time-picker__panel { inline-size:min(var(--flood-time-picker-width,22rem),var(--flood-overlay-available-width,calc(100dvw - 1rem))); }
-.flood-root .flood-time-picker__scroll { max-block-size:min(18rem,var(--flood-overlay-available-height,60dvh)); }
+.flood-root .flood-time-picker__panel { inline-size:min(var(--flood-time-picker-width,22rem),var(--flood-overlay-available-width,calc(100dvw - 1rem))); padding:var(--flood-sys-space-1); }
+.flood-root .flood-time-picker__scroll { max-block-size:min(15rem,calc(var(--flood-overlay-available-height,60dvh) - 1rem)); }

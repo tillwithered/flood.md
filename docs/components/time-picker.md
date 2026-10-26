@@ -18,6 +18,10 @@ Arrow keys move through suggestions; Enter or a click confirms and closes.
 Alt+ArrowDown opens from a time segment. Escape cancels without changing the
 value. The popup follows the field width and preserves Popover focus behavior.
 
+The compact popup uses minimal Popover chrome and a plain ListBox inside one
+ScrollArea. It has no redundant title row or second scroll container, and opens
+with the selected suggestion visible. Its trailing action matches DatePicker.
+
 `value`/`defaultValue`/`onValueChange` follow TimeField. `open`, `defaultOpen` and
 `onOpenChange` control the popup. `panelLabel` and `openTimeLabel` localize its
 names. Readonly fields retain values and prevent opening; disabled fields do not

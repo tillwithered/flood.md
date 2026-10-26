@@ -1455,13 +1455,15 @@
     "slug": "calendar",
     "name": "Calendar",
     "group": "forms",
-    "description": "A Gregorian date grid with month navigation, keyboard focus and explicit selection ownership.",
+    "description": "One calendar with day, month and year views, without nested popups.",
     "code": "<Calendar label=\"Choose a date\" defaultValue=\"2026-10-26\" today=\"2026-10-26\" weekStartsOn={1} />",
     "notes": [
       "Calendar is a standalone visual collection. DateField handles text entry and DatePicker composes the field and calendar layer.",
       "Values use canonical YYYY-MM-DD and visibleMonth uses YYYY-MM. Locale formats Gregorian month/day names; weekStartsOn is explicit.",
       "Arrows move dates; Home/End move within a week and PageUp/PageDown navigate months. Controlled month refusal preserves a real focused day. Disabled dates remain discoverable but cannot select.",
-      "The host owns selected values, availability and side effects. Provide today for a deterministic clock in tests or rendering. Min/max bound navigation; readonly prevents selection while allowing browsing. Introduced in 0.2.7."
+      "The host owns selected values, availability and side effects. Provide today for a deterministic clock in tests or rendering. Min/max bound navigation; readonly prevents selection while allowing browsing. Introduced in 0.2.7.",
+      "Month and year controls replace the content of this calendar. Selecting a navigation period returns to days without changing the selected date.",
+      "granularity=\"day\" | \"month\" | \"year\" chooses YYYY-MM-DD, YYYY-MM or YYYY."
     ],
     "imports": [
       "Calendar"
@@ -1856,24 +1858,11 @@
     "code": "<TimePicker label=\"Start time\" name=\"time\" defaultValue=\"09:30\" min=\"08:00\" max=\"18:00\" interval={1800} />",
     "notes": [
       "Interval and step use seconds; the list contains at most 1000 entries.",
-      "Manual entry remains available; this is wall-clock time without timezone conversion."
+      "Manual entry remains available; this is wall-clock time without timezone conversion.",
+      "One flat list, with selected-time visibility and a trailing action aligned with DatePicker."
     ],
     "imports": [
       "TimePicker"
-    ]
-  },
-  {
-    "slug": "month-year-picker",
-    "name": "MonthYearPicker",
-    "group": "navigation",
-    "description": "A controlled month/year navigator composed from Popover, Select and NumberInput.",
-    "code": "<MonthYearPicker value=\"2026-10\" onValueChange={setMonth} />",
-    "notes": [
-      "Value and bounds use YYYY-MM. The host accepts the change.",
-      "The draft applies explicitly; opening/cancelling does not change the month."
-    ],
-    "imports": [
-      "MonthYearPicker"
     ]
   },
   {
@@ -1884,7 +1873,8 @@
     "code": "<DateTimeRangePicker label=\"Booking\" startDateName=\"startDate\" startTimeName=\"startTime\" endDateName=\"endDate\" endTimeName=\"endTime\"\n  defaultValue={{start:{date:\"2026-10-27\",time:\"09:00\"},end:{date:\"2026-10-27\",time:\"18:00\"}}} required />",
     "notes": [
       "Incomplete and reversed ranges do not contribute accepted values.",
-      "No timezone or timestamp inference. Server availability remains host owned."
+      "No timezone or timestamp inference. Server availability remains host owned.",
+      "Only range and endpoint headings are visible; individual field names remain accessible."
     ],
     "imports": [
       "DateTimeRangePicker"

@@ -1,10 +1,38 @@
 # Calendar
 
-The month heading opens MonthYearPicker by default. It applies a draft month/year
-without selecting a day. `showMonthYearPicker={false}` retains a plain heading;
-`monthYearLabels` supplies `label`, `month`, `year` and `apply` translations.
+The month and year buttons switch the body of this calendar between days, months
+and years. They do not open another layer. Choose a year to return to the days of
+that year, or a month to return to its days. Navigation does not select a date or
+close the surrounding DatePicker. Escape from a navigation view restores days;
+Escape from days remains available to the surrounding layer.
 
-A single-date Gregorian calendar with six stable week rows. Calendar has no popup,
+`showViewControls={false}` retains a plain heading. `viewLabels` supplies `month`,
+`year`, `previous` and `next` translations. The 0.2.8 source candidate consolidates
+the unpublished MonthYearPicker into Calendar, replacing `showMonthYearPicker`
+and `monthYearLabels` with these view controls.
+
+## Selection precision
+
+`granularity` defaults to `day`. Use the same Calendar for choosing a month or a
+year. Values, defaults, bounds and callback values match the selected precision:
+
+| granularity | Value and bounds | Initial view |
+| --- | --- | --- |
+| `day` | `YYYY-MM-DD` | Days |
+| `month` | `YYYY-MM` | Months |
+| `year` | `YYYY` | Years |
+
+```tsx
+<Calendar label="Reporting month" granularity="month" defaultValue="2026-10" />
+<Calendar label="Reporting year" granularity="year" defaultValue="2026" />
+```
+
+In month mode, choosing a year returns to months; choosing a month commits it.
+In year mode, choosing a year commits it. `onDateSelect` also receives the chosen
+precision. RangeCalendar always selects days. `isDateDisabled` applies to day
+selection only; month and year modes use their matching min/max bounds.
+
+A Gregorian calendar with six stable week rows in day view. Calendar has no popup,
 text input, form value or range-selection behavior; compose a date field and layer
 around it when those are needed.
 
@@ -21,7 +49,7 @@ import {Calendar} from "@flood-md/react";
 />
 ```
 
-`value` / `defaultValue` are ISO `YYYY-MM-DD` Gregorian dates or `""`. Clicking or
+In day mode, `value` / `defaultValue` are ISO `YYYY-MM-DD` dates or `""`. Clicking or
 pressing Enter/Space on an available day requests `onValueChange(date)`. Clicking
 the selected day does not clear it. `onDateSelect(date)` reports every allowed
 activation, including the already selected day; use it to close a composed picker

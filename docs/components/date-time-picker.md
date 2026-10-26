@@ -31,6 +31,9 @@ labels. `dateLabel`, `timeLabel`, `order` and `locale` adapt the presentation.
 The pair stacks on narrow screens. `readOnly` preserves accepted values and
 prevents editing; `disabled` excludes values from form submission.
 
+`hideFieldLabels` visually hides individual date/time labels while retaining their
+accessible names. DateTimeRangePicker uses this to avoid repeating four labels.
+
 `timeInterval` sets suggestion spacing in seconds. The time popup uses the same
 bounds and step as manual entry. `validationMessage` lets a parent composition
 associate an additional native validation constraint with the date field.

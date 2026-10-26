@@ -1,3 +1,0 @@
-.flood-root .flood-month-year-picker { inline-size:min(18rem,var(--flood-overlay-available-width,calc(100dvw - 1rem))); }
-.flood-root .flood-month-year-picker__trigger { max-inline-size:100%; gap:var(--flood-sys-space-1); }
-.flood-root .flood-month-year-picker .flood-label { display:grid; gap:var(--flood-sys-space-1); }

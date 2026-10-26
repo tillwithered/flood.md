@@ -2,6 +2,11 @@
 .flood-root .flood-calendar[hidden] { display:none; }
 .flood-root .flood-calendar__header { display:flex; align-items:center; justify-content:space-between; gap:var(--flood-sys-space-2); min-inline-size:0; }
 .flood-root .flood-calendar__month { font-size:var(--flood-sys-type-label-size); line-height:var(--flood-sys-type-label-line-height); font-weight:var(--flood-sys-type-label-weight); overflow-wrap:anywhere; }
+.flood-root .flood-calendar__month { display:flex; align-items:center; min-inline-size:0; gap:var(--flood-sys-space-1); }
+.flood-root .flood-calendar__month > .flood-button { padding-inline:var(--flood-sys-space-1); min-inline-size:0; }
+.flood-root .flood-calendar__body { --flood-calendar-cell-height:var(--flood-sys-control-sm-height); min-block-size:calc(6 * var(--flood-calendar-cell-height) + 6 * var(--flood-sys-space-1) + 1.5rem); display:grid; }
+.flood-root .flood-calendar__periods { grid-template-rows:repeat(4,minmax(0,1fr)); }
+.flood-root .flood-calendar__period-choice { inline-size:100%; block-size:100%; }
 .flood-root .flood-calendar__navigation { display:flex; align-items:center; flex:none; gap:var(--flood-sys-space-1); }
 .flood-root .flood-calendar__navigation .flood-icon { direction:ltr; }
 .flood-root .flood-calendar[data-calendar-direction="rtl"] .flood-calendar__navigation svg { rotate:180deg; }
@@ -18,6 +23,7 @@
 .flood-root .flood-calendar__day:focus-visible { outline:none; border-color:var(--flood-sys-color-focus-ring); }
 .flood-root .flood-calendar__day[aria-disabled="true"],.flood-root .flood-calendar__day:disabled { color:var(--flood-sys-color-field-disabled-content); cursor:default; }
 @media(pointer:coarse) {
+  .flood-root .flood-calendar__body { --flood-calendar-cell-height:var(--flood-sys-size-touch); }
   .flood-root .flood-calendar { padding:var(--flood-sys-space-1); }
   .flood-root .flood-calendar__week { column-gap:0; }
   .flood-root .flood-calendar__day { min-block-size:var(--flood-sys-size-touch); }

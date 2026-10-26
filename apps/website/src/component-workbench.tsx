@@ -21,7 +21,6 @@ const statusKnob = () => select("status", ["none", "error", "warning", "success"
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
   "time-picker": [select("controlSize", ["sm", "md", "lg", "xl"], "md"),select("interval", ["900", "1800", "3600"], "1800"),toggle("hideLabel"),toggle("required"),toggle("readOnly"),toggle("disabled")],
-  "month-year-picker": [select("locale", ["en-US", "ru-RU", "de-DE"], "en-US"),toggle("disabled")],
   "date-time-range-picker": [select("controlSize", ["sm", "md", "lg", "xl"], "md"),select("precision", ["minute", "second"], "minute"),select("locale", ["en-US", "ru-RU", "de-DE"], "en-US"),toggle("required",true),toggle("hideLabel"),toggle("readOnly"),toggle("disabled")],
   "file-meta": [select("format", ["PDF", "PNG", "SVG", "ZIP", "none"], "PDF"),select("size", ["0", "18400", "850000", "2400000"], "2400000"),toggle("showSize",true)],
   "file-item": [select("density", ["compact", "comfortable"], "comfortable"),toggle("showSize",true),toggle("showType",true),toggle("showActions",true),toggle("longName"),toggle("disabled")],
@@ -49,7 +48,7 @@ const knobs: Record<string, Knob[]> = {
   "date-range-picker": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), select("order", ["month-day-year", "day-month-year", "year-month-day"], "day-month-year"), select("locale", ["en-US", "ru-RU", "de-DE"], "en-US"), statusKnob(), toggle("hideLabel"), toggle("required"), toggle("readOnly"), toggle("disabled")],
   "date-picker": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), select("order", ["month-day-year", "day-month-year", "year-month-day"], "day-month-year"), select("locale", ["en-US", "ru-RU", "de-DE"], "en-US"), statusKnob(), toggle("hideLabel"), toggle("required"), toggle("readOnly"), toggle("disabled")],
   "time-field": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), select("precision", ["minute", "second"], "minute"), statusKnob(), toggle("hideLabel"), toggle("required"), toggle("readOnly"), toggle("disabled")],
-  calendar: [toggle("showMonthYearPicker",true),select("locale", ["en-US", "ru-RU", "de-DE"], "en-US"), select("weekStartsOn", ["0", "1", "6"], "1"), toggle("readOnly"), toggle("disabled")],
+  calendar: [select("granularity", ["day", "month", "year"], "day"),toggle("showViewControls",true),select("locale", ["en-US", "ru-RU", "de-DE"], "en-US"), select("weekStartsOn", ["0", "1", "6"], "1"), toggle("readOnly"), toggle("disabled")],
   "date-field": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), select("order", ["month-day-year", "day-month-year", "year-month-day"], "day-month-year"), statusKnob(), toggle("hideLabel"), toggle("required"), toggle("readOnly"), toggle("disabled")],
   "command-list": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("hideLabel"), toggle("loading"), toggle("disabled"), toggle("disableLast", true)],
   editable: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), {...select("blurAction", ["commit", "cancel", "none"], "commit"),label:"On blur"}, {...toggle("showActions", true),label:"Save / cancel"}, toggle("hideLabel"), toggle("readOnly"), toggle("disabled")],
@@ -189,8 +188,6 @@ function printRecipe(node: ElementRecipe, imports: Set<string>, icons: Set<strin
 }
 
 interface PreviewActions {
-  month: string;
-  setMonth: (month:string)=>void;
   fileStates: Record<string,string>;
   setFileState: (id:string,state:string)=>void;
   menuChecked: boolean;
@@ -222,7 +219,6 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
   };
   switch (slug) {
     case "time-picker": return element("div",{style:{width:"26rem",maxWidth:"100%"}},element("TimePicker",{label:"Start time",name:"time",defaultValue:"09:30",min:"08:00",max:"18:00",interval:Number(v.interval),controlSize:v.controlSize,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled}));
-    case "month-year-picker": return element("MonthYearPicker",{value:binding("month",actions.month),onValueChange:binding("setMonth",actions.setMonth),min:"2000-01",max:"2050-12",locale:v.locale,disabled:v.disabled});
     case "date-time-range-picker": return element("div",{style:{width:"34rem",maxWidth:"100%"}},element("DateTimeRangePicker",{label:"Booking",startDateName:"startDate",startTimeName:"startTime",endDateName:"endDate",endTimeName:"endTime",defaultValue:{start:{date:"2026-10-27",time:v.precision==="second"?"09:00:00":"09:00"},end:{date:"2026-10-27",time:v.precision==="second"?"18:00:00":"18:00"}},precision:v.precision,locale:v.locale,controlSize:v.controlSize,required:v.required,hideLabel:v.hideLabel,readOnly:v.readOnly,disabled:v.disabled}));
     case "file-meta": return element("FileMeta",{format:v.format==="none"?undefined:v.format,size:v.showSize?Number(v.size):undefined});
     case "file-item":
@@ -307,7 +303,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     case "date-range-field": return element("div",{style:{width:"38rem",maxWidth:"100%"}},element("DateRangeField",{label:"Travel dates",startName:"start",endName:"end",defaultValue:{start:"2026-10-12",end:"2026-10-18"},controlSize:v.controlSize,order:v.order,status:fieldStatus,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled}));
     case "date-range-picker": return element("div",{style:{width:"38rem",maxWidth:"100%"}},element("DateRangePicker",{label:"Travel dates",startName:"start",endName:"end",defaultValue:{start:"2026-10-12",end:"2026-10-18"},today:"2026-10-26",locale:v.locale,controlSize:v.controlSize,order:v.order,status:fieldStatus,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled}));
     case "time-field": return element("div",{style:{width:"26rem",maxWidth:"100%"}},element("TimeField",{key:String(v.precision),label:"Start time",name:"startTime",defaultValue:v.precision === "second"?"09:30:00":"09:30",precision:v.precision,controlSize:v.controlSize,status:fieldStatus,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled}));
-    case "calendar": return element("div",{style:{width:"22rem",maxWidth:"100%"}},element("Calendar",{showMonthYearPicker:v.showMonthYearPicker,label:"Choose a date",defaultValue:"2026-10-26",today:"2026-10-26",locale:v.locale,weekStartsOn:Number(v.weekStartsOn),readOnly:v.readOnly,disabled:v.disabled}));
+    case "calendar": return element("div",{style:{width:"22rem",maxWidth:"100%"}},element("Calendar",{key:v.granularity,granularity:v.granularity,showViewControls:v.showViewControls,label:"Choose a date",defaultValue:v.granularity==="year"?"2026":v.granularity==="month"?"2026-10":"2026-10-26",today:"2026-10-26",locale:v.locale,weekStartsOn:Number(v.weekStartsOn),readOnly:v.readOnly,disabled:v.disabled}));
     case "date-picker": return element("div",{style:{width:"26rem",maxWidth:"100%"}},element("DatePicker",{label:"Start date",name:"start",defaultValue:"2026-10-26",today:"2026-10-26",locale:v.locale,controlSize:v.controlSize,order:v.order,status:fieldStatus,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled}));
     case "date-field": return element("div",{style:{width:"26rem",maxWidth:"100%"}},element("DateField",{label:"Start date",name:"start",defaultValue:"2026-10-26",controlSize:v.controlSize,order:v.order,status:fieldStatus,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled}));
     case "command-list": return element("div", {style:{width:"28rem",maxWidth:"100%"}}, element("CommandList", {label:"Search commands",controlSize:v.controlSize,hideLabel:v.hideLabel,loading:v.loading,disabled:v.disabled,items:[{id:"create",label:"New project",description:"Start a workspace for your next idea.",keywords:["add","create"],group:"Projects"},{id:"recent",label:"Recent projects",group:"Projects"},{id:"settings",label:"Open settings",description:"Manage your preferences.",group:"Workspace"},{id:"invite",label:"Invite team",disabled:v.disableLast,group:"Workspace"}],onAction:binding('(id) => setStatus(`Command: ${id}`)',(id:string)=>actions.setStatus(`Command: ${id}`))}),status);
@@ -483,7 +479,6 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   const [notifications, setNotifications] = useState<Flood.ToastItem[]>([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]);
   const stage = useRef<HTMLDivElement>(null);
   const values = state.slug === component.slug ? state.values : initialValues(component);
-  const [month,setMonth] = useState("2026-10");
   const [fileStates,setFileStates] = useState<Record<string,string>>({});
   const change = (name: string, value: string | boolean) => { setState({ slug: component.slug, values: { ...values, ...(name === "status" ? { invalid: false, ...(component.slug === "field" ? { error: false } : {}) } : {}), [name]: value } }); setStatus(""); if(name==="state")setFileStates({}); };
   const callback = useRef(onCodeChange);
@@ -496,7 +491,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
     catch { setStatus("Select the code and copy it manually."); }
   };
   const currentPage=component.slug==="pagination"?Math.min(pagination.slug===component.slug?pagination.page:1,Number(values.pageCount)):1;
-  const recipe = recipeFor(component.slug, values, { month,setMonth,fileStates,setFileState:(id,next)=>setFileStates(current=>({...current,[id]:next})), menuChecked, setMenuChecked, menuDensity, setMenuDensity, notifications, addToast:()=>setNotifications(current=>[...current,{id:crypto.randomUUID(),title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]), dismissToast:id=>setNotifications(current=>current.filter(item=>item.id!==id)), status, setStatus, checked: (checked) => change("checked", checked), visible: visible => {
+  const recipe = recipeFor(component.slug, values, { fileStates,setFileState:(id,next)=>setFileStates(current=>({...current,[id]:next})), menuChecked, setMenuChecked, menuDensity, setMenuDensity, notifications, addToast:()=>setNotifications(current=>[...current,{id:crypto.randomUUID(),title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]), dismissToast:id=>setNotifications(current=>current.filter(item=>item.id!==id)), status, setStatus, checked: (checked) => change("checked", checked), visible: visible => {
     change("visible", visible);
     if (!visible) queueMicrotask(() => stage.current?.ownerDocument.getElementById(`${id}-visible`)?.focus());
   }, copy, page:currentPage,setPage:page=>setPagination({slug:component.slug,page}) });
@@ -514,7 +509,6 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   if (component.slug === "toggle-group" && values.content !== "text") { icons.add("Bold"); icons.add("Italic"); icons.add("Underline"); }
   if (component.slug === "segmented-control" && values.content !== "text") { icons.add("CalendarDays"); icons.add("CalendarRange"); icons.add("Calendar"); }
   let preamble = "";
-  if(component.slug==="month-year-picker") preamble += `  const [month, setMonth] = useState(${JSON.stringify(month)});\n`;
   if (["file-item","file-list","upload-item","upload-list"].includes(component.slug)) preamble += '  const [fileStates, setFileStates] = useState<Record<string, "queued" | "uploading" | "success" | "error" | "cancelled" | "removed">>({});\n';
   if (component.slug === "toast-region") preamble += '  const [notifications, setNotifications] = useState([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]);\n';
   const usesPresence = component.slug === "tag";
@@ -533,15 +527,15 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   if (component.slug==="pagination") preamble += `  const [page, setPage] = useState(${currentPage});\n`;
   if (component.slug === "code-snippet" && values.copyAction) preamble += `  async function copy() {\n    try {\n      await navigator.clipboard.writeText(${JSON.stringify(String(values.code))});\n      setStatus("Copied command.");\n    } catch {\n      setStatus("Select the code and copy it manually.");\n    }\n  }\n`;
   const stylesheet = importMode === "project" ? "@/ui/styles.css" : "@flood-md/react/styles.css";
-  const code = '"use client";\n\n' + (usesPresence || usesChecked || usesStatus || component.slug === "month-year-picker" || component.slug === "toast-region" || component.slug==="pagination" ? 'import { useState } from "react";\n' : "") + importStatements([...imports].sort(), importMode) + "\n" + (icons.size ? `import { ${[...icons].sort().join(", ")} } from "lucide-react";\n` : "") + `import "${stylesheet}";\n\nexport function Example() {\n` + preamble + `  return (\n${jsx}\n  );\n}\n`;
+  const code = '"use client";\n\n' + (usesPresence || usesChecked || usesStatus || component.slug === "toast-region" || component.slug==="pagination" ? 'import { useState } from "react";\n' : "") + importStatements([...imports].sort(), importMode) + "\n" + (icons.size ? `import { ${[...icons].sort().join(", ")} } from "lucide-react";\n` : "") + `import "${stylesheet}";\n\nexport function Example() {\n` + preamble + `  return (\n${jsx}\n  );\n}\n`;
   useEffect(() => { callback.current(code); importsCallback.current?.([...imports].sort()); }, [code]);
 
   const controls = componentKnobs(component).filter(knob => !(component.slug === "menu" && values.scenario === "preferences" && ["icons", "shortcuts", "disableArchive"].includes(knob.name)));
   const hasFocusAction = ["input", "input-group", "textarea", "select"].includes(component.slug);
-  const spacious = ["time-picker","file-item", "upload-item","data-list", "data-list-item", "check-card", "radio-card","color-picker", "date-time-picker", "tree-select", "tree", "navigation-tree", "list-box", "navigation-list", "steps", "section", "center", "container", "grid", "aspect-ratio", "empty-state", "card", "table", "description-list", "accordion", "input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
+  const spacious = ["calendar","time-picker","file-item", "upload-item","data-list", "data-list-item", "check-card", "radio-card","color-picker", "date-time-picker", "tree-select", "tree", "navigation-tree", "list-box", "navigation-list", "steps", "section", "center", "container", "grid", "aspect-ratio", "empty-state", "card", "table", "description-list", "accordion", "input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
   const labelFor = (knob: Knob) => knob.label ?? ({ controlSize: "Size", contentInset: "Content clearance", readOnly: "Read only", copyAction: "Copy button", label: "Accessible name" } as Record<string, string>)[knob.name] ?? knob.name[0].toUpperCase() + knob.name.slice(1);
   return <section className="component-workbench" aria-label={`${component.name} live playground`}>
-    <div className="workbench-title"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setPagination({slug:component.slug,page:1}); setResetKey((key) => key + 1); setMonth("2026-10"); setFileStates({}); setMenuChecked(true); setMenuDensity("Compact"); setNotifications([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]); }}>Reset</Flood.Button></Flood.Inline></div>
+    <div className="workbench-title"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setPagination({slug:component.slug,page:1}); setResetKey((key) => key + 1); setFileStates({}); setMenuChecked(true); setMenuDensity("Compact"); setNotifications([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]); }}>Reset</Flood.Button></Flood.Inline></div>
     <div className="workbench-stage preview-stage" data-component={component.slug} data-size={["heading", "timeline", "toast-region", "dropzone", "color-picker", "data-table", "file-list", "upload-list", "date-time-range-picker"].includes(component.slug) ? "display" : spacious ? "regular" : "compact"} ref={stage} key={component.slug + resetKey}><Flood.FloodRoot>{renderRecipe(recipe)}</Flood.FloodRoot></div>
     {controls.length > 0 && <div className="workbench-controls" aria-label={`${component.name} API controls`}>
       {controls.map((knob) => typeof knob.initial === "boolean" ?

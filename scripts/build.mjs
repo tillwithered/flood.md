@@ -43,7 +43,7 @@ await copyFile(
   "packages/react/src/styles.css",
   "packages/react/dist/styles.css",
 );
-const componentStyles = await Promise.all(["foundations", "content-elements", "navigation-layout", "form-controls", "feedback-actions", "editable", "tag-input", "command-list", "date-field", "time-field", "calendar", "date-picker", "error-summary", "resizable-panels", "range-calendar", "date-range-field", "date-range-picker", "menu-extensions", "tree", "navigation-tree", "date-time-picker", "hover-card", "color-controls", "tree-select", "collection-cards", "data-table", "file-records", "time-picker", "month-year-picker", "date-time-range-picker"].map(name => readFile(`packages/react/src/${name}.css`, "utf8")));
+const componentStyles = await Promise.all(["foundations", "content-elements", "navigation-layout", "form-controls", "feedback-actions", "editable", "tag-input", "command-list", "date-field", "time-field", "calendar", "date-picker", "error-summary", "resizable-panels", "range-calendar", "date-range-field", "date-range-picker", "menu-extensions", "tree", "navigation-tree", "date-time-picker", "hover-card", "color-controls", "tree-select", "collection-cards", "data-table", "file-records", "time-picker", "date-time-range-picker"].map(name => readFile(`packages/react/src/${name}.css`, "utf8")));
 await writeFile("packages/react/dist/foundations.css", componentStyles.join("\n"));
 await cp("packages/react/src/fonts", "packages/react/dist/fonts", { recursive: true });
 for (const name of ["tokens", "react", "agent", "cli"])
