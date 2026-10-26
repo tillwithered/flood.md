@@ -251,7 +251,8 @@ host react; manual fallback belongs to the host. Localize all result labels. Lab
 reserve their shared width as centered icon–label pairs; the icon–text gap stays
 constant in each state. Defaults are Copy / Copied / Failed. A polite status
 announces success/failure. An explicit aria-label can name the action in context
-without changing its short visible labels. This refinement is part of 0.2.5.
+without changing its short visible labels; result states include the visible result
+in that name. This refinement is part of 0.2.5.
 
 ToastRegion takes a host-owned items array and onDismiss. IDs are unique/nonempty;
 limit controls the visible queue. Ordinary messages default to five seconds;

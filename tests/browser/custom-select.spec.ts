@@ -100,14 +100,15 @@ test("top-layer popup escapes clipped ancestors and clamps or flips within the v
   await trigger.click();
   const menu = page.getByRole("listbox");
   await expect(menu).toBeVisible();
-  const menuBox = (await menu.boundingBox())!, triggerBox = (await trigger.boundingBox())!;
+  const popup = page.locator(".flood-select__menu");
+  const menuBox = (await popup.boundingBox())!, triggerBox = (await trigger.boundingBox())!;
   expect(menuBox.x).toBeGreaterThanOrEqual(0);
   expect(menuBox.y).toBeGreaterThanOrEqual(0);
   expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(390);
   expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(420);
   expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(triggerBox.y + 1);
   expect(menuBox.height).toBeGreaterThan(80);
-  expect(await menu.evaluate(node => node.matches(":popover-open"))).toBe(true);
+  expect(await popup.evaluate(node => node.matches(":popover-open"))).toBe(true);
   await page.keyboard.press("End");
   await expect(await activeOption(trigger)).toBeInViewport();
   await page.keyboard.press("Enter");
@@ -139,7 +140,7 @@ test("a short popup above its trigger keeps the actual eight-pixel anchor gap", 
   await trigger.click();
   const menu = page.getByRole("listbox");
   await expect(menu).toBeVisible();
-  const triggerBox = (await trigger.boundingBox())!, menuBox = (await menu.boundingBox())!;
+  const triggerBox = (await trigger.boundingBox())!, menuBox = (await page.locator(".flood-select__menu").boundingBox())!;
   expect(menuBox.y).toBeLessThan(triggerBox.y);
   expect(triggerBox.y - menuBox.y - menuBox.height).toBeCloseTo(8, 0);
   await expect(menu.getByRole("option")).toHaveCount(2);

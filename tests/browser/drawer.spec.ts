@@ -1,4 +1,4 @@
-import {test,expect,type Page} from '@playwright/test';
+import {test,expect,type Page,type Locator} from '@playwright/test';
 import {build} from 'vite';
 import {resolve} from 'node:path';
 import {mkdir,writeFile} from 'node:fs/promises';
@@ -10,6 +10,8 @@ async function fixture(){
  const result=await build({configFile:false,logLevel:'silent',define:{'process.env.NODE_ENV':'"development"'},build:{write:false,cssCodeSplit:false,lib:{entry,formats:['iife'],name:'Fixture'}}});const output=Array.isArray(result)?result[0].output:result.output;return '<!doctype html><html lang="en"><head><title>Drawer checks</title><meta charset="utf-8"><style>'+output.filter(x=>x.type==='asset'&&x.fileName.endsWith('.css')).map(x=>(x as any).source).join('')+'</style></head><body><main id="app"></main><script>'+output.filter(x=>x.type==='chunk').map(x=>(x as any).code).join('')+'</script></body></html>';
 }
 async function open(page:Page){bundle??=fixture();await page.route('**/__drawer.html',async route=>route.fulfill({contentType:'text/html',body:await bundle}));await page.goto('/__drawer.html');}
+// Geometry belongs to the settled panel, after its real entry animation.
+async function settled(drawer:Locator){await expect(drawer).toBeVisible();await expect.poll(()=>drawer.evaluate(node=>node.getAnimations().filter(animation=>animation.playState==='running').length)).toBe(0);}
 test('Drawer owns native modal focus, nested Select Escape, backdrop optout and return focus',async({page})=>{
  await open(page);await page.getByRole('checkbox',{name:'Backdrop closing',exact:true}).uncheck();const trigger=page.getByRole('button',{name:'Open settings',exact:true});await trigger.click();const drawer=page.getByRole('dialog',{name:'Project settings',exact:true}),close=drawer.getByRole('button',{name:'Close',exact:true}),save=drawer.getByRole('button',{name:'Save settings',exact:true});await expect(drawer.getByRole('textbox',{name:'Project name',exact:true})).toBeFocused();await expect(close).toHaveClass(/flood-icon-button/);await close.focus();await page.keyboard.press('Shift+Tab');await expect(save).toBeFocused();await page.keyboard.press('Tab');await expect(close).toBeFocused();await page.mouse.click(2,2);await expect(drawer).toBeVisible();const select=drawer.getByRole('combobox',{name:'Visibility',exact:true});await select.click();await expect(page.getByRole('listbox')).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('listbox')).not.toBeVisible();await expect(drawer).toBeVisible();await page.keyboard.press('Escape');await expect(drawer).not.toBeVisible();await expect(trigger).toBeFocused();await page.getByRole('checkbox',{name:'Backdrop closing',exact:true}).check();await trigger.click();await page.mouse.click(2,2);await expect(drawer).not.toBeVisible();await expect(trigger).toBeFocused();
 });
@@ -18,7 +20,7 @@ test('Drawer resolves logical edges in RTL and keeps header/footer while long bo
  for(const dir of ['ltr','rtl']){
   await page.evaluate(dir=>document.documentElement.dir=dir,dir);
   for(const side of ['start','end','top','bottom']){
-   await page.getByRole('combobox',{name:'Drawer edge',exact:true}).selectOption(side);await page.getByRole('button',{name:'Open settings',exact:true}).click();const drawer=page.getByRole('dialog',{name:'Project settings',exact:true});const rect=(await drawer.boundingBox())!,viewport=page.viewportSize()!;const left=(side==='start'&&dir==='ltr')||(side==='end'&&dir==='rtl');
+   await page.getByRole('combobox',{name:'Drawer edge',exact:true}).selectOption(side);await page.getByRole('button',{name:'Open settings',exact:true}).click();const drawer=page.getByRole('dialog',{name:'Project settings',exact:true});await settled(drawer);const rect=(await drawer.boundingBox())!,viewport=page.viewportSize()!;const left=(side==='start'&&dir==='ltr')||(side==='end'&&dir==='rtl');
    if(side==='start'||side==='end'){expect(Math.abs(left?rect.x:viewport.width-rect.x-rect.width)).toBeLessThanOrEqual(2);expect(rect.height).toBeGreaterThan(viewport.height*.9);}else{expect(Math.abs(side==='top'?rect.y:viewport.height-rect.y-rect.height)).toBeLessThanOrEqual(2);expect(rect.width).toBeGreaterThan(viewport.width*.9);}
    const close=drawer.getByRole('button',{name:'Close',exact:true}),save=drawer.getByRole('button',{name:'Save settings',exact:true});const beforeClose=await close.boundingBox(),beforeSave=await save.boundingBox();await drawer.getByRole('textbox',{name:'Last setting',exact:true}).scrollIntoViewIfNeeded();expect((await close.boundingBox())!.y).toBe(beforeClose!.y);expect((await save.boundingBox())!.y).toBe(beforeSave!.y);await expect(save).toBeInViewport();await expect(close).toBeInViewport();await page.keyboard.press('Escape');await expect(drawer).not.toBeVisible();
   }
@@ -42,7 +44,7 @@ test('Drawer catalog stays flush with viewport despite stable scrollbar gutters 
    await trigger.scrollIntoViewIfNeeded();
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
    const before=await header.boundingBox();
-   await trigger.click();const drawer=page.getByRole('dialog',{name:'Project settings',exact:true});await expect(drawer).toBeVisible();
+   await trigger.click();const drawer=page.getByRole('dialog',{name:'Project settings',exact:true});await settled(drawer);
    const geometry=await drawer.evaluate(node=>{const rect=node.getBoundingClientRect(),title=node.querySelector('.flood-overlay-title')!.getBoundingClientRect(),description=node.querySelector('.flood-overlay-description')!.getBoundingClientRect();return{x:rect.x,y:rect.y,width:rect.width,height:rect.height,viewportWidth:innerWidth,viewportHeight:innerHeight,gap:description.top-title.bottom,padding:parseFloat(getComputedStyle(node).paddingTop),direction:(node as HTMLElement).dataset.drawerDirection,hitLeft:node.contains(document.elementFromPoint(1,rect.top+rect.height/2)),hitRight:node.contains(document.elementFromPoint(innerWidth-1,rect.top+rect.height/2))}});
    expect(geometry.direction).toBe(dir);
    const left=(side==='start'&&dir==='ltr')||(side==='end'&&dir==='rtl');
