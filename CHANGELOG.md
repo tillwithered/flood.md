@@ -2,6 +2,10 @@
 
 ## 0.2.7 - Unreleased
 
+- Add TimeField, Calendar and composed DatePicker; refine segmented field click targets and placeholder geometry.
+
+- Add grouped CommandList and segmented DateField with canonical form contracts.
+
 - Add original Editable and TagInput with catalog examples and declarations.
 - Add controlled checkbox/radio preferences to Menu.
 

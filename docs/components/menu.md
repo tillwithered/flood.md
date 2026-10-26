@@ -32,3 +32,5 @@ call `onAction`. Disabled items remain discoverable by keyboard but cannot activ
 Focus, typeahead and Escape follow the same contract for all three item types.
 
 This compatible addition is part of the unpublished 0.2.7 source candidate.
+
+The live playground separates action, preference and mixed examples. Keep destructive actions last in a separate group. Selection indicators occupy the trailing edge so combined icon/preference rows do not reserve two leading columns.

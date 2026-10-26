@@ -277,3 +277,9 @@ Checkbox, Radio and Switch apply native hidden/dir/lang to their visible label w
 Editable separates the draft from the committed value. Enter commits, Escape cancels, and blurAction selects commit/cancel/none. Controlled value/editing require host updates; keep labels localized and preserve IME input. TagInput accepts new free-form tokens; MultiSelect selects known option IDs. Only committed tags submit as repeated named form entries. Preserve readonly/disabled distinctions and required validity.
 
 Menu now supports controlled checkbox/radio preference items, with aria-checked and labeled contiguous radio groups. The host owns exclusivity and callbacks. Preferences remain open unless closeOnSelect is true; action items still dismiss and call onAction. Do not use Menu as a form selection control.
+
+CommandList (0.2.7) filters and invokes commands without a submitted form selection. The host owns effects, navigation and modal lifecycle; compose with Dialog for a command palette. Preserve the input label, active option, disabled/loading behavior and host Escape handling.
+
+DateField (0.2.7) owns a civil date, not a timestamp or time zone. Preserve its labeled segments, explicit order, required/bounds checks, invalid-draft blocking and controlled ownership. Use canonical YYYY-MM-DD values; Calendar/DatePicker are separate components.
+
+TimeField uses explicit 24-hour canonical precision and seconds-based steps. Calendar is a Gregorian date collection; DatePicker composes DateField/Calendar/Popover rather than duplicating entry or layer behavior. Preserve reset/controlled ownership, labels, keyboard focus and invalid-draft submission checks. onDateSelect confirms activation even without a value change.

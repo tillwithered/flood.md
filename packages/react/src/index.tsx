@@ -48,6 +48,135 @@ import { SearchField, PasswordField } from "./text-inputs.js";
 import { SearchSelection } from "./combobox.js";
 import { FreeTagEntry } from "./tag-input.js";
 import { InlineEditable } from "./editable.js";
+import { SearchCommandList } from "./command-list.js";
+import { SegmentedDateField } from "./date-field.js";
+import { SegmentedTimeField } from "./time-field.js";
+import { DateCalendar } from "./calendar.js";
+import { CalendarDatePicker } from "./date-picker.js";
+
+export interface DatePickerProps extends Omit<DateFieldProps, "end"> {
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  calendarLabel?: string;
+  openCalendarLabel?: string;
+  locale?: string;
+  weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  today?: string;
+  previousMonthLabel?: string;
+  nextMonthLabel?: string;
+}
+/** @since 0.2.7 */
+export const DatePicker = forwardRef<HTMLDivElement, DatePickerProps>(function DatePicker(
+  { controlSize = "md", defaultOpen = false, ...props }, ref,
+) { return <CalendarDatePicker {...props} ref={ref} controlSize={controlSize} defaultOpen={defaultOpen} />; });
+
+export interface CalendarProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange" | "children"> {
+  label: string;
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (date: string) => void;
+  onDateSelect?: (date: string) => void;
+  visibleMonth?: string;
+  defaultVisibleMonth?: string;
+  onVisibleMonthChange?: (month: string) => void;
+  min?: string;
+  max?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
+  isDateDisabled?: (date: string) => boolean;
+  weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  locale?: string;
+  autoFocus?: boolean;
+  today?: string;
+  previousMonthLabel?: string;
+  nextMonthLabel?: string;
+}
+/** @since 0.2.7 */
+export const Calendar = forwardRef<HTMLDivElement, CalendarProps>(function Calendar(
+  { weekStartsOn = 0, locale = "en-US", autoFocus = false, ...props }, ref,
+) { return <DateCalendar {...props} ref={ref} weekStartsOn={weekStartsOn} locale={locale} autoFocus={autoFocus} />; });
+export interface TimeFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange" | "children"> {
+  label: string;
+  hideLabel?: boolean;
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  precision?: "minute" | "second";
+  min?: string;
+  max?: string;
+  step?: number;
+  required?: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
+  name?: string;
+  form?: string;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  invalid?: boolean;
+  status?: FieldStatus;
+  description?: string;
+  segmentLabels?: Partial<Record<"hour" | "minute" | "second", string>>;
+  messages?: { required?: string; invalid?: string; outOfRange?: string; stepMismatch?: string };
+}
+/** @since 0.2.7 */
+export const TimeField = forwardRef<HTMLDivElement, TimeFieldProps>(function TimeField(
+  { controlSize = "md", precision = "minute", ...props }, ref,
+) { return <SegmentedTimeField {...props} ref={ref} controlSize={controlSize} precision={precision} />; });
+
+export interface DateFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange" | "children"> {
+  label: string;
+  hideLabel?: boolean;
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  min?: string;
+  max?: string;
+  required?: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
+  name?: string;
+  form?: string;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  invalid?: boolean;
+  status?: FieldStatus;
+  description?: string;
+  order?: "month-day-year" | "day-month-year" | "year-month-day";
+  segmentLabels?: Partial<Record<"day" | "month" | "year", string>>;
+  messages?: { required?: string; invalid?: string; outOfRange?: string };
+  end?: ReactNode;
+}
+/** @since 0.2.7 */
+export const DateField = forwardRef<HTMLDivElement, DateFieldProps>(function DateField(
+  { controlSize = "md", order = "month-day-year", ...props }, ref,
+) { return <SegmentedDateField {...props} ref={ref} controlSize={controlSize} order={order} />; });
+
+export interface CommandListItem {
+  id: string;
+  label: string;
+  description?: string;
+  keywords?: readonly string[];
+  disabled?: boolean;
+  group?: string;
+}
+export interface CommandListProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "defaultValue" | "onChange"> {
+  label: string;
+  hideLabel?: boolean;
+  items: readonly CommandListItem[];
+  query?: string;
+  defaultQuery?: string;
+  onQueryChange?: (query: string) => void;
+  onAction?: (id: string) => void;
+  disabled?: boolean;
+  loading?: boolean;
+  placeholder?: string;
+  emptyMessage?: string;
+  loadingMessage?: string;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+}
+/** @since 0.2.7 */
+export const CommandList = forwardRef<HTMLInputElement, CommandListProps>(function CommandList(
+  { controlSize = "md", hideLabel = false, disabled = false, loading = false, ...props }, ref,
+) { return <SearchCommandList {...props} ref={ref} controlSize={controlSize} hideLabel={hideLabel} disabled={disabled} loading={loading} />; });
 
 export interface TagInputProps extends Omit<InputProps, "type" | "value" | "defaultValue" | "onChange" | "children" | "size"> {
   label: string;

@@ -64,7 +64,6 @@ export const ActionMenu = forwardRef<HTMLDivElement, MenuProps>(function ActionM
     onKeyDown: event => { if (event.defaultPrevented || disabled || event.altKey || event.ctrlKey || event.metaKey || !["ArrowDown", "ArrowUp"].includes(event.key)) return; event.preventDefault(); edge.current = event.key === "ArrowUp" ? "last" : "first"; if (open && panel.current?.matches(":popover-open")) focusEdge(); else request(true); },
   };
   const hasIcons = items.some(item => item.type !== "separator" && item.icon != null);
-  const hasChoices = items.some(item => item.type === "checkbox" || item.type === "radio");
   const renderItem = (item: MenuProps["items"][number]) => item.type === "separator" ? <div key={item.id} role="separator" className="flood-menu__separator" /> :
     <Button key={item.id} role={item.type === "checkbox" ? "menuitemcheckbox" : item.type === "radio" ? "menuitemradio" : "menuitem"}
       aria-checked={item.type === "checkbox" || item.type === "radio" ? item.checked : undefined}
@@ -78,13 +77,13 @@ export const ActionMenu = forwardRef<HTMLDivElement, MenuProps>(function ActionM
         else { request(false); onAction?.(item.id); return; }
         if (item.closeOnSelect) request(false);
       }}>
-      {hasChoices && <span className="flood-menu__icon" aria-hidden="true">{(item.type === "checkbox" || item.type === "radio") && item.checked &&
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          {item.type === "radio" ? <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" /> : item.checked === "mixed" ? <path d="M6 12h12" /> : <path d="m5 12 4 4L19 6" />}
-        </svg>}</span>}
       {hasIcons && <span className="flood-menu__icon" aria-hidden="true">{item.icon}</span>}
       <span className="flood-menu__label">{item.label}</span>
       {item.shortcut && <span className="flood-menu__shortcut" aria-hidden="true"><Kbd>{item.shortcut}</Kbd></span>}
+      {(item.type === "checkbox" || item.type === "radio") && <span className="flood-menu__icon flood-menu__indicator" aria-hidden="true">{item.checked &&
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {item.type === "radio" ? <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" /> : item.checked === "mixed" ? <path d="M6 12h12" /> : <path d="m5 12 4 4L19 6" />}
+        </svg>}</span>}
     </Button>;
   const rows: ReactNode[] = [];
   for (let index = 0; index < items.length; index++) {
@@ -92,7 +91,10 @@ export const ActionMenu = forwardRef<HTMLDivElement, MenuProps>(function ActionM
     if (item.type !== "radio") { rows.push(renderItem(item)); continue; }
     const group = [item];
     while (items[index + 1]?.type === "radio" && (items[index + 1] as typeof item).group === item.group) group.push(items[++index] as typeof item);
-    rows.push(<div key={`radio-${item.id}`} role="group" aria-label={item.group}>{group.map(renderItem)}</div>);
+    rows.push(<div key={`radio-${item.id}`} role="group" aria-label={item.group}>
+      <div className="flood-menu__group-label" aria-hidden="true">{item.group}</div>
+      {group.map(renderItem)}
+    </div>);
   }
   return <>{trigger(triggerProps)}<div {...props} ref={panel} id={id} popover="manual" role="menu" aria-label={label} aria-orientation="vertical" tabIndex={-1}
     className={["flood-overlay-panel", "flood-menu", className].filter(Boolean).join(" ")} onKeyDown={event => {

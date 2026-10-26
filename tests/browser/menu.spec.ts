@@ -104,3 +104,28 @@ test("preference menu toggles controlled values, preserves open/focus and groups
   await expect(menu).toBeHidden();await expect(trigger).toBeFocused();
   await expect(page.locator('output[aria-label="Result"]')).toHaveText("true");
 });
+
+
+test("catalog separates actions/preferences and keeps destructive actions last",async({page})=>{
+  await page.goto("/components/menu");
+  const stage=page.locator(".workbench-stage");
+  await stage.getByRole("button",{name:"Project actions",exact:true}).click();
+  let menu=page.getByRole("menu",{name:"Project actions",exact:true});
+  await expect(menu.getByRole("menuitemcheckbox")).toHaveCount(0);
+  await expect(menu.getByRole("menuitem").last()).toHaveAccessibleName("Delete project");
+  await page.keyboard.press("Escape");
+  const example=page.getByRole("combobox",{name:"Example",exact:true});
+  await example.click();await page.getByRole("option",{name:"preferences",exact:true}).click();
+  await stage.getByRole("button",{name:"View settings",exact:true}).click();
+  menu=page.getByRole("menu",{name:"View settings",exact:true});
+  await expect(menu.getByRole("menuitem")).toHaveCount(0);
+  await expect(menu.getByRole("menuitemcheckbox",{name:"Notifications"})).toBeVisible();
+  await expect(menu.getByRole("group",{name:"Density",exact:true})).toBeVisible();
+  await expect(menu.getByRole("separator")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await example.click();await page.getByRole("option",{name:"mixed",exact:true}).click();
+  await stage.getByRole("button",{name:"Project actions",exact:true}).click();
+  menu=page.getByRole("menu",{name:"Project actions",exact:true});
+  await expect(menu.locator('[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]').last()).toHaveAccessibleName("Delete project");
+  await expect(menu.getByRole("separator")).toHaveCount(3);
+});

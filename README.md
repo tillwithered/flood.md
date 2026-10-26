@@ -6,7 +6,7 @@ coding agents. No third-party UI component library or Tailwind dependency.
 
 ## Base dark design system · 0.2.7
 
-Flood 0.2.7 provides a dark foundations profile, 193 semantic token roles and 89 original components. See
+Flood 0.2.7 provides a dark foundations profile, 193 semantic token roles and 94 original components. See
 [Original primitives and controls](docs/base-components.md), including forms,
 selection groups, disclosures, overlays and navigation. A versioned agent bundle
 includes portable spacing and composition guidance. Use the matching installed

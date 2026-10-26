@@ -1400,5 +1400,87 @@
       "Each committed tag submits one entry under name. required applies to committed tags; a draft is not a submitted token. Form reset preserves controlled ownership.",
       "Backspace on an empty draft removes the last token. Read only preserves copying and form values; disabled omits submission and removal. Introduced in 0.2.7."
     ]
+  },
+  {
+    "slug": "command-list",
+    "name": "CommandList",
+    "group": "actions",
+    "description": "Search and invoke commands with grouped results and keyboard navigation.",
+    "code": "<CommandList label=\"Search commands\" items={[{id:\"new\",label:\"New project\",group:\"Projects\"},{id:\"settings\",label:\"Open settings\",group:\"Workspace\"}]} onAction={id => console.log(id)} />",
+    "imports": [
+      "CommandList"
+    ],
+    "notes": [
+      "CommandList invokes actions; Combobox and MultiSelect edit form values. A command list has no submitted name or persistent selected value.",
+      "Typing filters labels, descriptions, group names and keywords. Arrow keys, Home/End and Enter navigate and invoke enabled commands. Escape remains available to a host Dialog.",
+      "Use query/onQueryChange for host ownership or defaultQuery for local filtering. Loading blocks stale invocation and exposes an announcement; the host owns asynchronous work and cancellation.",
+      "The ref targets the native search input. Native div props target the wrapper. Translate labels, placeholder, emptyMessage and loadingMessage; hideLabel preserves the search name. No modal, global shortcut or router integration is implied. Introduced in 0.2.7."
+    ]
+  },
+  {
+    "slug": "date-field",
+    "name": "DateField",
+    "group": "forms",
+    "description": "Segmented Gregorian date entry with canonical form values and explicit date validation.",
+    "code": "<DateField label=\"Start date\" name=\"start\" defaultValue=\"2026-10-26\" order=\"day-month-year\" />",
+    "imports": [
+      "DateField"
+    ],
+    "notes": [
+      "Uses three native text segments rather than an operating-system calendar popup. Calendar and DatePicker are separate contracts.",
+      "Values are canonical YYYY-MM-DD dates from 0001 through 9999, or an empty string. min/max and leap years use civil date arithmetic without timezones.",
+      "Arrow keys adjust segments. Left/Right move at segment boundaries; IME and modifier shortcuts remain available. Use explicit order and localized segmentLabels/messages.",
+      "Incomplete or invalid drafts block native submission; the hidden named field contains no stale previous date. Controlled values and form resets preserve host ownership.",
+      "Read only retains copying and submission. Disabled fields and disabled fieldsets remain inert. Use status for advisory feedback and invalid for host validation. Introduced in the unpublished 0.2.7 source candidate."
+    ]
+  },
+  {
+    "slug": "time-field",
+    "name": "TimeField",
+    "group": "forms",
+    "description": "Segmented 24-hour time entry with canonical values, bounds and a seconds-based step.",
+    "code": "<TimeField label=\"Start time\" name=\"startTime\" defaultValue=\"09:30\" step={300} />",
+    "notes": [
+      "Use HH:mm with minute precision or HH:mm:ss with second precision. Values have no date or timezone.",
+      "step is expressed in seconds and anchored to min or midnight; minute precision requires a multiple of 60. Overnight ranges are not inferred.",
+      "Incomplete, invalid, out-of-range, step-mismatched and refused controlled drafts block native submission. Form reset and read-only/disabled ownership match other fields.",
+      "Click the control background to focus a missing or remembered segment. Keyboard steps, Home/End, paste and IME preserve host cancellation. Translate segmentLabels and messages. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "TimeField"
+    ]
+  },
+  {
+    "slug": "calendar",
+    "name": "Calendar",
+    "group": "forms",
+    "description": "A Gregorian date grid with month navigation, keyboard focus and explicit selection ownership.",
+    "code": "<Calendar label=\"Choose a date\" defaultValue=\"2026-10-26\" today=\"2026-10-26\" weekStartsOn={1} />",
+    "notes": [
+      "Calendar is a standalone visual collection. DateField handles text entry and DatePicker composes the field and calendar layer.",
+      "Values use canonical YYYY-MM-DD and visibleMonth uses YYYY-MM. Locale formats Gregorian month/day names; weekStartsOn is explicit.",
+      "Arrows move dates; Home/End move within a week and PageUp/PageDown navigate months. Controlled month refusal preserves a real focused day. Disabled dates remain discoverable but cannot select.",
+      "The host owns selected values, availability and side effects. Provide today for a deterministic clock in tests or rendering. Min/max bound navigation; readonly prevents selection while allowing browsing. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "Calendar"
+    ]
+  },
+  {
+    "slug": "date-picker",
+    "name": "DatePicker",
+    "group": "forms",
+    "description": "A segmented date field with an integrated calendar picker and shared form value.",
+    "code": "<DatePicker label=\"Start date\" name=\"start\" defaultValue=\"2026-10-26\" today=\"2026-10-26\" />",
+    "imports": [
+      "DatePicker"
+    ],
+    "notes": [
+      "Composes Flood DateField, Calendar and Popover; text input and visual selection share one canonical value and form bridge.",
+      "Activate the calendar icon or Alt+ArrowDown in a segment. Escape/outside dismissal returns or preserves intended focus through the existing overlay engine. Selecting a day closes the calendar.",
+      "Read only and disabled prevent opening or date changes; native disabled fieldsets remain inert. Invalid/incomplete drafts retain native DateField validation.",
+      "Controlled value and open state are independently host-owned. Native form reset restores the initial uncontrolled date and preserves cancelled resets. Translate calendarLabel/openCalendarLabel, month navigation, segment labels and messages.",
+      "DateField remains the keyboard-entry primitive; Calendar remains independently usable. Introduced in the unpublished 0.2.7 source candidate."
+    ]
   }
 ]

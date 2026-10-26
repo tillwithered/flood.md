@@ -49,6 +49,8 @@
 .flood-root .flood-menu__icon { display: inline-flex; align-items: center; justify-content: center; flex: none; inline-size: var(--flood-control-icon); block-size: var(--flood-control-icon); }
 .flood-root .flood-menu__icon > svg { inline-size: 100%; block-size: 100%; }
 .flood-root .flood-menu__label { min-inline-size: 0; overflow-wrap: anywhere; }
+.flood-root .flood-menu__indicator { margin-inline-start: auto; }
+.flood-root .flood-menu__group-label { padding: var(--flood-sys-space-2) var(--flood-sys-space-3) var(--flood-sys-space-1); color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); }
 .flood-root .flood-menu__shortcut { margin-inline-start: auto; flex: none; color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); white-space: nowrap; }
 .flood-root .flood-menu__separator { block-size: var(--flood-sys-stroke-width); margin: var(--flood-sys-space-1) var(--flood-sys-space-2); background: var(--flood-sys-color-divider-decorative); }
 @media (forced-colors: active) {

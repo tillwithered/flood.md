@@ -273,3 +273,5 @@ Keep document hierarchy meaningful when changing visual emphasis.
 ## Inline editing and free-form tokens · 0.2.7
 
 [Editable](components/editable.md) owns a draft separately from its committed value. [TagInput](components/tag-input.md) creates free-form tokens, while MultiSelect selects known IDs. Menu checkbox/radio items edit controlled preferences without becoming form selection widgets.
+
+CommandList filters and invokes commands without form selection or modal ownership. DateField edits a bounded Gregorian civil date through text segments; its hidden field submits canonical ISO values and invalid drafts block native submission. See the matching component pages for keyboard and controlled-state details.

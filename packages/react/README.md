@@ -908,3 +908,9 @@ Keep document hierarchy meaningful when changing visual emphasis.
 Editable provides inline single-line editing with a separate draft, save/cancel actions and committed named form values. See [Editable](../../docs/components/editable.md) for controlled ownership and blur behavior. TagInput creates free-form text tokens and submits repeated named values; it is distinct from fixed-option MultiSelect. See [TagInput](../../docs/components/tag-input.md) for delimiters, paste and validation.
 
 Menu adds `MenuCheckboxItem` and `MenuRadioItem`. Both take controlled `checked` and `onCheckedChange`; radio items also require a `group` label and the host enforces one selected value per group. Checkbox `checked` also accepts `"mixed"`. Keep radio groups contiguous. Preferences stay open by default; set `closeOnSelect` to close after activation. Preference changes do not invoke `onAction`. Existing action items retain their behavior.
+
+CommandList (0.2.7) provides grouped command filtering and invocation without a modal or form value. See [CommandList](../../docs/components/command-list.md) for query ownership, keyboard navigation and loading/empty states.
+
+DateField (0.2.7) edits a Gregorian civil date through native text segments, with ISO canonical values, bounds, explicit segment order and native invalid-draft form handling. It has no operating-system date popup. See [DateField](../../docs/components/date-field.md).
+
+TimeField, Calendar and DatePicker (0.2.7) complete the first single-date/time entry family. See [TimeField](../../docs/components/time-field.md), [Calendar](../../docs/components/calendar.md) and [DatePicker](../../docs/components/date-picker.md). Calendar onDateSelect reports enabled activation, including the already selected date; onValueChange requests only changed values. DateField end accepts an optional trailing action.
