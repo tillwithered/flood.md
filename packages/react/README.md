@@ -3,7 +3,7 @@
 Original React 18.3/19 components for TypeScript and Next.js App Router. Native
 HTML semantics and refs, no third-party component library or Tailwind dependency.
 
-This package documents the **0.2.4** API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.5** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
 ```tsx
@@ -812,3 +812,93 @@ original OFL notices. Color alone never communicates validation or progress.
 CodeSnippet codeDirection defaults to ltr independently of RTL parent action layout; choose rtl/auto explicitly for content that needs it. Native dir still applies to the wrapper. Protected ScrollArea reveals focused descendants fully when needed, composes the host focus handler and avoids scrolling to nested top-layer controls.
 
 Checkbox, Radio and Switch apply native hidden/dir/lang to their visible label wrapper as well as the input, so a component-local language/direction applies to its whole choice.
+
+
+0.2.5 adds NumberInput (native numeric editing and integrated step actions) and Slider (one value or an ordered pair). Use matching declarations and the numeric controls guide in docs/base-components.md. Registry publication is separate from source availability.
+
+Combobox adds editable single selection in 0.2.5. Reuse Field for the
+label, use options with stable value/label pairs, and observe onValueChange for
+the selected ID. Search query text is not form data. See docs/base-components.md
+for reset, required, read-only, localized messages and native Popover requirements.
+
+Tag and MultiSelect are compatible additions in 0.2.5.
+Tag labels an item and optionally requests host-owned removal. MultiSelect uses
+arrays of stable option IDs and composes those tags with the shared searchable
+selection model. See docs/base-components.md for keyboard behavior, locked values,
+readonly/required forms, focus recovery and relative nested geometry. Existing
+Combobox continues to accept and return a single string.
+
+
+SearchInput and PasswordInput join 0.2.5. Both compose
+InputGroup with native input props, Field feedback, ref, sizes and form ownership.
+SearchInput uses type=search and a decorative leading icon; clearable defaults to
+true and clearLabel names its sole suffix action. Clearing dispatches native input
+editing, restores input focus and respects read-only/disabled. The host owns search
+results and submission. PasswordInput keeps one visibility action; use
+visible/onVisibleChange or defaultVisible, and localize showPasswordLabel and
+hidePasswordLabel. Revealing retains the value and caret; read-only permits reveal.
+Use autocomplete appropriate to the host form. Both accept accessible names via
+Field, aria-label or aria-labelledby. These controls add no authentication logic.
+
+
+FileInput (0.2.5) composes a native file input with Flood field geometry,
+IconSlot and one optional clear IconButton. Pass Field's render props for its
+accessible name/description/status. Native name, form, required, accept, multiple,
+capture and input ref remain available. onChange is a native React change handler;
+onFilesChange receives a new readonly File array for selection and clear. Do not
+pass value/defaultValue/readOnly; FileList belongs to the browser. Uncontrolled
+form reset clears the summary; cancelling the chooser keeps its prior selection.
+Localize placeholder and clearLabel. Long names truncate visually, and the host
+owns upload, file validation and progress. accept only guides the chooser.
+
+
+FileInput multiple selection exposes a collapsible file list with full names and
+localized file sizes (lang controls number formatting), and a count in the picker.
+Translate selectionLabel and removeFileLabel. Individual removal updates the native
+FileList through DataTransfer, then emits the same change callbacks as selection.
+Focus moves to the next/previous remove action, or back to the input when empty.
+clearable=false disables individual and global removal UI. In multiple mode, picking again appends files to the current selection; cancel
+preserves it. Repeated files are deduplicated by name, size, type, lastModified and
+relative path, without reading their contents. Single mode replaces its selection. The host remains responsible for upload.
+
+
+AlertDialog (0.2.5) is a concise confirmation, composed from Flood's
+native modal layer and Button. Supply title, description, trigger and onConfirm.
+Cancel receives initial focus; Escape cancels; outside clicks do not dismiss.
+Tab containment, background inertness, scroll lock and return focus reuse Dialog.
+Translate confirmLabel/cancelLabel. onConfirm runs before requesting close, while
+onCancel covers Cancel/Escape. Use open/onOpenChange for controlled state and
+confirmDisabled to disable confirmation. Callbacks are not awaited; the host owns
+async requests, pending UI and errors. Use Dialog for forms/complex content.
+
+
+Drawer (0.2.5) reuses Dialog's modal behavior with an edge-panel layout.
+side is logical start/end (default end) or top/bottom; size sm/md/lg sets the
+cross-axis extent to 20/26/34rem within the viewport. Vertical panels fill height,
+horizontal panels fill width. Use footer for host-owned actions; only body content
+scrolls with Flood ScrollArea. Header/close action/footer remain visible. Native
+ref, controlled open/onOpenChange, outside dismissal and initialFocusRef match
+Dialog. Translate closeLabel/title/description; reduced motion disables entry
+animation. Closing is immediate. There is no swipe/drag gesture or auto-save logic.
+
+
+The 0.2.5 separates floating surfaces from modal surfaces.
+Nine additional semantic roles bring the dark profile to 193 roles; previous token
+values remain intact. surface.floating is the opaque fallback;
+surface.floating-translucent, border.floating, selection.floating, shadow.floating
+and effect.floating blur/saturation/shadow-offset/shadow-blur define the floating
+material. Select, Combobox, MultiSelect, Menu, Popover and Tooltip share it; Dialog
+and Drawer retain surface.overlay. Backdrop filtering is progressive enhancement;
+reduced transparency uses the opaque fill and forced colors use system colors.
+Keep text opaque and evaluate it against the actual composited background.
+
+
+The 0.2.5 component expansion adds native content/typography,
+collection/form controls, navigation/layout and clipboard/notification primitives.
+See docs/base-components.md and the per-component catalog for contracts and limits.
+The CSS build assembles the original component styles into the shared stylesheet.
+
+
+Section headingLevel controls native h2–h6 semantics. Its independent headingSize
+uses the existing Heading roles (section/page/large/display), defaulting to section.
+Keep document hierarchy meaningful when changing visual emphasis.

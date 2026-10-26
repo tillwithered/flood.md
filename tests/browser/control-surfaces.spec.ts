@@ -32,7 +32,8 @@ test("menu option radii follow the outer radius minus padding and stroke at diff
     const menu = page.getByRole("listbox");
     await expect(menu).toBeVisible();
     const radii = await menu.evaluate(node => {
-      const outer = getComputedStyle(node), inner = getComputedStyle(node.querySelector('[role="option"]')!);
+      // The semantic listbox is the scroll viewport; its ancestor owns popup geometry.
+      const outer = getComputedStyle(node.closest(".flood-select__menu")!), inner = getComputedStyle(node.querySelector('[role="option"]')!);
       return { outer: parseFloat(outer.borderTopLeftRadius), inner: parseFloat(inner.borderTopLeftRadius), padding: parseFloat(outer.paddingTop), border: parseFloat(outer.borderTopWidth) };
     });
     expect(radii.outer).toBe(root);

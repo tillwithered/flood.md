@@ -44,6 +44,8 @@ export function registerLayer(document:Document,layer:Layer) {
     const path=event.composedPath();
     if(layer.modal){const rect=layer.panel.getBoundingClientRect();if(event.clientX>=rect.left&&event.clientX<=rect.right&&event.clientY>=rect.top&&event.clientY<=rect.bottom)return;}
     else if(path.includes(layer.panel)||path.includes(layer.anchor() as EventTarget))return;
+    // A modal backdrop must not move focus to the document after close cleanup.
+    if(layer.modal)event.preventDefault();
     (layer.outside??layer.close)();
   };
   const focus=(event:FocusEvent)=>{
@@ -55,12 +57,42 @@ export function registerLayer(document:Document,layer:Layer) {
   return ()=>{const index=layers!.indexOf(layer);if(index>=0)layers!.splice(index,1);document.removeEventListener("keydown",key);document.removeEventListener("pointerdown",pointer);document.removeEventListener("focusin",focus);};
 }
 
-const locks=new WeakMap<Document,{count:number;overflow:string;overflowPriority:string;gutter:string;gutterPriority:string}>();
-export function lockScroll(document:Document){
-  const style=document.documentElement.style;let lock=locks.get(document);
-  if(!lock){const reserve=(document.defaultView?.innerWidth??0)-document.documentElement.clientWidth>0;lock={count:0,overflow:style.getPropertyValue("overflow"),overflowPriority:style.getPropertyPriority("overflow"),gutter:style.getPropertyValue("scrollbar-gutter"),gutterPriority:style.getPropertyPriority("scrollbar-gutter")};locks.set(document,lock);style.setProperty("overflow","hidden","important");if(reserve)style.setProperty("scrollbar-gutter","stable","important");}
+type ScrollLock = {
+  count: number;
+  saved: Array<[string, string, string]>;
+};
+const locks = new WeakMap<Document, ScrollLock>();
+export function lockScroll(document: Document) {
+  const root = document.documentElement, style = root.style;
+  let lock = locks.get(document);
+  if (!lock) {
+    const view = document.defaultView;
+    const computed = getComputedStyle(root);
+    const rect = root.getBoundingClientRect();
+    // Chromium can include a stable thin gutter in clientWidth while excluding it
+    // from the root's actual layout box. Preserve that box, not just clientWidth.
+    const gutter = Math.max(0, (view?.innerWidth ?? root.clientWidth) - Math.min(root.clientWidth, rect.width));
+    const leftGutter = Math.min(gutter, Math.max(0, rect.left));
+    const rightGutter = gutter - leftGutter;
+    const paddingLeft = parseFloat(computed.paddingLeft) || 0;
+    const paddingRight = parseFloat(computed.paddingRight) || 0;
+    lock = {count: 0, saved: ["overflow", "scrollbar-gutter", "padding-left", "padding-right"].map(key => [key, style.getPropertyValue(key), style.getPropertyPriority(key)])};
+    locks.set(document, lock);
+    // A stable root gutter clips top-layer painting even when its rect fills the viewport.
+    // Replace the gutter with normal-flow padding while keeping fixed modal edges flush.
+    style.setProperty("scrollbar-gutter", "auto", "important");
+    style.setProperty("overflow", "hidden", "important");
+    if (leftGutter) style.setProperty("padding-left", `${paddingLeft + leftGutter}px`, "important");
+    if (rightGutter) style.setProperty("padding-right", `${paddingRight + rightGutter}px`, "important");
+  }
   lock.count++;
-  return ()=>{if(--lock!.count!==0)return;for(const [key,value,priority] of [["overflow",lock!.overflow,lock!.overflowPriority],["scrollbar-gutter",lock!.gutter,lock!.gutterPriority]]){if(value)style.setProperty(key,value,priority);else style.removeProperty(key);}locks.delete(document);};
+  return () => {
+    if (--lock!.count !== 0) return;
+    for (const [key, value, priority] of lock!.saved) {
+      if (value) style.setProperty(key, value, priority); else style.removeProperty(key);
+    }
+    locks.delete(document);
+  };
 }
 
 export function positionLayer(anchor:HTMLElement,panel:HTMLElement,side:Side,align:Align){

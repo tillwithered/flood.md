@@ -1,6 +1,5 @@
 import { lazy, Suspense, useState, type ComponentType } from "react";
-import { Copy } from "lucide-react";
-import { Button, CodeSnippet, FloodRoot, Heading, IconSlot, Inline, Link, Text } from "@flood-md/react";
+import { CopyButton, CodeSnippet, FloodRoot, Heading, Inline, Link, SkipLink, Text } from "@flood-md/react";
 import "@flood-md/react/styles.css";
 import "./site.css";
 import release from "./release.json";
@@ -13,13 +12,7 @@ const command = `npx @flood-md/cli@${release.version} init`;
 
 function Home() {
   const [status, setStatus] = useState("");
-  async function copyCommand() {
-    try {
-      await navigator.clipboard.writeText(command);
-      setStatus("Copied. Ready for your React project.");
-    } catch { setStatus("Select the command and copy it manually."); }
-  }
-  return <main id="main-content" className="home-main">
+  return <main id="main-content" tabIndex={-1} className="home-main">
     <section className="hero" aria-labelledby="hero-title">
       <Heading level={1} size="display" id="hero-title" className="hero-title">
         <span className="hero-line">Good interfaces</span>
@@ -30,9 +23,9 @@ function Home() {
       </Text>
       <div className="installation">
         <CodeSnippet code={command} className="installation-code" aria-label="Installation command"
-          action={<Button size="lg" variant="subtle" onClick={copyCommand} disabled={!release.published} aria-label="Copy installation command">
-            Copy <IconSlot size="sm"><Copy /></IconSlot>
-          </Button>} />
+          action={<CopyButton value={command} size="lg" variant="subtle" disabled={!release.published}
+            aria-label="Copy installation command" onCopied={() => setStatus("Copied. Ready for your React project.")}
+            onCopyError={() => setStatus("Select the command and copy it manually.")} />} />
         <Text as="p" size="helper" tone="subtle" role="status" className="installation-status">
           {release.published ? status : "Preview · npm release is being prepared."}
         </Text>
@@ -46,10 +39,10 @@ export function App({ path, documentation: Reader }: { path: string; documentati
   if (path === "/playground") return <Suspense fallback={<p>Loading examples…</p>}><Examples /></Suspense>;
   const home = path === "/";
   return <FloodRoot className={`site-root ${home ? "home-site" : "docs-site"}`}>
-    <a className="skip-link" href="#main-content">Skip to content</a>
+    <SkipLink href="#main-content" />
     <div className="site-shell">
       <SiteHeader path={path} />
-      {home ? <Home /> : Reader ? <Reader path={path} /> : <main id="main-content" className="doc-loading">Loading documentation…</main>}
+      {home ? <Home /> : Reader ? <Reader path={path} /> : <main id="main-content" tabIndex={-1} className="doc-loading">Loading documentation…</main>}
       <footer className="site-footer">
         <Text size="helper" tone="subtle">A growing collection, made with care.</Text>
         <Inline gap="4">

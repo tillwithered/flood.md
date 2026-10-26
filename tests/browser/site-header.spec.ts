@@ -64,3 +64,17 @@ test("sidebar item text is brighter than category labels before hover",async({pa
   const label=await nav.getByText("Forms",{exact:true}).evaluate(node=>getComputedStyle(node).color);
   expect(color).toBe("rgb(255, 255, 255)");expect(label).not.toBe(color);
 });
+
+test("mobile navigation search shares the disclosure surface while scrolling",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.goto("/components/drawer");
+  await page.getByRole("button",{name:"Browse documentation",exact:true}).click();
+  const navigation=page.locator(".mobile-navigation");
+  const surface=await navigation.evaluate(node=>getComputedStyle(node).backgroundColor);
+  const tools=navigation.locator(".catalog-nav-tools");
+  await expect(tools).toHaveCSS("background-color",surface);
+  const before=(await tools.boundingBox())!.y;
+  await navigation.locator(".flood-scroll-area__viewport").evaluate(node=>{node.scrollTop=100});
+  await expect.poll(async()=>Math.abs((await tools.boundingBox())!.y-before)).toBeLessThanOrEqual(1);
+  await expect(navigation.getByRole("searchbox",{name:"Search components"})).toBeVisible();
+});

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowRight, ArrowUpRight, Copy, Plus } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Plus } from "lucide-react";
 import {
-  Button, Checkbox, CodeSnippet, Divider, Field, FloodRoot, Heading, IconButton,
-  IconSlot, Inline, Input, Link, Radio, Stack, Surface, Switch, Text, Textarea,
+  Button, Checkbox, CodeSnippet, CopyButton, Divider, Field, FloodRoot, Heading, IconButton,
+  IconSlot, Inline, Input, Link, Radio, SkipLink, Stack, Surface, Switch, Text, Textarea,
 } from "@flood-md/react";
 import "@flood-md/react/styles.css";
 import "./site.css";
@@ -63,14 +63,6 @@ export default function Examples() {
     setBusy(false);
     setSaved(false);
   }
-  async function copyCommand() {
-    try {
-      await navigator.clipboard.writeText(command);
-      setCopyStatus("Copied. Ready for your React project.");
-    } catch {
-      setCopyStatus("Select the command and copy it manually.");
-    }
-  }
   function saveWorkspace(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
@@ -96,10 +88,11 @@ export default function Examples() {
 
   return (
     <FloodRoot className="site-root">
+      <SkipLink href="#main-content" />
       <div className="site-shell">
         <SiteHeader path="/playground" />
 
-        <main className="landing-main">
+        <main id="main-content" tabIndex={-1} className="landing-main">
           <section className="hero" aria-labelledby="hero-title">
             <Heading level={1} size="display" id="hero-title" className="hero-title">
               <span className="hero-line">Good interfaces</span>
@@ -110,10 +103,9 @@ export default function Examples() {
             </Text>
             <div className="installation">
               <CodeSnippet code={command} className="installation-code" aria-label="Installation command"
-                action={<Button size="lg" variant="subtle" onClick={copyCommand}
-                  disabled={!release.published} aria-label="Copy installation command">
-                  Copy <IconSlot size="sm"><Copy /></IconSlot>
-                </Button>} />
+                action={<CopyButton value={command} size="lg" variant="subtle" disabled={!release.published}
+                  aria-label="Copy installation command" onCopied={() => setCopyStatus("Copied. Ready for your React project.")}
+                  onCopyError={() => setCopyStatus("Select the command and copy it manually.")} />} />
               <Text as="p" size="helper" tone="subtle" role="status" className="installation-status">
                 {!release.published ? <>Preview · npm release is being prepared. <Link href="/llms.txt">Agent guide</Link></> : copyStatus}
               </Text>

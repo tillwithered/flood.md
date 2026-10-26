@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useRef, useState, type CSSProperties } from "react";
-import { Check, Copy, FileCode2 } from "lucide-react";
-import { Button, IconSlot, ScrollArea } from "@flood-md/react";
+import { Fragment, useEffect, useState, type CSSProperties } from "react";
+import { FileCode2 } from "lucide-react";
+import { CopyButton as FloodCopyButton, IconSlot, ScrollArea, Text } from "@flood-md/react";
 import type { HighlighterCore, ThemedToken } from "shiki/core";
 import "./code-block.css";
 
@@ -82,57 +82,16 @@ export interface CopyButtonProps {
 
 /** Copies the original value, independently of highlighted/rendered output. */
 export function CopyButton({ value, label = "Copy code", text = "Copy" }: CopyButtonProps) {
-  const [state, setState] = useState<"idle" | "copying" | "copied" | "failed">("idle");
-  const mounted = useRef(true);
-  const operation = useRef(0);
-  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      operation.current++;
-      if (resetTimer.current !== null) clearTimeout(resetTimer.current);
-    };
-  }, []);
-  useEffect(() => {
-    operation.current++;
-    setState("idle");
-    if (resetTimer.current !== null) clearTimeout(resetTimer.current);
-  }, [value]);
-
-  async function copy() {
-    if (state === "copying") return;
-    const current = ++operation.current;
-    if (resetTimer.current !== null) clearTimeout(resetTimer.current);
-    setState("copying");
-    try {
-      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
-      await navigator.clipboard.writeText(value);
-      if (!mounted.current || current !== operation.current) return;
-      setState("copied");
-      resetTimer.current = setTimeout(() => {
-        if (mounted.current && current === operation.current) setState("idle");
-      }, 2200);
-    } catch {
-      if (mounted.current && current === operation.current) setState("failed");
-    }
-  }
-
-  const announcement = state === "copied" ? "Copied to clipboard."
-    : state === "failed" ? "Copy unavailable. Select the code and copy it manually." : "";
-  return (
-    <span className="site-copy-control">
-      <Button className="site-copy-control__button" variant="ghost" size="sm" loading={state === "copying"}
-        aria-label={label} onClick={copy}>
-        {state !== "copying" && <IconSlot size="sm">{state === "copied" ? <Check /> : <Copy />}</IconSlot>}
-        {text}
-      </Button>
-      <span role="status" className={state === "failed" ? "site-copy-control__error" : "site-code-visually-hidden"}>
-        {announcement}
-      </span>
-    </span>
-  );
+  const [failed, setFailed] = useState(false);
+  useEffect(() => { setFailed(false); }, [value]);
+  return <span className="site-copy-control">
+    <FloodCopyButton key={value} className="site-copy-control__button" value={value}
+      variant="ghost" size="sm" aria-label={label} copyLabel={text} copiedLabel="Copied"
+      onCopied={() => setFailed(false)} onCopyError={() => setFailed(true)} />
+    {failed && <Text size="helper" tone="subtle" className="site-copy-control__error">
+      Select the code and copy it manually.
+    </Text>}
+  </span>;
 }
 
 export interface CodeBlockProps {

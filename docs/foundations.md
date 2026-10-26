@@ -1,6 +1,6 @@
-# Foundations tokens · 0.2.4
+# Foundations tokens · 0.2.5
 
-This guide describes the **0.2.4** foundation exports. Keep Flood packages at
+This guide describes the **0.2.5** foundation exports. Keep Flood packages at
 matching exact versions. Existing 0.1.1 installs use their earlier token contract.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).
@@ -206,8 +206,8 @@ Version 0.2.2 adds these exports without replacing an existing npm version.
 Publication must be verified separately; source version numbers are not proof.
 
 
-Version 0.2.4 adds sixteen semantic roles, bringing the dark profile
-to 184 roles. Existing role values remain unchanged:
+Version 0.2.5 adds twenty-five semantic roles, bringing the dark profile
+to 193 roles. Existing role values remain unchanged:
 
 - sys.color.accent.content and sys.color.loading.placeholder separate accent text
   and loading fills from focus and action states.
@@ -219,3 +219,14 @@ to 184 roles. Existing role values remain unchanged:
 - sys.size.keycap.sm/md/lg provide independent relative heights for keyboard hints.
 
 - sys.size.container.sm/md/lg and sys.size.grid.min-item supply relative layout bounds.
+
+
+The 0.2.5 separates floating surfaces from modal surfaces.
+The floating material uses nine of those new semantic roles; previous token
+values remain intact. surface.floating is the opaque fallback;
+surface.floating-translucent, border.floating, selection.floating, shadow.floating
+and effect.floating blur/saturation/shadow-offset/shadow-blur define the floating
+material. Select, Combobox, MultiSelect, Menu, Popover and Tooltip share it; Dialog
+and Drawer retain surface.overlay. Backdrop filtering is progressive enhancement;
+reduced transparency uses the opaque fill and forced colors use system colors.
+Keep text opaque and evaluate it against the actual composited background.

@@ -159,3 +159,111 @@ Toolbar groups actions with one Tab entry after hydration. Use Button/IconButton
 Card is structured Surface containment: title/description/header actions, body children and footer. Missing slots add no empty sections. Choose compact/comfortable density; preserve the tight title-description relationship. Use appropriate headingLevel. Keep root noninteractive and place named controls inside, never a card-wide click handler around nested actions. Use Surface for unstructured containment.
 
 Compose lower-level responsibilities: Container/Grid and Stack/Inline arrange; Surface contains; Card structures; Image/AspectRatio reserve media; List preserves native li. EmptyState composes the shared typography/icon/action atoms. Use VisuallyHidden for supplemental noninteractive text or focusable reveal for skip links. Do not replace native caption/legend structures with generic wrappers solely for reuse. Mixed Checkbox is host-owned aggregation, with checked still controlling submission.
+
+NumberInput composes InputGroup/Input/IconButton for finite numeric values or null.
+Use Field for label and feedback, min/max/step for native validity and explicit
+translated increaseLabel/decreaseLabel for step actions. Do not replace it with a
+styled text box that loses numeric forms. Slider receives an array of one value or
+an ordered pair; use thumbLabels to distinguish bounds, preserve native keyboard
+controls and keep explanatory feedback visible. Range handles cannot cross.
+Both support controlled/uncontrolled state, form reset and read-only presentation.
+Available in 0.2.5; do not imply registry availability.
+
+Combobox is editable single selection from explicit option values. Use Field for
+its input name/description associations, never submit typed search text as an ID.
+Arrow keys move the active suggestion; Enter commits, Escape cancels the search.
+Use descriptive labels/keywords, keep disabled choices inert, and translate the
+list/clear/toggle/empty/validation messages. Read-only selection remains selectable
+for copying. Native forms/reset and required validity apply to the selected ID.
+Do not imply freeform values, async fetching, multiple selection or virtualization.
+
+Tag is label content with an optional named native removal action; it is not a
+status Badge or Toggle. The host owns removal/state and standalone focus recovery.
+Provide removeLabel for rich content and localization. MultiSelect composes Tag
+and the shared Combobox search/layer model with an array of selected option IDs.
+Never pass arrays to Combobox or submit search text as selected values. Use Field
+for associations/feedback. Preserve repeated form entries, reset and required
+selection validity. Disabled selected items stay selected through clear/remove;
+read-only blocks edits. Do not shrink touch targets to force tags into a row.
+Let tags wrap while the search editor and its suffix actions remain together.
+
+Keep selection-field chrome calm: Combobox/MultiSelect show only the chevron by
+default. Add clearable=true only when a separate clear-selection action is useful;
+individual MultiSelect tags already expose named removal actions.
+
+
+SearchInput and PasswordInput are field controls in 0.2.5.
+Compose them with Field and pass its control props. SearchInput uses native search
+editing and one clear action (clearable=true); the host owns filtering/submission.
+Read-only hides clear. PasswordInput has a single show/hide action with localized
+showPasswordLabel/hidePasswordLabel, controlled visible/onVisibleChange or initial
+defaultVisible. Read-only still allows reveal. Native refs, autocomplete and forms
+remain owned by the host. Do not add another suffix chevron or browser clear icon.
+
+
+FileInput (0.2.5) composes a native file input with Flood field geometry,
+IconSlot and one optional clear IconButton. Pass Field's render props for its
+accessible name/description/status. Native name, form, required, accept, multiple,
+capture and input ref remain available. onChange is a native React change handler;
+onFilesChange receives a new readonly File array for selection and clear. Do not
+pass value/defaultValue/readOnly; FileList belongs to the browser. Uncontrolled
+form reset clears the summary; cancelling the chooser keeps its prior selection.
+Localize placeholder and clearLabel. Long names truncate visually, and the host
+owns upload, file validation and progress. accept only guides the chooser.
+
+
+FileInput multiple selection exposes a collapsible file list with full names and
+localized file sizes (lang controls number formatting), and a count in the picker.
+Translate selectionLabel and removeFileLabel. Individual removal updates the native
+FileList through DataTransfer, then emits the same change callbacks as selection.
+Focus moves to the next/previous remove action, or back to the input when empty.
+clearable=false disables individual and global removal UI. In multiple mode, picking again appends files to the current selection; cancel
+preserves it. Repeated files are deduplicated by name, size, type, lastModified and
+relative path, without reading their contents. Single mode replaces its selection. The host remains responsible for upload.
+
+
+AlertDialog (0.2.5) is a concise confirmation, composed from Flood's
+native modal layer and Button. Supply title, description, trigger and onConfirm.
+Cancel receives initial focus; Escape cancels; outside clicks do not dismiss.
+Tab containment, background inertness, scroll lock and return focus reuse Dialog.
+Translate confirmLabel/cancelLabel. onConfirm runs before requesting close, while
+onCancel covers Cancel/Escape. Use open/onOpenChange for controlled state and
+confirmDisabled to disable confirmation. Callbacks are not awaited; the host owns
+async requests, pending UI and errors. Use Dialog for forms/complex content.
+
+
+Drawer (0.2.5) reuses Dialog's modal behavior with an edge-panel layout.
+side is logical start/end (default end) or top/bottom; size sm/md/lg sets the
+cross-axis extent to 20/26/34rem within the viewport. Vertical panels fill height,
+horizontal panels fill width. Use footer for host-owned actions; only body content
+scrolls with Flood ScrollArea. Header/close action/footer remain visible. Native
+ref, controlled open/onOpenChange, outside dismissal and initialFocusRef match
+Dialog. Translate closeLabel/title/description; reduced motion disables entry
+animation. Closing is immediate. There is no swipe/drag gesture or auto-save logic.
+
+
+The 0.2.5 separates floating surfaces from modal surfaces.
+Nine additional semantic roles bring the dark profile to 193 roles; previous token
+values remain intact. surface.floating is the opaque fallback;
+surface.floating-translucent, border.floating, selection.floating, shadow.floating
+and effect.floating blur/saturation/shadow-offset/shadow-blur define the floating
+material. Select, Combobox, MultiSelect, Menu, Popover and Tooltip share it; Dialog
+and Drawer retain surface.overlay. Backdrop filtering is progressive enhancement;
+reduced transparency uses the opaque fill and forced colors use system colors.
+Keep text opaque and evaluate it against the actual composited background.
+
+
+Version 0.2.5 expansion includes AvatarGroup/StatusIndicator/Figure/
+Blockquote/InlineCode/Metric/Timeline; NavigationList/Steps/Section/Split/Center/
+SkipLink; ListBox/PinInput/Rating/Dropzone/CharacterCount; CopyButton/ToastRegion.
+Compose these before inventing equivalent host wrappers. Read each generated
+component contract and docs/base-components.md. Keep collection IDs stable, form
+names explicit, labels localized, state meaning independent of color and visible
+content within relative geometry. Native chooser/clipboard/OTP semantics do not
+supply upload/auth/server logic. Toast queues, actions and navigation state remain
+host-owned. No third-party component implementation was introduced.
+
+
+Section headingLevel controls native h2–h6 semantics. Its independent headingSize
+uses the existing Heading roles (section/page/large/display), defaulting to section.
+Keep document hierarchy meaningful when changing visual emphasis.

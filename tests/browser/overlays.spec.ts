@@ -13,7 +13,7 @@ import{FloodRoot,Button,Input,Select,Tooltip,Popover,Dialog}from ${file("package
 const h=React.createElement,trigger=label=>props=>h(Button,{...props,variant:'subtle'},label);
 function App(){const[modal,setModal]=useState(false),[frozen,setFrozen]=useState(false),[outside,setOutside]=useState(true),[owned,setOwned]=useState(false),[holdPopup,setHoldPopup]=useState(false),[mountOpen,setMountOpen]=useState(false),[selectKeys,setSelectKeys]=useState(0),[preventSelectKeys,setPreventSelectKeys]=useState(false);
 useEffect(()=>{window.closeFloodModal=()=>setModal(false)},[]);
-return h(FloodRoot,{style:{'--flood-sys-color-surface-overlay':'rgb(35, 36, 37)'}},
+return h(FloodRoot,{style:{'--flood-sys-color-surface-overlay':'rgb(35, 36, 37)','--flood-sys-color-surface-floating':'rgb(35, 36, 37)','--flood-sys-color-surface-floating-translucent':'rgb(35, 36, 37)'}},
 h(Button,{id:'before'},'Before'),h(Tooltip,{content:'Helpful context',delay:120,trigger:trigger('Help')}),
 h(Popover,{title:'Settings',trigger:trigger('Settings')},h(Input,{'aria-label':'Popover value',defaultValue:'draft'}),h('a',{href:'#after'},'Popover link')),
 h(Popover,{title:'Frozen popup',open:false,trigger:trigger('Frozen popup')},'Frozen'),

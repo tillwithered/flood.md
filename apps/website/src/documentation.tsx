@@ -142,7 +142,7 @@ export default function Documentation({ path }: { path: string }) {
     <aside className="desktop-sidebar" aria-label="Documentation navigation"><ScrollArea contentInset="scrollbar" aria-label="Documentation sections scroll" style={{ maxHeight: "calc(100svh - 4rem)" }}><Sidebar path={path} query={query} onQueryChange={setQuery} /></ScrollArea></aside>
     <div className="doc-center">
       <Collapsible className="mobile-navigation" title="Browse documentation" open={mobileOpen} onOpenChange={setMobileOpen} controlSize="sm"><ScrollArea aria-label="Mobile documentation sections" style={{ maxHeight: "60svh" }}><Sidebar path={path} query={query} onQueryChange={setQuery} visible={mobileOpen} /></ScrollArea></Collapsible>
-      <main id="main-content" className="doc-article">
+      <main tabIndex={-1} id="main-content" className="doc-article">
         <div className="doc-breadcrumb"><Breadcrumb label="Page breadcrumb" items={catalog ? [{label:title}] : [{label:component ? "Components" : "Documentation",href:component ? "/components" : "/docs"}, ...(component ? [{label:componentGroups.find(group=>group.id===component.group)?.label??component.group,href:`/components#${component.group}`}] : []), {label:title}]} /><Text size="helper" tone="subtle" className="doc-version">v{content.version}</Text>{localPreview && <Text size="helper" tone="subtle" className="local-preview-label">Local preview</Text>}</div>
         <header className="doc-heading">
           <Heading level={1} size="large">{title}</Heading>

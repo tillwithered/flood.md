@@ -1,0 +1,55 @@
+/* Relationships: labels → controls use .25rem; rows own their compact hit areas. */
+.flood-root .flood-form-control__label { display: block; margin: 0 0 var(--flood-sys-space-1); padding: 0; color: var(--flood-sys-color-content-default); font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); font-weight: var(--flood-sys-type-label-weight); }
+.flood-root .flood-form-control__sr-only { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.flood-root .flood-list-box-field, .flood-root .flood-pin-input-field { min-inline-size: 0; max-inline-size: 100%; }
+.flood-root .flood-list-box { box-sizing: border-box; max-block-size: 16rem; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--flood-sys-color-content-subtle) transparent; min-inline-size: 0; padding: var(--flood-sys-space-1); border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-field-border); border-radius: var(--flood-sys-radius-field); background: var(--flood-sys-color-field-background); }
+.flood-root .flood-list-box:focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: calc(-1 * var(--flood-sys-focus-width)); }
+.flood-root .flood-list-box__option { display: flex; align-items: center; justify-content: space-between; gap: var(--flood-sys-space-2); padding: var(--flood-sys-space-2) var(--flood-sys-space-3); min-block-size: var(--flood-control-height); box-sizing: border-box; border-radius: max(0px, calc(var(--flood-sys-radius-field) - var(--flood-sys-space-1) - var(--flood-sys-stroke-width))); cursor: pointer; font-size: var(--flood-control-text); line-height: var(--flood-control-line); }
+.flood-root .flood-list-box__copy { display: grid; min-inline-size: 0; gap: var(--flood-sys-space-1); overflow-wrap: anywhere; }
+.flood-root .flood-list-box__description { color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); }
+.flood-root .flood-list-box__check { flex: none; inline-size: var(--flood-control-icon); text-align: center; }
+.flood-root .flood-list-box__option[aria-selected="true"] { background: var(--flood-sys-color-selection-background); }
+.flood-root .flood-list-box:focus-visible .flood-list-box__option[data-active] { box-shadow: inset 0 0 0 var(--flood-sys-stroke-width) var(--flood-sys-color-border-decorative); }
+.flood-root .flood-list-box__option[aria-disabled="true"], .flood-root .flood-list-box[aria-disabled="true"] { color: var(--flood-sys-color-field-disabled-content); cursor: not-allowed; }
+.flood-root .flood-pin-input { position: relative; display: flex; gap: var(--flood-sys-space-2); inline-size: max-content; max-inline-size: 100%; }
+.flood-root .flood-pin-input__editor { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; opacity: 0; margin: 0; padding: 0; font: inherit; cursor: text; }
+.flood-root .flood-pin-input__slot { box-sizing: border-box; flex: 0 1 var(--flood-control-height); min-inline-size: 0; inline-size: var(--flood-control-height); block-size: var(--flood-control-height); display: grid; place-items: center; border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-field-border); border-radius: var(--flood-sys-radius-field); background: var(--flood-sys-color-field-background); font-size: var(--flood-control-text); line-height: var(--flood-control-line); font-variant-numeric: tabular-nums; pointer-events: none; }
+.flood-root .flood-pin-input:has(.flood-pin-input__editor:focus-visible) .flood-pin-input__slot[data-active] { border: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); }
+.flood-root .flood-pin-input[data-status] .flood-pin-input__slot { border-color: var(--flood-field-feedback); }
+.flood-root .flood-pin-input[data-readonly] .flood-pin-input__slot { background: var(--flood-sys-color-surface-canvas); border-style: dashed; }
+.flood-root .flood-pin-input:has(.flood-pin-input__editor:disabled) .flood-pin-input__slot { background: var(--flood-sys-color-field-disabled); color: var(--flood-sys-color-field-disabled-content); }
+.flood-root .flood-rating { display: block; min-inline-size: 0; max-inline-size: 100%; border: 0; padding: 0; margin: 0; }
+.flood-root .flood-rating__choices { display: flex; align-items: center; flex-wrap: wrap; gap: var(--flood-sys-space-1); }
+.flood-root .flood-rating__choice { position: relative; flex: none; display: grid; place-items: center; inline-size: var(--flood-sys-control-sm-height); block-size: var(--flood-sys-control-sm-height); border-radius: var(--flood-sys-radius-action); cursor: pointer; color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-rating--sm .flood-rating__choice { inline-size: var(--flood-sys-control-xs-height); block-size: var(--flood-sys-control-xs-height); }
+.flood-root .flood-rating--lg .flood-rating__choice { inline-size: var(--flood-sys-control-md-height); block-size: var(--flood-sys-control-md-height); }
+.flood-root .flood-rating__choice > input { position: absolute; inset: 0; margin: 0; inline-size: 100%; block-size: 100%; opacity: 0; cursor: inherit; }
+.flood-root .flood-rating__choice > svg { inline-size: 1.25rem; block-size: 1.25rem; pointer-events: none; }
+.flood-root .flood-rating--sm .flood-rating__choice > svg { inline-size: 1rem; block-size: 1rem; }
+.flood-root .flood-rating--lg .flood-rating__choice > svg { inline-size: 1.5rem; block-size: 1.5rem; }
+.flood-root .flood-rating__choice[data-filled] > svg { fill: currentColor; }
+.flood-root .flood-rating__choice[data-filled] { color: var(--flood-sys-color-content-default); }
+.flood-root .flood-rating__choice:has(input:focus-visible) { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: calc(-1 * var(--flood-sys-focus-width)); }
+.flood-root .flood-rating[aria-readonly="true"] .flood-rating__choice { cursor: default; }
+.flood-root .flood-rating__choice:has(input:disabled) { color: var(--flood-sys-color-field-disabled-content); cursor: not-allowed; }
+.flood-root .flood-dropzone { box-sizing: border-box; min-inline-size: 0; max-inline-size: 100%; display: grid; gap: var(--flood-sys-space-4); padding: var(--flood-sys-space-4); border: var(--flood-sys-stroke-width) dashed var(--flood-sys-color-field-border); border-radius: var(--flood-sys-radius-block); background: var(--flood-sys-color-surface-canvas); }
+.flood-root .flood-dropzone__intro { text-align: center; }
+.flood-root .flood-dropzone__label { display: grid; justify-items: center; gap: var(--flood-sys-space-2); cursor: pointer; font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); }
+.flood-root .flood-dropzone__label > svg { inline-size: 1.5rem; block-size: 1.5rem; color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-dropzone__description { margin: var(--flood-sys-space-1) 0 0; color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); }
+.flood-root .flood-dropzone[data-dragging] { border-color: var(--flood-sys-color-focus-ring); background: var(--flood-sys-color-field-background); }
+.flood-root .flood-dropzone[data-status] { border-color: var(--flood-field-feedback); }
+.flood-root .flood-dropzone:has(input:disabled) .flood-dropzone__label { color: var(--flood-sys-color-field-disabled-content); cursor: not-allowed; }
+.flood-root .flood-character-count { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: var(--flood-sys-space-2); color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); font-variant-numeric: tabular-nums; }
+.flood-root .flood-character-count[data-over-limit] { color: var(--flood-sys-color-feedback-error); }
+.flood-root .flood-character-count__warning { font-weight: var(--flood-sys-type-label-weight); }
+@media (pointer: coarse) {
+ .flood-root .flood-list-box__option { min-block-size: max(var(--flood-control-height), var(--flood-sys-size-touch)); }
+ .flood-root .flood-rating__choice { inline-size: max(var(--flood-sys-control-sm-height), var(--flood-sys-size-touch)); block-size: max(var(--flood-sys-control-sm-height), var(--flood-sys-size-touch)); }
+ .flood-root .flood-pin-input__slot { block-size: max(var(--flood-control-height), var(--flood-sys-size-touch)); }
+}
+@media (forced-colors: active) {
+ .flood-root .flood-list-box__option[aria-selected="true"] { background: Highlight; color: HighlightText; forced-color-adjust: none; }
+ .flood-root .flood-list-box:focus-visible, .flood-root .flood-rating__choice:has(input:focus-visible) { outline-color: Highlight; }
+ .flood-root .flood-pin-input:has(.flood-pin-input__editor:focus-visible) .flood-pin-input__slot[data-active], .flood-root .flood-dropzone[data-dragging] { border-color: Highlight; }
+}

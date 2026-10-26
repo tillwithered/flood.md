@@ -15,15 +15,27 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Classify publication-only changes
+        id: scope
+        run: node scripts/ci-scope.mjs
       - run: npm run verify
+        if: steps.scope.outputs.gate_only != 'true'
+      - name: Verify publication-only website
+        if: steps.scope.outputs.gate_only == 'true'
+        run: npm run build && npm run check && npm test && npm run site:check
       - run: npm run release:check
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+        if: steps.scope.outputs.gate_only != 'true'
+      - name: Check publication-only website in browsers
+        if: steps.scope.outputs.gate_only == 'true'
+        run: npx playwright test --config=playwright.site.config.ts
       - name: Prepare verified website runtime
         id: website
         run: npm run site:bundle
@@ -48,15 +60,23 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Classify publication-only changes
+        id: scope
+        run: node scripts/ci-scope.mjs
       - run: npm run build
+        if: steps.scope.outputs.gate_only != 'true'
       - run: npm run test:next
+        if: steps.scope.outputs.gate_only != 'true'
       - run: npx playwright install --with-deps firefox webkit
+        if: steps.scope.outputs.gate_only != 'true'
       - run: npm run test:browser:engines
+        if: steps.scope.outputs.gate_only != 'true'
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

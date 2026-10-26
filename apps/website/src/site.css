@@ -24,8 +24,6 @@ html { scroll-behavior: smooth; color-scheme: dark; background: var(--flood-sys-
 .wordmark-suffix { color: var(--flood-sys-color-content-subtle); }
 .header-links { flex-wrap: wrap; }
 .github-mark { inline-size: 100%; block-size: 100%; filter: invert(1); }
-.skip-link { position: absolute; inset-inline-start: 1rem; inset-block-start: -10rem; z-index: 10; background: var(--flood-sys-color-surface-raised); color: inherit; padding: 1rem; }
-.skip-link:focus { inset-block-start: 1rem; }
 .header-divider { inline-size: var(--flood-sys-stroke-width); block-size: var(--flood-sys-space-4); background: var(--flood-sys-color-divider-decorative); }
 .icon-link { display: inline-flex; align-items: center; gap: var(--flood-sys-space-2); }
 .wordmark:focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: var(--flood-sys-focus-offset); }
@@ -181,6 +179,7 @@ html { scroll-behavior: smooth; color-scheme: dark; background: var(--flood-sys-
   .docs-layout { display: block; padding-block-start: 1rem; }
   .desktop-sidebar { display: none; }
   .mobile-navigation { display: block; margin-block-end: var(--flood-sys-space-8); }
+  .mobile-navigation .catalog-nav-tools { background: var(--flood-sys-color-surface-default); }
   .doc-heading .flood-heading { font-size: var(--flood-sys-type-page-size); }
   .preview-stage { min-block-size: 18rem; padding: 1.25rem; }
 }

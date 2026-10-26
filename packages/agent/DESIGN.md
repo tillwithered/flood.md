@@ -1,17 +1,17 @@
-# Flood design system · 0.2.4
+# Flood design system · 0.2.5
 
 Read project-root flood.json and installed declarations with this contract.
 The source bundle's SKILL.md routes to focused composition, accessibility,
 customization and verification references. Its routing matrix names prerequisites
 and sources of truth; flood/rules.json indexes observable checks. Read only the
-relevant reference. This expanded bundle belongs to 0.2.4; existing installations
+relevant reference. This expanded bundle belongs to 0.2.5; existing installations
 keep their matching guide set.
 
 React + TypeScript and Next.js App Router. Use this guide with matching installed
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-This guide covers the supported exports in 0.2.4 and their layout refinements. Confirm
+This guide covers the supported exports in 0.2.5 and their layout refinements. Confirm
 the matching installed declarations before using APIs absent from older versions.
 
 ## Connect
@@ -160,15 +160,15 @@ export function Profile() {
 ```
 
 
-0.2.4 adds Badge, Spinner, Skeleton and Avatar. Read references/composition.md and references/accessibility.md for status announcements, fallback geometry and decorative naming. Button loading reuses Spinner. These APIs are not present in 0.2.3.
+0.2.5 adds Badge, Spinner, Skeleton and Avatar. Read references/composition.md and references/accessibility.md for status announcements, fallback geometry and decorative naming. Button loading reuses Spinner. These APIs are not present in 0.2.3.
 
-Progress, Meter and Alert are also available in 0.2.4. Distinguish task completion from bounded measurements, preserve names/units, and select alert announcement priority explicitly.
+Progress, Meter and Alert are also available in 0.2.5. Distinguish task completion from bounded measurements, preserve names/units, and select alert announcement priority explicitly.
 
-DescriptionList and Table are also available in 0.2.4. Preserve native description-list/table structure, table captions and header relationships. Range of displayed data and formatting remain host-owned; DataTable behavior is outside these primitives.
+DescriptionList and Table are also available in 0.2.5. Preserve native description-list/table structure, table captions and header relationships. Range of displayed data and formatting remain host-owned; DataTable behavior is outside these primitives.
 
-Menu adds a real action-menu keyboard contract in 0.2.4; it reuses the layer engine and ScrollArea while remaining distinct from Select and Popover. onAction business effects belong to the host.
+Menu adds a real action-menu keyboard contract in 0.2.5; it reuses the layer engine and ScrollArea while remaining distinct from Select and Popover. onAction business effects belong to the host.
 
-### Toolbar and Kbd (0.2.4)
+### Toolbar and Kbd (0.2.5)
 
 Toolbar groups Button, IconButton, Toggle, native buttons/links and Menu triggers
 under one named action panel. After hydration it uses one Tab entry, directional
@@ -193,7 +193,7 @@ interactive. Menu shortcut hints reuse Kbd and remain hidden from item names.
 <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>
 ```
 
-### Card (0.2.4)
+### Card (0.2.5)
 
 Card composes Surface into a header, body and footer. Optional title, description,
 actions and footer accept React content; children are the body. Missing slots
@@ -217,7 +217,7 @@ No data access, selection or interactive-card behavior is implied.
 </Card>
 ```
 
-## Structural, media and accessible primitives · 0.2.4
+## Structural, media and accessible primitives · 0.2.5
 
 Container centers a max-width box with logical gutters. size sm/md/lg uses
 40/64/80rem bounds including padding; full removes the max. gutter uses Space.

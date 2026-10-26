@@ -2,7 +2,9 @@
 
 The website uses the current Flood packages and original page compositions.
 Home, guides, component pages and /playground share one SiteHeader composition.
-Its navigation uses Flood Link button variants and IconSlot; only brand and
+Its navigation uses Flood Link button variants and IconSlot. The shared shell uses
+Flood SkipLink with a focusable main target; installation, code and agent actions
+use Flood CopyButton instead of a separate clipboard implementation. Only brand and
 page layout remain website styles. Header dimensions are shared across routes.
 The reader composes Breadcrumb, SegmentedControl (import mode), Collapsible
 (mobile navigation and adapter source), Surface/Stack/Inline/Text (catalog cards),
