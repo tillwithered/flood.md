@@ -259,9 +259,9 @@ export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
       onKeyDown={(event) => { onKeyDown?.(event); event.stopPropagation(); }} onKeyUp={onKeyUp} onClick={onClick}
       onInvalid={(event) => { onInvalid?.(event); const prevented = event.defaultPrevented; event.preventDefault(); if (!prevented) { setValidation(event.currentTarget.validationMessage); trigger.current?.focus(); } }}
     >{children}</select>
-    {open && <div ref={menu} id={menuId} role="listbox" aria-label={ariaLabel} aria-labelledby={ariaLabel ? undefined : labelledBy ?? triggerId} popover="manual"
+    {open && <div ref={menu} popover="manual"
       className="flood-select__menu" onPointerDown={(event) => { if (event.pointerType === "mouse") event.preventDefault(); }} onClick={(event) => event.preventDefault()}>
-      <ScrollArea ref={scrollViewport} orientation="vertical" tabIndex={-1} className="flood-select__viewport">
+      <ScrollArea ref={scrollViewport} id={menuId} role="listbox" aria-label={ariaLabel} aria-labelledby={ariaLabel ? undefined : labelledBy ?? triggerId} orientation="vertical" tabIndex={-1} className="flood-select__viewport">
         {!choices.some((choice) => !choice.hidden) && <div className="flood-select__empty">No options</div>}
         {groups.map((group, index) => group.label ? <div key={index} role="group" aria-label={group.label}>
           <div className="flood-select__group" aria-hidden="true">{group.label}</div>{group.items.map(renderOption)}

@@ -240,3 +240,14 @@ scrolls with Flood ScrollArea. Header/close action/footer remain visible. Native
 ref, controlled open/onOpenChange, outside dismissal and initialFocusRef match
 Dialog. Translate closeLabel/title/description; reduced motion disables entry
 animation. Closing is immediate. There is no swipe/drag gesture or auto-save logic.
+
+
+The unpublished 0.2.5 candidate separates floating surfaces from modal surfaces.
+Nine additional semantic roles bring the dark profile to 193 roles; previous token
+values remain intact. surface.floating is the opaque fallback;
+surface.floating-translucent, border.floating, selection.floating, shadow.floating
+and effect.floating blur/saturation/shadow-offset/shadow-blur define the floating
+material. Select, Combobox, MultiSelect, Menu, Popover and Tooltip share it; Dialog
+and Drawer retain surface.overlay. Backdrop filtering is progressive enhancement;
+reduced transparency uses the opaque fill and forced colors use system colors.
+Keep text opaque and evaluate it against the actual composited background.
