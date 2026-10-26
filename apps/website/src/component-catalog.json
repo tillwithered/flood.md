@@ -1431,8 +1431,8 @@
       "Uses three native text segments rather than an operating-system calendar popup. Calendar and DatePicker are separate contracts.",
       "Values are canonical YYYY-MM-DD dates from 0001 through 9999, or an empty string. min/max and leap years use civil date arithmetic without timezones.",
       "Arrow keys adjust segments. Left/Right move at segment boundaries; IME and modifier shortcuts remain available. Use explicit order and localized segmentLabels/messages.",
-      "Incomplete or invalid drafts block native submission; the hidden named field contains no stale previous date. Controlled values and form resets preserve host ownership.",
-      "Read only retains copying and submission. Disabled fields and disabled fieldsets remain inert. Use status for advisory feedback and invalid for host validation. Introduced in the unpublished 0.2.7 source candidate."
+      "In editable fields, incomplete or invalid drafts block native submission; the hidden named field contains no stale previous date. Controlled values and form resets preserve host ownership.",
+      "Read only retains copying and accepted canonical submission, even outside current bounds or application constraints. It bypasses native validity without accepting partial or refused drafts. Disabled fields and fieldsets remain excluded. Introduced in the unpublished 0.2.7 source candidate."
     ]
   },
   {
@@ -1444,7 +1444,7 @@
     "notes": [
       "Use HH:mm with minute precision or HH:mm:ss with second precision. Values have no date or timezone.",
       "step is expressed in seconds and anchored to min or midnight; minute precision requires a multiple of 60. Overnight ranges are not inferred.",
-      "Incomplete, invalid, out-of-range, step-mismatched and refused controlled drafts block native submission. Form reset and read-only/disabled ownership match other fields.",
+      "In editable fields, incomplete, invalid, out-of-range, step-mismatched and refused controlled drafts block native submission. Readonly preserves accepted canonical time outside bounds/step alignment; it never accepts a partial or refused draft. Disabled values are excluded.",
       "Click the control background to focus a missing or remembered segment. Keyboard steps, Home/End, paste and IME preserve host cancellation. Translate segmentLabels and messages. Introduced in 0.2.7."
     ],
     "imports": [
@@ -1539,7 +1539,7 @@
     "description": "Two segmented date fields with one ordered range and atomic form values.",
     "code": "<DateRangeField label=\"Travel dates\" startName=\"start\" endName=\"end\" defaultValue={{start:\"2026-10-12\",end:\"2026-10-18\"}} />",
     "notes": [
-      "The value is {start,end}, with canonical YYYY-MM-DD dates or empty endpoints. Partial, reversed, unavailable and refused ranges block native submission.",
+      "The value is {start,end}, with canonical YYYY-MM-DD dates or empty endpoints. Editable partial, reversed, unavailable and refused ranges block native submission. Readonly submits a complete ordered accepted pair despite current bounds/availability; partial, reversed and refused pairs stay atomic empty values.",
       "Both named bridges represent one range contract. The group owns relationship validation while each DateField preserves its calendar validity and keyboard behavior.",
       "Start/end names and labels are explicit; min/max, readonly/disabled, status and form reset follow the field contracts.",
       "Use DateRangePicker for visual interval selection. Introduced in 0.2.7."

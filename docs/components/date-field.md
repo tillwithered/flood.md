@@ -73,6 +73,12 @@ from FormData. `name` and `form` apply to the hidden successful input; only it
 submits a named value. `controlSize` is sm/md/lg/xl with the same semantic sizing
 as other fields. Touch layouts preserve the control's minimum touch height.
 
+Like a native readonly field, `readOnly` bypasses required/bounds/application
+validity constraints while preserving an accepted canonical date in FormData,
+including a date outside the current bounds. It does not accept a refused
+controlled draft or turn incomplete segments into a valid date. Use `disabled`
+when the value must be excluded from submission.
+
 With controlled `value`, the host owns committed values. External changes replace
 the draft; echoes of `onValueChange` preserve incomplete segment text. A refused
 valid date or optional clear blocks native submission until accepted or reverted

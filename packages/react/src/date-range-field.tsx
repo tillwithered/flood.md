@@ -52,7 +52,7 @@ export const PairedDateRangeField=forwardRef<HTMLDivElement,DateRangeFieldProps>
     root.current?.querySelectorAll<HTMLInputElement>(`[data-range-endpoint="${part}"] input[data-segment]`).forEach(node=>{parts[node.dataset.segment as keyof DateParts]=node.value;});
     return isEmptyDate(parts)?"":canonicalDate(parts);
   };
-  const accepted=(available||empty)&&!constraint&&(value===undefined||sameDateRange(draft,value));
+  const accepted=(readOnly?completeDateRange(draft)||empty:(available||empty)&&!constraint)&&(value===undefined||sameDateRange(draft,value));
   const firstPart=order.split("-")[0];
   return <div {...props} id={id} ref={root} role="group" aria-labelledby={`${id}-label`} aria-describedby={mergeDescriptions(describedBy,descriptionId)} className={cx("flood-date-range-field",className)}
     onKeyDownCapture={event=>{onKeyDownCapture?.(event);onKeyDown?.(event);}} onBlur={event=>{

@@ -1,5 +1,11 @@
 # Flood design system · 0.2.7
 
+Readonly date/time entry bypasses native validity constraints while retaining
+accepted canonical values, including values outside current bounds, time steps or
+range availability. Do not silently clear those values. Partial, reversed ranges
+and refused controlled drafts never become accepted by setting readonly. Disabled
+values remain excluded from submission.
+
 Read project-root flood.json and installed declarations with this contract.
 The installed entry is .agents/skills/flood-ui/SKILL.md; its references live under
 .agents/skills/flood-ui/references/. Read only the relevant composition, spacing,

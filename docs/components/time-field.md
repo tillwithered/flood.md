@@ -1,5 +1,10 @@
 # TimeField
 
+Readonly entry preserves an accepted canonical time in FormData, including a time
+outside current bounds or step alignment. Native validity constraints do not
+apply to readonly fields. Partial or refused drafts are not accepted by setting
+readonly; disabled fields are excluded from submission.
+
 A segmented **24-hour clock time** editor: Hour and Minute, optionally Second.
 Values are plain strings, not dates or instants. It uses text spinbuttons rather
 than the operating system's time picker. This is an unpublished source API.

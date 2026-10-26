@@ -367,9 +367,12 @@ const html=render(h(FloodRoot,null,
  h(CommandList,{label:'Commands',items:[{id:'open',label:'Open project',group:'Projects'}]}),
  h(DateField,{id:'candidate-date',label:'Date',name:'candidate-date',defaultValue:date,end:h('button',null,'Date action')}),
  h(TimeField,{label:'Time',name:'candidate-time',defaultValue:'12:30:45',precision:'second'}),
+ h(DateField,{label:'Locked date',name:'candidate-readonly-date',defaultValue:date,readOnly:true,min:'2027-01-01',validationMessage:'Not available for editing'}),
+ h(TimeField,{label:'Locked time',name:'candidate-readonly-time',defaultValue:'12:34',readOnly:true,min:'18:00',step:900}),
  h(Calendar,{label:'Calendar',defaultValue:date,defaultVisibleMonth:'2026-10',today:date,locale:'en-US'}),
  h(DatePicker,{label:'Pick date',name:'candidate-picked-date',defaultValue:date,today:date}),
  h(DateRangeField,{label:'Range',startName:'candidate-start',endName:'candidate-end',defaultValue:range}),
+ h(DateRangeField,{label:'Locked range',startName:'candidate-readonly-start',endName:'candidate-readonly-end',defaultValue:range,readOnly:true,isRangeDisabled:()=>true}),
  h(RangeCalendar,{label:'Range calendar',defaultValue:range,defaultVisibleMonth:'2026-10',today:date}),
  h(DateRangePicker,{label:'Pick range',startName:'candidate-picker-start',endName:'candidate-picker-end',defaultValue:range,today:date}),
  h(ResizablePanels,{label:'Workspace',main:'Main panel',secondary:'Inspector',defaultValue:60}),
@@ -386,7 +389,7 @@ for(const name of ['flood-editable','flood-tag-input','flood-command-list','floo
  assert.ok(html.includes(name),'Missing candidate SSR anatomy '+name);
  assert.ok(css.includes('.'+name),'Missing packaged candidate CSS '+name);
 }
-for(const [name,value] of [['candidate-project','Flood'],['candidate-tags','design'],['candidate-tags','engineering'],['candidate-date',date],['candidate-time','12:30:45'],['candidate-picked-date',date],['candidate-start',range.start],['candidate-end',range.end],['candidate-picker-start',range.start],['candidate-picker-end',range.end]]){
+for(const [name,value] of [['candidate-project','Flood'],['candidate-tags','design'],['candidate-tags','engineering'],['candidate-date',date],['candidate-time','12:30:45'],['candidate-readonly-date',date],['candidate-readonly-time','12:34'],['candidate-readonly-start',range.start],['candidate-readonly-end',range.end],['candidate-picked-date',date],['candidate-start',range.start],['candidate-end',range.end],['candidate-picker-start',range.start],['candidate-picker-end',range.end]]){
  const inputs=html.match(/<input\\b[^>]*>/g)??[];
  assert.ok(inputs.some(input=>input.includes('name="'+name+'"')&&input.includes('value="'+value+'"')),'Missing canonical SSR form value '+name+'='+value);
 }

@@ -8,8 +8,8 @@ async function fixture() {
   const file = (path:string) => JSON.stringify(resolve(path).replaceAll("\\","/"));
   const directory=resolve(`.artifacts/menu-submenus-${process.pid}`),entry=resolve(directory,"entry.mjs"); await mkdir(directory,{recursive:true});
   await writeFile(entry,`import React,{useState,StrictMode}from ${file("node_modules/react/index.js")};import{createRoot}from ${file("node_modules/react-dom/client.js")};import{FloodRoot,Button,Menu}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};const h=React.createElement,trigger=label=>props=>h(Button,{...props,variant:'subtle'},label);
-function App(){const[actions,A]=useState([]),[checked,C]=useState(false),[radio,R]=useState('one'),[owned,O]=useState(false),[freeze,F]=useState(false),[mounted,M]=useState(true);
-const items=[{id:'rename',label:'Rename'},{id:'export',type:'submenu',label:'Export',items:[{id:'pdf',label:'PDF'},{id:'plain',label:'Plain text'},{id:'advanced',type:'submenu',label:'Advanced',items:[{id:'json',label:'JSON'},{id:'xml',label:'XML'}]}]},{id:'preferences',type:'submenu',label:'Preferences',items:[{id:'notify',type:'checkbox',label:'Notifications',checked,onCheckedChange:C},...['one','two'].map(value=>({id:'radio-'+value,type:'radio',group:'Mode',label:value,checked:radio===value,onCheckedChange:()=>R(value)}))]},{id:'unavailable',type:'submenu',label:'Unavailable',disabled:true,items:[{id:'never',label:'Never run'}]},{id:'beta',label:'Beta'}];
+function App(){const[actions,A]=useState([]),[checked,C]=useState(false),[radio,R]=useState('one'),[owned,O]=useState(false),[freeze,F]=useState(false),[mounted,M]=useState(true),[revision,V]=useState(0),[targetState,S]=useState('submenu');window.updateSubmenu=mode=>{S(mode);V(value=>value+1)};
+const items=[{id:'rename',label:'Rename'},...(targetState==='removed'?[]:[targetState==='action'?{id:'export',label:'Export'}:{id:'export',type:'submenu',label:'Export',disabled:targetState==='disabled',items:[{id:'pdf',label:'PDF'},{id:'plain',label:'Plain text'},{id:'advanced',type:'submenu',label:'Advanced',items:[{id:'json',label:'JSON'},{id:'xml',label:'XML'}]}]}]),{id:'preferences',type:'submenu',label:'Preferences',items:[{id:'notify',type:'checkbox',label:'Notifications',checked,onCheckedChange:C},...['one','two'].map(value=>({id:'radio-'+value,type:'radio',group:'Mode',label:value,checked:radio===value,onCheckedChange:()=>R(value)}))]},{id:'unavailable',type:'submenu',label:'Unavailable',disabled:true,items:[{id:'never',label:'Never run'}]},{id:'beta',label:'Beta'}];
 return h(FloodRoot,{style:{padding:'1rem'}},h('h1',null,'Submenu checks'),h(Button,{id:'before'},'Before'),mounted&&h(Menu,{label:'Tree',trigger:trigger('Open tree'),items,onAction:id=>A(v=>[...v,id])}),h(Button,{id:'after'},'After'),h('input',{'aria-label':'Outside destination'}),h('label',null,h('input',{type:'checkbox',checked:freeze,onChange:event=>F(event.target.checked)}),'Refuse closing'),h(Menu,{label:'Owned tree',trigger:trigger('Open owned'),items,open:owned,onOpenChange:value=>{if(value||!freeze)O(value)},onAction:id=>A(v=>[...v,id])}),h(Button,{onClick:()=>M(false)},'Unmount tree'),h('output',{'aria-label':'Actions'},JSON.stringify(actions)));}createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
   const result=await build({configFile:false,logLevel:"silent",define:{"process.env.NODE_ENV":JSON.stringify("production")},build:{write:false,cssCodeSplit:false,lib:{entry,formats:["iife"],name:"SubmenuFixture"}}});
   const output=Array.isArray(result)?result[0].output:result.output;
@@ -18,6 +18,14 @@ return h(FloodRoot,{style:{padding:'1rem'}},h('h1',null,'Submenu checks'),h(Butt
 async function open(page:Page){bundle??=fixture();await page.route('**/__submenu.html',async route=>route.fulfill({contentType:'text/html',body:await bundle}));await page.goto('/__submenu.html');await expect(page.getByRole('heading',{name:'Submenu checks'})).toBeVisible();}
 const menu=(page:Page,name:string)=>page.getByRole('menu',{name,exact:true});
 async function openExport(page:Page){await page.getByRole('button',{name:'Open tree',exact:true}).click();const item=menu(page,'Tree').getByRole('menuitem',{name:'Export',exact:true});await item.focus();await page.keyboard.press('ArrowRight');await expect(menu(page,'Export')).toBeVisible();}
+async function hoverWithUpdate(page:Page,mode:string){
+  await menu(page,'Tree').getByRole('menuitem',{name:'Export',exact:true}).evaluate((node,mode)=>{
+    // Dispatch the real pointer event and host update in one task, so the
+    // rerender reliably precedes the intent timer on every browser engine.
+    node.dispatchEvent(new PointerEvent('pointerover',{bubbles:true,pointerType:'mouse'}));
+    (window as any).updateSubmenu(mode);
+  },mode);
+}
 
 test('menu trees reject duplicate recursive IDs, empty children and cycles while radio groups stay level-scoped',async()=>{
   const {validateMenuTree}=await import('../../packages/react/dist/menu.js');
@@ -80,7 +88,25 @@ test('touch taps toggle submenus without needing hover',async({browser,baseURL})
 
 test('unmount cancels pending hover opening without delayed actions or document errors',async({page})=>{
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await open(page);
-  await page.getByRole('button',{name:'Open tree',exact:true}).click();await menu(page,'Tree').getByRole('menuitem',{name:'Export',exact:true}).hover();
+  await page.getByRole('button',{name:'Open tree',exact:true}).click();await hoverWithUpdate(page,'refresh');
   await page.getByRole('button',{name:'Unmount tree',exact:true}).evaluate(node=>node.click());
   await page.waitForTimeout(200);await expect(page.getByRole('button',{name:'Open tree',exact:true})).toHaveCount(0);await expect(menu(page,'Tree')).toHaveCount(0);expect(errors).toEqual([]);
+});
+
+test('pending hover survives an equivalent inline items rerender',async({page})=>{
+  await open(page);await page.getByRole('button',{name:'Open tree',exact:true}).click();
+  await hoverWithUpdate(page,'refresh');await expect(menu(page,'Export')).toBeVisible();
+  await expect(menu(page,'Export').getByRole('menuitem',{name:'PDF',exact:true})).toBeFocused();
+});
+
+for(const mode of ['removed','disabled','action'])test(`pending hover cancels when its target becomes ${mode}`,async({page})=>{
+  const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await open(page);await page.getByRole('button',{name:'Open tree',exact:true}).click();
+  await hoverWithUpdate(page,mode);await page.waitForTimeout(190);await expect(menu(page,'Export')).toBeHidden();
+  await expect(menu(page,'Tree')).toBeVisible();expect(errors).toEqual([]);
+});
+
+test('closing cancels preserved hover intent before it can reopen a child',async({page})=>{
+  const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await open(page);await page.getByRole('button',{name:'Open tree',exact:true}).click();
+  await hoverWithUpdate(page,'refresh');await page.keyboard.press('Escape');await page.waitForTimeout(190);
+  await expect(menu(page,'Tree')).toBeHidden();await expect(menu(page,'Export')).toBeHidden();expect(errors).toEqual([]);
 });

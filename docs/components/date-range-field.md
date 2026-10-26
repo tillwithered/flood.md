@@ -1,5 +1,11 @@
 # DateRangeField
 
+A readonly complete, ordered and accepted range still submits both canonical
+dates, even when current bounds or availability rules reject editing that range.
+Readonly fields bypass native validity constraints; they do not promote a partial,
+reversed or refused draft into submitted values. Such ranges keep both bridges
+empty. Disabled fields are excluded from FormData.
+
 Two original DateFields form one labelled range, with relationship validation and
 atomic native form values. There is no popup.
 
@@ -15,8 +21,8 @@ complete dates remain editable invalid drafts; typing does not silently swap
 endpoints. Equal dates are allowed. `onValueChange` includes partial and invalid
 relationship drafts, while each endpoint remains canonical or empty.
 
-`startName` and `endName` are separate native names. Only a complete, ordered,
-available, accepted pair submits both dates. Empty optional ranges submit both
+`startName` and `endName` are separate native names. For editable fields, only a
+complete, ordered, available, accepted pair submits both dates. Empty optional ranges submit both
 empty strings. Partial, reversed, out-of-bounds or unavailable ranges submit
 **both empty strings** and block native submission through a visible DateField
 segment. No old endpoint is submitted beside a new one. Native calendar,
@@ -37,7 +43,7 @@ and distinguish accessible segment names. Endpoint labels are visually hidden;
 their field contracts. The pair stacks inside narrow containers. `end` is an
 addon on the end endpoint, intended for composition. Ref targets the root div.
 
-Controlled hosts may accept or refuse drafts. Refused valid pairs and optional
+Controlled hosts may accept or refuse drafts. In editable fields, refused valid pairs and optional
 clears block submission until accepted and revert to the owned value on leaving
 the whole range. Incomplete/invalid text remains for correction. Native reset
 restores uncontrolled defaults without callbacks; controlled fields restore their

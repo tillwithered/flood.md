@@ -119,7 +119,7 @@ export const SegmentedTimeField = forwardRef<HTMLDivElement,TimeFieldProps>(func
           onInvalid={()=>setTouched(true)}/>
       </span>)}
     </div>
-    <input ref={bridge} type="hidden" name={name} form={form} value={canonical && inRange && onStep && !pendingAcceptance ? canonical : ""} disabled={disabled}/>
+    <input ref={bridge} type="hidden" name={name} form={form} value={canonical && (readOnly || inRange && onStep) && (value === undefined || canonical === value) ? canonical : ""} disabled={disabled}/>
     {description && <div id={descriptionId} className="flood-time-field__description">{description}</div>}
     {errorShown && <div id={errorId} role="alert" className="flood-time-field__error">{message}</div>}
   </div>;

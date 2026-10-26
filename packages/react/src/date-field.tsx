@@ -139,7 +139,7 @@ export const SegmentedDateField = forwardRef<HTMLDivElement, DateFieldProps>(fun
       </span>)}
       {end != null && <div className="flood-date-field__end">{end}</div>}
     </div>
-    <input ref={bridge} type="hidden" name={name} form={form} value={inRange && !message && (value === undefined || canonical === value) ? canonical : ""} disabled={disabled}/>
+    <input ref={bridge} type="hidden" name={name} form={form} value={canonical && (readOnly || inRange && !message) && (value === undefined || canonical === value) ? canonical : ""} disabled={disabled}/>
     {description && <div id={descriptionId} className="flood-date-field__description">{description}</div>}
     {errorShown && <div id={errorId} className="flood-date-field__error">{message}</div>}
   </div>;

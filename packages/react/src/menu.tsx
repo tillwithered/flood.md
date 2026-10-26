@@ -68,18 +68,24 @@ export const MenuLayer = forwardRef<HTMLDivElement, MenuLayerProps>(function Men
   const childRefs = useRef(new Map<string, (node: HTMLDivElement | null) => void>());
   const [openChild, setOpenChild] = useState<string | undefined>(undefined);
   const hover = useRef<ReturnType<typeof setTimeout> | undefined>(undefined), pointerType = useRef("");
+  const hoverIntent = useRef<{id:string;type:string;node:HTMLButtonElement} | undefined>(undefined);
+  const latestItems = useRef(new Map<string, InternalItem>());
   const search = useRef({text:"", time:0}), pointerTarget = useRef<Node | null>(null);
   const current = useRef({open, requestOpen, closeTree, anchor, rootAnchor, rootPanel, position, edge});
   current.current = {open, requestOpen, closeTree, anchor, rootAnchor, rootPanel, position, edge};
   useImperativeHandle(forwardedRef, () => panel.current!, []);
-  const clearHover = () => {clearTimeout(hover.current); hover.current = undefined;};
+  const clearHover = () => {clearTimeout(hover.current); hover.current = undefined; hoverIntent.current = undefined;};
   useEffect(() => () => clearHover(), []);
   useBrowserLayoutEffect(() => {
-    clearHover();
+    latestItems.current = new Map(items.map(item => [item.id,item]));
+    const intent = hoverIntent.current, target = intent && latestItems.current.get(intent.id);
+    // Ordinary host rerenders often create an equivalent array. Preserve the
+    // pending pointer intent unless the actual target can no longer receive it.
+    if (intent && (!target || target.type === "separator" || target.disabled || (target.type ?? "action") !== intent.type || !intent.node.isConnected || anchors.current.get(intent.id) !== intent.node)) clearHover();
     const keys = new Set(items.filter(item => item.type !== "separator").map(item => item.id));
     for (const key of anchorRefs.current.keys()) if (!keys.has(key)) anchorRefs.current.delete(key);
     for (const key of childRefs.current.keys()) if (!keys.has(key)) childRefs.current.delete(key);
-  }, [items]);
+  });
   const anchorRef = (key: string) => {
     if (!anchorRefs.current.has(key)) anchorRefs.current.set(key, node => {if (node) anchors.current.set(key,node); else anchors.current.delete(key);});
     return anchorRefs.current.get(key)!;
@@ -154,11 +160,14 @@ export const MenuLayer = forwardRef<HTMLDivElement, MenuLayerProps>(function Men
   const scheduleHover = (item: Exclude<InternalItem, {type:"separator"}>, node: HTMLButtonElement) => {
     clearHover();
     if (!openChild && item.type !== "submenu") {node.focus({preventScroll:true}); return;}
+    const intent = {id:item.id,type:item.type ?? "action",node}; hoverIntent.current = intent;
     hover.current = setTimeout(() => {
-      hover.current = undefined;
-      if (!node.isConnected || !panel.current?.matches(":popover-open")) return;
+      if (hoverIntent.current !== intent) return;
+      hover.current = undefined; hoverIntent.current = undefined;
+      const target = latestItems.current.get(intent.id);
+      if (!target || target.type === "separator" || target.disabled || (target.type ?? "action") !== intent.type || !node.isConnected || anchors.current.get(intent.id) !== node || !panel.current?.matches(":popover-open")) return;
       node.focus({preventScroll:true});
-      setOpenChild(item.type === "submenu" && !item.disabled ? item.id : undefined);
+      setOpenChild(target.type === "submenu" ? target.id : undefined);
     }, 150);
   };
   const hasIcons = items.some(item => item.type !== "separator" && item.icon != null);

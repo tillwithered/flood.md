@@ -2,6 +2,8 @@
 
 ## 0.2.7 - Unreleased
 
+- Preserve readonly date/time form values under constraints and keep submenu hover intent across equivalent host rerenders.
+
 - Preserve cancelled selection resets, clear obsolete validation after external corrections and recognize reordered controlled tag acceptance.
 
 - Add Tree for hierarchical selection and NavigationTree for nested native destinations.
