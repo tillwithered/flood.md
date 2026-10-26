@@ -20,6 +20,11 @@ const select = (name: string, options: string[], initial: string): Knob => ({ na
 const statusKnob = () => select("status", ["none", "error", "warning", "success", "info"], "none");
 const toggle = (name: string, initial = false): Knob => ({ name, initial });
 const knobs: Record<string, Knob[]> = {
+  "file-item": [select("density", ["compact", "comfortable"], "comfortable"),toggle("showSize",true),toggle("showType",true),toggle("showActions",true),toggle("longName"),toggle("disabled")],
+  "file-list": [select("density", ["compact", "comfortable"], "comfortable"),toggle("showSize",true),toggle("showType",true),toggle("showActions",true),toggle("longName"),toggle("disabled")],
+  "upload-item": [select("state", ["queued", "uploading", "success", "error", "cancelled"], "uploading"),select("progress", ["unknown", "0", "25", "45", "75", "100"], "45"),toggle("showActions",true),toggle("disabled")],
+  "upload-list": [select("density", ["compact", "comfortable"], "comfortable"),select("progress", ["unknown", "0", "25", "45", "75", "100"], "45"),toggle("showActions",true),toggle("disabled")],
+  "image-preview": [select("image", ["brand", "missing"], "brand"),toggle("showCaption",true),toggle("showDownload"),toggle("disabled")],
   "data-table": [select("density", ["compact", "comfortable"], "comfortable"),select("pageSize", ["3", "5", "10"], "5"),toggle("selectable",true),toggle("striped"),select("state", ["ready", "loading", "error", "empty"], "ready")],
   "data-list": [select("density", ["compact", "comfortable"], "comfortable"),toggle("dividers",true),toggle("showDescription",true),toggle("showMedia",true),toggle("showMetadata",true),toggle("showActions",true),toggle("longTitle")],
   "data-list-item": [select("density", ["compact", "comfortable"], "comfortable"),toggle("showDescription",true),toggle("showMedia",true),toggle("showMetadata",true),toggle("showActions",true),toggle("longTitle")],
@@ -180,6 +185,8 @@ function printRecipe(node: ElementRecipe, imports: Set<string>, icons: Set<strin
 }
 
 interface PreviewActions {
+  fileStates: Record<string,string>;
+  setFileState: (id:string,state:string)=>void;
   menuChecked: boolean;
   setMenuChecked: (checked: boolean) => void;
   menuDensity: string;
@@ -208,6 +215,20 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     onChange: binding("(event) => setChecked(event.currentTarget.checked)", (event: { currentTarget: { checked: boolean } }) => actions.checked(event.currentTarget.checked)),
   };
   switch (slug) {
+    case "file-item":
+    case "file-list": return element("div",{style:{width:"32rem",maxWidth:"100%"}},element("FileList",{label:"Attachments",density:v.density},...["brand",...(slug==="file-list"?["logo","cover"]:[])].map((id,index)=>{
+      const name=v.longName?"Brand-guidelines-and-product-design-system-documentation-final-version.pdf":["Brand guidelines.pdf","Logo.svg","Cover.png"][index];
+      return element("FileItem",{name,size:v.showSize?[2400000,18400,850000][index]:undefined,mimeType:v.showType?["PDF","SVG","PNG"][index]:undefined,disabled:v.disabled,hidden:binding(`fileStates[${JSON.stringify(id)}] === "removed"`,actions.fileStates[id]==="removed"),onPreview:v.showActions?action:undefined,onRemove:v.showActions?binding(`() => setFileStates(current => ({...current, ${JSON.stringify(id)}: "removed"}))`,()=>actions.setFileState(id,"removed")):undefined});
+    })),status);
+    case "upload-item":
+    case "upload-list": return element("div",{style:{width:"32rem",maxWidth:"100%"}},element("UploadList",{label:"Uploads",density:v.density??"comfortable"},...["brand",...(slug==="upload-list"?["logo","cover"]:[])].map((id,index)=>{
+      const initial=slug==="upload-item"?String(v.state):["uploading","success","error"][index];
+      const raw=actions.fileStates[id],state=raw==="removed"?initial:raw??initial;
+      const set=(next:string)=>binding(`() => setFileStates(current => ({...current, ${JSON.stringify(id)}: ${JSON.stringify(next)}}))`,()=>actions.setFileState(id,next));
+      return element("UploadItem",{name:["Brand guidelines.pdf","Logo.svg","Cover.png"][index],size:[2400000,18400,850000][index],state:binding(`(fileStates[${JSON.stringify(id)}] === "removed" ? undefined : fileStates[${JSON.stringify(id)}]) ?? ${JSON.stringify(initial)}`,state),hidden:binding(`fileStates[${JSON.stringify(id)}] === "removed"`,raw==="removed"),progress:v.progress==="unknown"?undefined:Number(v.progress),error:state==="error"?"Connection interrupted. Try again.":undefined,disabled:v.disabled,onCancel:v.showActions?set("cancelled"):undefined,onRetry:v.showActions?set("uploading"):undefined,onRemove:v.showActions?set("removed"):undefined});
+    })),status);
+    case "image-preview": return element("ImagePreview",{title:"Flood mark",src:v.image==="missing"?"/missing-preview.png":"/flood-mark.png",alt:"Pink Flood mark",caption:v.showCaption?"Original Flood brand asset.":undefined,downloadHref:v.showDownload?"/flood-mark.png":undefined,disabled:v.disabled,trigger:binding('(props) => <Button {...props} variant="subtle">Preview image</Button>',(props:Flood.OverlayTriggerProps)=><Flood.Button {...props} variant="subtle">Preview image</Flood.Button>)});
+
     case "data-table": return element("div",{style:{width:"100%",maxWidth:"100%"}},element("DataTable",{caption:"Projects",density:v.density,pageSize:Number(v.pageSize),selectable:v.selectable,striped:v.striped,state:v.state==="empty"?"ready":v.state,minWidth:"32rem",onRetry:v.state==="error"?action:undefined,columns:[{id:"name",label:"Project",sortable:true},{id:"status",label:"Status",sortable:true},{id:"members",label:"Members",align:"end",sortable:true}],rows:v.state==="empty"?[]:[{id:"design",label:"Design system",cells:{name:"Design system",status:"Active",members:12}},{id:"website",label:"Website",cells:{name:"Website",status:"Active",members:4}},{id:"agents",label:"Agent guides",cells:{name:"Agent guides",status:"Draft",members:2}},{id:"mobile",label:"Mobile app",cells:{name:"Mobile app",status:"Draft",members:8}},{id:"research",label:"Research",cells:{name:"Research",status:"Archived",members:3},selectionDisabled:true},{id:"marketing",label:"Marketing",cells:{name:"Marketing",status:"Active",members:6}},{id:"support",label:"Support",cells:{name:"Support",status:"Active",members:5}}]}),status);
 
     case "data-list":
@@ -452,25 +473,26 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   const [notifications, setNotifications] = useState<Flood.ToastItem[]>([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]);
   const stage = useRef<HTMLDivElement>(null);
   const values = state.slug === component.slug ? state.values : initialValues(component);
-  const change = (name: string, value: string | boolean) => { setState({ slug: component.slug, values: { ...values, ...(name === "status" ? { invalid: false, ...(component.slug === "field" ? { error: false } : {}) } : {}), [name]: value } }); setStatus(""); };
+  const [fileStates,setFileStates] = useState<Record<string,string>>({});
+  const change = (name: string, value: string | boolean) => { setState({ slug: component.slug, values: { ...values, ...(name === "status" ? { invalid: false, ...(component.slug === "field" ? { error: false } : {}) } : {}), [name]: value } }); setStatus(""); if(name==="state")setFileStates({}); };
   const callback = useRef(onCodeChange);
   const importsCallback = useRef(onImportsChange);
   useEffect(() => { callback.current = onCodeChange; }, [onCodeChange]);
   useEffect(() => { importsCallback.current = onImportsChange; }, [onImportsChange]);
-  useEffect(() => { setStatus(""); }, [component.slug]);
+  useEffect(() => { setStatus(""); setFileStates({}); }, [component.slug]);
   const copy = async () => {
     try { await navigator.clipboard.writeText(String(values.code)); setStatus("Copied command."); }
     catch { setStatus("Select the code and copy it manually."); }
   };
   const currentPage=component.slug==="pagination"?Math.min(pagination.slug===component.slug?pagination.page:1,Number(values.pageCount)):1;
-  const recipe = recipeFor(component.slug, values, { menuChecked, setMenuChecked, menuDensity, setMenuDensity, notifications, addToast:()=>setNotifications(current=>[...current,{id:crypto.randomUUID(),title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]), dismissToast:id=>setNotifications(current=>current.filter(item=>item.id!==id)), status, setStatus, checked: (checked) => change("checked", checked), visible: visible => {
+  const recipe = recipeFor(component.slug, values, { fileStates,setFileState:(id,next)=>setFileStates(current=>({...current,[id]:next})), menuChecked, setMenuChecked, menuDensity, setMenuDensity, notifications, addToast:()=>setNotifications(current=>[...current,{id:crypto.randomUUID(),title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]), dismissToast:id=>setNotifications(current=>current.filter(item=>item.id!==id)), status, setStatus, checked: (checked) => change("checked", checked), visible: visible => {
     change("visible", visible);
     if (!visible) queueMicrotask(() => stage.current?.ownerDocument.getElementById(`${id}-visible`)?.focus());
   }, copy, page:currentPage,setPage:page=>setPagination({slug:component.slug,page}) });
   const imports = new Set<string>(["FloodRoot"]), icons = new Set<string>();
   const jsx = printRecipe(element("FloodRoot", {}, recipe), imports, icons, 2);
   if (component.slug === "code-snippet" && values.copyAction) imports.add("Button");
-  if (["tooltip", "popover", "dialog", "alert-dialog", "drawer", "hover-card"].includes(component.slug)) imports.add("Button");
+  if (["tooltip", "popover", "dialog", "alert-dialog", "drawer", "hover-card", "image-preview"].includes(component.slug)) imports.add("Button");
   if (component.slug === "menu") { imports.add(values.iconTrigger ? "IconButton" : "Button"); if (values.iconTrigger) icons.add("Ellipsis"); if (values.icons) for (const name of ["Pencil", "Copy", "Archive", "Trash2"]) icons.add(name); }
   if (component.slug === "input-group") {
     if (values.end === "action") imports.add("Button");
@@ -481,6 +503,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   if (component.slug === "toggle-group" && values.content !== "text") { icons.add("Bold"); icons.add("Italic"); icons.add("Underline"); }
   if (component.slug === "segmented-control" && values.content !== "text") { icons.add("CalendarDays"); icons.add("CalendarRange"); icons.add("Calendar"); }
   let preamble = "";
+  if (["file-item","file-list","upload-item","upload-list"].includes(component.slug)) preamble += '  const [fileStates, setFileStates] = useState<Record<string, "queued" | "uploading" | "success" | "error" | "cancelled" | "removed">>({});\n';
   if (component.slug === "toast-region") preamble += '  const [notifications, setNotifications] = useState([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]);\n';
   const usesPresence = component.slug === "tag";
   if (usesPresence) { preamble += `  const [visible, setVisible] = useState(${JSON.stringify(Boolean(values.visible))});\n`; if (values.icon) icons.add("Plus"); }
@@ -491,7 +514,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   if (component.slug === "resizable-panels") { imports.add("Surface"); imports.add("Text"); }
   if (component.slug === "card") { if (values.showActions) imports.add("Badge"); if (values.showFooter) imports.add("Button"); }
   if (component.slug === "empty-state") { if (values.showIcon) icons.add("Plus"); if (values.showActions) imports.add("Button"); }
-  const usesStatus = ["data-table","data-list", "data-list-item","context-menu", "command-list", "steps", "section", "drawer", "alert-dialog", "empty-state", "card", "toolbar", "menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
+  const usesStatus = ["file-item", "file-list", "upload-item", "upload-list","data-table","data-list", "data-list-item","context-menu", "command-list", "steps", "section", "drawer", "alert-dialog", "empty-state", "card", "toolbar", "menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
   if (usesChecked) preamble += `  const [checked, setChecked] = useState(${JSON.stringify(Boolean(values.checked))});\n`;
   if (component.slug === "menu" && ["preferences", "mixed"].includes(String(values.scenario))) preamble += '  const [notificationsEnabled, setNotificationsEnabled] = useState(true);\n  const [density, setDensity] = useState("Compact");\n';
   if (usesStatus) preamble += '  const [status, setStatus] = useState("");\n';
@@ -503,11 +526,11 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
 
   const controls = componentKnobs(component).filter(knob => !(component.slug === "menu" && values.scenario === "preferences" && ["icons", "shortcuts", "disableArchive"].includes(knob.name)));
   const hasFocusAction = ["input", "input-group", "textarea", "select"].includes(component.slug);
-  const spacious = ["data-list", "data-list-item", "check-card", "radio-card","color-picker", "date-time-picker", "tree-select", "tree", "navigation-tree", "list-box", "navigation-list", "steps", "section", "center", "container", "grid", "aspect-ratio", "empty-state", "card", "table", "description-list", "accordion", "input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
+  const spacious = ["file-item", "upload-item","data-list", "data-list-item", "check-card", "radio-card","color-picker", "date-time-picker", "tree-select", "tree", "navigation-tree", "list-box", "navigation-list", "steps", "section", "center", "container", "grid", "aspect-ratio", "empty-state", "card", "table", "description-list", "accordion", "input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
   const labelFor = (knob: Knob) => knob.label ?? ({ controlSize: "Size", contentInset: "Content clearance", readOnly: "Read only", copyAction: "Copy button", label: "Accessible name" } as Record<string, string>)[knob.name] ?? knob.name[0].toUpperCase() + knob.name.slice(1);
   return <section className="component-workbench" aria-label={`${component.name} live playground`}>
-    <div className="workbench-title"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setPagination({slug:component.slug,page:1}); setResetKey((key) => key + 1); setMenuChecked(true); setMenuDensity("Compact"); setNotifications([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]); }}>Reset</Flood.Button></Flood.Inline></div>
-    <div className="workbench-stage preview-stage" data-component={component.slug} data-size={["heading", "timeline", "toast-region", "dropzone", "color-picker", "data-table"].includes(component.slug) ? "display" : spacious ? "regular" : "compact"} ref={stage} key={component.slug + resetKey}><Flood.FloodRoot>{renderRecipe(recipe)}</Flood.FloodRoot></div>
+    <div className="workbench-title"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text><Flood.Inline gap="2" className="workbench-actions"><CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" /><Flood.Button variant="subtle" size="sm" onClick={() => { setState({ slug: component.slug, values: initialValues(component) }); setStatus(""); setPagination({slug:component.slug,page:1}); setResetKey((key) => key + 1); setFileStates({}); setMenuChecked(true); setMenuDensity("Compact"); setNotifications([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]); }}>Reset</Flood.Button></Flood.Inline></div>
+    <div className="workbench-stage preview-stage" data-component={component.slug} data-size={["heading", "timeline", "toast-region", "dropzone", "color-picker", "data-table", "file-list", "upload-list"].includes(component.slug) ? "display" : spacious ? "regular" : "compact"} ref={stage} key={component.slug + resetKey}><Flood.FloodRoot>{renderRecipe(recipe)}</Flood.FloodRoot></div>
     {controls.length > 0 && <div className="workbench-controls" aria-label={`${component.name} API controls`}>
       {controls.map((knob) => typeof knob.initial === "boolean" ?
         <div className="workbench-control workbench-control--toggle" key={knob.name}>

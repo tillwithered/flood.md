@@ -403,3 +403,12 @@ actions in cells remain independent. Compose search and filters at the host
 boundary, reset page deliberately and specify the intended selection lifetime.
 Use Table + Pagination for remote pagination rather than passing one remote page
 into the client-paginated DataTable.
+
+FileItem/FileList display host-owned attachment metadata; UploadItem/UploadList
+display explicit queued/uploading/success/error/cancelled states. Cancel and retry
+callbacks are intents, not an upload engine. Do not show success merely because
+bytes reach100%; wait for the host confirmation. Use stable IDs, not filenames,
+for identity. FileInput retains native form ownership; removing a display row
+does not alter its FileList. ImagePreview reuses Dialog; the host owns trusted
+URLs, blob URL lifetime, download permissions and image alt text. No built-in
+network, file reading or object URL creation is implied by these components.

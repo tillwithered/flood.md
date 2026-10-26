@@ -61,6 +61,7 @@ import { PairedDateRangeField } from "./date-range-field.js";
 import { CalendarDateRangePicker } from "./date-range-picker.js";
 import { ContextActionMenu } from "./context-menu.js";
 import { SelectionTree } from "./tree.js";
+import { FileRecord, UploadRecord, ModalImagePreview } from "./file-records.js";
 import { ManagedDataTable } from "./data-table.js";
 import { CheckableCard, ExclusiveCard } from "./collection-cards.js";
 import { ColorPreview, ColorEditor } from "./color-controls.js";
@@ -68,6 +69,56 @@ import { HoverPreview } from "./hover-card.js";
 import { HierarchicalSelect } from "./tree-select.js";
 import { CivilDateTimePicker } from "./date-time-picker.js";
 import { HierarchicalNavigation } from "./navigation-tree.js";
+
+export interface FileActionLabels {
+  preview?: string; remove?: string; cancel?: string; retry?: string;
+  queued?: string; uploading?: string; success?: string; error?: string; cancelled?: string;
+}
+export interface FileItemProps extends Omit<HTMLAttributes<HTMLLIElement>, "children" | "title"> {
+  name: string;
+  size?: number;
+  mimeType?: string;
+  thumbnail?: ReactNode;
+  description?: ReactNode;
+  href?: string;
+  download?: boolean;
+  onPreview?: () => void;
+  onRemove?: () => void;
+  disabled?: boolean;
+  labels?: FileActionLabels;
+  formatSize?: (bytes: number) => string;
+}
+/** A display row; it neither reads files nor creates object URLs. @since 0.2.8 */
+export const FileItem = /* @__PURE__ */ forwardRef<HTMLLIElement,FileItemProps>(function FileItem(props,ref){return <FileRecord {...props} ref={ref}/>;});
+export interface FileListProps extends DataListProps { label: string; }
+/** A named native list of FileItem rows. @since 0.2.8 */
+export const FileList = /* @__PURE__ */ forwardRef<HTMLUListElement,FileListProps>(function FileList({label,className,...props},ref){
+  if(!label.trim())throw new Error("Flood FileList requires a nonempty label");
+  return <DataList {...props} ref={ref} aria-label={label} className={classes("flood-file-list",className)}/>;
+});
+export interface UploadItemProps extends Omit<FileItemProps,"description"> {
+  state: "queued" | "uploading" | "success" | "error" | "cancelled";
+  progress?: number;
+  error?: string;
+  onCancel?: () => void;
+  onRetry?: () => void;
+}
+/** Host-owned upload state with applicable actions only. @since 0.2.8 */
+export const UploadItem = /* @__PURE__ */ forwardRef<HTMLLIElement,UploadItemProps>(function UploadItem(props,ref){return <UploadRecord {...props} ref={ref}/>;});
+export interface UploadListProps extends FileListProps {}
+/** A named native list of UploadItem rows. @since 0.2.8 */
+export const UploadList = /* @__PURE__ */ forwardRef<HTMLUListElement,UploadListProps>(function UploadList(props,ref){return <FileList {...props} ref={ref}/>;});
+export interface ImagePreviewProps extends Omit<DialogProps,"children" | "description"> {
+  src: string;
+  alt: string;
+  caption?: ReactNode;
+  downloadHref?: string;
+  downloadLabel?: string;
+  loadingLabel?: string;
+  errorLabel?: string;
+}
+/** A single-image viewer using Flood Dialog focus and dismissal. @since 0.2.8 */
+export const ImagePreview = /* @__PURE__ */ forwardRef<HTMLDialogElement,ImagePreviewProps>(function ImagePreview(props,ref){return <ModalImagePreview {...props} ref={ref}/>;});
 
 export interface DataTableColumn {
   id: string;

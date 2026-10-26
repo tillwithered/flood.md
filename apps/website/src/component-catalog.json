@@ -1758,5 +1758,80 @@
     "imports": [
       "DataTable"
     ]
+  },
+  {
+    "slug": "file-item",
+    "name": "FileItem",
+    "group": "content",
+    "description": "A named file row with size, type, thumbnail and independent actions.",
+    "code": "<FileList label=\"Attachments\">\n  <FileItem name=\"Brand guidelines.pdf\" size={2400000} mimeType=\"PDF\" />\n</FileList>",
+    "notes": [
+      "Render inside FileList or another native list.",
+      "No file reading, object URL creation or uploading is performed."
+    ],
+    "imports": [
+      "FileList",
+      "FileItem"
+    ]
+  },
+  {
+    "slug": "file-list",
+    "name": "FileList",
+    "group": "content",
+    "description": "A named native list of file rows.",
+    "code": "<FileList label=\"Attachments\">\n  <FileItem name=\"Brand guidelines.pdf\" size={2400000} mimeType=\"PDF\" />\n  <FileItem name=\"Logo.svg\" size={18400} mimeType=\"SVG\" />\n</FileList>",
+    "notes": [
+      "List contents and file identities are host owned.",
+      "Use stable host IDs for React keys; a name is not a unique file identity."
+    ],
+    "imports": [
+      "FileList",
+      "FileItem"
+    ]
+  },
+  {
+    "slug": "upload-item",
+    "name": "UploadItem",
+    "group": "feedback",
+    "description": "A host-controlled upload row with explicit progress and applicable actions.",
+    "code": "<UploadList label=\"Uploads\">\n  <UploadItem name=\"Brand guidelines.pdf\" size={2400000} state=\"uploading\" progress={45} />\n</UploadList>",
+    "notes": [
+      "Queued/uploading can expose cancel; error/cancelled can expose retry; settled rows can expose remove.",
+      "Unknown progress is indeterminate. No network or upload queue is built in."
+    ],
+    "imports": [
+      "UploadList",
+      "UploadItem"
+    ]
+  },
+  {
+    "slug": "upload-list",
+    "name": "UploadList",
+    "group": "feedback",
+    "description": "A named native list of host-controlled upload rows.",
+    "code": "<UploadList label=\"Uploads\">\n  <UploadItem name=\"Brand guidelines.pdf\" state=\"uploading\" progress={45} />\n  <UploadItem name=\"Logo.svg\" state=\"success\" />\n  <UploadItem name=\"Cover.png\" state=\"error\" error=\"Connection interrupted\" />\n</UploadList>",
+    "notes": [
+      "Each row has its own state and stable host identity.",
+      "Cancellation, retry and removal callbacks are intents for the application."
+    ],
+    "imports": [
+      "UploadList",
+      "UploadItem"
+    ]
+  },
+  {
+    "slug": "image-preview",
+    "name": "ImagePreview",
+    "group": "overlays",
+    "description": "A single-image preview in Flood Dialog with loading and failure feedback.",
+    "code": "<ImagePreview title=\"Flood mark\" src=\"/flood-mark.png\" alt=\"Pink Flood mark\"\n  trigger={props => <Button {...props} variant=\"subtle\">Preview image</Button>} />",
+    "notes": [
+      "Loads the image only while its dialog content is mounted.",
+      "The host owns trusted URLs, object URL lifetime and download permissions."
+    ],
+    "imports": [
+      "ImagePreview",
+      "Button"
+    ]
   }
 ]
