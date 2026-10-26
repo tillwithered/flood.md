@@ -26,7 +26,9 @@ test("File rows keep list semantics, omit absent slots and invoke independent ac
 });
 test("UploadItem exposes applicable actions and determinate or unknown progress",async({page})=>{
   await open(page);const list=page.getByRole("list",{name:"Uploads"});const progress=list.getByRole("progressbar");await expect(progress).toHaveAttribute("aria-valuenow","45");
-  const statusBox=(await list.locator('.flood-status-indicator').boundingBox())!,barBox=(await progress.boundingBox())!;
+  const statusBox=(await list.locator('.flood-upload-item__status-text').boundingBox())!,barBox=(await progress.boundingBox())!;
+  const nameBox=(await list.locator('.flood-file-item__name').boundingBox())!;
+  expect(statusBox.x).toBeCloseTo(nameBox.x,1);
   expect(barBox.x).toBeGreaterThan(statusBox.x+statusBox.width);
   expect(barBox.width).toBeGreaterThan(8);
   expect(barBox.y+barBox.height/2).toBeCloseTo(statusBox.y+statusBox.height/2,0);
