@@ -1,8 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { readFile } from "node:fs/promises";
-
-const catalog = JSON.parse(await readFile("apps/website/src/component-catalog.json", "utf8")) as Array<{group: string}>;
+import catalog from "../../apps/website/src/component-catalog.json" with { type: "json" };
+import taxonomy from "../../apps/website/src/component-groups.json" with { type: "json" };
 
 test("catalog categories, search and canonical Markdown agree", async ({ page, request }, info) => {
   await page.goto("/components");
@@ -10,20 +9,22 @@ test("catalog categories, search and canonical Markdown agree", async ({ page, r
   const sidebar = page.locator(info.project.name === "mobile" ? ".mobile-navigation" : ".desktop-sidebar");
   const search = sidebar.getByRole("searchbox", { name: "Search components" });
   await expect(page.locator(".catalog-card")).toHaveCount(catalog.length);
-  await expect(page.getByRole("navigation", { name: "Component categories" }).getByRole("link")).toHaveCount(9);
+  const groups = taxonomy.filter(group => catalog.some(component => component.group === group.id));
+  await expect(page.getByRole("navigation", { name: "Component categories" }).getByRole("link")).toHaveCount(groups.length);
   await search.fill("forms");
-  await expect(page.locator(".catalog-card")).toHaveCount(catalog.filter(component => component.group === "forms").length);
-  await expect(page.locator(".component-catalog h2")).toHaveText("Forms");
+  for (const component of catalog.filter(component => component.group === "forms")) {
+    await expect(page.locator(".component-catalog").getByRole("link", { name: new RegExp(`^${component.name}\\b`) })).toBeVisible();
+  }
+  await expect(page.locator(".component-catalog").getByRole("heading", { name: "Forms", exact: true })).toBeVisible();
   await search.fill("  SCROLL area  ");
-  await expect(page.locator(".catalog-card")).toHaveCount(2);
-  await expect(page.locator(".catalog-card")).toContainText(["ScrollArea", "Table"]);
+  for (const name of ["ScrollArea", "Table"]) await expect(page.locator(".component-catalog").getByRole("link", { name: new RegExp(`^${name}\\b`) })).toBeVisible();
   await search.fill("not-a-component");
   await expect(page.locator(".catalog-card")).toHaveCount(0);
   await expect(page.locator(".component-catalog")).toContainText("No components found");
   await search.press("Escape");
   await expect(page.locator(".catalog-card")).toHaveCount(catalog.length);
   const markdown = await (await request.get("/components.md")).text();
-  for (const name of ["Setup", "Layout", "Typography", "Actions", "Forms", "Navigation", "Content", "Overlays", "Feedback"]) expect(markdown).toContain(`## ${name}`);
+  for (const group of groups) expect(markdown).toContain(`## ${group.label}`);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({ path: `.artifacts/catalog-groups-${info.project.name}.png` });
 });

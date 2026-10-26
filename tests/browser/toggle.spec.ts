@@ -98,7 +98,7 @@ test("Toggle previews keep geometry, icon names, recipes and mobile reflow", asy
 });
 
 test("Toggle touch targets and forced-color pressed state remain usable", async ({browser}) => {
-  const context = await browser.newContext({baseURL:"http://127.0.0.1:4173",hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
+  const context = await browser.newContext({baseURL:(process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173"),hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
   try {
     const page = await context.newPage(); await page.goto("/components/toggle");
     await chooseSelectOption(page.getByRole("combobox",{name:"Toggle prop size",exact:true}),"2xs");

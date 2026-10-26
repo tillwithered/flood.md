@@ -1,19 +1,22 @@
 import { defineConfig } from "@playwright/test";
+const websiteURL = process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173";
+const nextURL = process.env.FLOOD_NEXT_TEST_URL ?? "http://127.0.0.1:3001";
 export default defineConfig({
   testDir: "./tests/browser",
   fullyParallel: true,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
-  use: { baseURL: "http://127.0.0.1:4173", trace: "retain-on-failure" },
+  use: { baseURL: websiteURL, trace: "retain-on-failure" },
   webServer: [
     {
       command: "node apps/website/server.mjs",
-      url: "http://127.0.0.1:4173/health",
+      url: websiteURL + "/health",
+      env: { PORT: new URL(websiteURL).port || "4173" },
       reuseExistingServer: !process.env.CI,
     },
     {
-      command: "npm run start --workspace=@flood-md/next-example",
-      url: "http://127.0.0.1:3001",
+      command: `npm run start --workspace=@flood-md/next-example -- --port ${new URL(nextURL).port || "3001"}`,
+      url: nextURL,
       reuseExistingServer: !process.env.CI,
     },
   ],

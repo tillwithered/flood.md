@@ -133,7 +133,7 @@ test("classic browser scrollbars reserve space while ScrollArea still overlays t
   test.skip(browserName !== "chromium", "This fixture explicitly launches Chromium with classic-scrollbar flags; other engines use the shared native-scroll tests.");
   const browser = await chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"], args: ["--disable-features=OverlayScrollbar,FluentOverlayScrollbar,FluentScrollbar"] });
   try {
-    const context = await browser.newContext({ baseURL: "http://127.0.0.1:4173", viewport: { width: 700, height: 600 } });
+    const context = await browser.newContext({ baseURL: (process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173"), viewport: { width: 700, height: 600 } });
     const page = await context.newPage(); await open(page);
     const native = await page.evaluate(() => {
       const probe = document.createElement("div"), content = document.createElement("div");
@@ -151,7 +151,7 @@ test("classic browser scrollbars reserve space while ScrollArea still overlays t
 
 test("touch swipes scroll the native viewport without dragging overlay chrome", async ({ browser }) => {
   test.skip(browser.browserType().name() !== "chromium", "This gesture fixture uses Chromium CDP; wheel, keyboard and drag coverage runs on every engine.");
-  const context = await browser.newContext({ baseURL: "http://127.0.0.1:4173", hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  const context = await browser.newContext({ baseURL: (process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173"), hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
   try {
     const page = await context.newPage(); await open(page);
     const viewport = page.getByRole("region", { name: "Activity" }), box = (await viewport.boundingBox())!;

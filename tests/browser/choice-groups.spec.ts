@@ -100,7 +100,7 @@ test("related choices have compact measured spacing without overlapping hit area
 });
 
 test("compact groups preserve coarse-pointer target size and nonoverlapping rows", async ({ browser }) => {
-  const context = await browser.newContext({ baseURL: "http://127.0.0.1:4173", hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  const context = await browser.newContext({ baseURL: (process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173"), hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
   try {
     const page = await context.newPage(); await open(page);
     const rows = await page.getByRole("group", { name: "Many", exact: true }).locator(".flood-choice").evaluateAll(nodes => nodes.map(node => ({ top: node.getBoundingClientRect().top, bottom: node.getBoundingClientRect().bottom, height: node.getBoundingClientRect().height })));

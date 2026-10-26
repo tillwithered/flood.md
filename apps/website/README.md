@@ -11,11 +11,31 @@ controls). Markdown prose, semantic HTML tables and page grids remain website
 content rather than pretending to be library components. Document scrollbars use
 the same foundation tokens through the explicit dark scope on the HTML root;
 page scrolling remains native with forced-color fallback and a stable gutter.
-It has a focused home page, eight documentation guides and an overview plus a
-detail page for each of the 87 exports in the 0.2.5 source candidate. Installation availability follows
-the verified publication gate in src/release.json.
+It has a focused home page, documentation guides, a catalog and a detail page
+for every documented export. Page inventory and counts follow the source catalog;
+installation availability follows the verified publication gate in src/release.json.
 
 ## Content
+
+Production builds prerender the home page, guides, catalog and component pages
+from the same React tree used by the browser. Reader styles are linked in the
+initial HTML; text, examples, API tables and navigation remain readable without
+JavaScript. The client loads the reader before hydrating it and then enables
+playgrounds, clipboard actions and highlighting. React's static renderer is a
+build-time dependency only; the production server still needs no npm dependencies.
+
+`routes.mjs` also supplies per-page title, description and production canonical
+URLs, Open Graph metadata, the public sitemap and its robots.txt discovery link.
+Verification playgrounds have `noindex, follow` and stay out of the sitemap;
+they remain crawlable so robots can read that directive. Markdown counterparts
+remain available for agents, with a canonical HTTP Link to their HTML page and
+`X-Robots-Tag: noindex, follow` to avoid duplicate search results. Trailing slashes
+and explicit index.html URLs redirect to their canonical route.
+
+Generated HTML, sitemap, robots.txt and the intermediate server bundle are build
+outputs, not authored content. This website-only change does not change package
+APIs or require an npm release; package versions and the publication gate stay as
+they are. See the deployment guide for post-deployment search verification.
 
 User guides are authored in the repository's `docs/` Markdown files. Vite bundles
 the guides listed in routes.mjs at build time; rendering needs no GitHub API,
@@ -97,13 +117,3 @@ See [deployment](../../docs/deployment.md) for the hosting contract.
 ScrollArea powers bounded code, table and navigation regions; the website uses
 Flood controls for its own playground settings. npm run site:check tests a
 runtime-only deploy artifact; /site-release.json identifies its source commit.
-
-Component preview stages use a website-owned near-black rose canvas and a sparse, low-contrast pink dotted grid.
-The decoration stays outside the library theme and is removed in forced colors.
-The immediate FloodRoot hosting each example is transparent so it does not paint
-a rectangular canvas behind the component; component surfaces retain their fills.
-Preview headers and control footers share the same neutral surface and dividers.
-
-Preview stages reserve 22/28/34rem for compact/regular/large compositions. Lists
-and structured examples use the roomier profiles; changing props does not resize
-the outer preview. Overflow remains available for deliberately oversized content.
