@@ -37,9 +37,10 @@ test('Calendar grid and selected day expose consistent accessible roles and name
  await open(page);await expect(page.locator('#basic [role="row"]')).toHaveCount(7);await expect(page.locator('#basic [role="gridcell"][aria-selected="true"]')).toHaveCount(1);await expect(page.locator('#basic [data-flood-autofocus="true"]')).toHaveCount(1);const results=await new AxeBuilder({page}).include('#basic').analyze();expect(results.violations).toEqual([]);
 });
 
-test('Russian month names are capitalized and header view controls have a visible surface and chevron',async({page})=>{
+test('Russian month names are capitalized and view buttons share a quiet outlined group',async({page})=>{
  await open(page);const calendar=page.locator('#localized'),month=calendar.getByRole('button',{name:'Month: Февраль',exact:true});await expect(month).toHaveText('Февраль');
- for(const button of [month,calendar.getByRole('button',{name:'Year: 2024',exact:true})]){await expect(button.locator('svg')).toHaveCount(1);expect(await button.evaluate(node=>getComputedStyle(node).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');}
+ for(const button of [month,calendar.getByRole('button',{name:'Year: 2024',exact:true})]){await expect(button.locator('svg')).toHaveCount(0);expect(await button.evaluate(node=>getComputedStyle(node).backgroundColor)).toBe('rgba(0, 0, 0, 0)');}
+ await expect(calendar.locator('.flood-calendar__month')).toHaveClass(/flood-button-group/);
  await month.click();const names=await calendar.locator('.flood-calendar__period-choice').allTextContents();expect(names).toHaveLength(12);expect(names.every(name=>/^\p{Lu}/u.test(name))).toBe(true);
 });
 

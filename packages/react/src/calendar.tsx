@@ -1,14 +1,13 @@
 import {forwardRef,useEffect,useId,useImperativeHandle,useMemo,useRef,useState} from "react";
 import type {ReactNode} from "react";
 import type {CalendarProps} from "./index.js";
-import {Button,IconButton,IconSlot,VisuallyHidden} from "./index.js";
+import {Button,ButtonGroup,IconButton,VisuallyHidden} from "./index.js";
 import {CalendarPeriodGrid} from "./calendar-period-grid.js";
 import {dateInRange,parseDate,daysInMonth} from "./date-value.js";
 import {dateFromOrdinal,dateOrdinal,dateWeekday,formattingDate,lastDateOrdinal,monthParts,monthShift,moveDateMonth} from "./calendar-value.js";
 
 const cx=(...values:Array<string|undefined|false>)=>values.filter(Boolean).join(" ");
 const titleCase=(text:string,locale:string)=>text.replace(/^\p{L}/u,letter=>letter.toLocaleUpperCase(locale));
-function ViewChevron(){return <IconSlot size="sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></IconSlot>;}
 export interface CalendarDayMetadata {rangeStart?:boolean;rangeEnd?:boolean;inRange?:boolean;preview?:boolean;unavailable?:boolean;}
 export interface CalendarGridProps extends Omit<CalendarProps,"value"|"defaultValue"|"onValueChange"|"onDateSelect"> {
   selectedDate?:string;
@@ -118,6 +117,12 @@ export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGrid
       selected:view==="years"?selected.slice(0,4)===value:selected.slice(0,7)===value,
       disabled:view==="years"?yearStart+index<minYear||yearStart+index>maxYear:Boolean(min&&monthEnd<min||max&&monthStart>max)};
   });
+  const headingControls=<>
+
+        {showViewControls&&granularity==="day"?<Button variant="outline" size="sm" disabled={effectiveDisabled} aria-label={`${viewNames.month}: ${monthName}`} aria-pressed={view==="months"} onClick={()=>view==="months"?restoreDays():switchView("months")}>{monthName}</Button>:granularity==="day"?<span>{monthName}</span>:null}{granularity==="day"?" ":null}
+        {showViewControls&&granularity!=="year"?<Button variant="outline" size="sm" disabled={effectiveDisabled} aria-label={`${viewNames.year}: ${year}`} aria-pressed={view==="years"} onClick={()=>view==="years"?restoreDays():switchView("years")}>{view==="years"?`${yearStart}–${Math.min(9999,yearStart+11)}`:year}</Button>:<span>{granularity==="year"?`${yearStart}–${Math.min(9999,yearStart+11)}`:year}</span>}
+
+  </>;
   return <div {...props} id={id} ref={root} className={cx("flood-calendar",className)} role="group" aria-label={label} data-disabled={effectiveDisabled||undefined} data-readonly={readOnly||undefined} data-view={view} data-calendar-direction={direction}
     onBlur={event=>{onBlur?.(event);if(event.relatedTarget&&!event.currentTarget.contains(event.relatedTarget as Node))pendingFocus.current=undefined;}}
     onPointerLeave={event=>{onPointerLeave?.(event);if(event.defaultPrevented)return;const focused=root.current?.ownerDocument.activeElement as HTMLElement|null;onDayPreview?.(focused&&root.current?.contains(focused)?focused.dataset.calendarDate:undefined);}}
@@ -149,10 +154,7 @@ export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGrid
     <input type="hidden" data-calendar-disabled-probe disabled={disabled}/>
     <div className="flood-calendar__header">
       <VisuallyHidden id={`${id}-month`} aria-live="polite" aria-atomic="true">{view==="years"?`${yearStart}–${Math.min(9999,yearStart+11)}`:view==="months"?year:monthLabel}</VisuallyHidden>
-      <div className="flood-calendar__month">
-        {showViewControls&&granularity==="day"?<Button variant="subtle" size="sm" disabled={effectiveDisabled} aria-label={`${viewNames.month}: ${monthName}`} aria-pressed={view==="months"} onClick={()=>view==="months"?restoreDays():switchView("months")}>{monthName}<ViewChevron/></Button>:granularity==="day"?<span>{monthName}</span>:null}{granularity==="day"?" ":null}
-        {showViewControls&&granularity!=="year"?<Button variant="subtle" size="sm" disabled={effectiveDisabled} aria-label={`${viewNames.year}: ${year}`} aria-pressed={view==="years"} onClick={()=>view==="years"?restoreDays():switchView("years")}>{view==="years"?`${yearStart}–${Math.min(9999,yearStart+11)}`:year}<ViewChevron/></Button>:<span>{granularity==="year"?`${yearStart}–${Math.min(9999,yearStart+11)}`:year}</span>}
-      </div>
+      {showViewControls&&granularity!=="year"?<ButtonGroup label={`${viewNames.month} / ${viewNames.year}`} className="flood-calendar__month">{headingControls}</ButtonGroup>:<div className="flood-calendar__month">{headingControls}</div>}
       <div className="flood-calendar__navigation">
         <IconButton label={view==="days"?previousMonthLabel:`${viewNames.previous} ${viewNames.year}`} variant="ghost" size="sm" disabled={view==="days"?previousDisabled:periodPreviousDisabled} onClick={event=>{pendingFocus.current=undefined;if(!event.currentTarget.matches(":disabled")){if(view==="days")requestMonth(previous);else navigatePeriod(-1);}}}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14 6-6 6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></IconButton>
         <IconButton label={view==="days"?nextMonthLabel:`${viewNames.next} ${viewNames.year}`} variant="ghost" size="sm" disabled={view==="days"?nextDisabled:periodNextDisabled} onClick={event=>{pendingFocus.current=undefined;if(!event.currentTarget.matches(":disabled")){if(view==="days")requestMonth(next);else navigatePeriod(1);}}}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m10 6 6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></IconButton>
