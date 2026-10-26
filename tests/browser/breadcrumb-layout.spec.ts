@@ -1,8 +1,9 @@
 import { test, expect } from "@playwright/test";
 
-test("Breadcrumb keeps fitting labels whole and wraps items before breaking words", async ({ page }, info) => {
+for (const destination of [{slug:"pagination",label:"Pagination"},{slug:"stack",label:"Stack"}]) {
+test(`Breadcrumb keeps ${destination.label} labels whole and wraps items before breaking words`, async ({ page }, info) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await page.goto("/components/pagination");
+  await page.goto(`/components/${destination.slug}`);
   const breadcrumb = page.getByRole("navigation", { name: "Page breadcrumb" });
   await page.evaluate(() => document.fonts.ready);
   const lineCounts = () => breadcrumb.locator("li > a, li > span:not([aria-hidden])").evaluateAll(nodes => nodes.map(node => {
@@ -26,10 +27,12 @@ test("Breadcrumb keeps fitting labels whole and wraps items before breaking word
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await breadcrumb.locator('li:last-child > span[aria-current]').evaluate(node => { node.textContent = "LongUnbrokenDestinationName".repeat(8); });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await breadcrumb.locator('li:last-child > span[aria-current]').evaluate(node => { node.textContent = "Pagination"; });
+    await breadcrumb.locator('li:last-child > span[aria-current]').evaluate((node, label) => { node.textContent = label; }, destination.label);
   }
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.evaluate(() => { document.documentElement.style.fontSize = ""; document.documentElement.dir = "ltr"; });
   await breadcrumb.evaluate(node => { node.style.width = ""; node.style.flexShrink = ""; });
-  await page.locator(".doc-breadcrumb").screenshot({ path: `.artifacts/breadcrumb-fixed-${info.project.name}.png` });
+  await page.locator(".doc-breadcrumb").screenshot({ path: `.artifacts/breadcrumb-fixed-${destination.slug}-${info.project.name}.png` });
 });
+
+}
