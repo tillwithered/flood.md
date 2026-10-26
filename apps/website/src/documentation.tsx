@@ -3,7 +3,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
 import { Breadcrumb, Button, Collapsible, Heading, IconSlot, Inline, Input, Link, ScrollArea, SegmentedControl, Stack, Surface, Text } from "@flood-md/react";
-import { docPages } from "../routes.mjs";
+import { docPages, siteOrigin } from "../routes.mjs";
 import { componentPages, componentGroups, matchesComponent } from "./component-catalog";
 import { ComponentWorkbench } from "./component-workbench";
 import { CodeBlock, CopyButton } from "./code-block";
@@ -117,8 +117,9 @@ export default function Documentation({ path }: { path: string }) {
   const current = ordered.findIndex(page => page.path === path);
   const previous = ordered[current - 1]; const next = ordered[current + 1];
   const pageMarkdown = doc ? raw ?? "" : component ? componentMarkdown(component, exampleCode) + (importMode === "project" ? `\n## Project UI setup\n\n${projectAdapters(exampleImports)}` : "") : catalogMarkdown(componentPages);
-  const resourceOrigin = location.origin;
-  const localPreview = ["localhost", "127.0.0.1"].includes(location.hostname);
+  const resourceOrigin = typeof location === "undefined" ? siteOrigin : location.origin;
+  const [localPreview, setLocalPreview] = useState(false);
+  useEffect(() => { setLocalPreview(["localhost", "127.0.0.1"].includes(location.hostname)); }, []);
   const agentContext = `Documentation version: ${content.version}${localPreview ? " (local source preview; source-only additions are not published)" : ""}.\n\nUse Flood for this task. Read the matching installed package declarations before making API changes.\n\n` +
     `Page: ${resourceOrigin}${path}\nAgent skill: ${resourceOrigin}/agent/SKILL.md\nDesign contract: ${resourceOrigin}/agent/DESIGN.md\nCanonical Markdown: ${resourceOrigin}${path}.md\n\n` +
     `The example below reflects the current playground settings. Keep native semantics and accessibility, import Flood styles once, and use semantic tokens before overrides. Do not invent unavailable components or claim that source-only APIs are already published.\n\n${pageMarkdown}`;
