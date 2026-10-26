@@ -1,0 +1,3 @@
+[data-flood-foundations="neutral"] .flood-date-time-picker { min-inline-size:0; inline-size:100%; }
+[data-flood-foundations="neutral"] .flood-date-time-picker__fields { display:grid; grid-template-columns:minmax(0, 1.5fr) minmax(0, 1fr); gap:var(--flood-sys-space-3); }
+@media (max-width:30rem) { [data-flood-foundations="neutral"] .flood-date-time-picker__fields { grid-template-columns:minmax(0,1fr); } }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.8 — source preview
+
+- Add HoverCard, ColorSwatch, ColorPicker, TreeSelect and DateTimePicker.
+- Add recipes for aggregate selection, split actions and form submission.
+- Keep opaque RGB colors, single tree selection and civil date/time contracts explicit.
+- Registry publication and deployment are verified separately.
+
 ## 0.2.7 - Unreleased
 
 - Keep Tree's readonly explanation associated with the relevant control without exposing it as unrelated reading content.

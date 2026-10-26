@@ -1,6 +1,6 @@
 # Base component architecture
 
-The 0.2.7 source uses original React18.3/19 components and TypeScript
+The 0.2.8 source uses original React18.3/19 components and TypeScript
 declarations. The website catalog and individual component pages are generated
 from the [source catalog](../apps/website/src/component-catalog.json) and declarations.
 Use the catalog for inventory and the [component guide](components.md) for composition.
@@ -120,7 +120,7 @@ Tags wrap naturally. The search input and suffix actions form a single editor ro
 they move together when tokens consume a line. Nested radii account for the field
 inset. Coarse-pointer removal targets remain distinct and at least size.touch.
 MultiSelect does not create arbitrary free-form values; use TagInput for that
-contract in 0.2.7. Neither supplies remote data access, virtualization or a
+contract in 0.2.8. Neither supplies remote data access, virtualization or a
 standalone TagGroup selection/navigation engine.
 
 Selection-field action defaults: Combobox and MultiSelect show only the disclosure
@@ -272,7 +272,7 @@ Section headingLevel controls native h2–h6 semantics. Its independent headingS
 uses the existing Heading roles (section/page/large/display), defaulting to section.
 Keep document hierarchy meaningful when changing visual emphasis.
 
-## Base capabilities in 0.2.7
+## Base capabilities in 0.2.8
 
 The version adds fifteen component exports to the earlier base. Matching installed
 declarations govern availability; this source guide does not establish publication.

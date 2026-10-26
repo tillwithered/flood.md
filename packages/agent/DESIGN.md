@@ -1,4 +1,4 @@
-# Flood design system · 0.2.7
+# Flood design system · 0.2.8
 
 Readonly date/time entry bypasses native validity constraints while retaining
 accepted canonical values, including values outside current bounds, time steps or
@@ -375,3 +375,14 @@ Preserve native validity and cancelled resets where supported; do not infer a
 form contract from Tree/Menu/CommandList selection or active state. Package source
 availability and focused examples do not prove registry publication, deployment
 or accessibility of the host application.
+
+## Extended controls in 0.2.8
+
+HoverCard opens a named interactive preview on hover or focus and supports explicit
+activation. Use Tooltip for short noninteractive descriptions. ColorSwatch and
+ColorPicker use opaque RGB hex colors; they do not imply alpha, gradients or a
+contrast guarantee. TreeSelect provides single hierarchical selection; Tree
+remains the standalone single/multiple control. DateTimePicker composes civil
+date and clock time with separate form values and no inferred timezone. Use
+application validation for relationships between the parts. Recipes for Select
+all, split actions and form submission live in the public user documentation.

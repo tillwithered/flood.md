@@ -10,6 +10,9 @@ export const docPages = [
   { path: "/docs/agents", label: "Agent guide", file: "agents.md", description: "Give your agent the matching design instructions." },
   { path: "/docs/faq", label: "FAQ", file: "faq.md", description: "Compatibility, customization and common questions." },
   { path: "/docs/recipes/command-palette", label: "Command palette", file: "recipes/command-palette.md", description: "Compose Dialog and CommandList for application commands.", group: "recipes" },
+  { path: "/docs/recipes/select-all", label: "Select all", file: "recipes/select-all.md", description: "Aggregate selection with an indeterminate checkbox.", group: "recipes" },
+  { path: "/docs/recipes/split-button", label: "Split button", file: "recipes/split-button.md", description: "A primary action with an additional-actions menu.", group: "recipes" },
+  { path: "/docs/recipes/form-submission", label: "Form submission", file: "recipes/form-submission.md", description: "Native validation, pending state and recoverable errors.", group: "recipes" },
 ];
 export const componentSlugs = catalog.map(component => component.slug);
 export const pagePaths = new Set([

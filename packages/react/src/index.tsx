@@ -61,7 +61,78 @@ import { PairedDateRangeField } from "./date-range-field.js";
 import { CalendarDateRangePicker } from "./date-range-picker.js";
 import { ContextActionMenu } from "./context-menu.js";
 import { SelectionTree } from "./tree.js";
+import { ColorPreview, ColorEditor } from "./color-controls.js";
+import { HoverPreview } from "./hover-card.js";
+import { HierarchicalSelect } from "./tree-select.js";
+import { CivilDateTimePicker } from "./date-time-picker.js";
 import { HierarchicalNavigation } from "./navigation-tree.js";
+
+export interface ColorSwatchProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "color"> {
+  value: string; label: string; size?: "sm" | "md" | "lg";
+}
+/** @since 0.2.8 */
+export const ColorSwatch = /* @__PURE__ */ forwardRef<HTMLSpanElement, ColorSwatchProps>(function ColorSwatch(props, ref) { return <ColorPreview {...props} ref={ref} />; });
+export interface ColorPickerProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange" | "children"> {
+  label: string; hideLabel?: boolean; value?: string; defaultValue?: string;
+  onValueChange?: (value: string) => void; name?: string; form?: string;
+  required?: boolean; disabled?: boolean; readOnly?: boolean;
+  controlSize?: "sm" | "md" | "lg"; presets?: readonly string[]; invalidMessage?: string;
+  hexLabel?: string; channelLabels?: readonly [string, string, string]; presetsLabel?: string;
+}
+/** @since 0.2.8 */
+export const ColorPicker = /* @__PURE__ */ forwardRef<HTMLInputElement, ColorPickerProps>(function ColorPicker(props, ref) { return <ColorEditor {...props} ref={ref} />; });
+export interface HoverCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title" | "role"> {
+  title: ReactNode; trigger: (props: OverlayTriggerProps) => ReactNode; children: ReactNode;
+  side?: "top" | "bottom" | "left" | "right"; align?: "start" | "center" | "end";
+  open?: boolean; defaultOpen?: boolean; onOpenChange?: (open: boolean) => void;
+  openDelay?: number; closeDelay?: number; disabled?: boolean; closeLabel?: string;
+}
+/** @since 0.2.8 */
+export const HoverCard = /* @__PURE__ */ forwardRef<HTMLDivElement, HoverCardProps>(function HoverCard(props, ref) { return <HoverPreview {...props} ref={ref} />; });
+export interface TreeSelectProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange" | "defaultValue"> {
+  label: string; hideLabel?: boolean; items: readonly TreeItem[];
+  value?: string; defaultValue?: string; onValueChange?: (value: string) => void;
+  placeholder?: string; name?: string; form?: string; required?: boolean;
+  disabled?: boolean; readOnly?: boolean; invalid?: boolean; status?: FieldStatus;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  open?: boolean; defaultOpen?: boolean; onOpenChange?: (open: boolean) => void;
+  expandedValues?: readonly string[]; defaultExpandedValues?: readonly string[];
+  onExpandedValuesChange?: (values: string[]) => void; emptyMessage?: string; invalidSelectionMessage?: string;
+}
+/** @since 0.2.8 */
+export const TreeSelect = /* @__PURE__ */ forwardRef<HTMLDivElement, TreeSelectProps>(function TreeSelect(props, ref) { return <HierarchicalSelect {...props} ref={ref} />; });
+
+export interface DateTimeValue { date: string; time: string; }
+export interface DateTimePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "defaultValue" | "onChange"> {
+  label: string;
+  hideLabel?: boolean;
+  value?: DateTimeValue;
+  defaultValue?: DateTimeValue;
+  onValueChange?: (value: DateTimeValue) => void;
+  dateLabel?: string;
+  timeLabel?: string;
+  dateName?: string;
+  timeName?: string;
+  form?: string;
+  required?: boolean;
+  disabled?: boolean;
+  readOnly?: boolean;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  precision?: "minute" | "second";
+  order?: DateFieldProps["order"];
+  locale?: string;
+  minDate?: string;
+  maxDate?: string;
+  minTime?: string;
+  maxTime?: string;
+  step?: number;
+  status?: FieldStatus;
+  description?: string;
+}
+/** @since 0.2.8 */
+export const DateTimePicker = /* @__PURE__ */ forwardRef<HTMLDivElement, DateTimePickerProps>(function DateTimePicker(props, ref) {
+  return <CivilDateTimePicker {...props} ref={ref} />;
+});
 
 export interface TreeItem {
   value: string;

@@ -1586,7 +1586,9 @@
     "group": "forms",
     "description": "A selectable application hierarchy with independent expansion and keyboard focus.",
     "code": "<Tree label=\"Project files\" items={[{value:\"source\",label:\"Source\",children:[{value:\"button\",label:\"Button.tsx\"}]}]} />",
-    "imports": ["Tree"],
+    "imports": [
+      "Tree"
+    ],
     "notes": [
       "Tree uses tree/treeitem/group semantics, logical arrows, Home/End and typeahead. Moving focus does not select an item. Enter/Space explicitly selects; multiple selection does not cascade.",
       "Items have globally unique values. Expansion uses expandedValues/defaultExpandedValues/onExpandedValuesChange; selection uses value/defaultValue/onValueChange. Controlled refusal preserves the host state.",
@@ -1600,12 +1602,86 @@
     "group": "navigation",
     "description": "Nested native navigation links with separate disclosure controls.",
     "code": "<NavigationTree label=\"Documentation\" defaultExpandedValues={[\"start\"]} items={[{value:\"start\",label:\"Getting started\",children:[{value:\"installation\",label:\"Installation\",href:\"/docs/installation\"}]}]} />",
-    "imports": ["NavigationTree"],
+    "imports": [
+      "NavigationTree"
+    ],
     "notes": [
       "Native nav, lists and anchors preserve ordinary Tab order and browser modifier navigation. This component does not use ARIA tree/menu/tab roles.",
       "A branch may have both href and children: its native link navigates while a separate disclosure button expands. currentValue marks the matching destination; ancestors are expanded explicitly by the host.",
       "Expansion is controlled or uncontrolled through expandedValues/defaultExpandedValues/onExpandedValuesChange. Translate disclosure names with expandLabel; content can render host-owned loading or empty branch content.",
       "Item values must be globally unique and children acyclic. Disabled destinations have no active href; parent disability does not propagate to children. Introduced in 0.2.7."
+    ]
+  },
+  {
+    "slug": "color-swatch",
+    "name": "ColorSwatch",
+    "group": "content",
+    "description": "A named sample of an opaque RGB color.",
+    "code": "<ColorSwatch label=\"Flood pink\" value=\"#ff47a8\" />",
+    "notes": [
+      "Opaque RGB colors only; keep a text label wherever color conveys meaning."
+    ],
+    "imports": [
+      "ColorSwatch"
+    ]
+  },
+  {
+    "slug": "color-picker",
+    "name": "ColorPicker",
+    "group": "forms",
+    "description": "An RGB color editor with hex input, channel sliders and reusable presets.",
+    "code": "<ColorPicker label=\"Accent color\" defaultValue=\"#ff47a8\" name=\"accent\" presets={[\"#ff47a8\", \"#ffffff\", \"#78b8ff\"]} />",
+    "notes": [
+      "Uses #rrggbb values without alpha or gradients.",
+      "The hex field owns native form validation; RGB controls provide an additional editing path."
+    ],
+    "imports": [
+      "ColorPicker"
+    ]
+  },
+  {
+    "slug": "hover-card",
+    "name": "HoverCard",
+    "group": "overlays",
+    "description": "A focusable preview that opens on hover, keyboard focus or explicit activation.",
+    "code": "<HoverCard title=\"Alex Morgan\" trigger={props => <Button {...props} variant=\"subtle\">Alex Morgan</Button>}>\n  <Text as=\"p\" size=\"compact\">Designer at Flood.</Text>\n  <Link href=\"https://github.com/tillwithered\">View profile</Link>\n</HoverCard>",
+    "notes": [
+      "Interactive content belongs to a named dialog preview, not a tooltip.",
+      "Click pins the preview; keyboard and touch users can activate the trigger."
+    ],
+    "imports": [
+      "HoverCard",
+      "Button",
+      "Text",
+      "Link"
+    ]
+  },
+  {
+    "slug": "tree-select",
+    "name": "TreeSelect",
+    "group": "forms",
+    "description": "Single selection from a hierarchical collection inside a popup.",
+    "code": "<TreeSelect label=\"Destination\" name=\"destination\" items={[{value:\"design\",label:\"Design\",selectable:false,children:[{value:\"foundations\",label:\"Foundations\"},{value:\"components\",label:\"Components\"}]}]} />",
+    "notes": [
+      "This first version selects one item; Tree provides standalone multiple selection.",
+      "Values are globally unique and expansion remains independent of selection."
+    ],
+    "imports": [
+      "TreeSelect"
+    ]
+  },
+  {
+    "slug": "date-time-picker",
+    "name": "DateTimePicker",
+    "group": "forms",
+    "description": "A composed civil date and wall-clock time with separate form values.",
+    "code": "<DateTimePicker label=\"Schedule\" dateName=\"date\" timeName=\"time\" defaultValue={{date:\"2026-10-26\",time:\"09:30\"}} />",
+    "notes": [
+      "Date and time submit as separate fields. No timezone, UTC conversion or instant is inferred.",
+      "Date bounds and daily time bounds are independent. Use application validation for cross-field business rules."
+    ],
+    "imports": [
+      "DateTimePicker"
     ]
   }
 ]
