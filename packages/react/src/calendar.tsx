@@ -1,12 +1,14 @@
 import {forwardRef,useEffect,useId,useImperativeHandle,useMemo,useRef,useState} from "react";
 import type {ReactNode} from "react";
 import type {CalendarProps} from "./index.js";
-import {Button,IconButton,VisuallyHidden} from "./index.js";
+import {Button,IconButton,IconSlot,VisuallyHidden} from "./index.js";
 import {CalendarPeriodGrid} from "./calendar-period-grid.js";
 import {dateInRange,parseDate,daysInMonth} from "./date-value.js";
 import {dateFromOrdinal,dateOrdinal,dateWeekday,formattingDate,lastDateOrdinal,monthParts,monthShift,moveDateMonth} from "./calendar-value.js";
 
 const cx=(...values:Array<string|undefined|false>)=>values.filter(Boolean).join(" ");
+const titleCase=(text:string,locale:string)=>text.replace(/^\p{L}/u,letter=>letter.toLocaleUpperCase(locale));
+function ViewChevron(){return <IconSlot size="sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></IconSlot>;}
 export interface CalendarDayMetadata {rangeStart?:boolean;rangeEnd?:boolean;inRange?:boolean;preview?:boolean;unavailable?:boolean;}
 export interface CalendarGridProps extends Omit<CalendarProps,"value"|"defaultValue"|"onValueChange"|"onDateSelect"> {
   selectedDate?:string;
@@ -37,7 +39,7 @@ export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGrid
   const [view,setView]=useState<"days"|"months"|"years">(baseView),[focusView,setFocusView]=useState(false);
   const year=Number(month.slice(0,4)),yearPage=(value:number)=>Math.min(9988,1+Math.floor((value-1)/12)*12);
   const [yearStart,setYearStart]=useState(()=>yearPage(year));
-  const monthName=new Intl.DateTimeFormat(locale,{calendar:"gregory",timeZone:"UTC",month:"long"}).format(formattingDate(`${month}-01`));
+  const monthName=titleCase(new Intl.DateTimeFormat(locale,{calendar:"gregory",timeZone:"UTC",month:"long"}).format(formattingDate(`${month}-01`)),locale);
   const viewNames={month:viewLabels?.month??"Month",year:viewLabels?.year??"Year",previous:viewLabels?.previous??"Previous",next:viewLabels?.next??"Next"};
   if(!Object.values(viewNames).every(text=>text.trim()))throw new Error("Flood Calendar view labels must be nonempty");
   const firstDate=`${month}-01`,firstOrdinal=dateOrdinal(firstDate),startOrdinal=firstOrdinal-((dateWeekday(firstDate)-weekStartsOn+7)%7);
@@ -111,7 +113,7 @@ export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGrid
   const periodChoices=view==="days"?[]:Array.from({length:12},(_,index)=>{
     const value=view==="years"?String(yearStart+index).padStart(4,"0"):`${month.slice(0,4)}-${String(index+1).padStart(2,"0")}`;
     const monthStart=`${value}-01`,monthEnd=view==="months"?`${value}-${String(daysInMonth(year,index+1)).padStart(2,"0")}`:"";
-    return {value,label:view==="years"?String(yearStart+index):new Intl.DateTimeFormat(locale,{month:"short",calendar:"gregory",timeZone:"UTC"}).format(formattingDate(`2000-${String(index+1).padStart(2,"0")}-01`)),
+    return {value,label:view==="years"?String(yearStart+index):titleCase(new Intl.DateTimeFormat(locale,{month:"short",calendar:"gregory",timeZone:"UTC"}).format(formattingDate(`2000-${String(index+1).padStart(2,"0")}-01`)),locale),
       name:view==="years"?String(yearStart+index):new Intl.DateTimeFormat(locale,{month:"long",year:"numeric",calendar:"gregory",timeZone:"UTC"}).format(formattingDate(monthStart)),
       selected:view==="years"?selected.slice(0,4)===value:selected.slice(0,7)===value,
       disabled:view==="years"?yearStart+index<minYear||yearStart+index>maxYear:Boolean(min&&monthEnd<min||max&&monthStart>max)};
@@ -148,8 +150,8 @@ export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGrid
     <div className="flood-calendar__header">
       <VisuallyHidden id={`${id}-month`} aria-live="polite" aria-atomic="true">{view==="years"?`${yearStart}–${Math.min(9999,yearStart+11)}`:view==="months"?year:monthLabel}</VisuallyHidden>
       <div className="flood-calendar__month">
-        {showViewControls&&granularity==="day"?<Button variant="ghost" size="sm" disabled={effectiveDisabled} aria-label={`${viewNames.month}: ${monthName}`} aria-pressed={view==="months"} onClick={()=>view==="months"?restoreDays():switchView("months")}>{monthName}</Button>:granularity==="day"?<span>{monthName}</span>:null}{granularity==="day"?" ":null}
-        {showViewControls&&granularity!=="year"?<Button variant="ghost" size="sm" disabled={effectiveDisabled} aria-label={`${viewNames.year}: ${year}`} aria-pressed={view==="years"} onClick={()=>view==="years"?restoreDays():switchView("years")}>{view==="years"?`${yearStart}–${Math.min(9999,yearStart+11)}`:year}</Button>:<span>{granularity==="year"?`${yearStart}–${Math.min(9999,yearStart+11)}`:year}</span>}
+        {showViewControls&&granularity==="day"?<Button variant="subtle" size="sm" disabled={effectiveDisabled} aria-label={`${viewNames.month}: ${monthName}`} aria-pressed={view==="months"} onClick={()=>view==="months"?restoreDays():switchView("months")}>{monthName}<ViewChevron/></Button>:granularity==="day"?<span>{monthName}</span>:null}{granularity==="day"?" ":null}
+        {showViewControls&&granularity!=="year"?<Button variant="subtle" size="sm" disabled={effectiveDisabled} aria-label={`${viewNames.year}: ${year}`} aria-pressed={view==="years"} onClick={()=>view==="years"?restoreDays():switchView("years")}>{view==="years"?`${yearStart}–${Math.min(9999,yearStart+11)}`:year}<ViewChevron/></Button>:<span>{granularity==="year"?`${yearStart}–${Math.min(9999,yearStart+11)}`:year}</span>}
       </div>
       <div className="flood-calendar__navigation">
         <IconButton label={view==="days"?previousMonthLabel:`${viewNames.previous} ${viewNames.year}`} variant="ghost" size="sm" disabled={view==="days"?previousDisabled:periodPreviousDisabled} onClick={event=>{pendingFocus.current=undefined;if(!event.currentTarget.matches(":disabled")){if(view==="days")requestMonth(previous);else navigatePeriod(-1);}}}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14 6-6 6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></IconButton>
@@ -158,7 +160,7 @@ export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGrid
     </div>
     <div className="flood-calendar__body">
     {view==="days"?<div className="flood-calendar__grid" role="grid" aria-labelledby={`${id}-label ${id}-month`} aria-readonly={readOnly||undefined} aria-multiselectable={multiple||undefined}>
-      <div className="flood-calendar__week" role="row">{Array.from({length:7},(_,index)=>{const date=formattingDate(dateFromOrdinal(7+((weekStartsOn+index+6)%7))!);return <span className="flood-calendar__weekday" role="columnheader" key={index}><abbr title={formatters.weekdayLong.format(date)}>{formatters.weekday.format(date)}</abbr></span>;})}</div>
+      <div className="flood-calendar__week" role="row">{Array.from({length:7},(_,index)=>{const date=formattingDate(dateFromOrdinal(7+((weekStartsOn+index+6)%7))!);return <span className="flood-calendar__weekday" role="columnheader" key={index}><abbr title={formatters.weekdayLong.format(date)}>{titleCase(formatters.weekday.format(date),locale)}</abbr></span>;})}</div>
       {Array.from({length:6},(_,week)=><div className="flood-calendar__week" role="row" key={week}>{dates.slice(week*7,week*7+7).map((date,index)=><div {...attributes(date)} className="flood-calendar__cell" role="gridcell" key={date??`empty-${index}`} aria-selected={date?daySelected(date):undefined} aria-disabled={date?blocked(date)||undefined:undefined}>
         {date&&<button type="button" className="flood-calendar__day" data-calendar-date={date} data-selected={daySelected(date)||undefined} data-outside={date.slice(0,7)!==month||undefined} data-today={date===actualToday||undefined}
           ref={node=>{if(node)buttons.current.set(date,node);else buttons.current.delete(date);}} data-flood-autofocus={autoFocus&&date===roving||undefined} tabIndex={!effectiveDisabled&&date===roving?0:-1} disabled={disabled} aria-disabled={blocked(date)||readOnly||undefined} aria-label={formatters.day.format(formattingDate(date))} aria-current={date===actualToday?"date":undefined}

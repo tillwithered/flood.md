@@ -37,6 +37,12 @@ test('Calendar grid and selected day expose consistent accessible roles and name
  await open(page);await expect(page.locator('#basic [role="row"]')).toHaveCount(7);await expect(page.locator('#basic [role="gridcell"][aria-selected="true"]')).toHaveCount(1);await expect(page.locator('#basic [data-flood-autofocus="true"]')).toHaveCount(1);const results=await new AxeBuilder({page}).include('#basic').analyze();expect(results.violations).toEqual([]);
 });
 
+test('Russian month names are capitalized and header view controls have a visible surface and chevron',async({page})=>{
+ await open(page);const calendar=page.locator('#localized'),month=calendar.getByRole('button',{name:'Month: Февраль',exact:true});await expect(month).toHaveText('Февраль');
+ for(const button of [month,calendar.getByRole('button',{name:'Year: 2024',exact:true})]){await expect(button.locator('svg')).toHaveCount(1);expect(await button.evaluate(node=>getComputedStyle(node).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');}
+ await month.click();const names=await calendar.locator('.flood-calendar__period-choice').allTextContents();expect(names).toHaveLength(12);expect(names.every(name=>/^\p{Lu}/u.test(name))).toBe(true);
+});
+
 test('Calendar allowed activation fires even for the selected date while value changes stay separate',async({page,browser,baseURL})=>{
  await open(page);await day(page,'activation','2024-02-29').focus();await day(page,'activation','2024-02-29').press('Enter');await expect(page.locator('#activations')).toHaveText('[["activate","2024-02-29"]]');await day(page,'activation','2024-02-28').click();await expect(page.locator('#activations')).toHaveText('[["activate","2024-02-29"],["change","2024-02-28"],["activate","2024-02-28"]]');await expect(day(page,'activation','2024-02-29')).toHaveAttribute('data-selected','true');const context=await browser.newContext({baseURL:baseURL??'http://127.0.0.1:4174',viewport:{width:390,height:844},hasTouch:true});try{const touch=await context.newPage();await open(touch);await day(touch,'activation','2024-02-29').tap();await expect(touch.locator('#activations')).toHaveText('[["activate","2024-02-29"]]');}finally{await context.close();}
 });
