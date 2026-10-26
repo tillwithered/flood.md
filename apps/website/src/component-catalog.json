@@ -797,7 +797,7 @@
     "notes": [
       "Max width includes gutters (border-box). Sizes sm/md/lg use relative semantic roles; full removes the maximum.",
       "Native div props/ref target the container. Gutter uses Space; it does not add vertical spacing or breakpoints.",
-      "Available in the 0.2.4 source candidate; use matching installed declarations."
+      "Available in 0.2.4; use matching installed declarations."
     ]
   },
   {
@@ -814,7 +814,7 @@
       "Default auto-fit columns clamp their minimum to available width, so narrow parents retain a single column.",
       "Explicit columns retain their count; choose this deliberately. minItemWidth applies only to automatic columns and accepts a CSS length.",
       "Cells remain ordinary content, not an ARIA grid. Use native tables for tabular relationships and host media/container queries for deliberate breakpoints.",
-      "Available in the 0.2.4 source candidate; use matching installed declarations."
+      "Available in 0.2.4; use matching installed declarations."
     ]
   },
   {
@@ -831,7 +831,7 @@
       "Content remains in the accessibility tree. Default is for noninteractive text only.",
       "Use focusable for a skip link or another focusable descendant: the wrapper becomes visible while it contains focus. Supply visible focus styling on the actual control.",
       "This is not aria-hidden, display:none or a conditional unmount. as accepts span/div.",
-      "Available in the 0.2.4 source candidate; use matching installed declarations."
+      "Available in 0.2.4; use matching installed declarations."
     ]
   },
   {
@@ -848,7 +848,7 @@
       "ratio must be finite and positive. The root reserves media geometry before image loading.",
       "Direct img/video/iframe children fill the reserved box. Content can overflow; the component does not clip focus, menus or arbitrarily tall text.",
       "Host media owns alt, captions, controls and loading. Native props/ref target the outer div.",
-      "Available in the 0.2.4 source candidate; use matching installed declarations."
+      "Available in 0.2.4; use matching installed declarations."
     ]
   },
   {
@@ -864,7 +864,7 @@
       "alt is required; an empty string is appropriate for decorative imagery beside equivalent visible content.",
       "Native src/srcSet/sizes/loading/decoding/dimensions, handlers and HTMLImageElement ref are preserved. Supply width/height or AspectRatio to reserve geometry.",
       "fit cover/contain changes object-fit, not fetching, optimization or fallback behavior. Avatar composes Image with its own load/fallback lifecycle.",
-      "Available in the 0.2.4 source candidate; use matching installed declarations."
+      "Available in 0.2.4; use matching installed declarations."
     ]
   },
   {
@@ -880,7 +880,7 @@
       "Supply native li children. ordered chooses ol; start/reversed apply only to ordered lists. start must be a safe integer.",
       "Hiding markers retains an explicit list role for browser/assistive-technology consistency. Content may include links or controls without changing its content-list semantics.",
       "This is not ListBox, a selection model or a keyboard-navigation engine.",
-      "Available in the 0.2.4 source candidate; use matching installed declarations."
+      "Available in 0.2.4; use matching installed declarations."
     ]
   },
   {
@@ -897,7 +897,7 @@
       "Composes Stack, Heading, Text, IconSlot and Inline. Optional icon is decorative; title and description explain the missing content.",
       "Static by default, without status/alert announcements or automatic focus. Host owns whether a result change should be announced.",
       "Choose headingLevel for the page hierarchy. Density controls relative padding. Host actions remain ordinary named controls; no loading, fetching or error recovery engine is supplied.",
-      "Available in the 0.2.4 source candidate; use matching installed declarations."
+      "Available in 0.2.4; use matching installed declarations."
     ]
   },
   {
@@ -913,7 +913,7 @@
     "notes": [
       "Values are finite numbers or null for an empty field. onValueChange reports edits and button/arrow steps; native min/max/step validity remains available. Out-of-bound typed values clamp on blur; a step mismatch remains native validation.",
       "Ref and native form attributes target the input. Controlled value stays host-owned; uncontrolled form reset restores the initial value. Buttons use explicit accessible names, which can be translated.",
-      "Use Field for labels and feedback. Read-only remains selectable and prevents stepping. No currency/locale formatting or wheel interception is supplied. Available in the 0.2.5 source candidate."
+      "Use Field for labels and feedback. Read-only remains selectable and prevents stepping. No currency/locale formatting or wheel interception is supplied. Available in 0.2.5."
     ]
   },
   {
@@ -928,7 +928,7 @@
     "notes": [
       "value/defaultValue contain one number or an ordered pair. onValueChange returns a new array. Values snap to min-based steps and thumbs cannot cross; Tab order stays stable. Supply thumbLabels to translate or explain each handle.",
       "Horizontal only. Direction follows the host, including RTL. Native range inputs retain keyboard behavior; pointer selection chooses the nearest handle. Names submit one or two entries; uncontrolled reset restores defaults.",
-      "hideLabel preserves the accessible legend; showValue only controls the visible numeric readout. Read-only prevents edits while keeping focus. Use hint/message/error for meaning beyond color. Touch assistive technology needs device testing. Available in the 0.2.5 source candidate."
+      "hideLabel preserves the accessible legend; showValue only controls the visible numeric readout. Read-only prevents edits while keeping focus. Use hint/message/error for meaning beyond color. Touch assistive technology needs device testing. Available in 0.2.5."
     ]
   },
   {
@@ -944,7 +944,7 @@
     "notes": [
       "Typing filters labels and optional keywords; labels remain presentation and only the selected option value is submitted. Enter commits the active option. Escape/Tab/outside interaction discard an uncommitted query. Emptying the input clears selection.",
       "Native input ref, Field associations, required validity, controlled/uncontrolled value, forms/reset, read-only/disabled and IME editing are preserved. Options need unique nonempty values and labels. Disabled options remain discoverable and cannot be chosen.",
-      "Use clearable for the visible clear action; translate clearLabel/toggleLabel/listLabel/emptyMessage/invalidSelectionMessage. The popup reuses Flood ScrollArea and layer positioning. No arbitrary text, multiple selection, async fetching or virtualization engine is supplied. Available in the unpublished 0.2.5 candidate.",
+      "Use clearable for the visible clear action; translate clearLabel/toggleLabel/listLabel/emptyMessage/invalidSelectionMessage. The popup reuses Flood ScrollArea and layer positioning. No arbitrary text, multiple selection, async fetching or virtualization engine is supplied. Available in 0.2.5.",
       "Only the disclosure chevron is shown by default. Set clearable to opt into the extra clear-selection action; individual MultiSelect tags retain their removal buttons."
     ]
   },
@@ -960,7 +960,7 @@
     "notes": [
       "Tag is a label, not a status Badge or a selection toggle. The host owns removal; onRemove never hides the element automatically. Use ordinary noninteractive label content.",
       "Plain text gets a default Remove label. Rich content needs explicit removeLabel. disabled prevents removal; size and decorative icon are independent. removeButtonProps customizes the nested native action while Tag owns type, name, disabled and removal.",
-      "Standalone removal is an ordinary Tab stop. MultiSelect supplies its composite keyboard model. Geometry uses relative Flood sizing; long labels wrap and touch targets remain distinct. Available in the unpublished 0.2.5 candidate."
+      "Standalone removal is an ordinary Tab stop. MultiSelect supplies its composite keyboard model. Geometry uses relative Flood sizing; long labels wrap and touch targets remain distinct. Available in 0.2.5."
     ]
   },
   {
@@ -977,7 +977,7 @@
       "value/defaultValue are arrays of unique nonempty option IDs; onValueChange returns a new array. Native forms submit repeated entries with the same name, never typed query text. Uncontrolled reset restores initial values.",
       "The shared Combobox search/layer model keeps focus in the input. Enter toggles the active option and the list stays open. Backspace in an empty input removes the last editable tag; a logical backward arrow at the start enters tag actions. Tag arrows, Delete/Backspace, Enter and Escape support keyboard editing.",
       "Disabled selected options cannot be individually removed or cleared globally. Read-only permits copying but blocks selection and removal. Required means at least one valid selected ID. Translate removeItemLabel and the shared action/empty/validation messages.",
-      "No freeform values, remote fetching, virtualization or arbitrary tag selection engine is supplied. Available in the unpublished 0.2.5 candidate.",
+      "No freeform values, remote fetching, virtualization or arbitrary tag selection engine is supplied. Available in 0.2.5.",
       "Only the disclosure chevron is shown by default. Set clearable to opt into the extra clear-selection action; individual MultiSelect tags retain their removal buttons."
     ]
   },
@@ -993,7 +993,7 @@
     ],
     "notes": [
       "Native onChange, name, form, reset, ref and Field associations are preserved. clearable defaults to true; read-only hides the clear action. Translate clearLabel. Enter keeps native form submission; filtering belongs to the host.",
-      "Composes Flood InputGroup, IconSlot and IconButton using existing semantic geometry and feedback states. Available in the unpublished 0.2.5 candidate."
+      "Composes Flood InputGroup, IconSlot and IconButton using existing semantic geometry and feedback states. Available in 0.2.5."
     ]
   },
   {
@@ -1008,7 +1008,7 @@
     ],
     "notes": [
       "Use visible/onVisibleChange for controlled visibility or defaultVisible for an initial reveal. Translate showPasswordLabel/hidePasswordLabel. Read-only still permits inspection; disabled blocks actions. Native value/onChange, autocomplete, form and ref are preserved. Visibility does not change the value.",
-      "Composes Flood InputGroup, IconSlot and IconButton using existing semantic geometry and feedback states. Available in the unpublished 0.2.5 candidate."
+      "Composes Flood InputGroup, IconSlot and IconButton using existing semantic geometry and feedback states. Available in 0.2.5."
     ]
   },
   {
@@ -1024,7 +1024,7 @@
     "notes": [
       "The browser owns FileList, native name/form/required/accept/multiple/capture behavior and the input ref. onChange retains the native event; onFilesChange receives a fresh array after selection or clear. No controlled value/defaultValue or readOnly mode is supplied.",
       "clearable defaults to true. Localize placeholder and clearLabel. Clear restores input focus and empties the native selection; form reset clears the summary without emitting a change. Disabled includes inherited fieldset behavior. Cancelling the chooser preserves selection.",
-      "File names are shown as text, shortened visually when needed. This component only selects files; the host owns upload, progress and validation. accept is a chooser hint, not file validation. Available in the unpublished 0.2.5 candidate.",
+      "File names are shown as text, shortened visually when needed. This component only selects files; the host owns upload, progress and validation. accept is a chooser hint, not file validation. Available in 0.2.5.",
       "Multiple selection shows a compact count and a collapsible list with full file names and localized sizes. Removing one file updates the native FileList and preserves keyboard focus; clearable=false hides both individual and global removal. Translate selectionLabel/removeFileLabel. In multiple mode, choosing again appends files. Repeated files are deduplicated by name, size, type, lastModified and relative path. Single mode replaces its selection."
     ]
   },
@@ -1041,7 +1041,7 @@
     "notes": [
       "Uses the original Flood Dialog modal layer with role=alertdialog, a required message and initial focus on Cancel. Tab stays inside the modal; Escape cancels and restores trigger focus. Outside clicks do not dismiss it. There is no extra close action competing with the explicit Cancel button.",
       "onConfirm is a host callback followed by a close request. onCancel handles the Cancel button and Escape, not confirmation. Use open/onOpenChange for host-controlled state and confirmDisabled to prevent confirmation while unavailable. Async work/errors belong to the host; callbacks are not awaited.",
-      "Translate title, description, confirmLabel and cancelLabel. Use ordinary Dialog for forms and exploratory content. Available in the unpublished 0.2.5 candidate."
+      "Translate title, description, confirmLabel and cancelLabel. Use ordinary Dialog for forms and exploratory content. Available in 0.2.5."
     ]
   },
   {
@@ -1059,7 +1059,7 @@
     "notes": [
       "Uses Flood native Dialog focus containment, scroll lock, background inertness, nested layers and return focus. Escape and the named close IconButton dismiss it; closeOnOutsideClick defaults to true. Controlled open/onOpenChange and initialFocusRef match Dialog.",
       "side is logical start/end or physical top/bottom. size sets 20/26/34rem for sm/md/lg, capped to the viewport. Vertical drawers occupy the viewport height; horizontal drawers occupy its width. Entry motion respects reduced motion; closing is immediate.",
-      "The header and optional footer stay visible while the body scrolls with Flood ScrollArea. Footer actions are host-owned, without implicit save or close. No swipe/drag gesture or nested navigation engine is included. Available in the unpublished 0.2.5 candidate."
+      "The header and optional footer stay visible while the body scrolls with Flood ScrollArea. Footer actions are host-owned, without implicit save or close. No swipe/drag gesture or nested navigation engine is included. Available in 0.2.5."
     ]
   },
   {
@@ -1073,7 +1073,7 @@
     ],
     "notes": [
       "Copies only on a user click. Requires a secure context and Clipboard API; onCopyError receives unavailable/denied errors. The host owns any manual-copy fallback. Native button ref and disabled semantics are preserved.",
-      "Localize copyLabel/copiedLabel/errorLabel. resetDelay restores the idle state after success. Labels reserve their common width and a live status announces the result. No remote data transfer is built in. Available in the unpublished 0.2.5 candidate."
+      "Localize copyLabel/copiedLabel/errorLabel. resetDelay restores the idle state after success. Labels reserve their common width and a live status announces the result. No remote data transfer is built in. Available in 0.2.5."
     ]
   },
   {
@@ -1088,7 +1088,7 @@
     "notes": [
       "The host owns items and removes them onDismiss. IDs must be unique/nonempty. limit controls visible items; queued timers start only when visible. Ordinary messages default to five seconds; error/action messages persist unless duration is explicit. duration=0 persists.",
       "Timers pause on hover, focus and hidden documents. F8 focuses the first visible region without interrupting initial task focus; hotkey=false disables it. Use a single main region per document. Localize label/closeLabel and message/action text. Error messages announce as alerts; others use polite status.",
-      "placement is logical start/end. inline embeds the region in a host container; fixed mode uses ordinary document stacking, so place a contextual region inside a modal if needed. Action callbacks do not dismiss automatically. No global notification store or promise API. Available in the unpublished 0.2.5 candidate."
+      "placement is logical start/end. inline embeds the region in a host container; fixed mode uses ordinary document stacking, so place a contextual region inside a modal if needed. Action callbacks do not dismiss automatically. No global notification store or promise API. Available in 0.2.5."
     ]
   },
   {
@@ -1103,7 +1103,7 @@
     "notes": [
       "The native list composes Flood Avatar. IDs and names must be nonempty and unique IDs remain stable. max is a positive integer; the default shows four people.",
       "Overflow is a static count, not a hidden interactive menu. Translate overflowLabel when needed; visible avatars retain their individual accessible names. Size follows Avatar. Intentional overlap never applies to interactive targets.",
-      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+      "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
     ]
   },
   {
@@ -1118,7 +1118,7 @@
     "notes": [
       "The visible label carries meaning; the dot is decorative and color is never the only signal. Use announce to opt into a polite status live region for changing messages.",
       "Static labels do not announce by default. Tone is independent of wording and size. Use Badge for categorical labels and Alert for a message requiring more explanation.",
-      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+      "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
     ]
   },
   {
@@ -1134,7 +1134,7 @@
     "notes": [
       "Composes native figure and figcaption. The host supplies the image, chart, code or other self-contained content, including its own alt text or accessible name.",
       "captionPosition controls DOM reading order as well as placement. Caption content may contain links. Native hidden, dir, lang, style and ref target the figure.",
-      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+      "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
     ]
   },
   {
@@ -1149,7 +1149,7 @@
     "notes": [
       "Uses native blockquote; cite remains a source URL, while attribution is visible host-authored credit. Rich quote content and attribution are supported.",
       "The logical leading rule follows RTL. Supply quotation punctuation as part of your actual content; the component does not invent a quotation or source.",
-      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+      "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
     ]
   },
   {
@@ -1165,7 +1165,7 @@
     "notes": [
       "Native code semantics, bundled monospace stack and a quiet inline surface. Content is text; no HTML parsing or syntax highlighting is performed.",
       "wrap defaults to true for long identifiers. wrap=false preserves the fragment on one line and the host must manage overflow. Use CodeSnippet for blocks of code and Kbd for keyboard input.",
-      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+      "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
     ]
   },
   {
@@ -1180,7 +1180,7 @@
     "notes": [
       "Native definition-list semantics associate the label with its value, trend and hint. Values may be rich content; the host owns currency, number and locale formatting.",
       "Trend direction and semantic tone are independent: a decreasing failure rate can be good. Its label must communicate the change without relying on the decorative arrow or color. No automatic percentage calculation is performed.",
-      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+      "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
     ]
   },
   {
@@ -1196,7 +1196,7 @@
       "The native ordered list is read in the supplied order; the component does not sort or group events. IDs/titles are nonempty, IDs are unique and at most one event may be current.",
       "Each state has a visually hidden text equivalent; localize stateLabels. timeLabel is user-facing text and dateTime, when supplied, is the machine-readable time. Both are host-owned.",
       "Markers and optional artwork are decorative. This is an event display, not a wizard or navigation control. Long descriptions and times wrap without changing marker alignment.",
-      "Compatible addition in the unpublished 0.2.5 candidate. Uses existing Flood semantic tokens and relative geometry."
+      "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
     ]
   },
   {
@@ -1305,7 +1305,7 @@
     "notes": [
       "Use a scalar value/defaultValue in single mode and an array in multiple mode. onValueChange returns the matching shape. Stable, unique nonempty option IDs are submitted as repeated hidden native form fields when name is supplied. Uncontrolled reset restores the initial selection.",
       "The list owns one Tab stop and aria-activedescendant. Arrows/Home/End move through enabled options; single selection follows navigation. Space/Enter selects or toggles. Typing searches option-label prefixes. Disabled options cannot be selected; readOnly retains navigation and copying without changing the value.",
-      "Provide a clear label or use hideLabel with the accessible label preserved. Use disabled on the composite to remove its Tab stop. The list is not virtualized and does not fetch options. Available in the unpublished 0.2.5 candidate."
+      "Provide a clear label or use hideLabel with the accessible label preserved. Use disabled on the composite to remove its Tab stop. The list is not virtualized and does not fetch options. Available in 0.2.5."
     ]
   },
   {
@@ -1320,7 +1320,7 @@
     "notes": [
       "One real native input preserves mobile one-time-code autofill, clipboard, selection, forms and required validity; decorative slots are hidden from assistive technology. Use its native ref for focus. The host owns verification and authentication.",
       "length is an integer from 1 to 12. mode numeric permits ASCII digits; alphanumeric also permits ASCII letters. Paste strips separators and invalid characters, then respects the selection and length. Backspace and arrow editing remain native. Use mask to visually conceal the code.",
-      "Use value/onValueChange or defaultValue. Native form reset restores the initial uncontrolled value. Pattern validity requires a complete code when nonempty; required also rejects an empty code. Translate label and preserve its accessible name with hideLabel. Available in the unpublished 0.2.5 candidate."
+      "Use value/onValueChange or defaultValue. Native form reset restores the initial uncontrolled value. Pattern validity requires a complete code when nonempty; required also rejects an empty code. Translate label and preserve its accessible name with hideLabel. Available in 0.2.5."
     ]
   },
   {
@@ -1335,7 +1335,7 @@
     "notes": [
       "Provide a nonempty name for native radio grouping and form submission. value/defaultValue are integers from zero (unselected) to max; max is an integer from 1 to 10. Uncontrolled native reset restores defaultValue. required uses native group validation.",
       "Arrow keys follow logical direction, Home/End jump to the first/last value, and Space selects the focused radio. One radio is in Tab order. readOnly keeps the current selection focusable without allowing changes; disabled is native.",
-      "Use getValueLabel to localize each radio name. The stars are decorative; native named radios carry the value. hideLabel preserves the legend for assistive technology. No fractional values or review submission engine is included. Available in the unpublished 0.2.5 candidate."
+      "Use getValueLabel to localize each radio name. The stars are decorative; native named radios carry the value. hideLabel preserves the legend for assistive technology. No fractional values or review submission engine is included. Available in 0.2.5."
     ]
   },
   {
@@ -1350,7 +1350,7 @@
     "notes": [
       "The existing FileInput remains the real chooser and successful native form control. Dropping files dispatches the same selection flow: multiple appends and deduplicates; single selection keeps the first dropped file. Native form reset and per-file removal remain intact.",
       "The zone responds only to file drags and prevents navigation on file drop. Disabled fields reject drops. Translate label/description and FileInput action labels. The chooser remains keyboard accessible; dropping is an additional pointer workflow.",
-      "accept guides the native chooser; the host must validate dropped file types, size and contents. Directories, remote transfer, progress, server upload and image processing are outside this control. No file contents are read. Available in the unpublished 0.2.5 candidate."
+      "accept guides the native chooser; the host must validate dropped file types, size and contents. Directories, remote transfer, progress, server upload and image processing are outside this control. No file contents are read. Available in 0.2.5."
     ]
   },
   {
@@ -1365,7 +1365,7 @@
     "notes": [
       "Pass text through value or supply an explicit nonnegative integer count for a host-defined counting rule. The default text count uses Unicode code points, not UTF-16 code units or grapheme clusters. max is advisory and does not truncate or validate an editor.",
       "mode remaining displays max minus count; count displays the current count and optional limit. An over-limit message is visible in addition to its semantic color. Translate label/overLimitLabel; lang formats the number.",
-      "Use htmlFor to associate supporting output with its editor and aria-describedby on the editor when appropriate. Live announcements default off to avoid announcing every keystroke; the host may opt into aria-live. Available in the unpublished 0.2.5 candidate."
+      "Use htmlFor to associate supporting output with its editor and aria-describedby on the editor when appropriate. Live announcements default off to avoid announcing every keystroke; the host may opt into aria-live. Available in 0.2.5."
     ]
   }
 ]

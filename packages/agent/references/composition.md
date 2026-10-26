@@ -167,7 +167,7 @@ styled text box that loses numeric forms. Slider receives an array of one value 
 an ordered pair; use thumbLabels to distinguish bounds, preserve native keyboard
 controls and keep explanatory feedback visible. Range handles cannot cross.
 Both support controlled/uncontrolled state, form reset and read-only presentation.
-Available in the 0.2.5 source candidate; do not imply registry availability.
+Available in 0.2.5; do not imply registry availability.
 
 Combobox is editable single selection from explicit option values. Use Field for
 its input name/description associations, never submit typed search text as an ID.
@@ -192,7 +192,7 @@ default. Add clearable=true only when a separate clear-selection action is usefu
 individual MultiSelect tags already expose named removal actions.
 
 
-SearchInput and PasswordInput are field controls in the unpublished 0.2.5 candidate.
+SearchInput and PasswordInput are field controls in 0.2.5.
 Compose them with Field and pass its control props. SearchInput uses native search
 editing and one clear action (clearable=true); the host owns filtering/submission.
 Read-only hides clear. PasswordInput has a single show/hide action with localized
@@ -201,7 +201,7 @@ defaultVisible. Read-only still allows reveal. Native refs, autocomplete and for
 remain owned by the host. Do not add another suffix chevron or browser clear icon.
 
 
-FileInput (unpublished 0.2.5) composes a native file input with Flood field geometry,
+FileInput (0.2.5) composes a native file input with Flood field geometry,
 IconSlot and one optional clear IconButton. Pass Field's render props for its
 accessible name/description/status. Native name, form, required, accept, multiple,
 capture and input ref remain available. onChange is a native React change handler;
@@ -222,7 +222,7 @@ preserves it. Repeated files are deduplicated by name, size, type, lastModified 
 relative path, without reading their contents. Single mode replaces its selection. The host remains responsible for upload.
 
 
-AlertDialog (unpublished 0.2.5) is a concise confirmation, composed from Flood's
+AlertDialog (0.2.5) is a concise confirmation, composed from Flood's
 native modal layer and Button. Supply title, description, trigger and onConfirm.
 Cancel receives initial focus; Escape cancels; outside clicks do not dismiss.
 Tab containment, background inertness, scroll lock and return focus reuse Dialog.
@@ -232,7 +232,7 @@ confirmDisabled to disable confirmation. Callbacks are not awaited; the host own
 async requests, pending UI and errors. Use Dialog for forms/complex content.
 
 
-Drawer (unpublished 0.2.5) reuses Dialog's modal behavior with an edge-panel layout.
+Drawer (0.2.5) reuses Dialog's modal behavior with an edge-panel layout.
 side is logical start/end (default end) or top/bottom; size sm/md/lg sets the
 cross-axis extent to 20/26/34rem within the viewport. Vertical panels fill height,
 horizontal panels fill width. Use footer for host-owned actions; only body content
@@ -242,7 +242,7 @@ Dialog. Translate closeLabel/title/description; reduced motion disables entry
 animation. Closing is immediate. There is no swipe/drag gesture or auto-save logic.
 
 
-The unpublished 0.2.5 candidate separates floating surfaces from modal surfaces.
+The 0.2.5 separates floating surfaces from modal surfaces.
 Nine additional semantic roles bring the dark profile to 193 roles; previous token
 values remain intact. surface.floating is the opaque fallback;
 surface.floating-translucent, border.floating, selection.floating, shadow.floating
@@ -253,7 +253,7 @@ reduced transparency uses the opaque fill and forced colors use system colors.
 Keep text opaque and evaluate it against the actual composited background.
 
 
-The unpublished 0.2.5 expansion includes AvatarGroup/StatusIndicator/Figure/
+Version 0.2.5 expansion includes AvatarGroup/StatusIndicator/Figure/
 Blockquote/InlineCode/Metric/Timeline; NavigationList/Steps/Section/Split/Center/
 SkipLink; ListBox/PinInput/Rating/Dropzone/CharacterCount; CopyButton/ToastRegion.
 Compose these before inventing equivalent host wrappers. Read each generated

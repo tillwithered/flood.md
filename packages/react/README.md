@@ -816,12 +816,12 @@ Checkbox, Radio and Switch apply native hidden/dir/lang to their visible label w
 
 0.2.5 adds NumberInput (native numeric editing and integrated step actions) and Slider (one value or an ordered pair). Use matching declarations and the numeric controls guide in docs/base-components.md. Registry publication is separate from source availability.
 
-Combobox adds editable single selection in the 0.2.5 candidate. Reuse Field for the
+Combobox adds editable single selection in 0.2.5. Reuse Field for the
 label, use options with stable value/label pairs, and observe onValueChange for
 the selected ID. Search query text is not form data. See docs/base-components.md
 for reset, required, read-only, localized messages and native Popover requirements.
 
-Tag and MultiSelect are compatible additions in the unpublished 0.2.5 candidate.
+Tag and MultiSelect are compatible additions in 0.2.5.
 Tag labels an item and optionally requests host-owned removal. MultiSelect uses
 arrays of stable option IDs and composes those tags with the shared searchable
 selection model. See docs/base-components.md for keyboard behavior, locked values,
@@ -829,7 +829,7 @@ readonly/required forms, focus recovery and relative nested geometry. Existing
 Combobox continues to accept and return a single string.
 
 
-SearchInput and PasswordInput join the unpublished 0.2.5 candidate. Both compose
+SearchInput and PasswordInput join 0.2.5. Both compose
 InputGroup with native input props, Field feedback, ref, sizes and form ownership.
 SearchInput uses type=search and a decorative leading icon; clearable defaults to
 true and clearLabel names its sole suffix action. Clearing dispatches native input
@@ -841,7 +841,7 @@ Use autocomplete appropriate to the host form. Both accept accessible names via
 Field, aria-label or aria-labelledby. These controls add no authentication logic.
 
 
-FileInput (unpublished 0.2.5) composes a native file input with Flood field geometry,
+FileInput (0.2.5) composes a native file input with Flood field geometry,
 IconSlot and one optional clear IconButton. Pass Field's render props for its
 accessible name/description/status. Native name, form, required, accept, multiple,
 capture and input ref remain available. onChange is a native React change handler;
@@ -862,7 +862,7 @@ preserves it. Repeated files are deduplicated by name, size, type, lastModified 
 relative path, without reading their contents. Single mode replaces its selection. The host remains responsible for upload.
 
 
-AlertDialog (unpublished 0.2.5) is a concise confirmation, composed from Flood's
+AlertDialog (0.2.5) is a concise confirmation, composed from Flood's
 native modal layer and Button. Supply title, description, trigger and onConfirm.
 Cancel receives initial focus; Escape cancels; outside clicks do not dismiss.
 Tab containment, background inertness, scroll lock and return focus reuse Dialog.
@@ -872,7 +872,7 @@ confirmDisabled to disable confirmation. Callbacks are not awaited; the host own
 async requests, pending UI and errors. Use Dialog for forms/complex content.
 
 
-Drawer (unpublished 0.2.5) reuses Dialog's modal behavior with an edge-panel layout.
+Drawer (0.2.5) reuses Dialog's modal behavior with an edge-panel layout.
 side is logical start/end (default end) or top/bottom; size sm/md/lg sets the
 cross-axis extent to 20/26/34rem within the viewport. Vertical panels fill height,
 horizontal panels fill width. Use footer for host-owned actions; only body content
@@ -882,7 +882,7 @@ Dialog. Translate closeLabel/title/description; reduced motion disables entry
 animation. Closing is immediate. There is no swipe/drag gesture or auto-save logic.
 
 
-The unpublished 0.2.5 candidate separates floating surfaces from modal surfaces.
+The 0.2.5 separates floating surfaces from modal surfaces.
 Nine additional semantic roles bring the dark profile to 193 roles; previous token
 values remain intact. surface.floating is the opaque fallback;
 surface.floating-translucent, border.floating, selection.floating, shadow.floating
@@ -893,7 +893,7 @@ reduced transparency uses the opaque fill and forced colors use system colors.
 Keep text opaque and evaluate it against the actual composited background.
 
 
-The unpublished 0.2.5 component expansion adds native content/typography,
+The 0.2.5 component expansion adds native content/typography,
 collection/form controls, navigation/layout and clipboard/notification primitives.
 See docs/base-components.md and the per-component catalog for contracts and limits.
 The CSS build assembles the original component styles into the shared stylesheet.

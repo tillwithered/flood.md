@@ -221,7 +221,7 @@ to 193 roles. Existing role values remain unchanged:
 - sys.size.container.sm/md/lg and sys.size.grid.min-item supply relative layout bounds.
 
 
-The unpublished 0.2.5 candidate separates floating surfaces from modal surfaces.
+The 0.2.5 separates floating surfaces from modal surfaces.
 The floating material uses nine of those new semantic roles; previous token
 values remain intact. surface.floating is the opaque fallback;
 surface.floating-translucent, border.floating, selection.floating, shadow.floating

@@ -5,7 +5,7 @@ import {renderToStaticMarkup as render} from 'react-dom/server';
 import {CopyButton,ToastRegion} from '../packages/react/dist/index.js';
 test('CopyButton retains native action semantics and localized stable labels',()=>{
  const html=render(h(CopyButton,{value:'local text',copyLabel:'Copy value',copiedLabel:'Value copied',errorLabel:'Try again',disabled:true}));
- assert.match(html,/type="button"/);assert.match(html,/disabled=""/);assert.match(html,/aria-label="Copy value"/);assert.match(html,/Value copied/);assert.match(html,/role="status"/);assert.throws(()=>render(h(CopyButton,{value:'x',resetDelay:-1})),/nonnegative/);
+ assert.match(html,/type="button"/);assert.match(html,/disabled=""/);assert.match(html,/aria-label="Copy value"/);assert.match(html,/Value copied/);assert.match(html,/role="status"/);const named=render(h(CopyButton,{value:'x','aria-label':'Copy installation command'}));assert.match(named,/aria-label="Copy installation command"/);assert.throws(()=>render(h(CopyButton,{value:'x',resetDelay:-1})),/nonnegative/);
 });
 test('ToastRegion limits visible items and preserves named announcement semantics',()=>{
  const html=render(h(ToastRegion,{label:'Project notifications',inline:true,limit:1,items:[{id:'a',title:'Saved',status:'success'},{id:'b',title:'Failed',status:'error'}],onDismiss:()=>{}}));

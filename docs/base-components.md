@@ -41,7 +41,7 @@ focus, RTL and narrow-width access. Keep specialized native structures (caption,
 legend, li, th) rather than replacing them with generic wrappers for apparent reuse.
 See [foundations](foundations.md), [layout](layout.md) and [agent guide](agents.md).
 
-## Numeric controls (0.2.5 candidate)
+## Numeric controls (0.2.5)
 
 NumberInput composes InputGroup, Input and two named IconButton actions. Ref, id,
 name, form, required, native validation and Field associations target the real
@@ -63,9 +63,9 @@ and increasing and step positive. showValue controls the visible readout;
 hideLabel preserves the group legend. Provide feedback text alongside status.
 Read-only remains focusable. Touch assistive technology requires real-device
 verification before claiming complete support. No vertical or arbitrary-count
-multi-handle API is supplied in this release candidate.
+multi-handle API is supplied in this release.
 
-## Combobox (0.2.5 candidate)
+## Combobox (0.2.5)
 
 Combobox is editable single selection from a defined collection. Compose it with
 Field exactly like Input; its ref, id, required validation and native input events
@@ -87,7 +87,7 @@ positioning, clipping and scrolling. No arbitrary text submission, multi-selecti
 remote fetching or virtualization is supplied. Native Popover API is required,
 as for Flood Select. Test touch assistive technology on actual target devices.
 
-## Tags and multiple selection (0.2.5 candidate)
+## Tags and multiple selection (0.2.5)
 
 Tag presents a compact noninteractive label with an optional decorative icon and
 removal action. The host owns removal and focus recovery when a standalone tag
@@ -119,15 +119,15 @@ Tags wrap naturally. The search input and suffix actions form a single editor ro
 they move together when tokens consume a line. Nested radii account for the field
 inset. Coarse-pointer removal targets remain distinct and at least size.touch.
 There is no arbitrary freeform tagging, remote data access, virtualization or
-standalone TagGroup selection/navigation engine in this candidate.
+standalone TagGroup selection/navigation engine in this release.
 
 Selection-field action defaults: Combobox and MultiSelect show only the disclosure
 chevron by default. Set clearable=true to add the explicit clear-selection action.
 MultiSelect tags keep their individual removal buttons; keyboard editing remains
-available. This default is part of the unpublished 0.2.5 design candidate.
+available. This default is part of 0.2.5.
 
 
-SearchInput and PasswordInput join the unpublished 0.2.5 candidate. Both compose
+SearchInput and PasswordInput join 0.2.5. Both compose
 InputGroup with native input props, Field feedback, ref, sizes and form ownership.
 SearchInput uses type=search and a decorative leading icon; clearable defaults to
 true and clearLabel names its sole suffix action. Clearing dispatches native input
@@ -139,7 +139,7 @@ Use autocomplete appropriate to the host form. Both accept accessible names via
 Field, aria-label or aria-labelledby. These controls add no authentication logic.
 
 
-FileInput (unpublished 0.2.5) composes a native file input with Flood field geometry,
+FileInput (0.2.5) composes a native file input with Flood field geometry,
 IconSlot and one optional clear IconButton. Pass Field's render props for its
 accessible name/description/status. Native name, form, required, accept, multiple,
 capture and input ref remain available. onChange is a native React change handler;
@@ -160,7 +160,7 @@ preserves it. Repeated files are deduplicated by name, size, type, lastModified 
 relative path, without reading their contents. Single mode replaces its selection. The host remains responsible for upload.
 
 
-AlertDialog (unpublished 0.2.5) is a concise confirmation, composed from Flood's
+AlertDialog (0.2.5) is a concise confirmation, composed from Flood's
 native modal layer and Button. Supply title, description, trigger and onConfirm.
 Cancel receives initial focus; Escape cancels; outside clicks do not dismiss.
 Tab containment, background inertness, scroll lock and return focus reuse Dialog.
@@ -170,7 +170,7 @@ confirmDisabled to disable confirmation. Callbacks are not awaited; the host own
 async requests, pending UI and errors. Use Dialog for forms/complex content.
 
 
-Drawer (unpublished 0.2.5) reuses Dialog's modal behavior with an edge-panel layout.
+Drawer (0.2.5) reuses Dialog's modal behavior with an edge-panel layout.
 side is logical start/end (default end) or top/bottom; size sm/md/lg sets the
 cross-axis extent to 20/26/34rem within the viewport. Vertical panels fill height,
 horizontal panels fill width. Use footer for host-owned actions; only body content
@@ -180,7 +180,7 @@ Dialog. Translate closeLabel/title/description; reduced motion disables entry
 animation. Closing is immediate. There is no swipe/drag gesture or auto-save logic.
 
 
-## Expanded component set in the unpublished 0.2.5 candidate
+## Expanded component set in 0.2.5
 
 ### Content and typography additions in 0.2.5
 
@@ -250,7 +250,8 @@ secure context and clipboard permission are required. onCopied/onCopyError let t
 host react; manual fallback belongs to the host. Localize all result labels. Labels
 reserve their shared width as centered icon–label pairs; the icon–text gap stays
 constant in each state. Defaults are Copy / Copied / Failed. A polite status
-announces success/failure. This refinement is part of the unpublished 0.2.5 candidate.
+announces success/failure. An explicit aria-label can name the action in context
+without changing its short visible labels. This refinement is part of 0.2.5.
 
 ToastRegion takes a host-owned items array and onDismiss. IDs are unique/nonempty;
 limit controls the visible queue. Ordinary messages default to five seconds;
