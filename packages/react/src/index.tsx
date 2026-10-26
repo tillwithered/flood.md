@@ -61,12 +61,70 @@ import { PairedDateRangeField } from "./date-range-field.js";
 import { CalendarDateRangePicker } from "./date-range-picker.js";
 import { ContextActionMenu } from "./context-menu.js";
 import { SelectionTree } from "./tree.js";
+import { ManagedDataTable } from "./data-table.js";
 import { CheckableCard, ExclusiveCard } from "./collection-cards.js";
 import { ColorPreview, ColorEditor } from "./color-controls.js";
 import { HoverPreview } from "./hover-card.js";
 import { HierarchicalSelect } from "./tree-select.js";
 import { CivilDateTimePicker } from "./date-time-picker.js";
 import { HierarchicalNavigation } from "./navigation-tree.js";
+
+export interface DataTableColumn {
+  id: string;
+  label: string;
+  sortable?: boolean;
+  align?: "start" | "end";
+  width?: CSSProperties["width"];
+}
+export interface DataTableRow {
+  id: string;
+  label?: string;
+  cells: Readonly<Record<string, ReactNode>>;
+  sortValues?: Readonly<Record<string, string | number | null>>;
+  selectionDisabled?: boolean;
+}
+export interface DataTableSort { column: string; direction: "ascending" | "descending"; }
+export interface DataTableLabels {
+  loading?: string;
+  empty?: string;
+  error?: string;
+  retry?: string;
+  selectPage?: string;
+  selectRow?: (label: string) => string;
+  results?: (from: number, to: number, total: number) => string;
+  selection?: (selected: number, total: number) => string;
+  sort?: (label: string) => string;
+  pagination?: string;
+  previousPage?: string;
+  nextPage?: string;
+  page?: (page: number) => string;
+}
+export interface DataTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  caption: string;
+  hideCaption?: boolean;
+  columns: readonly DataTableColumn[];
+  rows: readonly DataTableRow[];
+  density?: "compact" | "comfortable";
+  striped?: boolean;
+  minWidth?: CSSProperties["minWidth"];
+  sort?: DataTableSort | null;
+  defaultSort?: DataTableSort | null;
+  onSortChange?: (sort: DataTableSort | null) => void;
+  locale?: string;
+  selectable?: boolean;
+  selectedIds?: readonly string[];
+  defaultSelectedIds?: readonly string[];
+  onSelectionChange?: (ids: string[]) => void;
+  page?: number;
+  defaultPage?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
+  state?: "ready" | "loading" | "error";
+  onRetry?: () => void;
+  labels?: DataTableLabels;
+}
+/** A client-side table composed from native table, checkbox and pagination. @since 0.2.8 */
+export const DataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTableProps>(function DataTable(props,ref){return <ManagedDataTable {...props} ref={ref}/>;});
 
 export interface DataListProps extends Omit<HTMLAttributes<HTMLUListElement>, "role"> {
   density?: "compact" | "comfortable";

@@ -4,6 +4,7 @@
 
 - Add HoverCard, ColorSwatch, ColorPicker, TreeSelect and DateTimePicker.
 - Add native DataList/DataListItem rows and CheckCard/RadioCard choices.
+- Add client-side DataTable sorting, selection, paging and feedback states, plus a Filter bar recipe.
 - Add recipes for aggregate selection, split actions and form submission.
 - Keep opaque RGB colors, single tree selection and civil date/time contracts explicit.
 - Registry publication and deployment are verified separately.

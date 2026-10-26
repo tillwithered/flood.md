@@ -1743,5 +1743,20 @@
       "Stack",
       "RadioCard"
     ]
+  },
+  {
+    "slug": "data-table",
+    "name": "DataTable",
+    "group": "content",
+    "description": "A native data table with local sorting, page-scoped selection and pagination.",
+    "code": "<DataTable caption=\"Projects\" selectable pageSize={5}\n  columns={[{id:\"name\",label:\"Project\",sortable:true},{id:\"status\",label:\"Status\"}]}\n  rows={[{id:\"design\",label:\"Design system\",cells:{name:\"Design system\",status:\"Active\"}}]} />",
+    "notes": [
+      "Supply the complete client collection; remote/server pagination and virtualization are not part of this API.",
+      "Select all affects selectable rows on the current page and preserves selection on other pages.",
+      "Use sortValues for rich React cells; missing values sort last in both directions."
+    ],
+    "imports": [
+      "DataTable"
+    ]
   }
 ]

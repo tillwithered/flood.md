@@ -394,3 +394,12 @@ Keep their description, icon and metadata noninteractive. Use one radio name and
 an enclosing Fieldset for exclusive choices; derive aggregate checkbox state
 in the host. Read-only choice cards preserve submission and block editing; apply
 readOnly to an entire radio group consistently.
+
+DataTable pages and sorts one complete client-side collection. It is not a
+server query engine or a virtualized grid. Rich cells require explicit sortValues
+when they are sortable. Select all affects the current page only and preserves
+other pages; permission-restricted rows use selectionDisabled. Native links and
+actions in cells remain independent. Compose search and filters at the host
+boundary, reset page deliberately and specify the intended selection lifetime.
+Use Table + Pagination for remote pagination rather than passing one remote page
+into the client-paginated DataTable.
