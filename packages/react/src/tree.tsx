@@ -130,7 +130,7 @@ export const SelectionTree=/* @__PURE__ */ forwardRef<HTMLDivElement,TreeProps>(
       }
     }}>
     <span className={["flood-label",hideLabel?"flood-visually-hidden":""].filter(Boolean).join(" ")} id={`${id}-label`}>{label}</span>
-    <span id={`${id}-readonly`} className="flood-visually-hidden">{readOnlyMessage}</span>
+    <span id={`${id}-readonly`} hidden>{readOnlyMessage}</span>
     <div ref={tree} role="tree" aria-labelledby={`${id}-label`} aria-multiselectable={multiple||undefined} aria-disabled={disabled||undefined} aria-describedby={[!items.length?`${id}-empty`:undefined,readOnly?`${id}-readonly`:undefined].filter(Boolean).join(" ")||undefined} tabIndex={!disabled&&!items.length?0:-1} className="flood-tree__viewport">{render(items)}</div>
     {!items.length&&<div id={`${id}-empty`} role="status" className="flood-tree__empty">{emptyMessage}</div>}
   </div>;

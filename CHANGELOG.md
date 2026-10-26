@@ -2,6 +2,8 @@
 
 ## 0.2.7 - Unreleased
 
+- Keep Tree's readonly explanation associated with the relevant control without exposing it as unrelated reading content.
+
 - Enable removal of unused React component factories from named-import bundles; guard the installed single-Button bundle size.
 
 - Preserve readonly date/time form values under constraints and keep submenu hover intent across equivalent host rerenders.

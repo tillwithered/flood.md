@@ -129,6 +129,7 @@ test("Tree preserves collapsed selections but excludes removed objects from late
 
 test("Tree exposes read-only explanation and supports Shift-letter typeahead",async({page})=>{
   await open(page);await expect(item(page,"Read only")).toHaveAccessibleDescription("Selection is read only.");
+  expect(await page.locator('.flood-tree').ariaSnapshot()).not.toContain('Selection is read only.');
   await item(page,"Source").focus();await page.keyboard.press("Shift+D");
   await expect(item(page,"Documentation")).toBeFocused();
   await page.getByRole("button",{name:"Read only",exact:true}).click();
