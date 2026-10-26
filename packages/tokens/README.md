@@ -1,6 +1,6 @@
 # @flood-md/tokens
 
-Typed reference values and semantic CSS roles for Flood **0.2.5**. Keep Flood
+Typed reference values and semantic CSS roles for Flood **0.2.6**. Keep Flood
 package versions aligned. Existing 0.1.1 installs use their earlier token contract.
 
 React consumers import @flood-md/react/styles.css and use FloodRoot. Token-only
@@ -47,7 +47,7 @@ to 193 roles. Existing role values remain unchanged:
 - sys.size.container.sm/md/lg and sys.size.grid.min-item supply relative layout bounds.
 
 
-The unpublished 0.2.5 candidate separates floating surfaces from modal surfaces.
+Version 0.2.5 separates floating surfaces from modal surfaces.
 The floating material uses nine of those new semantic roles; previous token
 values remain intact. surface.floating is the opaque fallback;
 surface.floating-translucent, border.floating, selection.floating, shadow.floating
