@@ -28,3 +28,13 @@ test('SkipLink is revealed by focus and transfers keyboard focus to the fragment
  await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/components/skip-link');const stage=page.locator('.preview-stage'),link=page.getByRole('link',{name:'Skip to example content',exact:true});
  expect(await link.evaluate(node=>getComputedStyle(node).clipPath)).toBe('inset(50%)');await stage.getByRole('button',{name:'Focus skip link',exact:true}).click();await expect(link).toBeFocused();expect(await link.evaluate(node=>getComputedStyle(node).clipPath)).toBe('none');await link.press('Enter');await expect(page.locator('#skip-link-example-content')).toBeFocused();await expect(page).toHaveURL(/#skip-link-example-content$/);
 });
+
+test('Section separates document heading level from its visual heading size',async({page})=>{
+ await page.goto('/components/section');const stage=page.locator('.preview-stage'),heading=stage.getByRole('heading',{name:'Project settings',exact:true});
+ await expect(heading).toBeVisible();await page.evaluate(()=>document.fonts.ready);const initialSize=await heading.evaluate(node=>getComputedStyle(node).fontSize);await expect(heading).toHaveJSProperty('tagName','H2');
+ await choose(page,'Section','headingLevel','5');await expect(heading).toHaveJSProperty('tagName','H5');expect(await heading.evaluate(node=>getComputedStyle(node).fontSize)).toBe(initialSize);
+ await choose(page,'Section','headingSize','large');await expect(heading).toHaveJSProperty('tagName','H5');expect(parseFloat(await heading.evaluate(node=>getComputedStyle(node).fontSize))).toBeGreaterThan(parseFloat(initialSize));
+ await page.setViewportSize({width:390,height:1000});await page.evaluate(()=>document.documentElement.style.fontSize='24px');await heading.scrollIntoViewIfNeeded();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);const bounds=await heading.evaluate(node=>{const title=node.getBoundingClientRect(),section=node.closest('section')!.getBoundingClientRect();return{left:title.left,right:title.right,sectionLeft:section.left,sectionRight:section.right}});expect(bounds.left).toBeGreaterThanOrEqual(bounds.sectionLeft);expect(bounds.right).toBeLessThanOrEqual(bounds.sectionRight);
+ await stage.screenshot({path:'.artifacts/section-heading-size-mobile.png'});
+});

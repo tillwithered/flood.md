@@ -1,7 +1,7 @@
-import {createElement, forwardRef, useId} from "react";
+import {forwardRef, useId} from "react";
 import type {CSSProperties} from "react";
 import type {NavigationListProps, NavigationListItem, StepsProps, SectionProps, SplitProps, CenterProps, SkipLinkProps} from "./index.js";
-import {IconSlot} from "./index.js";
+import {IconSlot,Heading} from "./index.js";
 
 const classes = (...names: Array<string | undefined | false>) => names.filter(Boolean).join(" ");
 function uniqueValues(items: readonly {value:string}[], component:string) {
@@ -56,14 +56,14 @@ export const StepSequence = forwardRef<HTMLOListElement, StepsProps>(function St
 });
 
 export const ContentSection = forwardRef<HTMLElement, SectionProps>(function ContentSection({
-  title, description, actions, headingLevel = 2, children, id: explicitId, className,
+  title, description, actions, headingLevel = 2, headingSize = "section", children, id: explicitId, className,
   "aria-labelledby": labelledBy, ...props
 }, ref) {
   if (!title.trim() || ![2,3,4,5,6].includes(headingLevel)) throw new Error("Flood Section requires a nonempty title and headingLevel from 2 to 6");
   const generated = useId(), headingId = `${explicitId ?? `flood-section-${generated}`}-title`;
   return <section {...props} ref={ref} id={explicitId} aria-labelledby={labelledBy ?? headingId} className={classes("flood-section",className)}>
     <header className="flood-section__header"><div className="flood-section__heading">
-      {createElement(`h${headingLevel}`,{id:headingId,className:"flood-section__title"},title)}
+      <Heading id={headingId} level={headingLevel} size={headingSize} className="flood-section__title">{title}</Heading>
       {description != null && <div className="flood-section__description">{description}</div>}
     </div>{actions != null && <div className="flood-section__actions">{actions}</div>}</header>
     {children != null && <div className="flood-section__body">{children}</div>}

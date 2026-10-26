@@ -149,7 +149,11 @@ export const SegmentedPinInput = forwardRef<HTMLInputElement, PinInputProps>(fun
           const slots = Array.from(event.currentTarget.parentElement!.querySelectorAll<HTMLElement>("[data-pin-slot]"));
           const index = slots.findIndex(slot => { const rect = slot.getBoundingClientRect(); return event.clientX >= rect.left && event.clientX <= rect.right; });
           if (index < 0) return;
-          event.preventDefault(); event.currentTarget.focus(); const position = Math.min(index, text.length); event.currentTarget.setSelectionRange(position, position); setActive(Math.min(position, length - 1));
+          event.preventDefault(); event.currentTarget.focus(); const position = Math.min(index, text.length);
+          // A filled visual slot edits its character, rather than placing the caret
+          // before it (which makes Backspace on the first slot appear unresponsive).
+          event.currentTarget.setSelectionRange(position, position < text.length ? position + 1 : position);
+          setActive(Math.min(position, length - 1));
         }}
         onPaste={event => {
           onPaste?.(event); if (event.defaultPrevented || readOnly || disabled) return;

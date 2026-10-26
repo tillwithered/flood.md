@@ -262,3 +262,8 @@ names explicit, labels localized, state meaning independent of color and visible
 content within relative geometry. Native chooser/clipboard/OTP semantics do not
 supply upload/auth/server logic. Toast queues, actions and navigation state remain
 host-owned. No third-party component implementation was introduced.
+
+
+Section headingLevel controls native h2–h6 semantics. Its independent headingSize
+uses the existing Heading roles (section/page/large/display), defaulting to section.
+Keep document hierarchy meaningful when changing visual emphasis.

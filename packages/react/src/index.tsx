@@ -1391,10 +1391,11 @@ export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, "title">
   description?: ReactNode;
   actions?: ReactNode;
   headingLevel?: 2 | 3 | 4 | 5 | 6;
+  headingSize?: "display" | "large" | "page" | "section";
 }
 export const Section = forwardRef<HTMLElement, SectionProps>(function Section(
-  {headingLevel = 2, ...props}, ref,
-) { return <ContentSection {...props} ref={ref} headingLevel={headingLevel} />; });
+  {headingLevel = 2, headingSize = "section", ...props}, ref,
+) { return <ContentSection {...props} ref={ref} headingLevel={headingLevel} headingSize={headingSize} />; });
 
 export interface SplitProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   main: ReactNode;

@@ -897,3 +897,8 @@ The unpublished 0.2.5 component expansion adds native content/typography,
 collection/form controls, navigation/layout and clipboard/notification primitives.
 See docs/base-components.md and the per-component catalog for contracts and limits.
 The CSS build assembles the original component styles into the shared stylesheet.
+
+
+Section headingLevel controls native h2–h6 semantics. Its independent headingSize
+uses the existing Heading roles (section/page/large/display), defaulting to section.
+Keep document hierarchy meaningful when changing visual emphasis.

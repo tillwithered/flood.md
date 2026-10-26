@@ -1242,7 +1242,8 @@
     "notes": [
       "Section renders a native section and heading. A generated heading ID labels the region; explicit id creates a deterministic heading ID. headingLevel follows the host document hierarchy.",
       "The title and description share a close text column; actions align separately and wrap when necessary. It adds no surface or border. Compose Surface or another container inside when content needs its own background.",
-      "Original compatible addition in the unpublished 0.2.5 source candidate."
+      "Original compatible addition in the unpublished 0.2.5 source candidate.",
+      "headingLevel chooses h2\u2013h6 for the document outline; it does not set the visual scale. headingSize independently selects the existing Heading typography role (section by default)."
     ]
   },
   {

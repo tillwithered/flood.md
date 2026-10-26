@@ -103,3 +103,7 @@ The decoration stays outside the library theme and is removed in forced colors.
 The immediate FloodRoot hosting each example is transparent so it does not paint
 a rectangular canvas behind the component; component surfaces retain their fills.
 Preview headers and control footers share the same neutral surface and dividers.
+
+Preview stages reserve 22/28/34rem for compact/regular/large compositions. Lists
+and structured examples use the roomier profiles; changing props does not resize
+the outer preview. Overflow remains available for deliberately oversized content.

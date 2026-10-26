@@ -32,7 +32,7 @@
 .flood-root .flood-section { min-inline-size: 0; }
 .flood-root .flood-section__header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: var(--flood-sys-space-4); }
 .flood-root .flood-section__heading { display: grid; gap: var(--flood-sys-space-1); min-inline-size: 0; flex: 1 1 12rem; }
-.flood-root .flood-section__title { margin: 0; font-size: var(--flood-sys-type-section-size); line-height: var(--flood-sys-type-section-line-height); font-weight: var(--flood-sys-type-section-weight); letter-spacing: var(--flood-sys-type-section-tracking); overflow-wrap: anywhere; }
+.flood-root .flood-section__title { margin: 0; overflow-wrap: anywhere; }
 .flood-root .flood-section__description { color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); overflow-wrap: anywhere; }
 .flood-root .flood-section__description > :first-child { margin-block-start: 0; }
 .flood-root .flood-section__description > :last-child { margin-block-end: 0; }

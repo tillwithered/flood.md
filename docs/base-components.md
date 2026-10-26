@@ -260,3 +260,8 @@ use polite status. Actions do not implicitly dismiss. Localize label, closeLabel
 and message/action text. inline embeds a region; fixed mode uses normal document
 stacking. A contextual notification inside a modal belongs in that modal's tree.
 There is no singleton store, upload engine or promise-notification API.
+
+
+Section headingLevel controls native h2–h6 semantics. Its independent headingSize
+uses the existing Heading roles (section/page/large/display), defaulting to section.
+Keep document hierarchy meaningful when changing visual emphasis.
