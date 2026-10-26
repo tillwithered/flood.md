@@ -17,6 +17,7 @@ import {
   type FieldsetHTMLAttributes,
   type RefCallback,
   type RefObject,
+  type Ref,
   type TableHTMLAttributes,
   type ImgHTMLAttributes,
   type BlockquoteHTMLAttributes,
@@ -45,6 +46,52 @@ import { ConfirmationDialog } from "./alert-dialog.js";
 import { FilePicker } from "./file-input.js";
 import { SearchField, PasswordField } from "./text-inputs.js";
 import { SearchSelection } from "./combobox.js";
+import { FreeTagEntry } from "./tag-input.js";
+import { InlineEditable } from "./editable.js";
+
+export interface TagInputProps extends Omit<InputProps, "type" | "value" | "defaultValue" | "onChange" | "children" | "size"> {
+  label: string;
+  hideLabel?: boolean;
+  value?: readonly string[];
+  defaultValue?: readonly string[];
+  onValueChange?: (value: string[]) => void;
+  delimiters?: readonly string[];
+  removeLabel?: string;
+  requiredMessage?: string;
+}
+/** @since 0.2.7 */
+export const TagInput = forwardRef<HTMLInputElement, TagInputProps>(function TagInput(
+  { controlSize = "md", hideLabel = false, removeLabel = "Remove", requiredMessage = "Add at least one tag.", ...props }, ref,
+) { return <FreeTagEntry {...props} ref={ref} controlSize={controlSize} hideLabel={hideLabel} removeLabel={removeLabel} requiredMessage={requiredMessage} />; });
+
+export interface EditableProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange" | "children"> {
+  label: string;
+  hideLabel?: boolean;
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  editing?: boolean;
+  defaultEditing?: boolean;
+  onEditingChange?: (editing: boolean) => void;
+  onCommit?: (value: string) => void;
+  onCancel?: () => void;
+  blurAction?: "commit" | "cancel" | "none";
+  readOnly?: boolean;
+  disabled?: boolean;
+  placeholder?: string;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  showActions?: boolean;
+  editLabel?: string;
+  saveLabel?: string;
+  cancelLabel?: string;
+  inputRef?: Ref<HTMLInputElement>;
+  name?: string;
+  form?: string;
+}
+/** @since 0.2.7 */
+export const Editable = forwardRef<HTMLDivElement, EditableProps>(function Editable(
+  { controlSize = "md", blurAction = "commit", showActions = true, ...props }, ref,
+) { return <InlineEditable {...props} ref={ref} controlSize={controlSize} blurAction={blurAction} showActions={showActions} />; });
 
 const classes = (...values: (string | undefined | false)[]) =>
   values.filter(Boolean).join(" ");
@@ -333,7 +380,20 @@ export interface MenuActionItem {
   tone?: "default" | "danger";
 }
 export interface MenuSeparator { id: string; type: "separator"; }
-export type MenuItem = MenuActionItem | MenuSeparator;
+export interface MenuCheckboxItem extends Omit<MenuActionItem, "type" | "tone"> {
+  type: "checkbox";
+  checked: boolean | "mixed";
+  onCheckedChange: (checked: boolean) => void;
+  closeOnSelect?: boolean;
+}
+export interface MenuRadioItem extends Omit<MenuActionItem, "type" | "tone"> {
+  type: "radio";
+  group: string;
+  checked: boolean;
+  onCheckedChange: (checked: true) => void;
+  closeOnSelect?: boolean;
+}
+export type MenuItem = MenuActionItem | MenuSeparator | MenuCheckboxItem | MenuRadioItem;
 export interface MenuProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role"> {
   label: string;
   trigger: (props: OverlayTriggerProps) => ReactNode;

@@ -53,7 +53,7 @@
       "kind": "reference"
     }
   ],
-  "version": "0.2.6",
+  "version": "0.2.7",
   "installedEntry": ".agents/skills/flood-ui/SKILL.md",
   "pathBase": "source is package-relative; target is relative to the host project root"
 }

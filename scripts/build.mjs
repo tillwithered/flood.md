@@ -43,7 +43,7 @@ await copyFile(
   "packages/react/src/styles.css",
   "packages/react/dist/styles.css",
 );
-const componentStyles = await Promise.all(["foundations", "content-elements", "navigation-layout", "form-controls", "feedback-actions"].map(name => readFile(`packages/react/src/${name}.css`, "utf8")));
+const componentStyles = await Promise.all(["foundations", "content-elements", "navigation-layout", "form-controls", "feedback-actions", "editable", "tag-input"].map(name => readFile(`packages/react/src/${name}.css`, "utf8")));
 await writeFile("packages/react/dist/foundations.css", componentStyles.join("\n"));
 await cp("packages/react/src/fonts", "packages/react/dist/fonts", { recursive: true });
 for (const name of ["tokens", "react", "agent", "cli"])

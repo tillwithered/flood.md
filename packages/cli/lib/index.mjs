@@ -3,7 +3,7 @@ import { resolve, join, parse, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-export const VERSION = "0.2.6";
+export const VERSION = "0.2.7";
 const packages = ["@flood-md/tokens", "@flood-md/react", "@flood-md/agent"];
 const json = async (path) => JSON.parse(await readFile(path, "utf8"));
 const agentFile = (name) =>

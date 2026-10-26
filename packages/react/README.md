@@ -3,7 +3,7 @@
 Original React 18.3/19 components for TypeScript and Next.js App Router. Native
 HTML semantics and refs, no third-party component library or Tailwind dependency.
 
-This package documents the **0.2.6** source API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.7** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
 ```tsx
@@ -902,3 +902,9 @@ The CSS build assembles the original component styles into the shared stylesheet
 Section headingLevel controls native h2–h6 semantics. Its independent headingSize
 uses the existing Heading roles (section/page/large/display), defaulting to section.
 Keep document hierarchy meaningful when changing visual emphasis.
+
+## Editable and TagInput · 0.2.7
+
+Editable provides inline single-line editing with a separate draft, save/cancel actions and committed named form values. See [Editable](../../docs/components/editable.md) for controlled ownership and blur behavior. TagInput creates free-form text tokens and submits repeated named values; it is distinct from fixed-option MultiSelect. See [TagInput](../../docs/components/tag-input.md) for delimiters, paste and validation.
+
+Menu adds `MenuCheckboxItem` and `MenuRadioItem`. Both take controlled `checked` and `onCheckedChange`; radio items also require a `group` label and the host enforces one selected value per group. Checkbox `checked` also accepts `"mixed"`. Keep radio groups contiguous. Preferences stay open by default; set `closeOnSelect` to close after activation. Preference changes do not invoke `onAction`. Existing action items retain their behavior.

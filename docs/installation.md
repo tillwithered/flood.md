@@ -1,6 +1,6 @@
-# Installation · 0.2.6
+# Installation · 0.2.7
 
-The commands below target version 0.2.6. Verify registry availability before installation; for local source evaluation, see the tarball instructions at the end of this guide.
+The commands below target version 0.2.7. Verify registry availability before installation; for local source evaluation, see the tarball instructions at the end of this guide.
 
 Use Node.js 22.12 or newer and an existing npm-based React/Next.js project.
 React 18.3/19 is supported; React 19 and Next.js App Router are integration targets.
@@ -15,8 +15,8 @@ repeat installation when you start using another component.
 ## Connect with the CLI
 
 ```sh
-npx @flood-md/cli@0.2.6 init --dry-run
-npx @flood-md/cli@0.2.6 init
+npx @flood-md/cli@0.2.7 init --dry-run
+npx @flood-md/cli@0.2.7 init
 ```
 
 The installer adds exact matching tokens, React and agent packages. It creates
@@ -40,7 +40,7 @@ No Tailwind configuration or font CDN is needed. The foundations profile is dark
 only; legacy theme behavior remains available outside `FloodRoot`.
 
 ```sh
-npx @flood-md/cli@0.2.6 doctor
+npx @flood-md/cli@0.2.7 doctor
 ```
 
 Doctor checks package versions and guide presence, not stylesheet imports or
@@ -50,7 +50,7 @@ reference `flood/DESIGN.md` from its existing instructions.
 ## Manual package installation
 
 ```sh
-npm install --save-exact @flood-md/tokens@0.2.6 @flood-md/react@0.2.6 @flood-md/agent@0.2.6
+npm install --save-exact @flood-md/tokens@0.2.7 @flood-md/react@0.2.7 @flood-md/agent@0.2.7
 ```
 
 Import the stylesheet and use `FloodRoot` as above. Manual installation does not

@@ -10,10 +10,11 @@ async function fixture(){
   await writeFile(entry,`import React,{StrictMode,useState,useRef} from ${file("node_modules/react/index.js")};import{createRoot}from ${file("node_modules/react-dom/client.js")};
 import{FloodRoot,Button,Input,Menu,Dialog}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};
 const h=React.createElement,trigger=label=>props=>h(Button,{...props,variant:'subtle'},label),items=[{id:'rename',label:'Rename…'},{id:'duplicate',label:'Duplicate'},{id:'disabled',label:'Download',disabled:true},{id:'separator',type:'separator'},{id:'delete',label:'Delete project',tone:'danger'}];
-function App(){const[result,setResult]=useState(''),[open,setOpen]=useState(false),[freeze,setFreeze]=useState(false),[long,setLong]=useState(false),[opens,setOpens]=useState(0),input=useRef();
+function App(){const[checked,setChecked]=useState(true),[density,setDensity]=useState('compact'),[freezeChoice,setFreezeChoice]=useState(false),[result,setResult]=useState(''),[open,setOpen]=useState(false),[freeze,setFreeze]=useState(false),[long,setLong]=useState(false),[opens,setOpens]=useState(0),input=useRef();
 const request=value=>{setOpens(n=>n+1);if(value||!freeze)setOpen(value)};
 return h(FloodRoot,null,h(Button,{id:'before'},'Before'),
 h(Menu,{label:'Actions',trigger:trigger('Actions'),items,onAction:setResult}),h(Button,{id:'after'},'After'),
+h(Menu,{label:'Preferences',trigger:trigger('Preferences'),items:[{id:'notify',type:'checkbox',label:'Notifications',checked,onCheckedChange:v=>{if(!freezeChoice)setChecked(v)}},{id:'mixed',type:'checkbox',label:'Partial',checked:'mixed',onCheckedChange:v=>setResult(String(v)),closeOnSelect:true},{id:'disabled-choice',type:'checkbox',label:'Unavailable',checked:false,disabled:true,onCheckedChange:()=>setResult('bad')},{id:'sep',type:'separator'},...['compact','comfortable'].map(value=>({id:value,type:'radio',group:'Density',label:value,checked:density===value,onCheckedChange:()=>setDensity(value)}))],onAction:()=>setResult('unexpected-action')}),h('label',null,h('input',{type:'checkbox',checked:freezeChoice,onChange:e=>setFreezeChoice(e.target.checked)}),'Freeze choice'),
 h(Input,{ref:input,'aria-label':'Action destination'}),h(Menu,{label:'Move focus',trigger:trigger('Move focus'),items:[{id:'move',label:'Move to input'}],onAction:()=>input.current.focus()}),
 h('label',null,h('input',{type:'checkbox',checked:freeze,onChange:e=>setFreeze(e.target.checked)}),'Freeze close'),
 h(Menu,{label:'Owned actions',trigger:trigger('Owned actions'),items,open,onOpenChange:request,onAction:setResult}),h('output',{'aria-label':'Open requests'},String(opens)),
@@ -75,4 +76,31 @@ test("catalog Menu and table actions use original components and accessible nest
   await page.goto("/playground/content#data");await page.getByRole("button",{name:"Actions for Flood",exact:true}).click();await page.getByRole("menu",{name:"Flood actions",exact:true}).getByRole("menuitem",{name:"Duplicate",exact:true}).click();
   await expect(page.locator(".content-board-menu-status")).toHaveText("Flood: duplicate selected.");
   await expect(page.getByRole("button",{name:"Actions for Flood",exact:true})).toBeFocused();
+});
+
+
+test("preference menu toggles controlled values, preserves open/focus and groups radios",async({page})=>{
+  await openFixture(page);
+  const trigger=page.getByRole("button",{name:"Preferences",exact:true});
+  await trigger.click();
+  const menu=page.getByRole("menu",{name:"Preferences",exact:true});
+  const notifications=menu.getByRole("menuitemcheckbox",{name:"Notifications"});
+  await expect(notifications).toBeChecked();
+  await page.keyboard.press("Space");
+  await expect(notifications).not.toBeChecked();
+  await expect(notifications).toBeFocused();
+  await expect(menu).toBeVisible();
+  const group=menu.getByRole("group",{name:"Density",exact:true});
+  await group.getByRole("menuitemradio",{name:"comfortable",exact:true}).click();
+  await expect(group.getByRole("menuitemradio",{name:"comfortable",exact:true})).toBeChecked();
+  await expect(group.getByRole("menuitemradio",{name:"compact",exact:true})).not.toBeChecked();
+  await expect(page.locator('output[aria-label="Result"]')).toHaveText("");
+  await menu.getByRole("menuitemcheckbox",{name:"Unavailable"}).click({force:true});
+  await expect(page.locator('output[aria-label="Result"]')).toHaveText("");
+  await page.keyboard.press("Escape");
+  await page.getByRole("checkbox",{name:"Freeze choice",exact:true}).check();
+  await trigger.click();await notifications.click();await expect(notifications).not.toBeChecked();
+  await menu.getByRole("menuitemcheckbox",{name:"Partial"}).click();
+  await expect(menu).toBeHidden();await expect(trigger).toBeFocused();
+  await expect(page.locator('output[aria-label="Result"]')).toHaveText("true");
 });

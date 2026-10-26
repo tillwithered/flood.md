@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { MenuProps, OverlayTriggerProps } from "./index.js";
 import { Button, Kbd, ScrollArea } from "./index.js";
 import { positionLayer, registerLayer, returnFocus, tabbables } from "./overlay-runtime.js";
@@ -15,6 +15,12 @@ export const ActionMenu = forwardRef<HTMLDivElement, MenuProps>(function ActionM
   if (!items.some(item => item.type !== "separator")) throw new Error("Flood Menu requires at least one action item");
   if (new Set(items.map(item => item.id)).size !== items.length || items.some(item => !item.id.trim() || (item.type !== "separator" && !item.label.trim())))
     throw new Error("Flood menu items need unique nonempty IDs and action labels");
+  const checkedGroups = new Set<string>();
+  for (const item of items) if (item.type === "radio") {
+    if (!item.group.trim()) throw new Error("Flood Menu radio items need a nonempty group label");
+    if (item.checked && checkedGroups.has(item.group)) throw new Error("Flood Menu radio groups accept only one checked item");
+    if (item.checked) checkedGroups.add(item.group);
+  }
   const request = (next: boolean) => {
     if (pending.current === next) return;
     pending.current = next; queueMicrotask(() => { pending.current = undefined; });
@@ -24,7 +30,7 @@ export const ActionMenu = forwardRef<HTMLDivElement, MenuProps>(function ActionM
   useBrowserLayoutEffect(() => { current.current = { open, request }; });
   const setAnchor = useCallback((node: HTMLButtonElement | null) => { anchor.current = node; }, []);
   useImperativeHandle(ref, () => panel.current!, []);
-  const buttons = () => Array.from(panel.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+  const buttons = () => Array.from(panel.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"]') ?? []);
   const focusEdge = () => { const all = buttons(); ((edge.current === "last" ? all.at(-1) : all[0]) ?? panel.current)?.focus({ preventScroll: true }); };
   useBrowserLayoutEffect(() => {
     if (!open || !panel.current) return;
@@ -58,6 +64,36 @@ export const ActionMenu = forwardRef<HTMLDivElement, MenuProps>(function ActionM
     onKeyDown: event => { if (event.defaultPrevented || disabled || event.altKey || event.ctrlKey || event.metaKey || !["ArrowDown", "ArrowUp"].includes(event.key)) return; event.preventDefault(); edge.current = event.key === "ArrowUp" ? "last" : "first"; if (open && panel.current?.matches(":popover-open")) focusEdge(); else request(true); },
   };
   const hasIcons = items.some(item => item.type !== "separator" && item.icon != null);
+  const hasChoices = items.some(item => item.type === "checkbox" || item.type === "radio");
+  const renderItem = (item: MenuProps["items"][number]) => item.type === "separator" ? <div key={item.id} role="separator" className="flood-menu__separator" /> :
+    <Button key={item.id} role={item.type === "checkbox" ? "menuitemcheckbox" : item.type === "radio" ? "menuitemradio" : "menuitem"}
+      aria-checked={item.type === "checkbox" || item.type === "radio" ? item.checked : undefined}
+      tabIndex={-1} variant="ghost" size={controlSize} aria-label={item.label} aria-disabled={item.disabled || undefined}
+      data-label={item.label} data-tone={"tone" in item ? item.tone : undefined} className="flood-menu__item"
+      onPointerMove={event => { if (event.pointerType !== "touch" && event.currentTarget.ownerDocument.activeElement !== event.currentTarget) event.currentTarget.focus({ preventScroll: true }); }}
+      onClick={event => {
+        if (item.disabled) { event.preventDefault(); return; }
+        if (item.type === "checkbox") item.onCheckedChange(item.checked !== true);
+        else if (item.type === "radio") { if (!item.checked) item.onCheckedChange(true); }
+        else { request(false); onAction?.(item.id); return; }
+        if (item.closeOnSelect) request(false);
+      }}>
+      {hasChoices && <span className="flood-menu__icon" aria-hidden="true">{(item.type === "checkbox" || item.type === "radio") && item.checked &&
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {item.type === "radio" ? <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" /> : item.checked === "mixed" ? <path d="M6 12h12" /> : <path d="m5 12 4 4L19 6" />}
+        </svg>}</span>}
+      {hasIcons && <span className="flood-menu__icon" aria-hidden="true">{item.icon}</span>}
+      <span className="flood-menu__label">{item.label}</span>
+      {item.shortcut && <span className="flood-menu__shortcut" aria-hidden="true"><Kbd>{item.shortcut}</Kbd></span>}
+    </Button>;
+  const rows: ReactNode[] = [];
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    if (item.type !== "radio") { rows.push(renderItem(item)); continue; }
+    const group = [item];
+    while (items[index + 1]?.type === "radio" && (items[index + 1] as typeof item).group === item.group) group.push(items[++index] as typeof item);
+    rows.push(<div key={`radio-${item.id}`} role="group" aria-label={item.group}>{group.map(renderItem)}</div>);
+  }
   return <>{trigger(triggerProps)}<div {...props} ref={panel} id={id} popover="manual" role="menu" aria-label={label} aria-orientation="vertical" tabIndex={-1}
     className={["flood-overlay-panel", "flood-menu", className].filter(Boolean).join(" ")} onKeyDown={event => {
       onKeyDown?.(event); if (event.defaultPrevented) return;
@@ -85,15 +121,7 @@ export const ActionMenu = forwardRef<HTMLDivElement, MenuProps>(function ActionM
       if (next >= 0 && all[next]) { event.preventDefault(); all[next].focus({ preventScroll: true }); all[next].scrollIntoView({ block: "nearest", inline: "nearest" }); }
     }}>
     {open && <ScrollArea orientation="vertical" role="group" tabIndex={-1} className="flood-menu__viewport">
-      {items.map(item => item.type === "separator" ? <div key={item.id} role="separator" className="flood-menu__separator" /> :
-        <Button key={item.id} role="menuitem" tabIndex={-1} variant="ghost" size={controlSize} aria-label={item.label} aria-disabled={item.disabled || undefined}
-          data-label={item.label} data-tone={item.tone} className="flood-menu__item"
-          onPointerMove={event => { if (event.pointerType !== "touch" && event.currentTarget.ownerDocument.activeElement !== event.currentTarget) event.currentTarget.focus({ preventScroll: true }); }}
-          onClick={event => { if (item.disabled) { event.preventDefault(); return; } request(false); onAction?.(item.id); }}>
-          {hasIcons && <span className="flood-menu__icon" aria-hidden="true">{item.icon}</span>}
-          <span className="flood-menu__label">{item.label}</span>
-          {item.shortcut && <span className="flood-menu__shortcut" aria-hidden="true"><Kbd>{item.shortcut}</Kbd></span>}
-        </Button>)}
+      {rows}
     </ScrollArea>}
   </div></>;
 });

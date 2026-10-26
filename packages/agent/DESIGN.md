@@ -1,17 +1,17 @@
-# Flood design system · 0.2.6
+# Flood design system · 0.2.7
 
 Read project-root flood.json and installed declarations with this contract.
 The source bundle's SKILL.md routes to focused composition, accessibility,
 customization and verification references. Its routing matrix names prerequisites
 and sources of truth; flood/rules.json indexes observable checks. Read only the
-relevant reference. This expanded bundle belongs to 0.2.6; existing installations
+relevant reference. This expanded bundle belongs to 0.2.7; existing installations
 keep their matching guide set.
 
 React + TypeScript and Next.js App Router. Use this guide with matching installed
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-This guide covers the supported exports in 0.2.6 and their layout refinements. Confirm
+This guide covers the supported exports in 0.2.7 and their layout refinements. Confirm
 the matching installed declarations before using APIs absent from older versions.
 
 ## Connect
@@ -271,3 +271,9 @@ original OFL notices. Color alone never communicates validation or progress.
 CodeSnippet codeDirection defaults to ltr independently of RTL parent action layout; choose rtl/auto explicitly for content that needs it. Native dir still applies to the wrapper. Protected ScrollArea reveals focused descendants fully when needed, composes the host focus handler and avoids scrolling to nested top-layer controls.
 
 Checkbox, Radio and Switch apply native hidden/dir/lang to their visible label wrapper as well as the input, so a component-local language/direction applies to its whole choice.
+
+## Inline editing and free-form tags · 0.2.7
+
+Editable separates the draft from the committed value. Enter commits, Escape cancels, and blurAction selects commit/cancel/none. Controlled value/editing require host updates; keep labels localized and preserve IME input. TagInput accepts new free-form tokens; MultiSelect selects known option IDs. Only committed tags submit as repeated named form entries. Preserve readonly/disabled distinctions and required validity.
+
+Menu now supports controlled checkbox/radio preference items, with aria-checked and labeled contiguous radio groups. The host owns exclusivity and callbacks. Preferences remain open unless closeOnSelect is true; action items still dismiss and call onAction. Do not use Menu as a form selection control.

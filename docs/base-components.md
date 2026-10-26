@@ -1,6 +1,6 @@
 # Base component architecture
 
-The 0.2.5 uses original React18.3/19 components and TypeScript
+The 0.2.7 source uses original React18.3/19 components and TypeScript
 declarations. The website catalog and individual component pages are generated
 from the [source catalog](../apps/website/src/component-catalog.json) and declarations.
 Use the catalog for inventory and the [component guide](components.md) for composition.
@@ -269,3 +269,7 @@ There is no singleton store, upload engine or promise-notification API.
 Section headingLevel controls native h2–h6 semantics. Its independent headingSize
 uses the existing Heading roles (section/page/large/display), defaulting to section.
 Keep document hierarchy meaningful when changing visual emphasis.
+
+## Inline editing and free-form tokens · 0.2.7
+
+[Editable](components/editable.md) owns a draft separately from its committed value. [TagInput](components/tag-input.md) creates free-form tokens, while MultiSelect selects known IDs. Menu checkbox/radio items edit controlled preferences without becoming form selection widgets.

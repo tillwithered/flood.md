@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.7 - Unreleased
+
+- Add original Editable and TagInput with catalog examples and declarations.
+- Add controlled checkbox/radio preferences to Menu.
+
+
 ## 0.2.6 · 2026-10-26
 
 - Let Breadcrumb separators use their intrinsic flex width in Firefox/Zen, preventing the last character of fitting labels from wrapping. Preserve normal item wrapping, long-label reflow, spacing and existing API/token values.

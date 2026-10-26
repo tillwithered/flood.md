@@ -718,8 +718,8 @@
     "slug": "menu",
     "name": "Menu",
     "group": "overlays",
-    "description": "An action menu with keyboard navigation, separators and explicit disabled/danger states.",
-    "code": "<Menu label=\"Project actions\"\n  trigger={props => <Button {...props}>Project actions</Button>}\n  items={[{id:\"rename\",label:\"Rename\u0432\u0402\u00a6\"},{id:\"divider\",type:\"separator\"},{id:\"delete\",label:\"Delete project\",tone:\"danger\"}]}\n  onAction={id => console.log(id)}\n/>",
+    "description": "An action and preference menu with keyboard navigation and controlled checkbox/radio items.",
+    "code": "<Menu label=\"Project actions\"\n  trigger={props => <Button {...props}>Project actions</Button>}\n  items={[{id:\"rename\",label:\"Rename…\"},{id:\"divider\",type:\"separator\"},{id:\"delete\",label:\"Delete project\",tone:\"danger\"}]}\n  onAction={id => console.log(id)}\n/>",
     "imports": [
       "Menu",
       "Button"
@@ -729,8 +729,9 @@
       "Enter/Space and ArrowDown open at the first item; ArrowUp opens at the last. Inside use arrows, Home/End and label-prefix typeahead.",
       "Disabled items stay keyboard-focusable with aria-disabled but cannot activate. Separators are noninteractive; action IDs must be unique and nonempty. At least one action is required.",
       "Escape closes and restores trigger focus. Tab moves to the next control after the trigger; Shift+Tab returns to the trigger. Outside interaction dismisses without stealing deliberately moved focus.",
-      "Shortcut text is a visual hint, not an implemented key binding. Only action items are supported: no href, submenus, checkbox/radio selection or asynchronous task manager.",
-      "Controlled open needs host updates; onAction requests closure before calling the host. Modern native Popover API required. Native div props/ref target the popup. Available in 0.2.4."
+      "Shortcut text is a visual hint, not an implemented key binding. No href, submenus or asynchronous task manager are included. Checkbox/radio items are controlled preferences, available in 0.2.7.",
+      "Controlled open needs host updates; onAction requests closure before calling the host. Modern native Popover API required. Native div props/ref target the popup. Available in 0.2.4.",
+      "Checkbox items take checked (boolean or mixed) and onCheckedChange. Radio items take a nonempty group label, checked and onCheckedChange; the host keeps one selected item per group. Keep each radio group contiguous. Preference items stay open by default; closeOnSelect opts into dismissal. They do not call onAction or submit form values."
     ]
   },
   {
@@ -1243,7 +1244,7 @@
       "Section renders a native section and heading. A generated heading ID labels the region; explicit id creates a deterministic heading ID. headingLevel follows the host document hierarchy.",
       "The title and description share a close text column; actions align separately and wrap when necessary. It adds no surface or border. Compose Surface or another container inside when content needs its own background.",
       "Original compatible addition in the unpublished 0.2.5 source candidate.",
-      "headingLevel chooses h2\u2013h6 for the document outline; it does not set the visual scale. headingSize independently selects the existing Heading typography role (section by default)."
+      "headingLevel chooses h2–h6 for the document outline; it does not set the visual scale. headingSize independently selects the existing Heading typography role (section by default)."
     ]
   },
   {
@@ -1366,6 +1367,38 @@
       "Pass text through value or supply an explicit nonnegative integer count for a host-defined counting rule. The default text count uses Unicode code points, not UTF-16 code units or grapheme clusters. max is advisory and does not truncate or validate an editor.",
       "mode remaining displays max minus count; count displays the current count and optional limit. An over-limit message is visible in addition to its semantic color. Translate label/overLimitLabel; lang formats the number.",
       "Use htmlFor to associate supporting output with its editor and aria-describedby on the editor when appropriate. Live announcements default off to avoid announcing every keystroke; the host may opt into aria-live. Available in 0.2.5."
+    ]
+  },
+  {
+    "slug": "editable",
+    "name": "Editable",
+    "group": "forms",
+    "description": "Inline editing with explicit save/cancel and a committed form value.",
+    "code": "<Editable label=\"Project name\" defaultValue=\"Flood workspace\" name=\"project\" />",
+    "imports": [
+      "Editable"
+    ],
+    "notes": [
+      "Preview and edit modes keep a separate draft. Enter commits and Escape cancels; IME composition does not submit.",
+      "Use blurAction to commit, cancel or preserve the draft on outside focus. Moving focus to the save/cancel actions is internal to the editor.",
+      "The host owns controlled value and editing props; callbacks request changes. The hidden named form field contains only the committed value.",
+      "readOnly keeps a copyable field; disabled prevents editing. Localized action labels and inputRef are available. Introduced in 0.2.7."
+    ]
+  },
+  {
+    "slug": "tag-input",
+    "name": "TagInput",
+    "group": "forms",
+    "description": "Free-form text tokens with keyboard entry, removal and named form values.",
+    "code": "<TagInput label=\"Topics\" defaultValue={[\"Design\", \"React\"]} name=\"topics\" placeholder=\"Add a topic…\" />",
+    "imports": [
+      "TagInput"
+    ],
+    "notes": [
+      "Use TagInput for values the user may create. Use MultiSelect for a fixed option collection.",
+      "Enter and configured delimiters commit trimmed, unique tags. Pasting separated text adds multiple tags. IME composition is preserved.",
+      "Each committed tag submits one entry under name. required applies to committed tags; a draft is not a submitted token. Form reset preserves controlled ownership.",
+      "Backspace on an empty draft removes the last token. Read only preserves copying and form values; disabled omits submission and removal. Introduced in 0.2.7."
     ]
   }
 ]
