@@ -32,6 +32,32 @@ const data = (page:Page, id="appointment") => page.locator(`#${id}`).evaluate((f
 const segment = (page:Page, part:string, id="meeting") => page.locator(`#${id} [data-segment="${part}"]`);
 const time = (page:Page, part:string, id="meeting") => page.locator(`#${id} [data-time-segment="${part}"]`);
 
+test("DateTimePicker errors do not stretch or displace the neighboring control", async({page}) => {
+  await open(page);
+  const dateControl=page.locator("#meeting .flood-date-field__control");
+  const timeControl=page.locator("#meeting .flood-time-field__control");
+  const beforeDate=(await dateControl.boundingBox())!;
+  const beforeTime=(await timeControl.boundingBox())!;
+  await time(page,"minute").fill("61");
+  await page.getByRole("heading",{name:"Civil date and time"}).click();
+  await expect(page.locator("#meeting .flood-time-field__error")).toBeVisible();
+  const afterDate=(await dateControl.boundingBox())!;
+  const afterTime=(await timeControl.boundingBox())!;
+  expect(afterDate.y).toBeCloseTo(beforeDate.y,1);
+  expect(afterDate.height).toBeCloseTo(beforeDate.height,1);
+  expect(afterTime.y).toBeCloseTo(beforeTime.y,1);
+  expect(afterTime.height).toBeCloseTo(beforeTime.height,1);
+  await time(page,"minute").fill("30");
+  await segment(page,"day").fill("32");
+  await page.getByRole("heading",{name:"Civil date and time"}).click();
+  await expect(page.locator("#meeting .flood-date-field__error")).toBeVisible();
+  const finalTime=(await timeControl.boundingBox())!;
+  // On narrow screens the time field follows the date's validation message.
+  // Its own control height must remain unchanged in either arrangement.
+  expect(finalTime.height).toBeCloseTo(beforeTime.height,1);
+  if ((page.viewportSize()?.width ?? 0)>480) expect(finalTime.y).toBeCloseTo(beforeTime.y,1);
+});
+
 test("DateTimePicker submits separate civil date/time values and blocks incomplete required parts", async({page}) => {
   await open(page);
   expect(await data(page)).toEqual({date:"2026-10-26", time:"14:30"});
