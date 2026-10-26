@@ -34,7 +34,7 @@ const knobs: Record<string, Knob[]> = {
   "skip-link": [],
 
   "avatar-group": [select("size", ["sm", "md", "lg"], "md"), select("max", ["2", "3", "4", "5"], "4"), toggle("longNames")],
-  "status-indicator": [select("tone", ["neutral", "accent", "success", "warning", "error", "info"], "success"), select("size", ["sm", "md", "lg"], "md"), toggle("announce")],
+  "status-indicator": [select("tone", ["neutral", "accent", "success", "warning", "error", "info"], "success"), select("size", ["sm", "md", "lg"], "md"), {...toggle("announce"), label:"Announce to screen readers"}],
   figure: [select("captionPosition", ["before", "after"], "after"), toggle("showCaption", true)],
   blockquote: [toggle("attribution", true)],
   "inline-code": [select("size", ["sm", "md", "lg"], "md"), toggle("wrap", true), toggle("longValue")],
