@@ -1,5 +1,9 @@
 # Calendar
 
+The month heading opens MonthYearPicker by default. It applies a draft month/year
+without selecting a day. `showMonthYearPicker={false}` retains a plain heading;
+`monthYearLabels` supplies `label`, `month`, `year` and `apply` translations.
+
 A single-date Gregorian calendar with six stable week rows. Calendar has no popup,
 text input, form value or range-selection behavior; compose a date field and layer
 around it when those are needed.

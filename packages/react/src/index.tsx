@@ -61,6 +61,9 @@ import { PairedDateRangeField } from "./date-range-field.js";
 import { CalendarDateRangePicker } from "./date-range-picker.js";
 import { ContextActionMenu } from "./context-menu.js";
 import { SelectionTree } from "./tree.js";
+import { ClockTimePicker } from "./time-picker.js";
+import { MonthYearNavigation } from "./month-year-picker.js";
+import { CivilDateTimeRangePicker } from "./date-time-range-picker.js";
 import { FileRecord, UploadRecord, ModalImagePreview, FileMetadata } from "./file-records.js";
 import { ManagedDataTable } from "./data-table.js";
 import { CheckableCard, ExclusiveCard } from "./collection-cards.js";
@@ -69,6 +72,67 @@ import { HoverPreview } from "./hover-card.js";
 import { HierarchicalSelect } from "./tree-select.js";
 import { CivilDateTimePicker } from "./date-time-picker.js";
 import { HierarchicalNavigation } from "./navigation-tree.js";
+
+export interface TimePickerProps extends Omit<TimeFieldProps,"end"> {
+  interval?: number;
+  open?: boolean;
+  defaultOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  panelLabel?: string;
+  openTimeLabel?: string;
+}
+/** @since 0.2.8 */
+export const TimePicker = /* @__PURE__ */ forwardRef<HTMLDivElement,TimePickerProps>(function TimePicker(props,ref){return <ClockTimePicker {...props} ref={ref}/>;});
+export interface MonthYearPickerProps extends Omit<HTMLAttributes<HTMLDivElement>,"children"|"onChange"|"defaultValue"> {
+  value: string;
+  onValueChange?: (month: string) => void;
+  min?: string;
+  max?: string;
+  locale?: string;
+  disabled?: boolean;
+  label?: string;
+  monthLabel?: string;
+  yearLabel?: string;
+  applyLabel?: string;
+}
+/** A controlled YYYY-MM navigator, independent of date selection. @since 0.2.8 */
+export const MonthYearPicker = /* @__PURE__ */ forwardRef<HTMLDivElement,MonthYearPickerProps>(function MonthYearPicker(props,ref){return <MonthYearNavigation {...props} ref={ref}/>;});
+export interface DateTimeRangeValue { start: DateTimeValue; end: DateTimeValue; }
+export interface DateTimeRangePickerProps extends Omit<HTMLAttributes<HTMLDivElement>,"children"|"defaultValue"|"onChange"> {
+  label: string;
+  hideLabel?: boolean;
+  value?: DateTimeRangeValue;
+  defaultValue?: DateTimeRangeValue;
+  onValueChange?: (range: DateTimeRangeValue) => void;
+  startDateName?: string;
+  startTimeName?: string;
+  endDateName?: string;
+  endTimeName?: string;
+  startLabel?: string;
+  endLabel?: string;
+  startDateLabel?: string;
+  startTimeLabel?: string;
+  endDateLabel?: string;
+  endTimeLabel?: string;
+  form?: string;
+  required?: boolean;
+  disabled?: boolean;
+  readOnly?: boolean;
+  controlSize?: "sm"|"md"|"lg"|"xl";
+  precision?: "minute"|"second";
+  order?: DateFieldProps["order"];
+  locale?: string;
+  minDate?: string;
+  maxDate?: string;
+  step?: number;
+  interval?: number;
+  status?: FieldStatus;
+  description?: string;
+  incompleteMessage?: string;
+  reversedMessage?: string;
+}
+/** Four atomic civil date/time form values, without timezone conversion. @since 0.2.8 */
+export const DateTimeRangePicker = /* @__PURE__ */ forwardRef<HTMLDivElement,DateTimeRangePickerProps>(function DateTimeRangePicker(props,ref){return <CivilDateTimeRangePicker {...props} ref={ref}/>;});
 
 export interface FileMetaProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children"> {
   format?: string;
@@ -271,6 +335,8 @@ export const TreeSelect = /* @__PURE__ */ forwardRef<HTMLDivElement, TreeSelectP
 export interface DateTimeValue { date: string; time: string; }
 export interface DateTimePickerProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "defaultValue" | "onChange"> {
   label: string;
+  validationMessage?: string;
+  timeInterval?: number;
   hideLabel?: boolean;
   value?: DateTimeValue;
   defaultValue?: DateTimeValue;
@@ -460,6 +526,8 @@ export const DatePicker = /* @__PURE__ */ forwardRef<HTMLDivElement, DatePickerP
 
 export interface CalendarProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange" | "children"> {
   label: string;
+  showMonthYearPicker?: boolean;
+  monthYearLabels?: {label?:string;month?:string;year?:string;apply?:string};
   value?: string;
   defaultValue?: string;
   onValueChange?: (date: string) => void;
@@ -485,6 +553,7 @@ export const Calendar = /* @__PURE__ */ forwardRef<HTMLDivElement, CalendarProps
 ) { return <DateCalendar {...props} ref={ref} weekStartsOn={weekStartsOn} locale={locale} autoFocus={autoFocus} />; });
 export interface TimeFieldProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange" | "children"> {
   label: string;
+  end?: ReactNode;
   hideLabel?: boolean;
   value?: string;
   defaultValue?: string;
@@ -2031,6 +2100,7 @@ export interface ListBoxProps extends Omit<HTMLAttributes<HTMLDivElement>, "chil
   defaultValue?: string | readonly string[];
   onValueChange?: (value: string | string[]) => void;
   multiple?: boolean;
+  selectionBehavior?: "automatic" | "manual";
   disabled?: boolean;
   readOnly?: boolean;
   name?: string;

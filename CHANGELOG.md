@@ -2,6 +2,9 @@
 
 ## 0.2.8 — source preview
 
+- Add TimePicker, MonthYearPicker and DateTimeRangePicker from existing primitives.
+- Add manual ListBox selection and a TimeField end slot; enable quick Calendar month/year navigation.
+
 - Add the primitives-first composition skill to the versioned agent bundle; preserve StatusIndicator in upload rows.
 
 - Add HoverCard, ColorSwatch, ColorPicker, TreeSelect and DateTimePicker.

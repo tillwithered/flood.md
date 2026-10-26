@@ -1,9 +1,9 @@
 import {forwardRef, useEffect, useImperativeHandle, useRef, useState} from "react";
-import {DatePicker, TimeField, Fieldset, type DateTimePickerProps} from "./index.js";
+import {DatePicker, TimePicker, Fieldset, type DateTimePickerProps} from "./index.js";
 
 /** A civil date and wall-clock time. The host owns timezone conversion. */
 export const CivilDateTimePicker = /* @__PURE__ */ forwardRef<HTMLDivElement, DateTimePickerProps>(function CivilDateTimePicker({
-  label, hideLabel=false, value, defaultValue={date:"",time:""}, onValueChange,
+  label, validationMessage,timeInterval,hideLabel=false, value, defaultValue={date:"",time:""}, onValueChange,
   dateLabel="Date", timeLabel="Time", dateName, timeName, form, required=false,
   disabled=false, readOnly=false, controlSize="md", precision="minute", order="month-day-year",
   locale="en-US", minDate, maxDate, minTime, maxTime, step, status, description, className, ...props
@@ -34,11 +34,11 @@ export const CivilDateTimePicker = /* @__PURE__ */ forwardRef<HTMLDivElement, Da
         <DatePicker label={dateLabel} value={value === undefined ? undefined : selected.date}
           defaultValue={defaultValue.date} onValueChange={next=>change("date",next)}
           name={dateName} form={form} required={required} disabled={disabled} readOnly={readOnly}
-          controlSize={controlSize} order={order} locale={locale} min={minDate} max={maxDate} status={status}/>
-        <TimeField label={timeLabel} value={value === undefined ? undefined : selected.time}
+          controlSize={controlSize} order={order} locale={locale} min={minDate} max={maxDate} status={status} validationMessage={validationMessage}/>
+        <TimePicker label={timeLabel} value={value === undefined ? undefined : selected.time}
           defaultValue={defaultValue.time} onValueChange={next=>change("time",next)}
           name={timeName} form={form} required={required} disabled={disabled} readOnly={readOnly}
-          controlSize={controlSize} precision={precision} min={minTime} max={maxTime} step={step} status={status}/>
+          controlSize={controlSize} precision={precision} min={minTime} max={maxTime} step={step} interval={timeInterval} status={status}/>
       </div>
     </Fieldset>
   </div>;

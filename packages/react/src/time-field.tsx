@@ -5,7 +5,7 @@ import {canonicalTime, emptyTimeParts, isEmptyTime, parseTime, stepTimePart, tim
 const cx = (...values:Array<string|false|undefined>) => values.filter(Boolean).join(" ");
 
 export const SegmentedTimeField = /* @__PURE__ */ forwardRef<HTMLDivElement,TimeFieldProps>(function SegmentedTimeField({
-  label,hideLabel=false,value,defaultValue="",onValueChange,precision="minute",min,max,step:explicitStep,
+  label,end,hideLabel=false,value,defaultValue="",onValueChange,precision="minute",min,max,step:explicitStep,
   required=false,readOnly=false,disabled=false,name,form,controlSize="md",invalid=false,status,description,
   segmentLabels,messages,id:explicitId,className,onKeyDown,onPaste,onBlur,"aria-describedby":describedBy,"aria-invalid":ariaInvalid,...props
 }, forwardedRef) {
@@ -102,7 +102,7 @@ export const SegmentedTimeField = /* @__PURE__ */ forwardRef<HTMLDivElement,Time
     <Label htmlFor={`${id}-hour`} id={`${id}-label`} required={required} className={hideLabel ? "flood-visually-hidden" : undefined}>{label}</Label>
     <div role="group" aria-labelledby={`${id}-label`} aria-describedby={descriptions} className={cx("flood-time-field__control",`flood-control--${controlSize}`)} data-status={resolvedStatus} data-readonly={readOnly || undefined} data-disabled={effectiveDisabled || undefined}
       onClick={event=>{
-        if(event.defaultPrevented || effectiveDisabled || inputs.current.hour?.matches(":disabled") || (event.target as HTMLElement).closest("input"))return;
+        if(event.defaultPrevented || effectiveDisabled || inputs.current.hour?.matches(":disabled") || (event.target as HTMLElement).closest("input,button,a,[role=button]"))return;
         select(ordered.find(part=>!current.current.parts[part]) ?? (ordered.includes(lastFocused.current) ? lastFocused.current : "hour"));
       }}>
       {ordered.map((part,index)=><span key={part} className="flood-time-field__part">
@@ -118,6 +118,7 @@ export const SegmentedTimeField = /* @__PURE__ */ forwardRef<HTMLDivElement,Time
           onCompositionEnd={event=>{composing.current=undefined;if(blocked()){setParts(snapshot.current);return;}if(/^\d*$/.test(event.currentTarget.value))edit(part,event.currentTarget.value);else setParts(snapshot.current);}}
           onInvalid={()=>setTouched(true)}/>
       </span>)}
+      {end&&<span className="flood-time-field__end">{end}</span>}
     </div>
     <input ref={bridge} type="hidden" name={name} form={form} value={canonical && (readOnly || inRange && onStep) && (value === undefined || canonical === value) ? canonical : ""} disabled={disabled}/>
     {description && <div id={descriptionId} className="flood-time-field__description">{description}</div>}

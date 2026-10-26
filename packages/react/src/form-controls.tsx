@@ -32,7 +32,7 @@ function useInheritedDisabled(ref: RefObject<HTMLInputElement | null>, disabled:
 }
 
 export const CollectionListBox = /* @__PURE__ */ forwardRef<HTMLDivElement, ListBoxProps>(function CollectionListBox({
-  label, hideLabel = false, options, value, defaultValue, onValueChange, multiple = false,
+  label, hideLabel = false, options, value, defaultValue, onValueChange, multiple = false, selectionBehavior="automatic",
   disabled = false, readOnly = false, name, form, controlSize = "md", id: explicitId,
   className, onKeyDown, onFocus, ...props
 }, forwardedRef) {
@@ -61,7 +61,7 @@ export const CollectionListBox = /* @__PURE__ */ forwardRef<HTMLDivElement, List
     if (value === undefined) setLocal(next);
     onValueChange?.(multiple ? [...next] : next[0] ?? "");
   };
-  const move = (index: number, choose = !multiple) => {
+  const move = (index: number, choose = !multiple && selectionBehavior==="automatic") => {
     setActive(index);
     if (choose) commit(index);
     const target = root.current?.ownerDocument.getElementById(`${id}-option-${index}`);

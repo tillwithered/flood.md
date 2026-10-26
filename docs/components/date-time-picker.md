@@ -1,6 +1,6 @@
 # DateTimePicker
 
-Compose a DatePicker and TimeField under one named Fieldset. This is a civil
+Compose a DatePicker and TimePicker under one named Fieldset. This is a civil
 date and wall-clock time, not a timezone-aware instant. The first version uses
 independent date bounds and daily time bounds.
 
@@ -30,3 +30,7 @@ combined datetime min/max. Preserve explicit timezone selection in your app.
 labels. `dateLabel`, `timeLabel`, `order` and `locale` adapt the presentation.
 The pair stacks on narrow screens. `readOnly` preserves accepted values and
 prevents editing; `disabled` excludes values from form submission.
+
+`timeInterval` sets suggestion spacing in seconds. The time popup uses the same
+bounds and step as manual entry. `validationMessage` lets a parent composition
+associate an additional native validation constraint with the date field.

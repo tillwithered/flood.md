@@ -1,5 +1,8 @@
 # TimeField
 
+`end` accepts an existing Flood action alongside the segments. TimePicker uses
+this slot for its clock IconButton; use TimePicker when suggestions are needed.
+
 Readonly entry preserves an accepted canonical time in FormData, including a time
 outside current bounds or step alignment. Native validity constraints do not
 apply to readonly fields. Partial or refused drafts are not accepted by setting

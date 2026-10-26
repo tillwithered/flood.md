@@ -1847,5 +1847,47 @@
     "imports": [
       "FileMeta"
     ]
+  },
+  {
+    "slug": "time-picker",
+    "name": "TimePicker",
+    "group": "forms",
+    "description": "A segmented time field with an anchored, keyboard-accessible list of clock times.",
+    "code": "<TimePicker label=\"Start time\" name=\"time\" defaultValue=\"09:30\" min=\"08:00\" max=\"18:00\" interval={1800} />",
+    "notes": [
+      "Interval and step use seconds; the list contains at most 1000 entries.",
+      "Manual entry remains available; this is wall-clock time without timezone conversion."
+    ],
+    "imports": [
+      "TimePicker"
+    ]
+  },
+  {
+    "slug": "month-year-picker",
+    "name": "MonthYearPicker",
+    "group": "navigation",
+    "description": "A controlled month/year navigator composed from Popover, Select and NumberInput.",
+    "code": "<MonthYearPicker value=\"2026-10\" onValueChange={setMonth} />",
+    "notes": [
+      "Value and bounds use YYYY-MM. The host accepts the change.",
+      "The draft applies explicitly; opening/cancelling does not change the month."
+    ],
+    "imports": [
+      "MonthYearPicker"
+    ]
+  },
+  {
+    "slug": "date-time-range-picker",
+    "name": "DateTimeRangePicker",
+    "group": "forms",
+    "description": "An ordered civil date/time range with four atomic form values.",
+    "code": "<DateTimeRangePicker label=\"Booking\" startDateName=\"startDate\" startTimeName=\"startTime\" endDateName=\"endDate\" endTimeName=\"endTime\"\n  defaultValue={{start:{date:\"2026-10-27\",time:\"09:00\"},end:{date:\"2026-10-27\",time:\"18:00\"}}} required />",
+    "notes": [
+      "Incomplete and reversed ranges do not contribute accepted values.",
+      "No timezone or timestamp inference. Server availability remains host owned."
+    ],
+    "imports": [
+      "DateTimeRangePicker"
+    ]
   }
 ]

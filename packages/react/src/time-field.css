@@ -23,3 +23,5 @@
   .flood-root .flood-time-field__control[data-disabled] { border-color: GrayText; color: GrayText; }
   .flood-root .flood-time-field__separator, .flood-root .flood-time-field__error { color: CanvasText; }
 }
+
+.flood-root .flood-time-field__end { display:flex; align-items:center; flex:none; margin-inline-start:auto; }

@@ -1,5 +1,9 @@
 # Flood design system · 0.2.8
 
+Use TimePicker for civil time suggestions and DateTimeRangePicker for complete,
+ordered civil endpoints. Calendar includes MonthYearPicker navigation. Resolve
+timezones and DST in the host. These are source APIs; check the installed version.
+
 ## Composition is built from library primitives
 
 Use existing Flood components inside larger components, the website and playgrounds.

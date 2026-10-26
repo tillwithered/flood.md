@@ -1,7 +1,7 @@
 import {forwardRef,useEffect,useId,useImperativeHandle,useMemo,useRef,useState} from "react";
 import type {ReactNode} from "react";
 import type {CalendarProps} from "./index.js";
-import {IconButton} from "./index.js";
+import {IconButton,MonthYearPicker,VisuallyHidden} from "./index.js";
 import {dateInRange,parseDate} from "./date-value.js";
 import {dateFromOrdinal,dateOrdinal,dateWeekday,formattingDate,lastDateOrdinal,monthParts,monthShift,moveDateMonth} from "./calendar-value.js";
 
@@ -20,7 +20,7 @@ export interface CalendarGridProps extends Omit<CalendarProps,"value"|"defaultVa
 export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGridProps>(function CalendarGrid({
   label,selectedDate="",isSelected,dayMetadata,onDayActivate,onDayPreview,multiple=false,footer,visibleMonth,defaultVisibleMonth,onVisibleMonthChange,
   min,max,disabled=false,readOnly=false,isDateDisabled,weekStartsOn=0,locale="en-US",autoFocus=false,
-  today,previousMonthLabel="Previous month",nextMonthLabel="Next month",id:explicitId,className,onKeyDown,onBlur,onPointerLeave,...props
+  showMonthYearPicker=true,monthYearLabels,today,previousMonthLabel="Previous month",nextMonthLabel="Next month",id:explicitId,className,onKeyDown,onBlur,onPointerLeave,...props
 },forwardedRef){
   if(!label.trim()||!previousMonthLabel.trim()||!nextMonthLabel.trim())throw new Error("Flood Calendar requires nonempty calendar and navigation labels");
   for(const [key,date]of [["selectedDate",selectedDate],["min",min],["max",max],["today",today]]as const)if(date!==undefined&&(date!==""||key!=="selectedDate")&&!parseDate(date))throw new Error(`Flood Calendar ${key} must be a valid ISO Gregorian date`);
@@ -95,7 +95,11 @@ export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGrid
     }}>
     <span id={`${id}-label`} className="flood-visually-hidden">{label}</span>
     <div className="flood-calendar__header">
-      <span id={`${id}-month`} className="flood-calendar__month" aria-live="polite" aria-atomic="true">{monthLabel}</span>
+      {showMonthYearPicker?<>
+        <VisuallyHidden id={`${id}-month`} aria-live="polite" aria-atomic="true">{monthLabel}</VisuallyHidden>
+        <MonthYearPicker value={month} onValueChange={next=>{pendingFocus.current=undefined;requestMonth(next);}} min={min?.slice(0,7)} max={max?.slice(0,7)} locale={locale} disabled={effectiveDisabled}
+          label={monthYearLabels?.label} monthLabel={monthYearLabels?.month} yearLabel={monthYearLabels?.year} applyLabel={monthYearLabels?.apply}/>
+      </>:<span id={`${id}-month`} className="flood-calendar__month" aria-live="polite" aria-atomic="true">{monthLabel}</span>}
       <div className="flood-calendar__navigation">
         <IconButton label={previousMonthLabel} variant="ghost" size="sm" disabled={previousDisabled} onClick={event=>{pendingFocus.current=undefined;if(!event.currentTarget.matches(":disabled"))requestMonth(previous);}}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14 6-6 6 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></IconButton>
         <IconButton label={nextMonthLabel} variant="ghost" size="sm" disabled={nextDisabled} onClick={event=>{pendingFocus.current=undefined;if(!event.currentTarget.matches(":disabled"))requestMonth(next);}}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m10 6 6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></IconButton>
