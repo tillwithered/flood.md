@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.8 — source preview
+## 0.2.8 · 2026-10-27
 
 - Complete ListBox native required validation, feedback/status and accessible descriptions while retaining selection and reset contracts.
 
@@ -22,7 +22,7 @@
 - Keep opaque RGB colors, single tree selection and civil date/time contracts explicit.
 - Registry publication and deployment are verified separately.
 
-## 0.2.7 - Unreleased
+### Base controls included from the 0.2.7 development candidate
 
 - Keep Tree's readonly explanation associated with the relevant control without exposing it as unrelated reading content.
 
