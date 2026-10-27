@@ -1964,7 +1964,7 @@ export interface InlineCodeProps extends HTMLAttributes<HTMLElement> {
   size?: ContentSize;
   wrap?: boolean;
 }
-export const InlineCode = /* @__PURE__ */ forwardRef<HTMLElement, InlineCodeProps>(function InlineCode(
+export const InlineCode =  /* @__PURE__ */ forwardRef<HTMLElement, InlineCodeProps>(function InlineCode(
   {size = "md", wrap = true, ...props}, ref,
 ) { return <InlineCodeText {...props} ref={ref} size={size} wrap={wrap}/>; });
 
