@@ -35,7 +35,8 @@ function observation(slug: string, prop: string, changed: boolean) {
   return "No static runtime difference observed: inspect this state in the coverage report; code must still reflect the changed option.";
 }
 
-for (const component of components) {
+const affected = process.env.FLOOD_AFFECTED_COMPONENTS?.split(",");
+for (const component of components.filter(component => !affected || affected.includes(component.slug))) {
   test(`all public playground control states: ${component.slug}`, async ({ page }, info) => {
     test.setTimeout(120_000);
     const errors: string[] = [], results: StateResult[] = [];

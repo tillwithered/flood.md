@@ -7,14 +7,18 @@ change needs a separate minor-version decision. Types, user/agent docs and exact
 internal versions remain aligned for every release.
 
 1. Confirm ownership of npm scope `@flood-md` (or update all names consistently).
-2. Authenticate npm for the first publication. Run `npm run verify` and browser CI.
+2. Authenticate npm for the first publication. Merge the candidate through the
+   required `verify` check and wait for its exact protected-main CI to succeed.
 3. Review package tarballs (`npm pack --dry-run --workspace=<name>`).
 4. Configure npm trusted publishers for each package, repository
    `tillwithered/flood.md`, workflow `release.yml`, environment `npm-release`.
    Staged package placeholders allow trust to be configured before the first
    public version. No long-lived npm token is required for this OIDC path.
-5. Create a GitHub Release with the aligned version tag, such as `v0.2.0`; the release workflow verifies tag and
-   package versions and publishes tokens → React → agent → CLI.
+5. Create a GitHub Release with the aligned version tag targeting that exact
+   successful main commit. The publisher downloads the candidate from that CI
+   run, validates its commit, tree, lockfile, version and archive hashes, then
+   publishes tokens → React → agent → CLI. It does not rebuild or repeat the
+   candidate's browser suite. Missing, expired or mismatched artifacts fail closed.
 6. Configure required reviewers for GitHub environment `npm-release` if desired.
 7. Verify the actual registry versions, install into a clean React project, and
    check the deployed landing page and its command.
@@ -30,6 +34,33 @@ Do not create a release until scope ownership and authentication are ready.
 After a partially completed publication, rerun the same workflow: it skips already
 published versions only after comparing package integrity with the local tarball.
 Different existing bytes fail the release instead of silently accepting a collision.
+
+## Verification and promotion
+
+Ordinary implementation-only PRs use the public component dependency closure to
+select browser consumers, including composites. Unknown paths, shared styles,
+tokens, recipes, dependency updates and workflow changes retain full coverage.
+Type checks, unit tests, clean tarball consumers and the Next build remain gates.
+The generated CI plan is visible in logs and the build artifact. A local preview
+does not require a release or version bump.
+
+Protected-main CI runs the complete candidate. One build feeds four Chromium
+shards and separate Firefox/WebKit jobs. The pinned Playwright image provides
+matching browsers and system dependencies. Updating Playwright also requires
+updating that image and digest. `verify` aggregates every applicable job and
+fails on a failed, cancelled or unexpectedly skipped dependency.
+
+`package-smoke` creates the npm archives it tests. `ci:candidate` retains those
+same bytes, not a later repack. The publisher only accepts artifacts from a
+successful push CI on main for the exact tag commit in this repository; PR
+artifacts cannot become npm releases. Candidate artifacts expire after 14 days.
+If expired, prepare a new reviewed main candidate; do not silently rebuild at
+publication time. Registry consumer verification remains a separate real npm
+installation check, including equality to the candidate's package integrity.
+
+Releases remain explicit GitHub Release events. Merging component or website
+work does not publish npm or automatically increase a version. Group compatible
+changes into a reviewed candidate and choose its version deliberately.
 
 For an interactive first release, npm 12 staged publishing can submit tarballs
 without bypass tokens: `npx npm@12.2.1 stage publish <tarball> --access public`.

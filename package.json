@@ -24,6 +24,7 @@
     "release:check": "node scripts/release.mjs --check",
     "release:publish": "node scripts/release.mjs",
     "release:verify-registry": "node scripts/verify-registry.mjs",
+    "ci:candidate": "node scripts/ci-artifacts.mjs pack",
     "start": "node apps/website/server.mjs",
     "site:check": "node scripts/site-contract.mjs check",
     "site:bundle": "node scripts/site-contract.mjs bundle",

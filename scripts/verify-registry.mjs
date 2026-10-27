@@ -5,6 +5,7 @@ import { isAbsolute, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:net";
+import { verifyCandidate } from "./ci-artifacts.mjs";
 
 const workspace = fileURLToPath(new URL("../", import.meta.url));
 const json = async path => JSON.parse(await readFile(path, "utf8"));
@@ -32,6 +33,7 @@ function run(command, args, cwd = project, extraEnv = {}) {
 const npm = args => run(process.execPath, [npmCli, ...args]);
 const packages = ["tokens", "react", "agent", "cli"];
 const registry = {};
+const candidate = process.env.FLOOD_PREPARED_CANDIDATE === 'true' ? await verifyCandidate('.artifacts/release-candidate') : null;
 const deadline = Date.now() + 5 * 60_000;
 while (Object.keys(registry).length < packages.length) {
   for (const name of packages.filter(name => !registry[name])) {
@@ -40,6 +42,7 @@ while (Object.keys(registry).length < packages.length) {
       const metadata = JSON.parse(result.stdout);
       assert.equal(metadata.version, version);
       assert.ok(metadata.dist?.integrity);
+      if (candidate) assert.equal(metadata.dist.integrity, candidate.packages.find(pkg => pkg.name === name).integrity, 'Registry differs from the verified candidate');
       registry[name] = metadata.dist.integrity;
     }
   }

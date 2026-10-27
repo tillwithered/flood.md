@@ -1,6 +1,7 @@
 import { readFile, mkdir } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { VERSION } from "../packages/cli/lib/index.mjs";
+import { verifyCandidate } from "./ci-artifacts.mjs";
 
 const names = ["tokens", "react", "agent", "cli"];
 const npm = (args) =>
@@ -47,7 +48,16 @@ if (process.argv.includes("--check")) {
 if (process.env.GITHUB_REF_NAME !== `v${VERSION}`)
   throw new Error(`Expected release tag v${VERSION}`);
 await mkdir(".artifacts", { recursive: true });
+// CI publishes the exact archives built before the successful browser gates.
+const prepared = process.env.FLOOD_PREPARED_CANDIDATE === 'true'
+  ? await verifyCandidate('.artifacts/release-candidate') : null;
 for (const name of names) {
+  let archive;
+  let archivePath;
+  if (prepared) {
+    archive = prepared.packages.find(pkg => pkg.name === name);
+    archivePath = `.artifacts/release-candidate/${archive.file}`;
+  } else {
   const packed = npm([
     "pack",
     `./packages/${name}`,
@@ -56,7 +66,9 @@ for (const name of names) {
     "--json",
   ]);
   if (packed.status !== 0) throw new Error(packed.stderr);
-  const [archive] = JSON.parse(packed.stdout);
+  [archive] = JSON.parse(packed.stdout);
+  archivePath = `.artifacts/${archive.filename}`;
+  }
   const remote = npm([
     "view",
     `@flood-md/${name}@${VERSION}`,
@@ -73,7 +85,7 @@ for (const name of names) {
     throw new Error(remote.stderr || remote.stdout);
   const result = npm([
     "publish",
-    `.artifacts/${archive.filename}`,
+    archivePath,
     "--access",
     "public",
     "--provenance",

@@ -10,27 +10,54 @@ concurrency:
 jobs:
   publish:
     if: startsWith(github.event.release.tag_name, 'v')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
+      options: --ipc=host
     environment: npm-release
     permissions:
       contents: read
+      actions: read
       id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ github.event.release.tag_name }}
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
       - run: npm ci
-      - run: npm run verify
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:browser
+      - name: Find the successful main candidate for this exact tag
+        id: candidate
+        run: node scripts/ci-candidate-run.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: candidate-bytes-${{ steps.candidate.outputs.commit }}
+          path: .artifacts/release-candidate
+          run-id: ${{ steps.candidate.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: browser-build-${{ steps.candidate.outputs.commit }}
+          path: .artifacts
+          run-id: ${{ steps.candidate.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - run: tar -xzf .artifacts/browser-build.tgz
+      - run: node scripts/ci-artifacts.mjs verify
+      - run: npm run release:check
       - run: npm run release:publish
+        env:
+          FLOOD_PREPARED_CANDIDATE: true
       - run: npm run release:verify-registry
+        env:
+          FLOOD_PREPARED_CANDIDATE: true
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
