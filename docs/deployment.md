@@ -117,8 +117,10 @@ Railway continues to deploy protected `main` through its GitHub integration. Kee
 Wait for CI enabled in the service settings; the setting is account-specific and
 must be inspected on the service rather than inferred from a green PR. See the
 [Railway documentation](https://docs.railway.com/deployments/github-autodeploys#wait-for-ci).
-The read-only `Verify website deployment` workflow runs after successful main-push
-CI, waits for that source commit and probes the actual public agent/doc endpoints.
+The read-only `Verify website deployment` workflow runs on a successful hosting
+`deployment_status` event, requires successful main-push CI for that source commit
+and probes the actual public agent/doc endpoints. It does not run while Railway
+is waiting for GitHub CI, avoiding a circular wait between CI and rollout.
 A mismatched or missing commit marker fails this check; a green build alone is
 not a successful rollout. This workflow never deploys or grants Railway access.
 

@@ -11,6 +11,7 @@ const {workflow_runs:runs}=await request(`actions/workflows/ci.yml/runs?head_sha
 const run=runs.find(run=>run.head_sha===commit && run.head_branch==='main' && run.event==='push' && run.status==='completed' && run.conclusion==='success' && run.head_repository?.full_name===repository && run.repository?.full_name===repository);
 if(!run)throw Error('No successful protected-main candidate for this exact release commit. Complete main CI before publishing; do not rebuild in the publisher.');
 const {artifacts}=await request(`actions/runs/${run.id}/artifacts?per_page=100`);
-for(const name of [`candidate-bytes-${commit}`,`browser-build-${commit}`])if(!artifacts.some(artifact=>artifact.name===name && !artifact.expired))throw Error('Verified candidate artifacts missing or expired; prepare a fresh verified candidate');
+const required=process.argv.includes('--site') ? [`website-runtime-${commit}`] : [`candidate-bytes-${commit}`,`browser-build-${commit}`];
+for(const name of required)if(!artifacts.some(artifact=>artifact.name===name && !artifact.expired))throw Error('Verified candidate artifacts missing or expired; prepare a fresh verified candidate');
 await appendFile(output,`run_id=${run.id}\ncommit=${commit}\n`);
 console.log(`Promoting successful main CI ${run.id}, source ${commit}`);
