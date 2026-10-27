@@ -8,6 +8,7 @@ import "@flood-md/react/styles.css";
 import "./site.css";
 import release from "./release.json";
 import { SiteHeader } from "./site-header";
+import { SiteFooter } from './site-footer';
 
 const command = `npx @flood-md/cli@${release.version} init`;
 const initialNote = "A modern React app with a calm, focused interface for my team. Keep it simple and flexible.";
@@ -169,14 +170,7 @@ export default function Examples() {
           {location.pathname === "/playground" && <PlaygroundChecks />}
         </main>
 
-        <footer className="site-footer">
-          <Text size="helper" tone="subtle">A growing collection, made with care.</Text>
-          <Inline gap="4">
-            <Link href="https://github.com/tillwithered/flood.md/blob/main/LICENSE">MIT licensed</Link>
-            <span className="header-divider" aria-hidden="true" />
-            <Link href="/agent/DESIGN.md" className="icon-link">For your agent <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link>
-          </Inline>
-        </footer>
+        <SiteFooter />
       </div>
     </FloodRoot>
   );

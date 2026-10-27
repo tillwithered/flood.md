@@ -61,6 +61,7 @@ html:has(.docs-layout) { scroll-behavior: auto; }
 .idea-row .flood-check { flex-shrink: 0; }
 .idea-row[data-complete] .idea-title { text-decoration: line-through; color: var(--flood-sys-color-content-subtle); }
 .site-footer { min-block-size: 4.25rem; padding-block: var(--flood-sys-space-4); }
+.visitor-counter { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .site-footer .flood-link { color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); text-decoration: none; }
 .site-footer .flood-link:hover, .foundation-label:hover { text-decoration: underline; }
 .sr-only { position: absolute; inline-size: 1px; block-size: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }

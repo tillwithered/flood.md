@@ -1,5 +1,11 @@
 # Flood website
 
+The shared footer composes Flood Text/Inline/Link and a website-owned visitor
+counter. Counting is optional and independent of the npm library. Configure the
+private counter URL/token only on the website runtime; never expose these as
+Vite variables. See docs/privacy.md and apps/visitors/README.md. Without a counter
+service the footer shows `Visitors —`, never an invented or deployment-local total.
+
 The website uses the current Flood packages and original page compositions.
 Home, guides, component pages and /playground share one SiteHeader composition.
 Its navigation uses Flood Link button variants and IconSlot. The shared shell uses
