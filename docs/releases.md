@@ -43,6 +43,14 @@ indirect fixture suites remain enabled: literal component-name matching is not
 treated as a complete test dependency graph. Unknown paths, shared styles,
 tokens, recipes, dependency updates and workflow changes retain full coverage.
 Type checks, unit tests, clean tarball consumers and the Next build remain gates.
+Explicit per-component playground recipe/control edits use a bounded AST comparison:
+only the named slug branches can narrow coverage. Shared rendering, helpers,
+defaults, unknown registries and fallthrough retain the full suite. Direct-page
+checks are individual tests per route, so catalog growth is shardable and a
+single route failure does not restart a complete catalog traversal.
+The CI workflow can also be dispatched manually for a full regression. Manual
+runs do not produce promotable npm candidates; publication still requires the
+successful push run for that exact main commit.
 The generated CI plan is visible in logs and the build artifact. A local preview
 does not require a release or version bump.
 
