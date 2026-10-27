@@ -24,6 +24,6 @@ export function VisitorCounter() {
   const [count,setCount] = useState<Count|null>(null);
   useEffect(()=>{let active=true;void loadCount().then(value=>{if(active)setCount(value);});return()=>{active=false;};},[]);
   return <Text size="helper" tone="subtle" className="visitor-counter" title={count?`Unique browsers since ${new Date(count.since).toISOString().slice(0,10)}. Another device or cleared browser storage counts again.`:'Unique browser count is temporarily unavailable.'}>
-    {count?`${new Intl.NumberFormat('en-US').format(count.total)} visitors`:'Visitors —'}
+    {count?`${new Intl.NumberFormat('en-US').format(count.total)} ${count.total===1?'visitor':'visitors'}`:'Visitors —'}
   </Text>;
 }
