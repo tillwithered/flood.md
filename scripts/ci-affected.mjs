@@ -66,12 +66,11 @@ export function componentFingerprints(files, names) {
     return [name,createHash('sha256').update(JSON.stringify([...parts].sort())).digest('hex')];
   }));
 }
-export function selectBrowserFiles(files, catalog, affected) {
-  const selected = new Set(affected);
-  return files.filter(({source})=>{
-    const mentions=catalog.filter(c=>new RegExp(`\\b${c.name}\\b|[/'\"]${c.slug}(?:[/'\"#?]|$)`).test(source));
-    return !mentions.length || mentions.some(c=>selected.has(c.slug));
-  }).map(file=>file.path);
+export function selectBrowserFiles(files) {
+  // Literal names are not a complete consumer contract: fixtures, helpers and
+  // generated suites exercise components indirectly. Retain behavior suites;
+  // only the exhaustive catalog variant audit uses the proven affected graph.
+  return files.map(file=>file.path);
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const git = args=>{const r=spawnSync('git',args,{encoding:'utf8',maxBuffer:32*1024*1024});if(r.status!==0)throw Error('Git diff unavailable');return r.stdout;};
@@ -92,7 +91,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       const components=catalog.filter(c=>old.get(c.name)!==next.get(c.name)).map(c=>c.slug);
       if(!components.length)throw Error('No public consumer identified');
       const tests=git(['ls-files','tests/browser/*.spec.ts']).trim().split('\n');
-      const testFiles=selectBrowserFiles(await Promise.all(tests.map(async path=>({path,source:await readFile(path,'utf8')}))),catalog,components);
+      const testFiles=selectBrowserFiles(tests.map(path=>({path})));
       if(!testFiles.length)throw Error('No affected tests identified');
       plan={full:false,reason:'Public implementation dependency closure',components,testFiles};
     }

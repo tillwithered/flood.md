@@ -16,7 +16,7 @@ test('affected graph follows imported implementation and cycles',()=>{
   const a=componentFingerprints(before,['Button','Text']), b=componentFingerprints(after,['Button','Text']);
   assert.notEqual(a.get('Button'),b.get('Button'));assert.equal(a.get('Text'),b.get('Text'));
 });
-test('browser selection retains unclassified global checks and composite tests',()=>{
-  const catalog=[{name:'Button',slug:'button'},{name:'IconButton',slug:'icon-button'},{name:'Text',slug:'text'}];
-  assert.deepEqual(selectBrowserFiles([{path:'global',source:'axe(document)'},{path:'button',source:`page.goto('/components/icon-button')`},{path:'text',source:'Text test'}],catalog,['button','icon-button']),['global','button']);
+test('browser selection retains dynamic catalog and indirect fixture consumers',()=>{
+  const files=[{path:'catalog-variants-audit.spec.ts',source:'for (const component of catalog)'},{path:'foundations.spec.ts',source:`page.goto('/foundations')`},{path:'button.spec.ts',source:'Button test'}];
+  assert.deepEqual(selectBrowserFiles(files),files.map(file=>file.path));
 });

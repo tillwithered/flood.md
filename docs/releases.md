@@ -38,7 +38,9 @@ Different existing bytes fail the release instead of silently accepting a collis
 ## Verification and promotion
 
 Ordinary implementation-only PRs use the public component dependency closure to
-select browser consumers, including composites. Unknown paths, shared styles,
+select exhaustive catalog variants, including composites. Shared behavior and
+indirect fixture suites remain enabled: literal component-name matching is not
+treated as a complete test dependency graph. Unknown paths, shared styles,
 tokens, recipes, dependency updates and workflow changes retain full coverage.
 Type checks, unit tests, clean tarball consumers and the Next build remain gates.
 The generated CI plan is visible in logs and the build artifact. A local preview
