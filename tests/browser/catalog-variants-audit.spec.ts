@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chooseSelectOption, selectBridge } from "./select-helpers";
+import { catalogCohort } from "../../scripts/ci-cohort.mjs";
 
 type Component = { slug: string; name: string };
 type Control = { kind: "select" | "checkbox" | "text"; label: string; prop: string; initial: string | boolean; values: Array<string | boolean> };
@@ -35,8 +36,8 @@ function observation(slug: string, prop: string, changed: boolean) {
   return "No static runtime difference observed: inspect this state in the coverage report; code must still reflect the changed option.";
 }
 
-const affected = process.env.FLOOD_AFFECTED_COMPONENTS?.split(",");
-for (const component of components.filter(component => !affected || affected.includes(component.slug))) {
+const cohort = catalogCohort(components.map(component => component.slug));
+for (const component of components.filter(component => cohort.includes(component.slug))) {
   test(`all public playground control states: ${component.slug}`, async ({ page }, info) => {
     test.setTimeout(120_000);
     const errors: string[] = [], results: StateResult[] = [];

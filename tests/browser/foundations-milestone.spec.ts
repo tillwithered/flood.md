@@ -2,12 +2,13 @@ import { test, expect } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { componentSlugs } from "../../apps/website/routes.mjs";
 import { chooseSelectOption } from "./select-helpers";
+import { catalogCohort } from "../../scripts/ci-cohort.mjs";
 
 // Whole-catalog geometry complements component-specific interaction regressions.
 // A preview may scroll locally; the documentation page must not overflow globally.
 for (const enlarged of [false, true]) {
-  test(`foundation milestone catalog matrix: ${enlarged ? "enlarged text and RTL" : "default geometry"}`, async ({page}, info) => {
-    test.setTimeout(180_000);
+  for (const slug of catalogCohort(componentSlugs)) {
+  test(`foundation milestone catalog matrix: ${enlarged ? "enlarged text and RTL" : "default geometry"}: ${slug}`, async ({page}, info) => {
     const mobile = info.project.name === "mobile";
     const mode = `${info.project.name}-${enlarged ? "enlarged" : "default"}`;
     const directory = `.artifacts/foundations-milestone/${mode}`;
@@ -15,7 +16,6 @@ for (const enlarged of [false, true]) {
     const dimensions = enlarged ? (mobile ? {width:390,height:1000} : {width:320,height:1000}) : (mobile ? {width:390,height:844} : {width:1440,height:1000});
     await page.setViewportSize(dimensions);
     const results: Array<Record<string, unknown>> = [];
-    for (const slug of componentSlugs) {
       await page.goto(`/components/${slug}`);
       const stage = page.locator(".workbench-stage");
       await expect(stage, slug).toBeVisible();
@@ -26,10 +26,10 @@ for (const enlarged of [false, true]) {
         return {slug, viewport:innerWidth, pageWidth:root.scrollWidth, stageWidth:box.width, stageHeight:box.height, localScrollWidth:node.scrollWidth, localScrollHeight:node.scrollHeight, localOverflowX:style.overflowX, localOverflowY:style.overflowY};
       }, slug));
       await stage.screenshot({animations:"disabled",path:`${directory}/${slug}.png`});
-    }
-    await writeFile(`${directory}/geometry.json`,JSON.stringify(results,null,2));
+    await writeFile(`${directory}/${slug}.geometry.json`,JSON.stringify(results,null,2));
     expect(results.filter(row => Number(row.pageWidth)>Number(row.viewport)+1), "Global overflow is not an acceptable replacement for a local scroll region").toEqual([]);
   });
+  }
 }
 
 test("served Switch keeps its thumb inside both writing directions independent of language", async ({page},info) => {

@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
 import { componentSlugs, docPages } from "../../apps/website/routes.mjs";
 import { chooseSelectOption } from "./select-helpers";
+import { catalogCohort } from "../../scripts/ci-cohort.mjs";
 
 test("component props, preview, highlighted code and Markdown stay aligned", async ({ page }, info) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
@@ -66,7 +67,7 @@ test("component props, preview, highlighted code and Markdown stay aligned", asy
   await page.screenshot({ path: `.artifacts/lab-button-${info.project.name}.png`, fullPage: true });
 });
 
-for (const slug of componentSlugs) {
+for (const slug of catalogCohort(componentSlugs)) {
   test(`every component has accessible default content and a meaningful live recipe: ${slug}`, async ({ page }) => {
     await page.goto(`/components/${slug}`);
     await expect(page.locator(".component-workbench")).toBeVisible();
