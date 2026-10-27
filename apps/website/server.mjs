@@ -3,6 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pagePaths, siteOrigin } from "./routes.mjs";
+import { visitorRequest } from './visitors.mjs';
 
 const root = fileURLToPath(new URL("./dist", import.meta.url));
 const types = {
@@ -27,6 +28,7 @@ const server = createServer(async (request, response) => {
       response.end("ok");
       return;
     }
+    if (pathname === '/api/visitors') { await visitorRequest(request,response,siteOrigin); return; }
     if (!["GET", "HEAD"].includes(request.method)) {
       response.writeHead(405, { Allow: "GET, HEAD" });
       response.end();
@@ -66,6 +68,8 @@ const server = createServer(async (request, response) => {
     response.end("Not found");
   }
 });
+server.requestTimeout = 5000;
+server.headersTimeout = 5000;
 server.listen(Number(process.env.PORT ?? 4173), "0.0.0.0", () =>
   console.log(`Flood website listening on ${server.address().port}`),
 );

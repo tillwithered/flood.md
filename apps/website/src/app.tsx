@@ -4,10 +4,10 @@ import "@flood-md/react/styles.css";
 import "./site.css";
 import release from "./release.json";
 import { SiteHeader } from "./site-header";
+import { SiteFooter } from './site-footer';
 
 const Examples = lazy(() => import("./examples"));
 const ContentBoard = lazy(() => import("./content-board"));
-const repository = "https://github.com/tillwithered/flood.md";
 const command = `npx @flood-md/cli@${release.version} init`;
 
 function Home() {
@@ -43,13 +43,7 @@ export function App({ path, documentation: Reader }: { path: string; documentati
     <div className="site-shell">
       <SiteHeader path={path} />
       {home ? <Home /> : Reader ? <Reader path={path} /> : <main id="main-content" tabIndex={-1} className="doc-loading">Loading documentation…</main>}
-      <footer className="site-footer">
-        <Text size="helper" tone="subtle">A growing collection, made with care.</Text>
-        <Inline gap="4">
-          <Link href={`${repository}/blob/main/LICENSE`}>MIT licensed</Link>
-          <Link href="/agent/SKILL.md">For your agent</Link>
-        </Inline>
-      </footer>
+      <SiteFooter />
     </div>
   </FloodRoot>;
 }

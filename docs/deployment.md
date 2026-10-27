@@ -3,7 +3,9 @@
 The website is a static React application with public agent guides and a JSON
 schema. The production container serves only its built dist directory through a
 dependency-free Node HTTP server. It runs as an unprivileged user and needs no
-database, account system, volume or application secrets.
+database or account system for serving documentation. The optional visitor
+counter uses a separate private service and persistent volume; the website
+itself retains no writable data and continues running unprivileged.
 
 ## Local production build
 
@@ -18,7 +20,7 @@ output in a Node 24 image and starts the server. Container runtime contents are
 limited to the built website and server entry; source and build dependencies stay
 in the build stage.
 
-The runtime also includes `apps/website/routes.mjs` and its catalog JSON inventory,
+The runtime also includes `apps/website/routes.mjs`, `visitors.mjs` and its catalog JSON inventory,
 which define the explicit page allowlist.
 Known `/docs` and `/components` pages serve their own prerendered HTML; unknown paths
 return 404. Documentation Markdown is bundled at build time from `docs/` and

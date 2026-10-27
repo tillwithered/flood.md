@@ -34,7 +34,7 @@ export async function prepareSiteBundle() {
   const directory = await mkdtemp(join(workspace, '.artifacts/website-runtime-'));
   const target = join(directory, 'apps/website');
   await mkdir(join(target, 'src'), { recursive: true });
-  for (const file of ['server.mjs', 'routes.mjs']) await cp(join(website, file), join(target, file));
+  for (const file of ['server.mjs', 'routes.mjs', 'visitors.mjs']) await cp(join(website, file), join(target, file));
   await cp(join(website, 'src/component-catalog.json'), join(target, 'src/component-catalog.json'));
   await cp(join(website, 'dist'), join(target, 'dist'), { recursive: true });
   await writeFile(join(directory, 'Dockerfile'), 'FROM node:24-alpine\nENV NODE_ENV=production\nWORKDIR /app\nCOPY --chown=node:node apps/website ./apps/website\nUSER node\nEXPOSE 4173\nCMD ["node", "apps/website/server.mjs"]\n');
