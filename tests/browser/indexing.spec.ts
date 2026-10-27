@@ -15,6 +15,9 @@ test.describe("readable without JavaScript", () => {
     expect(await page.locator(".component-workbench").evaluate(node => getComputedStyle(node).borderTopStyle)).toBe("solid");
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://flood.md/components/button");
     await page.screenshot({ path: `.artifacts/indexing-nojs-${info.project.name}.png`, fullPage: true });
+    await page.goto("/docs/installation#updates-from-011");
+    await expect(page.locator("html")).toHaveCSS("scroll-behavior", "auto");
+    await expect(page.locator("#updates-from-011")).toBeInViewport();
   });
 });
 
@@ -30,6 +33,8 @@ test("hydration retains document semantics, interactions and anchors", async ({ 
   await page.locator(".preview-stage").getByRole("button", { name: "Save changes" }).click();
   await expect(page.locator(".preview-stage").getByRole("status")).toContainText("Action completed locally.");
   await page.goto("/docs/installation#updates-from-011");
+  await expect(page.locator("html")).toHaveCSS("scroll-behavior", "auto");
+  await page.evaluate(() => document.fonts.ready);
   await expect(page.locator("#updates-from-011")).toBeInViewport();
   expect(errors).toEqual([]);
 });

@@ -46,8 +46,11 @@ Type checks, unit tests, clean tarball consumers and the Next build remain gates
 The generated CI plan is visible in logs and the build artifact. A local preview
 does not require a release or version bump.
 
-Protected-main CI runs the complete candidate. One build feeds four Chromium
-shards and separate Firefox/WebKit jobs. The pinned Playwright image provides
+Protected-main CI runs the complete candidate. One build feeds Chromium and
+Firefox/WebKit shards. At 120 components this is four Chromium shards and two
+shards for each other engine. Full-candidate runner counts grow with the catalog,
+bounded at twelve Chromium and four shards per other engine; scoped PRs retain
+a fixed runner budget. The pinned Playwright image provides
 matching browsers and system dependencies. Updating Playwright also requires
 updating that image and digest. `verify` aggregates every applicable job and
 fails on a failed, cancelled or unexpectedly skipped dependency.

@@ -1,5 +1,8 @@
 body { margin: 0; }
 html { scroll-behavior: smooth; color-scheme: dark; background: var(--flood-sys-color-surface-canvas); scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--flood-sys-color-scrollbar-thumb) var(--flood-sys-color-surface-canvas); }
+/* Fragment entry must settle before hydration; a document-level animation can
+   otherwise race the reader's font-ready alignment and overshoot the heading. */
+html:has(.docs-layout) { scroll-behavior: auto; }
 @supports not (scrollbar-color: auto) {
   html::-webkit-scrollbar { width: calc(var(--flood-sys-scrollbar-size) + 2 * var(--flood-sys-scrollbar-inset)); height: calc(var(--flood-sys-scrollbar-size) + 2 * var(--flood-sys-scrollbar-inset)); }
   html::-webkit-scrollbar-track { background: var(--flood-sys-color-surface-canvas); }
