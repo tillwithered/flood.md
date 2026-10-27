@@ -39,13 +39,15 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: candidate-bytes-${{ steps.candidate.outputs.commit }}
+          artifact-ids: ${{ steps.candidate.outputs.candidate_id }}
+          merge-multiple: true
           path: .artifacts/release-candidate
           run-id: ${{ steps.candidate.outputs.run_id }}
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: browser-build-${{ steps.candidate.outputs.commit }}
+          artifact-ids: ${{ steps.candidate.outputs.browser_id }}
+          merge-multiple: true
           path: .artifacts
           run-id: ${{ steps.candidate.outputs.run_id }}
           github-token: ${{ github.token }}
