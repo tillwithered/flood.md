@@ -8,9 +8,9 @@ import {candidateIdentity,verifyCandidate,packageNames,digest} from '../scripts/
 test('candidate verification detects modified bytes, integrity and extra files',async()=>{
  const root=await mkdtemp(join(tmpdir(),'flood-candidate-'));
  try {
-  const packages=[];
-  for(const name of packageNames){const bytes=Buffer.from(name);const file=`flood-md-${name}-0.2.8.tgz`;await writeFile(join(root,file),bytes);packages.push({name,file,sha256:digest(bytes),integrity:'sha512-'+createHash('sha512').update(bytes).digest('base64')});}
-  const manifest={schemaVersion:1,...await candidateIdentity(),packages};
+  const packages=[], identity=await candidateIdentity();
+  for(const name of packageNames){const bytes=Buffer.from(name);const file=`flood-md-${name}-${identity.version}.tgz`;await writeFile(join(root,file),bytes);packages.push({name,file,sha256:digest(bytes),integrity:'sha512-'+createHash('sha512').update(bytes).digest('base64')});}
+  const manifest={schemaVersion:1,...identity,packages};
   const save=()=>writeFile(join(root,'candidate.json'),JSON.stringify(manifest));await save();await verifyCandidate(root);
   packages[0].integrity='sha512-wrong';await save();await assert.rejects(verifyCandidate(root),/digest differs/);
   packages[0].integrity='sha512-'+createHash('sha512').update('tokens').digest('base64');await save();
