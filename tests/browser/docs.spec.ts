@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { docPages, componentSlugs } from "../../apps/website/routes.mjs";
+import { catalogCohort } from "../../scripts/ci-cohort.mjs";
 
 test("home stays focused and navigation exposes documentation and GitHub", async ({ page }, info) => {
   await page.goto("/");
@@ -19,25 +20,29 @@ test("home stays focused and navigation exposes documentation and GitHub", async
   await expect(page.getByRole("group", { name: "Page format" })).toHaveCount(0);
 });
 
-test("every published guide and component has a directly loadable page", async ({ page, request }) => {
-  test.setTimeout(120_000);
+for (const doc of docPages) test(`published guide loads directly: ${doc.path}`, async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
-  for (const doc of docPages) {
     expect((await page.goto(doc.path))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(doc.label);
     await expect(page.locator(".markdown-content")).not.toBeEmpty();
-  }
-  for (const slug of componentSlugs) {
+  expect(errors).toEqual([]);
+});
+
+for (const slug of catalogCohort(componentSlugs)) test(`published component loads directly: ${slug}`, async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
     expect((await page.goto(`/components/${slug}`))?.status()).toBe(200);
     await expect(page.locator(".component-workbench")).toBeVisible();
     await expect(page.locator(".preview-stage > .flood-root > *").first()).toBeVisible();
     await expect(page.getByRole("heading", { name: "API reference", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  }
+  expect(errors).toEqual([]);
+});
+
+test("missing documentation stays 404 and the GitHub mark is served as SVG", async ({ request }) => {
   for (const path of ["/docs/missing", "/components/missing", "/agent/missing.md"]) expect((await request.get(path)).status()).toBe(404);
   expect((await request.get("/github-mark.svg")).headers()["content-type"]).toContain("image/svg+xml");
-  expect(errors).toEqual([]);
 });
 
 test("component code, clipboard, local interactions and mobile navigation work", async ({ page }, info) => {

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { readFile, writeFile, mkdir, appendFile } from 'node:fs/promises';
 import { browserShards } from './ci-shards.mjs';
+import { changedRecipes } from './ci-recipes.mjs';
 import { posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -83,18 +84,22 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       const ancestor=git(['merge-base',base,'HEAD']).trim();
       const changed=git(['diff','--name-only','--no-renames',ancestor,'HEAD']).trim().split('\n').filter(Boolean);
       const catalog=JSON.parse(await readFile('apps/website/src/component-catalog.json','utf8'));
-      // Shared styles/tokens, build, dependencies, recipes and CI edits affect all.
-      if(!changed.length || changed.some(p=>!/^packages\/react\/src\/.+\.tsx?$/.test(p)))throw Error('Shared or unclassified change');
+      const recipePath='apps/website/src/component-workbench.tsx';
+      // Only explicit per-slug recipe branches can be scoped. Shared renderer,
+      // controls, styles, tokens, build, dependencies and unknown paths stay full.
+      if(!changed.length || changed.some(p=>p!==recipePath&&!/^packages\/react\/src\/.+\.tsx?$/.test(p)))throw Error('Shared or unclassified change');
       const paths=git(['ls-tree','-r','--name-only','HEAD','packages/react/src']).trim().split('\n').filter(p=>/\.tsx?$/.test(p));
       const before=new Map(),after=new Map();
       for(const path of paths){after.set(path,await readFile(path,'utf8'));before.set(path,git(['show',`${ancestor}:${path}`]));}
       const names=catalog.map(c=>c.name), old=componentFingerprints(before,names), next=componentFingerprints(after,names);
-      const components=catalog.filter(c=>old.get(c.name)!==next.get(c.name)).map(c=>c.slug);
+      const affected=new Set(catalog.filter(c=>old.get(c.name)!==next.get(c.name)).map(c=>c.slug));
+      if(changed.includes(recipePath)) for(const slug of changedRecipes(git(['show',`${ancestor}:${recipePath}`]),await readFile(recipePath,'utf8'),catalog.map(c=>c.slug)))affected.add(slug);
+      const components=catalog.filter(c=>affected.has(c.slug)).map(c=>c.slug);
       if(!components.length)throw Error('No public consumer identified');
       const tests=git(['ls-files','tests/browser/*.spec.ts']).trim().split('\n');
       const testFiles=selectBrowserFiles(tests.map(path=>({path})));
       if(!testFiles.length)throw Error('No affected tests identified');
-      plan={full:false,reason:'Public implementation dependency closure',components,testFiles};
+      plan={full:false,reason:'Public implementation dependency closure and explicit recipe changes',components,testFiles};
     }
   } catch(error) {plan.reason=error.message;}
   await mkdir('.artifacts',{recursive:true});
