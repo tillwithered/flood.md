@@ -47,6 +47,7 @@ jobs:
         with:
           name: website-runtime-${{ github.sha }}
           path: ${{ steps.website.outputs.directory }}
+          overwrite: true
           retention-days: 14
           if-no-files-found: error
       - name: Bundle build outputs once for browser workers
@@ -60,6 +61,7 @@ jobs:
           name: browser-build-${{ github.sha }}
           path: .artifacts/browser-build.tgz
           compression-level: 0
+          overwrite: true
           retention-days: 14
           if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -67,6 +69,7 @@ jobs:
         with:
           name: candidate-bytes-${{ github.sha }}
           path: .artifacts/release-candidate
+          overwrite: true
           retention-days: 14
           if-no-files-found: error
   chromium:
@@ -105,6 +108,7 @@ jobs:
           path: |
             playwright-report
             test-results
+          overwrite: true
           retention-days: 7
   browser-engines:
     needs: build
@@ -143,6 +147,7 @@ jobs:
             .artifacts/browser-engines.json
             test-results
           if-no-files-found: ignore
+          overwrite: true
           retention-days: 7
   verify:
     if: always()

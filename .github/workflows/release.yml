@@ -66,4 +66,5 @@ jobs:
             .artifacts/registry-verification.json
             .artifacts/registry-browser-results.json
           if-no-files-found: ignore
+          overwrite: true
           retention-days: 14
