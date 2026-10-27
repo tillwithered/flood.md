@@ -1,11 +1,9 @@
 name: Verify website deployment
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
-    branches: [main]
+  deployment_status:
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: website-verification
   cancel-in-progress: true
@@ -13,22 +11,25 @@ jobs:
   deployed-source:
     if: >-
       github.repository == 'tillwithered/flood.md' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment != 'npm-release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.deployment.sha }}
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
-      - name: Wait for the matching Railway source and verify public contracts
+      - name: Require successful main CI for the deployed source
+        run: node scripts/ci-candidate-run.mjs --site
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Verify actual public contracts after Railway rollout
         run: node scripts/site-contract.mjs wait
         env:
           WEBSITE_URL: ${{ vars.WEBSITE_URL || 'https://flood.md' }}
-          EXPECTED_COMMIT: ${{ github.event.workflow_run.head_sha }}
-          VERIFY_TIMEOUT_MS: 600000
+          EXPECTED_COMMIT: ${{ github.event.deployment.sha }}
+          VERIFY_TIMEOUT_MS: 120000

@@ -98,12 +98,15 @@ deployment; inspect the deployed endpoints after the rollout.
 
 ## CI and rollout verification
 
-The required `verify` job builds packages, declarations, the website and Next
+The CI build job builds packages, declarations, the website and Next
 example, tests safe installation and then runs `npm run site:check`. This last
 check creates an isolated runtime-only bundle, starts its real Node server on an
 ephemeral port and verifies agent manifest references, media types, actual guide
 contents, health, HEAD, missing paths and rejected write methods. Browser checks
-then verify UI behavior. Only successful CI uploads the checked runtime artifact.
+then verify UI behavior. The required `verify` job aggregates the build and
+browser workers. The build uploads its runtime before the browser jobs finish;
+deployment must require success of the entire CI run, never artifact existence
+alone. Browser workers consume that build without rebuilding packages or Next.
 
 Every website build emits `/site-release.json` with package version, source commit
 and a dirty-source marker. Local previews can be dirty; deployment verification
@@ -114,8 +117,10 @@ Railway continues to deploy protected `main` through its GitHub integration. Kee
 Wait for CI enabled in the service settings; the setting is account-specific and
 must be inspected on the service rather than inferred from a green PR. See the
 [Railway documentation](https://docs.railway.com/deployments/github-autodeploys#wait-for-ci).
-The read-only `Verify website deployment` workflow runs after successful main-push
-CI, waits for that source commit and probes the actual public agent/doc endpoints.
+The read-only `Verify website deployment` workflow runs on a successful hosting
+`deployment_status` event, requires successful main-push CI for that source commit
+and probes the actual public agent/doc endpoints. It does not run while Railway
+is waiting for GitHub CI, avoiding a circular wait between CI and rollout.
 A mismatched or missing commit marker fails this check; a green build alone is
 not a successful rollout. This workflow never deploys or grants Railway access.
 

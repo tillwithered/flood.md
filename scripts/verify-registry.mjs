@@ -5,6 +5,8 @@ import { isAbsolute, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
 import { createServer } from "node:net";
+import { verifyCandidate } from "./ci-artifacts.mjs";
+import { consumerEnvironment } from "./consumer-env.mjs";
 
 const workspace = fileURLToPath(new URL("../", import.meta.url));
 const json = async path => JSON.parse(await readFile(path, "utf8"));
@@ -20,7 +22,7 @@ await mkdir(project);
 const userConfig = join(sandbox, "npmrc");
 await writeFile(userConfig, "registry=https://registry.npmjs.org/\n");
 // Registry consumption needs no publisher, artifact or account credentials.
-const env = Object.fromEntries(["PATH", "SystemRoot", "WINDIR", "TEMP", "TMP", "HOME", "USERPROFILE", "ComSpec", "PATHEXT"].filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]]));
+const env = consumerEnvironment(process.env);
 Object.assign(env, { CI: "true", NEXT_TELEMETRY_DISABLED: "1", NPM_CONFIG_CACHE: join(sandbox, "cache"), NPM_CONFIG_USERCONFIG: userConfig });
 const npmCli = process.env.npm_execpath;
 if (!npmCli) throw new Error("Run through npm run release:verify-registry");
@@ -32,6 +34,7 @@ function run(command, args, cwd = project, extraEnv = {}) {
 const npm = args => run(process.execPath, [npmCli, ...args]);
 const packages = ["tokens", "react", "agent", "cli"];
 const registry = {};
+const candidate = process.env.FLOOD_PREPARED_CANDIDATE === 'true' ? await verifyCandidate('.artifacts/release-candidate') : null;
 const deadline = Date.now() + 5 * 60_000;
 while (Object.keys(registry).length < packages.length) {
   for (const name of packages.filter(name => !registry[name])) {
@@ -40,6 +43,7 @@ while (Object.keys(registry).length < packages.length) {
       const metadata = JSON.parse(result.stdout);
       assert.equal(metadata.version, version);
       assert.ok(metadata.dist?.integrity);
+      if (candidate) assert.equal(metadata.dist.integrity, candidate.packages.find(pkg => pkg.name === name).integrity, 'Registry differs from the verified candidate');
       registry[name] = metadata.dist.integrity;
     }
   }
