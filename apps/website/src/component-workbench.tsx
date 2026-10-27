@@ -220,7 +220,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
   switch (slug) {
     case "time-picker": return element("div",{style:{width:"26rem",maxWidth:"100%"}},element("TimePicker",{label:"Start time",name:"time",defaultValue:"09:30",min:"08:00",max:"18:00",interval:Number(v.interval),controlSize:v.controlSize,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled}));
     case "date-time-range-picker": return element("div",{style:{width:"34rem",maxWidth:"100%"}},element("DateTimeRangePicker",{key:String(v.precision),label:"Booking",startDateName:"startDate",startTimeName:"startTime",endDateName:"endDate",endTimeName:"endTime",defaultValue:{start:{date:"2026-10-27",time:v.precision==="second"?"09:00:00":"09:00"},end:{date:"2026-10-27",time:v.precision==="second"?"18:00:00":"18:00"}},precision:v.precision,locale:v.locale,controlSize:v.controlSize,required:v.required,hideLabel:v.hideLabel,readOnly:v.readOnly,disabled:v.disabled}));
-    case "file-meta": return element("FileMeta",{lang:"en-US",format:v.format==="none"?undefined:v.format,size:v.showSize?Number(v.size):undefined});
+    case "file-meta": return element("FileMeta",{lang:"en-GB",format:v.format==="none"?undefined:v.format,size:v.showSize?Number(v.size):undefined});
     case "file-item":
     case "file-list": return element("div",{style:{width:"32rem",maxWidth:"100%"}},element("FileList",{label:"Attachments",density:v.density},...["brand",...(slug==="file-list"?["logo","cover"]:[])].map((id,index)=>{
       const name=v.longName?"Brand-guidelines-and-product-design-system-documentation-final-version.pdf":["Brand guidelines.pdf","Logo.svg","Cover.png"][index];
