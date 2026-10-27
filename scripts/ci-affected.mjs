@@ -1,7 +1,8 @@
 import { parse } from '@babel/parser';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, appendFile } from 'node:fs/promises';
+import { browserShards } from './ci-shards.mjs';
 import { posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -97,6 +98,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     }
   } catch(error) {plan.reason=error.message;}
   await mkdir('.artifacts',{recursive:true});
+  const inventory=JSON.parse(await readFile('apps/website/src/component-catalog.json','utf8'));
+  const shards=browserShards(inventory.length,plan.full);
+  if(process.env.GITHUB_OUTPUT) {
+    const matrix=n=>JSON.stringify(Array.from({length:n},(_,i)=>i+1));
+    await appendFile(process.env.GITHUB_OUTPUT,`chromium_shards=${matrix(shards.chromium)}\nchromium_total=${shards.chromium}\nengine_shards=${matrix(shards.engines)}\nengine_total=${shards.engines}\n`);
+  }
+  plan.shards=shards;
   await writeFile('.artifacts/ci-plan.json',JSON.stringify(plan,null,2)+'\n');
   console.log(JSON.stringify(plan,null,2));
 }

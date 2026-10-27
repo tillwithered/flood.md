@@ -25,6 +25,8 @@ initial HTML; text, examples, API tables and navigation remain readable without
 JavaScript. The client loads the reader before hydrating it and then enables
 playgrounds, clipboard actions and highlighting. React's static renderer is a
 build-time dependency only; the production server still needs no npm dependencies.
+The reader uses immediate native document scrolling for fragments, before and
+after hydration, so a smooth-scroll animation cannot race font-ready alignment.
 
 `routes.mjs` also supplies per-page title, description and production canonical
 URLs, Open Graph metadata, the public sitemap and its robots.txt discovery link.

@@ -14,6 +14,10 @@ jobs:
     timeout-minutes: 15
     outputs:
       gate_only: ${{ steps.scope.outputs.gate_only }}
+      chromium_shards: ${{ steps.affected.outputs.chromium_shards }}
+      chromium_total: ${{ steps.affected.outputs.chromium_total }}
+      engine_shards: ${{ steps.affected.outputs.engine_shards }}
+      engine_total: ${{ steps.affected.outputs.engine_total }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -30,6 +34,7 @@ jobs:
         id: scope
         run: node scripts/ci-scope.mjs
       - name: Select affected component consumers
+        id: affected
         run: node scripts/ci-affected.mjs
       - run: npm run verify
         if: steps.scope.outputs.gate_only != 'true'
@@ -47,6 +52,7 @@ jobs:
         with:
           name: website-runtime-${{ github.sha }}
           path: ${{ steps.website.outputs.directory }}
+          overwrite: true
           retention-days: 14
           if-no-files-found: error
       - name: Bundle build outputs once for browser workers
@@ -60,6 +66,7 @@ jobs:
           name: browser-build-${{ github.sha }}
           path: .artifacts/browser-build.tgz
           compression-level: 0
+          overwrite: true
           retention-days: 14
           if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -67,6 +74,7 @@ jobs:
         with:
           name: candidate-bytes-${{ github.sha }}
           path: .artifacts/release-candidate
+          overwrite: true
           retention-days: 14
           if-no-files-found: error
   chromium:
@@ -79,7 +87,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: ${{ fromJSON(needs.build.outputs.chromium_shards) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -95,7 +103,7 @@ jobs:
           path: .artifacts
       - run: tar -xzf .artifacts/browser-build.tgz
       - name: Browser behavior and styles
-        run: node scripts/ci-browser.mjs chromium ${{ matrix.shard }}/4
+        run: node scripts/ci-browser.mjs chromium ${{ matrix.shard }}/${{ needs.build.outputs.chromium_total }}
         env:
           FLOOD_PUBLICATION_ONLY: ${{ needs.build.outputs.gate_only }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -105,6 +113,7 @@ jobs:
           path: |
             playwright-report
             test-results
+          overwrite: true
           retention-days: 7
   browser-engines:
     needs: build
@@ -118,6 +127,7 @@ jobs:
       fail-fast: false
       matrix:
         engine: [firefox, webkit]
+        shard: ${{ fromJSON(needs.build.outputs.engine_shards) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -134,15 +144,16 @@ jobs:
       - run: tar -xzf .artifacts/browser-build.tgz
       - name: Match the mounted browser profile directory to the container user
         run: chown "$(id -u):$(id -g)" /github/home
-      - run: node scripts/ci-browser.mjs ${{ matrix.engine }}
+      - run: node scripts/ci-browser.mjs ${{ matrix.engine }} ${{ matrix.shard }}/${{ needs.build.outputs.engine_total }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: ${{ matrix.engine }}-results
+          name: ${{ matrix.engine }}-${{ matrix.shard }}-results
           path: |
             .artifacts/browser-engines.json
             test-results
           if-no-files-found: ignore
+          overwrite: true
           retention-days: 7
   verify:
     if: always()
