@@ -51,9 +51,14 @@
       "source": "references/spacing.md",
       "target": ".agents/skills/flood-ui/references/spacing.md",
       "kind": "reference"
+    },
+    {
+      "source": "references/flood-composition/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-composition/SKILL.md",
+      "kind": "skill"
     }
   ],
-  "version": "0.2.6",
+  "version": "0.2.8",
   "installedEntry": ".agents/skills/flood-ui/SKILL.md",
   "pathBase": "source is package-relative; target is relative to the host project root"
 }

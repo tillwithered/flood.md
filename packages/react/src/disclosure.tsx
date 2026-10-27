@@ -10,7 +10,7 @@ interface Props extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
   headingLevel?: 2 | 3 | 4 | 5 | 6;
 }
 /** Shared original disclosure anatomy. The closed panel stays mounted but hidden. */
-export const Disclosure = forwardRef<HTMLDivElement, Props>(function Disclosure(
+export const Disclosure = /* @__PURE__ */ forwardRef<HTMLDivElement, Props>(function Disclosure(
   {title, expanded, onExpandedChange, disabled, controlSize, headingLevel, className, children, id: explicitId, ...props}, ref,
 ) {
   const generatedId = useId(), id = explicitId ?? `flood-disclosure-${generatedId}`;

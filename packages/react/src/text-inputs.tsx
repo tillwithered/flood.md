@@ -4,7 +4,7 @@ import type { SearchInputProps, PasswordInputProps, InputGroup, IconButton, Icon
 type Parts = { group: typeof InputGroup; action: typeof IconButton; icon: typeof IconSlot };
 const glyph = (kind: "search" | "clear" | "eye", visible = false) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{kind === "search" ? <><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></> : kind === "clear" ? <path d="m6 6 12 12M18 6 6 18"/> : <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>{visible && <path d="m3 3 18 18"/>}</>}</svg>;
 
-export const SearchField = forwardRef<HTMLInputElement, SearchInputProps & Parts>(function SearchField({group: Group, action: Action, icon: Icon, clearable = true, clearLabel = "Clear search", controlSize = "md", className, value, defaultValue, onChange, disabled, readOnly, ...props}, ref) {
+export const SearchField = /* @__PURE__ */ forwardRef<HTMLInputElement, SearchInputProps & Parts>(function SearchField({group: Group, action: Action, icon: Icon, clearable = true, clearLabel = "Clear search", controlSize = "md", className, value, defaultValue, onChange, disabled, readOnly, ...props}, ref) {
   const input = useRef<HTMLInputElement>(null);
   useImperativeHandle(ref, () => input.current!, []);
   const [text, setText] = useState(String(defaultValue ?? ""));
@@ -30,7 +30,7 @@ export const SearchField = forwardRef<HTMLInputElement, SearchInputProps & Parts
     end={clearable && current.length > 0 && !readOnly ? <Action label={clearLabel} variant="ghost" size={controlSize} disabled={disabled} onPointerDown={event => event.preventDefault()} onClick={clear}>{glyph("clear")}</Action> : undefined}/>;
 });
 
-export const PasswordField = forwardRef<HTMLInputElement, PasswordInputProps & Parts>(function PasswordField({group: Group, action: Action, icon: _Icon, visible, defaultVisible = false, onVisibleChange, showPasswordLabel = "Show password", hidePasswordLabel = "Hide password", controlSize = "md", className, disabled, ...props}, ref) {
+export const PasswordField = /* @__PURE__ */ forwardRef<HTMLInputElement, PasswordInputProps & Parts>(function PasswordField({group: Group, action: Action, icon: _Icon, visible, defaultVisible = false, onVisibleChange, showPasswordLabel = "Show password", hidePasswordLabel = "Hide password", controlSize = "md", className, disabled, ...props}, ref) {
   const input = useRef<HTMLInputElement>(null);
   useImperativeHandle(ref, () => input.current!, []);
   const [local, setLocal] = useState(defaultVisible);

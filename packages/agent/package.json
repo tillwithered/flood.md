@@ -1,6 +1,6 @@
 {
   "name": "@flood-md/agent",
-  "version": "0.2.6",
+  "version": "0.2.8",
   "type": "module",
   "description": "Versioned Flood design instructions for coding agents.",
   "license": "MIT",

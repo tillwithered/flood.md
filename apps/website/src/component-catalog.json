@@ -718,8 +718,8 @@
     "slug": "menu",
     "name": "Menu",
     "group": "overlays",
-    "description": "An action menu with keyboard navigation, separators and explicit disabled/danger states.",
-    "code": "<Menu label=\"Project actions\"\n  trigger={props => <Button {...props}>Project actions</Button>}\n  items={[{id:\"rename\",label:\"Rename\u0432\u0402\u00a6\"},{id:\"divider\",type:\"separator\"},{id:\"delete\",label:\"Delete project\",tone:\"danger\"}]}\n  onAction={id => console.log(id)}\n/>",
+    "description": "An action and preference menu with keyboard navigation and controlled checkbox/radio items.",
+    "code": "<Menu label=\"Project actions\"\n  trigger={props => <Button {...props}>Project actions</Button>}\n  items={[{id:\"rename\",label:\"Rename…\"},{id:\"divider\",type:\"separator\"},{id:\"delete\",label:\"Delete project\",tone:\"danger\"}]}\n  onAction={id => console.log(id)}\n/>",
     "imports": [
       "Menu",
       "Button"
@@ -729,8 +729,10 @@
       "Enter/Space and ArrowDown open at the first item; ArrowUp opens at the last. Inside use arrows, Home/End and label-prefix typeahead.",
       "Disabled items stay keyboard-focusable with aria-disabled but cannot activate. Separators are noninteractive; action IDs must be unique and nonempty. At least one action is required.",
       "Escape closes and restores trigger focus. Tab moves to the next control after the trigger; Shift+Tab returns to the trigger. Outside interaction dismisses without stealing deliberately moved focus.",
-      "Shortcut text is a visual hint, not an implemented key binding. Only action items are supported: no href, submenus, checkbox/radio selection or asynchronous task manager.",
-      "Controlled open needs host updates; onAction requests closure before calling the host. Modern native Popover API required. Native div props/ref target the popup. Available in 0.2.4."
+      "Shortcut text is a visual hint, not an implemented key binding. No href or asynchronous task manager is included. Nested items use type=\"submenu\" and a nonempty items array. Checkbox/radio items are controlled preferences, available in 0.2.7.",
+      "Controlled open needs host updates; onAction requests closure before calling the host. Modern native Popover API required. Native div props/ref target the popup. Available in 0.2.4.",
+      "Checkbox items take checked (boolean or mixed) and onCheckedChange. Radio items take a nonempty group label, checked and onCheckedChange; the host keeps one selected item per group. Keep each radio group contiguous. Preference items stay open by default; closeOnSelect opts into dismissal. They do not call onAction or submit form values.",
+      "Submenus open by logical arrow, click/tap or cancellable mouse hover intent. Escape closes one level; Tab leaves the entire tree through the root trigger. IDs are unique across the tree and nested keyboard searches stay inside their own menu."
     ]
   },
   {
@@ -1243,7 +1245,7 @@
       "Section renders a native section and heading. A generated heading ID labels the region; explicit id creates a deterministic heading ID. headingLevel follows the host document hierarchy.",
       "The title and description share a close text column; actions align separately and wrap when necessary. It adds no surface or border. Compose Surface or another container inside when content needs its own background.",
       "Original compatible addition in the unpublished 0.2.5 source candidate.",
-      "headingLevel chooses h2\u2013h6 for the document outline; it does not set the visual scale. headingSize independently selects the existing Heading typography role (section by default)."
+      "headingLevel chooses h2–h6 for the document outline; it does not set the visual scale. headingSize independently selects the existing Heading typography role (section by default)."
     ]
   },
   {
@@ -1297,7 +1299,7 @@
     "slug": "list-box",
     "name": "ListBox",
     "group": "forms",
-    "description": "A visible single or multiple selection collection with keyboard navigation.",
+    "description": "A named single or multiple selection list with native validation and semantic feedback.",
     "code": "<ListBox label=\"Framework\" name=\"framework\" defaultValue=\"react\" options={[{value:\"react\",label:\"React\"},{value:\"vue\",label:\"Vue\"},{value:\"svelte\",label:\"Svelte\"}]} />",
     "imports": [
       "ListBox"
@@ -1305,7 +1307,9 @@
     "notes": [
       "Use a scalar value/defaultValue in single mode and an array in multiple mode. onValueChange returns the matching shape. Stable, unique nonempty option IDs are submitted as repeated hidden native form fields when name is supplied. Uncontrolled reset restores the initial selection.",
       "The list owns one Tab stop and aria-activedescendant. Arrows/Home/End move through enabled options; single selection follows navigation. Space/Enter selects or toggles. Typing searches option-label prefixes. Disabled options cannot be selected; readOnly retains navigation and copying without changing the value.",
-      "Provide a clear label or use hideLabel with the accessible label preserved. Use disabled on the composite to remove its Tab stop. The list is not virtualized and does not fetch options. Available in 0.2.5."
+      "Provide a clear label or use hideLabel with the accessible label preserved. Use disabled on the composite to remove its Tab stop. The list is not virtualized and does not fetch options. Available in 0.2.5.",
+      "required validates accepted selection; readonly bypasses validation and disabled excludes form values.",
+      "description/message and status share the field feedback contract. validationMessage is a host-owned blocking constraint."
     ]
   },
   {
@@ -1366,6 +1370,516 @@
       "Pass text through value or supply an explicit nonnegative integer count for a host-defined counting rule. The default text count uses Unicode code points, not UTF-16 code units or grapheme clusters. max is advisory and does not truncate or validate an editor.",
       "mode remaining displays max minus count; count displays the current count and optional limit. An over-limit message is visible in addition to its semantic color. Translate label/overLimitLabel; lang formats the number.",
       "Use htmlFor to associate supporting output with its editor and aria-describedby on the editor when appropriate. Live announcements default off to avoid announcing every keystroke; the host may opt into aria-live. Available in 0.2.5."
+    ]
+  },
+  {
+    "slug": "editable",
+    "name": "Editable",
+    "group": "forms",
+    "description": "Inline editing with explicit save/cancel and a committed form value.",
+    "code": "<Editable label=\"Project name\" defaultValue=\"Flood workspace\" name=\"project\" />",
+    "imports": [
+      "Editable"
+    ],
+    "notes": [
+      "Preview and edit modes keep a separate draft. Enter commits and Escape cancels; IME composition does not submit.",
+      "Use blurAction to commit, cancel or preserve the draft on outside focus. Moving focus to the save/cancel actions is internal to the editor.",
+      "The host owns controlled value and editing props; callbacks request changes. The hidden named form field contains only the committed value.",
+      "readOnly keeps a copyable field; disabled prevents editing. Localized action labels and inputRef are available. Introduced in 0.2.7."
+    ]
+  },
+  {
+    "slug": "tag-input",
+    "name": "TagInput",
+    "group": "forms",
+    "description": "Free-form text tokens with keyboard entry, removal and named form values.",
+    "code": "<TagInput label=\"Topics\" defaultValue={[\"Design\", \"React\"]} name=\"topics\" placeholder=\"Add a topic…\" />",
+    "imports": [
+      "TagInput"
+    ],
+    "notes": [
+      "Use TagInput for values the user may create. Use MultiSelect for a fixed option collection.",
+      "Enter and configured delimiters commit trimmed, unique tags. Pasting separated text adds multiple tags. IME composition is preserved.",
+      "Each committed tag submits one entry under name. required applies to committed tags; a draft is not a submitted token. Form reset preserves controlled ownership.",
+      "Backspace on an empty draft removes the last token. Read only preserves copying and form values; disabled omits submission and removal. Introduced in 0.2.7."
+    ]
+  },
+  {
+    "slug": "command-list",
+    "name": "CommandList",
+    "group": "actions",
+    "description": "Search and invoke commands with grouped results and keyboard navigation.",
+    "code": "<CommandList label=\"Search commands\" items={[{id:\"new\",label:\"New project\",group:\"Projects\"},{id:\"settings\",label:\"Open settings\",group:\"Workspace\"}]} onAction={id => console.log(id)} />",
+    "imports": [
+      "CommandList"
+    ],
+    "notes": [
+      "CommandList invokes actions; Combobox and MultiSelect edit form values. A command list has no submitted name or persistent selected value.",
+      "Typing filters labels, descriptions, group names and keywords. Arrow keys, Home/End and Enter navigate and invoke enabled commands. Escape remains available to a host Dialog.",
+      "Use query/onQueryChange for host ownership or defaultQuery for local filtering. Loading blocks stale invocation and exposes an announcement; the host owns asynchronous work and cancellation.",
+      "The ref targets the native search input. Native div props target the wrapper. Translate labels, placeholder, emptyMessage and loadingMessage; hideLabel preserves the search name. No modal, global shortcut or router integration is implied. Introduced in 0.2.7."
+    ]
+  },
+  {
+    "slug": "date-field",
+    "name": "DateField",
+    "group": "forms",
+    "description": "Segmented Gregorian date entry with canonical form values and explicit date validation.",
+    "code": "<DateField label=\"Start date\" name=\"start\" defaultValue=\"2026-10-26\" order=\"day-month-year\" />",
+    "imports": [
+      "DateField"
+    ],
+    "notes": [
+      "Uses three native text segments rather than an operating-system calendar popup. Calendar and DatePicker are separate contracts.",
+      "Values are canonical YYYY-MM-DD dates from 0001 through 9999, or an empty string. min/max and leap years use civil date arithmetic without timezones.",
+      "Arrow keys adjust segments. Left/Right move at segment boundaries; IME and modifier shortcuts remain available. Use explicit order and localized segmentLabels/messages.",
+      "In editable fields, incomplete or invalid drafts block native submission; the hidden named field contains no stale previous date. Controlled values and form resets preserve host ownership.",
+      "Read only retains copying and accepted canonical submission, even outside current bounds or application constraints. It bypasses native validity without accepting partial or refused drafts. Disabled fields and fieldsets remain excluded. Introduced in the unpublished 0.2.7 source candidate."
+    ]
+  },
+  {
+    "slug": "time-field",
+    "name": "TimeField",
+    "group": "forms",
+    "description": "Segmented 24-hour time entry with canonical values, bounds and a seconds-based step.",
+    "code": "<TimeField label=\"Start time\" name=\"startTime\" defaultValue=\"09:30\" step={300} />",
+    "notes": [
+      "Use HH:mm with minute precision or HH:mm:ss with second precision. Values have no date or timezone.",
+      "step is expressed in seconds and anchored to min or midnight; minute precision requires a multiple of 60. Overnight ranges are not inferred.",
+      "In editable fields, incomplete, invalid, out-of-range, step-mismatched and refused controlled drafts block native submission. Readonly preserves accepted canonical time outside bounds/step alignment; it never accepts a partial or refused draft. Disabled values are excluded.",
+      "Click the control background to focus a missing or remembered segment. Keyboard steps, Home/End, paste and IME preserve host cancellation. Translate segmentLabels and messages. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "TimeField"
+    ]
+  },
+  {
+    "slug": "calendar",
+    "name": "Calendar",
+    "group": "forms",
+    "description": "One calendar with day, month and year views, without nested popups.",
+    "code": "<Calendar label=\"Choose a date\" defaultValue=\"2026-10-26\" today=\"2026-10-26\" weekStartsOn={1} />",
+    "notes": [
+      "Calendar is a standalone visual collection. DateField handles text entry and DatePicker composes the field and calendar layer.",
+      "Values use canonical YYYY-MM-DD and visibleMonth uses YYYY-MM. Locale formats Gregorian month/day names; weekStartsOn is explicit.",
+      "Arrows move dates; Home/End move within a week and PageUp/PageDown navigate months. Controlled month refusal preserves a real focused day. Disabled dates remain discoverable but cannot select.",
+      "The host owns selected values, availability and side effects. Provide today for a deterministic clock in tests or rendering. Min/max bound navigation; readonly prevents selection while allowing browsing. Introduced in 0.2.7.",
+      "Month and year controls replace the content of this calendar. Selecting a navigation period returns to days without changing the selected date.",
+      "granularity=\"day\" | \"month\" | \"year\" chooses YYYY-MM-DD, YYYY-MM or YYYY."
+    ],
+    "imports": [
+      "Calendar"
+    ]
+  },
+  {
+    "slug": "date-picker",
+    "name": "DatePicker",
+    "group": "forms",
+    "description": "A segmented date field with an integrated calendar picker and shared form value.",
+    "code": "<DatePicker label=\"Start date\" name=\"start\" defaultValue=\"2026-10-26\" today=\"2026-10-26\" />",
+    "imports": [
+      "DatePicker"
+    ],
+    "notes": [
+      "Composes Flood DateField, Calendar and Popover; text input and visual selection share one canonical value and form bridge.",
+      "Activate the calendar icon or Alt+ArrowDown in a segment. Escape/outside dismissal returns or preserves intended focus through the existing overlay engine. Selecting a day closes the calendar.",
+      "Read only and disabled prevent opening or date changes; native disabled fieldsets remain inert. Invalid/incomplete drafts retain native DateField validation.",
+      "Controlled value and open state are independently host-owned. Native form reset restores the initial uncontrolled date and preserves cancelled resets. Translate calendarLabel/openCalendarLabel, month navigation, segment labels and messages.",
+      "DateField remains the keyboard-entry primitive; Calendar remains independently usable. Introduced in the unpublished 0.2.7 source candidate."
+    ]
+  },
+  {
+    "slug": "error-summary",
+    "name": "ErrorSummary",
+    "group": "feedback",
+    "description": "A linked validation summary that focuses host-owned invalid fields.",
+    "code": "<ErrorSummary title=\"Review the form\" errors={[{id:\"project\",fieldId:\"project\",message:\"Enter a project name.\"}]} />",
+    "notes": [
+      "The host supplies errors; ErrorSummary does not infer validation or submit a form. Each entry links to an exact field ID.",
+      "Normal activation focuses the target while modifier navigation remains native. onSelect can cancel the action before focus moves.",
+      "announcement defaults to off. autoFocus opts into focus on appearance, not on every error update, and suppresses duplicate live announcements. Empty errors render nothing. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "ErrorSummary"
+    ]
+  },
+  {
+    "slug": "resizable-panels",
+    "name": "ResizablePanels",
+    "group": "layout",
+    "description": "Two panels separated by an accessible pointer and keyboard resize control.",
+    "code": "<ResizablePanels label=\"Resize workspace\" main={<Text>Navigation</Text>} secondary={<Text>Workspace</Text>} style={{height:\"16rem\"}} />",
+    "notes": [
+      "Percentages describe the main pane and exclude the dedicated separator track. The host supplies content and scrolling.",
+      "Drag the separator or use logical arrow keys, Home/End and Shift for large steps. Horizontal resizing follows RTL direction.",
+      "value/onValueChange keeps the host in control. onValueCommit reports an accepted completed interaction; pointer cancellation restores the initial uncontrolled size.",
+      "The separator occupies space so its touch area does not overlap panel content. Persisting layout and larger panel graphs belong to the host. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "ResizablePanels",
+      "Text"
+    ]
+  },
+  {
+    "slug": "range-calendar",
+    "name": "RangeCalendar",
+    "group": "forms",
+    "description": "A Gregorian grid for selecting and previewing one continuous date interval.",
+    "code": "<RangeCalendar label=\"Choose travel dates\" today=\"2026-10-26\" defaultValue={{start:\"2026-10-12\",end:\"2026-10-18\"}} />",
+    "notes": [
+      "The first activation chooses a start; the second completes a normalized ordered interval. Hover and focus can preview an unfinished interval without committing.",
+      "Controlled values include partial {start,end:\"\"}; the host must accept that partial value to advance selection. onRangeSelect confirms an enabled completed interval.",
+      "isDateDisabled controls endpoints. isRangeDisabled validates the entire interval; interior blocked dates are not inferred by scanning arbitrary date spans.",
+      "Reuses the Calendar grid, month navigation, focus and localization contracts. Translate rangeLabels for instruction messages. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "RangeCalendar"
+    ]
+  },
+  {
+    "slug": "date-range-field",
+    "name": "DateRangeField",
+    "group": "forms",
+    "description": "Two segmented date fields with one ordered range and atomic form values.",
+    "code": "<DateRangeField label=\"Travel dates\" startName=\"start\" endName=\"end\" defaultValue={{start:\"2026-10-12\",end:\"2026-10-18\"}} />",
+    "notes": [
+      "The value is {start,end}, with canonical YYYY-MM-DD dates or empty endpoints. Editable partial, reversed, unavailable and refused ranges block native submission. Readonly submits a complete ordered accepted pair despite current bounds/availability; partial, reversed and refused pairs stay atomic empty values.",
+      "Both named bridges represent one range contract. The group owns relationship validation while each DateField preserves its calendar validity and keyboard behavior.",
+      "Start/end names and labels are explicit; min/max, readonly/disabled, status and form reset follow the field contracts.",
+      "Use DateRangePicker for visual interval selection. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "DateRangeField"
+    ]
+  },
+  {
+    "slug": "date-range-picker",
+    "name": "DateRangePicker",
+    "group": "forms",
+    "description": "Paired date entry with one calendar popup for continuous interval selection.",
+    "code": "<DateRangePicker label=\"Travel dates\" startName=\"start\" endName=\"end\" today=\"2026-10-26\" defaultValue={{start:\"2026-10-12\",end:\"2026-10-18\"}} />",
+    "notes": [
+      "Composes DateRangeField, RangeCalendar and the existing Popover engine. One popup selects start and end; it closes after an enabled complete interval.",
+      "The popup follows the whole fields region width and clamps to the viewport. Text and calendar editing share the same partial/complete range contract.",
+      "Controlled range/open state and availability remain host-owned. Escape/outside dismissal does not turn an incomplete range into a valid submission.",
+      "Translate endpoint, calendar and range instruction labels. Introduced in 0.2.7."
+    ],
+    "imports": [
+      "DateRangePicker"
+    ]
+  },
+  {
+    "slug": "context-menu",
+    "name": "ContextMenu",
+    "group": "overlays",
+    "description": "Context actions at the pointer or keyboard target, sharing the Menu interaction engine.",
+    "code": "<ContextMenu label=\"Project actions\" items={[{id:\"rename\",label:\"Rename\"},{id:\"duplicate\",label:\"Duplicate\"}]} onAction={id => console.log(id)}><Surface padding=\"6\">Right-click or use Shift+F10.</Surface></ContextMenu>",
+    "imports": [
+      "ContextMenu",
+      "Surface"
+    ],
+    "notes": [
+      "Right click opens at the pointer; ContextMenu or Shift+F10 opens near the actual focused target. The wrapper is keyboard-focusable and named.",
+      "Uses the same Menu items, preferences, nested layers, typeahead and keyboard navigation. Leaf commands close the tree; Escape unwinds one level and restores the real source focus.",
+      "disabled preserves the native browser context menu. Controlled open and onAction remain host-owned. Provide a visible Menu action as a primary alternative on touch devices. Introduced in 0.2.7."
+    ]
+  },
+  {
+    "slug": "tree",
+    "name": "Tree",
+    "group": "forms",
+    "description": "A selectable application hierarchy with independent expansion and keyboard focus.",
+    "code": "<Tree label=\"Project files\" items={[{value:\"source\",label:\"Source\",children:[{value:\"button\",label:\"Button.tsx\"}]}]} />",
+    "imports": [
+      "Tree"
+    ],
+    "notes": [
+      "Tree uses tree/treeitem/group semantics, logical arrows, Home/End and typeahead. Moving focus does not select an item. Enter/Space explicitly selects; multiple selection does not cascade.",
+      "Items have globally unique values. Expansion uses expandedValues/defaultExpandedValues/onExpandedValuesChange; selection uses value/defaultValue/onValueChange. Controlled refusal preserves the host state.",
+      "Read-only allows browsing without selecting. Disabled items remain discoverable but cannot select or expand. hasChildren/loading represent host-owned deferred branches; no fetching or virtualization is built in.",
+      "Application selection writes no form values. Use NavigationTree for ordinary native links. Introduced in 0.2.7."
+    ]
+  },
+  {
+    "slug": "navigation-tree",
+    "name": "NavigationTree",
+    "group": "navigation",
+    "description": "Nested native navigation links with separate disclosure controls.",
+    "code": "<NavigationTree label=\"Documentation\" defaultExpandedValues={[\"start\"]} items={[{value:\"start\",label:\"Getting started\",children:[{value:\"installation\",label:\"Installation\",href:\"/docs/installation\"}]}]} />",
+    "imports": [
+      "NavigationTree"
+    ],
+    "notes": [
+      "Native nav, lists and anchors preserve ordinary Tab order and browser modifier navigation. This component does not use ARIA tree/menu/tab roles.",
+      "A branch may have both href and children: its native link navigates while a separate disclosure button expands. currentValue marks the matching destination; ancestors are expanded explicitly by the host.",
+      "Expansion is controlled or uncontrolled through expandedValues/defaultExpandedValues/onExpandedValuesChange. Translate disclosure names with expandLabel; content can render host-owned loading or empty branch content.",
+      "Item values must be globally unique and children acyclic. Disabled destinations have no active href; parent disability does not propagate to children. Introduced in 0.2.7."
+    ]
+  },
+  {
+    "slug": "color-swatch",
+    "name": "ColorSwatch",
+    "group": "content",
+    "description": "A named sample of an opaque RGB color.",
+    "code": "<ColorSwatch label=\"Flood pink\" value=\"#ff47a8\" />",
+    "notes": [
+      "Opaque RGB colors only; keep a text label wherever color conveys meaning."
+    ],
+    "imports": [
+      "ColorSwatch"
+    ]
+  },
+  {
+    "slug": "color-picker",
+    "name": "ColorPicker",
+    "group": "forms",
+    "description": "An RGB color editor with hex input, channel sliders and reusable presets.",
+    "code": "<ColorPicker label=\"Accent color\" defaultValue=\"#ff47a8\" name=\"accent\" presets={[\"#ff47a8\", \"#ffffff\", \"#78b8ff\"]} />",
+    "notes": [
+      "Uses #rrggbb values without alpha or gradients.",
+      "The hex field owns native form validation; RGB controls provide an additional editing path."
+    ],
+    "imports": [
+      "ColorPicker"
+    ]
+  },
+  {
+    "slug": "hover-card",
+    "name": "HoverCard",
+    "group": "overlays",
+    "description": "A focusable preview that opens on hover, keyboard focus or explicit activation.",
+    "code": "<HoverCard title=\"Alex Morgan\" trigger={props => <Button {...props} variant=\"subtle\">Alex Morgan</Button>}>\n  <Text as=\"p\" size=\"compact\">Designer at Flood.</Text>\n  <Link href=\"https://github.com/tillwithered\">View profile</Link>\n</HoverCard>",
+    "notes": [
+      "Interactive content belongs to a named dialog preview, not a tooltip.",
+      "Click pins the preview; keyboard and touch users can activate the trigger."
+    ],
+    "imports": [
+      "HoverCard",
+      "Button",
+      "Text",
+      "Link"
+    ]
+  },
+  {
+    "slug": "tree-select",
+    "name": "TreeSelect",
+    "group": "forms",
+    "description": "Single selection from a hierarchical collection inside a popup.",
+    "code": "<TreeSelect label=\"Destination\" name=\"destination\" items={[{value:\"design\",label:\"Design\",selectable:false,children:[{value:\"foundations\",label:\"Foundations\"},{value:\"components\",label:\"Components\"}]}]} />",
+    "notes": [
+      "This first version selects one item; Tree provides standalone multiple selection.",
+      "Values are globally unique and expansion remains independent of selection."
+    ],
+    "imports": [
+      "TreeSelect"
+    ]
+  },
+  {
+    "slug": "date-time-picker",
+    "name": "DateTimePicker",
+    "group": "forms",
+    "description": "A composed civil date and wall-clock time with separate form values.",
+    "code": "<DateTimePicker label=\"Schedule\" dateName=\"date\" timeName=\"time\" defaultValue={{date:\"2026-10-26\",time:\"09:30\"}} />",
+    "notes": [
+      "Date and time submit as separate fields. No timezone, UTC conversion or instant is inferred.",
+      "Date bounds and daily time bounds are independent. Use application validation for cross-field business rules."
+    ],
+    "imports": [
+      "DateTimePicker"
+    ]
+  },
+  {
+    "slug": "data-list",
+    "name": "DataList",
+    "group": "content",
+    "description": "A native list of structured rows with independent links and actions.",
+    "code": "<DataList>\n  <DataListItem title=\"Design system\" description=\"Foundations and components\" metadata=\"Updated today\" />\n  <DataListItem title=\"Website\" description=\"Documentation and examples\" metadata=\"Updated yesterday\" />\n</DataList>",
+    "notes": [
+      "This is a ul/li list, not a listbox or data grid.",
+      "Keep navigation in the title link and actions in their own buttons."
+    ],
+    "imports": [
+      "DataList",
+      "DataListItem"
+    ]
+  },
+  {
+    "slug": "data-list-item",
+    "name": "DataListItem",
+    "group": "content",
+    "description": "A structured list row with media, supporting text, metadata and actions.",
+    "code": "<DataList>\n  <DataListItem title=\"Design system\" description=\"Foundations and components\" metadata=\"Updated today\" />\n</DataList>",
+    "notes": [
+      "Render inside DataList or another native list.",
+      "The row is not clickable; supply a Link as title when navigation is needed."
+    ],
+    "imports": [
+      "DataList",
+      "DataListItem"
+    ]
+  },
+  {
+    "slug": "check-card",
+    "name": "CheckCard",
+    "group": "forms",
+    "description": "A native checkbox presented as a selectable content card.",
+    "code": "<CheckCard label=\"Product updates\" description=\"A monthly summary of new features.\" name=\"updates\" value=\"product\" />",
+    "notes": [
+      "Uses native checkbox semantics, including mixed state, required and form reset.",
+      "Content is noninteractive: do not nest links or actions inside a card label."
+    ],
+    "imports": [
+      "CheckCard"
+    ]
+  },
+  {
+    "slug": "radio-card",
+    "name": "RadioCard",
+    "group": "forms",
+    "description": "A native radio choice presented as a selectable content card.",
+    "code": "<Fieldset legend=\"Plan\">\n  <Stack gap=\"2\">\n    <RadioCard name=\"plan\" value=\"starter\" label=\"Starter\" description=\"For your next idea.\" metadata=\"Free\" defaultChecked />\n    <RadioCard name=\"plan\" value=\"team\" label=\"Team\" description=\"For working together.\" metadata=\"$12 / month\" />\n  </Stack>\n</Fieldset>",
+    "notes": [
+      "Group choices in a Fieldset and give them the same name.",
+      "Native arrow-key behavior, forms and reset remain available. Apply readOnly consistently to the whole group."
+    ],
+    "imports": [
+      "Fieldset",
+      "Stack",
+      "RadioCard"
+    ]
+  },
+  {
+    "slug": "data-table",
+    "name": "DataTable",
+    "group": "content",
+    "description": "A native data table with local sorting, page-scoped selection and pagination.",
+    "code": "<DataTable caption=\"Projects\" selectable pageSize={5}\n  columns={[{id:\"name\",label:\"Project\",sortable:true},{id:\"status\",label:\"Status\"}]}\n  rows={[{id:\"design\",label:\"Design system\",cells:{name:\"Design system\",status:\"Active\"}}]} />",
+    "notes": [
+      "Supply the complete client collection; remote/server pagination and virtualization are not part of this API.",
+      "Select all affects selectable rows on the current page and preserves selection on other pages.",
+      "Use sortValues for rich React cells; missing values sort last in both directions."
+    ],
+    "imports": [
+      "DataTable"
+    ]
+  },
+  {
+    "slug": "file-item",
+    "name": "FileItem",
+    "group": "content",
+    "description": "A named file row with size, type, thumbnail and independent actions.",
+    "code": "<FileList label=\"Attachments\">\n  <FileItem name=\"Brand guidelines.pdf\" size={2400000} mimeType=\"PDF\" />\n</FileList>",
+    "notes": [
+      "Render inside FileList or another native list.",
+      "No file reading, object URL creation or uploading is performed."
+    ],
+    "imports": [
+      "FileList",
+      "FileItem"
+    ]
+  },
+  {
+    "slug": "file-list",
+    "name": "FileList",
+    "group": "content",
+    "description": "A named native list of file rows.",
+    "code": "<FileList label=\"Attachments\">\n  <FileItem name=\"Brand guidelines.pdf\" size={2400000} mimeType=\"PDF\" />\n  <FileItem name=\"Logo.svg\" size={18400} mimeType=\"SVG\" />\n</FileList>",
+    "notes": [
+      "List contents and file identities are host owned.",
+      "Use stable host IDs for React keys; a name is not a unique file identity."
+    ],
+    "imports": [
+      "FileList",
+      "FileItem"
+    ]
+  },
+  {
+    "slug": "upload-item",
+    "name": "UploadItem",
+    "group": "feedback",
+    "description": "A host-controlled upload row with explicit progress and applicable actions.",
+    "code": "<UploadList label=\"Uploads\">\n  <UploadItem name=\"Brand guidelines.pdf\" size={2400000} state=\"uploading\" progress={45} />\n</UploadList>",
+    "notes": [
+      "Queued/uploading can expose cancel; error/cancelled can expose retry; settled rows can expose remove.",
+      "Unknown progress is indeterminate. No network or upload queue is built in."
+    ],
+    "imports": [
+      "UploadList",
+      "UploadItem"
+    ]
+  },
+  {
+    "slug": "upload-list",
+    "name": "UploadList",
+    "group": "feedback",
+    "description": "A named native list of host-controlled upload rows.",
+    "code": "<UploadList label=\"Uploads\">\n  <UploadItem name=\"Brand guidelines.pdf\" state=\"uploading\" progress={45} />\n  <UploadItem name=\"Logo.svg\" state=\"success\" />\n  <UploadItem name=\"Cover.png\" state=\"error\" error=\"Connection interrupted\" />\n</UploadList>",
+    "notes": [
+      "Each row has its own state and stable host identity.",
+      "Cancellation, retry and removal callbacks are intents for the application."
+    ],
+    "imports": [
+      "UploadList",
+      "UploadItem"
+    ]
+  },
+  {
+    "slug": "image-preview",
+    "name": "ImagePreview",
+    "group": "overlays",
+    "description": "A single-image preview in Flood Dialog with loading and failure feedback.",
+    "code": "<ImagePreview title=\"Flood mark\" src=\"/flood-mark.png\" alt=\"Pink Flood mark\"\n  trigger={props => <Button {...props} variant=\"subtle\">Preview image</Button>} />",
+    "notes": [
+      "Loads the image only while its dialog content is mounted.",
+      "The host owns trusted URLs, object URL lifetime and download permissions."
+    ],
+    "imports": [
+      "ImagePreview",
+      "Button"
+    ]
+  },
+  {
+    "slug": "file-meta",
+    "name": "FileMeta",
+    "group": "content",
+    "description": "A compact combined file-format and byte-size chip.",
+    "code": "<FileMeta format=\"PDF\" size={2400000} />",
+    "notes": [
+      "The format label is display metadata, not validated MIME detection.",
+      "Size uses SI units; formatSize customizes the text. Missing values do not create empty chip slots."
+    ],
+    "imports": [
+      "FileMeta"
+    ]
+  },
+  {
+    "slug": "time-picker",
+    "name": "TimePicker",
+    "group": "forms",
+    "description": "A segmented time field with an anchored, keyboard-accessible list of clock times.",
+    "code": "<TimePicker label=\"Start time\" name=\"time\" defaultValue=\"09:30\" min=\"08:00\" max=\"18:00\" interval={1800} />",
+    "notes": [
+      "Interval and step use seconds; the list contains at most 1000 entries.",
+      "Manual entry remains available; this is wall-clock time without timezone conversion.",
+      "One flat list, with selected-time visibility and a trailing action aligned with DatePicker."
+    ],
+    "imports": [
+      "TimePicker"
+    ]
+  },
+  {
+    "slug": "date-time-range-picker",
+    "name": "DateTimeRangePicker",
+    "group": "forms",
+    "description": "An ordered civil date/time range with four atomic form values.",
+    "code": "<DateTimeRangePicker label=\"Booking\" startDateName=\"startDate\" startTimeName=\"startTime\" endDateName=\"endDate\" endTimeName=\"endTime\"\n  defaultValue={{start:{date:\"2026-10-27\",time:\"09:00\"},end:{date:\"2026-10-27\",time:\"18:00\"}}} required />",
+    "notes": [
+      "Incomplete and reversed ranges do not contribute accepted values.",
+      "No timezone or timestamp inference. Server availability remains host owned.",
+      "Only range and endpoint headings are visible; individual field names remain accessible."
+    ],
+    "imports": [
+      "DateTimeRangePicker"
     ]
   }
 ]

@@ -2,7 +2,7 @@ import {forwardRef, useEffect, useImperativeHandle, useRef, useState} from "reac
 import type {CopyButtonProps, ToastRegionProps, ToastItem} from "./index.js";
 import {Button, IconButton, IconSlot, Spinner, VisuallyHidden} from "./index.js";
 
-export const ClipboardAction = forwardRef<HTMLButtonElement, CopyButtonProps>(function ClipboardAction({
+export const ClipboardAction = /* @__PURE__ */ forwardRef<HTMLButtonElement, CopyButtonProps>(function ClipboardAction({
   value, copyLabel = "Copy", copiedLabel = "Copied", errorLabel = "Failed",
   resetDelay = 2000, onCopied, onCopyError, className, disabled, size = "md", variant = "subtle", "aria-label": accessibleLabel, ...props
 }, ref) {
@@ -82,7 +82,7 @@ function TimedToast({item, closeLabel, onDismiss}: {item: ToastItem; closeLabel:
   </li>;
 }
 
-export const NotificationRegion = forwardRef<HTMLDivElement, ToastRegionProps>(function NotificationRegion({
+export const NotificationRegion = /* @__PURE__ */ forwardRef<HTMLDivElement, ToastRegionProps>(function NotificationRegion({
   items, onDismiss, label = "Notifications", closeLabel = "Dismiss notification", placement = "bottom-end", limit = 3,
   inline = false, hotkey = true, className, ...props
 }, forwardedRef) {

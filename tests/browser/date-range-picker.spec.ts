@@ -1,0 +1,35 @@
+import {test,expect} from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import {openRanges,formData,validForm,segment} from './date-ranges-fixture';
+
+test('DateRangePicker uses one popup for a continuous two-activation range and returns trigger focus',async({page})=>{
+ await openRanges(page);const trigger=page.getByRole('button',{name:'Open trip calendar',exact:true});await trigger.click();const popup=page.getByRole('dialog',{name:'Choose trip dates',exact:true});await expect(popup).toBeVisible();await expect(popup.getByRole('grid')).toHaveCount(1);await expect(popup.locator('[data-calendar-date="2026-10-10"]')).toBeFocused();await popup.locator('[data-calendar-date="2026-10-20"]').click();await expect(popup).toBeVisible();expect(await formData(page,'picker-form')).toEqual({tripFrom:'',tripTo:''});expect(await validForm(page,'picker-form')).toBe(false);await popup.locator('[data-calendar-date="2026-10-25"]').click();await expect(popup).toBeHidden();await expect(trigger).toBeFocused();expect(await formData(page,'picker-form')).toEqual({tripFrom:'2026-10-20',tripTo:'2026-10-25'});expect(await validForm(page,'picker-form')).toBe(true);await expect(page.locator('#picker-events')).toHaveText('[{"start":"2026-10-20","end":""},{"start":"2026-10-20","end":"2026-10-25"}]');
+});
+
+test('DateRangePicker Alt+Down, Escape, reset cancellation and native disabled/readonly retain contracts',async({page})=>{
+ await openRanges(page);const trigger=page.getByRole('button',{name:'Open trip calendar',exact:true});await segment(page,'picker','start','month').focus();await segment(page,'picker','start','month').press('Alt+ArrowDown');const popup=page.getByRole('dialog',{name:'Choose trip dates',exact:true});await expect(popup).toBeVisible();await page.keyboard.press('Escape');await expect(popup).toBeHidden();await expect(trigger).toBeFocused();await trigger.click();await popup.locator('[data-calendar-date="2026-10-20"]').click();await page.locator('#picker-form').evaluate((form:HTMLFormElement)=>{form.addEventListener('reset',event=>event.preventDefault(),{once:true});form.reset();});await expect(popup).toBeVisible();expect(await formData(page,'picker-form')).toEqual({tripFrom:'',tripTo:''});await page.locator('#picker-form').evaluate((form:HTMLFormElement)=>form.reset());await expect(popup).toBeHidden();expect(await formData(page,'picker-form')).toEqual({tripFrom:'2026-10-10',tripTo:'2026-10-14'});await expect(page.getByRole('button',{name:'Open readonly trip',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'Open disabled trip',exact:true})).toBeDisabled();
+});
+
+test('DateRangePicker geometry follows the full pair on resize and its calendar exposes valid semantics',async({page})=>{
+ await openRanges(page);const picker=page.locator('#picker');await picker.evaluate(node=>{(node as HTMLElement).style.width='700px';});await page.getByRole('button',{name:'Open trip calendar',exact:true}).click();const popup=page.getByRole('dialog',{name:'Choose trip dates',exact:true});
+ for(const width of [700,300]){
+  await picker.evaluate((node,width)=>{(node as HTMLElement).style.width=width+'px';},width);
+  await expect.poll(async()=>{
+   const panel=await popup.boundingBox(),fields=await picker.locator('.flood-date-range-field__fields').boundingBox();
+   const available=await popup.evaluate(node=>parseFloat(getComputedStyle(node).getPropertyValue('--flood-overlay-available-width')));
+   return Math.abs(panel!.width-Math.min(fields!.width,available));
+  }).toBeLessThanOrEqual(1);
+  const panel=(await popup.boundingBox())!,fields=(await picker.locator('.flood-date-range-field__fields').boundingBox())!;
+  const viewport=await popup.evaluate(node=>{const view=node.ownerDocument.defaultView!,visual=view.visualViewport;return{left:visual?.offsetLeft??0,width:visual?.width??view.innerWidth,available:parseFloat(getComputedStyle(node).getPropertyValue('--flood-overlay-available-width'))};});
+  expect(panel.x).toBeGreaterThanOrEqual(viewport.left);expect(panel.x+panel.width).toBeLessThanOrEqual(viewport.left+viewport.width);
+  const inset=(viewport.width-viewport.available)/2;
+  if(fields.width<=viewport.available&&fields.x>=viewport.left+inset&&fields.x+fields.width<=viewport.left+viewport.width-inset){
+   expect(Math.abs(panel.x-fields.x)).toBeLessThanOrEqual(1);expect(Math.abs(panel.x+panel.width-fields.x-fields.width)).toBeLessThanOrEqual(1);
+  }
+ }
+ const results=await new AxeBuilder({page}).include('.flood-date-range-picker__panel').analyze();expect(results.violations).toEqual([]);
+});
+
+test('DateRangePicker touch range completion works with enlarged RTL without a second layer',async({browser,baseURL})=>{
+ const context=await browser.newContext({baseURL:baseURL??'http://127.0.0.1:4174',viewport:{width:390,height:844},hasTouch:true});try{const page=await context.newPage();await openRanges(page);await page.evaluate(()=>{document.documentElement.dir='rtl';document.documentElement.style.fontSize='24px';});await page.getByRole('button',{name:'Open trip calendar',exact:true}).tap();const popup=page.getByRole('dialog',{name:'Choose trip dates',exact:true});await expect(popup).toBeVisible();expect(await page.getByRole('dialog').count()).toBe(1);const box=(await popup.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(390);await popup.locator('[data-calendar-date="2026-10-11"]').tap();await expect(popup).toBeVisible();await popup.locator('[data-calendar-date="2026-10-14"]').tap();await expect(popup).toBeHidden();expect(await formData(page,'picker-form')).toEqual({tripFrom:'2026-10-11',tripTo:'2026-10-14'});}finally{await context.close();}
+});

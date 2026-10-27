@@ -1,5 +1,15 @@
 # Compose an interface
 
+Apply the [Flood composition skill](flood-composition/SKILL.md) before building
+or changing UI. Reuse the existing semantic primitive, including inside library
+components. Fix its layout or extend its API instead of substituting custom markup.
+
+Use Tree for hierarchical application selection, with explicit value and expansion
+ownership. Use NavigationTree for nested destinations: preserve native links and
+their browser behavior rather than forcing a website sidebar into tree/menu roles.
+Do not infer cascading selection, lazy fetching, form submission or expansion of
+current-page ancestors. Keep item values globally unique and text labels present.
+
 For spacing, density or nested-geometry decisions, read [Spacing](spacing.md).
 Measure the complete row geometry before adding a gap to repeated controls.
 
@@ -267,3 +277,5 @@ host-owned. No third-party component implementation was introduced.
 Section headingLevel controls native h2–h6 semantics. Its independent headingSize
 uses the existing Heading roles (section/page/large/display), defaulting to section.
 Keep document hierarchy meaningful when changing visual emphasis.
+
+For a command palette, compose Dialog and CommandList. The host owns commands, permissions, query reset and shortcuts; keep Escape available to the dialog. Avoid a duplicate modal or command-search engine. The project recipe lives in docs/recipes/command-palette.md in the source repository.

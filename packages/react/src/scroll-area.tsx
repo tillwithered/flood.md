@@ -73,7 +73,7 @@ function cornerBounds(node: HTMLElement, axis: Axis, crossStart: number, crossEn
 }
 
 /** Original overlay chrome; the viewport itself remains a browser-native scroll container. */
-export const OverlayScrollArea = forwardRef<HTMLDivElement, ScrollAreaProps>(function OverlayScrollArea({
+export const OverlayScrollArea = /* @__PURE__ */ forwardRef<HTMLDivElement, ScrollAreaProps>(function OverlayScrollArea({
   orientation = "vertical", contentInset = "none", children, className, style, tabIndex = 0, role, onFocus, ...props
 }, forwardedRef) {
   const id = useId();

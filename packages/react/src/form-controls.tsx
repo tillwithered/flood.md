@@ -1,9 +1,10 @@
-import {forwardRef, useEffect, useId, useImperativeHandle, useRef, useState, type RefObject} from "react";
+import {forwardRef, useEffect, useLayoutEffect, useId, useImperativeHandle, useRef, useState, type RefObject} from "react";
 import type {ListBoxProps, PinInputProps, RatingProps, DropzoneProps, CharacterCountProps} from "./index.js";
-import {FileInput} from "./index.js";
+import {FileInput,Label,Text} from "./index.js";
 import {resolveFieldStatus, mergeDescriptions} from "./field-state.js";
 
 const cx = (...values: Array<string | false | undefined>) => values.filter(Boolean).join(" ");
+const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffect;
 function useNativeReset(ref: RefObject<HTMLInputElement | null>, form: string | undefined, reset: () => void) {
   const callback = useRef(reset);
   useEffect(() => { callback.current = reset; }, [reset]);
@@ -31,13 +32,16 @@ function useInheritedDisabled(ref: RefObject<HTMLInputElement | null>, disabled:
   return disabled || inherited;
 }
 
-export const CollectionListBox = forwardRef<HTMLDivElement, ListBoxProps>(function CollectionListBox({
-  label, hideLabel = false, options, value, defaultValue, onValueChange, multiple = false,
+export const CollectionListBox = /* @__PURE__ */ forwardRef<HTMLDivElement, ListBoxProps>(function CollectionListBox({
+  label, hideLabel = false, options, value, defaultValue, onValueChange, multiple = false, selectionBehavior="automatic", appearance="surface",
   disabled = false, readOnly = false, name, form, controlSize = "md", id: explicitId,
-  className, onKeyDown, onFocus, ...props
+  required=false,requiredMessage="Choose at least one option.",validationMessage,description,message,status,invalid,
+  className, onKeyDown, onFocus, onBlur, onInvalid, ...props
 }, forwardedRef) {
   const generated = useId(), id = explicitId ?? `flood-list-box-${generated}`;
   const root = useRef<HTMLDivElement>(null), bridge = useRef<HTMLInputElement>(null);
+  const [touched,setTouched]=useState(false);
+  if(!label.trim()||!requiredMessage.trim())throw new Error("Flood ListBox requires a nonempty label and required message");
   useImperativeHandle(forwardedRef, () => root.current!, []);
   const unique = new Set<string>();
   for (const option of options) { if (!option.value || !option.label.trim() || unique.has(option.value)) throw new Error("Flood ListBox options need unique nonempty values and labels"); unique.add(option.value); }
@@ -51,8 +55,12 @@ export const CollectionListBox = forwardRef<HTMLDivElement, ListBoxProps>(functi
   const first = Math.max(0, options.findIndex(option => !option.disabled));
   const [active, setActive] = useState(() => { const index = options.findIndex(option => selected.includes(option.value) && !option.disabled); return index < 0 ? first : index; });
   const effectiveDisabled = useInheritedDisabled(bridge, disabled);
+  const constraint=readOnly?"":validationMessage||(required&&!selected.length?requiredMessage:"");
+  const error=touched&&!effectiveDisabled?constraint:"",resolvedStatus=resolveFieldStatus(status,invalid||Boolean(error),props["aria-invalid"]);
+  const describedBy=mergeDescriptions(props["aria-describedby"],Boolean(description)&&`${id}-description`,Boolean(error||message)&&`${id}-message`);
+  useBrowserLayoutEffect(()=>{bridge.current?.setCustomValidity(constraint);},[constraint]);
   const search = useRef({text:"", time:0});
-  useNativeReset(bridge, form, () => { if (value === undefined) { setLocal(normalize(initial.current)); setActive(first); } });
+  useNativeReset(bridge, form, () => { if (value === undefined) { setLocal(normalize(initial.current)); setActive(first); } setTouched(false); });
   const blocked = () => effectiveDisabled || bridge.current?.matches(":disabled");
   const commit = (index: number) => {
     const option = options[index];
@@ -61,20 +69,23 @@ export const CollectionListBox = forwardRef<HTMLDivElement, ListBoxProps>(functi
     if (value === undefined) setLocal(next);
     onValueChange?.(multiple ? [...next] : next[0] ?? "");
   };
-  const move = (index: number, choose = !multiple) => {
+  const move = (index: number, choose = !multiple && selectionBehavior==="automatic") => {
     setActive(index);
     if (choose) commit(index);
     const target = root.current?.ownerDocument.getElementById(`${id}-option-${index}`);
     target?.scrollIntoView({block:"nearest"});
   };
   return <div className="flood-list-box-field" hidden={props.hidden} dir={props.dir} lang={props.lang}>
-    <span id={`${id}-label`} className={cx("flood-form-control__label", hideLabel && "flood-form-control__sr-only")}>{label}</span>
+    <Label htmlFor={`${id}-validation`} id={`${id}-label`} required={required} className={cx("flood-form-control__label", hideLabel && "flood-form-control__sr-only")}>{label}</Label>
     <div {...props} ref={root} id={id} role="listbox" tabIndex={effectiveDisabled ? -1 : props.tabIndex ?? 0}
       aria-label={props["aria-label"]} aria-labelledby={props["aria-label"] ? undefined : props["aria-labelledby"] ?? `${id}-label`}
       aria-multiselectable={multiple || undefined} aria-disabled={effectiveDisabled || undefined} aria-readonly={readOnly || undefined}
+      aria-required={required||undefined} aria-invalid={resolvedStatus==="error"||undefined} aria-describedby={describedBy}
       aria-activedescendant={options[active] ? `${id}-option-${active}` : undefined}
-      className={cx("flood-list-box", `flood-control--${controlSize}`, className)}
-      onFocus={event => { onFocus?.(event); if (!options[active] || options[active].disabled) setActive(first); }}
+      data-status={resolvedStatus} data-appearance={appearance} className={cx("flood-list-box", `flood-control--${controlSize}`, className)}
+      onBlur={event=>{onBlur?.(event);if(!event.defaultPrevented&&!event.currentTarget.contains(event.relatedTarget as Node|null))setTouched(true);}}
+      onInvalid={event=>{onInvalid?.(event);if(event.defaultPrevented)return;event.preventDefault();setTouched(true);root.current?.focus();}}
+      onFocus={event => { onFocus?.(event); if (!options[active] || options[active].disabled) setActive(first); else root.current?.querySelector<HTMLElement>(`[id="${id}-option-${active}"]`)?.scrollIntoView({block:"nearest"}); }}
       onKeyDown={event => {
         onKeyDown?.(event);
         if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || blocked()) return;
@@ -97,6 +108,7 @@ export const CollectionListBox = forwardRef<HTMLDivElement, ListBoxProps>(functi
           if (match !== undefined) move(match);
         }
       }}>
+      <input ref={bridge} id={`${id}-validation`} type="text" className="flood-form-control__sr-only" tabIndex={-1} aria-hidden="true" autoComplete="off" form={form} disabled={disabled} readOnly={readOnly} required={required&&!readOnly} value={selected.join("\u001f")} onChange={()=>{}} onFocus={event=>{event.stopPropagation();root.current?.focus();}}/>
       {options.map((option, index) => <div key={option.value} id={`${id}-option-${index}`} role="option"
         aria-selected={selected.includes(option.value)} aria-disabled={option.disabled || undefined}
         data-active={index === active || undefined} className="flood-list-box__option"
@@ -106,12 +118,13 @@ export const CollectionListBox = forwardRef<HTMLDivElement, ListBoxProps>(functi
       </div>)}
       {!options.length && <div role="option" aria-disabled="true" className="flood-list-box__option">No options</div>}
     </div>
-    <input ref={bridge} type="hidden" form={form} disabled={disabled} />
+    {description&&<Text as="div" id={`${id}-description`} size="helper" tone="subtle" className="flood-list-box__feedback">{description}</Text>}
+    {(error||message)&&<Text as="div" id={`${id}-message`} size="helper" tone={error?"error":resolvedStatus??"subtle"} role={error?"alert":undefined} className="flood-list-box__feedback">{error||message}</Text>}
     {name && selected.map(entry => <input key={entry} type="hidden" name={name} value={entry} form={form} disabled={disabled} />)}
   </div>;
 });
 
-export const SegmentedPinInput = forwardRef<HTMLInputElement, PinInputProps>(function SegmentedPinInput({
+export const SegmentedPinInput = /* @__PURE__ */ forwardRef<HTMLInputElement, PinInputProps>(function SegmentedPinInput({
   label, hideLabel = false, length = 6, mode = "numeric", mask = false, value, defaultValue = "", onValueChange,
   controlSize = "md", disabled, readOnly, className, style, status, invalid, id: explicitId,
   onFocus, onBlur, onSelect, onPointerDown, onPaste, onKeyUp, autoComplete = "one-time-code", inputMode, ...props
@@ -166,7 +179,7 @@ export const SegmentedPinInput = forwardRef<HTMLInputElement, PinInputProps>(fun
   </div>;
 });
 
-export const StarRating = forwardRef<HTMLFieldSetElement, RatingProps>(function StarRating({
+export const StarRating = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, RatingProps>(function StarRating({
   label, hideLabel = false, value, defaultValue = 0, max = 5, onValueChange, getValueLabel,
   readOnly = false, required, name, form, size = "md", disabled, className, onKeyDown, ...props
 }, forwardedRef) {
@@ -211,7 +224,7 @@ export const StarRating = forwardRef<HTMLFieldSetElement, RatingProps>(function 
   </fieldset>;
 });
 
-export const FileDropzone = forwardRef<HTMLInputElement, DropzoneProps>(function FileDropzone({
+export const FileDropzone = /* @__PURE__ */ forwardRef<HTMLInputElement, DropzoneProps>(function FileDropzone({
   label, description = "Drop files here or choose from your device.", multiple = true, disabled,
   className, style, id: explicitId, status, invalid, ...props
 }, forwardedRef) {
@@ -244,7 +257,7 @@ export const FileDropzone = forwardRef<HTMLInputElement, DropzoneProps>(function
   </div>;
 });
 
-export const SupportingCharacterCount = forwardRef<HTMLOutputElement, CharacterCountProps>(function SupportingCharacterCount({
+export const SupportingCharacterCount = /* @__PURE__ */ forwardRef<HTMLOutputElement, CharacterCountProps>(function SupportingCharacterCount({
   value = "", count, max, mode = "count", label = "Characters", overLimitLabel = "Over limit", className, ...props
 }, ref) {
   const current = count ?? [...value].length;

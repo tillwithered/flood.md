@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 import type { DescriptionListProps, TableProps } from "./index.js";
 import { ScrollArea } from "./index.js";
 
-export const DescribedData = forwardRef<HTMLDListElement, DescriptionListProps>(function DescribedData(
+export const DescribedData = /* @__PURE__ */ forwardRef<HTMLDListElement, DescriptionListProps>(function DescribedData(
   { items, layout, density, dividers, className, ...props }, ref,
 ) {
   if (items.some(item => !item.id.trim()) || new Set(items.map(item => item.id)).size !== items.length)
@@ -15,7 +15,7 @@ export const DescribedData = forwardRef<HTMLDListElement, DescriptionListProps>(
   </dl>;
 });
 
-export const TabularData = forwardRef<HTMLTableElement, TableProps>(function TabularData(
+export const TabularData = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(function TabularData(
   { caption, children, hideCaption, density, striped, scrollLabel, className, hidden, dir, lang, ...props }, ref,
 ) {
   return <div className="flood-table-container" hidden={hidden} dir={dir} lang={lang}>

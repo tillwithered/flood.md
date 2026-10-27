@@ -1,0 +1,31 @@
+.flood-root .flood-data-list { list-style:none; margin:0; padding:0; inline-size:100%; min-inline-size:0; --flood-data-row-padding:var(--flood-sys-space-4); }
+.flood-root .flood-data-list[data-density="compact"] { --flood-data-row-padding:var(--flood-sys-space-3); }
+.flood-root .flood-data-list-item { display:flex; align-items:center; gap:var(--flood-sys-space-3); min-inline-size:0; padding-block:var(--flood-data-row-padding,var(--flood-sys-space-4)); font-size:var(--flood-sys-type-compact-size); line-height:var(--flood-sys-type-compact-line-height); }
+.flood-root .flood-data-list[data-dividers="true"]>.flood-data-list-item+.flood-data-list-item { border-block-start:var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); }
+.flood-root .flood-data-list[hidden],.flood-root .flood-data-list-item[hidden] { display:none; }
+.flood-root .flood-data-list-item__media { flex:none; display:flex; align-items:center; }
+.flood-root .flood-data-list-item__copy { flex:1; min-inline-size:0; display:grid; gap:var(--flood-sys-space-1); }
+.flood-root .flood-data-list-item__title { font-weight:500; overflow-wrap:anywhere; }
+.flood-root .flood-data-list-item__description { color:var(--flood-sys-color-content-subtle); overflow-wrap:anywhere; }
+.flood-root .flood-data-list-item__trailing { display:flex; align-items:center; gap:var(--flood-sys-space-3); flex-wrap:wrap; justify-content:flex-end; min-inline-size:0; max-inline-size:50%; }
+.flood-root .flood-data-list-item__metadata { color:var(--flood-sys-color-content-subtle); font-size:var(--flood-sys-type-helper-size); overflow-wrap:anywhere; }
+.flood-root .flood-data-list-item__actions { display:flex; align-items:center; gap:var(--flood-sys-space-1); }
+.flood-root .flood-choice-card { box-sizing:border-box; display:flex; align-items:flex-start; inline-size:100%; min-inline-size:0; gap:var(--flood-sys-space-3); padding:var(--flood-sys-space-4); border:var(--flood-sys-stroke-width) solid var(--flood-sys-color-field-border); border-radius:var(--flood-sys-radius-field); background:var(--flood-sys-color-field-background); cursor:pointer; }
+.flood-root .flood-choice-card--compact { padding:var(--flood-sys-space-3); }
+.flood-root .flood-choice-card>input { flex:none; margin-block-start:calc((1em * var(--flood-sys-type-compact-line-height) - var(--flood-sys-size-choice)) / 2); }
+.flood-root .flood-choice-card>span { flex:1; }
+.flood-root .flood-choice-card__content { display:flex; align-items:flex-start; gap:var(--flood-sys-space-3); min-inline-size:0; }
+.flood-root .flood-choice-card__copy { flex:1; min-inline-size:0; display:grid; gap:var(--flood-sys-space-1); }
+.flood-root .flood-choice-card__title { font-weight:500; overflow-wrap:anywhere; }
+.flood-root .flood-choice-card__description,.flood-root .flood-choice-card__metadata { color:var(--flood-sys-color-content-subtle); font-weight:400; overflow-wrap:anywhere; }
+.flood-root .flood-choice-card__metadata { flex:none; max-inline-size:35%; }
+.flood-root .flood-choice-card__icon { display:flex; align-items:center; color:var(--flood-sys-color-content-subtle); }
+.flood-root .flood-choice-card:has(input:checked),.flood-root .flood-choice-card:has(input:indeterminate) { background:var(--flood-sys-color-selection-background); }
+.flood-root .flood-choice-card:has(input:focus-visible) { outline:var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset:0; }
+.flood-root .flood-choice-card input:focus-visible { outline:none; }
+.flood-root .flood-choice-card:has(input:disabled) { cursor:not-allowed; background:var(--flood-sys-color-field-disabled); }
+.flood-root .flood-choice-card:has(input[readonly]) { cursor:default; border-style:dashed; }
+.flood-root .flood-choice-card:has(input:disabled) :is(.flood-choice-card__description,.flood-choice-card__metadata,.flood-choice-card__icon) { color:inherit; }
+@media(forced-colors:active) { .flood-root .flood-choice-card:has(input:checked) { border-color:Highlight; } .flood-root .flood-choice-card:has(input:disabled) { border-color:GrayText; } }
+
+@media(max-width:30rem) { .flood-root .flood-data-list-item { flex-wrap:wrap; } .flood-root .flood-data-list-item__trailing { max-inline-size:100%; } }

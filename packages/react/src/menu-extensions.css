@@ -1,0 +1,6 @@
+.flood-root .flood-menu__submenu-indicator { margin-inline-start:auto; }
+.flood-root .flood-menu[data-menu-direction="rtl"] > .flood-menu__viewport .flood-menu__submenu-indicator svg { rotate:180deg; }
+.flood-root .flood-overlay-panel.flood-menu--submenu { inline-size:min(15rem,calc(var(--flood-overlay-available-width,100vw - 1rem) / 2)); z-index:var(--flood-sys-layer-popover); }
+.flood-root .flood-context-menu { min-inline-size:0; }
+.flood-root .flood-context-menu:focus-visible { outline:var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset:0; border-radius:var(--flood-sys-radius-field); }
+@media(forced-colors:active) { .flood-root .flood-context-menu:focus-visible { outline-color:Highlight; } }

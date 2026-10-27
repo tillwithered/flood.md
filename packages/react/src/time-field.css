@@ -1,0 +1,30 @@
+.flood-root .flood-time-field { display: grid; gap: var(--flood-sys-space-1); min-inline-size: 0; inline-size: 100%; }
+.flood-root .flood-time-field[hidden] { display: none; }
+.flood-root .flood-time-field > .flood-label { margin: 0; }
+.flood-root .flood-time-field__control { --flood-time-stroke: var(--flood-sys-stroke-width); box-sizing: border-box; display: flex; align-items: center; min-inline-size: 0; inline-size: 100%; min-block-size: var(--flood-control-height); padding-block: calc(var(--flood-sys-space-1) - var(--flood-time-stroke)); padding-inline: calc(var(--flood-control-padding) - var(--flood-time-stroke)); border: var(--flood-time-stroke) solid var(--flood-sys-color-field-border); border-radius: var(--flood-sys-radius-field); background: var(--flood-sys-color-field-background); color: var(--flood-sys-color-field-content); }
+.flood-root .flood-time-field__part { display: inline-flex; align-items: center; min-inline-size: 0; flex: 0 1 auto; }
+.flood-root .flood-time-field__segment { appearance: none; box-sizing: border-box; inline-size: max(3ch, 2.25em); min-inline-size: 0; min-block-size: calc(var(--flood-control-height) - 2 * var(--flood-sys-space-1)); margin: 0; padding: 0; border: 0; border-radius: 0; outline: none; background: transparent; color: inherit; font: inherit; font-size: var(--flood-control-text); line-height: var(--flood-control-line); font-variant-numeric: tabular-nums; text-align: center; }
+.flood-root .flood-time-field__segment::placeholder { color: var(--flood-sys-color-field-placeholder); opacity: 1; }
+.flood-root .flood-time-field__separator { padding-inline: var(--flood-sys-space-1); color: var(--flood-sys-color-content-subtle);  font-size:var(--flood-control-text); line-height:var(--flood-control-line); }
+.flood-root .flood-time-field__control[data-status] { border-color: var(--flood-field-feedback); }
+.flood-root .flood-time-field__control[data-readonly] { background: var(--flood-sys-color-surface-canvas); border-style: dashed; }
+.flood-root .flood-time-field__control:has(.flood-time-field__segment:focus-visible) { --flood-time-stroke: var(--flood-sys-focus-width); border-color: var(--flood-sys-color-focus-ring); border-style: solid; }
+.flood-root .flood-time-field__control[data-disabled] { border-color: var(--flood-sys-color-field-border); background: var(--flood-sys-color-field-disabled); color: var(--flood-sys-color-field-disabled-content); }
+.flood-root .flood-time-field__description, .flood-root .flood-time-field__error { font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); }
+.flood-root .flood-time-field__description { color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-time-field__error { color: var(--flood-sys-color-feedback-error); }
+@media (pointer: coarse) {
+  .flood-root .flood-time-field__control { min-block-size: max(var(--flood-control-height), calc(var(--flood-sys-size-touch) + 2 * var(--flood-sys-space-1))); }
+  .flood-root .flood-time-field__segment { min-inline-size: var(--flood-sys-size-touch); min-block-size: var(--flood-sys-size-touch); }
+}
+@media (forced-colors: active) {
+  .flood-root .flood-time-field__control { border-color: CanvasText; background: Canvas; color: CanvasText; }
+  .flood-root .flood-time-field__control:has(.flood-time-field__segment:focus-visible) { border-color: Highlight; }
+  .flood-root .flood-time-field__control[data-disabled] { border-color: GrayText; color: GrayText; }
+  .flood-root .flood-time-field__separator, .flood-root .flood-time-field__error { color: CanvasText; }
+}
+
+.flood-root .flood-time-field__control:has(> .flood-time-field__end) { --flood-time-height:var(--flood-control-height); padding-inline-end:calc(var(--flood-sys-space-1) - var(--flood-time-stroke)); }
+.flood-root .flood-time-field__end { --flood-time-end-size:calc(var(--flood-time-height) - 2 * var(--flood-sys-space-1)); display:flex; align-items:center; flex:none; margin-inline-start:auto; }
+.flood-root .flood-time-field__end > .flood-button { --flood-control-height:var(--flood-time-end-size); }
+@media (pointer:coarse) { .flood-root .flood-time-field__control:has(> .flood-time-field__end) { --flood-time-height:max(var(--flood-control-height),calc(var(--flood-sys-size-touch) + 2 * var(--flood-sys-space-1))); } }

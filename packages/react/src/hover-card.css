@@ -1,0 +1,5 @@
+.flood-root .flood-hover-card { inline-size: 20rem; }
+.flood-root .flood-hover-card .flood-overlay-header { align-items: center; gap: var(--flood-sys-space-2); }
+.flood-root .flood-hover-card .flood-overlay-close { align-self: center; }
+.flood-root .flood-hover-card__body { margin-block-start: var(--flood-sys-space-2); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
+.flood-root .flood-hover-card:focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: 0; }

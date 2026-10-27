@@ -1,11 +1,57 @@
 # Changelog
 
-## 0.2.6 · 2026-10-26
+## 0.2.8 Â· 2026-10-27
+
+- Complete ListBox native required validation, feedback/status and accessible descriptions while retaining selection and reset contracts.
+
+- Unify Calendar day/month/year views without nested overlays; fold the unpublished MonthYearPicker into Calendar.
+- Refine time selection and reduce repeated labels in date/time ranges.
+- Add minimal Popover chrome, plain ListBox appearance and DateTimePicker field-label visibility for library compositions.
+
+- Add TimePicker and DateTimeRangePicker from existing primitives.
+- Add manual ListBox selection and a TimeField end slot; enable quick Calendar month/year navigation.
+
+- Add the primitives-first composition skill to the versioned agent bundle; preserve StatusIndicator in upload rows.
+
+- Add HoverCard, ColorSwatch, ColorPicker, TreeSelect and DateTimePicker.
+- Add native DataList/DataListItem rows and CheckCard/RadioCard choices.
+- Add file and upload rows/lists with a Dialog-based ImagePreview.
+- Add FileMeta for a compact format/size chip beside the filename.
+- Add client-side DataTable sorting, selection, paging and feedback states, plus a Filter bar recipe.
+- Add recipes for aggregate selection, split actions and form submission.
+- Keep opaque RGB colors, single tree selection and civil date/time contracts explicit.
+- Registry publication and deployment are verified separately.
+
+### Base controls included from the 0.2.7 development candidate
+
+- Keep Tree's readonly explanation associated with the relevant control without exposing it as unrelated reading content.
+
+- Enable removal of unused React component factories from named-import bundles; guard the installed single-Button bundle size.
+
+- Preserve readonly date/time form values under constraints and keep submenu hover intent across equivalent host rerenders.
+
+- Preserve cancelled selection resets, clear obsolete validation after external corrections and recognize reordered controlled tag acceptance.
+
+- Add Tree for hierarchical selection and NavigationTree for nested native destinations.
+
+- Add nested Menu items and ContextMenu with shared native layers, hover intent and scoped keyboard navigation.
+
+- Add continuous date ranges, ResizablePanels and ErrorSummary; document the CommandList/Dialog palette recipe.
+
+- Add TimeField, Calendar and composed DatePicker; refine segmented field click targets and placeholder geometry.
+
+- Add grouped CommandList and segmented DateField with canonical form contracts.
+
+- Add original Editable and TagInput with catalog examples and declarations.
+- Add controlled checkbox/radio preferences to Menu.
+
+
+## 0.2.6 Â· 2026-10-26
 
 - Let Breadcrumb separators use their intrinsic flex width in Firefox/Zen, preventing the last character of fitting labels from wrapping. Preserve normal item wrapping, long-label reflow, spacing and existing API/token values.
 - Cover Grid and Stack alongside Pagination in Chromium, Firefox and WebKit, including constrained widths, enlarged text and RTL.
 
-## 0.2.5 · 2026-10-26
+## 0.2.5 Â· 2026-10-26
 
 - Add 20 original content, form, navigation, layout and feedback components, with generated documentation and live recipes: AvatarGroup, StatusIndicator, Figure, Blockquote, InlineCode, Metric, Timeline, NavigationList, Steps, Section, Split, Center, SkipLink, ListBox, PinInput, Rating, Dropzone, CharacterCount, CopyButton and ToastRegion.
 - Add SearchInput, PasswordInput and FileInput with appendable multiple selection and individual removal; add AlertDialog and edge Drawer with contained scrolling.

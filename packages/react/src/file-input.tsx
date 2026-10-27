@@ -8,7 +8,7 @@ interface Props extends FileInputProps {
 }
 
 /** FileList and native form submission stay owned by the browser. */
-export const FilePicker = forwardRef<HTMLInputElement, Props>(function FilePicker({
+export const FilePicker = /* @__PURE__ */ forwardRef<HTMLInputElement, Props>(function FilePicker({
   actionComponent: Action, iconComponent: Icon, clearable = true,
   clearLabel = "Clear files", selectionLabel = "Selected files", removeFileLabel = "Remove file", placeholder, controlSize = "md", className, style,
   status, invalid, disabled, multiple, onChange, onFilesChange, ...props

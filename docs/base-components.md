@@ -1,6 +1,6 @@
 # Base component architecture
 
-The 0.2.5 uses original React18.3/19 components and TypeScript
+The 0.2.8 source uses original React18.3/19 components and TypeScript
 declarations. The website catalog and individual component pages are generated
 from the [source catalog](../apps/website/src/component-catalog.json) and declarations.
 Use the catalog for inventory and the [component guide](components.md) for composition.
@@ -14,8 +14,9 @@ Source availability does not establish npm publication. Match installed versions
 | Geometry and type | Container, Grid, Stack, Inline, Surface, Divider, AspectRatio, Text, Heading |
 | Accessible/media atoms | VisuallyHidden, IconSlot, Image, List with native li children |
 | Actions | Button → IconButton/Toggle; Link retains real anchor semantics |
-| Structured forms | Label/Fieldset/Field → Input/Textarea/Select and native choices → groups/InputGroup/SegmentedControl |
-| Disclosure/navigation | Collapsible/Accordion/Tabs/Pagination reuse Button and Link while owning their specific keyboard semantics |
+| Structured forms | Label/Fieldset/Field → native controls, date/time segments and groups; date pickers compose entry, calendar and layer contracts |
+| Collections and commands | Tree selects application objects; ListBox/Combobox/MultiSelect select defined options; CommandList invokes host commands |
+| Disclosure/navigation | Collapsible/Accordion/Tabs/Pagination and NavigationTree own distinct disclosure, anchor and keyboard semantics |
 | Feedback/content | Spinner, Progress/Meter, Alert, Badge, Skeleton, Avatar, Card, EmptyState compose shared type, surface and icon geometry |
 | Layers and scrolling | ScrollArea supplies protected scrolling; Menu/Popover/Tooltip/Dialog share layer mechanics with distinct contracts |
 
@@ -118,8 +119,9 @@ and the inherited clear/toggle/list/empty/validation messages.
 Tags wrap naturally. The search input and suffix actions form a single editor row;
 they move together when tokens consume a line. Nested radii account for the field
 inset. Coarse-pointer removal targets remain distinct and at least size.touch.
-There is no arbitrary freeform tagging, remote data access, virtualization or
-standalone TagGroup selection/navigation engine in this release.
+MultiSelect does not create arbitrary free-form values; use TagInput for that
+contract in 0.2.8. Neither supplies remote data access, virtualization or a
+standalone TagGroup selection/navigation engine.
 
 Selection-field action defaults: Combobox and MultiSelect show only the disclosure
 chevron by default. Set clearable=true to add the explicit clear-selection action.
@@ -248,7 +250,7 @@ or mutate an editor. Keep its meaning explicit near the corresponding input.
 CopyButton writes its value through the browser Clipboard API on activation. A
 secure context and clipboard permission are required. onCopied/onCopyError let the
 host react; manual fallback belongs to the host. Localize all result labels. Labels
-reserve their shared width as centered icon�label pairs; the icon�text gap stays
+reserve their shared width as centered icon–label pairs; the icon–text gap stays
 constant in each state. Defaults are Copy / Copied / Failed. A polite status
 announces success/failure. An explicit aria-label can name the action in context
 without changing its short visible labels; result states include the visible result
@@ -269,3 +271,99 @@ There is no singleton store, upload engine or promise-notification API.
 Section headingLevel controls native h2–h6 semantics. Its independent headingSize
 uses the existing Heading roles (section/page/large/display), defaulting to section.
 Keep document hierarchy meaningful when changing visual emphasis.
+
+## Base capabilities in 0.2.8
+
+The version adds fifteen component exports to the earlier base. Matching installed
+declarations govern availability; this source guide does not establish publication.
+
+| Responsibility | Components |
+| --- | --- |
+| Editing and commands | [Editable](components/editable.md), [TagInput](components/tag-input.md), [CommandList](components/command-list.md) |
+| Civil date/time | [DateField](components/date-field.md), [TimeField](components/time-field.md), [Calendar](components/calendar.md), [DatePicker](components/date-picker.md) |
+| Continuous date ranges | [RangeCalendar](components/range-calendar.md), [DateRangeField](components/date-range-field.md), [DateRangePicker](components/date-range-picker.md) |
+| Context, validation and layout | [ContextMenu](components/context-menu.md), [ErrorSummary](components/error-summary.md), [ResizablePanels](components/resizable-panels.md) |
+| Hierarchies | [Tree](components/tree.md), [NavigationTree](components/navigation-tree.md) |
+
+### Editing, commands and contextual actions
+
+Editable keeps a draft separate from committed text. Enter commits, Escape cancels
+and `blurAction` chooses commit/cancel/none. Controlled value and editing require
+host acceptance; only committed text submits. TagInput creates free-form tokens
+and submits committed tags as repeated named entries. MultiSelect selects known
+option values. Preserve required, reset cancellation, IME and readonly/disabled
+behavior instead of replacing these with presentation-only chips.
+
+CommandList filters and invokes commands without a submitted field value or modal
+lifecycle. A command palette is a [Dialog + CommandList recipe](recipes/command-palette.md),
+not another export. The host owns routing, shortcuts, effects and closure.
+
+Menu now supports controlled checkbox/radio preferences and nested submenus.
+Preferences and action commands retain different callbacks and dismissal rules.
+ContextMenu reuses this same engine for pointer or ContextMenu/Shift+F10 activation;
+keep a visible Menu alternative for touch. No business effects, fetching or form
+selection are implied by an action menu. See [Menu](components/menu.md).
+
+### Date and time ownership
+
+DateField edits a Gregorian civil date as labelled text segments and submits
+canonical `YYYY-MM-DD`, without a system date popup. Invalid/partial drafts block
+native submission and cannot silently submit an old value. `validationMessage`
+adds a native host constraint; own calendar/required/bounds errors take priority.
+TimeField uses explicit 24-hour `HH:mm` or `HH:mm:ss` values with seconds-based
+steps. Neither represents a timestamp, time zone or date-time conversion service.
+
+Calendar owns a single-date grid, while DatePicker composes DateField, Calendar
+and Popover. Calendar's `onDateSelect` reports allowed activation even when the
+selected value stays unchanged. Preserve separate value and popup ownership,
+initial/return focus and native field reset behavior.
+
+Ranges use `{start, end}` with empty strings for empty/partial endpoints. One
+RangeCalendar selects start then end; hover/focus preview is uncommitted. It
+normalizes backwards calendar gestures, while DateRangeField preserves reversed
+typed drafts for correction. DateRangePicker composes that field and one popup.
+Only complete, ordered, available and accepted ranges submit both named endpoints;
+invalid ranges clear both bridges and block native submission. Controlled hosts
+must accept partial selection to advance the two-step calendar interaction.
+
+`isDateDisabled` blocks range endpoints. Interior disabled dates are allowed
+unless `isRangeDisabled` rejects the entire interval; apply the same predicates
+to typed and calendar entry. Calendar formatting is Gregorian UTC via Intl;
+`weekStartsOn` and text-segment order remain explicit. Pass `today` when rendering
+must be deterministic. Localize segment, navigation, validation and range messages.
+
+### Hierarchies, resizing and validation
+
+Tree is application selection, with independent expanded values and explicit
+single/multiple selection. Values must be globally unique. Descriptions form
+part of each row's accessible name; child labels do not leak into the parent name.
+Logical arrows, Home/End and typeahead move focus without selecting. Collapsing
+retains known selected descendants; removed or nonselectable values are excluded
+from later selection requests. Host-owned `hasChildren`/`loading` describe deferred
+branches without automatic fetching.
+
+Tree readonly permits browsing/expansion and blocks selection. Translate
+`readOnlyMessage`, which provides the associated explanation; do not invent
+unsupported `aria-readonly` on tree/treeitem roles. Disabled rows remain
+discoverable but cannot select or expand. Restrictions are per item, not inherited
+through the hierarchy. Tree writes no form values and does not automatically
+inherit a native fieldset's disabled state.
+
+NavigationTree uses ordinary nav/list/anchor semantics and native Tab order.
+A branch can have its own destination and a separate disclosure IconButton;
+expanding does not navigate. The host owns `currentValue`, URLs and expanded
+ancestors. Preserve browser modifiers and `linkProps`; use Tree for object
+selection instead. Neither hierarchy implements virtualization or data loading.
+
+ResizablePanels adds pointer and keyboard resizing above static Split. The value
+is the main pane's percentage after the separator, with bounds and explicit host
+height for vertical layouts. Preserve separator names/keys, RTL and cancellation;
+zero-sized panes are inert. Content scrolling and persisted layout belong to the
+host. ErrorSummary takes host errors pointing to actual control IDs. It links and
+focuses those fields without performing validation or expanding hidden sections;
+choose its autofocus/announcement policy for the host submission lifecycle.
+
+Collection capabilities remain component-specific. Required, status, loading,
+empty and readonly are not universal props. Preserve cancelled resets and native
+validation when using selection fields; do not assign form contracts to Tree,
+Menu or CommandList just because they expose selected or active items.

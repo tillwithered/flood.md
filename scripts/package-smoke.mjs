@@ -2,7 +2,9 @@ import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
 import { spawnSync } from "node:child_process";
+import { gzipSync } from "node:zlib";
 import assert from "node:assert/strict";
+import { build } from "vite";
 import { initProject, doctor } from "../packages/cli/lib/index.mjs";
 
 const npmCli = process.env.npm_execpath;
@@ -50,14 +52,46 @@ try {
   await initProject(root, {
     installer: () =>
       npm(
-        ["install", "--ignore-scripts", "--no-audit", "--no-fund", ...archives],
+        ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--include=dev", ...archives],
         root,
       ),
   });
   await doctor(root);
+  const buttonEntry = join(root, "button-entry.mjs");
+  await writeFile(buttonEntry, "export {Button} from '@flood-md/react';\n");
+  const previousNodeEnv = process.env.NODE_ENV;
+  let bundledButton;
+  try {
+    bundledButton = await build({
+    root,
+    configFile: false,
+    logLevel: "silent",
+    build: {
+      write: false,
+      minify: true,
+      lib: { entry: buttonEntry, formats: ["es"] },
+      rollupOptions: {
+        external: id => id === "react" || id.startsWith("react/") || id === "react-dom" || id.startsWith("react-dom/") || /\.css(?:\?|$)/.test(id),
+      },
+    },
+    });
+  } finally {
+    // Vite sets NODE_ENV for its build; later npm installs must retain caller policy.
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+  }
+  const buttonChunks = (Array.isArray(bundledButton) ? bundledButton[0] : bundledButton).output.filter(file => file.type === "chunk");
+  assert.equal(buttonChunks.length, 1, "A single Button consumer should produce one independent JavaScript chunk");
+  assert.deepEqual(buttonChunks[0].exports, ["Button"], "Button must remain the consumer's usable public export");
+  const buttonCode = buttonChunks[0].code;
+  const buttonBytes = Buffer.byteLength(buttonCode);
+  const buttonGzipBytes = gzipSync(buttonCode).byteLength;
+  console.log(`Clean tarball Button bundle: ${buttonBytes} minified bytes, ${buttonGzipBytes} gzip bytes (React and CSS external).`);
+  assert.ok(buttonGzipBytes <= 8 * 1024, `Single Button import pulled excessive library code: ${buttonGzipBytes} gzip bytes exceeds 8192`);
+  await writeFile(join(root, "button.bundle.mjs"), buttonCode);
   await writeFile(
     join(root, "check.mjs"),
-    `import {createElement} from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {Button} from '@flood-md/react'; import {tokenNames} from '@flood-md/tokens/foundations'; import {readFileSync} from 'node:fs'; if(!renderToStaticMarkup(createElement(Button,null,'Ready')).includes('Ready')) throw Error('render failed'); const css=readFileSync(new URL(import.meta.resolve('@flood-md/react/styles.css')),'utf8'); if(!css.includes('@flood-md/tokens/tokens.css')) throw Error('missing token import'); if(tokenNames['sys.color.content.default']!=='--flood-sys-color-content-default') throw Error('foundation import failed'); for(const name of ['foundations.css','foundations.manifest.json','neutral.dark.tokens.json']) readFileSync(new URL(import.meta.resolve('@flood-md/tokens/'+name)));`,
+    `import {createElement} from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {Button} from '@flood-md/react'; import {Button as BundledButton} from './button.bundle.mjs'; import {tokenNames} from '@flood-md/tokens/foundations'; import {readFileSync} from 'node:fs'; if(!renderToStaticMarkup(createElement(Button,null,'Ready')).includes('Ready')) throw Error('render failed'); if(!renderToStaticMarkup(createElement(BundledButton,null,'Bundled ready')).includes('Bundled ready')) throw Error('bundled Button render failed'); const css=readFileSync(new URL(import.meta.resolve('@flood-md/react/styles.css')),'utf8'); if(!css.includes('@flood-md/tokens/tokens.css')) throw Error('missing token import'); if(tokenNames['sys.color.content.default']!=='--flood-sys-color-content-default') throw Error('foundation import failed'); for(const name of ['foundations.css','foundations.manifest.json','neutral.dark.tokens.json']) readFileSync(new URL(import.meta.resolve('@flood-md/tokens/'+name)));`,
   );
   const result = spawnSync(process.execPath, ["check.mjs"], {
     cwd: root,
@@ -215,11 +249,85 @@ void select; void referencedSelect; void selectElement; void badSelect;
 void scroll; void scrollElement; void badScroll; void scrollRole;
 `,
   );
+  await writeFile(join(root, "candidate-types.mts"), `
+import {createElement as h, createRef, type ComponentPropsWithRef} from 'react';
+import {Editable, TagInput, CommandList, DateField, TimeField, Calendar, DatePicker, DateRangeField, RangeCalendar, DateRangePicker, ResizablePanels, ErrorSummary, ContextMenu, Tree, NavigationTree, Menu, Popover,
+ type EditableProps, type TagInputProps, type CommandListProps, type DateFieldProps, type TimeFieldProps, type CalendarProps, type DatePickerProps, type DateRangeValue, type DateRangeFieldProps, type RangeCalendarProps, type DateRangePickerProps, type ResizablePanelsProps, type ErrorSummaryProps, type ErrorSummaryItem, type ContextMenuProps, type TreeProps, type TreeItem, type NavigationTreeProps, type NavigationTreeItem, type MenuItem, type MenuCheckboxItem, type MenuRadioItem, type MenuSubmenuItem, type PopoverProps} from '@flood-md/react';
+const editable: EditableProps = {label:'Project',value:'Flood',editing:true,inputRef:createRef<HTMLInputElement>(),blurAction:'cancel',onCommit:value=>value satisfies string,onEditingChange:value=>value satisfies boolean};
+h(Editable,{...editable,ref:createRef<HTMLDivElement>()});
+const tags: TagInputProps = {label:'Tags',name:'tags',value:['design'],delimiters:[',',';'],onValueChange:value=>value satisfies string[],onBlur:event=>event.currentTarget.value satisfies string};
+h(TagInput,{...tags,ref:createRef<HTMLInputElement>()});
+const commands: CommandListProps = {label:'Commands',items:[{id:'open',label:'Open',keywords:['project'],group:'Projects'}],query:'open',onQueryChange:value=>value satisfies string,onAction:id=>id satisfies string};
+h(CommandList,{...commands,ref:createRef<HTMLInputElement>()});
+const date: DateFieldProps = {label:'Date',name:'date',value:'2026-10-26',order:'year-month-day',validationMessage:'Host validation',end:h('button',null,'Action'),onValueChange:value=>value satisfies string};
+h(DateField,{...date,ref:createRef<HTMLDivElement>()});
+const time: TimeFieldProps = {label:'Time',value:'12:30:45',precision:'second',step:15,segmentLabels:{second:'Second'},onValueChange:value=>value satisfies string};
+h(TimeField,{...time,ref:createRef<HTMLDivElement>()});
+const calendar: CalendarProps = {label:'Calendar',value:'2026-10-26',visibleMonth:'2026-10',today:'2026-10-26',weekStartsOn:1,locale:'en-GB',isDateDisabled:date=>date.endsWith('-01'),onDateSelect:value=>value satisfies string,onVisibleMonthChange:value=>value satisfies string};
+h(Calendar,{...calendar,ref:createRef<HTMLDivElement>()});
+const picker: DatePickerProps = {label:'Pick date',value:'2026-10-26',open:false,onOpenChange:value=>value satisfies boolean,calendarLabel:'Choose date',today:'2026-10-26',weekStartsOn:1};
+h(DatePicker,{...picker,ref:createRef<HTMLDivElement>()});
+const range: DateRangeValue = {start:'2026-10-26',end:'2026-10-28'};
+const rangeField: DateRangeFieldProps = {label:'Dates',value:range,startName:'start',endName:'end',startLabel:'Arrival',endLabel:'Departure',isRangeDisabled:value=>value.start===value.end,onValueChange:value=>value satisfies DateRangeValue};
+h(DateRangeField,{...rangeField,ref:createRef<HTMLDivElement>()});
+const rangeCalendar: RangeCalendarProps = {label:'Range',value:range,today:'2026-10-26',rangeLabels:{chooseStart:'Choose start'},onRangeSelect:value=>value satisfies DateRangeValue};
+h(RangeCalendar,{...rangeCalendar,ref:createRef<HTMLDivElement>()});
+const rangePicker: DateRangePickerProps = {...rangeField,open:false,today:'2026-10-26',onOpenChange:value=>value satisfies boolean};
+h(DateRangePicker,{...rangePicker,ref:createRef<HTMLDivElement>()});
+const panels: ResizablePanelsProps = {label:'Workspace',main:h('main',null,'Main'),secondary:h('aside',null,'Inspector'),value:60,min:20,max:80,orientation:'vertical',onValueChange:value=>value satisfies number,onValueCommit:value=>value satisfies number};
+h(ResizablePanels,{...panels,ref:createRef<HTMLDivElement>()});
+const error: ErrorSummaryItem = {id:'date-error',fieldId:'date',message:'Choose a date'};
+const summary: ErrorSummaryProps = {title:'Review fields',errors:[error],announcement:'polite',autoFocus:false,onSelect:(item,event)=>{item.fieldId satisfies string;event.currentTarget satisfies HTMLAnchorElement;}};
+h(ErrorSummary,{...summary,ref:createRef<HTMLDivElement>()});
+const checkbox: MenuCheckboxItem = {id:'notify',type:'checkbox',label:'Notifications',checked:'mixed',onCheckedChange:value=>value satisfies boolean};
+const radio: MenuRadioItem = {id:'compact',type:'radio',label:'Compact',group:'Density',checked:true,onCheckedChange:value=>value satisfies boolean};
+const submenu: MenuSubmenuItem = {id:'export',type:'submenu',label:'Export',items:[{id:'json',label:'JSON'}]};
+const menuItems: readonly MenuItem[] = [checkbox,radio,submenu];
+h(Menu,{label:'Actions',items:menuItems,trigger:props=>h('button',props,'Actions'),ref:createRef<HTMLDivElement>()});
+const context: ContextMenuProps = {label:'Context',items:menuItems,children:h('span',null,'Document'),onAction:id=>id satisfies string};
+h(ContextMenu,{...context,ref:createRef<HTMLDivElement>()});
+const treeItem: TreeItem = {value:'folder',label:'Folder',hasChildren:true,children:[{value:'file',label:'File'}]};
+const tree: TreeProps = {label:'Files',items:[treeItem],value:['file'],multiple:true,expandedValues:['folder'],onValueChange:value=>value satisfies string|string[],onExpandedValuesChange:value=>value satisfies string[]};
+h(Tree,{...tree,ref:createRef<HTMLDivElement>()});
+const navigationItem: NavigationTreeItem = {value:'docs',label:'Docs',href:'/docs',children:[{value:'install',label:'Install',href:'/docs/install',linkProps:{target:'_blank',download:true,onClick:event=>event.currentTarget.href satisfies string}}]};
+const navigation: NavigationTreeProps = {label:'Documentation',items:[navigationItem],currentValue:'install',expandedValues:['docs'],onExpandedValuesChange:value=>value satisfies string[],expandLabel:(item,expanded)=>(expanded?'Collapse ':'Expand ')+item.label};
+h(NavigationTree,{...navigation,ref:createRef<HTMLElement>()});
+const positionReference = createRef<HTMLDivElement>();
+const positioned: PopoverProps = {title:'Settings',trigger:props=>h('button',props,'Settings'),positionReference};
+h(Popover,{...positioned,ref:createRef<HTMLDivElement>()});
+const commandRef: ComponentPropsWithRef<typeof CommandList> = {...commands,ref:createRef<HTMLInputElement>()};
+const navigationRef: ComponentPropsWithRef<typeof NavigationTree> = {...navigation,ref:createRef<HTMLElement>()};
+void commandRef;void navigationRef;
+// @ts-expect-error Editable requires an accessible name.
+const unnamedEditable: EditableProps = {value:'Flood'};
+// @ts-expect-error TagInput owns an array of text tokens.
+const scalarTags: TagInputProps = {label:'Tags',value:'design'};
+// @ts-expect-error DateField owns its segmented input children.
+const dateChildren: DateFieldProps = {label:'Date',children:'Input'};
+// @ts-expect-error TimeField has a bounded precision vocabulary.
+const badPrecision: TimeFieldProps = {label:'Time',precision:'millisecond'};
+// @ts-expect-error Calendar week starts use weekday indices 0 through 6.
+const badWeek: CalendarProps = {label:'Calendar',weekStartsOn:7};
+// @ts-expect-error DatePicker owns its trailing calendar action.
+const pickerEnd: DatePickerProps = {label:'Date',end:'Action'};
+// @ts-expect-error Range fields accept an ordered pair rather than a scalar date.
+const scalarRange: DateRangeFieldProps = {label:'Range',value:'2026-10-26'};
+// @ts-expect-error ContextMenu requires content that owns the context gesture.
+const missingContext: ContextMenuProps = {label:'Context',items:menuItems};
+// @ts-expect-error A checkbox preference must expose its controlled change callback.
+const missingChoice: MenuCheckboxItem = {id:'choice',type:'checkbox',label:'Choice',checked:true};
+// @ts-expect-error Submenus cannot also be destructive actions.
+const destructiveSubmenu: MenuSubmenuItem = {...submenu,tone:'danger'};
+// @ts-expect-error NavigationTree does not own application object selection.
+const selectionNavigation: NavigationTreeProps = {...navigation,value:['install']};
+`);
+  function checkConsumerTypes() {
   const types = spawnSync(
     process.execPath,
     [
       resolve("node_modules/typescript/bin/tsc"),
       join(root, "foundation-types.mts"),
+      join(root, "candidate-types.mts"),
       "--noEmit",
       "--strict",
       "--skipLibCheck",
@@ -235,6 +343,7 @@ void scroll; void scrollElement; void badScroll; void scrollRole;
     { cwd: root, encoding: "utf8" },
   );
   assert.equal(types.status, 0, types.stdout || types.stderr);
+  }
   const cli = spawnSync(
     process.execPath,
     [join(root, "node_modules/@flood-md/cli/bin/flood.mjs"), "doctor"],
@@ -275,14 +384,67 @@ const html=renderToStaticMarkup(h(FloodRoot,null,
 if(!html.includes('data-flood-theme="dark"')||!html.includes('required=""')||!html.includes('aria-label="Add"')||!html.includes('flood-scroll-area__viewport')||!html.includes('<select')||!html.includes('selected=""')||!html.includes('aria-pressed="true"')||!html.includes('flood-toggle-group')||!html.includes('flood-segmented')||!html.includes('aria-expanded=')||!html.includes('flood-accordion')||!html.includes('flood-dialog')||!html.includes('role="tooltip"')||!html.includes('role="tablist"')||!html.includes('flood-pagination')||!html.includes('flood-breadcrumb')) throw Error('React compatibility render');
 for(const name of ['flood-container','flood-grid','flood-aspect-ratio','flood-image','flood-list','flood-empty-state','flood-card','flood-toolbar','flood-kbd','flood-badge','flood-loading','flood-skeleton','flood-avatar','flood-indicator','flood-alert','flood-description-list','flood-table','flood-menu']) if(!html.includes(name)) throw Error('Missing content export '+name);
 `);
+  await writeFile(join(root, "candidate-compat.mjs"), `
+import assert from 'node:assert/strict';
+import {createElement as h,createRef} from 'react';
+import {renderToStaticMarkup as render} from 'react-dom/server';
+import {readFileSync} from 'node:fs';
+import * as Flood from '@flood-md/react';
+const names=['Editable','TagInput','CommandList','DateField','TimeField','Calendar','DatePicker','DateRangeField','RangeCalendar','DateRangePicker','ResizablePanels','ErrorSummary','ContextMenu','Tree','NavigationTree'];
+for(const name of names)assert.ok(Flood[name], 'Missing candidate export '+name);
+const {FloodRoot,Editable,TagInput,CommandList,DateField,TimeField,Calendar,DatePicker,DateRangeField,RangeCalendar,DateRangePicker,ResizablePanels,ErrorSummary,ContextMenu,Tree,NavigationTree,Menu,Popover}=Flood;
+const date='2026-10-26',range={start:date,end:'2026-10-28'};
+const items=[{id:'notify',type:'checkbox',label:'Notifications',checked:'mixed',onCheckedChange:()=>{}},{id:'compact',type:'radio',group:'Density',label:'Compact',checked:true,onCheckedChange:()=>{}},{id:'export',type:'submenu',label:'Export',items:[{id:'json',label:'JSON'}]}];
+const html=render(h(FloodRoot,null,
+ h(Editable,{label:'Project',name:'candidate-project',defaultValue:'Flood'}),
+ h(TagInput,{label:'Tags',name:'candidate-tags',defaultValue:['design','engineering']}),
+ h(CommandList,{label:'Commands',items:[{id:'open',label:'Open project',group:'Projects'}]}),
+ h(DateField,{id:'candidate-date',label:'Date',name:'candidate-date',defaultValue:date,end:h('button',null,'Date action')}),
+ h(TimeField,{label:'Time',name:'candidate-time',defaultValue:'12:30:45',precision:'second'}),
+ h(DateField,{label:'Locked date',name:'candidate-readonly-date',defaultValue:date,readOnly:true,min:'2027-01-01',validationMessage:'Not available for editing'}),
+ h(TimeField,{label:'Locked time',name:'candidate-readonly-time',defaultValue:'12:34',readOnly:true,min:'18:00',step:900}),
+ h(Calendar,{label:'Calendar',defaultValue:date,defaultVisibleMonth:'2026-10',today:date,locale:'en-US'}),
+ h(DatePicker,{label:'Pick date',name:'candidate-picked-date',defaultValue:date,today:date}),
+ h(DateRangeField,{label:'Range',startName:'candidate-start',endName:'candidate-end',defaultValue:range}),
+ h(DateRangeField,{label:'Locked range',startName:'candidate-readonly-start',endName:'candidate-readonly-end',defaultValue:range,readOnly:true,isRangeDisabled:()=>true}),
+ h(RangeCalendar,{label:'Range calendar',defaultValue:range,defaultVisibleMonth:'2026-10',today:date}),
+ h(DateRangePicker,{label:'Pick range',startName:'candidate-picker-start',endName:'candidate-picker-end',defaultValue:range,today:date}),
+ h(ResizablePanels,{label:'Workspace',main:'Main panel',secondary:'Inspector',defaultValue:60}),
+ h(ErrorSummary,{title:'Review fields',errors:[{id:'date-error',fieldId:'candidate-date',message:'Choose a date'}]}),
+ h(Menu,{label:'Preferences',items,defaultOpen:true,trigger:props=>h('button',props,'Preferences')}),
+ h(ContextMenu,{label:'Document actions',items,defaultOpen:true},h('span',null,'Document')),
+ h(Tree,{label:'Files',items:[{value:'folder',label:'Folder',children:[{value:'file',label:'File'}]}],defaultExpandedValues:['folder'],defaultValue:'file'}),
+ h(NavigationTree,{label:'Docs',items:[{value:'docs',label:'Docs',children:[{value:'install',label:'Install',href:'/docs/install'}]}],currentValue:'install',defaultExpandedValues:['docs']}),
+ h(Popover,{title:'Positioned settings',positionReference:createRef(),trigger:props=>h('button',props,'Settings')})
+));
+const cssURL=new URL(import.meta.resolve('@flood-md/react/styles.css'));
+const css=readFileSync(cssURL,'utf8')+readFileSync(new URL('./foundations.css',cssURL),'utf8');
+for(const name of ['flood-editable','flood-tag-input','flood-command-list','flood-date-field','flood-time-field','flood-calendar','flood-date-picker','flood-date-range-field','flood-range-calendar','flood-date-range-picker','flood-resizable-panels','flood-error-summary','flood-context-menu','flood-tree','flood-navigation-tree']){
+ assert.ok(html.includes(name),'Missing candidate SSR anatomy '+name);
+ assert.ok(css.includes('.'+name),'Missing packaged candidate CSS '+name);
+}
+for(const [name,value] of [['candidate-project','Flood'],['candidate-tags','design'],['candidate-tags','engineering'],['candidate-date',date],['candidate-time','12:30:45'],['candidate-readonly-date',date],['candidate-readonly-time','12:34'],['candidate-readonly-start',range.start],['candidate-readonly-end',range.end],['candidate-picked-date',date],['candidate-start',range.start],['candidate-end',range.end],['candidate-picker-start',range.start],['candidate-picker-end',range.end]]){
+ const inputs=html.match(/<input\\b[^>]*>/g)??[];
+ assert.ok(inputs.some(input=>input.includes('name="'+name+'"')&&input.includes('value="'+value+'"')),'Missing canonical SSR form value '+name+'='+value);
+}
+assert.ok(html.includes('role="menuitemcheckbox"')&&html.includes('aria-checked="mixed"')&&html.includes('role="menuitemradio"')&&html.includes('aria-haspopup="menu"'),'Missing preference/submenu SSR semantics');
+assert.ok(html.includes('href="#candidate-date"'),'Missing error-summary field link');
+assert.ok(html.includes('role="tree"')&&html.includes('role="treeitem"')&&html.includes('role="separator"'),'Missing application tree or resizable separator semantics');
+const navigation=render(h(NavigationTree,{label:'Docs',items:[{value:'install',label:'Install',href:'/docs/install'}],currentValue:'install'}));
+assert.ok(navigation.includes('<nav')&&navigation.includes('<ul')&&navigation.includes('aria-current="page"')&&!navigation.includes('role="tree"'),'NavigationTree must retain native navigation semantics');
+`);
   for (const reactVersion of ["19.3.1", "18.3.1"]) {
     if (reactVersion === "18.3.1")
-      npm(["install", "--ignore-scripts", "--no-audit", "--no-fund", `react@${reactVersion}`, `react-dom@${reactVersion}`], root);
+      npm(["install", "--ignore-scripts", "--no-audit", "--no-fund", "--include=dev", `react@${reactVersion}`, `react-dom@${reactVersion}`, "@types/react@18", "@types/react-dom@18"], root);
+    // Compile against the independently installed matching major, not checkout declarations.
+    checkConsumerTypes();
     const compatibility = spawnSync(process.execPath, ["react-compat.mjs"], { cwd: root, encoding: "utf8" });
     assert.equal(compatibility.status, 0, compatibility.stderr);
+    const candidate = spawnSync(process.execPath, ["candidate-compat.mjs"], { cwd: root, encoding: "utf8" });
+    assert.equal(candidate.status, 0, candidate.stderr || candidate.stdout);
   }
   console.log(
-    "Clean consumer: four tarballs, font/license, typed props, CLI doctor and React 18/19 foundation SSR pass.",
+    "Clean consumer: four tarballs, font/license, typed props/refs, CLI doctor and React 18/19 foundation + 0.2.7 API/form SSR pass.",
   );
 } finally {
   await rm(root, { recursive: true, force: true });

@@ -1,0 +1,8 @@
+.flood-root .flood-tag-input { display: grid; gap: var(--flood-sys-space-1); min-inline-size: 0; }
+.flood-root .flood-tag-input[hidden] { display: none; }
+.flood-root .flood-tag-input__control { gap: var(--flood-sys-space-1); padding: calc(var(--flood-group-inset) - var(--flood-group-stroke)); }
+.flood-root .flood-tag-input__control > .flood-tag { --flood-tag-height: calc(var(--flood-group-height) - 2 * var(--flood-group-inset)); border-radius: max(0px, calc(var(--flood-sys-radius-field) - var(--flood-group-inset))); font-size: var(--flood-control-text); line-height: var(--flood-control-line); }
+.flood-root .flood-tag-input__control > .flood-input { flex-basis: 6rem; padding-inline: var(--flood-sys-space-2); }
+.flood-root .flood-tag-input__control > .flood-input:focus-visible { padding-inline: var(--flood-sys-space-2); }
+.flood-root .flood-tag-input__control:has(> .flood-input:disabled) { background: var(--flood-sys-color-field-disabled); color: var(--flood-sys-color-field-disabled-content); }
+.flood-root .flood-tag-input__control:has(> .flood-input:disabled) > .flood-tag { color: var(--flood-sys-color-content-subtle); }

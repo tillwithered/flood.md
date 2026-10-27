@@ -23,7 +23,7 @@ function initialChoices(children: ReactNode, group?: string, groupDisabled = fal
 }
 
 /** Internal implementation. The public entry retains the native SelectProps/ref contract. */
-export const SingleSelect = forwardRef<HTMLSelectElement, SelectProps>(function SingleSelect({
+export const SingleSelect = /* @__PURE__ */ forwardRef<HTMLSelectElement, SelectProps>(function SingleSelect({
   children, value, defaultValue, onChange, onInvalid, onFocus, onBlur, onKeyDown, onKeyUp, onClick,
   disabled, required, id, className, style, title, autoFocus, invalid, status, controlSize = "md",
   "aria-label": ariaLabel, "aria-labelledby": labelledBy, "aria-describedby": describedBy,

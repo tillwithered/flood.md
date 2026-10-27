@@ -1,0 +1,9 @@
+.flood-root .flood-date-range-field { display:grid; gap:var(--flood-sys-space-1); inline-size:100%; min-inline-size:0; container-type:inline-size; container-name:flood-date-range; }
+.flood-root .flood-date-range-field[hidden] { display:none; }
+.flood-root .flood-date-range-field>.flood-label { margin:0; }
+.flood-root .flood-date-range-field__fields { display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); align-items:start; gap:var(--flood-sys-space-2); min-inline-size:0; }
+.flood-root .flood-date-range-field__fields>[data-range-endpoint] { min-inline-size:0; }
+.flood-root .flood-date-range-field__separator { display:grid; place-items:center; min-block-size:var(--flood-control-height); color:var(--flood-sys-color-content-subtle); font-size:var(--flood-control-text); }
+.flood-root .flood-date-range-field__description { color:var(--flood-sys-color-content-subtle); font-size:var(--flood-sys-type-helper-size); line-height:var(--flood-sys-type-helper-line-height); }
+@media(pointer:coarse){.flood-root .flood-date-range-field__separator { min-block-size:max(var(--flood-control-height),calc(var(--flood-sys-size-touch) + 2 * var(--flood-sys-focus-width))); }}
+@container flood-date-range (max-width:30rem){.flood-root .flood-date-range-field__fields { grid-template-columns:minmax(0,1fr); }.flood-root .flood-date-range-field__separator { display:none; }}

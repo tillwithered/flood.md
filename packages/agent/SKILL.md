@@ -19,6 +19,7 @@ invented as a package API. No external component library or parallel token syste
 
 | Work | Read next | Required result |
 | --- | --- | --- |
+| Component, composite, website or playground UI | [Composition skill](references/flood-composition/SKILL.md) | Reused primitives; missing small capabilities implemented before composites |
 | New screen, layout or form | [Composition](references/composition.md) | Existing primitives, correct host width and form ownership |
 | Spacing, density, nested geometry or shifting previews | [Spacing](references/spacing.md) | Measured visual relationships and nonoverlapping interactive areas |
 | Keyboard, validation, names or states | [Accessibility](references/accessibility.md) | Real interaction and associations preserved |

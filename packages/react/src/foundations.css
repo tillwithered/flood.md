@@ -12,7 +12,7 @@
 .flood-root .flood-list[data-marker="false"] { list-style: none; padding: 0; }
 .flood-root .flood-empty-state { box-sizing: border-box; align-items: center; text-align: center; padding-block: var(--flood-sys-space-8); padding-inline: min(var(--flood-sys-space-8), 8%); }
 .flood-root .flood-empty-state[data-density="compact"] { padding-block: var(--flood-sys-space-6); padding-inline: min(var(--flood-sys-space-6), 8%); }
-.flood-root .flood-empty-state__icon { padding: var(--flood-sys-space-3); border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-surface-default); }
+.flood-root .flood-empty-state__icon { display:grid; place-items:center; flex:none; padding: var(--flood-sys-space-3); border-radius: var(--flood-sys-radius-action); background: var(--flood-sys-color-surface-default); }
 .flood-root .flood-empty-state__actions { justify-content: center; }
 .flood-root :is(.flood-container, .flood-grid, .flood-aspect-ratio, .flood-list, .flood-image, .flood-empty-state)[hidden] { display: none; }
 
@@ -49,6 +49,8 @@
 .flood-root .flood-menu__icon { display: inline-flex; align-items: center; justify-content: center; flex: none; inline-size: var(--flood-control-icon); block-size: var(--flood-control-icon); }
 .flood-root .flood-menu__icon > svg { inline-size: 100%; block-size: 100%; }
 .flood-root .flood-menu__label { min-inline-size: 0; overflow-wrap: anywhere; }
+.flood-root .flood-menu__indicator { margin-inline-start: auto; }
+.flood-root .flood-menu__group-label { padding: var(--flood-sys-space-2) var(--flood-sys-space-3) var(--flood-sys-space-1); color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); }
 .flood-root .flood-menu__shortcut { margin-inline-start: auto; flex: none; color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); white-space: nowrap; }
 .flood-root .flood-menu__separator { block-size: var(--flood-sys-stroke-width); margin: var(--flood-sys-space-1) var(--flood-sys-space-2); background: var(--flood-sys-color-divider-decorative); }
 @media (forced-colors: active) {
@@ -209,6 +211,7 @@
 .flood-root .flood-overlay-close { flex: none; align-self: flex-start; }
 .flood-root .flood-overlay-title { margin: 0; min-inline-size: 0; font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); font-weight: var(--flood-sys-type-label-weight); overflow-wrap: anywhere; }
 .flood-root .flood-overlay-body { margin-block-start: var(--flood-sys-space-3); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
+.flood-root .flood-popover[data-chrome="minimal"] > .flood-overlay-body { margin-block-start:0; }
 .flood-root .flood-overlay-description { margin: var(--flood-sys-space-2) 0 0; color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
 .flood-root .flood-dialog { padding: var(--flood-sys-space-6); inline-size: min(32rem, calc(100% - var(--flood-sys-space-8))); max-inline-size: calc(100% - var(--flood-sys-space-8)); max-block-size: calc(100dvh - var(--flood-sys-space-8)); overflow: auto; }
 .flood-root .flood-dialog:not([open]) { display: none; }

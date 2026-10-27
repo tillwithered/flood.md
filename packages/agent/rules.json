@@ -181,6 +181,28 @@
         "Check fine/coarse pointers and nonoverlapping interactive targets",
         "Preserve keyboard focus and label activation"
       ]
+    },
+    {
+      "id": "composition.reuse",
+      "when": "Building or reviewing Flood components, composites, website or host UI",
+      "for": [
+        "designer",
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed exports and component contracts",
+        "Existing component anatomy and current composition"
+      ],
+      "sourceOfTruth": "DESIGN.md and the Flood composition skill",
+      "guide": "references/flood-composition/SKILL.md",
+      "verify": [
+        "Existing semantic primitives remain present in the rendered composition",
+        "Missing reusable capabilities are implemented in a small primitive before the larger composite",
+        "No replacement markup or hidden anatomy used to bypass a primitive",
+        "Alignment checked within each row and in the real host"
+      ]
     }
   ],
   "guideResolution": "Match guide to source in manifest.files; use its target relative to the host project root."

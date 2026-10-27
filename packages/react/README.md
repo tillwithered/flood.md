@@ -3,8 +3,31 @@
 Original React 18.3/19 components for TypeScript and Next.js App Router. Native
 HTML semantics and refs, no third-party component library or Tailwind dependency.
 
-This package documents the **0.2.6** source API. Keep Flood package versions aligned and follow the guide matching
+Named imports support tree shaking in optimizing ES-module bundlers. Import the
+shared stylesheet explicitly; styles are not split by component.
+
+This package documents the **0.2.8** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
+
+Version 0.2.8 adds TimePicker, DateTimeRangePicker, unified Calendar day/month/year views,
+HoverCard, ColorSwatch, ColorPicker, TreeSelect,
+DateTimePicker, DataList, DataListItem, CheckCard, RadioCard, DataTable, FileItem/FileList, FileMeta, UploadItem/UploadList and ImagePreview. Color values are opaque RGB hex; TreeSelect selects one item;
+DateTimePicker retains separate civil date and clock fields without inferring a
+timezone. Each component has a live catalog example and public prop reference.
+
+ListBox in the 0.2.8 source also supports native required validation, descriptions,
+semantic feedback and host-owned validation messages. Readonly bypasses validity;
+disabled excludes form values. See its guide for controlled selection and reset.
+
+Version 0.2.7 adds Tree for application object selection and NavigationTree for
+nested native links. Both use globally unique item values and independent
+controlled/uncontrolled expansion. Tree keeps keyboard focus separate from
+single/multiple selection, with host-owned deferred branches. NavigationTree
+preserves native links, modifier navigation and Tab order with separate disclosure
+buttons. Neither component fetches, virtualizes or writes form values. See the
+[Tree](https://flood.md/components/tree) and
+[NavigationTree](https://flood.md/components/navigation-tree) guides; check their
+release status against your installed version.
 
 ```tsx
 import "@flood-md/react/styles.css";
@@ -902,3 +925,21 @@ The CSS build assembles the original component styles into the shared stylesheet
 Section headingLevel controls native h2–h6 semantics. Its independent headingSize
 uses the existing Heading roles (section/page/large/display), defaulting to section.
 Keep document hierarchy meaningful when changing visual emphasis.
+
+## Editable and TagInput · 0.2.7
+
+Editable provides inline single-line editing with a separate draft, save/cancel actions and committed named form values. See [Editable](../../docs/components/editable.md) for controlled ownership and blur behavior. TagInput creates free-form text tokens and submits repeated named values; it is distinct from fixed-option MultiSelect. See [TagInput](../../docs/components/tag-input.md) for delimiters, paste and validation.
+
+Menu adds `MenuCheckboxItem` and `MenuRadioItem`. Both take controlled `checked` and `onCheckedChange`; radio items also require a `group` label and the host enforces one selected value per group. Checkbox `checked` also accepts `"mixed"`. Keep radio groups contiguous. Preferences stay open by default; set `closeOnSelect` to close after activation. Preference changes do not invoke `onAction`. Existing action items retain their behavior.
+
+CommandList (0.2.7) provides grouped command filtering and invocation without a modal or form value. See [CommandList](../../docs/components/command-list.md) for query ownership, keyboard navigation and loading/empty states.
+
+DateField (0.2.7) edits a Gregorian civil date through native text segments, with ISO canonical values, bounds, explicit segment order and native invalid-draft form handling. It has no operating-system date popup. See [DateField](../../docs/components/date-field.md).
+
+TimeField, Calendar and DatePicker (0.2.7) complete the first single-date/time entry family. See [TimeField](../../docs/components/time-field.md), [Calendar](../../docs/components/calendar.md) and [DatePicker](../../docs/components/date-picker.md). Calendar onDateSelect reports enabled activation, including the already selected date; onValueChange requests only changed values. DateField end accepts an optional trailing action.
+
+Popover positionReference optionally supplies a connected same-document element ref for geometry while trigger semantics, dismissal and focus restoration remain on its button. DatePicker uses this to align its panel to the whole field, tracks field width responsively and clamps to the viewport. Available in the 0.2.7 source candidate.
+
+DateRangeField, RangeCalendar and DateRangePicker (0.2.7) share ordered range values and the original Calendar grid. ResizablePanels adds real pointer/keyboard geometry above static Split. ErrorSummary links host validation to native controls. See each generated catalog page and its guide under docs/components/. DateField validationMessage adds an external native constraint after the field's own date validity.
+
+Menu (0.2.7) supports recursive submenu items and ContextMenu reuses its native layer engine. Context triggers preserve the actual pointer/keyboard source; nested searches stay scoped, Escape unwinds one level and Tab exits through the root. See docs/components/menu.md and context-menu.md.

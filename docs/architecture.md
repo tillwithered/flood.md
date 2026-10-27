@@ -20,12 +20,24 @@ and agent files, and tells the user where to import CSS. It does not guess at
 source-code AST mutations or rewrite existing instructions. Components are
 dependencies, not copies, so upgrades follow ordinary package versioning.
 
+React component factory calls carry purity annotations so optimizing ES-module
+bundlers can remove unused components from named imports. Keep module
+initialization free of external side effects and preserve those annotations.
+The clean tarball consumer checks a real single-Button bundle independently of
+React and CSS. The explicit stylesheet remains the shared foundation stylesheet;
+JavaScript tree shaking does not imply per-component CSS delivery.
+
 `@flood-md/cli` uses Node built-ins and the matching agent package. The installer
 currently uses npm only; consumers may import the library without the CLI using
 another package manager. An npm failure does not write Flood configuration;
 npm itself can change package/lock files, so inspect its output before retrying.
 
 ## Component contracts
+
+Larger components, website UI and playgrounds compose existing Flood primitives.
+When a capability is missing, improve or add the small primitive first. Preserve
+its anatomy; do not replace it with custom markup to solve appearance. Apply the
+[composition skill](../packages/agent/references/flood-composition/SKILL.md).
 
 Native buttons and inputs keep platform semantics. Callbacks/ref/state belong in
 client components. Field supplies associations via a render callback. No data
@@ -46,7 +58,7 @@ no project theme editor, implicit download or remote configuration.
 
 ### Dark foundations in 0.2.0
 
-The aligned package version is `0.2.6`. Registry publication is verified separately from
+The aligned package version is `0.2.8`. Registry publication is verified separately from
 the manifests or source branch.
 `FloodRoot` explicitly selects `data-flood-foundations="neutral"` and
 `data-flood-theme="dark"`. New foundation styles are scoped to that root;

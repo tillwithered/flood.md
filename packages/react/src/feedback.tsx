@@ -11,7 +11,7 @@ export function validateRange(value: number | undefined, min: number, max: numbe
 }
 
 type IndicatorProps = ProgressProps & { kind: "progress" | "meter"; min: number; max: number };
-export const ValueIndicator = forwardRef<HTMLDivElement, IndicatorProps>(function ValueIndicator(
+export const ValueIndicator = /* @__PURE__ */ forwardRef<HTMLDivElement, IndicatorProps>(function ValueIndicator(
   { kind, label, value, min, max, valueText, size, tone, hideLabel, className, ...props }, ref,
 ) {
   const labelId = `flood-indicator-${useId()}`;
@@ -38,7 +38,7 @@ function StatusGlyph({ tone }: { tone: AlertProps["tone"] }) {
   </svg>;
 }
 
-export const FeedbackMessage = forwardRef<HTMLDivElement, AlertProps>(function FeedbackMessage(
+export const FeedbackMessage = /* @__PURE__ */ forwardRef<HTMLDivElement, AlertProps>(function FeedbackMessage(
   { title, tone, icon, announcement, children, className, ...props }, ref,
 ) {
   const artwork = icon === undefined ? <StatusGlyph tone={tone} /> : icon;
