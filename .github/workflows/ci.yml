@@ -24,6 +24,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Fail early on release-train drift
+        run: node scripts/release.mjs --source-only
       - name: Classify publication-only changes
         id: scope
         run: node scripts/ci-scope.mjs
@@ -130,6 +132,8 @@ jobs:
           name: browser-build-${{ github.sha }}
           path: .artifacts
       - run: tar -xzf .artifacts/browser-build.tgz
+      - name: Match the mounted browser profile directory to the container user
+        run: chown "$(id -u):$(id -g)" /github/home
       - run: node scripts/ci-browser.mjs ${{ matrix.engine }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

@@ -4,6 +4,7 @@ import { VERSION } from "../packages/cli/lib/index.mjs";
 import { verifyCandidate } from "./ci-artifacts.mjs";
 
 const names = ["tokens", "react", "agent", "cli"];
+const sourceOnly = process.argv.includes('--source-only');
 const npm = (args) =>
   spawnSync(process.execPath, [process.env.npm_execpath, ...args], {
     encoding: "utf8",
@@ -34,14 +35,14 @@ for (const name of names) {
     if (dependency.startsWith("@flood-md/") && version !== VERSION)
       throw new Error(`${dependency}: internal dependency must be ${VERSION}`);
   if (
-    name === "react" &&
+    name === "react" && !sourceOnly &&
     !(await readFile("packages/react/dist/index.js", "utf8")).startsWith(
       '"use client";',
     )
   )
     throw new Error("Missing client boundary");
 }
-if (process.argv.includes("--check")) {
+if (process.argv.includes("--check") || sourceOnly) {
   console.log(`Release ${VERSION}: package versions aligned.`);
   process.exit(0);
 }

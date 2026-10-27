@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
+import { chromium, firefox, webkit } from '@playwright/test';
 const plan = JSON.parse(await readFile('.artifacts/ci-plan.json','utf8'));
 if(typeof plan.full !== 'boolean' || !Array.isArray(plan.components) || !Array.isArray(plan.testFiles))throw Error('Missing browser coverage plan');
 const engine=process.argv[2];
@@ -21,5 +22,8 @@ if(!gateOnly && !plan.full) {
   process.env.FLOOD_AFFECTED_COMPONENTS=plan.components.join(',');
 }
 console.log(`${engine}: ${gateOnly?'publication-only website':plan.full?'full candidate':plan.components.join(', ')}`);
+// Detect a broken browser installation/container once, before per-test retries.
+const browser = await ({chromium,firefox,webkit})[engine].launch();
+await browser.close();
 const result=spawnSync(process.execPath,args,{stdio:'inherit',env:process.env});
 process.exit(result.status ?? 1);
