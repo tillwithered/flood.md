@@ -36,8 +36,8 @@ contract remains compatible outside FloodRoot.
 
 ## Connect
 
-This branch prepares 0.2.9; registry publication is pending. Use matching published
-Flood packages and verify availability before running the versioned command.
+Use matching published Flood packages and verify registry availability before
+running the versioned command. Source availability alone does not prove publication.
 
 ```sh
 npx @flood-md/cli@0.2.9 init

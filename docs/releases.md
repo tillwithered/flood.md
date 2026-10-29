@@ -35,6 +35,14 @@ After a partially completed publication, rerun the same workflow: it skips alrea
 published versions only after comparing package integrity with the local tarball.
 Different existing bytes fail the release instead of silently accepting a collision.
 
+To recover a workflow failure before or during publication, dispatch Publish
+packages with the existing stable release tag. It validates that the GitHub
+Release is published, checks out that tag and promotes only its successful exact
+main candidate. It never moves the tag or rebuilds archives. The container trusts
+only its mounted checkout for Git ownership checks; neighboring directories are
+not trusted. Resume with the corrected workflow definition when the tagged
+workflow itself caused the failure.
+
 ## Verification and promotion
 
 Ordinary implementation-only PRs use the public component dependency closure to
