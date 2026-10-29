@@ -8,7 +8,7 @@
 - Preserve host instructions and customized guide copies; keep unsupported motion/theme capabilities explicit.
 - This compatible additive candidate requires all four packages at 0.2.10. Publication is verified separately.
 
-## 0.2.9 · Unreleased — dark-base stabilization
+## 0.2.9 · 2026-10-30 — dark-base stabilization
 
 - Route ten task-focused skills through the version-matched agent entry, including
   forms, overlays, navigation, feedback, data display and verification. Ship a
