@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.9 · Unreleased — dark-base stabilization
+## 0.2.9 · 2026-10-30 — dark-base stabilization
 
 - Route ten task-focused skills through the version-matched agent entry, including
   forms, overlays, navigation, feedback, data display and verification. Ship a
