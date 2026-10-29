@@ -8,7 +8,7 @@ Version 0.2.3 includes the expanded skill, rules and reference bundle, including
 spacing guidance. Existing projects keep their installed files; compare new
 guidance before updating customized instructions.
 
-The current source adds ten specialized routed skills for stabilizing and
+The 0.2.9 source candidate adds ten specialized routed skills for stabilizing and
 composing the dark base. See [Skills](skills.md) for their applicability and full
 sources. The website index is generated from the same bundle metadata rather
 than a second handwritten skill catalog. Source additions do not update an
@@ -21,7 +21,7 @@ scope. The CLI does not install an agent runtime or require a hosted Flood servi
 
 ## Compose from primitives
 
-The 0.2.8 source candidate includes the [Flood composition skill](../packages/agent/references/flood-composition/SKILL.md).
+Flood includes the [Flood composition skill](../packages/agent/references/flood-composition/SKILL.md).
 The main Flood skill routes component, website and playground work to it. The
 manifest installs the full skill under
 `.agents/skills/flood-ui/references/flood-composition/SKILL.md`; it is loaded by

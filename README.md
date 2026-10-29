@@ -4,9 +4,9 @@ An independent design system for **React, TypeScript and Next.js**. Original
 components, semantic tokens, a small installer, and versioned instructions for
 coding agents. No third-party UI component library or Tailwind dependency.
 
-## Base dark design system · 0.2.8
+## Base dark design system · 0.2.9
 
-Flood 0.2.8 provides a dark foundations profile, 193 semantic token roles and 100 original components. See
+Flood 0.2.9 provides a dark foundations profile, 193 semantic token roles and 120 original components. See
 [Original primitives and controls](docs/base-components.md), including forms,
 selection groups, disclosures, overlays and navigation. A versioned agent bundle
 includes portable spacing and composition guidance. Use the matching installed
@@ -36,10 +36,11 @@ contract remains compatible outside FloodRoot.
 
 ## Connect
 
-Use matching published Flood packages. Verify registry availability before running the versioned installation command.
+This branch prepares 0.2.9; registry publication is pending. Use matching published
+Flood packages and verify availability before running the versioned command.
 
 ```sh
-npx @flood-md/cli@0.2.8 init
+npx @flood-md/cli@0.2.9 init
 ```
 
 Run in an existing npm-based React or Next.js project. Use `init --dry-run` to see
@@ -58,7 +59,7 @@ export function Example() {
 ```
 
 Give an agent `https://flood.md/llms.txt`. The guide
-uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.8 doctor` checks
+uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.9 doctor` checks
 installed versions and owned instruction files.
 
 ## Documentation
@@ -83,7 +84,7 @@ variables; host application owns layout, data fetching and side effects.
 ## Develop
 
 See [foundations](docs/foundations.md) and the [component guide](docs/components.md)
-for 0.2.8. Existing 0.1.1 projects should follow their matching guides. The Next.js
+for 0.2.9. Existing 0.1.1 projects should follow their matching guides. The Next.js
 example includes `/foundations` and `/team` for reviewing the current source.
 
 Node.js 22.12+ (Node 24 recommended), npm 11.

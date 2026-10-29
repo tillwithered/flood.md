@@ -6,8 +6,11 @@ HTML semantics and refs, no third-party component library or Tailwind dependency
 Named imports support tree shaking in optimizing ES-module bundlers. Import the
 shared stylesheet explicitly; styles are not split by component.
 
-This package documents the **0.2.8** source API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.9** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
+
+Version 0.2.9 improves constrained file rows, Drawer readability and Select pointer
+focus without changing public signatures or token values.
 
 Version 0.2.8 adds TimePicker, DateTimeRangePicker, unified Calendar day/month/year views,
 HoverCard, ColorSwatch, ColorPicker, TreeSelect,

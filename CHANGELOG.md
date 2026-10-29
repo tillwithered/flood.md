@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — dark-base stabilization
+## 0.2.9 · Unreleased — dark-base stabilization
 
 - Route ten task-focused skills through the version-matched agent entry, including
   forms, overlays, navigation, feedback, data display and verification. Ship a
@@ -16,7 +16,7 @@
   including browsers that do not mouse-focus native buttons, preserving keyboard
   callbacks and nested Escape ownership.
 - No public React signatures or token values change. This compatible source
-  candidate requires a new aligned patch before publication; npm 0.2.8 is unchanged.
+  candidate targets aligned patch 0.2.9; publication is verified separately.
 
 ## 0.2.8 · 2026-10-27
 

@@ -1,7 +1,7 @@
 # @flood-md/agent
 
 Version-matched guidance for Flood React/Next.js projects. Read the installed
-contract before composing screens. The 0.2.8 reference bundle includes spacing
+contract before composing screens. The 0.2.9 reference bundle includes spacing
 guidance, routing and observable rules. These files grant
 no authority to modify external services.
 
