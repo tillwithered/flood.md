@@ -18,6 +18,7 @@ h('h1',null,'Select layer verification'),
 h('div',{id:'scroll-anchor',style:{height:'12rem',width:'18rem',maxWidth:'100%',overflow:'auto'}},h('div',{style:{height:'6rem'}}),h(Select,{'aria-label':'Scrolling select',defaultValue:'1',style:{width:'14rem'}},...options()),h('div',{style:{height:'30rem'}})),
 h(Input,{ref:destination,'aria-label':'Host destination'}),
 h(Select,{'aria-label':'Moving select',defaultValue:'1',onFocus:()=>F(n=>n+1),onBlur:()=>B(n=>n+1),onChange:()=>{C(n=>n+1);destination.current.focus()}},...options()),
+h(Select,{'aria-label':'Handing off select',defaultValue:'1',onClick:event=>{event.preventDefault();destination.current.focus()}},...options()),
 h(Button,{id:'underlay',style:{display:'none'},onClick:()=>U(n=>n+1)},'Underlying action'),
 h('output',{'aria-label':'Changes'},String(changes)),h('output',{'aria-label':'Underlying clicks'},String(underlay)),h('output',{'aria-label':'Native focus callbacks'},String(focuses)),h('output',{'aria-label':'Native blur callbacks'},String(blurs)),
 h(Dialog,{title:'Select parent',trigger:props=>h(Button,{...props},'Open select parent')},h(Select,{'aria-label':'Nested select',defaultValue:'1',onBlur:()=>B(n=>n+1)},...options()),h(Button,null,'Dialog next')));
@@ -61,6 +62,7 @@ test("nested Select keeps the first Escape even after the trigger loses focus", 
   await page.getByRole("button", { name: "Open select parent", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Select parent", exact: true }), trigger = dialog.getByRole("combobox", { name: "Nested select", exact: true });
   await trigger.click();
+  await expect(trigger).toBeFocused();
   const menu = page.getByRole("listbox", { name: "Nested select", exact: true });
   await expect(menu).toBeVisible();
   await trigger.evaluate(node => (node as HTMLButtonElement).blur());
@@ -71,6 +73,15 @@ test("nested Select keeps the first Escape even after the trigger loses focus", 
   await expect(trigger).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
+});
+
+test("Select click focus precedes a cancelling host callback and preserves its deliberate focus move", async ({page}) => {
+  await open(page);
+  const trigger=page.getByRole("combobox", {name:"Handing off select", exact:true});
+  await trigger.click();
+  await expect(page.getByRole("textbox", {name:"Host destination", exact:true})).toBeFocused();
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("listbox")).toHaveCount(0);
 });
 
 test("Select mirrors native focus callbacks without treating its bridge as outside focus", async ({ page }) => {

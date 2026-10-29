@@ -64,3 +64,39 @@ test("FileMeta combines format and size without empty separators and shares the 
  const name=(await page.locator('#simple .flood-file-item__name').boundingBox())!,chip=(await page.locator('#simple .flood-file-meta').boundingBox())!;
  expect(chip.x).toBeGreaterThan(name.x+name.width);expect(chip.y).toBeLessThan(name.y+name.height);await expect(page.locator('#simple .flood-data-list-item__description')).toHaveCount(0);
 });
+
+test('file records keep full text, metadata and actions inside a constrained host at enlarged RTL text',async({page})=>{
+ await open(page);
+ for(const direction of ['ltr','rtl'])for(const font of [16,32]){
+  await page.setViewportSize({width:960,height:900});
+  await page.evaluate(({direction,font})=>{document.documentElement.dir=direction;document.documentElement.style.fontSize=font+'px';for(const list of document.querySelectorAll<HTMLElement>('.flood-file-list'))list.style.inlineSize='min(100%, 224px)';},{direction,font});
+  for(const label of ['Attachments','Uploads']){
+   const list=page.getByRole('list',{name:label,exact:true});
+   const overflow=await list.evaluate(root=>{
+    const outer=root.getBoundingClientRect(),bad:string[]=[];
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node:Node|null;
+    while((node=walker.nextNode())){
+     if(!node.textContent?.trim())continue;
+     let hidden=false;
+     for(let owner=node.parentElement;owner&&owner!==root;owner=owner.parentElement){const css=getComputedStyle(owner),box=owner.getBoundingClientRect();if(css.display==='none'||css.visibility==='hidden'||(css.clipPath==='inset(50%)'&&box.width<=1&&box.height<=1)){hidden=true;break;}}
+     if(hidden)continue;
+     const range=document.createRange();range.selectNodeContents(node);for(const rect of range.getClientRects())if(rect.width&&(rect.left<outer.left-1||rect.right>outer.right+1))bad.push(node.textContent);
+    }
+    return bad;
+   });
+   expect(overflow,`${label}, ${direction}, root ${font}px: painted text crosses the container`).toEqual([]);
+   const actions=list.getByRole('button');
+   for(let i=0;i<await actions.count();i++){
+    const action=actions.nth(i);await action.focus();await action.scrollIntoViewIfNeeded();
+    const outer=(await list.boundingBox())!,box=(await action.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(outer.x-1);expect(box.x+box.width).toBeLessThanOrEqual(outer.x+outer.width+1);
+   }
+  }
+  await expect(page.getByRole('list',{name:'Uploads',exact:true}).getByRole('progressbar')).toBeVisible();
+  await expect(page.getByRole('list',{name:'Uploads',exact:true}).locator('.flood-status-indicator__dot')).toBeVisible();
+ }
+ const attachments=page.getByRole('list',{name:'Attachments',exact:true});
+ await attachments.getByRole('button',{name:/^Remove:/}).click();
+ await expect(attachments.locator('.flood-file-item[hidden]')).toBeHidden();
+ await expect(attachments.getByRole('listitem')).toHaveCount(2);
+});

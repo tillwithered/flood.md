@@ -25,6 +25,14 @@ installation availability follows the verified publication gate in src/release.j
 
 ## Content
 
+The Skills guide is generated from packages/agent/workflows.json and the full
+skill sources shipped by its manifest. This is task routing, not a completed
+audit or an automatic enforcement engine. CLI installation and raw website
+endpoints use the same manifest. The workspace-review recipe embeds the actual
+typed live composition source during content generation; avoid editing a second
+copy in Markdown. It runs at /playground/content#workspace-review, with no remote
+save, authorization change or upload.
+
 Production builds prerender the home page, guides, catalog and component pages
 from the same React tree used by the browser. Reader styles are linked in the
 initial HTML; text, examples, API tables and navigation remain readable without

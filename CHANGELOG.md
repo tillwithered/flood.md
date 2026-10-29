@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.2.9 · Unreleased — dark-base stabilization
+
+- Route ten task-focused skills through the version-matched agent entry, including
+  forms, overlays, navigation, feedback, data display and verification. Ship a
+  component-family workflow index and observable rules with the existing safe CLI
+  installation boundary; applicability is not a completed audit.
+- Generate the website Skills guide from those package sources and provide a
+  typed Workspace review recipe using native form values, reset and a file drawer.
+- Keep file metadata, status, progress and actions readable inside constrained
+  FileList/UploadList hosts with enlarged text, without replacing their primitives.
+- Preserve a useful Drawer reading area at enlarged narrow sizes with responsive
+  padding, full-width descriptions and reachable whole-panel overflow fallback.
+- Focus the Select combobox on pointer activation before host click callbacks,
+  including browsers that do not mouse-focus native buttons, preserving keyboard
+  callbacks and nested Escape ownership.
+- No public React signatures or token values change. This compatible source
+  candidate targets aligned patch 0.2.9; publication is verified separately.
+
 ## 0.2.8 · 2026-10-27
 
 - Complete ListBox native required validation, feedback/status and accessible descriptions while retaining selection and reset contracts.

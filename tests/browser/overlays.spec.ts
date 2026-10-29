@@ -39,7 +39,7 @@ async function open(page:Page){bundle??=fixture();const html=await bundle;await 
 test("Select key callbacks preserve nested Escape ownership and cancellation",async({page})=>{
   await open(page);await page.getByRole("button",{name:"Open modal",exact:true}).click();
   const dialog=page.getByRole("dialog",{name:"Edit project",exact:true}),select=dialog.getByRole("combobox",{name:"Access",exact:true});
-  await select.click();await page.keyboard.press("Escape");
+  await select.click();await expect(select).toBeFocused();await page.keyboard.press("Escape");
   await expect(page.getByRole("listbox")).toBeHidden();await expect(dialog).toBeVisible();
   await expect(dialog.getByLabel("Select key callbacks")).toHaveText("1");
   await page.keyboard.press("Escape");await expect(dialog).toBeHidden();
@@ -70,7 +70,10 @@ test("Popover owns its top-layer placement, theme, outside/Tab dismissal and foc
   await page.keyboard.press("Escape");await expect(popup).toBeHidden();await expect(trigger).toBeFocused();
   await trigger.click();await page.getByRole("link",{name:"Popover link"}).focus();await page.keyboard.press("Tab");
   await expect(popup).toBeHidden();await expect(trigger).not.toBeFocused();
-  await trigger.click();await page.locator("#before").click();await expect(popup).toBeHidden();await expect(page.locator("#before")).toBeFocused();
+  await trigger.click();await page.locator("#before").click();await expect(popup).toBeHidden();await expect(trigger).not.toBeFocused();
+  // Pointer-button focus is platform-specific. Test deliberate host focus
+  // separately rather than requiring WebKit to mouse-focus every native button.
+  await trigger.click();await page.locator("#before").focus();await expect(popup).toBeHidden();await expect(page.locator("#before")).toBeFocused();
   await page.getByRole("button",{name:"Frozen popup",exact:true}).click();await expect(page.getByRole("dialog",{name:"Frozen popup",exact:true})).toBeHidden();
   await trigger.evaluate(node=>Object.assign(node.style,{position:"fixed",right:"0px",bottom:"0px"}));await trigger.click();
   const box=(await popup.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(7);expect(box.x+box.width).toBeLessThanOrEqual(page.viewportSize()!.width-7);expect(box.y+box.height).toBeLessThanOrEqual(page.viewportSize()!.height-7);

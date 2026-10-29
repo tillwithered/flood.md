@@ -10,6 +10,10 @@ the public product, website, documentation, examples and verification tooling.
   Improve a missing capability in the small primitive first, then compose it.
   Follow [the composition skill](packages/agent/references/flood-composition/SKILL.md)
   when building or reviewing UI.
+- Route the actual task through [the agent entry](packages/agent/SKILL.md) and
+  read the relevant workflow, not every skill. Stabilize behavior and update its
+  matching guidance together. The workflow/rules indexes identify applicable
+  checks; they do not prove those checks passed.
 - Tokens are authored only in `packages/tokens/src/tokens.json`.
 - Preserve React 18/19 APIs and the React entry's `"use client"` directive.
 - Public API changes need docs, declaration output and a version decision.

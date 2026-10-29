@@ -39,6 +39,12 @@ When a capability is missing, improve or add the small primitive first. Preserve
 its anatomy; do not replace it with custom markup to solve appearance. Apply the
 [composition skill](../packages/agent/references/flood-composition/SKILL.md).
 
+The versioned agent entry routes task-focused skills through workflows.json;
+rules.json links stable rule IDs to observable checks. The CLI and website serve
+the same manifest-backed sources. A component change updates its applicable
+guidance and evidence together. Applicability is not proof of a completed audit;
+skills do not add runtime behavior, unavailable APIs or external permissions.
+
 Native buttons and inputs keep platform semantics. Callbacks/ref/state belong in
 client components. Field supplies associations via a render callback. No data
 access is built into components. React package entry keeps `"use client"` in the
@@ -58,7 +64,7 @@ no project theme editor, implicit download or remote configuration.
 
 ### Dark foundations in 0.2.0
 
-The aligned package version is `0.2.8`. Registry publication is verified separately from
+The aligned package version is `0.2.9`. Registry publication is verified separately from
 the manifests or source branch.
 `FloodRoot` explicitly selects `data-flood-foundations="neutral"` and
 `data-flood-theme="dark"`. New foundation styles are scoped to that root;

@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { readFile } from "node:fs/promises";
+import { readWebsiteDocument } from "../../scripts/website-documents.mjs";
 import { componentSlugs, docPages } from "../../apps/website/routes.mjs";
 import { chooseSelectOption } from "./select-helpers";
 import { catalogCohort } from "../../scripts/ci-cohort.mjs";
@@ -110,11 +110,14 @@ test("fields have a single contour and state controls preserve native interactio
 });
 
 test("Markdown is a real readable format with valid raw endpoints", async ({ page, request }) => {
+  // Generated guides resolve canonical skill tables and typed recipe sources.
+  // Check against canonical sources: browser shards do not carry the build's
+  // ignored generated source cache, only its tested website artifact.
   for (const doc of docPages) {
     const response = await request.get(`${doc.path}.md`);
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toContain("text/markdown");
-    expect(await response.text()).toBe(await readFile(`docs/${doc.file}`, "utf8"));
+    expect(await response.text()).toBe(await readWebsiteDocument(doc.file));
   }
   for (const slug of componentSlugs) {
     const response = await request.get(`/components/${slug}.md`);

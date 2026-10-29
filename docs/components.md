@@ -2,7 +2,7 @@
 
 ## Dark foundations · 0.2.5
 
-This guide describes the **0.2.8** API. See the [base component inventory](base-components.md)
+This guide describes the **0.2.9** API. See the [base component inventory](base-components.md)
 for the complete set. New APIs extend earlier 0.2 releases; source changes do not
 modify published npm versions. Existing 0.1.1 installs follow their
 version-specific guides.

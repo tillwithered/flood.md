@@ -8,6 +8,12 @@ Version 0.2.3 includes the expanded skill, rules and reference bundle, including
 spacing guidance. Existing projects keep their installed files; compare new
 guidance before updating customized instructions.
 
+The 0.2.9 source candidate adds ten specialized routed skills for stabilizing and
+composing the dark base. See [Skills](skills.md) for their applicability and full
+sources. The website index is generated from the same bundle metadata rather
+than a second handwritten skill catalog. Source additions do not update an
+already installed package; use the guide set matching your installation.
+
 For discovery, give an agent [flood.md/llms.txt](https://flood.md/llms.txt).
 It identifies deployed status and entry points. Follow [installation](installation.md);
 preview the matching CLI's init with --dry-run before applying it within the user's
@@ -15,7 +21,7 @@ scope. The CLI does not install an agent runtime or require a hosted Flood servi
 
 ## Compose from primitives
 
-The 0.2.8 source candidate includes the [Flood composition skill](../packages/agent/references/flood-composition/SKILL.md).
+Flood includes the [Flood composition skill](../packages/agent/references/flood-composition/SKILL.md).
 The main Flood skill routes component, website and playground work to it. The
 manifest installs the full skill under
 `.agents/skills/flood-ui/references/flood-composition/SKILL.md`; it is loaded by
@@ -42,6 +48,7 @@ a Badge/Progress/Dialog implementation just to make one layout fit.
 | references/verification.md in the skill folder | Developer / reviewer, completion | Host checks | Evidence requirements | Commands, manual results and gaps |
 | flood/rules.json | Human / agent / project tooling | Same bundle | Rule IDs, conditions, sources and checks | Evidence for each applicable rule |
 | flood/manifest.json | Installer / reviewer | Matching package | Explicit source → project-path mapping | Complete files; existing files preserved |
+| workflows.json in the skill folder | Agent / reviewer, task selection | Same installed bundle | Workflow applicability | Read relevant skills; applicability is not behavioral proof |
 
 Manifest `entry` and rule `guide` paths are package-source paths. Resolve them
 through `manifest.files`: each source maps to a target relative to the host

@@ -1,6 +1,6 @@
 # Base component architecture
 
-The 0.2.8 source uses original React18.3/19 components and TypeScript
+The 0.2.9 source uses original React18.3/19 components and TypeScript
 declarations. The website catalog and individual component pages are generated
 from the [source catalog](../apps/website/src/component-catalog.json) and declarations.
 Use the catalog for inventory and the [component guide](components.md) for composition.

@@ -21,16 +21,27 @@ invented as a package API. No external component library or parallel token syste
 | --- | --- | --- |
 | Component, composite, website or playground UI | [Composition skill](references/flood-composition/SKILL.md) | Reused primitives; missing small capabilities implemented before composites |
 | New screen, layout or form | [Composition](references/composition.md) | Existing primitives, correct host width and form ownership |
-| Spacing, density, nested geometry or shifting previews | [Spacing](references/spacing.md) | Measured visual relationships and nonoverlapping interactive areas |
-| Keyboard, validation, names or states | [Accessibility](references/accessibility.md) | Real interaction and associations preserved |
-| Brand, colors or typography | [Customization](references/customization.md) | Scoped semantic overrides; unchanged behavior |
-| Completion, regression or upgrade review | [Verification](references/verification.md) | Checks and limits reported against the actual host |
+| Spacing, density, nested geometry or shifting previews | [Spacing skill](references/flood-spacing/SKILL.md) | Measured visual relationships and nonoverlapping interactive areas |
+| Existing dark surfaces, type, control and icon sizing | [Foundations skill](references/flood-foundations/SKILL.md) | Correct semantic roles and coherent consumers |
+| Keyboard, names, focus, perception or reflow | [Accessibility skill](references/flood-accessibility/SKILL.md) | Real interaction and associations preserved |
+| Field ownership, validation, submission and reset | [Forms skill](references/flood-forms/SKILL.md) | Actual form values and accepted/refused transitions |
+| Popup, dialog, drawer or nested layer | [Overlays skill](references/flood-overlays/SKILL.md) | Appropriate geometry, dismissal and focus ownership |
+| Destinations, panels, disclosure or hierarchy | [Navigation skill](references/flood-navigation/SKILL.md) | Navigation, selection and expansion kept distinct |
+| Tables, lists, cards, files and long content | [Data display skill](references/flood-data-display/SKILL.md) | Meaningful structures and reachable overflow |
+| Status, progress, alerts, loading or empty content | [Feedback skill](references/flood-feedback/SKILL.md) | Honest operation state with one announcement owner |
+| Brand or deliberate semantic overrides | [Customization](references/customization.md) | Scoped semantic overrides; unchanged behavior |
+| Completion, stabilization or regression review | [Verification skill](references/flood-verification/SKILL.md) | Checks and limits reported against the actual host |
 | Decide which document governs a change | [Routing and sources](references/routing.md) | Source of truth and prerequisites identified |
 
 The project-root flood/rules.json lists stable rule IDs and their observable
 checks; it is an index, not executable policy. At completion report which checks
 ran, their result and any unverified behavior. Doctor checks installation only.
 Guidance cannot guarantee an agent's compliance or certify application accessibility.
+
+The workflow index lists component-family applicability, not a requirement to load
+every skill or proof that a component passed its checks. These specialized skills
+are routed references inside flood-ui; independent discovery of nested folders
+is not assumed. Resolve sources through the installed manifest when needed.
 
 Preserve existing instructions and customized guides. This skill authorizes no
 deployment, deletion, external messages or sending host source to other services.

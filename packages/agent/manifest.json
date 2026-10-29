@@ -56,9 +56,59 @@
       "source": "references/flood-composition/SKILL.md",
       "target": ".agents/skills/flood-ui/references/flood-composition/SKILL.md",
       "kind": "skill"
+    },
+    {
+      "source": "workflows.json",
+      "target": ".agents/skills/flood-ui/workflows.json",
+      "kind": "reference"
+    },
+    {
+      "source": "references/flood-spacing/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-spacing/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-foundations/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-foundations/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-accessibility/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-accessibility/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-forms/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-forms/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-overlays/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-overlays/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-navigation/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-navigation/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-data-display/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-data-display/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-feedback/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-feedback/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-verification/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-verification/SKILL.md",
+      "kind": "skill"
     }
   ],
-  "version": "0.2.8",
+  "version": "0.2.9",
   "installedEntry": ".agents/skills/flood-ui/SKILL.md",
   "pathBase": "source is package-relative; target is relative to the host project root"
 }

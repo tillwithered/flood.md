@@ -1,9 +1,16 @@
 # @flood-md/agent
 
 Version-matched guidance for Flood React/Next.js projects. Read the installed
-contract before composing screens. The 0.2.8 reference bundle includes spacing
+contract before composing screens. The 0.2.9 reference bundle includes spacing
 guidance, routing and observable rules. These files grant
 no authority to modify external services.
+
+The source bundle also includes ten routed workflows for the existing dark base:
+composition, spacing, foundations, accessibility, forms, overlays, navigation,
+data display, feedback and verification. The lightweight flood-ui entry selects
+relevant skills; nested folders do not imply independent automatic discovery.
+workflows.json describes applicability. rules.json describes observable checks;
+neither is a completed component-audit report or executable enforcement engine.
 
 | Source | Role |
 | --- | --- |
@@ -18,6 +25,7 @@ no authority to modify external services.
 | references/verification.md | Evidence before reporting completion |
 | rules.json | Stable rule IDs with conditions, sources and observable checks |
 | manifest.json | Source → installed-path mapping used by the CLI |
+| workflows.json | Component-family applicability and routed full-skill sources |
 
 CLI init copies every manifest entry into an unused owned path. Doctor checks
 expected regular files without linked destinations. Neither tool rewrites host
