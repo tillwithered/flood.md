@@ -14,7 +14,9 @@ handmade dot. Alert announces local acceptance, and DescriptionList shows the
 accepted values separately from the current draft.
 
 Drawer owns modal focus, scroll locking and dismissal. Its FileList/FileItem rows
-reuse FileMeta and StatusIndicator. No parallel popup, field or file chip is
+reuse FileMeta and StatusIndicator. The English example supplies an explicit
+locale for file metadata, keeping server and browser formatting consistent.
+No parallel popup, field or file chip is
 implemented in this recipe. Stack, Inline and Surface own the composition's gaps
 and containment. An unstyled section wrapper provides the demonstration anchor.
 

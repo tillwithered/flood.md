@@ -69,9 +69,9 @@ export function WorkspaceReview() {
           trigger={props => <Button {...props} variant="subtle">Review files</Button>}
           footer={<Button onClick={() => setFilesOpen(false)}>Done reviewing</Button>}>
           <Stack gap="4"><FileList label="Sample project files">
-            <FileItem name="Research findings — international expansion and onboarding.pdf" format="PDF" size={2457600}
+            <FileItem lang="en" name="Research findings — international expansion and onboarding.pdf" format="PDF" size={2457600}
               description={<StatusIndicator label="Ready for review" tone="info" size="sm" />} />
-            <FileItem name="Brand guidelines.pdf" format="PDF" size={1048576}
+            <FileItem lang="en" name="Brand guidelines.pdf" format="PDF" size={1048576}
               description={<StatusIndicator label="Reviewed" tone="success" size="sm" />} />
           </FileList><Text as="p" size="compact" tone="subtle">Sample records only. No file is uploaded.</Text></Stack>
         </Drawer>
