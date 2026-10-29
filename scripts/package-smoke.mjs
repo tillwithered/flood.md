@@ -6,6 +6,7 @@ import { gzipSync } from "node:zlib";
 import assert from "node:assert/strict";
 import { build } from "vite";
 import { initProject, doctor } from "../packages/cli/lib/index.mjs";
+import { buildAgentConsumer } from './agent-consumer.mjs';
 
 const npmCli = process.env.npm_execpath;
 if (!npmCli) throw new Error("Run through npm run test:packages.");
@@ -57,6 +58,7 @@ try {
       ),
   });
   await doctor(root);
+  await buildAgentConsumer(root);
   const buttonEntry = join(root, "button-entry.mjs");
   await writeFile(buttonEntry, "export {Button} from '@flood-md/react';\n");
   const previousNodeEnv = process.env.NODE_ENV;
@@ -100,7 +102,13 @@ try {
   assert.equal(result.status, 0, result.stderr);
   await writeFile(
     join(root, "foundation-types.mts"),
-    `import { tokenNames, type TokenName } from '@flood-md/tokens/foundations';
+    `import {createKnowledgeReader, type KnowledgePage, type KnowledgeRead} from '@flood-md/agent';
+const knowledge=createKnowledgeReader();
+knowledge.list({kind:'workflow',group:'foundations'}).then((page:KnowledgePage)=>page.items.map(item=>item.id));
+knowledge.read('component:button',{linksOffset:0,length:10}).then((page:KnowledgeRead)=>page.nextOffset satisfies number|null);
+// @ts-expect-error Knowledge kinds are a versioned finite protocol.
+knowledge.list({kind:'arbitrary'});
+import { tokenNames, type TokenName } from '@flood-md/tokens/foundations';
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';

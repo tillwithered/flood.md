@@ -56,4 +56,7 @@ test('generated skills and composition examples match their canonical package an
   for(const file of ['skills.md','recipes/workspace-review.md','installation.md']) {
     assert.equal(await readWebsiteDocument(file),generated.docs[file]);
   }
+  const bulkSource=(await readFile('apps/website/src/recipes/table-bulk-actions.tsx','utf8')).trimEnd();
+  assert.ok(generated.docs['recipes/table-bulk-actions.md'].includes('```tsx\n'+bulkSource+'\n```'));
+  assert.equal(await readWebsiteDocument('recipes/table-bulk-actions.md'),generated.docs['recipes/table-bulk-actions.md']);
 });

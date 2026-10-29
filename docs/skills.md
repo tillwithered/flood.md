@@ -5,11 +5,19 @@ specialized skills. Start with the [agent guide](agents.md), the host instructio
 and matching installed declarations. Load the skills relevant to the current task,
 not the entire library of instructions.
 
+Use [Agent knowledge](agent-knowledge.md) to discover these workflows by semantic
+group and read the installed version. The catalog separates prerequisites from
+optional related components; grouping is not a request to load every skill.
+
 <!-- flood:workflows -->
 
 See [Workspace review](/docs/recipes/workspace-review) for a runnable form and file
 drawer assembled with these workflows. Its source, ownership choices and host
 checks are documented together.
+
+[Table bulk actions](/docs/recipes/table-bulk-actions) demonstrates controlled
+cross-page selection, protected rows and an explicit confirmation using existing
+Flood primitives. Its operation changes only the local in-memory example.
 
 These skills use the existing dark base. They help apply and verify component
 contracts; they do not imply new themes, animations, unavailable APIs or automatic

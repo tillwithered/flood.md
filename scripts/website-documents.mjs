@@ -13,5 +13,9 @@ export async function readWebsiteDocument(file, {workflows} = {}) {
     const source = await readFile('apps/website/src/recipes/workspace-review.tsx', 'utf8');
     content = content.replace('<!-- flood:workspace-review -->', '```tsx\n' + source.trimEnd() + '\n```');
   }
+  if (content.includes('<!-- flood:table-bulk-actions -->')) {
+    const source = await readFile('apps/website/src/recipes/table-bulk-actions.tsx', 'utf8');
+    content = content.replace('<!-- flood:table-bulk-actions -->', '```tsx\n' + source.trimEnd() + '\n```');
+  }
   return content;
 }

@@ -10,6 +10,12 @@ the project root. Installed declarations decide which APIs exist. A newer web
 page or repository example does not add exports to an older package. Run the
 matching installed CLI's doctor when versions or guide files are uncertain.
 
+The matching CLI's info command reports project/bundle scope and capabilities.
+Use catalog to discover compact metadata by kind/group, then read a selected ID.
+Read [knowledge discovery](references/knowledge.md) when using these commands or
+extending Flood's knowledge. Complete paginated selected instructions before
+acting; metadata, related links and capability declarations are not executed checks.
+
 Import @flood-md/react/styles.css once; compose new dark interfaces in FloodRoot.
 Use Flood's existing components before introducing a local adapter. Keep user
 scope and host conventions; missing Flood behavior must be stated rather than

@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 1,
+  "groups": [
+    {
+      "id": "foundations",
+      "name": "Foundations",
+      "description": "Semantic colors, type, geometry, spacing and scoped customization."
+    },
+    {
+      "id": "composition",
+      "name": "Composition",
+      "description": "Layout and task recipes assembled from existing primitives."
+    },
+    {
+      "id": "interaction",
+      "name": "Interaction",
+      "description": "Forms, selection, navigation and transient layers."
+    },
+    {
+      "id": "data-feedback",
+      "name": "Data & feedback",
+      "description": "Structured content, files and honest operation states."
+    },
+    {
+      "id": "quality",
+      "name": "Quality",
+      "description": "Accessibility, evidence and regression checks."
+    },
+    {
+      "id": "motion",
+      "name": "Motion",
+      "description": "Existing motion tokens; page-transition workflows are not provided."
+    }
+  ],
+  "workflows": {
+    "composition": [
+      "composition"
+    ],
+    "spacing": [
+      "foundations",
+      "composition"
+    ],
+    "foundations": [
+      "foundations"
+    ],
+    "accessibility": [
+      "quality"
+    ],
+    "forms": [
+      "interaction"
+    ],
+    "overlays": [
+      "interaction"
+    ],
+    "navigation": [
+      "interaction"
+    ],
+    "data-display": [
+      "data-feedback"
+    ],
+    "feedback": [
+      "data-feedback"
+    ],
+    "verification": [
+      "quality"
+    ]
+  },
+  "references": [
+    {
+      "id": "guide:entry",
+      "source": "SKILL.md",
+      "groups": [
+        "composition"
+      ],
+      "name": "Flood agent entry",
+      "description": "Start with host instructions and the installed version, then choose only relevant guidance."
+    },
+    {
+      "id": "guide:design",
+      "source": "DESIGN.md",
+      "groups": [
+        "foundations",
+        "composition"
+      ],
+      "name": "Installed design contract",
+      "description": "The version-matched component, token and ownership contract."
+    },
+    {
+      "id": "reference:routing",
+      "source": "references/routing.md",
+      "groups": [
+        "quality"
+      ],
+      "name": "Sources and routing",
+      "description": "Choose which installed source governs a task and how to verify it."
+    },
+    {
+      "id": "reference:composition",
+      "source": "references/composition.md",
+      "groups": [
+        "composition"
+      ],
+      "name": "Screen composition",
+      "description": "Assemble application layouts and native forms from existing Flood primitives."
+    },
+    {
+      "id": "reference:spacing",
+      "source": "references/spacing.md",
+      "groups": [
+        "foundations",
+        "composition"
+      ],
+      "name": "Spacing reference",
+      "description": "Measure relationships, density, nesting and usable targets."
+    },
+    {
+      "id": "reference:accessibility",
+      "source": "references/accessibility.md",
+      "groups": [
+        "quality"
+      ],
+      "name": "Accessibility reference",
+      "description": "Names, keyboard, focus, reflow and perception checks for the actual host."
+    },
+    {
+      "id": "reference:customization",
+      "source": "references/customization.md",
+      "groups": [
+        "foundations"
+      ],
+      "name": "Scoped customization",
+      "description": "Apply a host brand through scoped semantic overrides without editing dependencies or creating a parallel token system."
+    },
+    {
+      "id": "reference:verification",
+      "source": "references/verification.md",
+      "groups": [
+        "quality"
+      ],
+      "name": "Verification reference",
+      "description": "Turn applicable guidance into executed checks and report their limits."
+    },
+    {
+      "id": "reference:knowledge",
+      "source": "references/knowledge.md",
+      "groups": [
+        "quality"
+      ],
+      "name": "Knowledge discovery and growth",
+      "description": "Read matching guidance, preserve host customizations and extend the knowledge catalog without silent drift."
+    },
+    {
+      "id": "reference:rules",
+      "source": "rules.json",
+      "groups": [
+        "quality"
+      ],
+      "name": "Observable rule index",
+      "description": "Find stable rule IDs and their applicable checks; this index is not execution evidence."
+    },
+    {
+      "id": "reference:workflow-index",
+      "source": "workflows.json",
+      "groups": [
+        "quality"
+      ],
+      "name": "Workflow applicability index",
+      "description": "Find applicable component-family workflows without treating applicability as proof."
+    }
+  ],
+  "componentGroups": {
+    "setup": [
+      "foundations"
+    ],
+    "typography": [
+      "foundations"
+    ],
+    "layout": [
+      "composition"
+    ],
+    "actions": [
+      "interaction"
+    ],
+    "forms": [
+      "interaction"
+    ],
+    "overlays": [
+      "interaction"
+    ],
+    "navigation": [
+      "interaction"
+    ],
+    "content": [
+      "data-feedback"
+    ],
+    "feedback": [
+      "data-feedback"
+    ]
+  },
+  "capabilities": [
+    {
+      "id": "dark-foundations",
+      "status": "available",
+      "description": "The existing neutral dark profile and scoped semantic customization.",
+      "materials": [
+        "workflow:foundations",
+        "reference:customization"
+      ]
+    },
+    {
+      "id": "component-motion-tokens",
+      "status": "available",
+      "description": "Existing short-transition and reduced-motion tokens; not a route-transition implementation.",
+      "materials": [
+        "token:sys.motion.duration-fast",
+        "token:sys.motion.duration-normal",
+        "token:sys.motion.duration-reduced",
+        "token:sys.motion.easing"
+      ]
+    },
+    {
+      "id": "page-transitions",
+      "status": "not-provided",
+      "description": "No Flood page-transition component or router-lifecycle workflow is supplied.",
+      "materials": []
+    },
+    {
+      "id": "additional-foundation-themes",
+      "status": "not-provided",
+      "description": "The new foundations profile provides dark only; legacy light controls do not add another foundation theme.",
+      "materials": []
+    }
+  ],
+  "documentGroups": {
+    "README.md": [
+      "composition"
+    ],
+    "installation.md": [
+      "quality"
+    ],
+    "project-ui.md": [
+      "composition"
+    ],
+    "foundations.md": [
+      "foundations"
+    ],
+    "layout.md": [
+      "composition"
+    ],
+    "theming.md": [
+      "foundations"
+    ],
+    "agents.md": [
+      "quality"
+    ],
+    "skills.md": [
+      "quality"
+    ],
+    "agent-knowledge.md": [
+      "quality"
+    ],
+    "faq.md": [
+      "quality"
+    ],
+    "privacy.md": [
+      "quality"
+    ],
+    "recipes/command-palette.md": [
+      "composition",
+      "interaction"
+    ],
+    "recipes/select-all.md": [
+      "composition",
+      "interaction"
+    ],
+    "recipes/split-button.md": [
+      "composition",
+      "interaction"
+    ],
+    "recipes/form-submission.md": [
+      "composition",
+      "interaction"
+    ],
+    "recipes/filter-bar.md": [
+      "composition",
+      "data-feedback"
+    ],
+    "recipes/workspace-review.md": [
+      "composition",
+      "interaction"
+    ],
+    "recipes/table-bulk-actions.md": [
+      "composition",
+      "data-feedback",
+      "interaction"
+    ]
+  },
+  "prerequisites": {
+    "workflow:forms": [
+      "workflow:composition"
+    ],
+    "workflow:overlays": [
+      "workflow:composition"
+    ],
+    "workflow:data-display": [
+      "workflow:composition"
+    ],
+    "recipe:command-palette": [
+      "workflow:composition",
+      "workflow:overlays",
+      "workflow:navigation"
+    ],
+    "recipe:select-all": [
+      "workflow:composition",
+      "workflow:forms"
+    ],
+    "recipe:split-button": [
+      "workflow:composition",
+      "workflow:navigation"
+    ],
+    "recipe:form-submission": [
+      "workflow:composition",
+      "workflow:forms",
+      "workflow:feedback"
+    ],
+    "recipe:filter-bar": [
+      "workflow:composition",
+      "workflow:forms",
+      "workflow:data-display"
+    ],
+    "recipe:workspace-review": [
+      "workflow:composition",
+      "workflow:forms",
+      "workflow:overlays"
+    ],
+    "recipe:table-bulk-actions": [
+      "workflow:composition",
+      "workflow:data-display",
+      "workflow:navigation"
+    ]
+  }
+}

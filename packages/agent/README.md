@@ -1,9 +1,29 @@
 # @flood-md/agent
 
 Version-matched guidance for Flood React/Next.js projects. Read the installed
-contract before composing screens. The 0.2.9 reference bundle includes spacing
+contract before composing screens. The 0.2.10 reference bundle includes spacing
 guidance, routing and observable rules. These files grant
 no authority to modify external services.
+
+The package also exposes a Node-only, read-only knowledge API with TypeScript
+declarations. No model provider, network service or MCP runtime is required.
+
+```ts
+import {createKnowledgeReader} from '@flood-md/agent';
+const reader = createKnowledgeReader();
+const context = await reader.info();
+const page = await reader.list({kind: 'component', search: 'table'});
+const material = await reader.read('component:data-table');
+```
+
+Follow nextCursor/nextOffset when present. Metadata is bounded separately from
+material bodies; a selected body is checked against the matching package catalog.
+The CLI adds host-version checks and preservation of project-owned guide copies.
+knowledge.json contains semantic annotations; build generates dist/catalog.json
+from the same canonical components, token manifest, guides and recipes used by
+the website. Do not hand-edit generated hashes or duplicate component contracts.
+See [Agent knowledge](../../docs/agent-knowledge.md) for groups, capabilities,
+prerequisites, read budgets, compatibility and customization behavior.
 
 The source bundle also includes ten routed workflows for the existing dark base:
 composition, spacing, foundations, accessibility, forms, overlays, navigation,

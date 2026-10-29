@@ -14,6 +14,10 @@ the public product, website, documentation, examples and verification tooling.
   read the relevant workflow, not every skill. Stabilize behavior and update its
   matching guidance together. The workflow/rules indexes identify applicable
   checks; they do not prove those checks passed.
+- Keep knowledge metadata tied to canonical sources. New components, workflows,
+  guides and token roles must regenerate the installed-version catalog. Preserve
+  public material IDs and run the knowledge growth/CLI checks; do not hand-edit
+  generated catalog bodies or introduce a second instruction index.
 - Tokens are authored only in `packages/tokens/src/tokens.json`.
 - Preserve React 18/19 APIs and the React entry's `"use client"` directive.
 - Public API changes need docs, declaration output and a version decision.

@@ -8,11 +8,17 @@ Version 0.2.3 includes the expanded skill, rules and reference bundle, including
 spacing guidance. Existing projects keep their installed files; compare new
 guidance before updating customized instructions.
 
-The 0.2.9 source candidate adds ten specialized routed skills for stabilizing and
+Version 0.2.9 adds ten specialized routed skills for stabilizing and
 composing the dark base. See [Skills](skills.md) for their applicability and full
 sources. The website index is generated from the same bundle metadata rather
 than a second handwritten skill catalog. Source additions do not update an
 already installed package; use the guide set matching your installation.
+
+The 0.2.10 source candidate adds [versioned knowledge discovery](agent-knowledge.md):
+info reports installation context, catalog discovers compact metadata, and read
+loads a selected contract or workflow. The catalog includes typed recipes and
+semantic token records. Unknown capabilities and version mismatches are explicit;
+copied host guides remain project-owned.
 
 For discovery, give an agent [flood.md/llms.txt](https://flood.md/llms.txt).
 It identifies deployed status and entry points. Follow [installation](installation.md);

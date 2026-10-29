@@ -9,6 +9,7 @@ export const docPages = [
   { path: "/docs/theming", label: "Customization", file: "theming.md", description: "Adapt semantic roles to your project." },
   { path: "/docs/agents", label: "Agent guide", file: "agents.md", description: "Give your agent the matching design instructions." },
   { path: "/docs/skills", label: "Skills", file: "skills.md", description: "Task-focused agent workflows for composing and verifying the dark base." },
+  { path: "/docs/agent-knowledge", label: "Agent knowledge", file: "agent-knowledge.md", description: "Versioned discovery, selected reading and knowledge growth safeguards." },
   { path: "/docs/faq", label: "FAQ", file: "faq.md", description: "Compatibility, customization and common questions." },
   { path: "/docs/privacy", label: "Website privacy", file: "privacy.md", description: "How the optional website visitor counter works." },
   { path: "/docs/recipes/command-palette", label: "Command palette", file: "recipes/command-palette.md", description: "Compose Dialog and CommandList for application commands.", group: "recipes" },
@@ -17,6 +18,7 @@ export const docPages = [
   { path: "/docs/recipes/form-submission", label: "Form submission", file: "recipes/form-submission.md", description: "Native validation, pending state and recoverable errors.", group: "recipes" },
   { path: "/docs/recipes/filter-bar", label: "Filter bar", file: "recipes/filter-bar.md", description: "Compose search and filters with a host-owned data table.", group: "recipes" },
   { path: "/docs/recipes/workspace-review", label: "Workspace review", file: "recipes/workspace-review.md", description: "A local form and file drawer composed from Flood primitives and task-focused skills.", group: "recipes" },
+  { path: "/docs/recipes/table-bulk-actions", label: "Table bulk actions", file: "recipes/table-bulk-actions.md", description: "Host-owned table selection, action scope and local confirmation from existing components.", group: "recipes" },
 ];
 export const componentSlugs = catalog.map(component => component.slug);
 export const pagePaths = new Set([

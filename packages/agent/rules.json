@@ -505,6 +505,25 @@
         "Existing coverage distinguished from checks run for this revision",
         "Failures, source/host ownership and remaining limits recorded"
       ]
+    },
+    {
+      "id": "knowledge.versioned",
+      "when": "Discovering or extending Flood knowledge",
+      "for": [
+        "developer",
+        "agent"
+      ],
+      "requires": [
+        "Matching package/configuration/guide versions",
+        "Host instructions"
+      ],
+      "sourceOfTruth": "Installed catalog and selected canonical or customized material",
+      "guide": "references/knowledge.md",
+      "verify": [
+        "Read scope and version before selecting material",
+        "Finish selected instruction pages",
+        "Run growth and clean-consumer checks for source changes"
+      ]
     }
   ],
   "guideResolution": "Match guide to source in manifest.files; use its target relative to the host project root."

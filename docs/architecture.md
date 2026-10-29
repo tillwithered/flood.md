@@ -45,6 +45,19 @@ the same manifest-backed sources. A component change updates its applicable
 guidance and evidence together. Applicability is not proof of a completed audit;
 skills do not add runtime behavior, unavailable APIs or external permissions.
 
+knowledge.json annotates semantic groups and explicit prerequisites. The build
+combines these annotations with the canonical workflow sources, generated
+component Markdown, public documents and compiled semantic tokens. It produces
+one versioned catalog with stable IDs and content hashes for the package and
+website. The Node reader and CLI discover metadata before loading one body;
+they do not implement model intent routing or execute instruction text.
+
+Catalog growth does not increase per-response budgets. Compilation rejects
+unmapped additions, stale annotations, unresolved local guidance links and
+prerequisite cycles. A historical ID fixture detects accidental removals; typed
+recipe sources and clean archive consumers exercise installed contracts. Model
+compliance and general visual quality still require task-specific observation.
+
 Native buttons and inputs keep platform semantics. Callbacks/ref/state belong in
 client components. Field supplies associations via a render callback. No data
 access is built into components. React package entry keeps `"use client"` in the
@@ -64,7 +77,7 @@ no project theme editor, implicit download or remote configuration.
 
 ### Dark foundations in 0.2.0
 
-The aligned package version is `0.2.9`. Registry publication is verified separately from
+The aligned package version is `0.2.10`. Registry publication is verified separately from
 the manifests or source branch.
 `FloodRoot` explicitly selects `data-flood-foundations="neutral"` and
 `data-flood-theme="dark"`. New foundation styles are scoped to that root;

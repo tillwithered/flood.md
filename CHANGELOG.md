@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.10 · Unreleased — versioned agent knowledge
+
+- Add a provider-neutral, read-only knowledge reader and CLI info/catalog/read commands.
+- Compile grouped skills, references, components, recipes and semantic token records from their canonical sources.
+- Bound discovery and selected reads; refuse version drift, stale cursors, invalid relationships and changed package content.
+- Preserve host instructions and customized guide copies; keep unsupported motion/theme capabilities explicit.
+- This compatible additive candidate requires all four packages at 0.2.10. Publication is verified separately.
+
 ## 0.2.9 · Unreleased — dark-base stabilization
 
 - Route ten task-focused skills through the version-matched agent entry, including
