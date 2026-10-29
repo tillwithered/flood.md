@@ -82,8 +82,9 @@ jobs:
       - run: tar -xzf .artifacts/browser-build.tgz
       - run: node scripts/ci-artifacts.mjs verify
       - run: npm run release:check
-      - run: npm run release:publish
+      - run: GITHUB_REF_NAME="$RELEASE_TAG" npm run release:publish
         env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
           FLOOD_PREPARED_CANDIDATE: true
       - run: npm run release:verify-registry
         env:
