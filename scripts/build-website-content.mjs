@@ -3,7 +3,8 @@ import { dirname } from "node:path";
 import { docPages, componentSlugs } from "../apps/website/routes.mjs";
 import { componentMarkdown, catalogMarkdown } from "../apps/website/component-docs.mjs";
 import { readComponentContract, readRecipeSlugs } from "./component-contract.mjs";
-import { readAgentWorkflows, workflowMarkdown } from './agent-workflows.mjs';
+import { readAgentWorkflows } from './agent-workflows.mjs';
+import { readWebsiteDocument } from './website-documents.mjs';
 
 const catalog = JSON.parse(await readFile("apps/website/src/component-catalog.json", "utf8"));
 const contract = readComponentContract(await readFile("packages/react/src/index.tsx", "utf8"));
@@ -27,11 +28,7 @@ await mkdir(`${root}/components`, { recursive: true });
 const documents = {};
 const workflowIndex=await readAgentWorkflows();
 for (const doc of docPages) {
-  let content = (await readFile(`docs/${doc.file}`, "utf8")).replace('<!-- flood:workflows -->',workflowMarkdown(workflowIndex));
-  if (content.includes('<!-- flood:workspace-review -->')) {
-    const source = await readFile('apps/website/src/recipes/workspace-review.tsx', 'utf8');
-    content = content.replace('<!-- flood:workspace-review -->', '```tsx\n' + source.trimEnd() + '\n```');
-  }
+  const content = await readWebsiteDocument(doc.file, {workflows: workflowIndex});
   for (const pin of content.matchAll(/@flood-md\/(?:tokens|react|agent|cli)@(\d+\.\d+\.\d+)/g)) {
     if (pin[1] !== release.version) throw new Error(`${doc.file}: stale install version ${pin[1]} (release ${release.version})`);
   }

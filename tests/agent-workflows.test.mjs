@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile,stat} from 'node:fs/promises';
 import {posix} from 'node:path';
 import {readAgentWorkflows,validateWorkflowIndex,workflowMarkdown} from '../scripts/agent-workflows.mjs';
+import {readWebsiteDocument} from '../scripts/website-documents.mjs';
 
 const json=async path=>JSON.parse(await readFile(path,'utf8'));
 test('every routed skill and its internal links resolve identically in source and installed bundle',async()=>{
@@ -52,4 +53,7 @@ test('generated skills and composition examples match their canonical package an
   assert.ok(generated.docs['recipes/workspace-review.md'].includes('```tsx\n'+source+'\n```'));
   assert.ok(!generated.docs['skills.md'].includes('<!-- flood:workflows -->'));
   assert.ok(!generated.docs['recipes/workspace-review.md'].includes('<!-- flood:workspace-review -->'));
+  for(const file of ['skills.md','recipes/workspace-review.md','installation.md']) {
+    assert.equal(await readWebsiteDocument(file),generated.docs[file]);
+  }
 });

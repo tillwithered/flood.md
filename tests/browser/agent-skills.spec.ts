@@ -2,6 +2,7 @@ import {test, expect} from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import {readFile} from "node:fs/promises";
 import {readAgentWorkflows} from "../../scripts/agent-workflows.mjs";
+import {readWebsiteDocument} from "../../scripts/website-documents.mjs";
 
 test("Skills reader and raw guides serve the canonical versioned workflow sources", async ({page, request}, info) => {
   const index=await readAgentWorkflows();
@@ -14,8 +15,7 @@ test("Skills reader and raw guides serve the canonical versioned workflow source
     expect(response.status()).toBe(200);
     expect(await response.text()).toBe(await readFile(`packages/agent/${workflow.guide}`,"utf8"));
   }
-  const generated=JSON.parse(await readFile("apps/website/src/generated/content.json","utf8"));
-  expect(await (await request.get("/docs/skills.md")).text()).toBe(generated.docs["skills.md"]);
+  expect(await (await request.get("/docs/skills.md")).text()).toBe(await readWebsiteDocument("skills.md"));
   expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);
   await page.screenshot({path:`.artifacts/skills-reader-${info.project.name}.png`});
 });
