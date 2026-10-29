@@ -22,6 +22,11 @@ visual changes inspect rendered geometry, long/optional content, narrow/wide,
 enlarged text and the relevant pointer/RTL/forced-color modes. A CSS declaration
 or component count is not evidence that the user-visible relationship works.
 
+For geometry and screenshots, wait for fonts, pending animations and a settled
+rendering frame. A zero running-animation count alone may precede final
+presentation. Preserve real motion and strict geometry tolerances; distinguish
+an entry frame from the final layout rather than accepting either as proof.
+
 During local iteration run focused checks and show the result promptly. A shared
 primitive correction also checks its consumers. At a consolidated Flood source
 candidate run npm run verify and the required applicable browser matrix; use the

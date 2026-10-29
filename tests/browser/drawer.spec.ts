@@ -11,7 +11,23 @@ async function fixture(){
 }
 async function open(page:Page){bundle??=fixture();await page.route('**/__drawer.html',async route=>route.fulfill({contentType:'text/html',body:await bundle}));await page.goto('/__drawer.html');}
 // Geometry belongs to the settled panel, after its real entry animation.
-async function settled(drawer:Locator){await expect(drawer).toBeVisible();await expect.poll(()=>drawer.evaluate(node=>node.getAnimations().filter(animation=>animation.playState==='running').length)).toBe(0);}
+async function settled(drawer:Locator){
+ await expect(drawer).toBeVisible();
+ await drawer.evaluate(async node=>{
+  await Promise.all(node.getAnimations().map(animation=>animation.finished.catch(()=>{})));
+  await new Promise<void>(done=>requestAnimationFrame(()=>requestAnimationFrame(()=>done())));
+ });
+ // Pending animations and compositor delivery can outlive a zero running count.
+ // Keep the real motion and strict edge tolerances; wait for final presentation.
+ await expect.poll(()=>drawer.evaluate(node=>node.getAnimations().every(animation=>!animation.pending&&animation.playState!=='running'))).toBe(true);
+ await expect(drawer).toHaveCSS('transform','none');
+ await expect.poll(()=>drawer.evaluate(node=>{
+  const rect=node.getBoundingClientRect(),side=(node as HTMLElement).dataset.side;
+  if(side==='top'||side==='bottom')return Math.max(Math.abs(rect.left),Math.abs(innerWidth-rect.right),Math.abs(side==='top'?rect.top:innerHeight-rect.bottom));
+  const left=(side==='start'&&getComputedStyle(node).direction==='ltr')||(side==='end'&&getComputedStyle(node).direction==='rtl');
+  return Math.abs(left?rect.left:innerWidth-rect.right);
+ }),{message:'Drawer must reach its final logical viewport edge, not an intermediate compositor frame'}).toBeLessThanOrEqual(1);
+}
 test('Drawer owns native modal focus, nested Select Escape, backdrop optout and return focus',async({page})=>{
  await open(page);await page.getByRole('checkbox',{name:'Backdrop closing',exact:true}).uncheck();const trigger=page.getByRole('button',{name:'Open settings',exact:true});await trigger.click();const drawer=page.getByRole('dialog',{name:'Project settings',exact:true}),close=drawer.getByRole('button',{name:'Close',exact:true}),save=drawer.getByRole('button',{name:'Save settings',exact:true});await expect(drawer.getByRole('textbox',{name:'Project name',exact:true})).toBeFocused();await expect(close).toHaveClass(/flood-icon-button/);await close.focus();await page.keyboard.press('Shift+Tab');await expect(save).toBeFocused();await page.keyboard.press('Tab');await expect(close).toBeFocused();await page.mouse.click(2,2);await expect(drawer).toBeVisible();const select=drawer.getByRole('combobox',{name:'Visibility',exact:true});await select.click();await expect(page.getByRole('listbox')).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('listbox')).not.toBeVisible();await expect(drawer).toBeVisible();await page.keyboard.press('Escape');await expect(drawer).not.toBeVisible();await expect(trigger).toBeFocused();await page.getByRole('checkbox',{name:'Backdrop closing',exact:true}).check();await trigger.click();await page.mouse.click(2,2);await expect(drawer).not.toBeVisible();await expect(trigger).toBeFocused();
 });
