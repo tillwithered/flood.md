@@ -19,8 +19,10 @@ them without a separate content service.
 | [Customization](theming.md) | Scoped dark foundations overrides and legacy theme boundaries |
 | [Foundations](foundations.md) | Typed semantic tokens and neutral dark profile for 0.2.10 |
 | [Agents](agents.md) | Installing and using the matching agent instructions |
+| [Agent knowledge](agent-knowledge.md) | Versioned discovery, selected reads and preserved project guides |
 | [FAQ](faq.md) | Compatibility, customization, updates and common problems |
 | [Command palette](recipes/command-palette.md) | Compose Dialog and CommandList with host-owned actions |
+| [Table bulk actions](recipes/table-bulk-actions.md) | Controlled cross-page selection and local confirmation |
 
 ## Versions
 

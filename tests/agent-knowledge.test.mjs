@@ -84,6 +84,13 @@ test('linked knowledge bodies are refused',async t=>{
   await assert.rejects(f.reader.read('component:item-00000'),{code:'INVALID_PATH'});
 });
 
+test('prerequisite depth stays bounded even when dependencies were visited first',async t=>{
+  const f=await fixture(t,33);
+  for(let i=1;i<f.catalog.materials.length;i++)f.catalog.materials[i].requires=[f.catalog.materials[i-1].id];
+  assert.throws(()=>validateKnowledgeCatalog(f.catalog),{code:'INVALID_CATALOG'});
+  f.catalog.materials.pop();assert.doesNotThrow(()=>validateKnowledgeCatalog(f.catalog));
+});
+
 function compilerFixture() {
   return {version:pkg.version,definition:{schemaVersion:1,groups:[{id:'composition',name:'Composition',description:'Composition.'}],workflows:{composition:['composition']},references:[],componentGroups:{layout:['composition']},capabilities:[]},
     manifest:{version:pkg.version,files:[{source:'references/flood-composition/SKILL.md',target:'.agents/skills/flood-ui/references/flood-composition/SKILL.md'}]},

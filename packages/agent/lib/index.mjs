@@ -32,8 +32,18 @@ export function validateKnowledgeCatalog(catalog) {
   }
   const byId = new Map(catalog.materials.map(item => [item.id, item]));
   for (const item of catalog.materials) for (const id of [...item.links, ...item.requires]) if (!ids.has(id)) fail('INVALID_CATALOG', `Unresolved knowledge relationship: ${id}`);
-  const visiting = new Set(), visited = new Set();
-  const visit = id => { if (visiting.has(id)) fail('INVALID_CATALOG', 'Knowledge prerequisite cycle.'); if (visited.has(id)) return; if (visiting.size >= 32) fail('INVALID_CATALOG', 'Knowledge prerequisites exceed the supported depth.'); visiting.add(id); for (const dependency of byId.get(id).requires) visit(dependency); visiting.delete(id); visited.add(id); };
+  const visiting = new Set(), depths = new Map();
+  const visit = id => {
+    if (visiting.has(id)) fail('INVALID_CATALOG', 'Knowledge prerequisite cycle.');
+    if (depths.has(id)) return depths.get(id);
+    if (visiting.size >= 32) fail('INVALID_CATALOG', 'Knowledge prerequisites exceed the supported depth.');
+    visiting.add(id);
+    let depth = 1;
+    for (const dependency of byId.get(id).requires) depth = Math.max(depth, 1 + visit(dependency));
+    visiting.delete(id);
+    if (depth > 32) fail('INVALID_CATALOG', 'Knowledge prerequisites exceed the supported depth.');
+    depths.set(id, depth); return depth;
+  };
   for (const id of ids) visit(id);
   const capabilities = new Set();
   for (const item of catalog.capabilities) {
