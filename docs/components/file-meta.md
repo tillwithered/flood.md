@@ -14,7 +14,8 @@ byte count, formatted with SI units and the optional native `lang` attribute.
 Either format or size may be omitted. The separator appears only when both are
 present; neither value means no chip is rendered. It is static metadata, not a
 button. FileItem and UploadItem reuse it beside their filename and allow the
-heading to wrap when necessary without splitting the chip.
+heading to wrap when necessary. The chip remains one semantic Badge, but its
+format/size content can wrap within a constrained width instead of clipping.
 
 A format label does not prove MIME type, file validity or safety. The application
 supplies trusted metadata. FileItem may use a filename extension as a display hint

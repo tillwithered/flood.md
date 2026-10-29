@@ -18,6 +18,12 @@ the empty list. `density`, `dividers` and native DOM attributes are inherited fr
 DataList. Use stable IDs rather than names as React keys: two files may share a
 name. Sorting, drag/reorder, file selection and virtualized lists are not included.
 
+Rows adapt to the list's available width, including inside a narrow card or
+drawer on a wide screen. When space is constrained, media, copy and actions
+stack in their native order; metadata and upload feedback can wrap. This preserves
+readable content and reachable actions at enlarged text sizes without hiding a
+primitive. Normal-width rows retain the compact inline presentation.
+
 When composing FileInput, track the input's actual selection rather than assuming
 that removing a display row also updates its native FileList. The input owns form
 submission. Revoke any host-created object URLs when they are no longer needed.

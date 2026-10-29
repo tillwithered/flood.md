@@ -110,11 +110,14 @@ test("fields have a single contour and state controls preserve native interactio
 });
 
 test("Markdown is a real readable format with valid raw endpoints", async ({ page, request }) => {
+  // Generated guides resolve canonical skill tables and typed recipe sources.
+  // The raw endpoint must equal the document used by the rendered reader.
+  const generated = JSON.parse(await readFile("apps/website/src/generated/content.json", "utf8"));
   for (const doc of docPages) {
     const response = await request.get(`${doc.path}.md`);
     expect(response.status()).toBe(200);
     expect(response.headers()["content-type"]).toContain("text/markdown");
-    expect(await response.text()).toBe(await readFile(`docs/${doc.file}`, "utf8"));
+    expect(await response.text()).toBe(generated.docs[doc.file]);
   }
   for (const slug of componentSlugs) {
     const response = await request.get(`/components/${slug}.md`);

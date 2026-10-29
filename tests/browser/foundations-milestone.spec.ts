@@ -20,6 +20,11 @@ for (const enlarged of [false, true]) {
       const stage = page.locator(".workbench-stage");
       await expect(stage, slug).toBeVisible();
       await page.evaluate(async ({size,rtl}) => {document.documentElement.style.fontSize=`${size}px`;document.documentElement.dir=rtl?"rtl":"ltr";await document.fonts.ready;}, {size:enlarged?(mobile?32:24):16,rtl:enlarged&&mobile});
+      // Font/direction changes schedule ScrollArea ResizeObserver work. Capture
+      // settled geometry rather than a stale rail or a still-reflowing document.
+      await page.evaluate(() => new Promise<void>(done => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+        {message:"The settled document must contain overflow in its local reading regions"}).toBe(true);
       await stage.scrollIntoViewIfNeeded();
       results.push(await stage.evaluate((node, slug) => {
         const box=node.getBoundingClientRect(), style=getComputedStyle(node), root=document.documentElement;

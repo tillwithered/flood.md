@@ -2,7 +2,9 @@
 
 A FileItem composition that displays host-controlled upload state and progress.
 The top row combines the name with FileMeta (format and size). Upload status and
-its progress bar share one compact line beneath it.
+its progress bar share one compact line beneath it. In a constrained FileList,
+the status and progress can wrap onto separate lines to preserve readable text
+and a usable progress track; they remain StatusIndicator and Progress primitives.
 
 ```tsx
 <UploadList label="Uploads">

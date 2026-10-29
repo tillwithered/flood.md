@@ -203,6 +203,308 @@
         "No replacement markup or hidden anatomy used to bypass a primitive",
         "Alignment checked within each row and in the real host"
       ]
+    },
+    {
+      "id": "foundations.roles",
+      "when": "Applying dark surfaces, type, control or icon roles",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Installed semantic roles and actual composited backgrounds",
+      "guide": "references/flood-foundations/SKILL.md",
+      "verify": [
+        "Trace changed roles to their actual consumers",
+        "Distinguish decoration, necessary boundaries, selection and accent focus",
+        "Check explicit icon sizing, heading semantics, long text and enlarged root geometry"
+      ]
+    },
+    {
+      "id": "spacing.nesting",
+      "when": "Aligning nested surfaces or controls",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Rendered anatomy, insets, radii and spacing roles",
+      "guide": "references/flood-spacing/SKILL.md",
+      "verify": [
+        "Measure both axes including line height and minimum height",
+        "Compare nested radius/inset geometry without overriding independent actions",
+        "Check shared siblings and nonoverlapping targets"
+      ]
+    },
+    {
+      "id": "spacing.preview",
+      "when": "Demonstrating size or feedback transitions",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Component behavior distinguished from preview scene ownership",
+      "guide": "references/flood-spacing/SKILL.md",
+      "verify": [
+        "Changing size does not resize the preview scene",
+        "Feedback does not move an unrelated sample",
+        "Production controls do not inherit unnecessary fixed demo space"
+      ]
+    },
+    {
+      "id": "forms.ownership",
+      "when": "Connecting controlled values or native form data",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Installed control values, callbacks and native form contract",
+      "guide": "references/flood-forms/SKILL.md",
+      "verify": [
+        "Inspect actual FormData and field ownership",
+        "Exercise accepted/refused controlled updates and incomplete drafts",
+        "Defaults match representation; no defaultValue-as-update or invented save guarantee"
+      ]
+    },
+    {
+      "id": "forms.reset",
+      "when": "Resetting a form or changing value representation",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Installed controlled/uncontrolled, reset and precision contract",
+      "guide": "references/flood-forms/SKILL.md",
+      "verify": [
+        "Normal and prevented reset preserve documented ownership",
+        "Minute/second defaults match selected precision",
+        "Advisory messages remain valid; native errors and disabled/read-only retain distinct semantics"
+      ]
+    },
+    {
+      "id": "overlays.ownership",
+      "when": "Opening or nesting a modal or anchored layer",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Installed trigger, open-state, focus and dismissal contract",
+      "guide": "references/flood-overlays/SKILL.md",
+      "verify": [
+        "One mounted trigger retains props/ref and name",
+        "Topmost Escape and host refusal behave correctly",
+        "Appropriate modal/nonmodal focus and scroll restoration"
+      ]
+    },
+    {
+      "id": "overlays.geometry",
+      "when": "Placing popups or viewport-edge drawers",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Actual anchor, viewport, scroll container and semantic surface",
+      "guide": "references/flood-overlays/SKILL.md",
+      "verify": [
+        "Check used sides, viewport edges, resize, long content and RTL",
+        "No drawer gap caused by page scrollbar gutter",
+        "Header, footer and padding leave a useful body reading area at enlarged narrow sizes; fitting rectangles alone is insufficient",
+        "Popup remains distinguishable with no rail-covered or clipped essential content"
+      ]
+    },
+    {
+      "id": "navigation.intent",
+      "when": "Choosing destinations, selection, panels or disclosure",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Installed navigation, selection and disclosure contract",
+      "guide": "references/flood-navigation/SKILL.md",
+      "verify": [
+        "Native link behavior and current destination preserved",
+        "Selection, focus and expansion remain distinct",
+        "Long labels and final sidebar items remain usable in actual supported orientations"
+      ]
+    },
+    {
+      "id": "data.structure",
+      "when": "Presenting records, file items or tables",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Installed semantic primitives and content relationships",
+      "guide": "references/flood-data-display/SKILL.md",
+      "verify": [
+        "Caption, headers and named-value relationships preserved",
+        "Row actions remain independent named controls",
+        "File metadata/status/progress reuse their existing primitives"
+      ]
+    },
+    {
+      "id": "data.overflow",
+      "when": "Presenting long, missing or changing content",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Actual data surface and overflow ownership",
+      "guide": "references/flood-data-display/SKILL.md",
+      "verify": [
+        "Empty/loading/error and absent optional slots exercised",
+        "Final item/cell action and full essential text remain accessible outside rails",
+        "Server/client locale, narrow/enlarged text and RTL checked"
+      ]
+    },
+    {
+      "id": "feedback.truth",
+      "when": "Reporting operation state or progress",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Actual host operation and installed feedback primitive",
+      "guide": "references/flood-feedback/SKILL.md",
+      "verify": [
+        "Pending/success/error/cancel/local state is truthful",
+        "Unknown progress never fabricates a percentage",
+        "Empty content explains its cause and appropriate next action"
+      ]
+    },
+    {
+      "id": "feedback.announcements",
+      "when": "Announcing status, alert or loading transitions",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Installed semantics and required urgency",
+      "guide": "references/flood-feedback/SKILL.md",
+      "verify": [
+        "One announcement owner rather than duplicate live regions",
+        "Messages do not steal focus merely to announce",
+        "Audible behavior claimed only when tested with actual assistive technology"
+      ]
+    },
+    {
+      "id": "accessibility.focus",
+      "when": "Reviewing names, keyboard or focus through a task",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Installed component behavior and actual accessibility tree",
+      "guide": "references/flood-accessibility/SKILL.md",
+      "verify": [
+        "Name, role and state observed rather than inferred visually",
+        "Keyboard completion, reverse navigation, cancel and recovery",
+        "Pointer activation gives custom keyboard owners actual focus across browsers while preserving deliberate host callback focus moves",
+        "Accent focus survives selected/invalid/read-only combinations without layout shift"
+      ]
+    },
+    {
+      "id": "accessibility.perception",
+      "when": "Reviewing readability under alternate viewing conditions",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Actual text size/weight/background and applicable WCAG criteria",
+      "guide": "references/flood-accessibility/SKILL.md",
+      "verify": [
+        "Text contrast and supplementary APCA interpretation kept distinct",
+        "Necessary cues are not reclassified as decoration",
+        "Reflow, enlargement, relevant pointer/RTL/forced-color checks and limits reported"
+      ]
+    },
+    {
+      "id": "verification.applicability",
+      "when": "Stabilizing components or declaring a composition complete",
+      "for": [
+        "developer",
+        "reviewer",
+        "agent"
+      ],
+      "requires": [
+        "Matching installed declarations and guide set",
+        "Runnable host and actual content/state requirements"
+      ],
+      "sourceOfTruth": "Current revision, applicable contracts and observed outcomes",
+      "guide": "references/flood-verification/SKILL.md",
+      "verify": [
+        "Explicit applicable-check disposition for every affected component",
+        "Existing coverage distinguished from checks run for this revision",
+        "Failures, source/host ownership and remaining limits recorded"
+      ]
     }
   ],
   "guideResolution": "Match guide to source in manifest.files; use its target relative to the host project root."

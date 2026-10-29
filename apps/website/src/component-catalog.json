@@ -1061,7 +1061,7 @@
     "notes": [
       "Uses Flood native Dialog focus containment, scroll lock, background inertness, nested layers and return focus. Escape and the named close IconButton dismiss it; closeOnOutsideClick defaults to true. Controlled open/onOpenChange and initialFocusRef match Dialog.",
       "side is logical start/end or physical top/bottom. size sets 20/26/34rem for sm/md/lg, capped to the viewport. Vertical drawers occupy the viewport height; horizontal drawers occupy its width. Entry motion respects reduced motion; closing is immediate.",
-      "The header and optional footer stay visible while the body scrolls with Flood ScrollArea. Footer actions are host-owned, without implicit save or close. No swipe/drag gesture or nested navigation engine is included. Available in 0.2.5."
+      "The body scrolls with Flood ScrollArea while the header and optional footer remain visible when space allows. Responsive padding and full-width narrow descriptions preserve the reading area at enlarged text; if the chrome cannot fit, the whole panel can scroll rather than clipping the body. Footer actions are host-owned, without implicit save or close. No swipe/drag gesture or nested navigation engine is included. Available in 0.2.5."
     ]
   },
   {
@@ -1785,7 +1785,7 @@
     "description": "A named native list of file rows.",
     "code": "<FileList label=\"Attachments\">\n  <FileItem name=\"Brand guidelines.pdf\" size={2400000} mimeType=\"PDF\" />\n  <FileItem name=\"Logo.svg\" size={18400} mimeType=\"SVG\" />\n</FileList>",
     "notes": [
-      "List contents and file identities are host owned.",
+      "List contents and file identities are host owned. Narrow list containers adapt media, copy and actions without hiding primitive anatomy, including on a wide screen.",
       "Use stable host IDs for React keys; a name is not a unique file identity."
     ],
     "imports": [
@@ -1801,7 +1801,7 @@
     "code": "<UploadList label=\"Uploads\">\n  <UploadItem name=\"Brand guidelines.pdf\" size={2400000} state=\"uploading\" progress={45} />\n</UploadList>",
     "notes": [
       "Queued/uploading can expose cancel; error/cancelled can expose retry; settled rows can expose remove.",
-      "Unknown progress is indeterminate. No network or upload queue is built in."
+      "Unknown progress is indeterminate. StatusIndicator and Progress remain distinct reused primitives; their row can wrap when the list container is constrained. No network or upload queue is built in."
     ],
     "imports": [
       "UploadList",
@@ -1846,7 +1846,7 @@
     "code": "<FileMeta format=\"PDF\" size={2400000} />",
     "notes": [
       "The format label is display metadata, not validated MIME detection.",
-      "Size uses SI units; formatSize customizes the text. Missing values do not create empty chip slots."
+      "Size uses SI units; formatSize customizes the text. Missing values do not create empty chip slots. Long metadata may wrap inside its single Badge at enlarged or constrained widths."
     ],
     "imports": [
       "FileMeta"

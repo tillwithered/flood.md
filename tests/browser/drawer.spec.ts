@@ -66,3 +66,40 @@ test('Drawer nested modal locks preserve and restore host root inline styles and
  await page.getByRole('button',{name:'Open settings',exact:true}).click();const outer=page.getByRole('dialog',{name:'Project settings',exact:true});await expect(outer).toBeVisible();expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollbarGutter)).toBe('auto');
  await outer.getByRole('button',{name:'Nested prompt',exact:true}).click();const nested=page.getByRole('dialog',{name:'Nested settings',exact:true});await expect(nested).toBeVisible();await nested.getByRole('button',{name:'Close',exact:true}).click();await expect(nested).not.toBeVisible();await expect(outer).toBeVisible();expect(await page.evaluate(()=>getComputedStyle(document.documentElement).overflow)).toBe('hidden');expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollbarGutter)).toBe('auto');await outer.getByRole('button',{name:'Close',exact:true}).click();await expect(outer).not.toBeVisible();expect(await snapshot()).toEqual(before);
 });
+
+test('Drawer preserves a useful reading area at narrow enlarged sizes instead of a thin clipped slot',async({page},info)=>{
+ await open(page);await page.setViewportSize({width:320,height:900});
+ await page.evaluate(()=>{document.documentElement.style.fontSize='32px'});
+ for(const direction of ['ltr','rtl']){
+  await page.evaluate(direction=>{document.documentElement.dir=direction},direction);
+  await page.getByRole('button',{name:'Open settings',exact:true}).click();
+  const drawer=page.getByRole('dialog',{name:'Project settings',exact:true});await settled(drawer);
+  const geometry=await drawer.evaluate(node=>{
+   const body=node.querySelector('.flood-drawer__body')!.getBoundingClientRect(), description=node.querySelector('.flood-overlay-description')!.getBoundingClientRect();
+   return{bodyWidth:body.width,bodyHeight:body.height,descriptionWidth:description.width,viewportWidth:innerWidth,viewportHeight:innerHeight};
+  });
+  expect(geometry.bodyWidth).toBeGreaterThanOrEqual(geometry.viewportWidth*.8);
+  expect(geometry.bodyHeight).toBeGreaterThanOrEqual(geometry.viewportHeight*.4);
+  expect(geometry.descriptionWidth).toBeGreaterThanOrEqual(geometry.bodyWidth*.95);
+  const last=drawer.getByRole('textbox',{name:'Last setting',exact:true});await last.scrollIntoViewIfNeeded();await expect(last).toBeInViewport();
+  const save=drawer.getByRole('button',{name:'Save settings',exact:true});await save.scrollIntoViewIfNeeded();await expect(save).toBeInViewport();
+  expect(await drawer.evaluate(node=>node.scrollWidth<=node.clientWidth+1)).toBe(true);
+  await page.screenshot({path:`.artifacts/drawer-reading-area-${info.project.name}-${direction}.png`});
+  await drawer.getByRole('button',{name:'Close',exact:true}).click();
+ }
+});
+
+test('Drawer falls back to panel scrolling when enlarged chrome cannot fit a short viewport',async({page})=>{
+ await open(page);await page.setViewportSize({width:320,height:360});
+ await page.evaluate(()=>{document.documentElement.style.fontSize='32px'});
+ for(const side of ['start','end','top','bottom']){
+  await page.getByRole('combobox',{name:'Drawer edge',exact:true}).selectOption(side);
+  await page.getByRole('button',{name:'Open settings',exact:true}).click();
+  const drawer=page.getByRole('dialog',{name:'Project settings',exact:true});await settled(drawer);
+  const last=drawer.getByRole('textbox',{name:'Last setting',exact:true});await last.focus();await expect(last).toBeInViewport();
+  const save=drawer.getByRole('button',{name:'Save settings',exact:true});await save.focus();await expect(save).toBeInViewport();
+  const hit=await save.evaluate(node=>{const r=node.getBoundingClientRect(),panel=node.closest('dialog')!,actual=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return{target:node.contains(actual),actual:actual?.outerHTML.slice(0,180),body:panel.querySelector('.flood-drawer__body')!.getBoundingClientRect().toJSON(),rect:r.toJSON(),scroll:panel.scrollTop,scrollHeight:panel.scrollHeight,clientHeight:panel.clientHeight,side:panel.dataset.side}});
+  expect(hit.target,JSON.stringify(hit)).toBe(true);
+  const close=drawer.getByRole('button',{name:'Close',exact:true});await close.focus();await expect(close).toBeInViewport();await close.click();await expect(drawer).not.toBeVisible();
+ }
+});

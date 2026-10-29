@@ -13,6 +13,7 @@
     "DESIGN.md",
     "SKILL.md",
     "references",
+    "workflows.json",
     "rules.json",
     "manifest.json",
     "README.md"
@@ -22,6 +23,7 @@
     "./SKILL.md": "./SKILL.md",
     "./manifest.json": "./manifest.json",
     "./rules.json": "./rules.json",
+    "./workflows.json": "./workflows.json",
     "./references/*": "./references/*"
   },
   "publishConfig": {

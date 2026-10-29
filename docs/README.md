@@ -10,6 +10,7 @@ them without a separate content service.
 
 | Guide | What it covers |
 | --- | --- |
+| [Skills](skills.md) | Task-focused composition and verification workflows |
 | [Installation](installation.md) | React, Next.js, CLI setup and manual installation |
 | [Project UI](project-ui.md) | Optional semantic @/ui/button imports in your application |
 | [Layout](layout.md) | Intrinsic actions, responsive forms, choice sizing, gaps and hierarchy |

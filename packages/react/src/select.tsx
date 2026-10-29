@@ -229,7 +229,18 @@ export const SingleSelect = /* @__PURE__ */ forwardRef<HTMLSelectElement, Select
       aria-activedescendant={open && active >= 0 && choices[active] && !choices[active].hidden ? `${menuId}-${active}` : undefined}
       onFocus={(event) => { if (onFocus) mirror(new FocusEvent("focusin", { bubbles: true, relatedTarget: event.relatedTarget })); }}
       onBlur={(event) => { if (onBlur) mirror(new FocusEvent("focusout", { bubbles: true, relatedTarget: event.relatedTarget })); }}
-      onClick={() => { if (onClick && !mirror(new MouseEvent("click", { bubbles: true, cancelable: true }))) return; if (open) setOpen(false); else openMenu(); }}
+      onMouseDown={(event) => {
+        // Keep an already-focused combobox from blurring to the page before
+        // Safari's click. Activation below owns focus; touch scrolling is native.
+        if (event.button === 0) event.preventDefault();
+      }}
+      onClick={(event) => {
+        // Safari does not give buttons mouse focus. The combobox must own keys
+        // before opening; focus first so a host click callback can still move it.
+        event.currentTarget.focus({ preventScroll: true });
+        if (onClick && !mirror(new MouseEvent("click", { bubbles: true, cancelable: true }))) return;
+        if (open) setOpen(false); else openMenu();
+      }}
       onKeyUp={(event) => { if (onKeyUp) mirror(new KeyboardEvent("keyup", { key: event.key, bubbles: true, cancelable: true })); }}
       onKeyDown={(event) => {
         if (onKeyDown && !mirror(new KeyboardEvent("keydown", { key: event.key, code: event.code, bubbles: true, cancelable: true, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey, altKey: event.altKey, metaKey: event.metaKey }))) { event.preventDefault(); return; }
