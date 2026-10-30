@@ -6,7 +6,8 @@
   mixed sortable DataTable headers. Add opt-in rendered DOM observations through
   @flood-md/agent/inspect, separate from semantic/editorial review.
 - Preserve word-based table/status widths so long adjacent records do not force
-  single-letter fragments; retain explicit technical-identifier wrapping.
+  single-letter fragments; retain explicit technical-identifier wrapping. Let List
+  items shrink inside their grid so long error links wrap in Firefox and WebKit.
 
 - Add routed interface-content guidance with contextual editorial decisions,
   reference adaptation and examples that preserve necessary constraints and recovery.

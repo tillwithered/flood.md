@@ -9,6 +9,7 @@
 .flood-root .flood-image { display: block; max-inline-size: 100%; block-size: auto; object-fit: cover; }
 .flood-root .flood-image[data-fit="contain"] { object-fit: contain; }
 .flood-root .flood-list { display: grid; gap: var(--flood-layout-gap); margin: 0; padding-inline-start: var(--flood-sys-space-6); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); overflow-wrap: break-word; }
+.flood-root .flood-list > li { min-inline-size: 0; }
 .flood-root .flood-list[data-marker="false"] { list-style: none; padding: 0; }
 .flood-root .flood-empty-state { box-sizing: border-box; align-items: center; text-align: center; padding-block: var(--flood-sys-space-8); padding-inline: min(var(--flood-sys-space-8), 8%); }
 .flood-root .flood-empty-state[data-density="compact"] { padding-block: var(--flood-sys-space-6); padding-inline: min(var(--flood-sys-space-6), 8%); }
