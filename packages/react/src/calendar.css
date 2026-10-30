@@ -1,7 +1,7 @@
 .flood-root .flood-calendar { box-sizing:border-box; display:grid; gap:var(--flood-sys-space-2); inline-size:min(100%,22rem); min-inline-size:0; padding:var(--flood-sys-space-4); border:var(--flood-sys-stroke-width) solid var(--flood-sys-color-field-border); border-radius:var(--flood-sys-radius-surface); background:var(--flood-sys-color-surface-raised); color:var(--flood-sys-color-content-default); container-type:inline-size; container-name:flood-calendar; }
 .flood-root .flood-calendar[hidden] { display:none; }
 .flood-root .flood-calendar__header { display:flex; align-items:center; justify-content:space-between; gap:var(--flood-sys-space-2); min-inline-size:0; }
-.flood-root .flood-calendar__month { font-size:var(--flood-sys-type-label-size); line-height:var(--flood-sys-type-label-line-height); font-weight:var(--flood-sys-type-label-weight); overflow-wrap:anywhere; }
+.flood-root .flood-calendar__month { font-size:var(--flood-sys-type-label-size); line-height:var(--flood-sys-type-label-line-height); font-weight:var(--flood-sys-type-label-weight); overflow-wrap: break-word; }
 .flood-root .flood-calendar__month { display:flex; align-items:center; min-inline-size:0; gap:0; }
 .flood-root .flood-calendar__month > .flood-button { --flood-action-rest:transparent; padding-inline:var(--flood-sys-space-2); min-inline-size:0; }
 .flood-root .flood-calendar__body { --flood-calendar-cell-height:var(--flood-sys-control-sm-height); min-block-size:calc(6 * var(--flood-calendar-cell-height) + 6 * var(--flood-sys-space-1) + 1.5rem); display:grid; }

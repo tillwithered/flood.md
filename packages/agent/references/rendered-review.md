@@ -42,6 +42,14 @@ and deletion confirmations are different contexts from a static storage footer.
 Contextual exceptions are possible. Never change font size, ARIA roles or wrapper
 markup just to hide a finding; review the information itself.
 
+table.word-fragment uses Intl.Segmenter and rendered text ranges to identify
+words split across table lines. It is bounded by maxElements word segments,
+skips words longer than 200 UTF-16 units, code/pre and cells explicitly marked
+data-wrap="anywhere". If Intl.Segmenter is unavailable, that coverage is reported
+as absent. Localized line-breaking conventions can justify an exception. Preserve
+meaningful intrinsic column widths and use local scrolling before accepting
+single-letter fragments in statuses or dates.
+
 For icon actions use real artwork in IconSlot and an accessible name on the
 action. Table now centres cells by default; use cellVerticalAlign="top" only for
 a deliberate prose-table layout. Action-echo findings need contextual review:

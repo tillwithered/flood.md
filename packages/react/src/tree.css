@@ -14,8 +14,8 @@
 .flood-root .flood-tree__chevron[data-expanded] { rotate:90deg; }
 .flood-root .flood-tree[data-tree-direction="rtl"] .flood-tree__chevron:not([data-expanded]) { rotate:180deg; }
 .flood-root .flood-tree__text { display:grid; gap:var(--flood-sys-space-1); min-inline-size:0; }
-.flood-root .flood-tree__label { min-inline-size:0; overflow-wrap:anywhere; }
-.flood-root .flood-tree__description { color:var(--flood-sys-color-content-subtle); font-size:var(--flood-sys-type-helper-size); line-height:var(--flood-sys-type-helper-line-height); overflow-wrap:anywhere; }
+.flood-root .flood-tree__label { min-inline-size:0; overflow-wrap: break-word; }
+.flood-root .flood-tree__description { color:var(--flood-sys-color-content-subtle); font-size:var(--flood-sys-type-helper-size); line-height:var(--flood-sys-type-helper-line-height); overflow-wrap: break-word; }
 .flood-root .flood-tree__item[data-disabled]>.flood-tree__row { color:var(--flood-sys-color-field-disabled-content); }
 .flood-root .flood-tree__item[data-disabled]>.flood-tree__row:hover { background:transparent; }
 .flood-root .flood-tree__item[data-disabled]>.flood-tree__row .flood-tree__disclosure { cursor:default; }

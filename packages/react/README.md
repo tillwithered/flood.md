@@ -664,7 +664,11 @@ striped is false by default. Native tfoot rows use a quiet tinted background and
 medium-weight text to distinguish summaries; the top separator stays decorative.
 data-numeric on a th or td uses logical end alignment,
 tabular figures and no wrapping for numbers. data-align=start/center/end overrides
-alignment explicitly. Text cells wrap; set style.minWidth to preserve room for a
+alignment explicitly. Text cells preserve word-based intrinsic widths and wrap
+at word boundaries; a constrained long token can still use break-word fallback.
+Use native data-wrap="anywhere" deliberately for a technical identifier cell
+when fragmentation is preferable to local scrolling. StatusIndicator preserves
+the same word-based minimum in tables and file rows. Set style.minWidth to preserve room for a
 wide table, and the containing ScrollArea handles overflow. The host owns dates,
 units, totals, empty rows/colSpan and any cell actions. Avoid interactive whole rows.
 

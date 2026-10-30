@@ -10,7 +10,7 @@
 .flood-root .flood-list-box__feedback { margin-block-start:var(--flood-sys-space-1); }
 .flood-root .flood-list-box[data-appearance="plain"] { max-block-size:none; overflow:visible; padding:0; border:0; border-radius:0; background:transparent; }
 .flood-root .flood-list-box__option { display: flex; align-items: center; justify-content: space-between; gap: var(--flood-sys-space-2); padding: var(--flood-sys-space-2) var(--flood-sys-space-3); min-block-size: var(--flood-control-height); box-sizing: border-box; border-radius: max(0px, calc(var(--flood-sys-radius-field) - var(--flood-sys-space-1) - var(--flood-sys-stroke-width))); cursor: pointer; font-size: var(--flood-control-text); line-height: var(--flood-control-line); }
-.flood-root .flood-list-box__copy { display: grid; min-inline-size: 0; gap: var(--flood-sys-space-1); overflow-wrap: anywhere; }
+.flood-root .flood-list-box__copy { display: grid; min-inline-size: 0; gap: var(--flood-sys-space-1); overflow-wrap: break-word; }
 .flood-root .flood-list-box__description { color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); }
 .flood-root .flood-list-box__check { flex: none; inline-size: var(--flood-control-icon); text-align: center; }
 .flood-root .flood-list-box__option[aria-selected="true"] { background: var(--flood-sys-color-selection-background); }

@@ -46,6 +46,13 @@ Native style on an individual host-owned td/th can express an exceptional cell.
 Do not depend on a low-specificity descendant CSS override. Check the rendered
 centres; equal cell padding alone does not establish alignment.
 
+Also inspect readable column widths with long neighbouring records. A centred
+cell can still be wrong when a status or date is fragmented into single letters.
+Table and StatusIndicator preserve word-based intrinsic width by default; keep
+that recipe rather than applying global overflow-wrap:anywhere. Deliberate
+technical identifier cells can opt into data-wrap="anywhere". Otherwise use
+local scrolling or appropriate column budgets, not an empty no-overflow claim.
+
 Use the documented local overflow owner, with a meaningful accessible name. Focus
 the last action/cell and check that a rail or rounded corner does not cover it.
 Compare narrow/wide, enlarged text and RTL. Locale-sensitive text in prerendered

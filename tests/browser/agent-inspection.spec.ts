@@ -9,10 +9,11 @@ async function fixture(){
   const directory=resolve(`.artifacts/inspection-${process.pid}`);await mkdir(directory,{recursive:true});
   const entry=resolve(directory,'entry.mjs');
   await writeFile(entry,`import React from ${file('node_modules/react/index.js')};import{createRoot}from ${file('node_modules/react-dom/client.js')};
-import{FloodRoot,Table,Input,Button,IconSlot,Stack,Text,Grid,Field,Alert}from ${file('packages/react/dist/index.js')};import ${file('packages/react/dist/styles.css')};const h=React.createElement;
+import{FloodRoot,Table,Input,Button,IconSlot,Stack,Text,Grid,Field,Alert,StatusIndicator}from ${file('packages/react/dist/index.js')};import ${file('packages/react/dist/styles.css')};const h=React.createElement;
 const row=h('tbody',null,h('tr',null,h('td',null,h(Input,{'aria-label':'Quantity',defaultValue:'2',controlSize:'lg'})),h('td',{'data-numeric':true},'20.00')));
 const records=h('tbody',null,h('tr',null,h('th',{scope:'row'},h(Stack,{gap:'1'},h(Text,{size:'compact'},'Project alpha'),h(Text,{size:'helper'},'30 October'))),h('td',null,'Client'),h('td',{'data-numeric':true},'12.00'),h('td',null,h(Button,{variant:'subtle'},'Open'))));
 const field=label=>h(Field,{label},props=>h(Input,props));const pair=gap=>h(Grid,{columns:2,gap},field('Left'),field('Right'));
+const words=h('tbody',null,h('tr',null,h('th',{scope:'row'},'Invoice 001'),h('td',null,'International product engineering and delivery '.repeat(8)),h('td',null,h(StatusIndicator,{label:'Оплачен'})),h('td',{'data-numeric':true},'100.00'),h('td',null,h(Button,null,'Open'))));
 createRoot(document.getElementById('app')).render(h(FloodRoot,null,
 h('section',{id:'bad'},h(Button,null,'＋ Create'),h(Table,{caption:'Top',cellVerticalAlign:'top'},row)),
 h('section',{id:'good'},h(Button,null,h(IconSlot,null,h('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor'},h('path',{d:'M12 5v14M5 12h14'}))),'Create'),h(Table,{caption:'Middle'},row)),
@@ -22,10 +23,12 @@ h('section',{id:'records-good'},h(Table,{caption:'Record middle'},records)),
 h('section',{id:'copy'},h(Button,null,'Save changes'),h(Text,{size:'helper'},'Changes are saved with “Save changes”.'),h(Text,{size:'compact'},'Save changes replaces the existing revision.')),
 h('section',{id:'copy-contexts'},h('footer',null,h(Text,{size:'helper'},'Records are stored in this browser. Clearing site data removes them.')),h(Alert,{tone:'error',announcement:'assertive'},h(Text,{size:'helper'},'Could not save. Free space and retry.')),h('article',null,h(Text,{size:'helper'},'Payment due within 14 days.')),h('dialog',{open:true,'aria-label':'Clear records'},h(Text,{size:'helper'},'This removes all saved records.'))),
 h('form',{id:'drift'},h(Stack,{gap:'6'},pair('4'),pair('6'))),h('form',{id:'aligned'},h(Stack,{gap:'6'},pair('4'),pair('4'))),
+h('section',{id:'words-bad',style:{width:'420px'}},h(Table,{caption:'Legacy words',className:'legacy-words'},words)),h('section',{id:'words-good',style:{width:'420px'}},h(Table,{caption:'Readable words'},words)),
+h('section',{id:'technical',style:{width:'6rem'}},h(Table,{caption:'Technical identifier',style:{tableLayout:'fixed',width:'6rem'}},h('tbody',null,h('tr',null,h('td',{'data-wrap':'anywhere'},'RepositoryIdentifierWithoutNaturalWordBoundaries0123456789'))))),
 h(Button,null,'+7 phone'),h('button',{className:'flood-button',hidden:true},'＋ Hidden')));`);
   const result=await build({configFile:false,logLevel:'silent',define:{'process.env.NODE_ENV':JSON.stringify('production')},build:{write:false,cssCodeSplit:false,lib:{entry,formats:['iife'],name:'Inspection'}}});
   const output=(Array.isArray(result)?result:[result]).flatMap(x=>'output'in x?x.output:[]);
-  return '<!doctype html><html><head><meta charset="utf-8"><style>'+output.filter(x=>x.type==='asset'&&x.fileName.endsWith('.css')).map(x=>(x as any).source).join('')+'</style></head><body><div id="app"></div><script>'+output.filter(x=>x.type==='chunk').map(x=>(x as any).code).join('')+'</script></body></html>';
+  return '<!doctype html><html><head><meta charset="utf-8"><style>'+output.filter(x=>x.type==='asset'&&x.fileName.endsWith('.css')).map(x=>(x as any).source).join('')+'.flood-root .legacy-words :is(th,td),.legacy-words .flood-status-indicator{overflow-wrap:anywhere}</style></head><body><div id="app"></div><script>'+output.filter(x=>x.type==='chunk').map(x=>(x as any).code).join('')+'</script></body></html>';
 }
 async function open(page:Page){bundled??=fixture();await page.route('**/__inspection.html',async route=>route.fulfill({contentType:'text/html',body:await bundled}));await page.goto('/__inspection.html');await page.locator('#good table').waitFor();await page.evaluate(()=>document.fonts.ready);}
 
@@ -86,6 +89,24 @@ test('form observer measures track drift between peer grids while accepting shar
   expect(bad.issues.filter(issue=>issue.id==='forms.track-drift').map(issue=>issue.offset)).toEqual([4]);
   const good=await page.evaluate(inspectRenderedUI,{rootSelector:'#aligned'});
   expect(good.issues.filter(issue=>issue.id==='forms.track-drift')).toEqual([]);
+});
+
+test('table words keep readable intrinsic widths while legacy anywhere wrapping is observed',async({page})=>{
+  await open(page);
+  const bad=await page.evaluate(inspectRenderedUI,{rootSelector:'#words-bad'});
+  expect(bad.issues.filter(issue=>issue.id==='table.word-fragment').map(issue=>issue.word)).toContain('Оплачен');
+  const good=await page.evaluate(inspectRenderedUI,{rootSelector:'#words-good'});
+  expect(good.issues.filter(issue=>issue.id==='table.word-fragment')).toEqual([]);
+  await expect(page.locator('#words-good .flood-status-indicator')).toHaveCSS('overflow-wrap','break-word');
+  await page.evaluate(()=>document.documentElement.style.fontSize='24px');
+  expect((await page.evaluate(inspectRenderedUI,{rootSelector:'#words-good'})).issues.filter(issue=>issue.id==='table.word-fragment')).toEqual([]);
+});
+
+test('explicit technical identifier fragmentation remains supported without a word warning',async({page})=>{
+  await open(page);
+  const lines=await page.locator('#technical td').evaluate(cell=>{const range=document.createRange();range.selectNodeContents(cell);return range.getClientRects().length;});
+  expect(lines).toBeGreaterThan(1);
+  expect((await page.evaluate(inspectRenderedUI,{rootSelector:'#technical'})).issues.filter(issue=>issue.id==='table.word-fragment')).toEqual([]);
 });
 
 test('observer bounds inventory and refuses an absent root without mutating the page',async({page})=>{

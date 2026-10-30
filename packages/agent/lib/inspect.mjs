@@ -64,6 +64,33 @@ export function inspectRenderedUI(options = {}) {
     }
   }
   const actionNames=select('button.flood-button,a.flood-link--button').map(button=>(button.textContent||'').trim().replace(/\s+/g,' ').toLowerCase()).filter(name=>name.length>=4);
+  let wordsChecked=0;
+  const segmenters=new Map();
+  const canInspectWords=typeof Intl.Segmenter==='function';
+  if(canInspectWords)for(const cell of select('.flood-table th,.flood-table td')){
+    if(cell.matches('[data-wrap="anywhere"]'))continue;
+    const locale=cell.closest('[lang]')?.getAttribute('lang')||document.documentElement.lang||undefined;
+    if(!segmenters.has(locale)){
+      try{segmenters.set(locale,new Intl.Segmenter(locale,{granularity:'word'}));}
+      catch{segmenters.set(locale,new Intl.Segmenter(undefined,{granularity:'word'}));}
+    }
+    const walker=document.createTreeWalker(cell,NodeFilter.SHOW_TEXT);let node;
+    while((node=walker.nextNode())){
+      if(!node.parentElement||!visible(node.parentElement)||node.parentElement.closest('code,pre,.flood-inline-code,.flood-visually-hidden,[aria-hidden="true"]'))continue;
+      for(const word of segmenters.get(locale).segment(node.textContent||'')){
+        if(!word.isWordLike||word.segment.length<4)continue;
+        if(wordsChecked>=limit){truncated=true;break;}wordsChecked++;
+        if(word.segment.length>200)continue;
+        const range=document.createRange();range.setStart(node,word.index);range.setEnd(node,word.index+word.segment.length);
+        const boxes=[...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0);
+        if(boxes.length>1&&Math.max(...boxes.map(rect=>rect.y))-Math.min(...boxes.map(rect=>rect.y))>2){
+          addIssue({id:'table.word-fragment',target:target(cell),word:word.segment,message:'A word is split across rendered lines in a table cell. Review intrinsic column width and wrapping; deliberate technical or localized line breaking can be an exception.'});
+        }
+      }
+      if(wordsChecked>=limit)break;
+    }
+    if(wordsChecked>=limit){truncated=true;break;}
+  }
   const grids=select('form [class]').filter(element=>{
     if(element.closest('table') || getComputedStyle(element).display!=='grid')return false;
     return [...element.children].filter(visible).length>=2 && element.querySelectorAll('input,select,textarea,[role="combobox"]').length>=2;
@@ -101,6 +128,7 @@ export function inspectRenderedUI(options = {}) {
     'Editorial necessity and accuracy require contextual review; copy inventory is not an editorial verdict.',
     'Form grouping and column hierarchy require review of task relationships and visible geometry.',
     'Only the currently rendered document state is inspected; portals outside a selected root, other pages, iframes and shadow roots are not traversed.',
-    'These observations do not certify accessibility, functional correctness or overall visual quality.'
+    'These observations do not certify accessibility, functional correctness or overall visual quality.',
+    ...(!canInspectWords?['Word fragmentation was not inspected because Intl.Segmenter is unavailable.']:[])
   ]};
 }
