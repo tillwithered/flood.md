@@ -201,9 +201,10 @@ export default function Documentation({ path }: { path: string }) {
         {!doc && !component && !catalog && <Link href="/docs">Back to documentation</Link>}
         </div>
         <Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link><Link href="/agent/SKILL.md">Agent skill</Link></Inline>
-        <nav className="doc-pagination" aria-label="Previous and next page">
-          {previous ? <Link href={previous.path} variant="subtle" size="sm"><IconSlot size="sm"><ArrowLeft /></IconSlot>{previous.name}</Link> : <span />}
-          {next && <Link href={next.path} variant="subtle" size="sm">{next.name}<IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
+        <nav aria-label="Previous and next page"><Inline gap="4" className="doc-pagination">
+          {previous && <Link href={previous.path} variant="subtle" size="sm"><IconSlot size="sm"><ArrowLeft /></IconSlot><Text style={{font:"inherit"}}>{previous.name}</Text></Link>}
+          {next && <Link href={next.path} variant="subtle" size="sm" style={{marginInlineStart:"auto"}}><Text style={{font:"inherit"}}>{next.name}</Text><IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
+        </Inline>
         </nav>
       </main>
     </div>

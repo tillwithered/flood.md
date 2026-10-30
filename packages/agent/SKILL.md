@@ -38,6 +38,8 @@ per-row grids do not establish a coherent hierarchy. For icon-bearing controls,
 use the foundations workflow. During browser verification use the optional
 [rendered review observer](references/rendered-review.md) and review its findings.
 It cannot replace the separate copy and grouping decisions.
+For save, upload or other fallible operations, read the feedback workflow too:
+message lifetime belongs to the operation/record, not merely the page's Alert.
 
 | Work | Read next | Required result |
 | --- | --- | --- |

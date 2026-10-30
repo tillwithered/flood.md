@@ -73,6 +73,11 @@ For a failure preserve the source revision, affected state and actual trace or
 measurement; distinguish library, host recipe, assertion and infrastructure causes.
 Correct the responsible owner without weakening a meaningful assertion to get
 green. Add regression coverage for demonstrated risks rather than mirroring CSS.
+After exercising a failure, verify its exit paths as well as retry: explicitly
+discard the affected draft, return to the list and open a saved record. Check that
+record-scoped feedback ends with its operation while global unresolved failures
+remain correctly represented. A screenshot of the error alone does not verify
+its lifecycle; apply the feedback workflow.
 
 State what ran, results, manual observations and remaining limits. A source scan,
 agent instruction, screenshot or accessibility scanner cannot independently prove
