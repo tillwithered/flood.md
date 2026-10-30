@@ -22,6 +22,9 @@ export function inspectSourceUI(source,options={}) {
       if(match[1].trim().startsWith('.flood-'))continue;
       record(match,'composition.layout-owner',match[2]==='grid'?'Grid':'Stack / Inline','Custom layout candidate. Shared form tracks and repeated layout roles should use Flood owners. A semantic host shell can legitimately own positioning; record the actual reason.');
     }
+    for(const match of source.matchAll(/\bmin-(?:width|inline-size)\s*:\s*(\d*\.?\d+)rem\b/g)){
+      if(Number(match[1])>0)record(match,'composition.scaled-minimum','Container / local ScrollArea','Rem-based minimum width candidate. If applied to the whole host, it can force page overflow when text grows. Dense table minima can be legitimate inside a local scroll owner; inspect the actual selector and enlarged desktop result.');
+    }
   }
   return {schemaVersion:1,issues,truncated,notChecked:['Text matching is not parsing: comments, strings and examples can match; aliases, dynamic types and indirect calls can be missed. Review source context.','This function reads only the supplied text. It does not execute it, open files or inspect imports, component capability, rendered layout or editorial necessity.']};
 }
@@ -47,6 +50,7 @@ export function inspectRenderedUI(options = {}) {
     if(matches.length > limit) truncated = true;
     return matches.slice(0, limit);
   };
+  if(root===document&&document.documentElement.scrollWidth>innerWidth+1)addIssue({id:'layout.page-overflow',target:{tag:'html',id:document.documentElement.id||null,className:document.documentElement.getAttribute('class')||'',label:'Document'},offset:document.documentElement.scrollWidth-innerWidth,message:'The document extends beyond the viewport. Review the actual overflow owner at this text size; dense content can scroll locally. Hiding page overflow does not repair the layout.'});
   for (const button of select('button.flood-button, button.flood-icon-button')) {
     // Text is inspected outside real icon slots, SVGs and visually hidden names.
     const walker = document.createTreeWalker(button, NodeFilter.SHOW_TEXT);

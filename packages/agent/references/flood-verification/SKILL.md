@@ -25,6 +25,10 @@ Desktop-only scope still includes enlarged text in the desktop viewport. Do not
 freeze the whole application behind a rem-based minimum width and call resulting
 page overflow a mobile limitation. Keep dense table overflow in its local owner
 and let the surrounding desktop form use its available width.
+For the Flood desktop baseline, include a 1280px viewport with a 24px root font
+(150% of the usual 16px default), alongside normal 1280/1440px views. Testing only
+20px does not cover that target. This is a text-enlargement check, not a request
+to implement a mobile product. Report any deliberate host-specific exclusion.
 
 Check the public contract at the boundary: installed exports/types, actual form
 values, controlled acceptance/refusal, reset, names/focus and semantic state. For

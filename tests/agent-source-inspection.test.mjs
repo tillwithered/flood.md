@@ -26,3 +26,10 @@ test('source observations are bounded, read-only text processing and disclose fa
   assert.throws(()=>inspectSourceUI('',{maxFindings:0}),/maxFindings/);
   assert.throws(()=>inspectSourceUI('',{format:'html'}),/format/);
 });
+test('scaled minima are reviewed differently for a whole host and a dense local table',()=>{
+  const report=inspectSourceUI('.app {min-width:64rem} .table {min-inline-size:60rem} .field {min-width:0rem}',{format:'css'});
+  assert.equal(report.issues.length,2);
+  assert.ok(report.issues.every(issue=>issue.id==='composition.scaled-minimum'));
+  assert.match(report.issues[0].message,/whole host/);
+  assert.match(report.issues[1].message,/legitimate inside a local scroll/);
+});

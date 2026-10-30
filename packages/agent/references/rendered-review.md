@@ -30,6 +30,9 @@ import audit or automatic ban. Use it on host source, not the implementation of
 Flood itself. Inputs are limited to 500000 UTF-16 units and maxFindings defaults
 to 50 (maximum 500); split larger files deliberately. Retain contextual decisions
 outside the product. An empty result does not establish component reuse.
+Rem-based min-width/min-inline-size declarations are also surfaced for review:
+a local dense table can need one, while a whole-page floor can defeat enlarged
+text. Confirm the selector and actual 24px-root desktop geometry.
 
 Inspect representative pages and actual interaction states, including a populated
 editable row and an open date/selection popup. Set rootSelector only when that
@@ -87,3 +90,8 @@ workflow. Inspect copy in screen order and field edges against common layout
 tracks. Check populated, empty, error and changed-content states in task scope.
 Record actual decisions and remaining limits; a successful screenshot capture
 does not mean its contents were reviewed successfully.
+
+layout.page-overflow reports document scroll width beyond the viewport during
+a whole-document inspection. It does not run for a selected rootSelector or
+report correctly contained local scrolling. Review the actual cause and task
+context rather than hiding overflow to silence the finding.

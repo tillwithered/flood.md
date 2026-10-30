@@ -140,3 +140,12 @@ test('observer bounds inventory and refuses an absent root without mutating the 
   expect(result.unchanged).toBe(true);
   await expect(page.evaluate(inspectRenderedUI,{rootSelector:'#missing'})).rejects.toThrow('root was not found');
 });
+
+test('document overflow observation distinguishes page escape from locally owned scrolling and scoped review',async({page})=>{
+  await open(page);
+  await page.locator('#bad').evaluate(node=>node.style.width='2000px');
+  expect((await page.evaluate(inspectRenderedUI,{})).issues.find(issue=>issue.id==='layout.page-overflow')?.target.label).toBe('Document');
+  expect((await page.evaluate(inspectRenderedUI,{rootSelector:'#good'})).issues.some(issue=>issue.id==='layout.page-overflow')).toBe(false);
+  await page.locator('#bad').evaluate(node=>{node.style.removeProperty('width');const local=document.createElement('div');local.style.cssText='width:100px;overflow:auto';const content=document.createElement('div');content.style.width='2000px';content.textContent='Locally owned content';local.append(content);node.append(local);});
+  expect((await page.evaluate(inspectRenderedUI,{})).issues.some(issue=>issue.id==='layout.page-overflow')).toBe(false);
+});
