@@ -23,8 +23,25 @@ invented as a package API. No external component library or parallel token syste
 
 ## Read only the relevant reference
 
+For a new screen, read the composition and interface-content workflows below
+before the first JSX. Discover owners in the installed catalog before choosing
+familiar low-level controls. Keep a short role → selected component → consulted
+contract record in the development notes, outside the interface. A supplied guide
+or a remembered export is not evidence that its contract was read.
+
+Before delivery, review the actual screen against those choices and the content
+workflow. Optional subtitle, description and hint slots start empty; fill one
+only for information the user needs beyond the title or control itself.
+
+For a composed form, also read the forms workflow's grouping section; independent
+per-row grids do not establish a coherent hierarchy. For icon-bearing controls,
+use the foundations workflow. During browser verification use the optional
+[rendered review observer](references/rendered-review.md) and review its findings.
+It cannot replace the separate copy and grouping decisions.
+
 | Work | Read next | Required result |
 | --- | --- | --- |
+| Introducing or editing interface copy, labels, hierarchy or adapting a reference | [Interface content skill](references/flood-interface-content/SKILL.md) | Necessary, accurate content with a clear job; no invented capabilities or redundant narration |
 | Component, composite, website or playground UI | [Composition skill](references/flood-composition/SKILL.md) | Reused primitives; missing small capabilities implemented before composites |
 | New screen, layout or form | [Composition](references/composition.md) | Existing primitives, correct host width and form ownership |
 | Spacing, density, nested geometry or shifting previews | [Spacing skill](references/flood-spacing/SKILL.md) | Measured visual relationships and nonoverlapping interactive areas |

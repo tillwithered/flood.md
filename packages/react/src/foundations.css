@@ -77,6 +77,8 @@
 .flood-root .flood-table[data-density="compact"] { --flood-data-padding: var(--flood-sys-space-2); }
 .flood-root .flood-table caption { text-align: start; padding-block-end: var(--flood-sys-space-3); font-weight: var(--flood-sys-type-label-weight); color: var(--flood-sys-color-content-default); }
 .flood-root .flood-table :is(th, td) { text-align: start; vertical-align: top; padding: var(--flood-data-padding) var(--flood-sys-space-3); overflow-wrap: anywhere; }
+.flood-root .flood-table[data-cell-vertical-align="middle"] :is(th, td) { vertical-align: middle; }
+.flood-root .flood-table[data-cell-vertical-align="bottom"] :is(th, td) { vertical-align: bottom; }
 .flood-root .flood-table th { font-weight: var(--flood-sys-type-label-weight); }
 .flood-root .flood-table thead th { color: var(--flood-sys-color-content-subtle); border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
 .flood-root .flood-table tbody > tr:not(:last-child) > :is(th, td) { border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }

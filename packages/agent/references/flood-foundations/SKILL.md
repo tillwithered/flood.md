@@ -27,6 +27,13 @@ applies the existing dark base; it does not start a palette, theme or motion red
   owns explicit artwork dimensions; IconButton owns the accessible action/target.
   A large control does not mean an unconstrained SVG or oversized supporting copy.
 
+Action icons are artwork with an explicit IconSlot size, not a plus, arrow or
+cross typed into the label. Font glyph bounds vary even at the same font size.
+Use the project's licensed icon pack or an original SVG in IconSlot; text-only
+actions can omit the icon. Keep real symbols that are content, such as currency,
+phone prefixes or mathematical expressions, as text. Inspect the actual artwork
+and its centre relative to the label at the chosen Button size.
+
 ## Evidence
 
 Trace a changed role to its consumers and compare resting, hover, selected,

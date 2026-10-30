@@ -22,6 +22,7 @@
     "README.md"
   ],
   "exports": {
+    "./inspect": {"types":"./lib/inspect.d.ts","import":"./lib/inspect.mjs"},
     ".": {"types":"./lib/index.d.ts","import":"./lib/index.mjs"},
     "./dist/*": "./dist/*",
     "./DESIGN.md": "./DESIGN.md",

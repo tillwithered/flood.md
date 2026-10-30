@@ -31,6 +31,15 @@ without inserting a second empty-state design or moving unrelated controls.
 Align file title/metadata and status/progress by their intended row relationship;
 do not hide a StatusIndicator dot or replace Progress with a custom track.
 
+For an editable table, compare the centre of plain amounts and row actions with
+the neighbouring input controls. Table's default top alignment is useful for
+multiline records, but is not automatically correct for mixed control rows.
+Use Table cellVerticalAlign="middle" for the relevant table when needed, without
+moving text with transforms or overriding Input, NumberInput or Button internals.
+Native style on an individual host-owned td/th can express an exceptional cell.
+Do not depend on a low-specificity descendant CSS override. Check the rendered
+centres; equal cell padding alone does not establish alignment.
+
 Use the documented local overflow owner, with a meaningful accessible name. Focus
 the last action/cell and check that a rail or rounded corner does not cover it.
 Compare narrow/wide, enlarged text and RTL. Locale-sensitive text in prerendered

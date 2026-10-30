@@ -9,6 +9,7 @@ export const docPages = [
   { path: "/docs/theming", label: "Customization", file: "theming.md", description: "Adapt semantic roles to your project." },
   { path: "/docs/agents", label: "Agent guide", file: "agents.md", description: "Give your agent the matching design instructions." },
   { path: "/docs/skills", label: "Skills", file: "skills.md", description: "Task-focused agent workflows for composing and verifying the dark base." },
+  { path: "/docs/interface-content", label: "Interface content", file: "interface-content.md", description: "Purposeful interface copy, information hierarchy and contextual reference adaptation." },
   { path: "/docs/agent-knowledge", label: "Agent knowledge", file: "agent-knowledge.md", description: "Versioned discovery, selected reading and knowledge growth safeguards." },
   { path: "/docs/faq", label: "FAQ", file: "faq.md", description: "Compatibility, customization and common questions." },
   { path: "/docs/privacy", label: "Website privacy", file: "privacy.md", description: "How the optional website visitor counter works." },

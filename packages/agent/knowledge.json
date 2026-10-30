@@ -63,6 +63,10 @@
     ],
     "verification": [
       "quality"
+    ],
+    "interface-content": [
+      "composition",
+      "quality"
     ]
   },
   "references": [
@@ -166,6 +170,26 @@
       ],
       "name": "Workflow applicability index",
       "description": "Find applicable component-family workflows without treating applicability as proof."
+    },
+    {
+      "id": "reference:interface-content-examples",
+      "source": "references/interface-content-examples.md",
+      "groups": [
+        "composition",
+        "quality"
+      ],
+      "name": "Interface content decisions",
+      "description": "Contextual examples of removing filler while preserving labels, consequences, recovery and document content."
+    },
+    {
+      "id": "reference:rendered-review",
+      "source": "references/rendered-review.md",
+      "groups": [
+        "quality",
+        "composition"
+      ],
+      "name": "Rendered interface review",
+      "description": "Read-only DOM observations for icon ownership and mixed-row alignment, with separate contextual copy and hierarchy review."
     }
   ],
   "componentGroups": {
@@ -293,6 +317,10 @@
       "composition",
       "data-feedback",
       "interaction"
+    ],
+    "interface-content.md": [
+      "composition",
+      "quality"
     ]
   },
   "prerequisites": {

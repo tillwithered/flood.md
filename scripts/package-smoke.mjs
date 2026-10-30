@@ -58,6 +58,9 @@ try {
       ),
   });
   await doctor(root);
+  await writeFile(join(root,'inspect-export.mjs'),"import assert from 'node:assert/strict'; import {inspectRenderedUI} from '@flood-md/agent/inspect'; assert.equal(typeof inspectRenderedUI,'function'); assert.throws(()=>inspectRenderedUI(),/browser document/);\n");
+  const inspectExport=spawnSync(process.execPath,['inspect-export.mjs'],{cwd:root,encoding:'utf8'});
+  assert.equal(inspectExport.status,0,inspectExport.stderr);
   await buildAgentConsumer(root);
   const buttonEntry = join(root, "button-entry.mjs");
   await writeFile(buttonEntry, "export {Button} from '@flood-md/react';\n");
@@ -137,7 +140,7 @@ createElement(Menu,{...actionMenu,ref:createRef<HTMLDivElement>()});
 // @ts-expect-error Action labels are required.
 const badMenu: MenuProps = {...actionMenu,items:[{id:'open'}]};
 const descriptions: DescriptionListProps = {items:[{id:'project',term:'Project',description:'Flood'}],layout:'inline',density:'compact',dividers:true};
-const table: TableProps = {caption:'Projects',children:createElement('tbody',null,createElement('tr',null,createElement('td',null,'Flood'))),density:'comfortable',hideCaption:true};
+const table: TableProps = {caption:'Projects',children:createElement('tbody',null,createElement('tr',null,createElement('td',null,'Flood'))),density:'comfortable',hideCaption:true,cellVerticalAlign:'middle'};
 createElement(DescriptionList,{...descriptions,ref:createRef<HTMLDListElement>()});
 createElement(Table,{...table,ref:createRef<HTMLTableElement>(),onClick:event=>event.currentTarget.rows.length});
 // @ts-expect-error Stable identity is required for description items.

@@ -5,6 +5,10 @@ specialized skills. Start with the [agent guide](agents.md), the host instructio
 and matching installed declarations. Load the skills relevant to the current task,
 not the entire library of instructions.
 
+[Interface content](interface-content.md) covers labels, wording and information
+hierarchy. Its workflow removes unnecessary narration while keeping meaningful
+constraints, consequences, recovery and accessible names.
+
 Use [Agent knowledge](agent-knowledge.md) to discover these workflows by semantic
 group and read the installed version. The catalog separates prerequisites from
 optional related components; grouping is not a request to load every skill.

@@ -52,6 +52,12 @@ one versioned catalog with stable IDs and content hashes for the package and
 website. The Node reader and CLI discover metadata before loading one body;
 they do not implement model intent routing or execute instruction text.
 
+An optional, separate @flood-md/agent/inspect entry provides a self-contained
+read-only browser DOM observer for verification tooling. It is not imported by
+the Node knowledge reader or application components. Bounded observations cover
+selected icon and mixed-row geometry patterns; contextual editorial and layout
+hierarchy decisions remain explicit review work, not automatic certification.
+
 Catalog growth does not increase per-response budgets. Compilation rejects
 unmapped additions, stale annotations, unresolved local guidance links and
 prerequisite cycles. A historical ID fixture detects accidental removals; typed

@@ -10,6 +10,11 @@ components. Preserve their anatomy and behavior when improving a composition.
 Read the governing project instructions, matching declarations and relevant
 component guide first. This skill grants no additional permissions.
 
+When introducing visible interface text, apply the
+[interface content skill](../flood-interface-content/SKILL.md) before filling
+optional headings, descriptions or helper slots. Existing user-authored content
+is not permission to rewrite it during an unrelated layout correction.
+
 ## Choose the smallest existing owner
 
 Before changing JSX, identify the visible roles and their existing owners:
@@ -17,6 +22,20 @@ StatusIndicator for a named state, Progress for progress, Badge/FileMeta for
 metadata, IconButton for an icon action, Dialog for modal behavior, Text/Heading
 for typography, and the appropriate form, list or table primitive for semantics.
 Check the actual installed exports and props; do not invent APIs from newer docs.
+
+Search the installed catalog by the role before settling on a low-level building
+block. Read the selected contract and compare a more specific owner when one
+exists: Metric for a labelled statistic; DateField for date entry, DatePicker for
+date entry with a calendar; StatusIndicator for a named state. Input type="date"
+invokes the browser's picker, not Flood's Calendar. Use it only for an explicit
+native-picker requirement or a documented limitation of the installed controls.
+Heading/Text remain valid for ordinary prose, not a default replacement for an
+available statistic component.
+
+Record the selected owner and any rejected match before implementing the surface.
+If discovery finds no suitable component, state the missing capability; do not
+claim that the library has no owner without checking. Keep this decision record
+in development notes, never as extra explanatory text in the product.
 
 - Reuse the matching component with its supported props and tokens.
 - If spacing or alignment is wrong, inspect both the primitive and the parent

@@ -1,5 +1,6 @@
 .flood-root .flood-data-table { min-inline-size:0; inline-size:100%; }
 .flood-root .flood-data-table[hidden] { display:none; }
+.flood-root .flood-data-table thead th { vertical-align:middle; }
 .flood-root .flood-data-table thead th[data-sortable] { padding-inline:max(0px,calc(var(--flood-data-padding) - var(--flood-sys-space-2))); }
 .flood-root .flood-data-table__sort { gap:var(--flood-sys-space-2); min-block-size:var(--flood-sys-control-sm-height); padding-inline:calc(var(--flood-sys-space-2) - var(--flood-sys-stroke-width)); color:inherit; font:inherit; font-weight:500; }
 .flood-root .flood-data-table__choice { inline-size:1%; white-space:nowrap; }

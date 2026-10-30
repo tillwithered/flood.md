@@ -116,6 +116,21 @@
       "source": "references/knowledge.md",
       "target": ".agents/skills/flood-ui/references/knowledge.md",
       "kind": "reference"
+    },
+    {
+      "source": "references/flood-interface-content/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-interface-content/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/interface-content-examples.md",
+      "target": ".agents/skills/flood-ui/references/interface-content-examples.md",
+      "kind": "reference"
+    },
+    {
+      "source": "references/rendered-review.md",
+      "target": ".agents/skills/flood-ui/references/rendered-review.md",
+      "kind": "reference"
     }
   ],
   "version": "0.2.10",

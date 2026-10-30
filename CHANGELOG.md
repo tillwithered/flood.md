@@ -2,6 +2,13 @@
 
 ## 0.2.10 · Unreleased — versioned agent knowledge
 
+- Add Table cellVerticalAlign without changing its default top alignment; align
+  mixed sortable DataTable headers. Add opt-in rendered DOM observations through
+  @flood-md/agent/inspect, separate from semantic/editorial review.
+
+- Add routed interface-content guidance with contextual editorial decisions,
+  reference adaptation and examples that preserve necessary constraints and recovery.
+
 - Add a provider-neutral, read-only knowledge reader and CLI info/catalog/read commands.
 - Compile grouped skills, references, components, recipes and semantic token records from their canonical sources.
 - Bound discovery and selected reads; refuse version drift, stale cursors, invalid relationships and changed package content.

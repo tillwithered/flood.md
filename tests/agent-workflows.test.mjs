@@ -4,8 +4,21 @@ import {readFile,stat} from 'node:fs/promises';
 import {posix} from 'node:path';
 import {readAgentWorkflows,validateWorkflowIndex,workflowMarkdown} from '../scripts/agent-workflows.mjs';
 import {readWebsiteDocument} from '../scripts/website-documents.mjs';
+import {createKnowledgeReader} from '../packages/agent/lib/index.mjs';
 
 const json=async path=>JSON.parse(await readFile(path,'utf8'));
+test('editorial discovery routes to the full shipped skill, decision examples and affected controls',async()=>{
+  const reader=createKnowledgeReader();
+  const page=await reader.list({kind:'workflow',group:'composition',search:'editorial'});
+  assert.deepEqual(page.items.map(item=>item.id),['workflow:interface-content']);
+  const material=await reader.read(page.items[0].id,{length:40000});
+  assert.equal(material.truncated,false);
+  assert.equal(material.text,await readFile('packages/agent/references/flood-interface-content/SKILL.md','utf8'));
+  assert.ok(material.links.includes('reference:interface-content-examples'));
+  const examples=await reader.read('reference:interface-content-examples',{length:40000});
+  assert.equal(examples.text,await readFile('packages/agent/references/interface-content-examples.md','utf8'));
+  assert.ok((await reader.read('component:field',{length:1})).links.includes(material.id));
+});
 test('every routed skill and its internal links resolve identically in source and installed bundle',async()=>{
   const manifest=await json('packages/agent/manifest.json');
   const index=await readAgentWorkflows();

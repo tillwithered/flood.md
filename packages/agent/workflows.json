@@ -2,15 +2,116 @@
   "schemaVersion": 1,
   "scope": "Task routing for the existing Flood dark base; applicability is not test evidence",
   "workflows": [
-    { "id": "composition", "guide": "references/flood-composition/SKILL.md", "all": true },
-    { "id": "spacing", "guide": "references/flood-spacing/SKILL.md", "all": true },
-    { "id": "foundations", "guide": "references/flood-foundations/SKILL.md", "all": true },
-    { "id": "accessibility", "guide": "references/flood-accessibility/SKILL.md", "all": true },
-    { "id": "forms", "guide": "references/flood-forms/SKILL.md", "groups": ["forms"], "components": ["Button", "Label", "Fieldset", "ErrorSummary"] },
-    { "id": "overlays", "guide": "references/flood-overlays/SKILL.md", "groups": ["overlays"], "components": ["Select", "Combobox", "MultiSelect", "TreeSelect", "DatePicker", "DateRangePicker", "TimePicker", "DateTimePicker", "DateTimeRangePicker"] },
-    { "id": "navigation", "guide": "references/flood-navigation/SKILL.md", "groups": ["navigation"], "components": ["Tree", "TreeSelect", "Toolbar", "CommandList", "ListBox", "ToggleGroup", "SegmentedControl", "Accordion", "Collapsible"] },
-    { "id": "data-display", "guide": "references/flood-data-display/SKILL.md", "groups": ["content"], "components": ["UploadItem", "UploadList", "EmptyState", "ScrollArea"] },
-    { "id": "feedback", "guide": "references/flood-feedback/SKILL.md", "groups": ["feedback"], "components": ["Field", "Fieldset", "Input", "Textarea", "Select", "ListBox", "CopyButton", "Badge", "UploadItem", "UploadList"] },
-    { "id": "verification", "guide": "references/flood-verification/SKILL.md", "all": true }
+    {
+      "id": "composition",
+      "guide": "references/flood-composition/SKILL.md",
+      "all": true
+    },
+    {
+      "id": "interface-content",
+      "guide": "references/flood-interface-content/SKILL.md",
+      "all": true
+    },
+    {
+      "id": "spacing",
+      "guide": "references/flood-spacing/SKILL.md",
+      "all": true
+    },
+    {
+      "id": "foundations",
+      "guide": "references/flood-foundations/SKILL.md",
+      "all": true
+    },
+    {
+      "id": "accessibility",
+      "guide": "references/flood-accessibility/SKILL.md",
+      "all": true
+    },
+    {
+      "id": "forms",
+      "guide": "references/flood-forms/SKILL.md",
+      "groups": [
+        "forms"
+      ],
+      "components": [
+        "Button",
+        "Label",
+        "Fieldset",
+        "ErrorSummary"
+      ]
+    },
+    {
+      "id": "overlays",
+      "guide": "references/flood-overlays/SKILL.md",
+      "groups": [
+        "overlays"
+      ],
+      "components": [
+        "Select",
+        "Combobox",
+        "MultiSelect",
+        "TreeSelect",
+        "DatePicker",
+        "DateRangePicker",
+        "TimePicker",
+        "DateTimePicker",
+        "DateTimeRangePicker"
+      ]
+    },
+    {
+      "id": "navigation",
+      "guide": "references/flood-navigation/SKILL.md",
+      "groups": [
+        "navigation"
+      ],
+      "components": [
+        "Tree",
+        "TreeSelect",
+        "Toolbar",
+        "CommandList",
+        "ListBox",
+        "ToggleGroup",
+        "SegmentedControl",
+        "Accordion",
+        "Collapsible"
+      ]
+    },
+    {
+      "id": "data-display",
+      "guide": "references/flood-data-display/SKILL.md",
+      "groups": [
+        "content"
+      ],
+      "components": [
+        "UploadItem",
+        "UploadList",
+        "EmptyState",
+        "ScrollArea"
+      ]
+    },
+    {
+      "id": "feedback",
+      "guide": "references/flood-feedback/SKILL.md",
+      "groups": [
+        "feedback"
+      ],
+      "components": [
+        "Field",
+        "Fieldset",
+        "Input",
+        "Textarea",
+        "Select",
+        "ListBox",
+        "CopyButton",
+        "Badge",
+        "UploadItem",
+        "UploadList"
+      ]
+    },
+    {
+      "id": "verification",
+      "guide": "references/flood-verification/SKILL.md",
+      "all": true
+    }
   ]
 }

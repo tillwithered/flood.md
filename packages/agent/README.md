@@ -5,6 +5,13 @@ contract before composing screens. The 0.2.10 reference bundle includes spacing
 guidance, routing and observable rules. These files grant
 no authority to modify external services.
 
+The optional `@flood-md/agent/inspect` export supplies inspectRenderedUI for
+browser evaluation in local verification tooling. It reads the current rendered
+DOM without mutation/network access and returns bounded observations, copy and
+field geometry. See [rendered review](references/rendered-review.md) for execution,
+privacy, limits and contextual review. The main knowledge-reader entry remains
+Node-only. An empty observation list does not certify an interface's quality.
+
 The package also exposes a Node-only, read-only knowledge API with TypeScript
 declarations. No model provider, network service or MCP runtime is required.
 
@@ -25,9 +32,9 @@ the website. Do not hand-edit generated hashes or duplicate component contracts.
 See [Agent knowledge](../../docs/agent-knowledge.md) for groups, capabilities,
 prerequisites, read budgets, compatibility and customization behavior.
 
-The source bundle also includes ten routed workflows for the existing dark base:
+The source bundle also includes eleven routed workflows for the existing dark base:
 composition, spacing, foundations, accessibility, forms, overlays, navigation,
-data display, feedback and verification. The lightweight flood-ui entry selects
+data display, feedback, interface content and verification. The lightweight flood-ui entry selects
 relevant skills; nested folders do not imply independent automatic discovery.
 workflows.json describes applicability. rules.json describes observable checks;
 neither is a completed component-audit report or executable enforcement engine.

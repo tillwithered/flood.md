@@ -39,7 +39,9 @@
         "Intrinsic actions and responsive form parent",
         "Close choice label and independent group spacing",
         "Reuse shared atoms while preserving specialized native semantics",
-        "Container/grid/media geometry at320px and enlarged RTL text",
+        "Selected role owners and their installed contracts recorded before JSX",
+        "Actual date/selection popup checked against the selected component",
+        "Container/grid/media geometry at the host's declared viewport and text targets",
         "No invisible focusable content without reveal behavior"
       ]
     },
@@ -523,6 +525,64 @@
         "Read scope and version before selecting material",
         "Finish selected instruction pages",
         "Run growth and clean-consumer checks for source changes"
+      ]
+    },
+    {
+      "id": "content.necessary",
+      "when": "Introducing or editing visible interface copy and hierarchy",
+      "for": [
+        "designer",
+        "developer",
+        "agent"
+      ],
+      "requires": [
+        "User task and scope",
+        "Existing product vocabulary"
+      ],
+      "sourceOfTruth": "Actual user decisions and current interface context",
+      "guide": "references/flood-interface-content/SKILL.md",
+      "verify": [
+        "Changed copy has a necessary role or is removed",
+        "Titles, subtitles and hints do not repeat obvious context",
+        "Accessible names, needed constraints and recovery remain available"
+      ]
+    },
+    {
+      "id": "content.accurate",
+      "when": "Writing state, export, storage or completion messages",
+      "for": [
+        "designer",
+        "developer",
+        "agent"
+      ],
+      "requires": [
+        "Actual operation and completed outcome"
+      ],
+      "sourceOfTruth": "Host behavior and confirmed product facts",
+      "guide": "references/flood-interface-content/SKILL.md",
+      "verify": [
+        "No invented capabilities, expert verification or delivery claims",
+        "Error explains the applicable failure and supported recovery",
+        "Technical details appear only when they affect a user decision"
+      ]
+    },
+    {
+      "id": "content.reference",
+      "when": "Adapting content from another product or reference",
+      "for": [
+        "designer",
+        "developer",
+        "agent"
+      ],
+      "requires": [
+        "Reference purpose",
+        "Host objects, actions and states"
+      ],
+      "sourceOfTruth": "Host capability and user vocabulary",
+      "guide": "references/flood-interface-content/SKILL.md",
+      "verify": [
+        "Reference pattern is mapped to the host question it answers",
+        "Competitor workflows, promises and marketing language are not transplanted without matching behavior"
       ]
     }
   ],

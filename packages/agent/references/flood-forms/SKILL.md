@@ -31,6 +31,24 @@ documents associations and feedback.
   Host validation decides the error and useful message. Keep native constraints,
   invalid focus and the accessible message association coherent.
 
+## Group before laying out fields
+
+Choose the form's reading order and semantic groups before placing controls in
+columns. Establish shared outer tracks, gap and group padding. Related groups
+should share those tracks: do not independently choose a four-column grid above
+two columns below and assume their edges align. A group may span the whole layout
+when its content needs it; not every field should have the same width.
+
+For two peer groups, use two equal outer tracks and subdivide each consistently
+when a group contains short related fields. A pair of two-field groups can read
+more clearly than four unrelated columns. This is a pattern to evaluate, not a
+rule that every form has two columns or an invoice-specific template.
+
+Keep a group's title, controls and supporting message together in reading and DOM
+order. Distinguish page, group and field roles without adding headings merely to
+fill containers. Compare shared leading/trailing edges and gutters in the rendered
+form, including absent descriptions, long labels and changed field values.
+
 ## Exercise transitions, not just props
 
 Check entry, clear, incomplete drafts, invalid input, accepted/refused controlled
@@ -41,5 +59,7 @@ representation genuinely requires it. Do not silently replace user edits.
 FileInput cannot receive a fabricated FileList or ordinary controlled text value.
 Separate selection from upload transport and progress. Calendar/date/time controls
 represent their documented civil values; do not infer a timezone or server save.
-Show a real success only after the host operation succeeds. In a local example,
-state explicitly that changes are local.
+Show a real success only after the host operation succeeds. Explain consequential
+storage limits once where they matter; a local example does not require a banner
+or repeated captions about its implementation. Follow the interface-content
+workflow for placement and wording.
