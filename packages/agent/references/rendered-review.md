@@ -26,7 +26,21 @@ and field/group rectangles. They are review findings with selectors/labels and
 measured offsets, not proof of a defect in every context. Arithmetic labels or
 custom artwork can be intentional; explain exceptions rather than deleting data
 to obtain an empty report. maxElements bounds each selected category (default 500,
-maximum 2000); truncated means coverage is incomplete.
+maximum 2000) and the total findings list; truncated means coverage is incomplete.
+
+forms.track-drift compares stacked multi-column form grids with the same outer
+frame. Different gutters or track counts need review against the grouping plan;
+some different contexts can legitimately use different tracks. Tables and nested
+ancestor/descendant grids are excluded. It is an observable geometry check, not
+an automatic judgement of semantic hierarchy.
+
+copy.unowned-support asks for review of supporting text outside a field, actual
+operation state, navigation or structured document. This intentionally includes
+free-standing implementation captions. Potential usefulness is not a reason to
+keep one: name the user's current decision or recovery need. Actual storage errors
+and deletion confirmations are different contexts from a static storage footer.
+Contextual exceptions are possible. Never change font size, ARIA roles or wrapper
+markup just to hide a finding; review the information itself.
 
 For icon actions use real artwork in IconSlot and an accessible name on the
 action. Table now centres cells by default; use cellVerticalAlign="top" only for

@@ -11,6 +11,8 @@ Keep the user's language, task and domain vocabulary.
 | Export-format chooser compares scanned images with selectable text | Keep the meaningful format distinction beside the choices | It changes the export decision |
 | Sidebar card says “Your documents, in your browser. Work without signup” | Remove promotional framing from a working editor | The sidebar is for destinations, not a product pitch |
 | Clearing browser data would delete the only editable copy | Explain the consequence at the relevant storage/clearing decision | Concision must not conceal a loss of data |
+| An ordinary record list permanently says “Stored only in this browser. Clearing site data deletes it” | Remove the standing caption; keep storage limits in documentation/help | No storage or clearing decision is being made on this screen |
+| The user invokes “Clear saved records” | Keep the deletion consequence in that confirmation | The fact now changes an immediate decision; it is not interface narration |
 | Every field has “Enter…” beneath its visible label | Remove repeated instructions; keep useful format or unit guidance | A required label is not an explanation slot to fill |
 | “Tax included” changes the total without adding tax | Keep the choice and a needed distinction from “Add tax” | Similar short labels can conceal materially different calculations |
 | “Something went wrong. Please try again” appears after storage is full | Name the failed save and a supported recovery action | The next step must fit the actual cause |

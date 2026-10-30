@@ -13,6 +13,7 @@ export function inspectRenderedUI(options = {}) {
   const label = element => (element.getAttribute('aria-label') || element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 180);
   const target = element => ({tag:element.tagName.toLowerCase(), id:element.id || null, className:element.getAttribute('class') || '', label:label(element)});
   let truncated = false;
+  const addIssue = finding => { if (issues.length < limit) issues.push(finding); else truncated = true; };
   const select = selector => {
     const matches = [...root.querySelectorAll(selector)].filter(visible);
     if(matches.length > limit) truncated = true;
@@ -27,10 +28,10 @@ export function inspectRenderedUI(options = {}) {
     }
     const text = parts.join('').trim();
     if (/^[+＋×✕✖↗→←✓✔☰](?:\s|$)|(?:\s)[+＋×✕✖↗→←✓✔☰]$/u.test(text)) {
-      issues.push({id:'icons.text-glyph', target:target(button), message:'Possible action icon encoded as font text; review whether IconSlot with explicit artwork is required.'});
+      addIssue({id:'icons.text-glyph', target:target(button), message:'Possible action icon encoded as font text; review whether IconSlot with explicit artwork is required.'});
     }
     for (const svg of button.querySelectorAll('svg')) {
-      if (!svg.closest('.flood-icon,.flood-loading,.flood-spinner')) issues.push({id:'icons.unslotted-svg',target:target(button),message:'Action SVG has no Flood IconSlot owner; inspect sizing and accessible decoration.'});
+      if (!svg.closest('.flood-icon,.flood-loading,.flood-spinner')) addIssue({id:'icons.unslotted-svg',target:target(button),message:'Action SVG has no Flood IconSlot owner; inspect sizing and accessible decoration.'});
     }
   }
   for (const row of select('.flood-table tbody tr')) {
@@ -57,18 +58,38 @@ export function inspectRenderedUI(options = {}) {
       for(const control of [...cell.querySelectorAll('button,a.flood-link--button')].filter(visible)) boxes.push(control.getBoundingClientRect());
       if(!boxes.length) continue;
       const actual=(Math.min(...boxes.map(rect=>rect.top))+Math.max(...boxes.map(rect=>rect.bottom)))/2;
-      if(Math.abs(actual-expected)>3) issues.push({id:'table.mixed-row-centre',target:target(cell),offset:Math.round((actual-expected)*100)/100,message:centres.length
+      if(Math.abs(actual-expected)>3) addIssue({id:'table.mixed-row-centre',target:target(cell),offset:Math.round((actual-expected)*100)/100,message:centres.length
         ? 'Cell content is offset from neighbouring input centres. Review resolved geometry.'
         : 'Cell content is offset from the centre of a record/action row. Compare multiline identity, values and actions; use deliberate top alignment only when justified.'});
     }
   }
   const actionNames=select('button.flood-button,a.flood-link--button').map(button=>(button.textContent||'').trim().replace(/\s+/g,' ').toLowerCase()).filter(name=>name.length>=4);
+  const grids=select('form [class]').filter(element=>{
+    if(element.closest('table') || getComputedStyle(element).display!=='grid')return false;
+    return [...element.children].filter(visible).length>=2 && element.querySelectorAll('input,select,textarea,[role="combobox"]').length>=2;
+  }).map(element=>{
+    const style=getComputedStyle(element),columns=style.gridTemplateColumns.match(/[\d.]+px/g)?.map(parseFloat)??[];
+    return {element,columns,gap:parseFloat(style.columnGap)||0,rect:element.getBoundingClientRect()};
+  }).filter(grid=>grid.columns.length>=2);
+  for(let i=0;i<grids.length;i++)for(let j=i+1;j<grids.length;j++){
+    const a=grids[i],b=grids[j];
+    if(a.element.contains(b.element)||b.element.contains(a.element))continue;
+    if(Math.abs(a.rect.x-b.rect.x)>1||Math.abs(a.rect.width-b.rect.width)>1)continue;
+    if(!(a.rect.bottom<=b.rect.top+1||b.rect.bottom<=a.rect.top+1))continue;
+    const starts=grid=>grid.columns.map((_,index)=>grid.columns.slice(0,index).reduce((sum,width)=>sum+width,0)+index*grid.gap);
+    const left=starts(a),right=starts(b);
+    const drift=a.columns.length===b.columns.length?Math.max(...left.map((x,index)=>Math.abs(x-right[index]))):null;
+    if(drift===null||drift>1)addIssue({id:'forms.track-drift',target:target(b.element),related:target(a.element),...(drift===null?{}:{offset:Math.round(drift*100)/100}),message:'Stacked form grids share an outer frame but use different tracks. Review common gutters/group hierarchy or document why these contexts need different columns.'});
+  }
   for(const element of select('h1,h2,h3,h4,h5,h6,.flood-type--helper,.flood-type--compact')) {
     if(label(element)) {
       copy.push(target(element));
       if(!element.closest('button,a,label') && !element.matches('h1,h2,h3,h4,h5,h6')) {
+        if(!element.closest('.flood-field,.flood-fieldset,.flood-table,.flood-metric,.flood-status-indicator,.flood-file-meta,.flood-description-list,nav,article,dialog,[role="document"],[role="status"],[role="alert"],[role="alertdialog"],[role="dialog"]')) {
+          addIssue({id:'copy.unowned-support',target:target(element),message:'Supporting text sits outside a field, operation state, navigation or structured document. Identify the exact current decision it serves; remove implementation narration. Do not change typography or add a semantic wrapper merely to silence this observation.'});
+        }
         const text=(element.textContent||'').trim().replace(/\s+/g,' ').toLowerCase();
-        if(actionNames.some(name=>text.includes(name))) issues.push({id:'copy.action-echo',target:target(element),message:'Supporting copy repeats a currently visible action label. Review whether it adds a necessary constraint or only narrates the control.'});
+        if(actionNames.some(name=>text.includes(name))) addIssue({id:'copy.action-echo',target:target(element),message:'Supporting copy repeats a currently visible action label. Review whether it adds a necessary constraint or only narrates the control.'});
       }
     }
   }

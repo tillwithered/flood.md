@@ -374,6 +374,9 @@
       "workflow:composition",
       "workflow:forms",
       "workflow:interface-content"
+    ],
+    "workflow:verification": [
+      "workflow:interface-content"
     ]
   }
 }

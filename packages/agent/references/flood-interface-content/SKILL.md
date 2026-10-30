@@ -16,19 +16,25 @@ does not authorize rewriting them.
 Before adding copy, identify the user's current task and state. Each visible
 string should identify an object or control, distinguish choices, supply needed
 input guidance, explain a relevant consequence, report a real state or support
-recovery. If its removal changes none of those, remove the element rather than
+recovery in the current task/state. A fact being potentially useful someday is
+not sufficient. If its removal changes none of those, remove the element rather than
 replace it with another friendly sentence.
 
 Make the decision in context:
 
-- **Keep** a necessary label, distinction, constraint, consequence or recovery step.
+- **Keep** a necessary label, distinction, constraint, consequence at the relevant decision or recovery step after a real failure.
 - **Rewrite** an ambiguous or inaccurate message using the product's terms.
 - **Move** secondary, occasionally needed information to a relevant help surface.
 - **Remove** duplication, routine interface narration and filler added to fill space.
 
 Do not turn this into a shortest-copy contest. A longer explanation can be the
 correct choice for an unfamiliar decision, an exceptional state or a material
-consequence. Do not hide essential instructions or risks behind a tooltip merely
+consequence of an action being considered here. An ordinary list/editor is not a
+storage-selection or data-deletion decision: do not add a standing browser/storage
+warning just because clearing browser data could lose records. Put implementation
+limits in documentation/help; explain deletion/replacement consequences before
+the applicable action and actual persistence failures when they occur.
+Do not hide essential instructions or risks behind a tooltip merely
 to make a screen quieter. Preserve accessible names and associations when reducing
 visible copy; use the component's documented hideLabel API where appropriate.
 

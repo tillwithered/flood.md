@@ -25,8 +25,9 @@ Check the actual installed exports and props; do not invent APIs from newer docs
 
 Search the installed catalog by the role before settling on a low-level building
 block. Read the selected contract and compare a more specific owner when one
-exists: Metric for a labelled statistic; DateField for date entry, DatePicker for
-date entry with a calendar; StatusIndicator for a named state. Input type="date"
+exists: Metric for a labelled statistic; DatePicker for ordinary date selection
+with typing and a calendar, DateField for an explicitly entry-only interaction;
+StatusIndicator for a named state. Input type="date"
 invokes the browser's picker, not Flood's Calendar. Use it only for an explicit
 native-picker requirement or a documented limitation of the installed controls.
 Heading/Text remain valid for ordinary prose, not a default replacement for an

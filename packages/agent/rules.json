@@ -181,7 +181,8 @@
         "Measure visible gaps and row pitch, including padding and minimum height",
         "Check wrapping and enlarged text",
         "Check fine/coarse pointers and nonoverlapping interactive targets",
-        "Preserve keyboard focus and label activation"
+        "Preserve keyboard focus and label activation",
+        "Peer form grids sharing an outer frame use coherent tracks and gutters, or have an explicit contextual reason"
       ]
     },
     {
@@ -544,7 +545,9 @@
       "verify": [
         "Changed copy has a necessary role or is removed",
         "Titles, subtitles and hints do not repeat obvious context",
-        "Accessible names, needed constraints and recovery remain available"
+        "Accessible names, needed constraints and recovery remain available",
+        "Each supporting sentence serves a specific decision or recovery need in the current state, not a hypothetical future risk",
+        "No standing implementation/storage caption merely because the data has a retention limitation"
       ]
     },
     {

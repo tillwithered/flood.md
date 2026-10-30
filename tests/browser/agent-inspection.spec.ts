@@ -9,9 +9,10 @@ async function fixture(){
   const directory=resolve(`.artifacts/inspection-${process.pid}`);await mkdir(directory,{recursive:true});
   const entry=resolve(directory,'entry.mjs');
   await writeFile(entry,`import React from ${file('node_modules/react/index.js')};import{createRoot}from ${file('node_modules/react-dom/client.js')};
-import{FloodRoot,Table,Input,Button,IconSlot,Stack,Text}from ${file('packages/react/dist/index.js')};import ${file('packages/react/dist/styles.css')};const h=React.createElement;
+import{FloodRoot,Table,Input,Button,IconSlot,Stack,Text,Grid,Field,Alert}from ${file('packages/react/dist/index.js')};import ${file('packages/react/dist/styles.css')};const h=React.createElement;
 const row=h('tbody',null,h('tr',null,h('td',null,h(Input,{'aria-label':'Quantity',defaultValue:'2',controlSize:'lg'})),h('td',{'data-numeric':true},'20.00')));
 const records=h('tbody',null,h('tr',null,h('th',{scope:'row'},h(Stack,{gap:'1'},h(Text,{size:'compact'},'Project alpha'),h(Text,{size:'helper'},'30 October'))),h('td',null,'Client'),h('td',{'data-numeric':true},'12.00'),h('td',null,h(Button,{variant:'subtle'},'Open'))));
+const field=label=>h(Field,{label},props=>h(Input,props));const pair=gap=>h(Grid,{columns:2,gap},field('Left'),field('Right'));
 createRoot(document.getElementById('app')).render(h(FloodRoot,null,
 h('section',{id:'bad'},h(Button,null,'＋ Create'),h(Table,{caption:'Top',cellVerticalAlign:'top'},row)),
 h('section',{id:'good'},h(Button,null,h(IconSlot,null,h('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor'},h('path',{d:'M12 5v14M5 12h14'}))),'Create'),h(Table,{caption:'Middle'},row)),
@@ -19,6 +20,8 @@ h('section',{id:'bottom'},h(Table,{caption:'Bottom',cellVerticalAlign:'bottom'},
 h('section',{id:'records-bad'},h(Table,{caption:'Record top',cellVerticalAlign:'top'},records)),
 h('section',{id:'records-good'},h(Table,{caption:'Record middle'},records)),
 h('section',{id:'copy'},h(Button,null,'Save changes'),h(Text,{size:'helper'},'Changes are saved with “Save changes”.'),h(Text,{size:'compact'},'Save changes replaces the existing revision.')),
+h('section',{id:'copy-contexts'},h('footer',null,h(Text,{size:'helper'},'Records are stored in this browser. Clearing site data removes them.')),h(Alert,{tone:'error',announcement:'assertive'},h(Text,{size:'helper'},'Could not save. Free space and retry.')),h('article',null,h(Text,{size:'helper'},'Payment due within 14 days.')),h('dialog',{open:true,'aria-label':'Clear records'},h(Text,{size:'helper'},'This removes all saved records.'))),
+h('form',{id:'drift'},h(Stack,{gap:'6'},pair('4'),pair('6'))),h('form',{id:'aligned'},h(Stack,{gap:'6'},pair('4'),pair('4'))),
 h(Button,null,'+7 phone'),h('button',{className:'flood-button',hidden:true},'＋ Hidden')));`);
   const result=await build({configFile:false,logLevel:'silent',define:{'process.env.NODE_ENV':JSON.stringify('production')},build:{write:false,cssCodeSplit:false,lib:{entry,formats:['iife'],name:'Inspection'}}});
   const output=(Array.isArray(result)?result:[result]).flatMap(x=>'output'in x?x.output:[]);
@@ -70,11 +73,29 @@ test('action-echo observation flags narration and consequential instructions for
   expect(report.notChecked.join(' ')).toContain('Editorial necessity');
 });
 
+test('support-copy observation distinguishes a standing footer from real error, document and confirmation contexts',async({page})=>{
+  await open(page);
+  const report=await page.evaluate(inspectRenderedUI,{rootSelector:'#copy-contexts'});
+  const findings=report.issues.filter(issue=>issue.id==='copy.unowned-support');
+  expect(findings.map(issue=>issue.target.label)).toEqual(['Records are stored in this browser. Clearing site data removes them.']);
+});
+
+test('form observer measures track drift between peer grids while accepting shared gutters',async({page})=>{
+  await open(page);
+  const bad=await page.evaluate(inspectRenderedUI,{rootSelector:'#drift'});
+  expect(bad.issues.filter(issue=>issue.id==='forms.track-drift').map(issue=>issue.offset)).toEqual([4]);
+  const good=await page.evaluate(inspectRenderedUI,{rootSelector:'#aligned'});
+  expect(good.issues.filter(issue=>issue.id==='forms.track-drift')).toEqual([]);
+});
+
 test('observer bounds inventory and refuses an absent root without mutating the page',async({page})=>{
   await open(page);
   const before=await page.content();
   const report=await page.evaluate(inspectRenderedUI,{maxElements:1});
   expect(report.truncated).toBe(true);
+  expect(report.issues.length).toBeLessThanOrEqual(1);
+  expect(report.copy.length).toBeLessThanOrEqual(1);
+  expect(report.fields.length).toBeLessThanOrEqual(1);
   expect(await page.content()).toBe(before);
   await expect(page.evaluate(inspectRenderedUI,{rootSelector:'#missing'})).rejects.toThrow('root was not found');
 });

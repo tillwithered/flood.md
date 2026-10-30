@@ -11,6 +11,12 @@ ownership. Read the matching DateField/DateTimePicker component guide for its
 specific civil-value and draft contract; [accessibility](../accessibility.md)
 documents associations and feedback.
 
+For an ordinary business date field, prefer DatePicker so users can both type and
+choose visually. DateField is the lower-level segmented editor without a popup;
+choose it for an explicit entry-only interaction or inside a composition that
+already supplies Calendar. Do not silently omit the calendar just because the
+brief did not enumerate every affordance of choosing a date.
+
 ## Assign ownership
 
 - Field supplies label/description/error associations through its render props;
