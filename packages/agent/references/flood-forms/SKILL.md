@@ -39,6 +39,12 @@ should share those tracks: do not independently choose a four-column grid above
 two columns below and assume their edges align. A group may span the whole layout
 when its content needs it; not every field should have the same width.
 
+For Flood record/settings forms without a denser host requirement, start with
+at most two field tracks per semantic group. Four metadata fields become two
+pairs rather than an automatic four-field strip. Use one track for a narrow group
+or long field. A denser table editor, filter toolbar or explicit host design is
+a different context; record why its structure needs more tracks.
+
 For two peer groups, use two equal outer tracks and subdivide each consistently
 when a group contains short related fields. A pair of two-field groups can read
 more clearly than four unrelated columns. This is a pattern to evaluate, not a
@@ -48,6 +54,11 @@ Keep a group's title, controls and supporting message together in reading and DO
 order. Distinguish page, group and field roles without adding headings merely to
 fill containers. Compare shared leading/trailing edges and gutters in the rendered
 form, including absent descriptions, long labels and changed field values.
+
+For a concrete starting structure, discover recipe:grouped-form in the installed
+catalog. It demonstrates shared tracks and two-field peer groups in a workspace
+form. Adapt its grouping to the host; do not copy its business content or add
+unrequested sample records.
 
 ## Exercise transitions, not just props
 

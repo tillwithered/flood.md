@@ -12,7 +12,7 @@ test.beforeEach(async ({page}) => {
 
 test('installed recipe preserves cross-page selection, cancellation and protected rows',async ({page})=>{
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
-  const archive=page.getByRole('button',{name:'Archive locally',exact:true});
+  const archive=page.getByRole('button',{name:'Archive projects',exact:true});
   await expect(archive).toBeDisabled();
   await page.getByRole('checkbox',{name:'Select Design system',exact:true}).check();
   await page.getByRole('button',{name:'Next page',exact:true}).click();
@@ -27,9 +27,9 @@ test('installed recipe preserves cross-page selection, cancellation and protecte
   await expect(page.getByText('2 selected',{exact:true})).toBeVisible();
   await archive.click();
   await dialog.getByRole('button',{name:'Archive selected',exact:true}).click();
-  await expect(page.getByText('2 projects archived in this local example.',{exact:true})).toBeVisible();
+  await expect(page.getByText('2 projects archived.',{exact:true})).toBeVisible();
   await expect(page.getByText('0 selected',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Restore example',exact:true}).click();
+  await page.getByRole('button',{name:'Reset',exact:true}).click();
   await expect(page.getByRole('checkbox',{name:'Select Design system',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
   expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);
@@ -38,7 +38,7 @@ test('installed recipe preserves cross-page selection, cancellation and protecte
 test('installed composition remains reachable with enlarged narrow RTL content',async ({page},info)=>{
   await page.setViewportSize({width:320,height:900});
   await page.evaluate(()=>{document.documentElement.style.fontSize='24px';document.documentElement.dir='rtl';});
-  await expect(page.getByRole('heading',{name:'Project bulk actions',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Projects',exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   const scroll=page.locator('.flood-data-table .flood-scroll-area');
   await expect(scroll).toHaveCount(1);

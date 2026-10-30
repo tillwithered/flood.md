@@ -34,7 +34,7 @@ test("Workspace recipe source and live composition stay linked and readable", as
   await page.getByRole("link", {name:"Try the local example", exact:true}).click();
   const form=page.getByRole("form", {name:"Workspace review settings"});
   await expect(form).toBeVisible();
-  await form.getByRole("button", {name:"Accept locally"}).click();
-  await expect(page.getByText("Accepted in this session", {exact:true})).toBeVisible();
+  await form.getByRole("button", {name:"Apply changes"}).click();
+  await expect(page.getByText("Applied", {exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });

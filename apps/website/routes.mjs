@@ -20,6 +20,7 @@ export const docPages = [
   { path: "/docs/recipes/filter-bar", label: "Filter bar", file: "recipes/filter-bar.md", description: "Compose search and filters with a host-owned data table.", group: "recipes" },
   { path: "/docs/recipes/workspace-review", label: "Workspace review", file: "recipes/workspace-review.md", description: "A local form and file drawer composed from Flood primitives and task-focused skills.", group: "recipes" },
   { path: "/docs/recipes/table-bulk-actions", label: "Table bulk actions", file: "recipes/table-bulk-actions.md", description: "Host-owned table selection, action scope and local confirmation from existing components.", group: "recipes" },
+  { path: "/docs/recipes/grouped-form", label: "Grouped form", file: "recipes/grouped-form.md", description: "Shared form tracks, semantic groups and optional fields composed from Flood primitives.", group: "recipes" },
 ];
 export const componentSlugs = catalog.map(component => component.slug);
 export const pagePaths = new Set([

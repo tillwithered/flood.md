@@ -321,6 +321,10 @@
     "interface-content.md": [
       "composition",
       "quality"
+    ],
+    "recipes/grouped-form.md": [
+      "composition",
+      "interaction"
     ]
   },
   "prerequisites": {
@@ -365,6 +369,11 @@
       "workflow:composition",
       "workflow:data-display",
       "workflow:navigation"
+    ],
+    "recipe:grouped-form": [
+      "workflow:composition",
+      "workflow:forms",
+      "workflow:interface-content"
     ]
   }
 }

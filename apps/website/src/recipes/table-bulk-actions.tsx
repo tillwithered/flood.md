@@ -22,30 +22,30 @@ export function TableBulkActions() {
     const count = projects.filter(project=>ids.has(project.id)&&eligible.has(project.id)).length;
     setProjects(projects.filter(project=>!ids.has(project.id)||!eligible.has(project.id)));
     setSelected([]);setPending(null);setPage(1);
-    setMessage(`${count} ${count===1?'project archived':'projects archived'} in this local example.`);
+    setMessage(`${count} ${count===1?'project archived':'projects archived'}.`);
   }
   return <Surface padding="4">
-    <Section title="Project bulk actions" description="Selection can span this local collection's pages. Nothing is sent or persisted.">
+    <Section title="Projects">
       <Stack gap="4">
         <Inline gap="3">
           <Text size="compact">{selection.length} selected</Text>
           <Toolbar label="Bulk project actions">
             <Inline gap="2">
               <AlertDialog open={pending!==null} onOpenChange={open=>setPending(open?[...selection]:null)}
-                trigger={props=><Button {...props} size="sm" variant="subtle" disabled={!selection.length}>Archive locally</Button>}
-                title="Archive selected projects?" description={`Archive ${pending?.length??0} selected projects in memory only. Restore example brings them back.`}
+                trigger={props=><Button {...props} size="sm" variant="subtle" disabled={!selection.length}>Archive projects</Button>}
+                title="Archive selected projects?" description={`${pending?.length??0} selected projects will leave this list.`}
                 confirmLabel="Archive selected" cancelLabel="Keep projects" confirmDisabled={!pending?.length} onConfirm={archive} />
               <Button size="sm" variant="ghost" disabled={!selection.length} onClick={()=>setSelected([])}>Clear selection</Button>
             </Inline>
           </Toolbar>
         </Inline>
-        <DataTable caption="Local projects" selectable pageSize={3} page={page} onPageChange={setPage} minWidth="28rem"
+        <DataTable caption="Project list" hideCaption selectable pageSize={3} page={page} onPageChange={setPage} minWidth="28rem"
           columns={[{id:'name',label:'Project',sortable:true},{id:'scope',label:'Scope'}]}
-          rows={projects.map(project=>({id:project.id,label:project.name,selectionDisabled:project.id==='locked',cells:{name:project.name,scope:project.id==='locked'?'Protected':'Local example'}}))}
+          rows={projects.map(project=>({id:project.id,label:project.name,selectionDisabled:project.id==='locked',cells:{name:project.name,scope:project.id==='locked'?'Protected':'Standard'}}))}
           selectedIds={selection} onSelectionChange={setSelected} />
         <Inline gap="3">
-          <Button size="sm" variant="subtle" onClick={()=>{setProjects(initialProjects);setSelected([]);setPending(null);setPage(1);setMessage('Example restored.');}}>Restore example</Button>
-          <StatusIndicator size="sm" label={message || 'Local example'} tone={message?'success':'neutral'} announce={Boolean(message)} />
+          <Button size="sm" variant="subtle" onClick={()=>{setProjects(initialProjects);setSelected([]);setPending(null);setPage(1);setMessage('Starting collection restored.');}}>Reset</Button>
+          {message && <StatusIndicator size="sm" label={message} tone="success" announce />}
         </Inline>
       </Stack>
     </Section>

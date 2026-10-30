@@ -35,21 +35,42 @@ export function inspectRenderedUI(options = {}) {
   }
   for (const row of select('.flood-table tbody tr')) {
     const controls = [...row.querySelectorAll('input:not([type="hidden"]),textarea,select')].filter(visible);
-    if (!controls.length) continue;
+    const actions = [...row.querySelectorAll('button,a.flood-link--button')].filter(visible);
+    if (!controls.length && !actions.length) continue;
     const centres = controls.map(control=>{const r=control.getBoundingClientRect();return r.y+r.height/2;});
-    if (Math.max(...centres)-Math.min(...centres)>3) continue; // Multiline/stacked rows need a human review.
-    const expected = centres.reduce((a,b)=>a+b,0)/centres.length;
-    for (const cell of row.querySelectorAll('td[data-numeric],th[data-numeric]')) {
-      if(cell.querySelector('input,textarea,select,button') || !visible(cell) || !label(cell)) continue;
-      const range=document.createRange();range.selectNodeContents(cell);
-      const boxes=[...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0);
-      if(!boxes.length || Math.max(...boxes.map(rect=>rect.y))-Math.min(...boxes.map(rect=>rect.y))>2) continue;
-      const actual=boxes.reduce((sum,rect)=>sum+rect.y+rect.height/2,0)/boxes.length;
-      if(Math.abs(actual-expected)>3) issues.push({id:'table.mixed-row-centre',target:target(cell),offset:Math.round((actual-expected)*100)/100,message:'Single-line numeric content is offset from neighbouring input centres. Review Table cellVerticalAlign and resolved geometry.'});
+    if (centres.length && Math.max(...centres)-Math.min(...centres)>3) continue;
+    const rowBox=row.getBoundingClientRect();
+    const expected = centres.length ? centres.reduce((a,b)=>a+b,0)/centres.length : rowBox.y+rowBox.height/2;
+    for (const cell of row.children) {
+      if(!cell.matches('td,th') || !visible(cell)) continue;
+      // Editable rows compare their passive content to input centres. Record/action
+      // rows compare every complete content block, including multiline identities.
+      if(centres.length && cell.querySelector('input,textarea,select')) continue;
+      const boxes=[];
+      const walker=document.createTreeWalker(cell,NodeFilter.SHOW_TEXT);let textNode;
+      while((textNode=walker.nextNode())) {
+        if(!textNode.textContent?.trim() || !textNode.parentElement || !visible(textNode.parentElement)
+          || textNode.parentElement.closest('.flood-visually-hidden,[aria-hidden="true"],script,style')) continue;
+        const range=document.createRange();range.selectNodeContents(textNode);
+        boxes.push(...[...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0));
+      }
+      for(const control of [...cell.querySelectorAll('button,a.flood-link--button')].filter(visible)) boxes.push(control.getBoundingClientRect());
+      if(!boxes.length) continue;
+      const actual=(Math.min(...boxes.map(rect=>rect.top))+Math.max(...boxes.map(rect=>rect.bottom)))/2;
+      if(Math.abs(actual-expected)>3) issues.push({id:'table.mixed-row-centre',target:target(cell),offset:Math.round((actual-expected)*100)/100,message:centres.length
+        ? 'Cell content is offset from neighbouring input centres. Review resolved geometry.'
+        : 'Cell content is offset from the centre of a record/action row. Compare multiline identity, values and actions; use deliberate top alignment only when justified.'});
     }
   }
+  const actionNames=select('button.flood-button,a.flood-link--button').map(button=>(button.textContent||'').trim().replace(/\s+/g,' ').toLowerCase()).filter(name=>name.length>=4);
   for(const element of select('h1,h2,h3,h4,h5,h6,.flood-type--helper,.flood-type--compact')) {
-    if(label(element)) copy.push(target(element));
+    if(label(element)) {
+      copy.push(target(element));
+      if(!element.closest('button,a,label') && !element.matches('h1,h2,h3,h4,h5,h6')) {
+        const text=(element.textContent||'').trim().replace(/\s+/g,' ').toLowerCase();
+        if(actionNames.some(name=>text.includes(name))) issues.push({id:'copy.action-echo',target:target(element),message:'Supporting copy repeats a currently visible action label. Review whether it adds a necessary constraint or only narrates the control.'});
+      }
+    }
   }
   for(const element of select('.flood-field,fieldset,.flood-section')) {
     const rect=element.getBoundingClientRect();

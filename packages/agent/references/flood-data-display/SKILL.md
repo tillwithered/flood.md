@@ -9,6 +9,12 @@ Use the installed component contracts and
 [composition workflow](../flood-composition/SKILL.md). Start with the content's
 relationships, not a wrapper around every piece of text.
 
+Keep visual/test fixtures separate from the host's working records unless sample
+data is explicitly part of the task. Do not seed a new user's persisted list with
+fictional business records just to fill a screen. Use isolated test state for
+populated screenshots and exercise the real empty state. When samples are required,
+identify them at the relevant boundary, without adding repeated demo narration.
+
 - Table/DataTable preserve caption, headers, cell relationships and documented
   sorting/selection behavior. A footer represents a summary and should be
   visually distinguishable without relying on a heavy border everywhere.
@@ -32,9 +38,9 @@ Align file title/metadata and status/progress by their intended row relationship
 do not hide a StatusIndicator dot or replace Progress with a custom track.
 
 For an editable table, compare the centre of plain amounts and row actions with
-the neighbouring input controls. Table's default top alignment is useful for
-multiline records, but is not automatically correct for mixed control rows.
-Use Table cellVerticalAlign="middle" for the relevant table when needed, without
+the neighbouring input controls. Table centres record/action and editable rows
+by default; opt into cellVerticalAlign="top" only for deliberate prose alignment.
+Use the shared cellVerticalAlign contract rather than
 moving text with transforms or overriding Input, NumberInput or Button internals.
 Native style on an individual host-owned td/th can express an exceptional cell.
 Do not depend on a low-specificity descendant CSS override. Check the rendered

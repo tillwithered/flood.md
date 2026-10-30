@@ -782,12 +782,12 @@ export interface TableProps extends Omit<TableHTMLAttributes<HTMLTableElement>, 
   density?: DataDensity;
   striped?: boolean;
   scrollLabel?: string;
-  /** Align cell content without consumer CSS overrides. Top preserves multiline records. */
+  /** Shared cell alignment. Middle keeps mixed record/action rows coherent; top is an explicit prose-table choice. */
   cellVerticalAlign?: "top" | "middle" | "bottom";
 }
 /** @since 0.2.4 */
 export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(function Table(
-  { caption, children, hideCaption = false, density = "comfortable", striped = false, scrollLabel, cellVerticalAlign = "top", ...props }, ref,
+  { caption, children, hideCaption = false, density = "comfortable", striped = false, scrollLabel, cellVerticalAlign = "middle", ...props }, ref,
 ) {
   return <TabularData {...props} ref={ref} caption={caption} hideCaption={hideCaption} density={density} striped={striped} scrollLabel={scrollLabel} cellVerticalAlign={cellVerticalAlign}>{children}</TabularData>;
 });

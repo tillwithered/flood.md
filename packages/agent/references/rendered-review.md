@@ -20,7 +20,8 @@ document, not iframes or shadow roots. It performs no network requests or writes
 Keep reports local: labels and copy inventories may contain the host's user data.
 
 Observations include likely text glyphs used as button icons, unslotted SVGs,
-single-line numeric cells offset from neighbouring input centres, a copy inventory
+passive cells offset from neighbouring input centres and complete cell blocks in
+record/action rows, supporting copy echoing a visible action label, a copy inventory
 and field/group rectangles. They are review findings with selectors/labels and
 measured offsets, not proof of a defect in every context. Arithmetic labels or
 custom artwork can be intentional; explain exceptions rather than deleting data
@@ -28,8 +29,9 @@ to obtain an empty report. maxElements bounds each selected category (default 50
 maximum 2000); truncated means coverage is incomplete.
 
 For icon actions use real artwork in IconSlot and an accessible name on the
-action. For editable tables use Table cellVerticalAlign="middle" where appropriate;
-keep default top for multiline record tables when it serves the content.
+action. Table now centres cells by default; use cellVerticalAlign="top" only for
+a deliberate prose-table layout. Action-echo findings need contextual review:
+a necessary instruction can legitimately repeat a button label.
 
 An empty issues array does not pass the interface. Separately review necessary
 copy using the interface-content workflow and coherent grouping using the forms

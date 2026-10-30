@@ -25,6 +25,11 @@ export async function buildAgentConsumer(root) {
   const workflows=command(['catalog','--kind','workflow','--group','foundations']);
   assert.ok(workflows.items.some(item=>item.id==='workflow:foundations'));
   const recipe=read('recipe:table-bulk-actions');assert.ok(recipe.requires.includes('workflow:data-display'));
+  const grouped=read('recipe:grouped-form');
+  const groupedSource=await readFile('apps/website/src/recipes/grouped-form.tsx','utf8');
+  assert.ok(grouped.text.includes('```tsx\n'+groupedSource.trimEnd()+'\n```'));
+  assert.ok(grouped.requires.includes('workflow:forms'));
+  await copyFile('apps/website/src/recipes/grouped-form.tsx',join(root,'agent-grouped-form.tsx'));
   read('component:data-table');read('reference:customization');read('token:sys.color.focus.ring');
   assert.equal(command(['catalog','--kind','workflow','--group','motion']).total,0);
   assert.equal(info.knowledge.capabilities.find(item=>item.id==='page-transitions').status,'not-provided');

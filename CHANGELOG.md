@@ -2,7 +2,7 @@
 
 ## 0.2.10 · Unreleased — versioned agent knowledge
 
-- Add Table cellVerticalAlign without changing its default top alignment; align
+- Add Table cellVerticalAlign and make middle alignment the shared default for record/action rows; align
   mixed sortable DataTable headers. Add opt-in rendered DOM observations through
   @flood-md/agent/inspect, separate from semantic/editorial review.
 

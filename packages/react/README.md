@@ -655,9 +655,9 @@ explicit id/headers associations for complex spanning headers. Do not add anothe
 caption child. See [WAI table guidance](https://www.w3.org/WAI/tutorials/tables/).
 
 Table density defaults comfortable; compact reduces vertical cell padding.
-In the 0.2.10 candidate, cellVerticalAlign="top" preserves existing multiline
-record alignment; choose "middle" for mixed input/amount/action rows or "bottom"
-when content requires it. This sets the shared cell recipe without consumer
+In the 0.2.10 candidate, cellVerticalAlign defaults to "middle" for consistent
+record/action and editable rows. Choose "top" for deliberate multiline prose
+alignment or "bottom" when content requires it. This sets the shared cell recipe without consumer
 specificity overrides. Native style on a particular th/td can override an
 exceptional cell. DataTable manages its own header geometry separately.
 striped is false by default. Native tfoot rows use a quiet tinted background and

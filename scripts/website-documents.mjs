@@ -17,5 +17,9 @@ export async function readWebsiteDocument(file, {workflows} = {}) {
     const source = await readFile('apps/website/src/recipes/table-bulk-actions.tsx', 'utf8');
     content = content.replace('<!-- flood:table-bulk-actions -->', '```tsx\n' + source.trimEnd() + '\n```');
   }
+  if (content.includes('<!-- flood:grouped-form -->')) {
+    const source = await readFile('apps/website/src/recipes/grouped-form.tsx', 'utf8');
+    content = content.replace('<!-- flood:grouped-form -->', '```tsx\n' + source.trimEnd() + '\n```');
+  }
   return content;
 }
