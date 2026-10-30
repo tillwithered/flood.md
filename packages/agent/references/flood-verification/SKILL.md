@@ -21,6 +21,10 @@ require new mobile product work. Record excluded targets instead of quietly
 expanding the task. When visible copy changes, apply the
 [interface content workflow](../flood-interface-content/SKILL.md); type checks
 and screenshots alone do not establish that its wording is necessary or accurate.
+Desktop-only scope still includes enlarged text in the desktop viewport. Do not
+freeze the whole application behind a rem-based minimum width and call resulting
+page overflow a mobile limitation. Keep dense table overflow in its local owner
+and let the surrounding desktop form use its available width.
 
 Check the public contract at the boundary: installed exports/types, actual form
 values, controlled acceptance/refusal, reset, names/focus and semantic state. For
@@ -44,6 +48,11 @@ release gate for every reversible visual adjustment.
 Use the [rendered review observer](../rendered-review.md) when local browser
 tooling is available. Inspect findings and exceptions, then review hierarchy and
 copy separately; no findings is not an editorial or visual-quality pass.
+Review host JSX/CSS with inspectSourceUI from that entry too, then resolve the
+actual owner at each candidate location. Include layout and cancel/confirmation
+paths, not just fields. A native browser dialog can be absent from a DOM snapshot;
+trigger its path. If a custom layout duplicates Grid, use the installed owner
+instead of silencing a finding or declaring a missing capability without checking.
 
 Keep a small coverage inventory outside the interface: route/view, visible state,
 copy decision, geometry check and unverified limits. Review the initial/empty

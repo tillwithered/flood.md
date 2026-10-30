@@ -1,3 +1,31 @@
+/** Optional text observations for host-owned JSX/CSS; no parsing or execution. */
+export function inspectSourceUI(source,options={}) {
+  if(typeof source!=='string'||source.length>500000)throw new Error('Source must be a string of at most 500000 UTF-16 units');
+  const limit=options.maxFindings??50,format=options.format??'jsx';
+  if(!Number.isSafeInteger(limit)||limit<1||limit>500)throw new Error('maxFindings must be an integer from 1 to 500');
+  if(!['jsx','css'].includes(format))throw new Error('format must be jsx or css');
+  const issues=[];let truncated=false;
+  const record=(match,id,owner,message)=>{
+    if(issues.length>=limit){truncated=true;return;}
+    const offset=match.index+match[0].length-match[0].trimStart().length;
+    const prefix=source.slice(0,offset),line=prefix.split('\n').length,column=offset-prefix.lastIndexOf('\n');
+    issues.push({id,line,column,excerpt:match[0].trimStart().slice(0,180),owner,message});
+  };
+  if(format==='jsx'){
+    for(const match of source.matchAll(/\b(?:window|globalThis)\.(confirm|alert|prompt)\s*\(/g))record(match,'composition.native-dialog',match[1]==='confirm'?'AlertDialog':match[1]==='prompt'?'Dialog':'Alert','Native browser dialog candidate. Review the actual call and use the installed Flood owner unless native UI is explicitly required.');
+    for(const match of source.matchAll(/<(select|button)\b|<input\b[^>]*\btype\s*=\s*["'](date|time|checkbox|radio|range)["']/g)){
+      const role=match[1]||match[2],owner={select:'Select',button:'Button',date:'DatePicker',time:'TimeField',checkbox:'Checkbox',radio:'Radio',range:'Slider'}[role];
+      record(match,'composition.native-control',owner,'Raw control candidate. Review whether an existing Flood component owns this role; native form/table structure and deliberate documented adapters are separate cases.');
+    }
+  } else {
+    for(const match of source.matchAll(/([^{}]+)\{[^{}]*\bdisplay\s*:\s*(grid|flex)\b/g)){
+      if(match[1].trim().startsWith('.flood-'))continue;
+      record(match,'composition.layout-owner',match[2]==='grid'?'Grid':'Stack / Inline','Custom layout candidate. Shared form tracks and repeated layout roles should use Flood owners. A semantic host shell can legitimately own positioning; record the actual reason.');
+    }
+  }
+  return {schemaVersion:1,issues,truncated,notChecked:['Text matching is not parsing: comments, strings and examples can match; aliases, dynamic types and indirect calls can be missed. Review source context.','This function reads only the supplied text. It does not execute it, open files or inspect imports, component capability, rendered layout or editorial necessity.']};
+}
+
 /** Read-only DOM observations. Pass this self-contained function to page.evaluate. */
 export function inspectRenderedUI(options = {}) {
   if (typeof document === 'undefined') throw new Error('inspectRenderedUI must run in the rendered browser document');

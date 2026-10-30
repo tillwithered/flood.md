@@ -7,6 +7,8 @@
   @flood-md/agent/inspect, separate from semantic/editorial review.
 - Compare actual field tracks across nested Surface padding and require review
   of initial, populated, editor, preview and error states in task scope.
+- Add optional bounded host-source observations for native dialogs/controls and
+  custom layout owners, with explicit text-matching limits and archive smoke checks.
 - Preserve word-based table/status widths so long adjacent records do not force
   single-letter fragments; retain explicit technical-identifier wrapping. Let List
   items shrink inside their grid so long error links wrap in Firefox and WebKit.

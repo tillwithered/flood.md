@@ -11,6 +11,10 @@ DOM without mutation/network access and returns bounded observations, copy and
 field geometry. See [rendered review](references/rendered-review.md) for execution,
 privacy, limits and contextual review. The main knowledge-reader entry remains
 Node-only. An empty observation list does not certify an interface's quality.
+The same optional entry exports inspectSourceUI for bounded text observations
+of host-owned JSX/CSS. It suggests owner review for native dialogs/controls and
+custom layouts without reading files or executing source. Text matches can be
+false positives or miss indirect code; see the rendered-review reference.
 
 The package also exposes a Node-only, read-only knowledge API with TypeScript
 declarations. No model provider, network service or MCP runtime is required.

@@ -33,6 +33,16 @@ native-picker requirement or a documented limitation of the installed controls.
 Heading/Text remain valid for ordinary prose, not a default replacement for an
 available statistic component.
 
+Include layout and secondary interactions in that selection: Grid for repeated
+form tracks, Stack/Inline for related layout, AlertDialog for a discard/delete
+confirmation, and Alert/StatusIndicator for the appropriate feedback role.
+window.confirm/alert/prompt are browser UI, not Flood components. A small scope
+does not justify replacing an available owner with native UI or a parallel CSS
+grid. Keep native form, table and semantic document/shell elements where they
+supply structure; styling the host shell is different from reimplementing a
+provided layout or control. Document a genuine missing capability before using
+a project-owned adapter.
+
 Record the selected owner and any rejected match before implementing the surface.
 If discovery finds no suitable component, state the missing capability; do not
 claim that the library has no owner without checking. Keep this decision record

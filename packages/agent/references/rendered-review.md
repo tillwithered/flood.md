@@ -12,6 +12,25 @@ await page.evaluate(() => document.fonts.ready);
 const observations = await page.evaluate(inspectRenderedUI, {});
 ```
 
+Before accepting owner selection, also review host-owned source with
+`inspectSourceUI` from the same entry:
+
+```js
+import {inspectSourceUI} from '@flood-md/agent/inspect';
+const jsxReview = inspectSourceUI(jsxText);
+const cssReview = inspectSourceUI(cssText, {format: 'css'});
+```
+
+The caller supplies local text; the function performs no file access, execution
+or network requests. It points at native dialog calls, selected raw JSX controls
+and custom grid/flex layout declarations for owner review. Read each source
+location: comments, strings, examples and legitimate shell CSS can match, while
+aliases, dynamic types and indirect calls can be missed. This is not an AST,
+import audit or automatic ban. Use it on host source, not the implementation of
+Flood itself. Inputs are limited to 500000 UTF-16 units and maxFindings defaults
+to 50 (maximum 500); split larger files deliberately. Retain contextual decisions
+outside the product. An empty result does not establish component reuse.
+
 Inspect representative pages and actual interaction states, including a populated
 editable row and an open date/selection popup. Set rootSelector only when that
 scope is intended; a popup portalled elsewhere will then be excluded. The function

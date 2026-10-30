@@ -58,7 +58,7 @@ try {
       ),
   });
   await doctor(root);
-  await writeFile(join(root,'inspect-export.mjs'),"import assert from 'node:assert/strict'; import {inspectRenderedUI} from '@flood-md/agent/inspect'; assert.equal(typeof inspectRenderedUI,'function'); assert.throws(()=>inspectRenderedUI(),/browser document/);\n");
+  await writeFile(join(root,'inspect-export.mjs'),"import assert from 'node:assert/strict'; import {inspectRenderedUI,inspectSourceUI} from '@flood-md/agent/inspect'; assert.equal(typeof inspectRenderedUI,'function'); assert.throws(()=>inspectRenderedUI(),/browser document/); assert.equal(inspectSourceUI('window.confirm(\"Discard?\")').issues[0].owner,'AlertDialog');\n");
   const inspectExport=spawnSync(process.execPath,['inspect-export.mjs'],{cwd:root,encoding:'utf8'});
   assert.equal(inspectExport.status,0,inspectExport.stderr);
   await buildAgentConsumer(root);
