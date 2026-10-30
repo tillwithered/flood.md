@@ -34,6 +34,13 @@ some different contexts can legitimately use different tracks. Tables and nested
 ancestor/descendant grids are excluded. It is an observable geometry check, not
 an automatic judgement of semantic hierarchy.
 
+forms.content-track-drift compares actual Flood field-owner rectangles across
+stacked grids in the same form, even when nested Surface padding makes their
+outer Grid frames differ. It requires matching overall content edges and one
+consistent field width per track. Tables, ancestor/descendant grids and ambiguous
+spanning arrangements are excluded; this is selected coverage, not proof that
+all form alignment is correct. Review the reported offset in context.
+
 copy.unowned-support asks for review of supporting text outside a field, actual
 operation state, navigation or structured document. This intentionally includes
 free-standing implementation captions. Potential usefulness is not a reason to

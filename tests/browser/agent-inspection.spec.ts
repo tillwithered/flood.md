@@ -9,7 +9,7 @@ async function fixture(){
   const directory=resolve(`.artifacts/inspection-${process.pid}`);await mkdir(directory,{recursive:true});
   const entry=resolve(directory,'entry.mjs');
   await writeFile(entry,`import React from ${file('node_modules/react/index.js')};import{createRoot}from ${file('node_modules/react-dom/client.js')};
-import{FloodRoot,Table,Input,Button,IconSlot,Stack,Text,Grid,Field,Alert,StatusIndicator}from ${file('packages/react/dist/index.js')};import ${file('packages/react/dist/styles.css')};const h=React.createElement;
+import{FloodRoot,Table,Input,Button,IconSlot,Stack,Text,Grid,Field,Surface,DatePicker,Alert,StatusIndicator}from ${file('packages/react/dist/index.js')};import ${file('packages/react/dist/styles.css')};const h=React.createElement;
 const row=h('tbody',null,h('tr',null,h('td',null,h(Input,{'aria-label':'Quantity',defaultValue:'2',controlSize:'lg'})),h('td',{'data-numeric':true},'20.00')));
 const records=h('tbody',null,h('tr',null,h('th',{scope:'row'},h(Stack,{gap:'1'},h(Text,{size:'compact'},'Project alpha'),h(Text,{size:'helper'},'30 October'))),h('td',null,'Client'),h('td',{'data-numeric':true},'12.00'),h('td',null,h(Button,{variant:'subtle'},'Open'))));
 const field=label=>h(Field,{label},props=>h(Input,props));const pair=gap=>h(Grid,{columns:2,gap},field('Left'),field('Right'));
@@ -23,6 +23,8 @@ h('section',{id:'records-good'},h(Table,{caption:'Record middle'},records)),
 h('section',{id:'copy'},h(Button,null,'Save changes'),h(Text,{size:'helper'},'Changes are saved with “Save changes”.'),h(Text,{size:'compact'},'Save changes replaces the existing revision.')),
 h('section',{id:'copy-contexts'},h('footer',null,h(Text,{size:'helper'},'Records are stored in this browser. Clearing site data removes them.')),h(Alert,{tone:'error',announcement:'assertive'},h(Text,{size:'helper'},'Could not save. Free space and retry.')),h('article',null,h(Text,{size:'helper'},'Payment due within 14 days.')),h('dialog',{open:true,'aria-label':'Clear records'},h(Text,{size:'helper'},'This removes all saved records.'))),
 h('form',{id:'drift'},h(Stack,{gap:'6'},pair('4'),pair('6'))),h('form',{id:'aligned'},h(Stack,{gap:'6'},pair('4'),pair('4'))),
+h('form',{id:'nested-drift'},h(Stack,{gap:'6'},h(Surface,{padding:'6'},h(Grid,{columns:2,gap:'4'},field('Number'),h('div'),h(DatePicker,{label:'Date'}),h(DatePicker,{label:'Due'}))),h(Grid,{columns:2,gap:'4'},h(Surface,{padding:'6'},field('Lower left')),h(Surface,{padding:'6'},field('Lower right'))))),
+h('form',{id:'nested-aligned'},h(Surface,{padding:'6'},h(Stack,{gap:'6'},pair('4'),pair('4')))),
 h('section',{id:'words-bad',style:{width:'420px'}},h(Table,{caption:'Legacy words',className:'legacy-words'},words)),h('section',{id:'words-good',style:{width:'420px'}},h(Table,{caption:'Readable words'},words)),
 h('section',{id:'technical',style:{width:'6rem'}},h(Table,{caption:'Technical identifier',style:{tableLayout:'fixed',width:'6rem'}},h('tbody',null,h('tr',null,h('td',{'data-wrap':'anywhere'},'RepositoryIdentifierWithoutNaturalWordBoundaries0123456789'))))),
 h(Button,null,'+7 phone'),h('button',{className:'flood-button',hidden:true},'＋ Hidden')));`);
@@ -102,6 +104,16 @@ test('table words keep readable intrinsic widths while legacy anywhere wrapping 
   expect((await page.evaluate(inspectRenderedUI,{rootSelector:'#words-good'})).issues.filter(issue=>issue.id==='table.word-fragment')).toEqual([]);
 });
 
+test('form observer compares actual fields across different nested surface frames',async({page})=>{
+  await open(page);
+  const inspect=async(rootSelector:string)=>page.evaluate(inspectRenderedUI,{rootSelector});
+  expect((await inspect('#nested-drift')).issues.filter(issue=>issue.id==='forms.content-track-drift').map(issue=>issue.offset)).toEqual([24]);
+  expect((await inspect('#nested-aligned')).issues.filter(issue=>issue.id.startsWith('forms.'))).toEqual([]);
+  await page.evaluate(()=>{document.documentElement.dir='rtl';document.documentElement.style.fontSize='24px';});
+  expect((await inspect('#nested-drift')).issues.filter(issue=>issue.id==='forms.content-track-drift').map(issue=>issue.offset)).toEqual([36]);
+  expect((await inspect('#nested-aligned')).issues.filter(issue=>issue.id.startsWith('forms.'))).toEqual([]);
+});
+
 test('explicit technical identifier fragmentation remains supported without a word warning',async({page})=>{
   await open(page);
   const lines=await page.locator('#technical td').evaluate(cell=>{const range=document.createRange();range.selectNodeContents(cell);return range.getClientRects().length;});
@@ -111,12 +123,20 @@ test('explicit technical identifier fragmentation remains supported without a wo
 
 test('observer bounds inventory and refuses an absent root without mutating the page',async({page})=>{
   await open(page);
-  const before=await page.content();
-  const report=await page.evaluate(inspectRenderedUI,{maxElements:1});
+  const result=await page.evaluate(source=>{
+    const inspect=Function('return ('+source+')')();
+    const before=document.documentElement.outerHTML;
+    const observer=new MutationObserver(()=>{});observer.observe(document,{subtree:true,attributes:true,characterData:true,childList:true});
+    const report=inspect({maxElements:1});
+    const mutations=observer.takeRecords().length;observer.disconnect();
+    return {report,mutations,unchanged:before===document.documentElement.outerHTML};
+  },inspectRenderedUI.toString());
+  const {report}=result;
   expect(report.truncated).toBe(true);
   expect(report.issues.length).toBeLessThanOrEqual(1);
   expect(report.copy.length).toBeLessThanOrEqual(1);
   expect(report.fields.length).toBeLessThanOrEqual(1);
-  expect(await page.content()).toBe(before);
+  expect(result.mutations).toBe(0);
+  expect(result.unchanged).toBe(true);
   await expect(page.evaluate(inspectRenderedUI,{rootSelector:'#missing'})).rejects.toThrow('root was not found');
 });

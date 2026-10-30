@@ -98,11 +98,32 @@ export function inspectRenderedUI(options = {}) {
     const style=getComputedStyle(element),columns=style.gridTemplateColumns.match(/[\d.]+px/g)?.map(parseFloat)??[];
     return {element,columns,gap:parseFloat(style.columnGap)||0,rect:element.getBoundingClientRect()};
   }).filter(grid=>grid.columns.length>=2);
+  const contentTracks=grid=>{
+    const owners='.flood-field,.flood-date-picker,.flood-date-field,.flood-time-field,.flood-date-range-field,.flood-date-time-picker';
+    const nodes=[...grid.element.querySelectorAll(owners)].filter(element=>visible(element)&&!element.closest('table')&&!element.parentElement?.closest(owners));
+    if(nodes.length>limit)truncated=true;
+    const tracks=[];
+    for(const element of nodes.slice(0,limit)){
+      const rect=element.getBoundingClientRect();
+      const track=tracks.find(item=>Math.abs(item.x-rect.x)<=1);
+      if(track){if(Math.abs(track.width-rect.width)>1)return null;}
+      else tracks.push({x:rect.x,width:rect.width});
+    }
+    if(tracks.length!==grid.columns.length)return null;
+    tracks.sort((a,b)=>a.x-b.x);
+    return {tracks,left:tracks[0].x,right:Math.max(...tracks.map(track=>track.x+track.width))};
+  };
+  for(const grid of grids)grid.content=contentTracks(grid);
   for(let i=0;i<grids.length;i++)for(let j=i+1;j<grids.length;j++){
     const a=grids[i],b=grids[j];
+    if(a.element.closest('form')!==b.element.closest('form'))continue;
     if(a.element.contains(b.element)||b.element.contains(a.element))continue;
-    if(Math.abs(a.rect.x-b.rect.x)>1||Math.abs(a.rect.width-b.rect.width)>1)continue;
     if(!(a.rect.bottom<=b.rect.top+1||b.rect.bottom<=a.rect.top+1))continue;
+    if(a.content&&b.content&&a.content.tracks.length===b.content.tracks.length&&Math.abs(a.content.left-b.content.left)<=1&&Math.abs(a.content.right-b.content.right)<=1){
+      const offset=Math.max(...a.content.tracks.map((track,index)=>Math.max(Math.abs(track.x-b.content.tracks[index].x),Math.abs(track.width-b.content.tracks[index].width))));
+      if(offset>1)addIssue({id:'forms.content-track-drift',target:target(b.element),related:target(a.element),offset:Math.round(offset*100)/100,message:'Stacked form groups share content edges but their actual field starts or widths differ. Review nested surface padding and shared track ownership; matching Grid props or outer boxes is insufficient.'});
+    }
+    if(Math.abs(a.rect.x-b.rect.x)>1||Math.abs(a.rect.width-b.rect.width)>1)continue;
     const starts=grid=>grid.columns.map((_,index)=>grid.columns.slice(0,index).reduce((sum,width)=>sum+width,0)+index*grid.gap);
     const left=starts(a),right=starts(b);
     const drift=a.columns.length===b.columns.length?Math.max(...left.map((x,index)=>Math.abs(x-right[index]))):null;

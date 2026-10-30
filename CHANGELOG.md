@@ -5,6 +5,8 @@
 - Add Table cellVerticalAlign and make middle alignment the shared default for record/action rows; align
   mixed sortable DataTable headers. Add opt-in rendered DOM observations through
   @flood-md/agent/inspect, separate from semantic/editorial review.
+- Compare actual field tracks across nested Surface padding and require review
+  of initial, populated, editor, preview and error states in task scope.
 - Preserve word-based table/status widths so long adjacent records do not force
   single-letter fragments; retain explicit technical-identifier wrapping. Let List
   items shrink inside their grid so long error links wrap in Firefox and WebKit.
