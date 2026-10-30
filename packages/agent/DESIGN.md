@@ -34,14 +34,15 @@ The installed entry is .agents/skills/flood-ui/SKILL.md; its references live und
 accessibility, customization or verification reference. flood/manifest.json maps
 package sources to those installed paths; flood/rules.json indexes observable
 checks. In the Flood repository the corresponding sources are packages/agent/.
-This bundle belongs to 0.2.7; older installations keep their matching guide set.
+This bundle belongs to the package version in its heading; older installations
+keep their matching guide set.
 
 React + TypeScript and Next.js App Router. Use this guide with matching installed
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-This guide covers the supported exports in 0.2.7 and their layout refinements. Confirm
-the matching installed declarations before using APIs absent from older versions.
+This guide describes the matching package's capabilities and layout contracts.
+Confirm its installed declarations before using APIs absent from older versions.
 
 ## Connect
 

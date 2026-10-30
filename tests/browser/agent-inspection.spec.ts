@@ -142,7 +142,7 @@ test('observer bounds inventory and refuses an absent root without mutating the 
 });
 
 test('document overflow observation distinguishes page escape from locally owned scrolling and scoped review',async({page})=>{
-  await open(page);
+  await page.setContent('<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><section id="bad">Page escape</section><section id="good">Scoped content</section></main></body></html>');
   await page.locator('#bad').evaluate(node=>node.style.width='2000px');
   expect((await page.evaluate(inspectRenderedUI,{})).issues.find(issue=>issue.id==='layout.page-overflow')?.target.label).toBe('Document');
   expect((await page.evaluate(inspectRenderedUI,{rootSelector:'#good'})).issues.some(issue=>issue.id==='layout.page-overflow')).toBe(false);
