@@ -45,6 +45,14 @@ Use the [rendered review observer](../rendered-review.md) when local browser
 tooling is available. Inspect findings and exceptions, then review hierarchy and
 copy separately; no findings is not an editorial or visual-quality pass.
 
+Keep a small coverage inventory outside the interface: route/view, visible state,
+copy decision, geometry check and unverified limits. Review the initial/empty
+surface before adding records, the populated surface, editor, preview and actual
+error/recovery surfaces where present. Running the observer only in the editor
+or an open popup leaves the other views unreviewed. Never extend a zero-findings
+claim to states that were not inspected. Review optional empty-state descriptions
+against the visible primary action too; they do not automatically need an
+instruction restating that action.
 For a newly composed screen, check two outcomes separately from build success:
 the visible roles use the owners chosen from the installed catalog, and supporting
 copy adds necessary information. Open the real date/selection popup to verify

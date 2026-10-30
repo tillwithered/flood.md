@@ -61,6 +61,12 @@ order. Distinguish page, group and field roles without adding headings merely to
 fill containers. Compare shared leading/trailing edges and gutters in the rendered
 form, including absent descriptions, long labels and changed field values.
 
+Measure the controls' content edges, not only the Grid boxes. A full-width padded
+Surface containing two tracks and two separately padded Surfaces can use identical
+Grid props while their actual controls differ by one surface inset. Nested padding
+must participate in the same track budget. Compare corresponding first/second
+control starts and widths across those groups; matching outer containers is not
+sufficient. Do not insert an empty grid child merely to occupy an unexplained gap.
 For a concrete starting structure, discover recipe:grouped-form in the installed
 catalog. It demonstrates shared tracks and two-field peer groups in a workspace
 form. Adapt its grouping to the host; do not copy its business content or add
