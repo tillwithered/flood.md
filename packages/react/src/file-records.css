@@ -4,14 +4,14 @@
 .flood-root .flood-file-item__name { overflow-wrap:anywhere; }
 .flood-root .flood-file-item__heading { display:flex; align-items:center; flex-wrap:wrap; gap:var(--flood-sys-space-1) var(--flood-sys-space-2); min-inline-size:0; }
 .flood-root .flood-file-item__heading>.flood-file-item__name { min-inline-size:0; }
-.flood-root .flood-file-meta { flex:0 1 auto; max-inline-size:100%; flex-wrap:wrap; white-space:normal; overflow-wrap:anywhere; color:var(--flood-sys-color-content-subtle); font-weight:400; }
+.flood-root .flood-file-meta { flex:0 1 auto; max-inline-size:100%; flex-wrap:wrap; white-space:normal; overflow-wrap: break-word; color:var(--flood-sys-color-content-subtle); font-weight:400; }
 .flood-root .flood-file-meta>span { min-inline-size:0; }
 .flood-root .flood-file-item .flood-data-list-item__trailing { flex:none; max-inline-size:none; }
 .flood-root .flood-upload-item .flood-data-list-item__copy { align-self:center; }
 .flood-root .flood-upload-item__status-row { display:flex; align-items:center; gap:var(--flood-sys-space-2); min-inline-size:0; }
 .flood-root .flood-upload-item__status-row[data-progress]>.flood-status-indicator { flex:none; white-space:nowrap; }
 .flood-root .flood-upload-item .flood-indicator { flex:1; min-inline-size:0; }
-.flood-root .flood-upload-item .flood-status-indicator { overflow-wrap:anywhere; }
+.flood-root .flood-upload-item .flood-status-indicator { overflow-wrap:break-word; }
 .flood-root .flood-image-preview { inline-size:min(56rem,calc(100% - var(--flood-sys-space-8))); }
 .flood-root .flood-image-preview__figure { margin:0; }
 .flood-root .flood-image-preview__media { display:grid; place-items:center; min-block-size:12rem; max-inline-size:100%; background:var(--flood-sys-color-surface-canvas); border-radius:var(--flood-sys-radius-field); overflow:hidden; }

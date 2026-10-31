@@ -25,3 +25,9 @@ supporting text; use Badge or StatusIndicator where that meaning is useful.
 Long titles and descriptions wrap. Trailing metadata and actions may move onto
 another line at narrow widths. DataList owns density and separators; standalone
 rows use the comfortable spacing default. Refs point to the real list item.
+
+Choose metadata by recognition, comparison and action needs. A category is not
+a lifecycle status; priority is another dimension. Keep needed triage information
+visible, but do not make every value a competing chip. Review long and missing
+metadata across several siblings; equal gaps do not create common scan columns.
+See the records workflow in [Skills](/docs/skills) for contextual decisions.

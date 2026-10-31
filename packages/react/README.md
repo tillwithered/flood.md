@@ -6,8 +6,15 @@ HTML semantics and refs, no third-party component library or Tailwind dependency
 Named imports support tree shaking in optimizing ES-module bundlers. Import the
 shared stylesheet explicitly; styles are not split by component.
 
-This package documents the **0.2.9** source API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.10** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
+
+Version 0.2.10 adds Fieldset legendSize="label" | "section"
+(default label). Independent section legends use a 1rem/600 role; named fields
+retain their 13px-equivalent label size with a .25rem inner gap. Dialog task
+titles use 1.25rem/600 and a 1.5rem body inset. These dark-profile recipe changes
+do not enlarge compact Popover captions or default choice legends. DatePicker
+calendar panels prefer at least 20rem when available, bounded by the viewport.
 
 Version 0.2.9 improves constrained file rows, Drawer readability and Select pointer
 focus without changing public signatures or token values.
@@ -655,11 +662,20 @@ explicit id/headers associations for complex spanning headers. Do not add anothe
 caption child. See [WAI table guidance](https://www.w3.org/WAI/tutorials/tables/).
 
 Table density defaults comfortable; compact reduces vertical cell padding.
+In 0.2.10, cellVerticalAlign defaults to "middle" for consistent
+record/action and editable rows. Choose "top" for deliberate multiline prose
+alignment or "bottom" when content requires it. This sets the shared cell recipe without consumer
+specificity overrides. Native style on a particular th/td can override an
+exceptional cell. DataTable manages its own header geometry separately.
 striped is false by default. Native tfoot rows use a quiet tinted background and
 medium-weight text to distinguish summaries; the top separator stays decorative.
 data-numeric on a th or td uses logical end alignment,
 tabular figures and no wrapping for numbers. data-align=start/center/end overrides
-alignment explicitly. Text cells wrap; set style.minWidth to preserve room for a
+alignment explicitly. Text cells preserve word-based intrinsic widths and wrap
+at word boundaries; a constrained long token can still use break-word fallback.
+Use native data-wrap="anywhere" deliberately for a technical identifier cell
+when fragmentation is preferable to local scrolling. StatusIndicator preserves
+the same word-based minimum in tables and file rows. Set style.minWidth to preserve room for a
 wide table, and the containing ScrollArea handles overflow. The host owns dates,
 units, totals, empty rows/colSpan and any cell actions. Avoid interactive whole rows.
 

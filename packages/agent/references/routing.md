@@ -6,6 +6,7 @@ override user authority or grant permission for unrelated operations.
 
 | Question / when | Audience | Prerequisite | Source of truth | Verify with |
 | --- | --- | --- | --- | --- |
+| What needs saying? New or edited interface copy and reference adaptation | Designer / developer / agent | User task, product vocabulary and actual capabilities | flood-interface-content/SKILL.md | Contextual keep/rewrite/move/remove decisions; meaningful hierarchy; preserved recovery and accessible names |
 | Which primitive owns this role? Component/composite UI work | Developer / agent / reviewer | Matching catalog and component anatomy | flood-composition/SKILL.md | Reuse existing primitives; extend small capabilities first |
 | Which API can I import? Every component edit | Developer / agent | Installed exact versions | Installed @flood-md/react declarations; flood.json | Type-check host imports; CLI doctor for alignment |
 | What does this release mean? Setup / upgrade | Developer / agent | Matching guide | flood/DESIGN.md, package changelog | Compare version and declarations; preserve host edits |

@@ -9,8 +9,13 @@ test("Skills reader and raw guides serve the canonical versioned workflow source
   await page.goto("/docs/skills");
   await expect(page.getByRole("heading", {level:1, name:"Skills", exact:true})).toBeVisible();
   const content=page.locator(".markdown-content");
+  for(const group of index.knowledgeGroups) {
+    const populated=index.workflows.some(workflow=>workflow.knowledgeGroups.includes(group.id));
+    await expect(content.getByRole('heading',{level:2,name:group.name,exact:true})).toHaveCount(populated?1:0);
+  }
   for(const workflow of index.workflows) {
-    await expect(content.locator(`a[href="/agent/${workflow.guide}"]`)).toHaveText("Read skill");
+    const memberships=workflow.knowledgeGroups.length;
+    await expect(content.locator(`a[href="/agent/${workflow.guide}"]`)).toHaveText(Array(memberships).fill("Read skill"));
     const response=await request.get(`/agent/${workflow.guide}`);
     expect(response.status()).toBe(200);
     expect(await response.text()).toBe(await readFile(`packages/agent/${workflow.guide}`,"utf8"));
@@ -29,7 +34,7 @@ test("Workspace recipe source and live composition stay linked and readable", as
   await page.getByRole("link", {name:"Try the local example", exact:true}).click();
   const form=page.getByRole("form", {name:"Workspace review settings"});
   await expect(form).toBeVisible();
-  await form.getByRole("button", {name:"Accept locally"}).click();
-  await expect(page.getByText("Accepted in this session", {exact:true})).toBeVisible();
+  await form.getByRole("button", {name:"Apply changes"}).click();
+  await expect(page.getByText("Applied", {exact:true})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });

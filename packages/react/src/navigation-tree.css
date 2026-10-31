@@ -9,7 +9,7 @@
 .flood-root .flood-navigation-tree__text { display:flex; flex:1; justify-content:flex-start; align-items:center; gap:var(--flood-sys-space-2); min-inline-size:0; min-block-size:var(--flood-navigation-row); box-sizing:border-box; white-space:normal; text-align:start; color:var(--flood-sys-color-content-default); }
 .flood-root .flood-navigation-tree__text { padding-inline:var(--flood-navigation-padding); font-size:var(--flood-navigation-text); line-height:var(--flood-navigation-line); font-weight:var(--flood-sys-type-control-weight); letter-spacing:var(--flood-sys-type-control-tracking); }
 .flood-root .flood-navigation-tree__text[aria-disabled] { color:var(--flood-sys-color-field-disabled-content); }
-.flood-root .flood-navigation-tree__label { overflow-wrap:anywhere; min-inline-size:0; }
+.flood-root .flood-navigation-tree__label { overflow-wrap: break-word; min-inline-size:0; }
 .flood-root .flood-navigation-tree__row .flood-navigation-tree__disclosure { flex:none; }
 .flood-root .flood-navigation-tree__disclosure svg { rotate:0deg; }
 .flood-root .flood-navigation-tree:dir(rtl) .flood-navigation-tree__disclosure svg { rotate:180deg; }

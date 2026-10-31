@@ -13,6 +13,10 @@ and reset actions. StatusIndicator describes draft/snapshot state without a
 handmade dot. Alert announces local acceptance, and DescriptionList shows the
 accepted values separately from the current draft.
 
+The rendered form keeps task labels and operation state concise. Example-only
+storage and permission limits are documented above; they are not repeated as
+badges, helper paragraphs and drawer descriptions in the product composition.
+
 Drawer owns modal focus, scroll locking and dismissal. Its FileList/FileItem rows
 reuse FileMeta and StatusIndicator. The English example supplies an explicit
 locale for file metadata, keeping server and browser formatting consistent.

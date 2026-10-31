@@ -9,6 +9,15 @@ Use the installed component contracts and
 [composition workflow](../flood-composition/SKILL.md). Start with the content's
 relationships, not a wrapper around every piece of text.
 
+Keep visual/test fixtures separate from the host's working records unless sample
+data is explicitly part of the task. Do not seed a new user's persisted list with
+fictional business records just to fill a screen. Use isolated test state for
+populated screenshots and exercise the real empty state. When samples are required, identify their provenance in the test brief/README.
+A visible distinction is needed where it changes interpretation or action, such
+as sample records mixed with real records. Do not automatically add a permanent
+Demo badge to the shell of an explicitly requested isolated prototype; follow
+the interface-content workflow for contextual placement.
+
 - Table/DataTable preserve caption, headers, cell relationships and documented
   sorting/selection behavior. A footer represents a summary and should be
   visually distinguishable without relying on a heavy border everywhere.
@@ -23,6 +32,13 @@ relationships, not a wrapper around every piece of text.
 - Preserve native image alt/fallback semantics and aspect constraints. Decorative
   artwork should not duplicate an adjacent accessible identity.
 
+## Choose the information, not all available slots
+
+For record lists/details, apply the [records skill](../flood-records/SKILL.md)
+before filling metadata and actions. Identity, supporting context, lifecycle state,
+priority and timestamps have different purposes. Use Table/DataTable when users
+need several named comparisons; a trailing Inline of values is not a column model.
+
 ## Exercise data and geometry
 
 Test no records, one record, long/wrapping names, absent optional media/actions,
@@ -30,6 +46,22 @@ loading, error/retry and selection/sorting where available. Keep error text usef
 without inserting a second empty-state design or moving unrelated controls.
 Align file title/metadata and status/progress by their intended row relationship;
 do not hide a StatusIndicator dot or replace Progress with a custom track.
+
+For an editable table, compare the centre of plain amounts and row actions with
+the neighbouring input controls. Table centres record/action and editable rows
+by default; opt into cellVerticalAlign="top" only for deliberate prose alignment.
+Use the shared cellVerticalAlign contract rather than
+moving text with transforms or overriding Input, NumberInput or Button internals.
+Native style on an individual host-owned td/th can express an exceptional cell.
+Do not depend on a low-specificity descendant CSS override. Check the rendered
+centres; equal cell padding alone does not establish alignment.
+
+Also inspect readable column widths with long neighbouring records. A centred
+cell can still be wrong when a status or date is fragmented into single letters.
+Table and StatusIndicator preserve word-based intrinsic width by default; keep
+that recipe rather than applying global overflow-wrap:anywhere. Deliberate
+technical identifier cells can opt into data-wrap="anywhere". Otherwise use
+local scrolling or appropriate column budgets, not an empty no-overflow claim.
 
 Use the documented local overflow owner, with a meaningful accessible name. Focus
 the last action/cell and check that a rail or rounded corner does not cover it.

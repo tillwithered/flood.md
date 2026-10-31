@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.2.10 · 2026-10-31 — agent knowledge and form hierarchy
+
+- Separate dialog-title, group-title and field-label token roles. Give named fields
+  a .25rem inner gap; strengthen modal task titles and body spacing without enlarging
+  compact popup captions. Add opt-in Fieldset legendSize="section" and routed
+  hierarchy guidance for shared tracks and deliberate row/group rhythm.
+- Keep DatePicker calendars readable with a preferred 20rem minimum bounded by
+  available viewport width; retain selection/time-list sizing contracts.
+- Clarify prototype provenance: no automatic permanent demo badge; keep contextual
+  distinctions and accurate state/action/media wording where they affect decisions.
+- Add routed record-composition guidance and decision examples for list/detail
+  metadata, stable scan positions, category/state/priority semantics, dates and
+  collection states; discover and install it through the existing knowledge bundle.
+- Add Table cellVerticalAlign and make middle alignment the shared default for record/action rows; align
+  mixed sortable DataTable headers. Add opt-in rendered DOM observations through
+  @flood-md/agent/inspect, separate from semantic/editorial review.
+- Compare actual field tracks across nested Surface padding and require review
+  of initial, populated, editor, preview and error states in task scope.
+- Add optional bounded host-source observations for native dialogs/controls and
+  custom layout owners, with explicit text-matching limits and archive smoke checks.
+- Preserve word-based table/status widths so long adjacent records do not force
+  single-letter fragments; retain explicit technical-identifier wrapping. Let List
+  items shrink inside their grid so long error links wrap in Firefox and WebKit.
+
+- Add routed interface-content guidance with contextual editorial decisions,
+  reference adaptation and examples that preserve necessary constraints and recovery.
+
+- Add a provider-neutral, read-only knowledge reader and CLI info/catalog/read commands.
+- Compile grouped skills, references, components, recipes and semantic token records from their canonical sources.
+- Bound discovery and selected reads; refuse version drift, stale cursors, invalid relationships and changed package content.
+- Preserve host instructions and customized guide copies; keep unsupported motion/theme capabilities explicit.
+- This compatible additive release requires all four packages at 0.2.10. Publication is verified separately.
+
 ## 0.2.9 · 2026-10-30 — dark-base stabilization
 
 - Route ten task-focused skills through the version-matched agent entry, including

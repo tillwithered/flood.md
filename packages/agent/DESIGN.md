@@ -1,4 +1,4 @@
-# Flood design system · 0.2.9
+# Flood design system · 0.2.10
 
 ListBox owns native required validation for accepted selection. Use its
 description/message/status props rather than duplicating feedback markup. Visual
@@ -34,14 +34,15 @@ The installed entry is .agents/skills/flood-ui/SKILL.md; its references live und
 accessibility, customization or verification reference. flood/manifest.json maps
 package sources to those installed paths; flood/rules.json indexes observable
 checks. In the Flood repository the corresponding sources are packages/agent/.
-This bundle belongs to 0.2.7; older installations keep their matching guide set.
+This bundle belongs to the package version in its heading; older installations
+keep their matching guide set.
 
 React + TypeScript and Next.js App Router. Use this guide with matching installed
 Flood packages and flood.json. The source repository's release status does not
 grant permission to publish or assume a version is available on npm.
 
-This guide covers the supported exports in 0.2.7 and their layout refinements. Confirm
-the matching installed declarations before using APIs absent from older versions.
+This guide describes the matching package's capabilities and layout contracts.
+Confirm its installed declarations before using APIs absent from older versions.
 
 ## Connect
 
@@ -440,3 +441,24 @@ and UploadItem place it with the filename, reserving the next line for status or
 supporting text. Filename extensions are display hints only, never validation.
 Override with format or hide the format using format=null; do not infer upload
 safety or MIME permissions from a visible chip.
+
+## Form hierarchy
+
+Named field labels use field-label typography, with space-1 to their controls.
+Parent Grid/Stack owns row and group separation. Keep shared tracks across related
+rows instead of independently narrowing numeric fields. Dialog uses dialog-title
+typography and space-6 before its body; do not add that inset a second time.
+Fieldset defaults to a compact choice caption; legendSize="section" opts into
+group-title typography for a necessary independent section. A short form can
+omit inner headings. See the routed hierarchy workflow for reading order, rhythm
+and actual geometry review. DatePicker keeps a readable 20rem calendar panel
+minimum when space permits, while honoring viewport collision constraints.
+
+## Record information hierarchy
+
+Select visible attributes from recognition, comparison and action needs, not
+from every available data property. For list/detail work use the routed records
+workflow: identity/summary, lifecycle state, category, priority and dates have
+different roles. Named comparison columns are preferable to drifting trailing
+values when several attributes must be compared. Metadata may be necessary even
+when an inspector flags it; preserve useful content and evaluate its placement.

@@ -11,6 +11,12 @@ ownership. Read the matching DateField/DateTimePicker component guide for its
 specific civil-value and draft contract; [accessibility](../accessibility.md)
 documents associations and feedback.
 
+For an ordinary business date field, prefer DatePicker so users can both type and
+choose visually. DateField is the lower-level segmented editor without a popup;
+choose it for an explicit entry-only interaction or inside a composition that
+already supplies Calendar. Do not silently omit the calendar just because the
+brief did not enumerate every affordance of choosing a date.
+
 ## Assign ownership
 
 - Field supplies label/description/error associations through its render props;
@@ -31,6 +37,47 @@ documents associations and feedback.
   Host validation decides the error and useful message. Keep native constraints,
   invalid focus and the accessible message association coherent.
 
+For visual roles and rhythm, read the [hierarchy skill](../flood-hierarchy/SKILL.md).
+Fieldset legendSize="section" is for an independent section; a short form may
+need no inner heading. Field labels and values keep their documented sizes.
+
+## Group before laying out fields
+
+Choose the form's reading order and semantic groups before placing controls in
+columns. Establish shared outer tracks, gap and group padding. Use a single Grid for
+related rows; do not narrow one numeric field in only one row merely because its
+value is short. Preserve corresponding vertical edges before optimizing widths. Related groups
+should share those tracks: do not independently choose a four-column grid above
+two columns below and assume their edges align. A group may span the whole layout
+when its content needs it; not every field should have the same width.
+
+For Flood record/settings forms without a denser host requirement, start with
+at most two field tracks per semantic group. Four metadata fields become two
+pairs rather than an automatic four-field strip. Use one track for a narrow group
+or long field. A denser table editor, filter toolbar or explicit host design is
+a different context; record why its structure needs more tracks.
+
+For two peer groups, use two equal outer tracks and subdivide each consistently
+when a group contains short related fields. A pair of two-field groups can read
+more clearly than four unrelated columns. This is a pattern to evaluate, not a
+rule that every form has two columns or an invoice-specific template.
+
+Keep a group's title, controls and supporting message together in reading and DOM
+order. Distinguish page, group and field roles without adding headings merely to
+fill containers. Compare shared leading/trailing edges and gutters in the rendered
+form, including absent descriptions, long labels and changed field values.
+
+Measure the controls' content edges, not only the Grid boxes. A full-width padded
+Surface containing two tracks and two separately padded Surfaces can use identical
+Grid props while their actual controls differ by one surface inset. Nested padding
+must participate in the same track budget. Compare corresponding first/second
+control starts and widths across those groups; matching outer containers is not
+sufficient. Do not insert an empty grid child merely to occupy an unexplained gap.
+For a concrete starting structure, discover recipe:grouped-form in the installed
+catalog. It demonstrates shared tracks and two-field peer groups in a workspace
+form. Adapt its grouping to the host; do not copy its business content or add
+unrequested sample records.
+
 ## Exercise transitions, not just props
 
 Check entry, clear, incomplete drafts, invalid input, accepted/refused controlled
@@ -41,5 +88,7 @@ representation genuinely requires it. Do not silently replace user edits.
 FileInput cannot receive a fabricated FileList or ordinary controlled text value.
 Separate selection from upload transport and progress. Calendar/date/time controls
 represent their documented civil values; do not infer a timezone or server save.
-Show a real success only after the host operation succeeds. In a local example,
-state explicitly that changes are local.
+Show a real success only after the host operation succeeds. Explain consequential
+storage limits once where they matter; a local example does not require a banner
+or repeated captions about its implementation. Follow the interface-content
+workflow for placement and wording.

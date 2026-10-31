@@ -22,11 +22,18 @@ surface or remove a modal's background inertness. Escape dismisses the active
 layer; a nested menu/select must not also close its parent dialog. Restore opener
 focus unless the host intentionally moved it elsewhere.
 
+Task Dialog titles and body insets use their own recipe; do not reuse compact
+popup caption typography for the modal task. The
+[hierarchy workflow](../flood-hierarchy/SKILL.md) owns title/group/field relations.
+
 ## Inspect the actual host
 
 Check placement at viewport edges, resize, narrow/enlarged text, RTL and parent
 scrolling. Selection popups and calendar popups have distinct content geometry;
 use the supported field/anchor sizing behavior, not a universal fixed width.
+DatePicker calendar panels have a 20rem preferred minimum, bounded by available
+viewport width; narrow anchors need not force cramped calendar content. Selection
+lists and time lists retain their separate contracts.
 Verify nested radii/insets, surface distinction over a parent Surface and that
 essential content stays outside scrollbar rails. No clipping or noisy duplicate
 contours should be concealed with extra wrappers.

@@ -1,6 +1,6 @@
 "use client";
 import {useRef, useState, type FormEvent} from "react";
-import {Alert, Badge, Button, Checkbox, DescriptionList, Drawer, Field, FileItem, FileList,
+import {Button, Checkbox, DescriptionList, Drawer, Field, FileItem, FileList,
   Inline, Input, Link, Section, Select, Stack, StatusIndicator, Surface, Text} from "@flood-md/react";
 
 const defaults = {name: "Design workspace", visibility: "private", updates: true};
@@ -31,8 +31,7 @@ export function WorkspaceReview() {
     || saved.updates !== (draft.updates ? "On" : "Off"));
 
   return <Surface padding="4">
-    <Section title="Workspace review" description="A local composition of Flood components. Nothing is sent or persisted."
-      actions={<Badge size="sm">Local example</Badge>}>
+    <Section title="Workspace settings">
       <Stack gap="6">
         <form aria-label="Workspace review settings" onSubmit={submit} onReset={reset}>
           <Stack gap="4">
@@ -41,7 +40,7 @@ export function WorkspaceReview() {
                 value={draft.name} onChange={event => {setDraft({...draft, name: event.currentTarget.value}); setError("");}}
                 onInvalid={() => setError("Enter a workspace name, including at least one non-space character.")} />}
             </Field>
-            <Field label="Visibility" hint="A local preference, not an access-control setting.">
+            <Field label="Visibility">
               {control => <Select {...control} name="visibility" value={draft.visibility}
                 onChange={event => setDraft({...draft, visibility: event.currentTarget.value})}>
                 <option value="private">Only me</option><option value="team">Project team</option>
@@ -50,21 +49,20 @@ export function WorkspaceReview() {
             <Checkbox label="Product updates" name="updates" value="yes" checked={draft.updates}
               onChange={event => setDraft({...draft, updates: event.currentTarget.checked})} />
             <Inline gap="3">
-              <Button type="submit">Accept locally</Button><Button type="reset" variant="subtle">Reset settings</Button>
-              <StatusIndicator size="sm" tone={saved && !dirty ? "success" : "neutral"}
-                label={saved ? dirty ? "Unsaved changes" : "Accepted in this session" : "Not accepted yet"} />
+              <Button type="submit">Apply changes</Button><Button type="reset" variant="subtle">Reset settings</Button>
+              {saved && <StatusIndicator size="sm" tone={!dirty ? "success" : "neutral"}
+                label={dirty ? "Unapplied changes" : "Applied"} />}
             </Inline>
           </Stack>
         </form>
         {saved && <Stack gap="3">
-          <Alert tone="info" announcement="polite">Snapshot accepted in memory only. Reloading clears it.</Alert>
           <DescriptionList items={[
             {id:"name", term:"Accepted name", description:saved.name},
             {id:"visibility", term:"Accepted visibility", description:saved.visibility === "team" ? "Project team" : "Only me"},
             {id:"updates", term:"Accepted updates", description:saved.updates},
           ]} />
         </Stack>}
-        <Drawer title="Files" description="Local preview."
+        <Drawer title="Files"
           open={filesOpen} onOpenChange={setFilesOpen} closeLabel="Close project files"
           trigger={props => <Button {...props} variant="subtle">Review files</Button>}
           footer={<Button onClick={() => setFilesOpen(false)}>Done reviewing</Button>}>
@@ -73,7 +71,7 @@ export function WorkspaceReview() {
               description={<StatusIndicator label="Ready for review" tone="info" size="sm" />} />
             <FileItem lang="en" name="Brand guidelines.pdf" format="PDF" size={1048576}
               description={<StatusIndicator label="Reviewed" tone="success" size="sm" />} />
-          </FileList><Text as="p" size="compact" tone="subtle">Sample records only. No file is uploaded.</Text></Stack>
+          </FileList></Stack>
         </Drawer>
         <Text as="p" size="helper" tone="subtle"><Link href="/docs/recipes/workspace-review">Read the composition and its checks</Link></Text>
       </Stack>

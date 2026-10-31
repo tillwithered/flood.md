@@ -23,10 +23,11 @@ export function validateWorkflowIndex(index, manifest, catalog, groups) {
 
 export async function readAgentWorkflows() {
   const read=async path=>JSON.parse(await readFile(path,'utf8'));
-  const [index,manifest,catalog,groups,rules]=await Promise.all([
+  const [index,manifest,catalog,groups,rules,knowledge]=await Promise.all([
     read('packages/agent/workflows.json'),read('packages/agent/manifest.json'),
     read('apps/website/src/component-catalog.json'),read('apps/website/src/component-groups.json'),
     read('packages/agent/rules.json'),
+    read('packages/agent/knowledge.json'),
   ]);
   const coverage=validateWorkflowIndex(index,manifest,catalog,groups);
   const workflows=await Promise.all(index.workflows.map(async item=>{
@@ -36,12 +37,19 @@ export async function readAgentWorkflows() {
     if(name!==item.guide.split('/')[1] || !description?.trim()) throw Error('Workflow skill metadata differs from its source path');
     const ruleIds=rules.rules.filter(rule=>rule.guide===item.guide).map(rule=>rule.id);
     if(!ruleIds.length)throw Error('Workflow has no observable rules');
-    return {...item,name,description,ruleIds,components:coverage.filter(component=>component.workflows.includes(item.id)).map(component=>component.name)};
+    const knowledgeGroups=knowledge.workflows[item.id];
+    if(!knowledgeGroups?.length||knowledgeGroups.some(id=>!knowledge.groups.some(group=>group.id===id)))throw Error('Workflow has no valid knowledge group');
+    return {...item,name,description,ruleIds,knowledgeGroups,components:coverage.filter(component=>component.workflows.includes(item.id)).map(component=>component.name)};
   }));
-  return {schemaVersion:1,version:manifest.version,workflows,coverage};
+  return {schemaVersion:1,version:manifest.version,workflows,coverage,knowledgeGroups:knowledge.groups};
 }
 
-export function workflowMarkdown({workflows}) {
+export function workflowMarkdown({workflows,knowledgeGroups}) {
   const escape=value=>value.replaceAll('|','\\|');
-  return '| Workflow | Use when | Skill source |\n| --- | --- | --- |\n'+workflows.map(item=>`| ${item.name} | ${escape(item.description)} | [Read skill](/agent/${item.guide}) |`).join('\n');
+  const table=items=>'| Workflow | Use when | Skill source |\n| --- | --- | --- |\n'+items.map(item=>`| ${item.name} | ${escape(item.description)} | [Read skill](/agent/${item.guide}) |`).join('\n');
+  if(!knowledgeGroups)return table(workflows);
+  return knowledgeGroups.flatMap(group=>{
+    const items=workflows.filter(item=>item.knowledgeGroups.includes(group.id));
+    return items.length?[`## ${group.name}\n\n${group.description}\n\n${table(items)}`]:[];
+  }).join('\n\n');
 }

@@ -1,6 +1,6 @@
 {
   "name": "@flood-md/agent",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "type": "module",
   "description": "Versioned Flood design instructions for coding agents.",
   "license": "MIT",
@@ -13,12 +13,18 @@
     "DESIGN.md",
     "SKILL.md",
     "references",
+    "lib",
+    "dist",
+    "knowledge.json",
     "workflows.json",
     "rules.json",
     "manifest.json",
     "README.md"
   ],
   "exports": {
+    "./inspect": {"types":"./lib/inspect.d.ts","import":"./lib/inspect.mjs"},
+    ".": {"types":"./lib/index.d.ts","import":"./lib/index.mjs"},
+    "./dist/*": "./dist/*",
     "./DESIGN.md": "./DESIGN.md",
     "./SKILL.md": "./SKILL.md",
     "./manifest.json": "./manifest.json",

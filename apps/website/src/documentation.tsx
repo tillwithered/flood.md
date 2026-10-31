@@ -155,7 +155,13 @@ export default function Documentation({ path }: { path: string }) {
           a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>,
           pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock>,
           h2: ({ children, node }) => <h2 id={toc.find(section => "line" in section && section.line === node?.position?.start.line)?.id ?? slug(textOf(children))}>{children}</h2>,
-          table: ({ children }) => <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label="Documentation table"><table>{children}</table></ScrollArea>,
+          table: ({ children, node }) => {
+            const line=node?.position?.start.line ?? 0;
+            const section=[...toc].reverse().find(section=>'line' in section && section.line<line);
+            const preceding=markdown.slice(0,node?.position?.start.offset ?? 0);
+            const ordinal=(preceding.match(/^\s*\|?\s*:?-{3,}[^\n]*\|[^\n]*$/gm)??[]).length+1;
+            return <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label={`${section?.label??title} table ${ordinal}`}><table>{children}</table></ScrollArea>;
+          },
         }}>{markdown}</Markdown></div>}
         {catalog && <div className="component-catalog">
           {!query && <nav className="catalog-jumps" aria-label="Component categories">{componentGroups.map(group => <Link key={group.id} variant="outline" size="sm" href={`#${group.id}`}>{group.label}<Text size="helper" tone="subtle">{group.components.length}</Text></Link>)}</nav>}
@@ -195,9 +201,10 @@ export default function Documentation({ path }: { path: string }) {
         {!doc && !component && !catalog && <Link href="/docs">Back to documentation</Link>}
         </div>
         <Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link><Link href="/agent/SKILL.md">Agent skill</Link></Inline>
-        <nav className="doc-pagination" aria-label="Previous and next page">
-          {previous ? <Link href={previous.path} variant="subtle" size="sm"><IconSlot size="sm"><ArrowLeft /></IconSlot>{previous.name}</Link> : <span />}
-          {next && <Link href={next.path} variant="subtle" size="sm">{next.name}<IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
+        <nav aria-label="Previous and next page"><Inline gap="4" className="doc-pagination">
+          {previous && <Link href={previous.path} variant="subtle" size="sm"><IconSlot size="sm"><ArrowLeft /></IconSlot><Text style={{font:"inherit"}}>{previous.name}</Text></Link>}
+          {next && <Link href={next.path} variant="subtle" size="sm" style={{marginInlineStart:"auto"}}><Text style={{font:"inherit"}}>{next.name}</Text><IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
+        </Inline>
         </nav>
       </main>
     </div>

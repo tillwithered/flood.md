@@ -147,7 +147,7 @@ test("DatePicker keeps its calendar inside a narrow enlarged RTL viewport with a
 });
 
 
-test("DatePicker popup tracks the whole field width and edges while resizing and clamps to viewport",async({page})=>{
+test("DatePicker popup tracks wide fields, preserves calendar width for short fields and clamps to viewport",async({page})=>{
  await open(page);await page.getByRole('button',{name:'Choose delivery',exact:true}).click();
  const field=page.locator('#delivery .flood-date-field__control');
  const popup=page.getByRole('dialog',{name:'Delivery calendar',exact:true});
@@ -156,8 +156,11 @@ test("DatePicker popup tracks the whole field width and edges while resizing and
  await expect.poll(async()=>Math.abs((await geometry()).start)).toBeLessThan(1);
  await expect.poll(async()=>Math.abs((await geometry()).end)).toBeLessThan(1);
  await page.locator('#delivery').evaluate(node=>{node.style.width='18rem';});
- await expect.poll(async()=>Math.abs((await geometry()).width)).toBeLessThan(1);
- await expect.poll(async()=>Math.abs((await geometry()).end)).toBeLessThan(1);
+ await expect.poll(async()=>Math.abs((await popup.boundingBox())!.width-320)).toBeLessThan(1);
+ await expect.poll(async()=>(await geometry()).width).toBeGreaterThan(30);
+ // A wider panel near the viewport edge must collision-clamp rather than keep
+ // an impossible anchor-edge alignment outside the visible viewport.
+ await expect.poll(async()=>{const a=(await field.boundingBox())!,b=(await popup.boundingBox())!;const gap=await popup.evaluate(e=>parseFloat(getComputedStyle(e).columnGap)||8);return Math.abs(b.x-Math.max(gap,a.x+a.width-b.width));}).toBeLessThan(1);
  await page.setViewportSize({width:320,height:900});
  await page.locator('#delivery').evaluate(node=>{node.style.width='40rem';});
  await expect.poll(async()=>{const b=(await popup.boundingBox())!;return b.x>=0 && b.x+b.width<=321 && b.width<320;}).toBe(true);

@@ -172,7 +172,7 @@ html:has(.docs-layout) { scroll-behavior: auto; }
 .catalog-card-surface { block-size: 100%; border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); }
 .catalog-card:hover .catalog-card-surface { background: var(--flood-sys-color-surface-raised); }
 .catalog-card-title { justify-content: space-between; }
-.doc-pagination { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-block-start: 3rem; padding-block-start: 1.5rem; border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
+.doc-pagination { justify-content: space-between; margin-block-start: 3rem; padding-block-start: 1.5rem; border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
 .doc-pagination .flood-link { white-space: normal; text-align: start; }
 .docs-site .site-footer { border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
 @media (max-width: 75rem) {

@@ -173,3 +173,21 @@ Select's custom single-choice popup and the refined intrinsic sizing/custom choi
 included in 0.2.3; older immutable npm releases are unchanged. Use the guide matching your installed declarations. The examples with
 Input, Button, Inline and native form props also work without Select; wrapping
 actions in Inline provides an explicit composition boundary for earlier installs.
+
+## Form hierarchy and rhythm
+
+Use a task title once. Keep optional group titles absent when field labels already
+explain a short form. For a necessary independent group use Fieldset with
+legendSize="section"; the default label-sized legend remains appropriate for
+choices. It preserves native fieldset semantics rather than adding a heading.
+
+Named fields keep a .25rem inner label/control gap. For ordinary desktop forms,
+start with Stack gap="6" between field rows and gap="8" between independent groups
+or before actions. Dialog already supplies its body inset. Choice lists, compact
+filters and table editors have different spacing budgets.
+
+Place four related short fields in one Grid columns={2} so their row edges align.
+A short numeric value alone does not justify a narrower column in only one row;
+long text fields can use a separate full-width row. Verify actual control edges
+with long labels, optional content and 24px root text, not just Grid boxes.
+See [Skills](skills.md) for the shipped hierarchy workflow.

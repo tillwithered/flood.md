@@ -4,8 +4,21 @@ import {readFile,stat} from 'node:fs/promises';
 import {posix} from 'node:path';
 import {readAgentWorkflows,validateWorkflowIndex,workflowMarkdown} from '../scripts/agent-workflows.mjs';
 import {readWebsiteDocument} from '../scripts/website-documents.mjs';
+import {createKnowledgeReader} from '../packages/agent/lib/index.mjs';
 
 const json=async path=>JSON.parse(await readFile(path,'utf8'));
+test('editorial discovery routes to the full shipped skill, decision examples and affected controls',async()=>{
+  const reader=createKnowledgeReader();
+  const page=await reader.list({kind:'workflow',group:'composition',search:'editorial'});
+  assert.deepEqual(page.items.map(item=>item.id),['workflow:interface-content']);
+  const material=await reader.read(page.items[0].id,{length:40000});
+  assert.equal(material.truncated,false);
+  assert.equal(material.text,await readFile('packages/agent/references/flood-interface-content/SKILL.md','utf8'));
+  assert.ok(material.links.includes('reference:interface-content-examples'));
+  const examples=await reader.read('reference:interface-content-examples',{length:40000});
+  assert.equal(examples.text,await readFile('packages/agent/references/interface-content-examples.md','utf8'));
+  assert.ok((await reader.read('component:field',{length:1})).links.includes(material.id));
+});
 test('every routed skill and its internal links resolve identically in source and installed bundle',async()=>{
   const manifest=await json('packages/agent/manifest.json');
   const index=await readAgentWorkflows();
@@ -56,4 +69,15 @@ test('generated skills and composition examples match their canonical package an
   for(const file of ['skills.md','recipes/workspace-review.md','installation.md']) {
     assert.equal(await readWebsiteDocument(file),generated.docs[file]);
   }
+  const bulkSource=(await readFile('apps/website/src/recipes/table-bulk-actions.tsx','utf8')).trimEnd();
+  assert.ok(generated.docs['recipes/table-bulk-actions.md'].includes('```tsx\n'+bulkSource+'\n```'));
+  assert.equal(await readWebsiteDocument('recipes/table-bulk-actions.md'),generated.docs['recipes/table-bulk-actions.md']);
+});
+
+test('hierarchy discovery ships its full workflow and links the grouped-form recipe',async()=>{
+ const reader=createKnowledgeReader();const page=await reader.list({kind:'workflow',search:'hierarchy'});assert.ok(page.items.some(x=>x.id==='workflow:hierarchy'));const guide=await reader.read('workflow:hierarchy',{length:40000});assert.equal(guide.truncated,false);assert.equal(guide.text,await readFile('packages/agent/references/flood-hierarchy/SKILL.md','utf8'));assert.ok((await reader.read('recipe:grouped-form',{length:1})).requires.includes('workflow:hierarchy'));
+});
+
+test('record metadata discovery routes affected owners to the complete shipped workflow and examples',async()=>{
+ const reader=createKnowledgeReader();const page=await reader.list({kind:'workflow',search:'metadata'});assert.ok(page.items.some(x=>x.id==='workflow:records'));const workflow=await reader.read('workflow:records',{length:40000});assert.equal(workflow.truncated,false);assert.equal(workflow.text,await readFile('packages/agent/references/flood-records/SKILL.md','utf8'));assert.ok(workflow.requires.includes('workflow:hierarchy'));assert.ok(workflow.links.includes('reference:record-decisions'));const examples=await reader.read('reference:record-decisions',{length:40000});assert.equal(examples.truncated,false);assert.equal(examples.text,await readFile('packages/agent/references/record-decisions.md','utf8'));for(const id of ['component:data-list-item','component:data-table','component:description-list','component:status-indicator','component:badge'])assert.ok((await reader.read(id,{length:1})).links.includes('workflow:records'));
 });

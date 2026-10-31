@@ -16,12 +16,12 @@ export const DescribedData = /* @__PURE__ */ forwardRef<HTMLDListElement, Descri
 });
 
 export const TabularData = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(function TabularData(
-  { caption, children, hideCaption, density, striped, scrollLabel, className, hidden, dir, lang, ...props }, ref,
+  { caption, children, hideCaption, density, striped, scrollLabel, cellVerticalAlign, className, hidden, dir, lang, ...props }, ref,
 ) {
   return <div className="flood-table-container" hidden={hidden} dir={dir} lang={lang}>
     <ScrollArea orientation="horizontal" aria-label={scrollLabel ?? caption}>
       <table {...props} ref={ref} hidden={hidden} dir={dir} lang={lang}
-        className={["flood-table", className].filter(Boolean).join(" ")} data-density={density} data-striped={striped}>
+        className={["flood-table", className].filter(Boolean).join(" ")} data-density={density} data-striped={striped} data-cell-vertical-align={cellVerticalAlign}>
         <caption className={hideCaption ? "flood-visually-hidden" : undefined}>{caption}</caption>
         {children}
       </table>

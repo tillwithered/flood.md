@@ -3,6 +3,11 @@
   "entry": "SKILL.md",
   "files": [
     {
+      "source": "dist/catalog.json",
+      "target": "flood/catalog.json",
+      "kind": "catalog"
+    },
+    {
       "source": "DESIGN.md",
       "target": "flood/DESIGN.md",
       "kind": "contract"
@@ -106,9 +111,44 @@
       "source": "references/flood-verification/SKILL.md",
       "target": ".agents/skills/flood-ui/references/flood-verification/SKILL.md",
       "kind": "skill"
+    },
+    {
+      "source": "references/knowledge.md",
+      "target": ".agents/skills/flood-ui/references/knowledge.md",
+      "kind": "reference"
+    },
+    {
+      "source": "references/flood-interface-content/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-interface-content/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/interface-content-examples.md",
+      "target": ".agents/skills/flood-ui/references/interface-content-examples.md",
+      "kind": "reference"
+    },
+    {
+      "source": "references/rendered-review.md",
+      "target": ".agents/skills/flood-ui/references/rendered-review.md",
+      "kind": "reference"
+    },
+    {
+      "source": "references/flood-hierarchy/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-hierarchy/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-records/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-records/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/record-decisions.md",
+      "target": ".agents/skills/flood-ui/references/record-decisions.md",
+      "kind": "reference"
     }
   ],
-  "version": "0.2.9",
+  "version": "0.2.10",
   "installedEntry": ".agents/skills/flood-ui/SKILL.md",
   "pathBase": "source is package-relative; target is relative to the host project root"
 }

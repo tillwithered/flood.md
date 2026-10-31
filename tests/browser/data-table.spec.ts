@@ -8,7 +8,7 @@ async function fixture(){
   const directory=resolve(`.artifacts/data-table-${process.pid}`);await mkdir(directory,{recursive:true});const entry=resolve(directory,"entry.mjs");
   await writeFile(entry,`import React,{useState}from ${file("node_modules/react/index.js")};import{createRoot}from ${file("node_modules/react-dom/client.js")};
 import{FloodRoot,DataTable,Button,Checkbox}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};const h=React.createElement;
-const columns=[{id:'name',label:'Name',sortable:true},{id:'score',label:'Score',sortable:true,align:'end'}];
+const columns=[{id:'name',label:'Name',sortable:true},{id:'score',label:'Score',sortable:true,align:'end'},{id:'status',label:'Status'}];
 const source=[['a','Alpha',10],['b','Bravo',2],['c','Charlie',2],['d','Delta',null],['e','Echo',3]].map(([id,name,score])=>({id,label:name,cells:{name,score:score===null?'Unknown':h('strong',null,score)},sortValues:{score},selectionDisabled:id==='c'}));
 function App(){const[state,S]=useState('ready'),[rows,R]=useState(source),[locked,L]=useState(false),[requested,Q]=useState('');return h(FloodRoot,null,h('h1',null,'Table checks'),h(DataTable,{caption:'Projects',columns,rows,pageSize:2,selectable:true,minWidth:'34rem',state,sort:locked?null:undefined,selectedIds:locked?[]:undefined,onSortChange:next=>Q(JSON.stringify(next)),onSelectionChange:next=>Q(JSON.stringify(next)),onRetry:()=>S('ready')}),
 h(Button,{onClick:()=>S('loading')},'Load'),h(Button,{onClick:()=>S('error')},'Fail'),h(Button,{onClick:()=>S('ready')},'Ready'),h(Button,{onClick:()=>R([])},'Empty'),h(Button,{onClick:()=>R([source[0]])},'Shrink'),h(Checkbox,{label:'Controlled refusal',checked:locked,onChange:e=>L(e.currentTarget.checked)}),h('output',{'aria-label':'Requested'},requested));}createRoot(document.getElementById('app')).render(h(App));`);
@@ -18,6 +18,17 @@ h(Button,{onClick:()=>S('loading')},'Load'),h(Button,{onClick:()=>S('error')},'F
 }
 async function open(page:Page){bundled??=fixture();await page.route("**/__data-table.html",async route=>route.fulfill({contentType:"text/html",body:await bundled}));await page.goto("/__data-table.html");}
 const names=(page:Page)=>page.locator("tbody tr td:nth-child(2)").allTextContents();
+
+test("DataTable mixed sortable and plain header labels share a vertical centre",async({page})=>{
+  await open(page);
+  const centres=await page.locator('thead th:not(.flood-data-table__choice)').evaluateAll(headers=>headers.map(header=>{
+    const label=header.querySelector('button')??header;
+    const text=[...label.childNodes].find(node=>node.nodeType===Node.TEXT_NODE&&node.textContent?.trim())!;
+    const range=document.createRange();range.selectNodeContents(text);
+    const rect=range.getBoundingClientRect();return rect.y+rect.height/2;
+  }));
+  expect(Math.max(...centres)-Math.min(...centres)).toBeLessThanOrEqual(1);
+});
 test("DataTable sort targets have side clearance while header text aligns with body cells",async({page})=>{
   await open(page);
   const geometry=await page.getByRole("button",{name:"Sort by Name"}).evaluate(button=>{

@@ -60,6 +60,7 @@ jobs:
         shell: bash
         run: |
           paths=(packages/react/dist packages/tokens/dist apps/website/dist .artifacts/ci-plan.json)
+          if [ -d .artifacts/agent-consumer ]; then paths+=(.artifacts/agent-consumer); fi
           if [ -d examples/next/.next ]; then paths+=(examples/next/.next); fi
           tar --exclude='examples/next/.next/cache' -czf .artifacts/browser-build.tgz "${paths[@]}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

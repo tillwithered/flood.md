@@ -3,5 +3,5 @@
 .flood-root .flood-error-summary__title { font-weight:var(--flood-sys-type-label-weight); }
 .flood-root .flood-error-summary__description { margin-block-start:var(--flood-sys-space-1); }
 .flood-root .flood-error-summary .flood-error-summary__list { margin-block-start:var(--flood-sys-space-2); margin-block-end:0; }
-.flood-root .flood-error-summary__list .flood-link { overflow-wrap:anywhere; }
+.flood-root .flood-error-summary__list .flood-link { overflow-wrap: break-word; }
 @media(forced-colors:active) { .flood-root .flood-error-summary:focus { outline-color:Highlight; } }

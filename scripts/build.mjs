@@ -1,7 +1,8 @@
-import { readFile, writeFile, mkdir, copyFile, cp } from "node:fs/promises";
+import { readFile, writeFile, mkdir, copyFile, cp, rm } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
-import { dirname } from "node:path";
+import { dirname, resolve, relative } from "node:path";
 import { compileTokens } from "./token-compiler.mjs";
+import { buildAgentKnowledge } from './agent-knowledge.mjs';
 
 const tokens = JSON.parse(
   await readFile("packages/tokens/src/tokens.json", "utf8"),
@@ -48,8 +49,13 @@ await writeFile("packages/react/dist/foundations.css", componentStyles.join("\n"
 await cp("packages/react/src/fonts", "packages/react/dist/fonts", { recursive: true });
 for (const name of ["tokens", "react", "agent", "cli"])
   await copyFile("LICENSE", `packages/${name}/LICENSE`);
+await import("./build-website-content.mjs");
+await buildAgentKnowledge();
 await mkdir("apps/website/public/schema", { recursive: true });
-await mkdir("apps/website/public/agent", { recursive: true });
+const publicAgent = resolve('apps/website/public/agent');
+if (relative(resolve('.'), publicAgent).replaceAll('\\','/') !== 'apps/website/public/agent') throw Error('Unexpected generated agent destination.');
+await rm(publicAgent, {recursive:true, force:true});
+await mkdir(publicAgent, { recursive: true });
 await cp("schema", "apps/website/public/schema", { recursive: true });
 const agentManifest = JSON.parse(await readFile("packages/agent/manifest.json", "utf8"));
 for (const { source } of agentManifest.files) {
@@ -57,6 +63,7 @@ for (const { source } of agentManifest.files) {
   await mkdir(dirname(destination), { recursive: true });
   await copyFile(`packages/agent/${source}`, destination);
 }
+await cp('packages/agent/dist', 'apps/website/public/agent/dist', {recursive:true});
 const release = JSON.parse(
   await readFile("apps/website/src/release.json", "utf8"),
 );
@@ -66,4 +73,3 @@ await writeFile(
   `${release.published ? "Release status: published." : "Release status: PREVIEW. Source release candidate; do not run the installation command until npm publication is verified."}\n\n${guide}`,
 );
 console.log("Built Flood packages and agent endpoints.");
-await import("./build-website-content.mjs");

@@ -6,6 +6,7 @@ import { gzipSync } from "node:zlib";
 import assert from "node:assert/strict";
 import { build } from "vite";
 import { initProject, doctor } from "../packages/cli/lib/index.mjs";
+import { buildAgentConsumer } from './agent-consumer.mjs';
 
 const npmCli = process.env.npm_execpath;
 if (!npmCli) throw new Error("Run through npm run test:packages.");
@@ -57,6 +58,10 @@ try {
       ),
   });
   await doctor(root);
+  await writeFile(join(root,'inspect-export.mjs'),"import assert from 'node:assert/strict'; import {inspectRenderedUI,inspectSourceUI} from '@flood-md/agent/inspect'; assert.equal(typeof inspectRenderedUI,'function'); assert.throws(()=>inspectRenderedUI(),/browser document/); assert.equal(inspectSourceUI('window.confirm(\"Discard?\")').issues[0].owner,'AlertDialog');\n");
+  const inspectExport=spawnSync(process.execPath,['inspect-export.mjs'],{cwd:root,encoding:'utf8'});
+  assert.equal(inspectExport.status,0,inspectExport.stderr);
+  await buildAgentConsumer(root);
   const buttonEntry = join(root, "button-entry.mjs");
   await writeFile(buttonEntry, "export {Button} from '@flood-md/react';\n");
   const previousNodeEnv = process.env.NODE_ENV;
@@ -100,7 +105,13 @@ try {
   assert.equal(result.status, 0, result.stderr);
   await writeFile(
     join(root, "foundation-types.mts"),
-    `import { tokenNames, type TokenName } from '@flood-md/tokens/foundations';
+    `import {createKnowledgeReader, type KnowledgePage, type KnowledgeRead} from '@flood-md/agent';
+const knowledge=createKnowledgeReader();
+knowledge.list({kind:'workflow',group:'foundations'}).then((page:KnowledgePage)=>page.items.map(item=>item.id));
+knowledge.read('component:button',{linksOffset:0,length:10}).then((page:KnowledgeRead)=>page.nextOffset satisfies number|null);
+// @ts-expect-error Knowledge kinds are a versioned finite protocol.
+knowledge.list({kind:'arbitrary'});
+import { tokenNames, type TokenName } from '@flood-md/tokens/foundations';
 const name: TokenName = 'sys.color.content.default';
 const css: '--flood-sys-color-content-default' = tokenNames[name];
 import { createElement, createRef, type ComponentPropsWithRef } from 'react';
@@ -129,7 +140,7 @@ createElement(Menu,{...actionMenu,ref:createRef<HTMLDivElement>()});
 // @ts-expect-error Action labels are required.
 const badMenu: MenuProps = {...actionMenu,items:[{id:'open'}]};
 const descriptions: DescriptionListProps = {items:[{id:'project',term:'Project',description:'Flood'}],layout:'inline',density:'compact',dividers:true};
-const table: TableProps = {caption:'Projects',children:createElement('tbody',null,createElement('tr',null,createElement('td',null,'Flood'))),density:'comfortable',hideCaption:true};
+const table: TableProps = {caption:'Projects',children:createElement('tbody',null,createElement('tr',null,createElement('td',null,'Flood'))),density:'comfortable',hideCaption:true,cellVerticalAlign:'middle'};
 createElement(DescriptionList,{...descriptions,ref:createRef<HTMLDListElement>()});
 createElement(Table,{...table,ref:createRef<HTMLTableElement>(),onClick:event=>event.currentTarget.rows.length});
 // @ts-expect-error Stable identity is required for description items.
@@ -211,7 +222,7 @@ const checkboxGroupElement = createElement(CheckboxGroup, checkboxGroup);
 const badGroupValue: CheckboxGroupProps = {...checkboxGroup, value: 'news'};
 const label: LabelProps = {htmlFor: 'project', required: true};
 const labelElement = createElement(Label, {...label, ref: createRef<HTMLLabelElement>()}, 'Project');
-const fieldset: FieldsetProps = {legend: 'Preferences', disabled: true, status: 'warning'};
+const fieldset: FieldsetProps = {legend: 'Preferences', legendSize: 'section', disabled: true, status: 'warning'};
 const groupElement = createElement(Fieldset, {...fieldset, ref: createRef<HTMLFieldSetElement>()});
 // @ts-expect-error A group must have a legend.
 const unnamedGroup: FieldsetProps = {disabled: true};

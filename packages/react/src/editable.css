@@ -2,7 +2,7 @@
 .flood-root .flood-editable[hidden] { display: none; }
 .flood-root .flood-editable > .flood-label { margin: 0; }
 .flood-root .flood-editable__preview { justify-content: space-between; min-inline-size: 0; inline-size: 100%; text-align: start; gap: var(--flood-sys-space-2); }
-.flood-root .flood-editable__value { flex: 1 1 0; min-inline-size: 0; overflow-wrap: anywhere; }
+.flood-root .flood-editable__value { flex: 1 1 0; min-inline-size: 0; overflow-wrap: break-word; }
 .flood-root .flood-editable__value[data-empty] { color: var(--flood-sys-color-content-subtle); }
 .flood-root .flood-editable__preview > .flood-icon { flex: none; color: var(--flood-sys-color-content-subtle); }
 .flood-root .flood-editable .flood-input-group:has(.flood-editable__actions) { padding-inline-end: calc(var(--flood-group-inset) - var(--flood-group-stroke)); }
