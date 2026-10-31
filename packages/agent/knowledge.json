@@ -271,6 +271,25 @@
       "status": "not-provided",
       "description": "The new foundations profile provides dark only; legacy light controls do not add another foundation theme.",
       "materials": []
+    },
+    {
+      "id": "manual-search-collections",
+      "status": "available",
+      "description": "Host-owned query/results identity, pending/error/retry and retained selection; no network client.",
+      "materials": [
+        "component:combobox",
+        "component:multi-select",
+        "component:autocomplete"
+      ]
+    },
+    {
+      "id": "server-table-pages",
+      "status": "available",
+      "description": "Explicit controlled page/sort and selection scope for supplied server pages; host owns fetching and authorization.",
+      "materials": [
+        "component:data-table",
+        "recipe:record-workspace"
+      ]
     }
   ],
   "documentGroups": {
@@ -343,6 +362,11 @@
     "recipes/grouped-form.md": [
       "composition",
       "interaction"
+    ],
+    "recipes/record-workspace.md": [
+      "composition",
+      "data-feedback",
+      "quality"
     ]
   },
   "prerequisites": {
@@ -404,6 +428,15 @@
       "workflow:composition",
       "workflow:interface-content",
       "workflow:hierarchy"
+    ],
+    "recipe:record-workspace": [
+      "workflow:composition",
+      "workflow:hierarchy",
+      "workflow:forms",
+      "workflow:navigation",
+      "workflow:feedback",
+      "workflow:data-display",
+      "workflow:interface-content"
     ]
   }
 }

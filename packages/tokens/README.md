@@ -1,6 +1,6 @@
 # @flood-md/tokens
 
-Typed reference values and semantic CSS roles for Flood **0.2.10**. Keep Flood
+Typed reference values and semantic CSS roles for Flood **0.2.11**. Keep Flood
 package versions aligned. Existing 0.1.1 installs use their earlier token contract.
 
 React consumers import @flood-md/react/styles.css and use FloodRoot. Token-only
@@ -57,6 +57,6 @@ and Drawer retain surface.overlay. Backdrop filtering is progressive enhancement
 reduced transparency uses the opaque fill and forced colors use system colors.
 Keep text opaque and evaluate it against the actual composited background.
 
-Version 0.2.10 adds field-label, group-title and dialog-title type
+Version 0.2.11 adds field-label, group-title and dialog-title type
 roles. They separate form hierarchy without changing generic body/label roles
 or the host root font. Runtime values are compiled only from src/tokens.json.

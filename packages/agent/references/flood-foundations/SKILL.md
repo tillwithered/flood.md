@@ -42,3 +42,11 @@ a Surface and a popup over that field; inspect long text and enlarged root text.
 Do not claim visual consistency from token names or matching hex values alone.
 See [customization](../customization.md) and
 [accessibility](../accessibility.md) for perception/override details.
+
+## Destructive action tone
+
+Button and IconButton accept tone="danger" for an actual destructive command,
+independent of solid/subtle/outline/ghost prominence. It uses existing semantic
+color roles in FloodRoot; keep the normal accent focus and disabled behavior.
+A red label is not confirmation or permission to delete. Preserve that intent
+when OverflowActions moves the command into Menu.

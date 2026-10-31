@@ -140,3 +140,11 @@ phrase scans cannot establish editorial quality. Use [decision examples](../inte
 when a similar-looking string needs different treatment in another context.
 Do not claim an independent agent evaluation when the author already knows the
 implementation or corrected the initial output manually.
+
+## Make canonical examples teach the same standard
+
+Apply these decisions to playground defaults and copied recipes. Optional
+descriptions start absent. When demonstrating one, use a real distinction or
+constraint, such as a plan's member limit, rather than a friendly sentence
+repeating its title. Marketing prose belongs to a deliberate marketing surface,
+not default field/dialog content. Review the printed example as well as its DOM.

@@ -33,3 +33,16 @@ new line can indicate a sizing error rather than a legitimate responsive layout.
 For sidebar navigation, scroll/focus the final item and keep its selected surface
 clear of the scrollbar. Verify the actual navigation composition at narrow width
 and enlarged text; an isolated item's screenshot is insufficient.
+
+## Coordinate actions and workspace anchors
+
+Menubar coordinates desktop commands and one open menu, not website destinations.
+Reuse Menu for its child menus; native links still own destinations. OverflowActions
+composes Toolbar/Button/Menu. Preserve command identity, disabled state and danger
+tone when moving into More. Choose priorities by task, not label length. Exercise
+focus when resize hides an action or removes the More trigger.
+
+Keep a common top reading anchor across short/long workspace pages. Use logical
+inline centering for content width: margin:auto on a grid child can also center
+a short page vertically. Name each pane's scroll owner. Check short/long lists,
+detail and editor at the same viewport; a Drawer/table cannot fix its parent.

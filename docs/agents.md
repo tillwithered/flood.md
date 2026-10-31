@@ -14,7 +14,7 @@ sources. The website index is generated from the same bundle metadata rather
 than a second handwritten skill catalog. Source additions do not update an
 already installed package; use the guide set matching your installation.
 
-Version 0.2.10 adds [versioned knowledge discovery](agent-knowledge.md):
+Version 0.2.11 adds [versioned knowledge discovery](agent-knowledge.md):
 info reports installation context, catalog discovers compact metadata, and read
 loads a selected contract or workflow. The catalog includes typed recipes and
 semantic token records. Unknown capabilities and version mismatches are explicit;

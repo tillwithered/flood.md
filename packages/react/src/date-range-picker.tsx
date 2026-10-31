@@ -8,7 +8,7 @@ const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffe
 const triggerSizes={sm:"xs",md:"sm",lg:"md",xl:"lg"}as const;
 export const CalendarDateRangePicker=/* @__PURE__ */ forwardRef<HTMLDivElement,DateRangePickerProps>(function CalendarDateRangePicker({
   value,defaultValue=emptyDateRange(),onValueChange,open:controlledOpen,defaultOpen=false,onOpenChange,
-  label,calendarLabel,openCalendarLabel,locale,weekStartsOn,today,previousMonthLabel,nextMonthLabel,rangeLabels,
+  label,calendarLabel,openCalendarLabel,viewLabels,locale,weekStartsOn,today,previousMonthLabel,nextMonthLabel,rangeLabels,
   disabled=false,readOnly=false,controlSize="md",min,max,isDateDisabled,isRangeDisabled,form,className,onKeyDown,...props
 },forwardedRef){
   const panelLabel=calendarLabel??`${label} calendar`,triggerLabel=openCalendarLabel??`Open calendar: ${label}`;
@@ -50,11 +50,11 @@ export const CalendarDateRangePicker=/* @__PURE__ */ forwardRef<HTMLDivElement,D
       onKeyDown?.(event);
       if(!event.defaultPrevented&&!event.nativeEvent.isComposing&&event.keyCode!==229&&!blocked&&!nativeDisabled()&&event.altKey&&!event.ctrlKey&&!event.metaKey&&event.key==="ArrowDown"&&(event.target as HTMLElement).matches("input[data-segment]")){event.preventDefault();requestOpen(true);}
     }}
-    end={<Popover title={panelLabel} className="flood-date-range-picker__panel" align="end" positionReference={positionReference}
+    end={<Popover title={panelLabel} chrome="minimal" className="flood-date-range-picker__panel" align="end" positionReference={positionReference}
       style={{"--flood-date-range-picker-width":fieldWidth?`${fieldWidth}px`:undefined}as CSSProperties}
       open={!blocked&&requestedOpen} onOpenChange={requestOpen} disabled={blocked}
       trigger={trigger=><IconButton {...trigger} label={triggerLabel} variant="ghost" size={triggerSizes[controlSize]}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg></IconButton>}>
-      <RangeCalendar label={panelLabel} value={committed} min={min} max={max} isDateDisabled={isDateDisabled} isRangeDisabled={isRangeDisabled}
+      <RangeCalendar label={panelLabel} viewLabels={viewLabels} value={committed} min={min} max={max} isDateDisabled={isDateDisabled} isRangeDisabled={isRangeDisabled}
         locale={locale} weekStartsOn={weekStartsOn} today={today} previousMonthLabel={previousMonthLabel} nextMonthLabel={nextMonthLabel} rangeLabels={rangeLabels}
         autoFocus onValueChange={change} onRangeSelect={()=>{if(!blocked&&!nativeDisabled())requestOpen(false);}}/>
     </Popover>}/>;

@@ -284,7 +284,8 @@
       "verify": [
         "Inspect actual FormData and field ownership",
         "Exercise accepted/refused controlled updates and incomplete drafts",
-        "Defaults match representation; no defaultValue-as-update or invented save guarantee"
+        "Defaults match representation; no defaultValue-as-update or invented save guarantee",
+        "Verify submitted free text versus selected IDs and reject options belonging to an older manual query."
       ]
     },
     {
@@ -365,7 +366,8 @@
       "verify": [
         "Native link behavior and current destination preserved",
         "Selection, focus and expansion remain distinct",
-        "Long labels and final sidebar items remain usable in actual supported orientations"
+        "Long labels and final sidebar items remain usable in actual supported orientations",
+        "Compare top header anchors across short/long routes and check focus when an action moves into overflow."
       ]
     },
     {
@@ -385,7 +387,8 @@
       "verify": [
         "Caption, headers and named-value relationships preserved",
         "Row actions remain independent named controls",
-        "File metadata/status/progress reuse their existing primitives"
+        "File metadata/status/progress reuse their existing primitives",
+        "Test one supplied server page without local slicing/sorting; declare and validate page/dataset selection scope."
       ]
     },
     {
@@ -425,7 +428,8 @@
       "verify": [
         "Pending/success/error/cancel/local state is truthful",
         "Unknown progress never fabricates a percentage",
-        "Empty content explains its cause and appropriate next action"
+        "Empty content explains its cause and appropriate next action",
+        "Distinguish missing, malformed and unreadable persistence; retain data/draft after refused writes and require explicit replacement."
       ]
     },
     {
@@ -548,7 +552,8 @@
         "Accessible names, needed constraints and recovery remain available",
         "Each supporting sentence serves a specific decision or recovery need in the current state, not a hypothetical future risk",
         "No standing implementation/storage caption merely because the data has a retention limitation",
-        "Prototype provenance stays in README/test handoff unless it changes a current record/choice/action; no automatic permanent environment badge"
+        "Prototype provenance stays in README/test handoff unless it changes a current record/choice/action; no automatic permanent environment badge",
+        "Review canonical previews and copied recipes: optional descriptions are absent unless they add a real distinction."
       ]
     },
     {

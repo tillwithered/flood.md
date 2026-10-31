@@ -67,3 +67,20 @@ Use the documented local overflow owner, with a meaningful accessible name. Focu
 the last action/cell and check that a rail or rounded corner does not cover it.
 Compare narrow/wide, enlarged text and RTL. Locale-sensitive text in prerendered
 examples needs consistent server/client locale to avoid hydration differences.
+
+## Declare remote and selection ownership
+
+Client DataTable receives the complete local collection. Server paginationMode
+receives one already sorted page, controlled page/onPageChange and totalRows;
+sortable server columns require controlled sort/onSortChange. Do not locally
+slice or sort a server page. Reconcile page when a filter reduces its total.
+The host owns query identity and abort/request generations so a late response
+cannot replace the current query. Present loading/error explicitly rather than
+labeling old rows as an accepted new page.
+
+Server page selection covers supplied rows only. Dataset scope requires controlled
+selectedIds and host validation of IDs beyond that page. Select-page never means
+select every search result. Clear/revalidate selection on query or permission
+changes. Capture confirmed IDs and keep the proposal after an operation refusal.
+Read recipe:record-workspace from the matching installed catalog for a working
+composition and its limits.
