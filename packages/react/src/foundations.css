@@ -219,6 +219,8 @@
 .flood-root .flood-popover[data-chrome="minimal"] > .flood-overlay-body { margin-block-start:0; }
 .flood-root .flood-overlay-description { margin: var(--flood-sys-space-2) 0 0; color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); }
 .flood-root .flood-dialog { padding: var(--flood-sys-space-6); inline-size: min(32rem, calc(100% - var(--flood-sys-space-8))); max-inline-size: calc(100% - var(--flood-sys-space-8)); max-block-size: calc(100dvh - var(--flood-sys-space-8)); overflow: auto; }
+.flood-root .flood-dialog > .flood-overlay-header > .flood-overlay-title { font-size: var(--flood-sys-type-dialog-title-size); line-height: var(--flood-sys-type-dialog-title-line-height); font-weight: var(--flood-sys-type-dialog-title-weight); letter-spacing: var(--flood-sys-type-dialog-title-tracking); }
+.flood-root .flood-dialog > .flood-overlay-body { margin-block-start: var(--flood-sys-space-6); }
 .flood-root .flood-dialog:not([open]) { display: none; }
 .flood-root .flood-dialog::backdrop { background: color-mix(in srgb, var(--flood-sys-color-surface-canvas) 72%, transparent); }
 .flood-root .flood-popover:focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: 0; }
@@ -490,9 +492,10 @@
 .flood-root .flood-select__group, .flood-root .flood-select__empty { padding: var(--flood-sys-space-2) var(--flood-sys-space-3); font-size: var(--flood-sys-type-label-size); color: var(--flood-sys-color-content-helper); }
 .flood-root .flood-select__validation { display: block; margin-block-start: var(--flood-sys-space-2); color: var(--flood-sys-color-content-helper); font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); }
 .flood-root .flood-textarea { min-block-size: calc(var(--flood-control-height) * 3); resize: none; overflow: auto; }
-.flood-root .flood-field { display: grid; gap: var(--flood-sys-space-2); }
+.flood-root .flood-field { display: grid; gap: var(--flood-sys-space-1); }
 .flood-root .flood-fieldset { margin: 0; padding: 0; border: 0; min-inline-size: 0; inline-size: 100%; }
 .flood-root .flood-legend { float: inline-start; inline-size: 100%; padding: 0; margin-block-end: var(--flood-sys-space-3); font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); font-weight: var(--flood-sys-type-label-weight); letter-spacing: var(--flood-sys-type-label-tracking); }
+.flood-root .flood-fieldset[data-legend-size="section"] > .flood-legend { font-size: var(--flood-sys-type-group-title-size); line-height: var(--flood-sys-type-group-title-line-height); font-weight: var(--flood-sys-type-group-title-weight); letter-spacing: var(--flood-sys-type-group-title-tracking); margin-block-end: var(--flood-sys-space-4); }
 .flood-root .flood-fieldset__body { clear: both; display: grid; gap: var(--flood-sys-space-3); min-inline-size: 0; }
 .flood-root .flood-choice-group { display: flex; flex-direction: column; align-items: flex-start; gap: 0; min-inline-size: 0; }
 .flood-root .flood-choice-group > .flood-choice { min-block-size: var(--flood-sys-control-sm-height); }
@@ -505,7 +508,7 @@
    The real legend and its React children remain mounted for group semantics. */
 .flood-root .flood-fieldset[data-hide-label="true"] > .flood-legend.flood-visually-hidden--focusable:not(:focus-within):not([data-flood-focus-held]) { float: none; inline-size: 1px; block-size: 1px; margin: 0; min-inline-size: 0; min-block-size: 0; max-inline-size: 1px; max-block-size: 1px; line-height: 1px; }
 .flood-root .flood-fieldset:disabled :is(.flood-legend, .flood-label) { color: var(--flood-sys-color-field-disabled-content); }
-.flood-root .flood-label { color: var(--flood-sys-color-content-helper); font-size: var(--flood-sys-type-label-size); line-height: var(--flood-sys-type-label-line-height); font-weight: var(--flood-sys-type-label-weight); letter-spacing: var(--flood-sys-type-label-tracking); }
+.flood-root .flood-label { color: var(--flood-sys-color-content-default); font-size: var(--flood-sys-type-field-label-size); line-height: var(--flood-sys-type-field-label-line-height); font-weight: var(--flood-sys-type-field-label-weight); letter-spacing: var(--flood-sys-type-field-label-tracking); }
 .flood-root :where(.flood-hint, .flood-error) { font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); font-weight: var(--flood-sys-type-helper-weight); letter-spacing: var(--flood-sys-type-helper-tracking); }
 .flood-root .flood-hint { color: var(--flood-sys-color-content-helper); }
 .flood-root .flood-error { color: var(--flood-sys-color-content-helper); }

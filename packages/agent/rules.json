@@ -587,6 +587,29 @@
         "Reference pattern is mapped to the host question it answers",
         "Competitor workflows, promises and marketing language are not transplanted without matching behavior"
       ]
+    },
+    {
+      "id": "layout.hierarchy",
+      "when": "Composing or reviewing task titles, group legends, named fields and shared form tracks",
+      "for": [
+        "designer",
+        "developer",
+        "agent",
+        "reviewer"
+      ],
+      "requires": [
+        "Installed component and token contracts",
+        "Task reading order and actual rendered host"
+      ],
+      "sourceOfTruth": "Installed hierarchy recipes and host content requirements",
+      "guide": "references/flood-hierarchy/SKILL.md",
+      "verify": [
+        "Task, group and field roles are distinguishable without redundant headings",
+        "Label is closer to its control than independent fields/groups",
+        "Related rows share measured control edges; width exceptions have a content reason",
+        "Dialog title/body inset is owned once; actions remain reachable at enlarged text",
+        "Calendar content remains readable inside viewport collision limits"
+      ]
     }
   ],
   "guideResolution": "Match guide to source in manifest.files; use its target relative to the host project root."

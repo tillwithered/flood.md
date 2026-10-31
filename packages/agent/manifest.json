@@ -131,6 +131,11 @@
       "source": "references/rendered-review.md",
       "target": ".agents/skills/flood-ui/references/rendered-review.md",
       "kind": "reference"
+    },
+    {
+      "source": "references/flood-hierarchy/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-hierarchy/SKILL.md",
+      "kind": "skill"
     }
   ],
   "version": "0.2.10",

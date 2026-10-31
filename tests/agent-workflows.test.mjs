@@ -73,3 +73,7 @@ test('generated skills and composition examples match their canonical package an
   assert.ok(generated.docs['recipes/table-bulk-actions.md'].includes('```tsx\n'+bulkSource+'\n```'));
   assert.equal(await readWebsiteDocument('recipes/table-bulk-actions.md'),generated.docs['recipes/table-bulk-actions.md']);
 });
+
+test('hierarchy discovery ships its full workflow and links the grouped-form recipe',async()=>{
+ const reader=createKnowledgeReader();const page=await reader.list({kind:'workflow',search:'hierarchy'});assert.ok(page.items.some(x=>x.id==='workflow:hierarchy'));const guide=await reader.read('workflow:hierarchy',{length:40000});assert.equal(guide.truncated,false);assert.equal(guide.text,await readFile('packages/agent/references/flood-hierarchy/SKILL.md','utf8'));assert.ok((await reader.read('recipe:grouped-form',{length:1})).requires.includes('workflow:hierarchy'));
+});

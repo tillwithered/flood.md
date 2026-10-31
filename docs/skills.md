@@ -9,6 +9,10 @@ not the entire library of instructions.
 hierarchy. Its workflow removes unnecessary narration while keeping meaningful
 constraints, consequences, recovery and accessible names.
 
+The hierarchy workflow covers task/group/field roles, common control tracks and
+relationship spacing. It complements editorial decisions and the spacing workflow;
+it does not prescribe one screen template.
+
 Use [Agent knowledge](agent-knowledge.md) to discover these workflows by semantic
 group and read the installed version. The catalog separates prerequisites from
 optional related components; grouping is not a request to load every skill.

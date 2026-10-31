@@ -441,3 +441,15 @@ and UploadItem place it with the filename, reserving the next line for status or
 supporting text. Filename extensions are display hints only, never validation.
 Override with format or hide the format using format=null; do not infer upload
 safety or MIME permissions from a visible chip.
+
+## Form hierarchy
+
+Named field labels use field-label typography, with space-1 to their controls.
+Parent Grid/Stack owns row and group separation. Keep shared tracks across related
+rows instead of independently narrowing numeric fields. Dialog uses dialog-title
+typography and space-6 before its body; do not add that inset a second time.
+Fieldset defaults to a compact choice caption; legendSize="section" opts into
+group-title typography for a necessary independent section. A short form can
+omit inner headings. See the routed hierarchy workflow for reading order, rhythm
+and actual geometry review. DatePicker keeps a readable 20rem calendar panel
+minimum when space permits, while honoring viewport collision constraints.

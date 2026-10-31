@@ -222,7 +222,7 @@ const checkboxGroupElement = createElement(CheckboxGroup, checkboxGroup);
 const badGroupValue: CheckboxGroupProps = {...checkboxGroup, value: 'news'};
 const label: LabelProps = {htmlFor: 'project', required: true};
 const labelElement = createElement(Label, {...label, ref: createRef<HTMLLabelElement>()}, 'Project');
-const fieldset: FieldsetProps = {legend: 'Preferences', disabled: true, status: 'warning'};
+const fieldset: FieldsetProps = {legend: 'Preferences', legendSize: 'section', disabled: true, status: 'warning'};
 const groupElement = createElement(Fieldset, {...fieldset, ref: createRef<HTMLFieldSetElement>()});
 // @ts-expect-error A group must have a legend.
 const unnamedGroup: FieldsetProps = {disabled: true};

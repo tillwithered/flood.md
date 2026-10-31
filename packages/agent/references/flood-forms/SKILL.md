@@ -37,10 +37,16 @@ brief did not enumerate every affordance of choosing a date.
   Host validation decides the error and useful message. Keep native constraints,
   invalid focus and the accessible message association coherent.
 
+For visual roles and rhythm, read the [hierarchy skill](../flood-hierarchy/SKILL.md).
+Fieldset legendSize="section" is for an independent section; a short form may
+need no inner heading. Field labels and values keep their documented sizes.
+
 ## Group before laying out fields
 
 Choose the form's reading order and semantic groups before placing controls in
-columns. Establish shared outer tracks, gap and group padding. Related groups
+columns. Establish shared outer tracks, gap and group padding. Use a single Grid for
+related rows; do not narrow one numeric field in only one row merely because its
+value is short. Preserve corresponding vertical edges before optimizing widths. Related groups
 should share those tracks: do not independently choose a four-column grid above
 two columns below and assume their edges align. A group may span the whole layout
 when its content needs it; not every field should have the same width.

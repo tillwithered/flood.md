@@ -33,7 +33,8 @@ Before delivery, review the actual screen against those choices and the content
 workflow. Optional subtitle, description and hint slots start empty; fill one
 only for information the user needs beyond the title or control itself.
 
-For a composed form, also read the forms workflow's grouping section; independent
+For a new screen or composed form, read the hierarchy workflow to choose visual
+roles, shared tracks and relationship spacing. For a composed form, also read the forms workflow's grouping section; independent
 per-row grids do not establish a coherent hierarchy. For icon-bearing controls,
 use the foundations workflow. During browser verification use the optional
 [rendered review observer](references/rendered-review.md) and review its findings.
@@ -46,6 +47,7 @@ message lifetime belongs to the operation/record, not merely the page's Alert.
 | Introducing or editing interface copy, labels, hierarchy or adapting a reference | [Interface content skill](references/flood-interface-content/SKILL.md) | Necessary, accurate content with a clear job; no invented capabilities or redundant narration |
 | Component, composite, website or playground UI | [Composition skill](references/flood-composition/SKILL.md) | Reused primitives; missing small capabilities implemented before composites |
 | New screen, layout or form | [Composition](references/composition.md) | Existing primitives, correct host width and form ownership |
+| Task/group/field hierarchy, flat forms or inconsistent row tracks | [Hierarchy skill](references/flood-hierarchy/SKILL.md) | Distinct roles, shared control edges and deliberate vertical rhythm |
 | Spacing, density, nested geometry or shifting previews | [Spacing skill](references/flood-spacing/SKILL.md) | Measured visual relationships and nonoverlapping interactive areas |
 | Existing dark surfaces, type, control and icon sizing | [Foundations skill](references/flood-foundations/SKILL.md) | Correct semantic roles and coherent consumers |
 | Keyboard, names, focus, perception or reflow | [Accessibility skill](references/flood-accessibility/SKILL.md) | Real interaction and associations preserved |

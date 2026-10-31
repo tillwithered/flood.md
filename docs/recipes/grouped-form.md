@@ -27,3 +27,8 @@ enlarged text at the host's declared widths. Do not judge a form by zero page
 overflow alone. Read the [forms workflow](/agent/references/flood-forms/SKILL.md)
 and [content workflow](/agent/references/flood-interface-content/SKILL.md) before
 adapting it. A useful form does not need a helper paragraph under every title.
+
+Independent sections use Fieldset legendSize="section" and keep one shared outer
+Grid across peer groups. Field labels retain the compact inner gap; Stack owns
+row separation. The hierarchy workflow explains why section titles and choice
+captions are different roles.

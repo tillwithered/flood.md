@@ -36,8 +36,8 @@ the website. Do not hand-edit generated hashes or duplicate component contracts.
 See [Agent knowledge](../../docs/agent-knowledge.md) for groups, capabilities,
 prerequisites, read budgets, compatibility and customization behavior.
 
-The source bundle also includes eleven routed workflows for the existing dark base:
-composition, spacing, foundations, accessibility, forms, overlays, navigation,
+The source bundle also includes twelve routed workflows for the existing dark base:
+composition, hierarchy, spacing, foundations, accessibility, forms, overlays, navigation,
 data display, feedback, interface content and verification. The lightweight flood-ui entry selects
 relevant skills; nested folders do not imply independent automatic discovery.
 workflows.json describes applicability. rules.json describes observable checks;

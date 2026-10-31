@@ -1472,6 +1472,8 @@ export const Label = /* @__PURE__ */ forwardRef<HTMLLabelElement, LabelProps>(fu
 
 export interface FieldsetProps extends FieldsetHTMLAttributes<HTMLFieldSetElement> {
   legend: ReactNode;
+  /** Visual role only; compact choice captions remain the default. @since 0.2.10 */
+  legendSize?: "label" | "section";
   /** @since 0.2.3 */
   hideLabel?: boolean;
   hint?: ReactNode;
@@ -1481,7 +1483,7 @@ export interface FieldsetProps extends FieldsetHTMLAttributes<HTMLFieldSetElemen
 }
 /** A native group: disabled, form ownership and nested fieldsets retain browser behavior. */
 export const Fieldset = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, FieldsetProps>(function Fieldset(
-  { legend, hideLabel = false, hint, error, message, status, children, className, id: explicitId, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props }, ref,
+  { legend, legendSize = "label", hideLabel = false, hint, error, message, status, children, className, id: explicitId, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props }, ref,
 ) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
@@ -1489,7 +1491,7 @@ export const Fieldset = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Fieldset
   const hasHint = hasFieldContent(hint), hasError = hasFieldContent(error), hasMessage = hasFieldContent(message) && !hasError;
   const resolvedStatus = resolveFieldStatus(status, hasError, ariaInvalid);
   const description = mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && `${id}-message`);
-  return <fieldset {...props} ref={ref} id={id} className={classes("flood-fieldset", className)} data-hide-label={hideLabel || undefined} data-status={resolvedStatus}
+  return <fieldset {...props} ref={ref} id={id} className={classes("flood-fieldset", className)} data-legend-size={legendSize} data-hide-label={hideLabel || undefined} data-status={resolvedStatus}
     aria-describedby={description} aria-invalid={resolvedStatus === "error" || ariaInvalid || undefined}>
     <legend ref={legendRef} className={classes("flood-legend", hideLabel && "flood-visually-hidden--focusable")}>{legend}</legend>
     <div className="flood-fieldset__body">

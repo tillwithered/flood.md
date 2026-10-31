@@ -344,7 +344,8 @@
       "Uses a real fieldset and legend, with a ref to HTMLFieldSetElement. Disabled descendants retain native form semantics.",
       "The browser exempts controls in the first legend from inherited disabling. Avoid interactive legend contents unless this is intentional.",
       "hint, message, error and external aria-describedby IDs are merged without duplicates. Error takes precedence over an advisory status.",
-      "Group status describes the group; it does not mark every child invalid, manage selected values or implement a RadioGroup/CheckboxGroup."
+      "Group status describes the group; it does not mark every child invalid, manage selected values or implement a RadioGroup/CheckboxGroup.",
+      "legendSize=\"section\" gives an independent form section a 1rem semibold title and a 1rem body inset. The default \"label\" remains a compact choice caption; neither option changes native group semantics."
     ]
   },
   {

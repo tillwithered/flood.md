@@ -13,6 +13,21 @@
       "all": true
     },
     {
+      "id": "hierarchy",
+      "guide": "references/flood-hierarchy/SKILL.md",
+      "groups": [
+        "forms",
+        "overlays",
+        "layout",
+        "typography"
+      ],
+      "components": [
+        "Card",
+        "Section",
+        "EmptyState"
+      ]
+    },
+    {
       "id": "spacing",
       "guide": "references/flood-spacing/SKILL.md",
       "all": true

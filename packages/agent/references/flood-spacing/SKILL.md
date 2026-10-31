@@ -13,6 +13,11 @@ independent actions, sections, or nested surfaces. Do not propagate one gap to
 every wrapper. Stack and Inline organize relationships; component padding and
 line height still contribute to the visible distance.
 
+Named fields use space-1 between label and control. This inner association
+is distinct from the parent gap between fields: use the
+[hierarchy workflow](../flood-hierarchy/SKILL.md) for task/group/field rhythm.
+Do not stack a host spacer on top of the Dialog-owned body inset.
+
 ## Find the owner
 
 Inspect bounding rectangles plus computed padding, margin, gap, minimum height

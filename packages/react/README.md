@@ -9,6 +9,13 @@ shared stylesheet explicitly; styles are not split by component.
 This package documents the **0.2.10** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
+The unreleased 0.2.10 candidate also adds Fieldset legendSize="label" | "section"
+(default label). Independent section legends use a 1rem/600 role; named fields
+retain their 13px-equivalent label size with a .25rem inner gap. Dialog task
+titles use 1.25rem/600 and a 1.5rem body inset. These dark-profile recipe changes
+do not enlarge compact Popover captions or default choice legends. DatePicker
+calendar panels prefer at least 20rem when available, bounded by the viewport.
+
 Version 0.2.9 improves constrained file rows, Drawer readability and Select pointer
 focus without changing public signatures or token values.
 

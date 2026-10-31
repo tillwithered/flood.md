@@ -47,6 +47,10 @@ candidate run npm run verify and the required applicable browser matrix; use the
 host's equivalent gates in a consuming app. Do not continually repeat a full
 release gate for every reversible visual adjustment.
 
+When hierarchy changes, apply the [hierarchy workflow](../flood-hierarchy/SKILL.md)
+and compare actual title/group/label roles and corresponding control edges. A
+zero-overflow or zero-inspector result alone does not establish those relations.
+
 ## Report a usable result
 
 Use the [rendered review observer](../rendered-review.md) when local browser

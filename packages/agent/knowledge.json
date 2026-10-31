@@ -67,6 +67,10 @@
     "interface-content": [
       "composition",
       "quality"
+    ],
+    "hierarchy": [
+      "foundations",
+      "composition"
     ]
   },
   "references": [
@@ -373,9 +377,13 @@
     "recipe:grouped-form": [
       "workflow:composition",
       "workflow:forms",
-      "workflow:interface-content"
+      "workflow:interface-content",
+      "workflow:hierarchy"
     ],
     "workflow:verification": [
+      "workflow:interface-content"
+    ],
+    "workflow:hierarchy": [
       "workflow:interface-content"
     ]
   }

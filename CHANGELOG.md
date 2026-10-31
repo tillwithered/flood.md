@@ -1,7 +1,13 @@
 # Changelog
 
-## 0.2.10 · Unreleased — versioned agent knowledge
+## 0.2.10 · Unreleased — versioned agent knowledge and form hierarchy
 
+- Separate dialog-title, group-title and field-label token roles. Give named fields
+  a .25rem inner gap; strengthen modal task titles and body spacing without enlarging
+  compact popup captions. Add opt-in Fieldset legendSize="section" and routed
+  hierarchy guidance for shared tracks and deliberate row/group rhythm.
+- Keep DatePicker calendars readable with a preferred 20rem minimum bounded by
+  available viewport width; retain selection/time-list sizing contracts.
 - Add Table cellVerticalAlign and make middle alignment the shared default for record/action rows; align
   mixed sortable DataTable headers. Add opt-in rendered DOM observations through
   @flood-md/agent/inspect, separate from semantic/editorial review.
