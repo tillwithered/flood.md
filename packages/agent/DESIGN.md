@@ -453,3 +453,12 @@ group-title typography for a necessary independent section. A short form can
 omit inner headings. See the routed hierarchy workflow for reading order, rhythm
 and actual geometry review. DatePicker keeps a readable 20rem calendar panel
 minimum when space permits, while honoring viewport collision constraints.
+
+## Record information hierarchy
+
+Select visible attributes from recognition, comparison and action needs, not
+from every available data property. For list/detail work use the routed records
+workflow: identity/summary, lifecycle state, category, priority and dates have
+different roles. Named comparison columns are preferable to drifting trailing
+values when several attributes must be compared. Metadata may be necessary even
+when an inspector flags it; preserve useful content and evaluate its placement.

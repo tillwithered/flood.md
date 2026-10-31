@@ -77,6 +77,10 @@ Check actual behavior before writing states:
   Put it where that distinction matters. Do not repeat demo disclaimers throughout
   a test interface whose context is already established.
 
+For list/detail metadata, apply the [records workflow](../flood-records/SKILL.md).
+Use its decision examples to distinguish useful priority/recency from redundant
+labels and counts; the right amount of information depends on the user task.
+
 ## Adapt reference content by purpose
 
 For each reference pattern, identify the question it answers and the capability

@@ -39,6 +39,9 @@ per-row grids do not establish a coherent hierarchy. For icon-bearing controls,
 use the foundations workflow. During browser verification use the optional
 [rendered review observer](references/rendered-review.md) and review its findings.
 It cannot replace the separate copy and grouping decisions.
+For record lists or details, read the records workflow before assigning metadata
+to slots. Record each field's recognition/comparison/action purpose and list/detail
+placement outside the interface; an available slot is not a reason to fill it.
 For save, upload or other fallible operations, read the feedback workflow too:
 message lifetime belongs to the operation/record, not merely the page's Alert.
 
@@ -54,6 +57,7 @@ message lifetime belongs to the operation/record, not merely the page's Alert.
 | Field ownership, validation, submission and reset | [Forms skill](references/flood-forms/SKILL.md) | Actual form values and accepted/refused transitions |
 | Popup, dialog, drawer or nested layer | [Overlays skill](references/flood-overlays/SKILL.md) | Appropriate geometry, dismissal and focus ownership |
 | Destinations, panels, disclosure or hierarchy | [Navigation skill](references/flood-navigation/SKILL.md) | Navigation, selection and expansion kept distinct |
+| Record lists/details, crowded metadata, status/category/priority distinctions | [Records skill](references/flood-records/SKILL.md) | Decision-relevant attributes, clear semantics and stable scan positions |
 | Tables, lists, cards, files and long content | [Data display skill](references/flood-data-display/SKILL.md) | Meaningful structures and reachable overflow |
 | Status, progress, alerts, loading or empty content | [Feedback skill](references/flood-feedback/SKILL.md) | Honest operation state with one announcement owner |
 | Brand or deliberate semantic overrides | [Customization](references/customization.md) | Scoped semantic overrides; unchanged behavior |

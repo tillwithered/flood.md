@@ -8,6 +8,9 @@
   hierarchy guidance for shared tracks and deliberate row/group rhythm.
 - Keep DatePicker calendars readable with a preferred 20rem minimum bounded by
   available viewport width; retain selection/time-list sizing contracts.
+- Add routed record-composition guidance and decision examples for list/detail
+  metadata, stable scan positions, category/state/priority semantics, dates and
+  collection states; discover and install it through the existing knowledge bundle.
 - Add Table cellVerticalAlign and make middle alignment the shared default for record/action rows; align
   mixed sortable DataTable headers. Add opt-in rendered DOM observations through
   @flood-md/agent/inspect, separate from semantic/editorial review.

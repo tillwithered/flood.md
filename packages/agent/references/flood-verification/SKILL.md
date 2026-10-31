@@ -51,6 +51,11 @@ When hierarchy changes, apply the [hierarchy workflow](../flood-hierarchy/SKILL.
 and compare actual title/group/label roles and corresponding control edges. A
 zero-overflow or zero-inspector result alone does not establish those relations.
 
+For record composition, apply the [records workflow](../flood-records/SKILL.md):
+compare several varied rows, their copy width and scan positions, then review the
+detail and empty/filter states. Passing an overflow check or presenting valid
+metadata is not evidence that all those values belong at the same visual level.
+
 ## Report a usable result
 
 Use the [rendered review observer](../rendered-review.md) when local browser

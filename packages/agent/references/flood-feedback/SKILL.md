@@ -10,6 +10,11 @@ visible role before choosing color: StatusIndicator names a state, Badge marks
 metadata, Progress describes task progress, Meter describes a bounded measurement,
 Alert gives contextual feedback and EmptyState explains missing content.
 
+For several record attributes, use the [records skill](../flood-records/SKILL.md).
+A category called Error is not a failed operation; priority is not lifecycle state.
+Choose the semantic owner before its appearance, and keep essential triage data
+visible even when reducing decorative emphasis.
+
 ## Keep one owner for each message
 
 - Status text must distinguish pending, success, failure, cancellation and local

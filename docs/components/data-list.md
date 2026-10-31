@@ -25,3 +25,11 @@ Keep navigation in a real title Link and actions in separate buttons. The whole
 row has no click handler, pressed state, keyboard navigation or selection model.
 Actions remain independent Tab stops. The host owns sorting, fetching and empty,
 loading or error content. Do not put arbitrary non-list content directly in `ul`.
+
+## Select metadata for the task
+
+Protect the title/summary width and keep useful scan signals in predictable
+positions across different records. The trailing slot is not a request to show
+every schema property. For several independent comparisons use Table/DataTable
+with named columns. A detail view can expose more named attributes through
+DescriptionList. See the records workflow in [Skills](/docs/skills).

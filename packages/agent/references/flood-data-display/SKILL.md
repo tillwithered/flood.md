@@ -29,6 +29,13 @@ identify them at the relevant boundary, without adding repeated demo narration.
 - Preserve native image alt/fallback semantics and aspect constraints. Decorative
   artwork should not duplicate an adjacent accessible identity.
 
+## Choose the information, not all available slots
+
+For record lists/details, apply the [records skill](../flood-records/SKILL.md)
+before filling metadata and actions. Identity, supporting context, lifecycle state,
+priority and timestamps have different purposes. Use Table/DataTable when users
+need several named comparisons; a trailing Inline of values is not a column model.
+
 ## Exercise data and geometry
 
 Test no records, one record, long/wrapping names, absent optional media/actions,

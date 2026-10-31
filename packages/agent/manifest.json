@@ -136,6 +136,16 @@
       "source": "references/flood-hierarchy/SKILL.md",
       "target": ".agents/skills/flood-ui/references/flood-hierarchy/SKILL.md",
       "kind": "skill"
+    },
+    {
+      "source": "references/flood-records/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-records/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/record-decisions.md",
+      "target": ".agents/skills/flood-ui/references/record-decisions.md",
+      "kind": "reference"
     }
   ],
   "version": "0.2.10",

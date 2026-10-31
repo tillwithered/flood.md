@@ -62,6 +62,11 @@ pair can finish a short desktop dialog clearly. This is not a universal order:
 respect host conventions, direction, destructive confirmation and keyboard flow.
 Do not add a footer surface or separator unless it resolves a real boundary.
 
+Record lists and details need an information budget as well as type hierarchy.
+Use the [records workflow](../flood-records/SKILL.md) for metadata placement,
+comparison columns and status/category/priority meanings; do not give every
+attribute equal visual emphasis.
+
 ## Verify the relationships
 
 Read the actual title/group/label styles; inspect the rendered result rather

@@ -610,6 +610,50 @@
         "Dialog title/body inset is owned once; actions remain reachable at enlarged text",
         "Calendar content remains readable inside viewport collision limits"
       ]
+    },
+    {
+      "id": "records.scan",
+      "when": "Composing record lists, detail views or several row metadata values",
+      "for": [
+        "designer",
+        "developer",
+        "agent",
+        "reviewer"
+      ],
+      "requires": [
+        "Current recognition/comparison/action task",
+        "Installed record component contracts",
+        "Rendered sibling records with varied content"
+      ],
+      "sourceOfTruth": "Task information needs and installed record contracts",
+      "guide": "references/flood-records/SKILL.md",
+      "verify": [
+        "Field to decision and list/detail placement choices recorded outside UI",
+        "Identity and summary remain readable with long and missing metadata",
+        "Stable scan positions or real named comparison columns, not drifting pseudo-columns",
+        "List, details, first-use and filtered empty states reviewed separately"
+      ]
+    },
+    {
+      "id": "records.meaning",
+      "when": "Presenting category, lifecycle status, priority, timestamps or collection counts",
+      "for": [
+        "designer",
+        "developer",
+        "agent",
+        "reviewer"
+      ],
+      "requires": [
+        "Actual field semantics and current user decision"
+      ],
+      "sourceOfTruth": "Host data meanings and corresponding Flood primitive contract",
+      "guide": "references/flood-records/SKILL.md",
+      "verify": [
+        "Category/state/urgency distinguished with names where needed, not color alone",
+        "Essential triage/comparison fields retained; optional attributes do not compete equally",
+        "Dates identify useful events with suitable precision; formatted equality is not event equality",
+        "Counts and supporting text add current value; necessary announcements remain"
+      ]
     }
   ],
   "guideResolution": "Match guide to source in manifest.files; use its target relative to the host project root."

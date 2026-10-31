@@ -13,6 +13,11 @@ The hierarchy workflow covers task/group/field roles, common control tracks and
 relationship spacing. It complements editorial decisions and the spacing workflow;
 it does not prescribe one screen template.
 
+The records workflow covers list/detail information selection, stable scan
+positions and the distinction between category, lifecycle state, priority and
+time. It includes examples where those attributes should remain visible, rather
+than a universal rule to hide metadata or limit badge counts.
+
 Use [Agent knowledge](agent-knowledge.md) to discover these workflows by semantic
 group and read the installed version. The catalog separates prerequisites from
 optional related components; grouping is not a request to load every skill.

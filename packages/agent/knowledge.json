@@ -71,6 +71,10 @@
     "hierarchy": [
       "foundations",
       "composition"
+    ],
+    "records": [
+      "data-feedback",
+      "composition"
     ]
   },
   "references": [
@@ -194,6 +198,16 @@
       ],
       "name": "Rendered interface review",
       "description": "Read-only DOM observations for icon ownership and mixed-row alignment, with separate contextual copy and hierarchy review."
+    },
+    {
+      "id": "reference:record-decisions",
+      "source": "references/record-decisions.md",
+      "groups": [
+        "data-feedback",
+        "composition"
+      ],
+      "name": "Record metadata decisions",
+      "description": "Contextual list/detail, comparison, category/state, priority and timestamp decisions across different tasks."
     }
   ],
   "componentGroups": {
@@ -385,6 +399,11 @@
     ],
     "workflow:hierarchy": [
       "workflow:interface-content"
+    ],
+    "workflow:records": [
+      "workflow:composition",
+      "workflow:interface-content",
+      "workflow:hierarchy"
     ]
   }
 }

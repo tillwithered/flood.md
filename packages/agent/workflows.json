@@ -105,6 +105,26 @@
       ]
     },
     {
+      "id": "records",
+      "guide": "references/flood-records/SKILL.md",
+      "components": [
+        "DataList",
+        "DataListItem",
+        "Table",
+        "DataTable",
+        "DescriptionList",
+        "Card",
+        "Section",
+        "StatusIndicator",
+        "Badge",
+        "FileItem",
+        "FileList",
+        "UploadItem",
+        "UploadList",
+        "EmptyState"
+      ]
+    },
+    {
       "id": "feedback",
       "guide": "references/flood-feedback/SKILL.md",
       "groups": [

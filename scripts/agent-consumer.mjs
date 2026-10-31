@@ -25,6 +25,11 @@ export async function buildAgentConsumer(root) {
   const workflows=command(['catalog','--kind','workflow','--group','foundations']);
   assert.ok(workflows.items.some(item=>item.id==='workflow:foundations'));
   const recipe=read('recipe:table-bulk-actions');assert.ok(recipe.requires.includes('workflow:data-display'));
+  const records=read('workflow:records');
+  assert.ok(records.links.includes('reference:record-decisions'));
+  assert.equal(records.text,await readFile(join(root,records.installedTarget),'utf8'));
+  const decisions=read('reference:record-decisions');
+  assert.equal(decisions.text,await readFile(join(root,decisions.installedTarget),'utf8'));
   const grouped=read('recipe:grouped-form');
   const groupedSource=await readFile('apps/website/src/recipes/grouped-form.tsx','utf8');
   assert.ok(grouped.text.includes('```tsx\n'+groupedSource.trimEnd()+'\n```'));
