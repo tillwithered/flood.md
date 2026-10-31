@@ -387,6 +387,8 @@
   font-weight: var(--flood-sys-type-compact-weight);
 }
 .flood-root .flood-number-input > .flood-input { text-align: center; appearance: textfield; font-variant-numeric: tabular-nums; }
+.flood-root .flood-input-group.flood-number-input { flex-wrap: nowrap; min-inline-size: calc(2 * var(--flood-group-height) + 2 * var(--flood-control-gap) + 2ch); }
+.flood-root .flood-input-group.flood-number-input > .flood-input { flex: 1 1 4ch; min-inline-size: 2ch; }
 .flood-root .flood-number-input > .flood-input::-webkit-inner-spin-button,
 .flood-root .flood-number-input > .flood-input::-webkit-outer-spin-button { appearance: none; margin: 0; }
 .flood-root .flood-slider { --flood-slider-thumb: var(--flood-control-icon); min-inline-size: 0; inline-size: 100%; }

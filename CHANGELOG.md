@@ -11,6 +11,7 @@
   page/dataset selection scope. Existing client mode keeps its defaults.
 - Forward Calendar view labels and date/time segment/message options through
   composed pickers; use the existing minimal Popover anatomy for calendar panels.
+- Keep NumberInput actions/value on one row in dense enlarged-text tracks.
 - Replace generic filler in canonical examples and align routed guidance with
   real content, workspace anchors and persistence recovery.
 
