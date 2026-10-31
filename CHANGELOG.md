@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.2.10 · Unreleased — versioned agent knowledge and form hierarchy
+## 0.2.10 · 2026-10-31 — agent knowledge and form hierarchy
 
 - Separate dialog-title, group-title and field-label token roles. Give named fields
   a .25rem inner gap; strengthen modal task titles and body spacing without enlarging
@@ -31,7 +31,7 @@
 - Compile grouped skills, references, components, recipes and semantic token records from their canonical sources.
 - Bound discovery and selected reads; refuse version drift, stale cursors, invalid relationships and changed package content.
 - Preserve host instructions and customized guide copies; keep unsupported motion/theme capabilities explicit.
-- This compatible additive candidate requires all four packages at 0.2.10. Publication is verified separately.
+- This compatible additive release requires all four packages at 0.2.10. Publication is verified separately.
 
 ## 0.2.9 · 2026-10-30 — dark-base stabilization
 

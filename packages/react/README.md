@@ -9,7 +9,7 @@ shared stylesheet explicitly; styles are not split by component.
 This package documents the **0.2.10** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
-The unreleased 0.2.10 candidate also adds Fieldset legendSize="label" | "section"
+Version 0.2.10 adds Fieldset legendSize="label" | "section"
 (default label). Independent section legends use a 1rem/600 role; named fields
 retain their 13px-equivalent label size with a .25rem inner gap. Dialog task
 titles use 1.25rem/600 and a 1.5rem body inset. These dark-profile recipe changes
@@ -662,7 +662,7 @@ explicit id/headers associations for complex spanning headers. Do not add anothe
 caption child. See [WAI table guidance](https://www.w3.org/WAI/tutorials/tables/).
 
 Table density defaults comfortable; compact reduces vertical cell padding.
-In the 0.2.10 candidate, cellVerticalAlign defaults to "middle" for consistent
+In 0.2.10, cellVerticalAlign defaults to "middle" for consistent
 record/action and editable rows. Choose "top" for deliberate multiline prose
 alignment or "bottom" when content requires it. This sets the shared cell recipe without consumer
 specificity overrides. Native style on a particular th/td can override an
