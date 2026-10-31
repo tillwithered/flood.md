@@ -146,9 +146,14 @@
       "source": "references/record-decisions.md",
       "target": ".agents/skills/flood-ui/references/record-decisions.md",
       "kind": "reference"
+    },
+    {
+      "source": "references/component-families.md",
+      "target": ".agents/skills/flood-ui/references/component-families.md",
+      "kind": "reference"
     }
   ],
-  "version": "0.2.10",
+  "version": "0.2.11",
   "installedEntry": ".agents/skills/flood-ui/SKILL.md",
   "pathBase": "source is package-relative; target is relative to the host project root"
 }

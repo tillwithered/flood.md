@@ -21,5 +21,9 @@ export async function readWebsiteDocument(file, {workflows} = {}) {
     const source = await readFile('apps/website/src/recipes/grouped-form.tsx', 'utf8');
     content = content.replace('<!-- flood:grouped-form -->', '```tsx\n' + source.trimEnd() + '\n```');
   }
+  if (content.includes('<!-- flood:record-workspace -->')) {
+    const source = await readFile('apps/website/src/recipes/record-workspace.tsx', 'utf8');
+    content = content.replace('<!-- flood:record-workspace -->', '```tsx\n' + source.trimEnd() + '\n```');
+  }
   return content;
 }

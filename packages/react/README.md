@@ -6,8 +6,14 @@ HTML semantics and refs, no third-party component library or Tailwind dependency
 Named imports support tree shaking in optimizing ES-module bundlers. Import the
 shared stylesheet explicitly; styles are not split by component.
 
-This package documents the **0.2.10** source API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.11** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
+
+Toolbar supports shape="rounded" (default) or "pill". OverflowActions uses
+shape="pill" by default and forwards that capability to Toolbar; choose rounded
+for the earlier geometry. A horizontal pill toolbar stays on one scrollable rail.
+Read-only text controls retain keyboard focus and copying while preventing edits
+and picker activation; they are not disabled controls.
 
 Version 0.2.10 adds Fieldset legendSize="label" | "section"
 (default label). Independent section legends use a 1rem/600 role; named fields
@@ -962,3 +968,38 @@ Popover positionReference optionally supplies a connected same-document element 
 DateRangeField, RangeCalendar and DateRangePicker (0.2.7) share ordered range values and the original Calendar grid. ResizablePanels adds real pointer/keyboard geometry above static Split. ErrorSummary links host validation to native controls. See each generated catalog page and its guide under docs/components/. DateField validationMessage adds an external native constraint after the field's own date validity.
 
 Menu (0.2.7) supports recursive submenu items and ContextMenu reuses its native layer engine. Context triggers preserve the actual pointer/keyboard source; nested searches stay scoped, Escape unwinds one level and Tab exits through the root. See docs/components/menu.md and context-menu.md.
+
+## Collection contracts in 0.2.11
+
+Autocomplete submits free text, including strings outside its suggestions.
+Combobox and MultiSelect continue submitting IDs. Search controls accept local
+filtering (default) or manual filtering with controlled query/value and
+optionsQuery identifying the result. A mismatched result stays nonselectable.
+loadState distinguishes ready/loading/error; onRetry is an optional host action.
+Use selectedOptions to retain a selected record's presentation while results
+change. Query cancellation and transport stay with the host. Options may have
+group labels; option IDs remain globally unique.
+
+OverflowActions takes named command items, an onAction callback, optional priority,
+size/variant and a localized moreLabel. It preserves source order and moves lower
+priorities to an existing Menu. It is not a navigation-link container. Menubar
+coordinates menus with controlled/uncontrolled openValue and roving triggers;
+child commands reuse Menu. Use native links for destinations. Button/IconButton
+tone="danger" uses existing semantic colors within FloodRoot, independently of
+prominence. Tone itself does not confirm a destructive operation.
+
+DataTable paginationMode="server" renders supplied rows without sorting/slicing.
+Provide page/onPageChange and nonnegative totalRows; sortable columns also require
+controlled sort (null when absent) and onSortChange. Reconcile an out-of-range page
+when a query changes; ready rows must match pageSize/totalRows. Selection defaults
+to the supplied page in server mode and the full collection in client mode.
+Server selectionScope="dataset" requires controlled selectedIds/onSelectionChange;
+the host validates IDs outside the page. Checkboxes only select the current page.
+This API does not fetch, cancel requests, select an entire remote query, virtualize
+or manage column visibility/resizing/pinning.
+
+DatePicker and DateRangePicker pass viewLabels to their calendars. Calendar panels
+use minimal Popover chrome, with Escape/selection/trigger dismissal; there is no
+separate hidden close-button API. DateTimePicker datePickerLabels/timePickerLabels
+forward popup labels plus segmentLabels and validation messages. DateTimeRangePicker
+exposes corresponding start/end label objects; outer field labels remain distinct.

@@ -48,7 +48,7 @@ Its promotional language is not a vocabulary for the host's working interface.
 See the full [interface content skill](/agent/references/flood-interface-content/SKILL.md)
 and [decision examples](/agent/references/interface-content-examples.md). The
 matching installed CLI can discover and read workflow:interface-content. This
-additive guidance is part of 0.2.10; installed projects
+additive guidance is part of 0.2.11; installed projects
 keep their current versions and customized guide copies.
 
 ## Review the result

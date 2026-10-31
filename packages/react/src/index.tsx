@@ -71,6 +71,38 @@ import { HoverPreview } from "./hover-card.js";
 import { HierarchicalSelect } from "./tree-select.js";
 import { CivilDateTimePicker } from "./date-time-picker.js";
 import { HierarchicalNavigation } from "./navigation-tree.js";
+import { AdaptiveActions } from "./overflow-actions.js";
+import { ApplicationMenubar } from "./menubar.js";
+
+export interface OverflowAction extends MenuActionItem {
+  /** Higher priority actions remain visible longer; source order stays unchanged. */
+  priority?: number;
+}
+export interface OverflowActionsProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "onAction"> {
+  label: string;
+  items: readonly OverflowAction[];
+  onAction?: (id: string) => void;
+  moreLabel?: string;
+  size?: "sm" | "md" | "lg" | "xl";
+  variant?: ButtonProps["variant"];
+  shape?: ToolbarProps["shape"];
+  disabled?: boolean;
+}
+/** Priority-based overflow composed from Toolbar, Button and Menu. @since 0.2.11 */
+export const OverflowActions = /* @__PURE__ */ forwardRef<HTMLDivElement, OverflowActionsProps>(function OverflowActions(props, ref) { return <AdaptiveActions {...props} ref={ref}/>; });
+export interface MenubarMenu { id: string; label: string; disabled?: boolean; items: readonly MenuItem[]; }
+export interface MenubarProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "onAction"> {
+  label: string;
+  menus: readonly MenubarMenu[];
+  openValue?: string | null;
+  defaultOpenValue?: string | null;
+  onOpenValueChange?: (id: string | null) => void;
+  onAction?: (menuId: string, actionId: string) => void;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  disabled?: boolean;
+}
+/** Desktop application commands; destinations use native links instead. @since 0.2.11 */
+export const Menubar = /* @__PURE__ */ forwardRef<HTMLDivElement, MenubarProps>(function Menubar(props, ref) { return <ApplicationMenubar {...props} ref={ref}/>; });
 
 export interface TimePickerProps extends Omit<TimeFieldProps,"end"> {
   interval?: number;
@@ -99,6 +131,10 @@ export interface DateTimeRangePickerProps extends Omit<HTMLAttributes<HTMLDivEle
   startTimeLabel?: string;
   endDateLabel?: string;
   endTimeLabel?: string;
+  startDatePickerLabels?: DateTimePickerProps["datePickerLabels"];
+  endDatePickerLabels?: DateTimePickerProps["datePickerLabels"];
+  startTimePickerLabels?: DateTimePickerProps["timePickerLabels"];
+  endTimePickerLabels?: DateTimePickerProps["timePickerLabels"];
   form?: string;
   required?: boolean;
   disabled?: boolean;
@@ -228,6 +264,11 @@ export interface DataTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
   defaultPage?: number;
   pageSize?: number;
   onPageChange?: (page: number) => void;
+  /** Server mode renders rows as the supplied page, without local sorting/slicing. */
+  paginationMode?: "client" | "server";
+  totalRows?: number;
+  /** Server dataset selection is controlled; the host validates IDs outside this page. */
+  selectionScope?: "page" | "dataset";
   state?: "ready" | "loading" | "error";
   onRetry?: () => void;
   labels?: DataTableLabels;
@@ -329,6 +370,8 @@ export interface DateTimePickerProps extends Omit<HTMLAttributes<HTMLDivElement>
   onValueChange?: (value: DateTimeValue) => void;
   dateLabel?: string;
   timeLabel?: string;
+  datePickerLabels?: Pick<DatePickerProps, "calendarLabel" | "openCalendarLabel" | "previousMonthLabel" | "nextMonthLabel" | "viewLabels" | "segmentLabels" | "messages">;
+  timePickerLabels?: Pick<TimePickerProps, "panelLabel" | "openTimeLabel" | "segmentLabels" | "messages">;
   dateName?: string;
   timeName?: string;
   form?: string;
@@ -481,6 +524,7 @@ export interface DateRangePickerProps extends Omit<DateRangeFieldProps, "end"> {
   onOpenChange?: (open: boolean) => void;
   calendarLabel?: string;
   openCalendarLabel?: string;
+  viewLabels?: CalendarProps["viewLabels"];
   locale?: string;
   weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   today?: string;
@@ -499,6 +543,7 @@ export interface DatePickerProps extends Omit<DateFieldProps, "end"> {
   onOpenChange?: (open: boolean) => void;
   calendarLabel?: string;
   openCalendarLabel?: string;
+  viewLabels?: CalendarProps["viewLabels"];
   locale?: string;
   weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   today?: string;
@@ -673,6 +718,7 @@ const classes = (...values: (string | undefined | false)[]) =>
 export type ControlSize = "2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "solid" | "subtle" | "outline" | "ghost";
+  tone?: "default" | "danger";
   size?: ControlSize;
   loading?: boolean;
 }
@@ -680,6 +726,7 @@ export const Button = /* @__PURE__ */ forwardRef<HTMLButtonElement, ButtonProps>
   function Button(
     {
       variant = "solid",
+      tone = "default",
       size = "md",
       loading = false,
       disabled,
@@ -695,6 +742,7 @@ export const Button = /* @__PURE__ */ forwardRef<HTMLButtonElement, ButtonProps>
         {...props}
         ref={ref}
         type={type}
+        data-tone={tone === "danger" ? tone : undefined}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
         className={classes(
@@ -749,6 +797,8 @@ export interface ToolbarProps extends Omit<HTMLAttributes<HTMLDivElement>, "role
   label: string;
   orientation?: "horizontal" | "vertical";
   loop?: boolean;
+  /** Pill keeps a single horizontal rail; rounded permits wrapped tool groups. */
+  shape?: "rounded" | "pill";
 }
 /** @since 0.2.4 */
 export const Toolbar = /* @__PURE__ */ forwardRef<HTMLDivElement, ToolbarProps>(function Toolbar(
@@ -1296,6 +1346,7 @@ export interface ComboboxOption {
   description?: string;
   keywords?: readonly string[];
   disabled?: boolean;
+  group?: string;
 }
 export interface ComboboxProps extends Omit<InputProps, "type" | "value" | "defaultValue" | "onChange" | "children"> {
   options: readonly ComboboxOption[];
@@ -1308,7 +1359,31 @@ export interface ComboboxProps extends Omit<InputProps, "type" | "value" | "defa
   toggleLabel?: string;
   clearLabel?: string;
   invalidSelectionMessage?: string;
+  query?: string;
+  onQueryChange?: (query: string) => void;
+  /** Manual results require a controlled query and a matching optionsQuery. */
+  filtering?: "local" | "manual";
+  optionsQuery?: string;
+  /** Retain the selected record's presentation while remote results change. */
+  selectedOptions?: readonly ComboboxOption[];
+  loadState?: "ready" | "loading" | "error";
+  loadingMessage?: string;
+  errorMessage?: string;
+  onRetry?: () => void;
+  retryLabel?: string;
 }
+export interface AutocompleteProps extends Omit<ComboboxProps, "query" | "onQueryChange" | "selectedOptions" | "value" | "defaultValue" | "onValueChange"> {
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  onOptionSelect?: (option: ComboboxOption) => void;
+}
+/** A free text field with suggestions; FormData contains text rather than an option ID. @since 0.2.11 */
+export const Autocomplete = /* @__PURE__ */ forwardRef<HTMLInputElement, AutocompleteProps>(function Autocomplete(
+  {value, defaultValue = "", onValueChange, onOptionSelect, ...props}, ref,
+) {
+  return <SearchSelection {...props} ref={ref} freeText textValue={value} initialText={defaultValue} onTextChange={onValueChange} onOptionSelect={onOptionSelect} initialValues={[]} />;
+});
 /** @since 0.2.5 */
 export const Combobox = /* @__PURE__ */ forwardRef<HTMLInputElement, ComboboxProps>(function Combobox(
   { value, defaultValue = "", onValueChange, clearable = false, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select an option.", controlSize = "md", ...props }, ref,

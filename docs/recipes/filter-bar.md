@@ -54,6 +54,7 @@ values. Expose active filters as removable Tag components when the filter set
 gets larger; do not add a duplicate generic FilterBar component just for layout.
 
 For remote data, debounce or submit at the host boundary, cancel obsolete requests
-and map loading/error states explicitly. Do not pass an individual server page to
-this client-paginated DataTable or interpret the page aggregate as server-wide
-selection. Use Table + Pagination for a remote query contract.
+and map loading/error states explicitly. Use DataTable paginationMode="server" for an individual server page with explicit
+controlled page/sort and totalRows; do not interpret its select-page checkbox as
+server-wide selection. Table + Pagination remains available for a host-owned
+contract. Follow recipe:record-workspace for request generations and recovery.

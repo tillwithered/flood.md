@@ -1,0 +1,13 @@
+.flood-root .flood-overflow-actions { position:relative; inline-size:100%; min-inline-size:0; }
+.flood-root .flood-overflow-actions__bar { display:flex; flex-wrap:nowrap; gap:var(--flood-sys-space-2); inline-size:100%; min-inline-size:0; overflow:auto; }
+.flood-root .flood-overflow-actions__bar > button { flex:none; }
+.flood-root .flood-overflow-actions__measure { position:absolute; visibility:hidden; pointer-events:none; inline-size:max-content; block-size:0; overflow:hidden; display:flex; gap:var(--flood-sys-space-2); }
+.flood-root .flood-menubar { display:flex; align-items:center; gap:var(--flood-sys-space-1); min-inline-size:0; max-inline-size:100%; overflow:auto; }
+.flood-root .flood-menubar > button { flex:none; }
+.flood-root .flood-button[data-tone="danger"] { --flood-action-content:var(--flood-sys-color-action-danger-content); }
+.flood-root .flood-button--solid[data-tone="danger"] {
+  --flood-action-rest:var(--flood-sys-color-action-danger-content);
+  --flood-action-hover:color-mix(in srgb,var(--flood-sys-color-action-danger-content),white 10%);
+  --flood-action-pressed:color-mix(in srgb,var(--flood-sys-color-action-danger-content),black 10%);
+  --flood-action-content:var(--flood-sys-color-surface-canvas);
+}

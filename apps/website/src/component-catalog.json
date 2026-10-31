@@ -19,7 +19,7 @@
     "name": "Text",
     "group": "typography",
     "description": "Role-based interface text, from introductory copy to small supporting details.",
-    "code": "<Stack gap=\"3\">\n  <Text as=\"p\" size=\"lead\">A calm foundation for your next idea.</Text>\n  <Text as=\"p\" size=\"compact\">Use the space to make it yours.</Text>\n</Stack>",
+    "code": "<Stack gap=\"3\">\n  <Text as=\"p\" size=\"lead\">Quarterly revenue</Text>\n  <Text as=\"p\" size=\"compact\">Revenue increased by 8% this quarter.</Text>\n</Stack>",
     "notes": [
       "Use as=\"p\" for paragraphs. The label size does not create a form association.",
       "Subtle is a supplementary tone; evaluate small required instructions against the actual background and font size."
@@ -751,7 +751,8 @@
       "Use Button, IconButton, Toggle, native buttons/links and Menu triggers. Keep inputs, Select, Tabs and ToggleGroup outside this action-only toolbar.",
       "Arrows move focus without activation; Home/End jump to the ends. Disabled and hidden actions are skipped. One Tab entry is established after hydration; before JavaScript native child tab order remains.",
       "Horizontal arrows follow writing direction. Vertical arrows move between actions; open a vertical toolbar Menu with Enter/Space. Horizontal menus retain ArrowUp/Down opening.",
-      "loop defaults to true. Native div props/ref target the toolbar; preserve a meaningful label. Available in 0.2.4."
+      "loop defaults to true. Native div props/ref target the toolbar; preserve a meaningful label. Available in 0.2.4.",
+      "shape defaults to rounded; pill uses the action radius and a horizontal single scrollable rail."
     ]
   },
   {
@@ -773,7 +774,7 @@
     "name": "Card",
     "group": "content",
     "description": "A structured surface for a heading, supporting content and independent actions.",
-    "code": "<Card title=\"Project details\" description=\"Keep your team in sync.\"\n  footer={<Button variant=\"subtle\">Open project</Button>}>\n  <Text as=\"p\" size=\"compact\">A calm place for the next idea.</Text>\n</Card>",
+    "code": "<Card title=\"Project details\" description=\"Release on 12 November\"\n  footer={<Button variant=\"subtle\">Open project</Button>}>\n  <Text as=\"p\" size=\"compact\">Homepage and checkout</Text>\n</Card>",
     "imports": [
       "Card",
       "Button",
@@ -1129,7 +1130,7 @@
     "name": "Figure",
     "group": "content",
     "description": "A native figure that keeps media and its caption together.",
-    "code": "<Figure caption=\"A calm foundation for the next idea.\"><Surface padding=\"6\">Project preview</Surface></Figure>",
+    "code": "<Figure caption=\"Homepage, desktop layout\"><Surface padding=\"6\">Project preview</Surface></Figure>",
     "imports": [
       "Figure",
       "Surface"
@@ -1738,7 +1739,7 @@
     "name": "RadioCard",
     "group": "forms",
     "description": "A native radio choice presented as a selectable content card.",
-    "code": "<Fieldset legend=\"Plan\">\n  <Stack gap=\"2\">\n    <RadioCard name=\"plan\" value=\"starter\" label=\"Starter\" description=\"For your next idea.\" metadata=\"Free\" defaultChecked />\n    <RadioCard name=\"plan\" value=\"team\" label=\"Team\" description=\"For working together.\" metadata=\"$12 / month\" />\n  </Stack>\n</Fieldset>",
+    "code": "<Fieldset legend=\"Plan\">\n  <Stack gap=\"2\">\n    <RadioCard name=\"plan\" value=\"starter\" label=\"Starter\" description=\"1 project, up to 3 members\" metadata=\"Free\" defaultChecked />\n    <RadioCard name=\"plan\" value=\"team\" label=\"Team\" description=\"Unlimited projects, up to 25 members\" metadata=\"$12 / month\" />\n  </Stack>\n</Fieldset>",
     "notes": [
       "Group choices in a Fieldset and give them the same name.",
       "Native arrow-key behavior, forms and reset remain available. Apply readOnly consistently to the whole group."
@@ -1881,6 +1882,50 @@
     ],
     "imports": [
       "DateTimeRangePicker"
+    ]
+  },
+  {
+    "slug": "autocomplete",
+    "name": "Autocomplete",
+    "group": "forms",
+    "description": "A free text field with optional suggestions; accepts values outside the list.",
+    "code": "<Field label=\"Team\">{control => <Autocomplete {...control} name=\"team\" options={[{value:\"design\",label:\"Design\",group:\"Product\"},{value:\"engineering\",label:\"Engineering\",group:\"Product\"},{value:\"operations\",label:\"Operations\",group:\"Business\"}]} />}</Field>",
+    "imports": [
+      "Field",
+      "Autocomplete"
+    ],
+    "notes": [
+      "The submitted value is text, not an option ID. Use Combobox for fixed choices.",
+      "Manual suggestions use controlled value and optionsQuery; stale results cannot be chosen. Network ownership remains with the host."
+    ]
+  },
+  {
+    "slug": "overflow-actions",
+    "name": "OverflowActions",
+    "group": "actions",
+    "description": "A priority-based action row that moves commands into a More menu when space is limited.",
+    "code": "<OverflowActions label=\"Document actions\" shape=\"pill\" items={[{id:\"save\",label:\"Save\",priority:10},{id:\"duplicate\",label:\"Duplicate\"},{id:\"archive\",label:\"Archive\"}]} />",
+    "imports": [
+      "OverflowActions"
+    ],
+    "notes": [
+      "Compose commands rather than links. Higher priority remains visible longer; source order is preserved.",
+      "Uses existing Toolbar, Button, IconSlot and Menu; hidden measurements are inert and excluded from the accessibility tree.",
+      "shape defaults to pill; rounded restores the field-radius Toolbar shell. Available width excludes Toolbar padding."
+    ]
+  },
+  {
+    "slug": "menubar",
+    "name": "Menubar",
+    "group": "actions",
+    "description": "Coordinated desktop application command menus with roving triggers and shared open state.",
+    "code": "<Menubar label=\"Editor commands\" menus={[{id:\"file\",label:\"File\",items:[{id:\"new\",label:\"New document\"},{id:\"export\",label:\"Export\"}]},{id:\"edit\",label:\"Edit\",items:[{id:\"undo\",label:\"Undo\"},{id:\"redo\",label:\"Redo\",disabled:true}]}]} />",
+    "imports": [
+      "Menubar"
+    ],
+    "notes": [
+      "Arrow keys coordinate enabled menu triggers; child menus reuse Menu focus and dismissal.",
+      "Use native links and NavigationList for destinations, not Menubar. Controlled openValue may refuse transitions."
     ]
   }
 ]

@@ -16,6 +16,15 @@ async function fixture() {
 }
 async function open(page:Page){bundle??=fixture();await page.route("**/__numeric.html",async route=>route.fulfill({contentType:"text/html",body:await bundle}));await page.goto('/__numeric.html');}
 
+test('NumberInput stays a single control in dense enlarged table-width tracks',async({page})=>{
+ await open(page);await page.evaluate(()=>{document.documentElement.style.fontSize='24px';const group=document.querySelector<HTMLElement>('.flood-number-input')!;group.style.width='7.75rem';});
+ const group=page.locator('.flood-number-input').first();const geometry=await group.evaluate(node=>{const outer=node.getBoundingClientRect(),input=node.querySelector('input')!.getBoundingClientRect(),buttons=[...node.querySelectorAll('button')].map(button=>button.getBoundingClientRect());return{outer:{width:outer.width,height:outer.height},input:{left:input.left,right:input.right,y:input.y+input.height/2},buttons:buttons.map(b=>({left:b.left,right:b.right,y:b.y+b.height/2}))};});
+ expect(geometry.outer.height).toBeLessThan(70);expect(geometry.outer.width).toBeLessThanOrEqual(187);
+ for(const button of geometry.buttons)expect(Math.abs(button.y-geometry.input.y)).toBeLessThan(2);
+ expect(geometry.buttons[0].right).toBeLessThanOrEqual(geometry.input.left);expect(geometry.input.right).toBeLessThanOrEqual(geometry.buttons[1].left);
+ await group.getByRole('button',{name:'Increase value',exact:true}).click();await expect(page.getByRole('spinbutton',{name:'Seats'})).toHaveValue('1.1');
+});
+
 test('NumberInput supports decimal steps, empty edits, validity and reset',async({page})=>{
  await open(page);const input=page.getByRole('spinbutton',{name:'Seats'});await page.getByRole('button',{name:'Increase value',exact:true}).first().click();await expect(input).toHaveValue('1.1');await input.press('ArrowDown');await expect(input).toHaveValue('1');await input.fill('');await expect(input).toHaveValue('');await input.fill('99');await input.blur();await expect(input).toHaveValue('10');await expect(page.getByRole('button',{name:'Increase value',exact:true}).first()).toBeDisabled();await input.fill('1.15');expect(await input.evaluate((node:HTMLInputElement)=>node.validity.stepMismatch)).toBe(true);await input.fill('2.5');await page.getByRole('button',{name:'Submit',exact:true}).click();await expect(page.getByRole('status',{name:'Submitted values'})).toContainText('["seats","2.5"]');await page.getByRole('button',{name:'Reset form'}).click();await expect(input).toHaveValue('1');
 });

@@ -181,7 +181,7 @@ export const MenuLayer = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuLayerPro
         aria-haspopup={submenu ? "menu" : undefined} aria-expanded={submenu ? openChild === item.id && !item.disabled : undefined}
         aria-controls={submenu ? childId : undefined} tabIndex={-1} variant="ghost" size={controlSize}
         aria-label={item.label} aria-disabled={item.disabled || undefined} data-label={item.label} data-menu-id={item.id}
-        data-tone={"tone" in item ? item.tone : undefined} data-submenu={submenu || undefined} className="flood-menu__item"
+        tone={"tone" in item ? item.tone : undefined} data-submenu={submenu || undefined} className="flood-menu__item"
         onPointerDown={event => {pointerType.current = event.pointerType;}}
         onPointerEnter={event => {if (event.pointerType === "mouse") scheduleHover(item,event.currentTarget);}}
         onPointerLeave={() => clearHover()}

@@ -34,6 +34,8 @@
 .flood-root .flood-kbd[data-size="lg"] { min-inline-size: var(--flood-sys-size-keycap-lg); min-block-size: var(--flood-sys-size-keycap-lg); font-size: var(--flood-sys-type-body-size); }
 .flood-root .flood-toolbar { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--flood-sys-space-1); box-sizing: border-box; inline-size: fit-content; max-inline-size: 100%; min-inline-size: 0; padding: var(--flood-sys-space-1); border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-field); background: var(--flood-sys-color-surface-default); }
 .flood-root .flood-toolbar[data-orientation="vertical"] { flex-direction: column; align-items: stretch; }
+.flood-root .flood-toolbar[data-shape="pill"] { border-radius: var(--flood-sys-radius-action); }
+.flood-root .flood-toolbar[data-shape="pill"][data-orientation="horizontal"] { flex-wrap: nowrap; overflow: auto; }
 .flood-root .flood-toolbar:focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: calc(-1 * var(--flood-sys-focus-width)); }
 .flood-root .flood-toolbar[data-orientation="horizontal"] > .flood-divider { align-self: stretch; inline-size: var(--flood-sys-stroke-width); block-size: auto; border: 0; border-inline-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); margin-inline: var(--flood-sys-space-1); margin-block: var(--flood-sys-space-1); }
 .flood-root .flood-toolbar[data-orientation="vertical"] > .flood-divider { align-self: stretch; inline-size: 100%; block-size: var(--flood-sys-stroke-width); border: 0; border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); margin-block: var(--flood-sys-space-1); }
@@ -387,6 +389,8 @@
   font-weight: var(--flood-sys-type-compact-weight);
 }
 .flood-root .flood-number-input > .flood-input { text-align: center; appearance: textfield; font-variant-numeric: tabular-nums; }
+.flood-root .flood-input-group.flood-number-input { flex-wrap: nowrap; min-inline-size: calc(2 * var(--flood-group-height) + 2 * var(--flood-control-gap) + 2ch); }
+.flood-root .flood-input-group.flood-number-input > .flood-input { flex: 1 1 4ch; min-inline-size: 2ch; }
 .flood-root .flood-number-input > .flood-input::-webkit-inner-spin-button,
 .flood-root .flood-number-input > .flood-input::-webkit-outer-spin-button { appearance: none; margin: 0; }
 .flood-root .flood-slider { --flood-slider-thumb: var(--flood-control-icon); min-inline-size: 0; inline-size: 100%; }

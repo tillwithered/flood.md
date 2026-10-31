@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.11 · Unreleased — collection and workspace contracts
+
+- Add shared Toolbar shape control and use pill geometry for OverflowActions;
+  route component authors and downstream composites to the same family guide.
+
+- Add Autocomplete for free text, OverflowActions for priority-based command
+  overflow and Menubar for coordinated desktop command menus, composed from
+  existing Flood owners. Add semantic danger tone to Button/IconButton.
+- Extend Combobox/MultiSelect with controlled/manual search, result identity,
+  loading/error/retry, option grouping and retained selected record presentation.
+- Add opt-in server DataTable pagination with controlled page/sort and explicit
+  page/dataset selection scope. Existing client mode keeps its defaults.
+- Forward Calendar view labels and date/time segment/message options through
+  composed pickers; use the existing minimal Popover anatomy for calendar panels.
+- Keep NumberInput actions/value on one row in dense enlarged-text tracks.
+- Replace generic filler in canonical examples and align routed guidance with
+  real content, workspace anchors and persistence recovery.
+
+These compatible pre-1.0 additions follow the 0.2 stabilization patch policy.
+All four packages remain aligned; source availability does not establish npm
+publication. Animation/theme expansion is outside this candidate.
+
+
 ## 0.2.10 · 2026-10-31 — agent knowledge and form hierarchy
 
 - Separate dialog-title, group-title and field-label token roles. Give named fields

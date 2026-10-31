@@ -92,3 +92,18 @@ Show a real success only after the host operation succeeds. Explain consequentia
 storage limits once where they matter; a local example does not require a banner
 or repeated captions about its implementation. Follow the interface-content
 workflow for placement and wording.
+
+## Search values and remote collections
+
+Combobox/MultiSelect submit selected IDs. Autocomplete accepts arbitrary text and
+submits that text; choosing a suggestion does not turn it into an ID field.
+Do not weaken a fixed-choice requirement merely to accept a failed search.
+Manual filtering requires controlled query (Autocomplete: value), optionsQuery
+identifying the accepted result and explicit loadState. Keep selectedOptions
+while result pages change. The host owns fetching, cancellation and stale response
+rejection; the control also prevents choosing options for another query.
+
+Keep errors/loading distinct from zero matches and provide onRetry when useful.
+Test Enter, Escape, blur, native reset, controlled refusal, IME, disabled/readonly
+and actual FormData. Query completion, selection and text editing are separate
+events. Do not announce success merely because a fetch callback fired.

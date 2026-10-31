@@ -5,16 +5,21 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
   caption,hideCaption=false,columns,rows,density="comfortable",striped=false,minWidth="40rem",
   sort:controlledSort,defaultSort=null,onSortChange,locale="en",selectable=false,
   selectedIds,defaultSelectedIds=[],onSelectionChange,page:controlledPage,defaultPage=1,pageSize=10,onPageChange,
+  paginationMode="client",totalRows,selectionScope,
   state="ready",onRetry,labels={},className,...props
 },ref){
   if(!caption.trim()||columns.length===0||columns.some(column=>!column.id.trim()||!column.label.trim())||new Set(columns.map(column=>column.id)).size!==columns.length)throw new Error("Flood DataTable requires a caption and unique named columns");
   if(rows.some(row=>!row.id.trim()||(row.label!==undefined&&!row.label.trim()))||new Set(rows.map(row=>row.id)).size!==rows.length)throw new Error("Flood DataTable rows require unique nonempty IDs and labels");
   if(!Number.isSafeInteger(pageSize)||pageSize<1||!Number.isSafeInteger(defaultPage)||defaultPage<1||(controlledPage!==undefined&&(!Number.isSafeInteger(controlledPage)||controlledPage<1)))throw new Error("Flood DataTable page and pageSize must be positive safe integers");
+  const server=paginationMode==="server",scope=selectionScope??(server?"page":"dataset");
+  if(server&&(controlledPage===undefined||!onPageChange||!Number.isSafeInteger(totalRows)||(totalRows??-1)<0))throw new Error("Flood server DataTable requires page, onPageChange and a nonnegative totalRows");
+  if(server&&columns.some(column=>column.sortable)&&(controlledSort===undefined||!onSortChange))throw new Error("Flood server sorting requires sort (or null) and onSortChange");
+  if(server&&selectable&&scope==="dataset"&&(selectedIds===undefined||!onSelectionChange))throw new Error("Flood server dataset selection must be controlled");
   const [localSort,setSort]=useState(defaultSort),[localSelected,setSelected]=useState<readonly string[]>(defaultSelectedIds),[localPage,setPage]=useState(defaultPage);
   const requestedSort=controlledSort===undefined?localSort:controlledSort;
   const sorting=requestedSort&&columns.some(column=>column.id===requestedSort.column&&column.sortable)?requestedSort:null;
   const sorted=useMemo(()=>{
-    if(!sorting)return [...rows];
+    if(server||!sorting)return [...rows];
     const collator=new Intl.Collator(locale,{numeric:true,sensitivity:"base"});
     const value=(row:DataTableRow)=>{
       const explicit=row.sortValues?.[sorting.column];
@@ -28,13 +33,15 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
       const comparison=typeof left==="number"&&typeof right==="number"?left-right:collator.compare(String(left),String(right));
       return comparison===0?a.index-b.index:comparison*(sorting.direction==="ascending"?1:-1);
     }).map(entry=>entry.row);
-  },[rows,sorting?.column,sorting?.direction,locale]);
-  const pageCount=Math.max(1,Math.ceil(rows.length/pageSize)),page=Math.min(controlledPage??localPage,pageCount);
-  const visible=sorted.slice((page-1)*pageSize,page*pageSize),eligible=new Set(rows.filter(row=>!row.selectionDisabled).map(row=>row.id));
-  const selection=[...new Set(selectedIds??localSelected)].filter(id=>eligible.has(id)),chosen=new Set(selection);
+  },[rows,sorting?.column,sorting?.direction,locale,server]);
+  const total=server?totalRows!:rows.length,pageCount=Math.max(1,Math.ceil(total/pageSize)),page=server?controlledPage!:Math.min(controlledPage??localPage,pageCount);
+  if(server&&state==="ready"&&(page>pageCount||rows.length>pageSize||(page-1)*pageSize+rows.length>total))throw new Error("Flood server rows and page must match totalRows/pageSize; reconcile the page after a query change");
+  const visible=server?sorted:sorted.slice((page-1)*pageSize,page*pageSize),eligible=new Set((scope==="page"?visible:rows).filter(row=>!row.selectionDisabled).map(row=>row.id));
+  const accepts=(id:string)=>server&&scope==="dataset"?!rows.some(row=>row.id===id&&row.selectionDisabled):eligible.has(id);
+  const selection=[...new Set(selectedIds??localSelected)].filter(accepts),chosen=new Set(selection);
   const pageChoices=visible.filter(row=>!row.selectionDisabled),all=pageChoices.length>0&&pageChoices.every(row=>chosen.has(row.id)),some=pageChoices.some(row=>chosen.has(row.id));
   const blocked=state!=="ready";
-  const select=(next:string[])=>{if(blocked)return;const accepted=[...new Set(next)].filter(id=>eligible.has(id));if(selectedIds===undefined)setSelected(accepted);onSelectionChange?.(accepted);};
+  const select=(next:string[])=>{if(blocked)return;const accepted=[...new Set(next)].filter(accepts);if(selectedIds===undefined)setSelected(accepted);onSelectionChange?.(accepted);};
   const changePage=(next:number)=>{if(blocked)return;if(controlledPage===undefined)setPage(next);onPageChange?.(next);};
   const changeSort=(column:string)=>{
     if(blocked)return;
@@ -68,9 +75,9 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
       </td></tr>}</tbody>
     </Table>
     <div className="flood-data-table__footer">
-      <Text as="p" size="helper" tone="subtle">{state==="ready"?resultLabel(rows.length?(page-1)*pageSize+1:0,Math.min(page*pageSize,rows.length),rows.length):""}</Text>
-      {selectable&&<Text as="p" size="helper" tone="subtle" role="status">{(labels.selection??((count:number,total:number)=>`${count} of ${total} selected`))(selection.length,eligible.size)}</Text>}
-      {pageCount>1&&<Pagination page={page} pageCount={pageCount} onPageChange={changePage} disabled={blocked} label={labels.pagination} previousLabel={labels.previousPage} nextLabel={labels.nextPage} pageLabel={labels.page}/>}
+      <Text as="p" size="helper" tone="subtle">{state==="ready"?resultLabel(visible.length?(page-1)*pageSize+1:0,visible.length?(page-1)*pageSize+visible.length:0,total):""}</Text>
+      {selectable&&<Text as="p" size="helper" tone="subtle" role="status">{(labels.selection??((count:number,total:number)=>`${count} of ${total} selected`))(selection.length,server&&scope==="dataset"?total:eligible.size)}</Text>}
+      {pageCount>1&&<Pagination page={Math.min(page,pageCount)} pageCount={pageCount} onPageChange={changePage} disabled={blocked} label={labels.pagination} previousLabel={labels.previousPage} nextLabel={labels.nextPage} pageLabel={labels.page}/>}
     </div>
   </div>;
 });

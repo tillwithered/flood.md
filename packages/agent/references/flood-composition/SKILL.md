@@ -5,6 +5,10 @@ description: Build or review Flood UI from existing library primitives before ad
 
 # Compose Flood from its primitives
 
+When adding a reusable component or changing its visual contract, read
+[component families](../component-families.md) before choosing anatomy, sizing,
+shape or states. It governs Flood's own components as well as host composites.
+
 Existing Flood components are the building blocks, including inside other Flood
 components. Preserve their anatomy and behavior when improving a composition.
 Read the governing project instructions, matching declarations and relevant

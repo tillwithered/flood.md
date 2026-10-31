@@ -21,6 +21,7 @@ export const docPages = [
   { path: "/docs/recipes/workspace-review", label: "Workspace review", file: "recipes/workspace-review.md", description: "A local form and file drawer composed from Flood primitives and task-focused skills.", group: "recipes" },
   { path: "/docs/recipes/table-bulk-actions", label: "Table bulk actions", file: "recipes/table-bulk-actions.md", description: "Host-owned table selection, action scope and local confirmation from existing components.", group: "recipes" },
   { path: "/docs/recipes/grouped-form", label: "Grouped form", file: "recipes/grouped-form.md", description: "Shared form tracks, semantic groups and optional fields composed from Flood primitives.", group: "recipes" },
+  { path: "/docs/recipes/record-workspace", label: "Record workspace", file: "recipes/record-workspace.md", description: "Stable workspace geometry, remote page ownership, selection and explicit data recovery.", group: "recipes" },
 ];
 export const componentSlugs = catalog.map(component => component.slug);
 export const pagePaths = new Set([
