@@ -41,6 +41,13 @@ a Badge/Progress/Dialog implementation just to make one layout fit.
 
 ## Files and responsibilities
 
+For reusable components, the composition skill also routes to
+[component families](../packages/agent/references/component-families.md): choose
+the closest existing anatomy and compare sizing, shape, nested insets and states
+in the same scene. Flood's repository instructions require that same guide for
+its own authors. Installed projects receive it through the matching manifest and
+knowledge catalog; existing customized guides are not silently overwritten.
+
 | Project file | For whom / when | Prerequisite | Source of truth | What to check |
 | --- | --- | --- | --- | --- |
 | flood.json | Developer / agent, setup or upgrade | Existing React project | Exact installed release, framework and paths | Matching CLI doctor |

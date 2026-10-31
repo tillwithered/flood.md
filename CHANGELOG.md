@@ -2,6 +2,9 @@
 
 ## 0.2.11 · Unreleased — collection and workspace contracts
 
+- Add shared Toolbar shape control and use pill geometry for OverflowActions;
+  route component authors and downstream composites to the same family guide.
+
 - Add Autocomplete for free text, OverflowActions for priority-based command
   overflow and Menubar for coordinated desktop command menus, composed from
   existing Flood owners. Add semantic danger tone to Button/IconButton.

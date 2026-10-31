@@ -751,7 +751,8 @@
       "Use Button, IconButton, Toggle, native buttons/links and Menu triggers. Keep inputs, Select, Tabs and ToggleGroup outside this action-only toolbar.",
       "Arrows move focus without activation; Home/End jump to the ends. Disabled and hidden actions are skipped. One Tab entry is established after hydration; before JavaScript native child tab order remains.",
       "Horizontal arrows follow writing direction. Vertical arrows move between actions; open a vertical toolbar Menu with Enter/Space. Horizontal menus retain ArrowUp/Down opening.",
-      "loop defaults to true. Native div props/ref target the toolbar; preserve a meaningful label. Available in 0.2.4."
+      "loop defaults to true. Native div props/ref target the toolbar; preserve a meaningful label. Available in 0.2.4.",
+      "shape defaults to rounded; pill uses the action radius and a horizontal single scrollable rail."
     ]
   },
   {
@@ -1903,13 +1904,14 @@
     "name": "OverflowActions",
     "group": "actions",
     "description": "A priority-based action row that moves commands into a More menu when space is limited.",
-    "code": "<OverflowActions label=\"Document actions\" items={[{id:\"save\",label:\"Save\",priority:10},{id:\"duplicate\",label:\"Duplicate\"},{id:\"archive\",label:\"Archive\"}]} />",
+    "code": "<OverflowActions label=\"Document actions\" shape=\"pill\" items={[{id:\"save\",label:\"Save\",priority:10},{id:\"duplicate\",label:\"Duplicate\"},{id:\"archive\",label:\"Archive\"}]} />",
     "imports": [
       "OverflowActions"
     ],
     "notes": [
       "Compose commands rather than links. Higher priority remains visible longer; source order is preserved.",
-      "Uses existing Toolbar, Button, IconSlot and Menu; hidden measurements are inert and excluded from the accessibility tree."
+      "Uses existing Toolbar, Button, IconSlot and Menu; hidden measurements are inert and excluded from the accessibility tree.",
+      "shape defaults to pill; rounded restores the field-radius Toolbar shell. Available width excludes Toolbar padding."
     ]
   },
   {

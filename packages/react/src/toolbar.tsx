@@ -5,7 +5,7 @@ const selector = 'button:not([role]),button[role="button"],a[href]:not([role]),a
 const independent = '[role="menu"],[role="tablist"],[role="radiogroup"],[role="listbox"],[role="combobox"],.flood-toggle-group';
 
 export const RovingToolbar = /* @__PURE__ */ forwardRef<HTMLDivElement, ToolbarProps>(function RovingToolbar(
-  { label, orientation = "horizontal", loop = true, className, onKeyDown, onKeyDownCapture, onFocus, ...props }, ref,
+  { label, orientation = "horizontal", loop = true, shape = "rounded", className, onKeyDown, onKeyDownCapture, onFocus, ...props }, ref,
 ) {
   const root = useRef<HTMLDivElement>(null), current = useRef<HTMLElement | null>(null), within = useRef(false);
   const refresh = useRef<() => HTMLElement[]>(() => []);
@@ -52,7 +52,7 @@ export const RovingToolbar = /* @__PURE__ */ forwardRef<HTMLDivElement, ToolbarP
     event.preventDefault(); current.current = controls[next]; controls[next].focus({ preventScroll: true }); controls[next].scrollIntoView({ block: "nearest", inline: "nearest" }); refresh.current();
   };
   return <div {...props} ref={root} role="toolbar" aria-label={label} aria-orientation={orientation} tabIndex={-1}
-    data-orientation={orientation} className={["flood-toolbar", className].filter(Boolean).join(" ")}
+    data-orientation={orientation} data-shape={shape} className={["flood-toolbar", className].filter(Boolean).join(" ")}
     onFocus={event => { onFocus?.(event); if (event.defaultPrevented) return; within.current = true; refresh.current(); }}
     onKeyDownCapture={event => { onKeyDownCapture?.(event); if (!event.defaultPrevented && orientation === "vertical" && (event.target as HTMLElement).getAttribute("aria-haspopup") === "menu" && ["ArrowUp", "ArrowDown"].includes(event.key)) move(event); }}
     onKeyDown={event => { onKeyDown?.(event); if (!event.defaultPrevented) move(event); }} />;

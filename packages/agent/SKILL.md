@@ -23,6 +23,10 @@ invented as a package API. No external component library or parallel token syste
 
 ## Read only the relevant reference
 
+For a reusable component or visual API change, the composition skill routes to
+[component families](references/component-families.md). Flood's own authors use
+that same contract; it is not limited to downstream screen generation.
+
 For a new screen, read the composition and interface-content workflows below
 before the first JSX. Discover owners in the installed catalog before choosing
 familiar low-level controls. Keep a short role → selected component → consulted

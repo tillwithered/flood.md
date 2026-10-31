@@ -3,7 +3,7 @@ import {Button, IconSlot, Menu, Toolbar, type OverflowAction, type OverflowActio
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export const AdaptiveActions = /* @__PURE__ */ forwardRef<HTMLDivElement, OverflowActionsProps>(function AdaptiveActions({
-  label, items, onAction, moreLabel="More actions", size="md", variant="subtle", disabled=false, className, ...props
+  label, items, onAction, moreLabel="More actions", size="md", variant="subtle", shape="pill", disabled=false, className, ...props
 }, ref) {
   if (!label.trim() || !moreLabel.trim() || items.some(item=>!item.id.trim() || !item.label.trim() || (item.priority!==undefined&&!Number.isFinite(item.priority))) || new Set(items.map(item=>item.id)).size!==items.length) throw new Error("Flood OverflowActions requires unique named actions and finite priorities");
   const root=useRef<HTMLDivElement>(null), measure=useRef<HTMLDivElement>(null), more=useRef<HTMLButtonElement>(null);
@@ -25,7 +25,8 @@ export const AdaptiveActions = /* @__PURE__ */ forwardRef<HTMLDivElement, Overfl
     const update=()=>{
       const widths=new Map([...measured.querySelectorAll<HTMLElement>('[data-measure-action]')].map(item=>[item.dataset.measureAction!,item.getBoundingClientRect().width]));
       const bar=node.querySelector<HTMLElement>('[role="toolbar"]'), gap=bar?parseFloat(view.getComputedStyle(bar).columnGap)||0:0;
-      const available=bar?.clientWidth??node.clientWidth, extra=measured.querySelector<HTMLElement>('[data-measure-more]')?.getBoundingClientRect().width??0;
+      const barStyle=bar?view.getComputedStyle(bar):null;
+      const available=Math.max(0,(bar?.clientWidth??node.clientWidth)-(barStyle?parseFloat(barStyle.paddingLeft)+parseFloat(barStyle.paddingRight):0)), extra=measured.querySelector<HTMLElement>('[data-measure-more]')?.getBoundingClientRect().width??0;
       const kept=new Set(items.map(item=>item.id));
       const width=()=>items.filter(item=>kept.has(item.id)).reduce((sum,item)=>sum+(widths.get(item.id)??0),0)+Math.max(0,kept.size-1)*gap;
       if(width()>available){
@@ -49,7 +50,7 @@ export const AdaptiveActions = /* @__PURE__ */ forwardRef<HTMLDivElement, Overfl
     if(focusAfter.current){focusAfter.current=false;(more.current??root.current?.querySelector<HTMLButtonElement>('[data-overflow-action]:not(:disabled)'))?.focus({preventScroll:true});}
   },[visibleIds,hidden.length,open]);
   return <div {...props} ref={root} className={["flood-overflow-actions",className].filter(Boolean).join(" ")}>
-    <Toolbar label={label} className="flood-overflow-actions__bar">
+    <Toolbar label={label} shape={shape} className="flood-overflow-actions__bar">
       {visible.map(item=>action(item))}
       {hidden.length>0&&<Menu label={moreLabel} items={hidden} open={open} onOpenChange={setOpen} onAction={onAction} disabled={disabled} controlSize={size}
         trigger={trigger=><Button {...trigger} ref={node=>{more.current=node;trigger.ref(node);}} size={size} variant={variant}>

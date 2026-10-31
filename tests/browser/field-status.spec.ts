@@ -11,7 +11,7 @@ test("readOnly prevents edits, permits selection and focus, and can be switched 
     await checkbox.check();
     await expect(field).toHaveAttribute("readonly", "");
     await expect(field).toHaveCSS("border-top-style", "dashed");
-    await expect(page.locator(".preview-stage")).toContainText("Read only. Select and copy.");
+    await expect(page.locator(".preview-stage")).not.toContainText("Read only. Select and copy.");
     await field.focus();
     await expect(field).toBeFocused();
     await expect(field).toHaveCSS("border-top-style", "solid");

@@ -74,7 +74,7 @@ test('server table never slices or sorts the supplied page and preserves dataset
  await page.locator('#server').getByRole('button',{name:'Next page',exact:true}).click();await expect(page.locator('#requests')).toContainText('page:3');await expect(page.locator('#server')).toContainText('3–4 of 6');
 });
 test('priority overflow preserves actions, disabled state and focus across resize',async({page})=>{
- await open(page);const root=page.locator('#adaptive'),archive=root.getByRole('button',{name:'Archive',exact:true});await archive.focus();
+ await page.setViewportSize({width:1440,height:1000});await open(page);const root=page.locator('#adaptive'),archive=root.getByRole('button',{name:'Archive',exact:true});await archive.focus();
  await root.evaluate(node=>{node.style.width='13rem';});const more=root.getByRole('button',{name:'More actions',exact:true});await expect(more).toBeVisible();await expect(more).toBeFocused();
  await more.click();await page.getByRole('menuitem',{name:'Archive',exact:true}).click();await expect(page.locator('#action')).toHaveText('archive');
  await root.evaluate(node=>{node.style.width='60rem';});await expect(more).toHaveCount(0);await expect(root.getByRole('button',{name:'Save',exact:true})).toBeVisible();

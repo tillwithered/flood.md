@@ -208,6 +208,17 @@
       ],
       "name": "Record metadata decisions",
       "description": "Contextual list/detail, comparison, category/state, priority and timestamp decisions across different tasks."
+    },
+    {
+      "id": "reference:component-families",
+      "source": "references/component-families.md",
+      "groups": [
+        "composition",
+        "foundations",
+        "quality"
+      ],
+      "name": "Component family authoring",
+      "description": "Build reusable components that share Flood anatomy, sizing, geometry and state contracts; compare rendered siblings before introducing a new recipe."
     }
   ],
   "componentGroups": {
@@ -437,6 +448,11 @@
       "workflow:feedback",
       "workflow:data-display",
       "workflow:interface-content"
+    ],
+    "reference:component-families": [
+      "workflow:composition",
+      "workflow:foundations",
+      "workflow:spacing"
     ]
   }
 }

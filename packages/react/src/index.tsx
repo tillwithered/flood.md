@@ -85,6 +85,7 @@ export interface OverflowActionsProps extends Omit<HTMLAttributes<HTMLDivElement
   moreLabel?: string;
   size?: "sm" | "md" | "lg" | "xl";
   variant?: ButtonProps["variant"];
+  shape?: ToolbarProps["shape"];
   disabled?: boolean;
 }
 /** Priority-based overflow composed from Toolbar, Button and Menu. @since 0.2.11 */
@@ -796,6 +797,8 @@ export interface ToolbarProps extends Omit<HTMLAttributes<HTMLDivElement>, "role
   label: string;
   orientation?: "horizontal" | "vertical";
   loop?: boolean;
+  /** Pill keeps a single horizontal rail; rounded permits wrapped tool groups. */
+  shape?: "rounded" | "pill";
 }
 /** @since 0.2.4 */
 export const Toolbar = /* @__PURE__ */ forwardRef<HTMLDivElement, ToolbarProps>(function Toolbar(

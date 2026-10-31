@@ -660,6 +660,28 @@
         "Dates identify useful events with suitable precision; formatted equality is not event equality",
         "Counts and supporting text add current value; necessary announcements remain"
       ]
+    },
+    {
+      "id": "composition.family",
+      "when": "Adding a reusable component or changing its visual contract",
+      "for": [
+        "designer",
+        "developer",
+        "agent",
+        "reviewer"
+      ],
+      "requires": [
+        "Closest existing component contracts",
+        "Actual host interaction requirements"
+      ],
+      "sourceOfTruth": "Matching source/installed declarations and semantic tokens",
+      "guide": "references/component-families.md",
+      "verify": [
+        "Closest siblings rendered at the same size, surface and root text scale",
+        "Shape, nested inset and content-box overflow budget checked together",
+        "Read-only editing restrictions kept separate from focus and disabled semantics",
+        "Another consumer checked after a shared primitive correction"
+      ]
     }
   ],
   "guideResolution": "Match guide to source in manifest.files; use its target relative to the host project root."

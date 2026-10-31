@@ -50,6 +50,8 @@ export function RecordWorkspace({storageKey="flood-recipe-projects-v1",storage,l
   const [response,setResponse]=useState<{key:string;page:ProjectPage;error?:string}|null>(null);
   const [operationError,setOperationError]=useState("");
   const [confirmation,setConfirmation]=useState<{kind:"replace"}|{kind:"delete";ids:string[]}|{kind:"leave";next:()=>void}|null>(null);
+  const workspace=useRef<HTMLElement>(null),[wide,setWide]=useState(false);
+  useEffect(()=>{const node=workspace.current;if(!node)return;const view=node.ownerDocument.defaultView!;const update=()=>setWide(node.getBoundingClientRect().width>=56*parseFloat(view.getComputedStyle(node.ownerDocument.documentElement).fontSize));update();const observer=new ResizeObserver(update);observer.observe(node);return()=>observer.disconnect();},[]);
   const generation=useRef(0),name=useRef<HTMLInputElement>(null),[split,setSplit]=useState(58);
   const records=collection.records,pageSize=5;
   const key=JSON.stringify({search,status,page,sort,revision,retry});
@@ -127,14 +129,14 @@ export function RecordWorkspace({storageKey="flood-recipe-projects-v1",storage,l
   </Stack>;
   const overview=useMemo(()=>records.reduce((totals,record)=>({...totals,[record.status]:totals[record.status]+1}),{active:0,archived:0}),[records]);
   const navigate=(href:string)=>(event:React.MouseEvent<HTMLAnchorElement>)=>{if(event.button||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;if(dirty){event.preventDefault();leave(()=>{window.location.hash=href;});}};
-  return <section aria-label="Project workspace"><Grid gap="6" style={{gridTemplateColumns:"minmax(8rem, 12rem) minmax(0, 1fr)",alignItems:"start"}}>
+  return <section ref={workspace} aria-label="Project workspace"><Grid gap="6" style={{gridTemplateColumns:wide?"minmax(8rem, 12rem) minmax(0, 1fr)":"minmax(0, 1fr)",alignItems:"start"}}>
     <NavigationList label="Project navigation" currentValue={view} items={[{value:"records",label:"Projects",href:"#record-workspace/records",linkProps:{onClick:navigate("#record-workspace/records")}},{value:"overview",label:"Overview",href:"#record-workspace/overview",linkProps:{onClick:navigate("#record-workspace/overview")}}]}/>
     <Stack gap="6" style={{minWidth:0,marginBlock:0}}>
       <Inline align="center" gap="4" style={{justifyContent:"space-between",minBlockSize:"2.5rem"}}><Heading level={2} size="page">{view==="records"?"Projects":"Overview"}</Heading>
         {collection.state==="ready"&&<Button onClick={()=>leave(()=>setDraft({record:{id:crypto.randomUUID(),name:"",owner:"",status:"active"},initial:null}))}>New project</Button>}</Inline>
       {collection.state==="error"?<Stack gap="4"><Alert tone="error">{collection.message}</Alert><Inline gap="3"><Button onClick={()=>{setCollection(readProjectCollection(storageKey,storage));setOperationError("");}}>Retry reading</Button>{collection.raw!==null&&<Button variant="subtle" onClick={exportRecovery}>Export recovery snapshot</Button>}<Button variant="subtle" tone="danger" onClick={()=>setConfirmation({kind:"replace"})}>Replace collection</Button></Inline>{operationError&&<Alert tone="error">{operationError}</Alert>}</Stack>:
         view==="overview"?<Grid minItemWidth="12rem" gap="4"><Surface padding="6"><Metric label="Active projects" value={overview.active}/></Surface><Surface padding="6"><Metric label="Archived projects" value={overview.archived}/></Surface></Grid>:
-        draft?<ResizablePanels label="Projects and editor" main={table} secondary={editor} value={split} onValueChange={setSplit} min={35} max={70}/>:table}
+        draft?(wide?<ResizablePanels label="Projects and editor" main={table} secondary={editor} value={split} onValueChange={setSplit} min={35} max={70}/>:<Stack gap="6">{table}{editor}</Stack>):table}
     </Stack>
     {confirmation&&<AlertDialog title={confirmation.kind==="replace"?"Replace unreadable records?":confirmation.kind==="delete"?"Delete selected projects?":"Discard changes?"}
       description={confirmation.kind==="replace"?"The saved snapshot will be replaced with an empty collection. Export it before continuing if available.":confirmation.kind==="delete"?`${confirmation.ids.length} selected projects will be removed from this collection.`:"Your edits to this project will be lost."}

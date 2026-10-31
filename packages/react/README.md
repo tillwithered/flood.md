@@ -9,6 +9,12 @@ shared stylesheet explicitly; styles are not split by component.
 This package documents the **0.2.11** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
+Toolbar supports shape="rounded" (default) or "pill". OverflowActions uses
+shape="pill" by default and forwards that capability to Toolbar; choose rounded
+for the earlier geometry. A horizontal pill toolbar stays on one scrollable rail.
+Read-only text controls retain keyboard focus and copying while preventing edits
+and picker activation; they are not disabled controls.
+
 Version 0.2.10 adds Fieldset legendSize="label" | "section"
 (default label). Independent section legends use a 1rem/600 role; named fields
 retain their 13px-equivalent label size with a .25rem inner gap. Dialog task
