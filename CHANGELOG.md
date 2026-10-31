@@ -2,6 +2,10 @@
 
 ## 0.2.11 · Unreleased — collection and workspace contracts
 
+- Add a typed collection-views recipe with shared filters/saved definitions for
+  DataTable and FileList. Reuse existing atoms; keep persistence/query ownership
+  in the host. Let OverflowActions fit its actual commands within available space.
+
 - Add shared Toolbar shape control and use pill geometry for OverflowActions;
   route component authors and downstream composites to the same family guide.
 

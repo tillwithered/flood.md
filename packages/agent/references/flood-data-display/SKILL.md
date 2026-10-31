@@ -5,6 +5,19 @@ description: Assemble Flood tables, lists, cards and file records with long or c
 
 # Compose meaningful data structures
 
+Enable selection when it has a real consequence: a bulk operation, comparison or
+another requested selection task. Do not add checkboxes merely because the table
+supports them. Exercise the resulting action with the actual accepted scope.
+
+For search, multiple conditions or saved query definitions, read
+recipe:collection-views from the installed catalog when available. Separate the
+working query, an uncommitted condition draft, a named saved definition and the
+result/selection state. Save filters and supported sort, not result IDs. Name-only
+edits must not commit dirty filters; deleting a view must not delete records.
+Reset/revalidate page and selection when the query changes. Preferences read
+failure need not hide an independently loaded collection, but must block writes
+to that failed store and must not be disguised as an empty saved-view list.
+
 Use the installed component contracts and
 [composition workflow](../flood-composition/SKILL.md). Start with the content's
 relationships, not a wrapper around every piece of text.

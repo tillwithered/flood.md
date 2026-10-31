@@ -301,6 +301,14 @@
         "component:data-table",
         "recipe:record-workspace"
       ]
+    },
+    {
+      "id": "collection-view-recipe",
+      "status": "available",
+      "description": "Typed host recipe for local query drafts and persisted enum-filter/sort views, shared by a table and file list; no new runtime export or remote query service.",
+      "materials": [
+        "recipe:collection-views"
+      ]
     }
   ],
   "documentGroups": {
@@ -378,6 +386,12 @@
       "composition",
       "data-feedback",
       "quality"
+    ],
+    "recipes/collection-views.md": [
+      "composition",
+      "data-feedback",
+      "interaction",
+      "quality"
     ]
   },
   "prerequisites": {
@@ -453,6 +467,15 @@
       "workflow:composition",
       "workflow:foundations",
       "workflow:spacing"
+    ],
+    "recipe:collection-views": [
+      "workflow:composition",
+      "workflow:forms",
+      "workflow:overlays",
+      "workflow:data-display",
+      "workflow:records",
+      "workflow:feedback",
+      "workflow:interface-content"
     ]
   }
 }

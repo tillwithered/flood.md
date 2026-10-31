@@ -67,3 +67,10 @@ Do not add unsupported props to examples or a parallel handwritten API index.
 Report executed behavioural/visual checks separately from guidance that was
 merely read. Record deliberate family exceptions instead of making an isolated
 fix the next component's accidental default.
+
+Track actual consumers and interactions for a proposed atom. Demonstrate a shared
+responsibility in different compositions before promoting a recipe helper into
+the package. Do not insert an owner merely to increase its usage count: one
+command can remain Button while a constrained command collection uses
+OverflowActions. Reuse is judged by correct roles and reachable behaviour, not
+the length of an import list.

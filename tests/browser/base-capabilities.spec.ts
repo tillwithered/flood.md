@@ -78,6 +78,7 @@ test('priority overflow preserves actions, disabled state and focus across resiz
  await root.evaluate(node=>{node.style.width='13rem';});const more=root.getByRole('button',{name:'More actions',exact:true});await expect(more).toBeVisible();await expect(more).toBeFocused();
  await more.click();await page.getByRole('menuitem',{name:'Archive',exact:true}).click();await expect(page.locator('#action')).toHaveText('archive');
  await root.evaluate(node=>{node.style.width='60rem';});await expect(more).toHaveCount(0);await expect(root.getByRole('button',{name:'Save',exact:true})).toBeVisible();
+ const rail=root.getByRole('toolbar');const insets=await rail.evaluate(node=>{const bounds=node.getBoundingClientRect(),buttons=[...node.querySelectorAll('button')],first=buttons[0].getBoundingClientRect(),last=buttons.at(-1)!.getBoundingClientRect();return{start:first.left-bounds.left,end:bounds.right-last.right};});expect(Math.abs(insets.start-insets.end)).toBeLessThanOrEqual(1);
  await page.evaluate(()=>{document.documentElement.style.fontSize='24px';});await root.evaluate(node=>{node.style.width='18rem';});await expect(root.getByRole('button',{name:'More actions',exact:true})).toBeVisible();
 });
 test('Menubar skips disabled triggers, coordinates arrows, keeps submenus and exits with Tab',async({page})=>{
