@@ -1,0 +1,3 @@
+.collection-examples { padding-block:var(--flood-sys-space-8); min-inline-size:0; }
+.collection-view-controls { min-inline-size:0; }
+.flood-root .collection-filter-editor { inline-size:min(42rem,calc(100vw - 2rem)); }

@@ -1,5 +1,8 @@
 # Filter bar
 
+For staged conditions and persisted query definitions, see
+[Collection views](collection-views.md) and its two working consumers.
+
 Compose existing Field, SearchInput, Select and Button. Filtering belongs to the
 host collection, not to DataTable. This recipe filters the full local data set
 before handing it to the table and resets page and selection when filters change.

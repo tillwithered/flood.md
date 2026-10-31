@@ -1,5 +1,5 @@
 .flood-root .flood-overflow-actions { position:relative; inline-size:100%; min-inline-size:0; }
-.flood-root .flood-overflow-actions__bar { display:flex; flex-wrap:nowrap; gap:var(--flood-sys-space-2); inline-size:100%; min-inline-size:0; overflow:auto; }
+.flood-root .flood-overflow-actions__bar { display:flex; flex-wrap:nowrap; gap:var(--flood-sys-space-2); inline-size:fit-content; max-inline-size:100%; min-inline-size:0; overflow:auto; }
 .flood-root .flood-overflow-actions__bar > button { flex:none; }
 .flood-root .flood-overflow-actions__measure { position:absolute; visibility:hidden; pointer-events:none; inline-size:max-content; block-size:0; overflow:hidden; display:flex; gap:var(--flood-sys-space-2); }
 .flood-root .flood-menubar { display:flex; align-items:center; gap:var(--flood-sys-space-1); min-inline-size:0; max-inline-size:100%; overflow:auto; }

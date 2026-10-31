@@ -26,7 +26,8 @@ export const AdaptiveActions = /* @__PURE__ */ forwardRef<HTMLDivElement, Overfl
       const widths=new Map([...measured.querySelectorAll<HTMLElement>('[data-measure-action]')].map(item=>[item.dataset.measureAction!,item.getBoundingClientRect().width]));
       const bar=node.querySelector<HTMLElement>('[role="toolbar"]'), gap=bar?parseFloat(view.getComputedStyle(bar).columnGap)||0:0;
       const barStyle=bar?view.getComputedStyle(bar):null;
-      const available=Math.max(0,(bar?.clientWidth??node.clientWidth)-(barStyle?parseFloat(barStyle.paddingLeft)+parseFloat(barStyle.paddingRight):0)), extra=measured.querySelector<HTMLElement>('[data-measure-more]')?.getBoundingClientRect().width??0;
+      const rootStyle=view.getComputedStyle(node);
+      const available=Math.max(0,node.clientWidth-parseFloat(rootStyle.paddingLeft)-parseFloat(rootStyle.paddingRight)-(barStyle?parseFloat(barStyle.paddingLeft)+parseFloat(barStyle.paddingRight)+parseFloat(barStyle.borderLeftWidth)+parseFloat(barStyle.borderRightWidth):0)), extra=measured.querySelector<HTMLElement>('[data-measure-more]')?.getBoundingClientRect().width??0;
       const kept=new Set(items.map(item=>item.id));
       const width=()=>items.filter(item=>kept.has(item.id)).reduce((sum,item)=>sum+(widths.get(item.id)??0),0)+Math.max(0,kept.size-1)*gap;
       if(width()>available){
