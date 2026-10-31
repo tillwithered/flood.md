@@ -38,6 +38,27 @@ Do not hide essential instructions or risks behind a tooltip merely
 to make a screen quieter. Preserve accessible names and associations when reducing
 visible copy; use the component's documented hideLabel API where appropriate.
 
+## Separate prototype provenance from product state
+
+An explicitly requested local prototype or fixture-backed test app does not need
+an always-visible Demo, Prototype, Local only or Test environment badge merely
+because of its development context. Put that provenance and its implementation
+limits in the project README, test brief or review handoff. Do not fill a sidebar
+footer, header or empty region with a reminder, or replace a removed badge with
+a differently worded banner.
+
+Keep a visible distinction when it changes a decision on this surface: sample
+records mixed with real records, a meaningful selectable simulation mode, or an
+action whose effect/destination differs between environments. Place it beside the
+affected record, choice or action. Do not invent a mode switch or warning flow to
+justify an environment label. An isolated prototype is not a mixed live workspace.
+
+Removing prototype chrome does not authorize claims of real live video, delivered
+messages, production connectivity or other unimplemented capabilities. Keep
+accurate object/media accessible names and action wording; document the simulation
+in the handoff. Real Draft/Pending/Offline record states are not prototype labels
+and must not be removed by a word-matching rule.
+
 ## Keep one vocabulary and an honest hierarchy
 
 Use the user's domain nouns and existing action terms. Name destinations by what

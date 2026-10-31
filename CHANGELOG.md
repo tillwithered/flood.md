@@ -8,6 +8,8 @@
   hierarchy guidance for shared tracks and deliberate row/group rhythm.
 - Keep DatePicker calendars readable with a preferred 20rem minimum bounded by
   available viewport width; retain selection/time-list sizing contracts.
+- Clarify prototype provenance: no automatic permanent demo badge; keep contextual
+  distinctions and accurate state/action/media wording where they affect decisions.
 - Add routed record-composition guidance and decision examples for list/detail
   metadata, stable scan positions, category/state/priority semantics, dates and
   collection states; discover and install it through the existing knowledge bundle.

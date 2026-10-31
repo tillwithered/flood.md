@@ -12,8 +12,11 @@ relationships, not a wrapper around every piece of text.
 Keep visual/test fixtures separate from the host's working records unless sample
 data is explicitly part of the task. Do not seed a new user's persisted list with
 fictional business records just to fill a screen. Use isolated test state for
-populated screenshots and exercise the real empty state. When samples are required,
-identify them at the relevant boundary, without adding repeated demo narration.
+populated screenshots and exercise the real empty state. When samples are required, identify their provenance in the test brief/README.
+A visible distinction is needed where it changes interpretation or action, such
+as sample records mixed with real records. Do not automatically add a permanent
+Demo badge to the shell of an explicitly requested isolated prototype; follow
+the interface-content workflow for contextual placement.
 
 - Table/DataTable preserve caption, headers, cell relationships and documented
   sorting/selection behavior. A footer represents a summary and should be

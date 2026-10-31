@@ -547,7 +547,8 @@
         "Titles, subtitles and hints do not repeat obvious context",
         "Accessible names, needed constraints and recovery remain available",
         "Each supporting sentence serves a specific decision or recovery need in the current state, not a hypothetical future risk",
-        "No standing implementation/storage caption merely because the data has a retention limitation"
+        "No standing implementation/storage caption merely because the data has a retention limitation",
+        "Prototype provenance stays in README/test handoff unless it changes a current record/choice/action; no automatic permanent environment badge"
       ]
     },
     {

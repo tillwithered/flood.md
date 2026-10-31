@@ -64,3 +64,13 @@ relates content to user intent and timing; [DWP hint guidance](https://design-sy
 asks whether a hint is needed; [GOV.UK error messages](https://design-system.service.gov.uk/components/error-message/)
 connect failure to recovery. These inform the workflow; their service-specific
 wording and punctuation conventions are not universal Flood rules.
+
+## Prototype context
+
+An explicitly requested local prototype does not require a permanent Demo or
+Prototype badge in the shell. Keep provenance and implementation limits in its
+README/test handoff. A visible distinction still belongs beside an affected
+record, choice or action when it changes interpretation, such as sample records
+mixed with real data or an existing simulation/live choice. Preserve accurate
+action and media names; removing a badge does not imply real connectivity or
+delivery. Draft, Pending and Offline remain meaningful record states.

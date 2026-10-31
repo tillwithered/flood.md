@@ -19,6 +19,9 @@ Keep the user's language, task and domain vocabulary.
 | “Verified and sent” appears after local syntax validation | Replace with the completed operation, such as “Invoice prepared” | Validation is not expert verification or delivery |
 | Empty search says “Welcome! Start your journey…” | State that there are no matches and offer a relevant reset | The collection already exists; this is a filtered result |
 | A test host repeatedly explains that its records are samples | Remove redundant disclaimers when the test context is already established | Test provenance can live in the test brief |
+| An explicitly requested local prototype has a permanent Demo badge in its sidebar | Remove the badge and its otherwise empty wrapper; retain provenance in README/test handoff | Development context is not an operational state or decision |
+| A working interface switches between simulated output and real external effects | Keep an accurate distinction at the choice or affected action, if this capability exists | The environment changes what the action does; do not invent a mode solely to justify a label |
+| A record is Draft or a camera is Offline inside a prototype | Keep the meaningful record state | Removing prototype narration is not permission to strip operational information |
 | A mixed production list includes sample records that could be mistaken for real ones | Keep a clear sample distinction on the affected records | It prevents a concrete misunderstanding |
 | A printed invoice has a document title, number and party headings | Keep the meaningful document hierarchy | A document is not the application's decorative page header |
 
