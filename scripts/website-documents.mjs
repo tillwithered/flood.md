@@ -25,5 +25,15 @@ export async function readWebsiteDocument(file, {workflows} = {}) {
     const source = await readFile('apps/website/src/recipes/record-workspace.tsx', 'utf8');
     content = content.replace('<!-- flood:record-workspace -->', '```tsx\n' + source.trimEnd() + '\n```');
   }
+  for (const [marker,path,language] of [
+    ['collection-views-model','apps/website/src/recipes/collection-views-model.ts','ts'],
+    ['collection-views-controls','apps/website/src/recipes/collection-views.tsx','tsx'],
+    ['collection-views-examples','apps/website/src/collections-playground.tsx','tsx'],
+  ]) {
+    if (content.includes(`<!-- flood:${marker} -->`)) {
+      const source=await readFile(path,'utf8');
+      content=content.replace(`<!-- flood:${marker} -->`,'```'+language+'\n'+source.trimEnd()+'\n```');
+    }
+  }
   return content;
 }

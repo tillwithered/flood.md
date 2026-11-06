@@ -8,6 +8,7 @@ import { SiteFooter } from './site-footer';
 
 const Examples = lazy(() => import("./examples"));
 const ContentBoard = lazy(() => import("./content-board"));
+const CollectionsPlayground = lazy(() => import("./collections-playground"));
 const command = `npx @flood-md/cli@${release.version} init`;
 
 function Home() {
@@ -35,6 +36,7 @@ function Home() {
 }
 
 export function App({ path, documentation: Reader }: { path: string; documentation?: ComponentType<{ path: string }> }) {
+  if (path === "/playground/collections") return <Suspense fallback={<p>Loading collections…</p>}><CollectionsPlayground /></Suspense>;
   if (path === "/playground/content") return <Suspense fallback={<p>Loading components…</p>}><ContentBoard /></Suspense>;
   if (path === "/playground") return <Suspense fallback={<p>Loading examples…</p>}><Examples /></Suspense>;
   const home = path === "/";

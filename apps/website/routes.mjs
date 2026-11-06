@@ -18,6 +18,7 @@ export const docPages = [
   { path: "/docs/recipes/split-button", label: "Split button", file: "recipes/split-button.md", description: "A primary action with an additional-actions menu.", group: "recipes" },
   { path: "/docs/recipes/form-submission", label: "Form submission", file: "recipes/form-submission.md", description: "Native validation, pending state and recoverable errors.", group: "recipes" },
   { path: "/docs/recipes/filter-bar", label: "Filter bar", file: "recipes/filter-bar.md", description: "Compose search and filters with a host-owned data table.", group: "recipes" },
+  { path: "/docs/recipes/collection-views", label: "Collection views", file: "recipes/collection-views.md", description: "Compose staged filters and saved query definitions for tables and file lists.", group: "recipes" },
   { path: "/docs/recipes/workspace-review", label: "Workspace review", file: "recipes/workspace-review.md", description: "A local form and file drawer composed from Flood primitives and task-focused skills.", group: "recipes" },
   { path: "/docs/recipes/table-bulk-actions", label: "Table bulk actions", file: "recipes/table-bulk-actions.md", description: "Host-owned table selection, action scope and local confirmation from existing components.", group: "recipes" },
   { path: "/docs/recipes/grouped-form", label: "Grouped form", file: "recipes/grouped-form.md", description: "Shared form tracks, semantic groups and optional fields composed from Flood primitives.", group: "recipes" },
@@ -25,7 +26,7 @@ export const docPages = [
 ];
 export const componentSlugs = catalog.map(component => component.slug);
 export const pagePaths = new Set([
-  "/", "/playground", "/playground/content", "/components", ...docPages.map(page => page.path),
+  "/", "/playground", "/playground/content", "/playground/collections", "/components", ...docPages.map(page => page.path),
   ...componentSlugs.map(slug => `/components/${slug}`),
 ]);
 
@@ -38,7 +39,7 @@ export function pageMetadata(path) {
   const doc = docPages.find(page => page.path === path);
   const component = catalog.find(page => path === `/components/${page.slug}`);
   const title = path === "/" ? "flood.md — Good interfaces start with a little Flood."
-    : `${doc?.label ?? component?.name ?? (path === "/components" ? "Components" : path === "/playground" ? "Playground" : "Content playground")} — flood.md`;
+    : `${doc?.label ?? component?.name ?? (path === "/components" ? "Components" : path === "/playground" ? "Playground" : path === "/playground/collections" ? "Collections playground" : "Content playground")} — flood.md`;
   const description = doc?.description ?? component?.description ?? (path === "/components"
     ? "Explore Flood's original React components, live examples and TypeScript API references."
     : "Good interfaces start with a little Flood. A calm React design system with native components, dark foundations and instructions for your agent.");
