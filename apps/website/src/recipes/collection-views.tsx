@@ -1,7 +1,48 @@
 "use client";
 import {useEffect,useId,useRef,useState,type FormEvent} from 'react';
-import {Alert,AlertDialog,Button,Dialog,Divider,Field,Fieldset,Grid,IconButton,Inline,Input,MultiSelect,OverflowActions,Popover,SearchInput,SegmentedControl,Select,Stack,Tag,Text,type OverflowAction} from '@flood-md/react';
-import {collectionQueryKey,copyCollectionQuery,parseCollectionQuery,readCollectionViews,type CollectionQuery,type CollectionSchema,type CollectionView,type ViewRead,type ViewStorage} from './collection-views-model';
+import {Alert,AlertDialog,Button,Dialog,Divider,Field,Fieldset,Grid,IconButton,IconSlot,Inline,Input,Menu,MultiSelect,OverflowActions,Popover,SearchInput,SegmentedControl,Select,Stack,Tag,Text,type OverflowAction} from '@flood-md/react';
+import {collectionQueryKey,copyCollectionQuery,parseCollectionQuery,readCollectionViews,type CollectionQuery,type CollectionSchema,type CollectionView,type FilterProperty,type ViewRead,type ViewStorage} from './collection-views-model';
+
+export function AppliedFilterControl({ property, value, onChange }: {
+  property: FilterProperty;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const trigger = useRef<HTMLButtonElement | null>(null);
+  const { id, label, options } = property;
+  const selected = options.find(option => option.value === value);
+
+  return (
+    <Inline gap="2" align="center">
+      <Menu
+        label={label}
+        trigger={({ ref, ...props }) => (
+          <Button {...props} ref={node => { trigger.current = node; ref(node); }} variant="subtle" size="sm">
+            {label} <IconSlot size="xs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></IconSlot>
+          </Button>
+        )}
+        items={[{ value: '', label: 'All', disabled: false }, ...options].map(option => ({
+          id: option.value ? `option-${option.value}` : 'all',
+          label: option.label,
+          type: 'radio',
+          group: id,
+          disabled: option.disabled,
+          checked: value === option.value,
+          closeOnSelect: true,
+          onCheckedChange: () => onChange(option.value),
+        }))}
+      />
+      {selected && (
+        <Tag size="md" removeLabel={`Remove ${label.toLowerCase()} filter: ${selected.label}`} onRemove={() => {
+          trigger.current?.focus({ preventScroll: true });
+          onChange('');
+        }}>
+          {`${label}: ${selected.label}`}
+        </Tag>
+      )}
+    </Inline>
+  );
+}
 
 interface CollectionViewControlsProps {
  label:string;schema:CollectionSchema;presets:readonly CollectionView[];
@@ -18,6 +59,15 @@ export function CollectionViewControls({label,schema,presets,value,onValueChange
  const generated=useId(),nameInput=useRef<HTMLInputElement>(null),viewInput=useRef<HTMLSelectElement>(null);
  const schemaKey=JSON.stringify({properties:schema.properties.map(property=>[property.id,property.options.map(option=>option.value)]),sort:schema.sortColumns});
  const appliedKey=collectionQueryKey(value);
+ const compactConditions = (value.match === 'all' || value.conditions.length < 2) &&
+   value.conditions.every(condition => condition.operator === 'is' && condition.values.length === 1);
+
+ function changeQuickFilter(property: string, option: string) {
+   const existing = value.conditions.find(condition => condition.property === property);
+   const conditions = value.conditions.filter(condition => condition.property !== property);
+   if (option) conditions.push({ id: existing?.id ?? crypto.randomUUID(), property, operator: 'is', values: [option] });
+   onValueChange({ ...value, match: 'all', conditions });
+ }
  useEffect(()=>setEditing(false),[appliedKey]);
  useEffect(()=>{try{setSaved(readCollectionViews(storageKey,schema,storage??window.localStorage,presets.map(preset=>preset.name)));}catch{setSaved({state:'error',views:[],raw:null});}},[storageKey,storage,schemaKey,readAttempt]);
  const views=[...presets,...saved.views],selected=views.find(view=>view.id===selectedId)??presets[0];
@@ -91,7 +141,24 @@ export function CollectionViewControls({label,schema,presets,value,onValueChange
     </Stack></form>
    </Popover>
   </Inline>
-  {(value.conditions.length>0||value.search)&&<Inline gap="2">{value.conditions.length>1&&<Text size="compact" tone="subtle">{value.match==='all'?'All:':'Any:'}</Text>}{value.conditions.map(condition=>{const property=schema.properties.find(property=>property.id===condition.property)!;return <Tag key={condition.id} onRemove={()=>onValueChange({...value,conditions:value.conditions.filter(row=>row.id!==condition.id)})} removeLabel={`Remove ${property.label.toLowerCase()} filter`}>{property.label}{condition.operator==='is'?' is ':' excludes '}{condition.values.map(id=>property.options.find(option=>option.value===id)!.label).join(condition.operator==='is'?' or ':', ')}</Tag>;})}<Button variant="ghost" size="sm" onClick={()=>onValueChange({...value,search:'',conditions:[]})}>Clear filters</Button></Inline>}
+  <Inline gap="3" role="group" aria-label={`${label} applied filters`}>
+    {compactConditions ? schema.properties.map(property => (
+      <AppliedFilterControl key={property.id} property={property}
+        value={value.conditions.find(condition => condition.property === property.id)?.values[0] ?? ''}
+        onChange={option => changeQuickFilter(property.id, option)} />
+    )) : <>
+      {value.conditions.length > 1 && <Text size="compact" tone="subtle">{value.match === 'all' ? 'All:' : 'Any:'}</Text>}
+      {value.conditions.map(condition => {
+        const property = schema.properties.find(property => property.id === condition.property)!;
+        const labels = condition.values.map(id => property.options.find(option => option.value === id)!.label);
+        return <Tag key={condition.id} onRemove={() => onValueChange({ ...value, conditions: value.conditions.filter(row => row.id !== condition.id) })}
+          removeLabel={`Remove ${property.label.toLowerCase()} filter`}>
+          {property.label}{condition.operator === 'is' ? ' is ' : ' excludes '}{labels.join(condition.operator === 'is' ? ' or ' : ', ')}
+        </Tag>;
+      })}
+    </>}
+    {(value.conditions.length > 0 || value.search) && <Button variant="ghost" size="sm" onClick={() => onValueChange({ ...value, search: '', conditions: [] })}>Clear filters</Button>}
+  </Inline>
   {nameDraft&&<Dialog title={nameDraft.kind==='create'?'Save view':'Rename view'} open onOpenChange={next=>{if(!next)setNameDraft(null);}} trigger={()=>null} initialFocusRef={nameInput}>
    <form onSubmit={saveName}><Stack gap="6"><Field label="View name" required error={nameDraft.invalid}>{props=><Input {...props} ref={nameInput} maxLength={80} value={nameDraft.name} onChange={event=>setNameDraft({...nameDraft,name:event.target.value,invalid:undefined})}/>}</Field>{nameDraft.error&&<Alert tone="error" announcement="polite">{nameDraft.error}</Alert>}<Inline gap="3"><Button type="submit">{nameDraft.kind==='create'?'Save view':'Rename view'}</Button><Button variant="subtle" onClick={()=>setNameDraft(null)}>Cancel</Button></Inline></Stack></form>
   </Dialog>}

@@ -9,6 +9,36 @@ async function saveAs(page:Page,scope:Locator,name:string){await action(page,sco
 async function values(page:Page,panel:Locator,index:number,labels:string[]){const input=panel.getByRole('combobox',{name:`Condition ${index} values`,exact:true});await input.click();for(const label of labels)await page.getByRole('option',{name:label,exact:true}).click();await input.press('Escape');await expect(panel).toBeVisible();}
 const stored=(search:string)=>JSON.stringify({version:1,views:[{id:'saved-existing',name:'My view',query:{search,match:'all',conditions:[],sort:null}}]});
 
+test('compact filters compose with search and sort and restore from a saved project view', async ({ page }) => {
+  const scope = await open(page);
+  const table = scope.getByRole('table', { name: 'Projects', exact: true });
+  const search = scope.getByRole('searchbox', { name: 'Search projects', exact: true });
+  const filters = scope.getByRole('group', { name: 'Projects applied filters', exact: true });
+  const status = filters.getByRole('button', { name: 'Status', exact: true });
+
+  await status.click();
+  await page.getByRole('menuitemradio', { name: 'Active', exact: true }).click();
+  await filters.getByRole('button', { name: 'Owner', exact: true }).click();
+  await page.getByRole('menuitemradio', { name: 'Maya', exact: true }).click();
+  await expect(table.locator('tbody tr')).toHaveCount(2);
+  await search.fill('Customer');
+  await table.getByRole('button', { name: 'Sort by Project' }).click();
+  await expect(table.locator('tbody tr')).toHaveCount(1);
+  await saveAs(page, scope, 'Maya active');
+  await filters.getByRole('button', { name: 'Remove status filter: Active', exact: true }).press('Enter');
+  await expect(status).toBeFocused();
+  await expect(search).toHaveValue('Customer');
+  await expect(filters.getByText('Owner: Maya')).toBeVisible();
+
+  await page.reload();
+  await scope.getByRole('combobox', { name: 'Projects view', exact: true }).click();
+  await page.getByRole('option', { name: 'Maya active', exact: true }).click();
+  await expect(filters.getByText('Status: Active')).toBeVisible();
+  await expect(filters.getByText('Owner: Maya')).toBeVisible();
+  await expect(table.locator('tbody tr')).toHaveCount(1);
+  await expect(table.getByRole('columnheader', { name: /Project/ })).toHaveAttribute('aria-sort', 'ascending');
+});
+
 test('conditions have draft/apply/cancel, all/any, exclusion and real removal semantics',async({page})=>{
  const scope=await open(page),table=scope.getByRole('table',{name:'Projects',exact:true});
  await scope.getByRole('button',{name:'Filters',exact:true}).click();const panel=page.getByRole('dialog',{name:'Projects filters',exact:true});

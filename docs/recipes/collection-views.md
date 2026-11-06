@@ -3,7 +3,7 @@
 [Open Projects and Files](/playground/collections).
 
 One set of controls serves a DataTable and a FileList. It demonstrates search,
-staged conditions, applied tags, saved definitions and sorting from existing
+quick filters, staged conditions, applied tags, saved definitions and sorting from existing
 Flood primitives. CollectionViewControls is project-owned recipe code, not an
 export from @flood-md/react. The installed catalog contains these same typed
 sources. Keep model and controls together; adapt datasets and shell to the host.
@@ -15,11 +15,17 @@ combines with the group using AND. Values within one condition mean any matching
 value; is-not excludes all of them. Missing record values do not match is and do
 match is-not. The host defines properties, values and record meaning.
 
-The editor has a separate draft. Apply validates and commits; Cancel/outside
-dismissal discard it. Removing an applied Tag commits immediately. Clear filters
-removes search/conditions, retaining sort. All/Any remains visible outside the
-editor. Unknown properties, values, operators, sort columns and schema versions
-fail explicitly rather than silently broadening a view.
+For simple filters, a named Menu applies one value per property immediately.
+Choose All or remove the adjacent Tag to clear that property. The Tag returns
+focus to its menu when removed. Projects and Files use the same controls with
+their own properties. Search and sort retain their current values.
+
+Use the Filters editor for exclusion, multiple values per property or Any across
+properties. It has a separate draft. Apply validates and commits, while Cancel or
+outside dismissal discards it. Advanced conditions are summarized by removable
+tags with their All/Any logic visible when relevant. Clear filters removes search
+and conditions, retaining sort. Unknown properties, values, operators, sort
+columns and schema versions fail explicitly rather than silently broadening a view.
 
 An applied query change outside the editor closes its obsolete draft. Applying
 conditions never restores an old search/sort value from when the editor opened.
@@ -71,7 +77,7 @@ condition editor; closing the editor returns to Filters.
 
 ## Reused owners
 
-SearchInput, Select, MultiSelect and SegmentedControl own input/choice behaviour;
+SearchInput, Select, Menu, MultiSelect and SegmentedControl own input/choice behaviour;
 Popover contains the condition draft and Tag removes applied conditions. Button
 and IconButton perform actions. Several view commands use OverflowActions; a
 single command uses Button directly. Field/Fieldset, Grid/Stack/Inline, Dialog,
