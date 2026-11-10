@@ -11,7 +11,7 @@ test("ordinary control outlines share the quiet container tone while selected st
     if (slug === "button") await chooseSelectOption(page.getByRole("combobox", { name: "Button prop variant", exact: true }), "outline");
     const control = slug === "radio" ? stage.getByRole("radio", { name: "Public", exact: true }) : stage.locator(slug === "checkbox" ? ".flood-check" : slug === "switch" ? ".flood-switch-input" : slug === "button" ? ".flood-button" : ".flood-input").first();
     await expect(control).toHaveCSS("border-color", "rgb(56, 56, 56)");
-    await expect(page.locator(".component-workbench")).toHaveCSS("border-color", "rgb(56, 56, 56)");
+    await expect(page.locator(".doc-article")).toHaveCSS("border-top-color", "rgb(56, 56, 56)");
     if (slug === "checkbox") {
       await control.check();
       await expect(control).toBeChecked();

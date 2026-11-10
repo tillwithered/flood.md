@@ -15,7 +15,7 @@ test("component props, preview, highlighted code and Markdown stay aligned", asy
   await expect(button).toHaveClass(/flood-button--subtle/);
   await expect(button).toHaveClass(/flood-button--lg/);
   const source = page.locator("#usage > .site-code-block");
-  const reference = page.getByRole("button", { name: "Reference", exact: true });
+  const reference = page.getByRole("button", { name: "Reference Alt R", exact: true });
   await reference.click();
   await expect(source.locator("code")).toContainText('variant="subtle"');
   await expect(source.locator("code")).toContainText('size="lg"');

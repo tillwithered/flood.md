@@ -31,7 +31,7 @@ test('large component pages open directly in the studio with catalog and API con
  expect(canvasBox.x).toBeGreaterThan(sidebarBox.x+sidebarBox.width);
  await page.getByRole('checkbox',{name:'AppShell prop showFooter',exact:true}).check();
  await expect(preview.getByText('All changes saved',{exact:true})).toBeVisible();
- const reference=page.getByRole('button',{name:'Reference',exact:true});
+ const reference=page.getByRole('button',{name:'Reference Alt R',exact:true});
  await page.keyboard.press("Alt+r");
  await expect(page.getByRole('dialog',{name:'Component reference',exact:true}).getByRole('heading',{name:'API reference'})).toBeVisible();
  expect(await documentHeight()).toBe(originalHeight);

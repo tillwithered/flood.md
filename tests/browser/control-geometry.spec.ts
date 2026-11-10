@@ -98,9 +98,9 @@ test("custom checkbox and radio glyphs stay fixed when labels grow and remain ke
     if (kind === "checkbox") {
       await page.keyboard.press("Space");
       await expect(control).not.toBeChecked();
-      expect(await control.evaluate(node => getComputedStyle(node, "::before").opacity)).toBe("0");
+      await expect.poll(() => control.evaluate(node => getComputedStyle(node, "::before").opacity)).toBe("0");
       await control.evaluate((node: HTMLInputElement) => { node.indeterminate = true; });
-      expect(await control.evaluate(node => getComputedStyle(node, "::before").opacity)).toBe("1");
+      await expect.poll(() => control.evaluate(node => getComputedStyle(node, "::before").opacity)).toBe("1");
     } else {
       await page.keyboard.press("ArrowDown");
       await expect(page.locator(".preview-stage").getByRole("radio", { name: "Public", exact: true })).toBeChecked();

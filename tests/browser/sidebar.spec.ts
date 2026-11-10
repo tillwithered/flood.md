@@ -6,11 +6,8 @@ import {chooseSelectOption} from './select-helpers';
 test.use({reducedMotion:'reduce'});
 async function open(page:Page){await page.goto('/components/sidebar');const sidebar=page.locator('.preview-stage').getByRole('complementary',{name:'Workspace navigation',exact:true});await expect(sidebar).toBeVisible();await page.evaluate(()=>document.fonts.ready);return sidebar;}
 async function sidebarProperty(page:Page, name:string, value:string|boolean){
-  const trigger=page.getByRole('button',{name:'Properties',exact:true});
-  await trigger.click();
   if(typeof value==='boolean')await page.getByRole('checkbox',{name:`Sidebar prop ${name}`,exact:true}).setChecked(value);
   else await chooseSelectOption(page.getByRole('combobox',{name:`Sidebar prop ${name}`,exact:true}),value);
-  await trigger.click();
 }
 
 test('sidebar width eases in both directions and respects reduced motion',async({page})=>{

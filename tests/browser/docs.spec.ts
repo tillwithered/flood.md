@@ -35,7 +35,7 @@ for (const slug of catalogCohort(componentSlugs)) test(`published component load
     expect((await page.goto(`/components/${slug}`))?.status()).toBe(200);
     await expect(page.locator(".component-workbench")).toBeVisible();
     await expect(page.locator(".preview-stage > .flood-root > *").first()).toBeVisible();
-    await page.getByRole("button", { name: "Reference", exact: true }).click();
+    await page.getByRole("button", { name: "Reference Alt R", exact: true }).click();
     await expect(page.getByRole("heading", { name: "API reference", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
@@ -54,7 +54,7 @@ test("component code, clipboard, local interactions and mobile navigation work",
   await page.getByRole("button", { name: "Copy for agent", exact: true }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("# Button");
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain(new URL("/agent/SKILL.md", page.url()).href);
-  await page.getByRole("button", { name: "Reference", exact: true }).click();
+  await page.getByRole("button", { name: "Reference Alt R", exact: true }).click();
   await page.locator("#usage").getByRole("button", { name: "Copy code" }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("export function Example()");
   if (info.project.name === "mobile") {

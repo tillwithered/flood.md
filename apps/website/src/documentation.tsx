@@ -265,7 +265,7 @@ export default function Documentation({ path }: { path: string }) {
             side="end" size="lg" open={workspacePanel === "reference"}
             onOpenChange={open => setWorkspacePanel(open ? "reference" : null)}
             trigger={props => <Button {...props} id="studio-reference-trigger" className="studio-reference-trigger"
-              size="sm" variant="subtle" aria-label="Reference" aria-keyshortcuts="Alt+R">
+              size="sm" variant="subtle" aria-label="Reference Alt R" aria-keyshortcuts="Alt+R">
               Reference <Kbd size="sm" aria-hidden="true">Alt R</Kbd>
             </Button>}>
             {referenceContent}
