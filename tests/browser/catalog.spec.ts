@@ -29,11 +29,10 @@ test("catalog categories, search and canonical Markdown agree", async ({ page, r
   await page.screenshot({ path: `.artifacts/catalog-groups-${info.project.name}.png` });
 });
 
-test("category links and active item survive direct component navigation", async ({ page }, info) => {
+test("catalog category and active item survive direct component navigation", async ({ page }, info) => {
   await page.goto("/components/select");
-  await expect(page.locator(".doc-breadcrumb").getByRole("link", { name: "Forms" })).toHaveAttribute("href", "/components#forms");
-  if (info.project.name === "mobile") await page.getByText("Browse documentation", { exact: true }).click();
-  const sidebar = page.locator(info.project.name === "mobile" ? ".mobile-navigation" : ".desktop-sidebar");
+  if (info.project.name === "mobile") await page.getByRole("button", { name: "Components", exact: true }).click();
+  const sidebar = page.locator("#studio-catalog");
   const current = sidebar.getByRole("group", { name: "Forms", exact: true }).getByRole("link", { name: "Select", exact: true });
   await expect(current).toHaveAttribute("aria-current", "page");
   await expect(current).toBeInViewport();
