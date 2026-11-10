@@ -48,6 +48,8 @@ export function RecordWorkspace({storageKey="flood-recipe-projects-v1",storage,l
   const [view,setView]=useState(route),[search,setSearch]=useState(""),[status,setStatus]=useState("all"),[page,setPage]=useState(1),[sort,setSort]=useState<DataTableSort|null>(null);
   const [selected,setSelected]=useState<string[]>([]),[draft,setDraft]=useState<Draft|null>(null),[revision,setRevision]=useState(0),[retry,setRetry]=useState(0);
   const [response,setResponse]=useState<{key:string;page:ProjectPage;error?:string}|null>(null);
+  const loader = useRef(loadPage);
+  useEffect(() => { loader.current = loadPage; }, [loadPage]);
   const [operationError,setOperationError]=useState("");
   const [confirmation,setConfirmation]=useState<{kind:"replace"}|{kind:"delete";ids:string[]}|{kind:"leave";next:()=>void}|null>(null);
   const workspace=useRef<HTMLElement>(null),[wide,setWide]=useState(false);
@@ -60,14 +62,15 @@ export function RecordWorkspace({storageKey="flood-recipe-projects-v1",storage,l
   useEffect(()=>{
     if(collection.state!=="ready")return;
     const controller=new AbortController(),ticket=++generation.current;
-    void loadPage({records,search,status,page,pageSize,sort,signal:controller.signal}).then(result=>{
+    // A new callback identity alone does not invalidate a settled query.
+    void loader.current({records,search,status,page,pageSize,sort,signal:controller.signal}).then(result=>{
       if(controller.signal.aborted||generation.current!==ticket)return;
       const maxPage=Math.max(1,Math.ceil(result.total/pageSize));
       if(page>maxPage){setPage(maxPage);return;}
       setResponse({key,page:result});
     }).catch(()=>{if(!controller.signal.aborted&&generation.current===ticket)setResponse({key,page:{rows:[],total:0},error:"Projects could not be loaded."});});
     return()=>{controller.abort();};
-  },[key,records,collection.state,loadPage]);
+  },[key,records,collection.state]);
   useEffect(()=>{if(draft)name.current?.focus({preventScroll:true});},[draft?.record.id]);
   const current=response?.key===key?response:null,state=current?.error?"error":current?"ready":"loading";
   const result=current?.page??{rows:[],total:response?.page.total??0};

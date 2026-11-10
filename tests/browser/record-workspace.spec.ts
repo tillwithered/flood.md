@@ -7,12 +7,21 @@ async function fixture(){
  const path=(p:string)=>JSON.stringify(resolve(p).replaceAll('\\','/'));
  const dir=resolve(`.artifacts/record-workspace-${process.pid}`);await mkdir(dir,{recursive:true});
  const entry=resolve(dir,'entry.tsx');
- await writeFile(entry,`import React,{StrictMode}from ${path('node_modules/react/index.js')};import{createRoot}from ${path('node_modules/react-dom/client.js')};
+ await writeFile(entry,`import React,{StrictMode,useState}from ${path('node_modules/react/index.js')};import{createRoot}from ${path('node_modules/react-dom/client.js')};
 import{FloodRoot}from ${path('packages/react/dist/index.js')};import{RecordWorkspace}from ${path('apps/website/src/recipes/record-workspace.tsx')};import ${path('packages/react/dist/styles.css')};
 let denied=false;const store={getItem:k=>{if(new URLSearchParams(location.search).has('denyread'))throw Error('denied');return localStorage.getItem(k)},setItem:(k,v)=>{if(denied)throw Error('quota');localStorage.setItem(k,v)}};
 window.denyWrites=v=>{denied=v};
 async function loader({records,search,status,page,pageSize,sort}){await new Promise(r=>setTimeout(r,search==='old'?120:5));let rows=records.filter(r=>(status==='all'||r.status===status)&&r.name.toLowerCase().includes(search.toLowerCase()));if(sort)rows.sort((a,b)=>a.name.localeCompare(b.name)*(sort.direction==='ascending'?1:-1));return{total:rows.length,rows:rows.slice((page-1)*pageSize,page*pageSize)}};
-createRoot(document.getElementById('app')).render(<StrictMode><FloodRoot style={{padding:'2rem'}}><RecordWorkspace storageKey="projects" storage={store} loadPage={loader}/></FloodRoot></StrictMode>);`);
+window.pageQueries=[];
+function Host(){
+ const [revision,setRevision]=useState(0);
+ window.refreshLoader=()=>setRevision(value=>value+1);
+ return <FloodRoot style={{padding:'2rem'}} data-loader-revision={revision}><RecordWorkspace storageKey="projects" storage={store} loadPage={query=>{
+   window.pageQueries.push([revision,query.search]);
+   return loader(query);
+ }}/></FloodRoot>;
+}
+createRoot(document.getElementById('app')).render(<StrictMode><Host /></StrictMode>);`);
  const result=await build({configFile:false,logLevel:'silent',esbuild:{jsx:'automatic'},define:{'process.env.NODE_ENV':JSON.stringify('production')},build:{write:false,cssCodeSplit:false,lib:{entry,formats:['iife'],name:'Workspace'}}});
  const out=Array.isArray(result)?result[0].output:result.output;
  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Projects</title><style>'+out.filter(x=>x.type==='asset'&&x.fileName.endsWith('.css')).map(x=>(x as any).source).join('')+'</style></head><body><main id="app"></main><script>'+out.filter(x=>x.type==='chunk').map(x=>(x as any).code).join('')+'</script></body></html>';
@@ -23,6 +32,18 @@ async function open(page:Page,raw:string|null=null,query=''){
  await page.goto('/__record-workspace'+query);await expect(page.getByRole('heading',{name:'Projects',exact:true})).toBeVisible();
 }
 const seeded=JSON.stringify({version:1,records:Array.from({length:8},(_,i)=>({id:'p'+i,name:'Project '+i,owner:'Owner '+i,status:i===7?'archived':'active'}))});
+test('refreshing an inline loader keeps the current page and uses the new loader for the next query',async({page})=>{
+ await open(page,seeded);
+ await expect(page.getByRole('row').filter({hasText:'Project 0'})).toBeVisible();
+ const initial=await page.evaluate(()=>(window as any).pageQueries.length);
+ await page.evaluate(()=>(window as any).refreshLoader());
+ await expect(page.locator('[data-loader-revision]')).toHaveAttribute('data-loader-revision','1');
+ await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+ expect(await page.evaluate(()=>(window as any).pageQueries.length)).toBe(initial);
+ await page.getByRole('searchbox',{name:'Search projects',exact:true}).fill('Project 1');
+ await expect(page.getByRole('row').filter({hasText:'Project 1'})).toBeVisible();
+ expect(await page.evaluate(()=>(window as any).pageQueries.at(-1))).toEqual([1,'Project 1']);
+});
 test('missing, malformed and denied reads remain distinct and replacement is explicit',async({page})=>{
  await open(page,'{bad');await expect(page.getByText('Projects could not be read.',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'New project',exact:true})).toHaveCount(0);
  expect(await page.evaluate(()=>localStorage.getItem('projects'))).toBe('{bad');
