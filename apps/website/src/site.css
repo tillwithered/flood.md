@@ -222,6 +222,7 @@ html:has(.docs-layout) { scroll-behavior: auto; }
 .side-group { display: grid; gap: .125rem; margin-block-end: 1.5rem; }
 .side-label { display: block; padding: .5rem .75rem; }
 .side-nav .side-link { inline-size: 100%; justify-content: flex-start; white-space: normal; text-align: start; }
+#studio-catalog .side-link { overflow-wrap: anywhere; }
 #studio-catalog .side-link[aria-current="page"] { font-weight: 600; }
 .side-nav .catalog-link { justify-content: space-between; }
 .catalog-link span { font-size: var(--flood-sys-type-helper-size); color: var(--flood-sys-color-content-subtle); }
