@@ -68,7 +68,7 @@ test('selected chips do not force an empty placeholder row, but typing still ope
   await page.getByRole('option',{name:'Archived',exact:true}).click();
   await input.press('Escape');
   const control=row.locator('.flood-multi-select__control');
-  await row.locator('.flood-filter-condition__values').evaluate(node=>{(node as HTMLElement).style.inlineSize='18.25rem';});
+  await row.locator('.flood-filter-condition__values').evaluate(node=>{(node as HTMLElement).style.inlineSize='20rem';});
   await expect(control.locator('.flood-tag')).toHaveCount(3);
   await expect(input).not.toHaveAttribute('placeholder');
   await expect(control).toHaveCSS('height','32px');

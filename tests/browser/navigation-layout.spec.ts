@@ -41,7 +41,7 @@ test('large component pages open directly in the studio with catalog and API con
  await page.goto('/components/app-shell#api');
  const deepLink=page.getByRole('dialog',{name:'Component reference',exact:true});
  await expect(deepLink.getByRole('heading',{name:'API reference'})).toBeVisible();
- await expect.poll(()=>deepLink.locator('.flood-overlay-body').evaluate(node=>node.scrollTop)).toBeGreaterThan(0);
+ await expect(deepLink.getByRole('heading',{name:'API reference'})).toBeInViewport();
 });
 
 test('small components use the same studio and open reference anchors in the panel', async ({page}) => {

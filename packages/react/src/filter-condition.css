@@ -16,3 +16,6 @@
   .flood-root .flood-filter-condition__row > :is(.flood-field,.flood-filter-condition__values) { grid-column:1 / -1; }
   .flood-root .flood-filter-condition__remove { grid-column:1; grid-row:auto; justify-self:end; }
 }
+.flood-root .flood-filter-group .flood-segmented > .flood-fieldset__body { grid-template-columns: minmax(0, 1fr); }
+.flood-root .flood-filter-group .flood-segmented .flood-choice-group { max-inline-size: 100%; }
+.flood-root .flood-filter-group .flood-segmented .flood-choice { flex: 1 1 auto; min-inline-size: 0; }

@@ -47,6 +47,16 @@ async function open(page: Page, deferred = false) {
   return page.getByRole('region', { name: 'Projects collection', exact: true });
 }
 
+async function pauseSelection(page: Page, bar: ReturnType<Page["getByRole"]>) {
+  const pause = bar.getByRole('button', { name: 'Pause', exact: true });
+  await expect(bar).toBeVisible();
+  if (await pause.isVisible()) await pause.click();
+  else {
+    await bar.getByRole('button', { name: 'More', exact: true }).click();
+    await page.getByRole('menuitem', { name: 'Pause', exact: true }).click();
+  }
+}
+
 test('floating selection bar leaves the table in place and keeps final controls reachable', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 550 });
   const scope = await open(page);
@@ -112,7 +122,7 @@ test('refusal preserves records and selection, retry accepts the captured propos
   const scope = await open(page, true);
   await scope.getByRole('checkbox', { name: 'Select Design system', exact: true }).check();
   const bar = scope.getByRole('toolbar', { name: 'Selected projects', exact: true });
-  await bar.getByRole('button', { name: 'Pause', exact: true }).click();
+  await pauseSelection(page, bar);
   await expect(scope.locator('.flood-bulk-action-bar')).toHaveAttribute('aria-busy', 'true');
   await expect(bar.getByRole('button', { name: 'Archive', exact: true })).toBeDisabled();
   await page.evaluate(() => (window as any).rejectBulk());
@@ -133,7 +143,7 @@ test('refusal preserves records and selection, retry accepts the captured propos
 test('pending work updates captured IDs and preserves a later selection', async ({ page }) => {
   const scope = await open(page, true);
   await scope.getByRole('checkbox', { name: 'Select Design system', exact: true }).check();
-  await scope.getByRole('toolbar').getByRole('button', { name: 'Pause', exact: true }).click();
+  await pauseSelection(page, scope.getByRole('toolbar'));
   await scope.getByRole('searchbox', { name: 'Search projects', exact: true }).fill('Checkout');
   await scope.getByRole('checkbox', { name: 'Select Checkout', exact: true }).check();
   await page.evaluate(() => (window as any).acceptBulk());

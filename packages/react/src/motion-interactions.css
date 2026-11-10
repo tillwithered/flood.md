@@ -34,17 +34,8 @@
   .flood-root .flood-select--custom .flood-select__control:not(:where([data-flood-motion="reduce"] *))::after {
     transition: transform var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing);
   }
-  .flood-root:not([data-flood-motion="reduce"]) .flood-switch-input:not(:where([data-flood-motion="reduce"] *)) {
-    --flood-switch-travel: calc(var(--flood-sys-size-switch-width) - var(--flood-sys-size-switch-height));
-    --flood-switch-direction: 1;
-  }
-  .flood-root:not([data-flood-motion="reduce"]) .flood-switch-input:not(:where([data-flood-motion="reduce"] *)):dir(rtl) { --flood-switch-direction: -1; }
   .flood-root:not([data-flood-motion="reduce"]) .flood-switch-input:not(:where([data-flood-motion="reduce"] *))::before {
-    transition: transform var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing);
-  }
-  .flood-root:not([data-flood-motion="reduce"]) .flood-switch-input:not(:where([data-flood-motion="reduce"] *)):checked::before {
-    inset-inline-start: calc((var(--flood-sys-size-switch-height) - var(--flood-sys-size-switch-thumb)) / 2 - var(--flood-sys-stroke-width));
-    transform: translateX(calc(var(--flood-switch-travel) * var(--flood-switch-direction)));
+    transition: inset-inline-start var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing);
   }
 
   .flood-root:not([data-flood-motion="reduce"]) :is(

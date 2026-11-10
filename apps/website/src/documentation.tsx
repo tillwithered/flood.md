@@ -144,11 +144,12 @@ export default function Documentation({ path }: { path: string }) {
   },[workspacePreview]);
   useEffect(()=>{
     if (!workspacePreview || workspacePanel!=="reference") return;
-    const target=document.getElementById(referenceAnchor);
-    const viewport=referenceDrawer.current?.querySelector(".flood-overlay-body");
-    if(target && viewport?.contains(target)) {
-      viewport.scrollTop += target.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
-    }
+    const frame = requestAnimationFrame(() => {
+      const target = document.getElementById(referenceAnchor);
+      const viewport = referenceDrawer.current?.querySelector(".flood-overlay-body");
+      if (target && viewport?.contains(target)) target.scrollIntoView({ block: "start", behavior: "instant" });
+    });
+    return () => cancelAnimationFrame(frame);
   },[workspacePanel,workspacePreview,referenceAnchor,path]);
   const visibleGroups = componentGroups.map(group => ({ ...group, components: group.components.filter(page => matchesComponent(page, query)) })).filter(group => group.components.length > 0);
   const title = doc?.label ?? component?.name ?? (catalog ? "Components" : "Page not found");

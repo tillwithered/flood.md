@@ -57,6 +57,7 @@ test("component code, clipboard, local interactions and mobile navigation work",
   await page.getByRole("button", { name: "Reference Alt R", exact: true }).click();
   await page.locator("#usage").getByRole("button", { name: "Copy code" }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("export function Example()");
+  await page.keyboard.press("Escape");
   if (info.project.name === "mobile") {
     await page.getByRole("button", { name: "Components", exact: true }).click();
     await page.locator("#studio-catalog").getByRole("link", { name: "Checkbox", exact: true }).click();

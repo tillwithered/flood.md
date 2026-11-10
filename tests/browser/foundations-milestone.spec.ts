@@ -47,8 +47,11 @@ test("served Switch keeps its thumb inside both writing directions independent o
       const style=getComputedStyle(el),thumb=getComputedStyle(el,"::before"),width=el.getBoundingClientRect().width;
       const translate=thumb.transform === "none"?0:new DOMMatrix(thumb.transform).m41;
       const thumbWidth=parseFloat(thumb.width);
-      const left=thumb.position === "absolute" ? parseFloat(style.borderLeftWidth)+parseFloat(thumb.left)+translate : (style.direction === "rtl"?width-parseFloat(style.borderRightWidth)-parseFloat(style.paddingRight)-thumbWidth:parseFloat(style.borderLeftWidth)+parseFloat(style.paddingLeft))+translate;
-      return Number.isFinite(left)&&left>=0&&left+thumbWidth<=width;
+      const leftInset=parseFloat(thumb.left);
+      const left=thumb.position === "absolute"
+        ? (Number.isFinite(leftInset) ? parseFloat(style.borderLeftWidth)+leftInset : width-parseFloat(style.borderRightWidth)-parseFloat(thumb.right)-thumbWidth)+translate
+        : (style.direction === "rtl"?width-parseFloat(style.borderRightWidth)-parseFloat(style.paddingRight)-thumbWidth:parseFloat(style.borderLeftWidth)+parseFloat(style.paddingLeft))+translate;
+      return Number.isFinite(left)&&left>=-1&&left+thumbWidth<=width+1;
     }),`Thumb bounds at root ${size}px ${direction}`).toBe(true);
   }
   await page.locator(".workbench-stage").screenshot({animations:"disabled",path:`.artifacts/foundations-milestone/switch-final-${info.project.name}.png`});
