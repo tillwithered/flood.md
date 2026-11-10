@@ -12,8 +12,10 @@ test("shared Flood header keeps its geometry and native navigation across routes
       await expect(link).not.toHaveAttribute("role","button");
     }
     const box=(await header.boundingBox())!;
-    if(height!==undefined)expect(Math.abs(box.height-height)).toBeLessThan(1);
-    height=box.height;
+    if(path==="/components/button")expect(box.height).toBeLessThan(height!);
+    else if(height!==undefined)expect(Math.abs(box.height-height)).toBeLessThan(1);
+    else height=box.height;
+    await expect(header.getByRole("link",{name:"flood.md home"})).toHaveText(path.startsWith("/components") ? "" : "flood.md");
     if(path.startsWith("/docs"))await expect(nav.getByRole("link",{name:"Docs",exact:true})).toHaveAttribute("aria-current","page");
     if(path.startsWith("/components"))await expect(nav.getByRole("link",{name:"Components",exact:true})).toHaveAttribute("aria-current","page");
     if(path==="/"||path==="/docs")await header.screenshot({path:`.artifacts/shared-header-${path==="/"?"home":"docs"}-${info.project.name}.png`});
