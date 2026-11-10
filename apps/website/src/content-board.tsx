@@ -6,6 +6,7 @@ import release from "./release.json";
 import "./content-board.css";
 import { WorkspaceReview } from "./recipes/workspace-review";
 import { TableBulkActions } from './recipes/table-bulk-actions';
+import { RecordWorkspace } from './recipes/record-workspace';
 
 const projectActions: readonly MenuItem[] = [{id:"rename",label:"Rename…",icon:<Pencil />},{id:"duplicate",label:"Duplicate",icon:<Copy />},{id:"archive",label:"Archive",icon:<Archive />,disabled:true},{id:"divider",type:"separator"},{id:"delete",label:"Delete project",icon:<Trash2 />,tone:"danger"}];
 
@@ -154,6 +155,7 @@ export default function ContentBoard() {
       </section>
       <section id="workspace-review" className="content-board-feedback"><WorkspaceReview /></section>
       <section id="table-bulk-actions" className="content-board-feedback"><TableBulkActions /></section>
+      <section id="record-workspace" className="content-board-feedback"><RecordWorkspace /></section>
       <Link href="/components">Browse all components</Link>
     </main>
   </div></FloodRoot>;

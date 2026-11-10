@@ -9,6 +9,7 @@ const signature=(value:DateTimeRangeValue)=>[value.start.date,value.start.time,v
 export const CivilDateTimeRangePicker=/* @__PURE__ */ forwardRef<HTMLDivElement,DateTimeRangePickerProps>(function CivilDateTimeRangePicker({
   label,hideLabel=false,value,defaultValue=empty(),onValueChange,startDateName,startTimeName,endDateName,endTimeName,
   startLabel="Start",endLabel="End",startDateLabel="Start date",startTimeLabel="Start time",endDateLabel="End date",endTimeLabel="End time",
+  startDatePickerLabels,endDatePickerLabels,startTimePickerLabels,endTimePickerLabels,
   form,required=false,disabled=false,readOnly=false,controlSize="md",precision="minute",order="month-day-year",locale="en-US",
   minDate,maxDate,step:explicitStep,interval,status,description,incompleteMessage="Complete both dates and times.",reversedMessage="End must not precede start.",className,onBlur,...props
 },ref){
@@ -39,8 +40,8 @@ export const CivilDateTimeRangePicker=/* @__PURE__ */ forwardRef<HTMLDivElement,
   }}>
     <Fieldset legend={label} hideLabel={hideLabel} hint={description} disabled={disabled}>
       <Stack gap="4">
-        <DateTimePicker {...shared} label={startLabel} dateLabel={startDateLabel} timeLabel={startTimeLabel} value={selected.start} defaultValue={initial.current.start} onValueChange={next=>change("start",next)} validationMessage={constraint}/>
-        <DateTimePicker {...shared} label={endLabel} dateLabel={endDateLabel} timeLabel={endTimeLabel} value={selected.end} defaultValue={initial.current.end} onValueChange={next=>change("end",next)}/>
+        <DateTimePicker {...shared} datePickerLabels={startDatePickerLabels} timePickerLabels={startTimePickerLabels} label={startLabel} dateLabel={startDateLabel} timeLabel={startTimeLabel} value={selected.start} defaultValue={initial.current.start} onValueChange={next=>change("start",next)} validationMessage={constraint}/>
+        <DateTimePicker {...shared} datePickerLabels={endDatePickerLabels} timePickerLabels={endTimePickerLabels} label={endLabel} dateLabel={endDateLabel} timeLabel={endTimeLabel} value={selected.end} defaultValue={initial.current.end} onValueChange={next=>change("end",next)}/>
       </Stack>
     </Fieldset>
     {[[startDateName,selected.start.date],[startTimeName,selected.start.time],[endDateName,selected.end.date],[endTimeName,selected.end.time]].map(([name,part],index)=>name&&<input key={index} type="hidden" name={name} form={form} value={accepted?part:""} disabled={disabled}/>)}

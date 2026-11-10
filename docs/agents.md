@@ -14,7 +14,7 @@ sources. The website index is generated from the same bundle metadata rather
 than a second handwritten skill catalog. Source additions do not update an
 already installed package; use the guide set matching your installation.
 
-Version 0.2.10 adds [versioned knowledge discovery](agent-knowledge.md):
+Version 0.2.11 adds [versioned knowledge discovery](agent-knowledge.md):
 info reports installation context, catalog discovers compact metadata, and read
 loads a selected contract or workflow. The catalog includes typed recipes and
 semantic token records. Unknown capabilities and version mismatches are explicit;
@@ -40,6 +40,13 @@ Do not replace StatusIndicator with custom text, hide its anatomy, or duplicate
 a Badge/Progress/Dialog implementation just to make one layout fit.
 
 ## Files and responsibilities
+
+For reusable components, the composition skill also routes to
+[component families](../packages/agent/references/component-families.md): choose
+the closest existing anatomy and compare sizing, shape, nested insets and states
+in the same scene. Flood's repository instructions require that same guide for
+its own authors. Installed projects receive it through the matching manifest and
+knowledge catalog; existing customized guides are not silently overwritten.
 
 | Project file | For whom / when | Prerequisite | Source of truth | What to check |
 | --- | --- | --- | --- | --- |

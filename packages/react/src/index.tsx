@@ -4,6 +4,7 @@ import {
   forwardRef,
   createElement,
   useId,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
@@ -24,6 +25,13 @@ import {
   type BlockquoteHTMLAttributes,
 } from "react";
 import { useFocusableHidden } from "./focusable-hidden.js";
+import { PredicateRow } from "./filter-condition.js";
+import { PredicateGroup } from "./filter-group.js";
+import { CollectionQueryBar } from "./collection-toolbar.js";
+import { CollectionViewSelector } from "./collection-view-switcher.js";
+import { WorkspaceSidebar } from "./sidebar.js";
+import { NavigationRow } from "./navigation-item.js";
+import { NavigationSection } from "./navigation-group.js";
 import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-state.js";
 import { SingleSelect } from "./select.js";
 import { MixedCheckbox } from "./checkbox.js";
@@ -40,7 +48,8 @@ import { RovingToolbar } from "./toolbar.js";
 import { NumericStepper } from "./numeric-input.js";
 import { RangeControl } from "./slider.js";
 import {GroupedAvatars, NamedStatus, CaptionedFigure, AttributedQuote, InlineCodeText, MeasuredValue, EventTimeline} from "./content-elements.js";
-import { NavigationMenu, StepSequence, ContentSection, SplitLayout, CenterLayout, SkipNavigation } from "./navigation-layout.js";
+import { NavigationMenu, StepSequence, ContentSection, PageHeading, SplitLayout, CenterLayout, SkipNavigation } from "./navigation-layout.js";
+import { ApplicationShell, ApplicationTopBar } from "./app-shell.js";
 import { CollectionListBox, SegmentedPinInput, StarRating, FileDropzone, SupportingCharacterCount } from "./form-controls.js";
 import { ClipboardAction, NotificationRegion } from "./feedback-actions.js";
 import { ConfirmationDialog } from "./alert-dialog.js";
@@ -71,6 +80,165 @@ import { HoverPreview } from "./hover-card.js";
 import { HierarchicalSelect } from "./tree-select.js";
 import { CivilDateTimePicker } from "./date-time-picker.js";
 import { HierarchicalNavigation } from "./navigation-tree.js";
+import { AdaptiveActions } from "./overflow-actions.js";
+import { SelectionActionBar } from "./bulk-action-bar.js";
+import { ApplicationMenubar } from "./menubar.js";
+
+export interface OverflowAction extends MenuActionItem {
+  /** Higher priority actions remain visible longer; source order stays unchanged. */
+  priority?: number;
+}
+export interface OverflowActionsProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "onAction"> {
+  label: string;
+  items: readonly OverflowAction[];
+  onAction?: (id: string) => void;
+  moreLabel?: string;
+  size?: "sm" | "md" | "lg" | "xl";
+  variant?: ButtonProps["variant"];
+  shape?: ToolbarProps["shape"];
+  containerVariant?: ToolbarProps["variant"];
+  disabled?: boolean;
+  /** Optional fixed content measured before command space is allocated. */
+  leading?: ReactNode;
+  trailing?: ReactNode;
+  /** Upper bound for visible commands; additional commands remain in More. */
+  maxVisibleActions?: number;
+}
+/** Priority-based overflow composed from Toolbar, Button and Menu. @since 0.2.11 */
+export const OverflowActions = /* @__PURE__ */ forwardRef<HTMLDivElement, OverflowActionsProps>(function OverflowActions(props, ref) { return <AdaptiveActions {...props} ref={ref}/>; });
+export interface FilterConditionValue {
+  property: string;
+  operator: "is" | "is-not";
+  values: string[];
+}
+export interface FilterConditionProperty {
+  id: string;
+  label: string;
+  options: readonly ComboboxOption[];
+  disabled?: boolean;
+}
+export interface FilterConditionProps extends Omit<FieldsetProps, "children" | "legend" | "onChange"> {
+  label: string;
+  properties: readonly FilterConditionProperty[];
+  value: FilterConditionValue;
+  onValueChange: (value: FilterConditionValue) => void;
+  onRemove?: () => void;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  labels?: Partial<Record<"property" | "operator" | "values" | "include" | "exclude" | "placeholder" | "remove", string>>;
+}
+/** One finite-choice filter predicate; the host owns application and query semantics. @since 0.2.11 */
+export const FilterCondition = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, FilterConditionProps>(function FilterCondition(props, ref) { return <PredicateRow {...props} ref={ref}/>; });
+
+export interface FilterGroupCondition extends FilterConditionValue { id: string; }
+export interface FilterGroupValue {
+  match: "all" | "any";
+  conditions: FilterGroupCondition[];
+}
+export interface FilterGroupProps extends Omit<FieldsetProps, "children" | "legend" | "onChange"> {
+  label: string;
+  properties: readonly FilterConditionProperty[];
+  value: FilterGroupValue;
+  onValueChange: (value: FilterGroupValue) => void;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  allowDuplicateProperties?: boolean;
+  maxConditions?: number;
+  labels?: Partial<Record<"match" | "all" | "any" | "add" | "condition", string>>;
+  conditionLabels?: FilterConditionProps["labels"];
+}
+/** A flat controlled group of finite-choice predicates, without query execution or Apply/Cancel ownership. @since 0.2.11 */
+export const FilterGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, FilterGroupProps>(function FilterGroup(props, ref) { return <PredicateGroup {...props} ref={ref}/>; });
+
+export interface CollectionFilterSummary {
+  id: string;
+  label: string;
+  removeLabel?: string;
+  disabled?: boolean;
+}
+export interface CollectionToolbarProps extends Omit<FieldsetProps, "children" | "legend" | "onChange"> {
+  label: string;
+  searchValue: string;
+  onSearchValueChange: (value: string) => void;
+  searchLabel?: string;
+  searchPlaceholder?: string;
+  clearSearchLabel?: string;
+  appliedFilters?: readonly CollectionFilterSummary[];
+  onRemoveFilter?: (id: string) => void;
+  appliedFiltersLabel?: string;
+  summaryPrefix?: ReactNode;
+  /** At most two task-important quick filters; move additional properties into filterContent. */
+  quickFilters?: ReactNode;
+  filterContent?: ReactNode;
+  filtersLabel?: string;
+  filterTitle?: string;
+  filtersOpen?: boolean;
+  onFiltersOpenChange?: (open: boolean) => void;
+  filterPanelRef?: Ref<HTMLDivElement>;
+  filterPanelClassName?: string;
+  onClear?: () => void;
+  canClear?: boolean;
+  clearLabel?: string;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+}
+/** Search, accepted summaries and staged filter disclosure; saved views and query semantics stay host-owned. @since 0.2.11 */
+export const CollectionToolbar = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, CollectionToolbarProps>(function CollectionToolbar(props, ref) { return <CollectionQueryBar {...props} ref={ref}/>; });
+
+export interface CollectionViewOption {
+  id:string;
+  name:string;
+  disabled?:boolean;
+}
+export interface CollectionViewSwitcherProps extends Omit<HTMLAttributes<HTMLDivElement>,"children"|"onChange"> {
+  label:string;
+  views:readonly CollectionViewOption[];
+  value:string;
+  onValueChange:(id:string)=>void;
+  actions?:readonly OverflowAction[];
+  onAction?:(id:string)=>void;
+  actionsLabel?:string;
+  moreLabel?:string;
+  controlSize?:"sm"|"md"|"lg"|"xl";
+  disabled?:boolean;
+  /** Focus target for host-owned naming/deletion dialogs. */
+  selectRef?:Ref<HTMLSelectElement>;
+}
+/** Controlled saved/preset view choice with optional adaptive commands. @since 0.2.11 */
+export const CollectionViewSwitcher = /* @__PURE__ */ forwardRef<HTMLDivElement,CollectionViewSwitcherProps>(function CollectionViewSwitcher(props,ref){return <CollectionViewSelector {...props} ref={ref}/>;});
+
+export interface BulkActionBarProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "onAction"> {
+  label: string;
+  selectionCount: number;
+  /** Complete localized count, for example "2 selected". */
+  selectionLabel?: string;
+  /** Visible selection summary. Hidden counters do not reserve a slot. */
+  counter?: "label" | "number" | "none";
+  /** Reserved counter width; stable while selectionCount changes. */
+  counterWidth?: CSSProperties["inlineSize"];
+  items: readonly OverflowAction[];
+  onAction?: (id: string) => void;
+  onClear: () => void;
+  clearLabel?: string;
+  moreLabel?: string;
+  size?: "sm" | "md" | "lg" | "xl";
+  /** One to three visible commands; the default is two. */
+  maxVisibleActions?: 1 | 2 | 3;
+  disabled?: boolean;
+  pending?: boolean;
+}
+/** A bounded single-row selection command capsule. The host owns positioning and updates. @since 0.2.11 */
+export const BulkActionBar = /* @__PURE__ */ forwardRef<HTMLDivElement, BulkActionBarProps>(function BulkActionBar(props, ref) { return <SelectionActionBar {...props} ref={ref}/>; });
+export interface MenubarMenu { id: string; label: string; disabled?: boolean; items: readonly MenuItem[]; }
+export interface MenubarProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "onAction"> {
+  label: string;
+  menus: readonly MenubarMenu[];
+  openValue?: string | null;
+  defaultOpenValue?: string | null;
+  onOpenValueChange?: (id: string | null) => void;
+  onAction?: (menuId: string, actionId: string) => void;
+  controlSize?: "sm" | "md" | "lg" | "xl";
+  disabled?: boolean;
+}
+/** Desktop application commands; destinations use native links instead. @since 0.2.11 */
+export const Menubar = /* @__PURE__ */ forwardRef<HTMLDivElement, MenubarProps>(function Menubar(props, ref) { return <ApplicationMenubar {...props} ref={ref}/>; });
 
 export interface TimePickerProps extends Omit<TimeFieldProps,"end"> {
   interval?: number;
@@ -99,6 +267,10 @@ export interface DateTimeRangePickerProps extends Omit<HTMLAttributes<HTMLDivEle
   startTimeLabel?: string;
   endDateLabel?: string;
   endTimeLabel?: string;
+  startDatePickerLabels?: DateTimePickerProps["datePickerLabels"];
+  endDatePickerLabels?: DateTimePickerProps["datePickerLabels"];
+  startTimePickerLabels?: DateTimePickerProps["timePickerLabels"];
+  endTimePickerLabels?: DateTimePickerProps["timePickerLabels"];
   form?: string;
   required?: boolean;
   disabled?: boolean;
@@ -182,6 +354,7 @@ export interface DataTableColumn {
   id: string;
   label: string;
   sortable?: boolean;
+  numeric?: boolean;
   align?: "start" | "end";
   width?: CSSProperties["width"];
 }
@@ -191,6 +364,13 @@ export interface DataTableRow {
   cells: Readonly<Record<string, ReactNode>>;
   sortValues?: Readonly<Record<string, string | number | null>>;
   selectionDisabled?: boolean;
+  /** One named record-opening action. Other controls in the row remain independent. */
+  primaryAction?: {
+    column: string;
+    title: string;
+    description?: ReactNode;
+    buttonProps: Omit<ButtonProps, "children" | "type" | "variant" | "size"> & {ref?: Ref<HTMLButtonElement>};
+  };
 }
 export interface DataTableSort { column: string; direction: "ascending" | "descending"; }
 export interface DataTableLabels {
@@ -209,6 +389,11 @@ export interface DataTableLabels {
   page?: (page: number) => string;
 }
 export interface DataTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  /** Host-owned heading, search and filters aligned with the outer table cells. */
+  toolbar?: ReactNode;
+  inset?: "standard" | "roomy";
+  /** Ready with no rows only. Compose EmptyState/actions here; loading and error keep their owners. */
+  emptyContent?: ReactNode;
   caption: string;
   hideCaption?: boolean;
   columns: readonly DataTableColumn[];
@@ -228,6 +413,13 @@ export interface DataTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
   defaultPage?: number;
   pageSize?: number;
   onPageChange?: (page: number) => void;
+  /** Hide the result range while preserving selection and pagination controls. */
+  showResults?: boolean;
+  /** Server mode renders rows as the supplied page, without local sorting/slicing. */
+  paginationMode?: "client" | "server";
+  totalRows?: number;
+  /** Server dataset selection is controlled; the host validates IDs outside this page. */
+  selectionScope?: "page" | "dataset";
   state?: "ready" | "loading" | "error";
   onRetry?: () => void;
   labels?: DataTableLabels;
@@ -329,6 +521,8 @@ export interface DateTimePickerProps extends Omit<HTMLAttributes<HTMLDivElement>
   onValueChange?: (value: DateTimeValue) => void;
   dateLabel?: string;
   timeLabel?: string;
+  datePickerLabels?: Pick<DatePickerProps, "calendarLabel" | "openCalendarLabel" | "previousMonthLabel" | "nextMonthLabel" | "viewLabels" | "segmentLabels" | "messages">;
+  timePickerLabels?: Pick<TimePickerProps, "panelLabel" | "openTimeLabel" | "segmentLabels" | "messages">;
   dateName?: string;
   timeName?: string;
   form?: string;
@@ -387,30 +581,138 @@ export interface TreeProps extends Omit<HTMLAttributes<HTMLDivElement>, "childre
 export const Tree = /* @__PURE__ */ forwardRef<HTMLDivElement, TreeProps>(function Tree(props, ref) {
   return <SelectionTree {...props} ref={ref} />;
 });
+export interface NavigationItemDisclosure {
+  expanded:boolean;
+  onExpandedChange:(expanded:boolean)=>void;
+  label:string;
+  controls?:string;
+  disabled?:boolean;
+}
+export interface NavigationItemProps extends Omit<HTMLAttributes<HTMLDivElement>,'children'|'onChange'> {
+  label:string;
+  description?:string;
+  icon?:ReactNode;
+  reserveIcon?:boolean;
+  trailing?:ReactNode;
+  /** Independent action rendered beside the primary control in expanded rows. */
+  trailingAction?:ReactNode;
+  href?:string;
+  linkProps?:Omit<AnchorHTMLAttributes<HTMLAnchorElement>,'href'|'children'|'aria-current'>;
+  onAction?:()=>void;
+  actionProps?:Omit<ButtonHTMLAttributes<HTMLButtonElement>,'children'>;
+  disclosure?:NavigationItemDisclosure;
+  current?:boolean;
+  currentKind?:'page'|'location';
+  ancestorCurrent?:boolean;
+  disabled?:boolean;
+  size?:'sm'|'md'|'lg';
+  compact?:boolean;
+  variant?:'quiet'|'standard';
+  tooltip?:boolean;
+  tooltipSide?:'left'|'right';
+  controlRef?:Ref<HTMLElement>;
+  disclosureRef?:Ref<HTMLButtonElement>;
+}
+
+/** Shared navigation row geometry and native destination/action behavior. @since 0.2.11 */
+export const NavigationItem = /* @__PURE__ */ forwardRef<HTMLDivElement,NavigationItemProps>(function NavigationItem(props,ref){return <NavigationRow {...props} ref={ref}/>;});
+
+export interface NavigationGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title" | "onChange"> {
+  label?: string;
+  hideLabel?: boolean;
+  headingAction?: ReactNode;
+  separator?: boolean;
+  collapsible?: boolean;
+  expanded?: boolean;
+  defaultExpanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+  compact?: boolean;
+  size?: "sm" | "md" | "lg";
+  collapseDisabled?: boolean;
+  children?: ReactNode;
+}
+
+/** Related navigation with independently configurable presentation. @since 0.2.11 */
+export const NavigationGroup = /* @__PURE__ */ forwardRef<HTMLDivElement,NavigationGroupProps>(function NavigationGroup(props,ref){return <NavigationSection {...props} ref={ref}/>;});
+
 export interface NavigationTreeItem {
   value: string;
   label: string;
   href?: string;
   icon?: ReactNode;
+  trailing?: ReactNode;
+  trailingAction?: ReactNode;
   disabled?: boolean;
   children?: readonly NavigationTreeItem[];
   content?: ReactNode;
+  flyout?: { openOnHover?: boolean; positionReference?: RefObject<HTMLElement | null> };
   linkProps?: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "children" | "aria-current">;
 }
 export interface NavigationTreeProps extends Omit<HTMLAttributes<HTMLElement>, "children" | "onChange"> {
   label: string;
   items: readonly NavigationTreeItem[];
   currentValue?: string;
+  /** Page destination versus the current global module/location. */
+  currentKind?: "page" | "location";
   expandedValues?: readonly string[];
   defaultExpandedValues?: readonly string[];
   onExpandedValuesChange?: (values: string[]) => void;
   expandLabel?: (item: NavigationTreeItem, expanded: boolean) => string;
   size?: ContentSize;
+  variant?: "quiet" | "standard";
+  /** Icon rail; branches open a Popover without changing the accepted expansion set. */
+  compact?: boolean;
+  flyoutSide?: "left" | "right";
+  branchGuides?: boolean;
 }
 /** @since 0.2.7 */
 export const NavigationTree = /* @__PURE__ */ forwardRef<HTMLElement, NavigationTreeProps>(function NavigationTree(props, ref) {
   return <HierarchicalNavigation {...props} ref={ref} />;
 });
+
+export interface SidebarGroup {
+  id:string;
+  label:string;
+  /** Keep the navigation name while omitting a redundant visible section title. */
+  hideLabel?:boolean;
+  separator?:boolean;
+  branchGuides?:boolean;
+  headingAction?:ReactNode;
+  collapsible?:boolean;
+  expanded?:boolean;
+  defaultExpanded?:boolean;
+  onExpandedChange?:(expanded:boolean)=>void;
+  items:readonly NavigationTreeItem[];
+}
+export interface SidebarSlotState { collapsed:boolean; }
+export interface SidebarProps extends Omit<HTMLAttributes<HTMLElement>,"children"|"onChange"> {
+  label:string;
+  groups:readonly SidebarGroup[];
+  currentValue?:string;
+  currentKind?:NavigationTreeProps["currentKind"];
+  collapsed?:boolean;
+  defaultCollapsed?:boolean;
+  onCollapsedChange?:(collapsed:boolean)=>void;
+  collapsible?:boolean;
+  collapseLabel?:string;
+  expandLabel?:string;
+  expandedValues?:readonly string[];
+  defaultExpandedValues?:readonly string[];
+  onExpandedValuesChange?:(values:string[])=>void;
+  expandItemLabel?:NavigationTreeProps["expandLabel"];
+  size?:ContentSize;
+  /** Quiet recedes behind work content; standard preserves the stronger pill recipe. */
+  variant?:"quiet"|"standard";
+  side?:"start"|"end";
+  width?:CSSProperties["width"];
+  header?:ReactNode|((state:SidebarSlotState)=>ReactNode);
+  headerLayout?:"stacked"|"inline";
+  footer?:ReactNode|((state:SidebarSlotState)=>ReactNode);
+  footerSeparator?:boolean;
+  headerSeparator?:boolean;
+}
+/** Bounded desktop navigation composed from NavigationTree and ScrollArea. @since 0.2.11 */
+export const Sidebar = /* @__PURE__ */ forwardRef<HTMLElement,SidebarProps>(function Sidebar(props,ref){return <WorkspaceSidebar {...props} ref={ref}/>;});
 
 export interface ErrorSummaryItem { id: string; fieldId: string; message: string; }
 export interface ErrorSummaryProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title" | "onSelect" | "role" | "aria-live"> {
@@ -481,6 +783,7 @@ export interface DateRangePickerProps extends Omit<DateRangeFieldProps, "end"> {
   onOpenChange?: (open: boolean) => void;
   calendarLabel?: string;
   openCalendarLabel?: string;
+  viewLabels?: CalendarProps["viewLabels"];
   locale?: string;
   weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   today?: string;
@@ -499,6 +802,7 @@ export interface DatePickerProps extends Omit<DateFieldProps, "end"> {
   onOpenChange?: (open: boolean) => void;
   calendarLabel?: string;
   openCalendarLabel?: string;
+  viewLabels?: CalendarProps["viewLabels"];
   locale?: string;
   weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   today?: string;
@@ -673,6 +977,7 @@ const classes = (...values: (string | undefined | false)[]) =>
 export type ControlSize = "2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "solid" | "subtle" | "outline" | "ghost";
+  tone?: "default" | "danger";
   size?: ControlSize;
   loading?: boolean;
 }
@@ -680,6 +985,7 @@ export const Button = /* @__PURE__ */ forwardRef<HTMLButtonElement, ButtonProps>
   function Button(
     {
       variant = "solid",
+      tone = "default",
       size = "md",
       loading = false,
       disabled,
@@ -695,6 +1001,7 @@ export const Button = /* @__PURE__ */ forwardRef<HTMLButtonElement, ButtonProps>
         {...props}
         ref={ref}
         type={type}
+        data-tone={tone === "danger" ? tone : undefined}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
         className={classes(
@@ -749,6 +1056,10 @@ export interface ToolbarProps extends Omit<HTMLAttributes<HTMLDivElement>, "role
   label: string;
   orientation?: "horizontal" | "vertical";
   loop?: boolean;
+  /** Pill keeps a single horizontal rail; rounded permits wrapped tool groups. */
+  shape?: "rounded" | "pill";
+  /** Plain groups keep control height without another surface or outer inset. */
+  variant?: "contained" | "plain";
 }
 /** @since 0.2.4 */
 export const Toolbar = /* @__PURE__ */ forwardRef<HTMLDivElement, ToolbarProps>(function Toolbar(
@@ -910,6 +1221,7 @@ export interface TabsProps extends Omit<HTMLAttributes<HTMLDivElement>, "childre
   onValueChange?: (value: string) => void;
   activationMode?: "automatic" | "manual";
   orientation?: "horizontal" | "vertical";
+  variant?: "contained" | "line";
   controlSize?: "sm" | "md" | "lg" | "xl";
   disabled?: boolean;
   iconOnly?: boolean;
@@ -1008,9 +1320,13 @@ export const Menu = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuProps>(functi
 ) {
   return <ActionMenu {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} side={side} align={align} controlSize={controlSize} />;
 });
+export interface TooltipTriggerProps extends HTMLAttributes<HTMLElement> {
+  ref: RefCallback<HTMLElement>;
+}
 export interface TooltipProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "content" | "title" | "role"> {
   content: string;
-  trigger: (props: OverlayTriggerProps) => ReactNode;
+  /** Native link/button-safe hover/focus props; the trigger keeps its own semantics. */
+  trigger: (props: TooltipTriggerProps) => ReactNode;
   side?: "top" | "bottom" | "left" | "right";
   align?: "start" | "center" | "end";
   delay?: number;
@@ -1021,7 +1337,7 @@ export const Tooltip = /* @__PURE__ */ forwardRef<HTMLDivElement, TooltipProps>(
 ) { return <AnchoredOverlay {...props} ref={ref} kind="tooltip" side={side} align={align} delay={delay} disabled={disabled} />; });
 export interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title" | "role"> {
   title: string;
-  chrome?: "default" | "minimal";
+  chrome?: "default" | "minimal" | "title-only";
   trigger: (props: OverlayTriggerProps) => ReactNode;
   children?: ReactNode;
   open?: boolean;
@@ -1033,6 +1349,7 @@ export interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, "chil
   closeLabel?: string;
   initialFocusRef?: RefObject<HTMLElement | null>;
   positionReference?: RefObject<HTMLElement | null>;
+  focusOnOpen?: boolean;
 }
 export const Popover = /* @__PURE__ */ forwardRef<HTMLDivElement, PopoverProps>(function Popover(
   {side = "bottom", align = "start", defaultOpen = false, disabled = false, closeLabel = "Close", ...props}, ref,
@@ -1053,6 +1370,44 @@ export interface DialogProps extends Omit<HTMLAttributes<HTMLDialogElement>, "ch
 export const Dialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, DialogProps>(function Dialog(
   {defaultOpen = false, disabled = false, closeLabel = "Close", closeOnOutsideClick = true, ...props}, ref,
 ) { return <ModalOverlay {...props} ref={ref} defaultOpen={defaultOpen} disabled={disabled} closeLabel={closeLabel} closeOnOutsideClick={closeOnOutsideClick} />; });
+
+export interface CommandPaletteProps extends Omit<DialogProps, "children" | "description" | "initialFocusRef"> {
+  searchLabel: string;
+  items: readonly CommandListItem[];
+  density?: "comfortable" | "compact";
+  query?: string;
+  defaultQuery?: string;
+  onQueryChange?: (query: string) => void;
+  onAction: (id: string) => void;
+  loading?: boolean;
+  placeholder?: string;
+  emptyMessage?: string;
+  loadingMessage?: string;
+}
+/** @since 0.2.11 */
+export const CommandPalette = /* @__PURE__ */ forwardRef<HTMLDialogElement, CommandPaletteProps>(function CommandPalette(
+  { searchLabel, items, density = "comfortable", query, defaultQuery, onQueryChange, onAction,
+    loading, placeholder, emptyMessage, loadingMessage, open, defaultOpen = false, onOpenChange, className, ...props }, ref,
+) {
+  const input = useRef<HTMLInputElement>(null);
+  const [localOpen, setLocalOpen] = useState(defaultOpen);
+  const requestOpen = (next: boolean) => {
+    if (open === undefined) setLocalOpen(next);
+    onOpenChange?.(next);
+  };
+  return <Dialog {...props} ref={ref} open={open ?? localOpen} onOpenChange={requestOpen}
+    initialFocusRef={input} className={classes("flood-command-palette", className)}>
+    <div className="flood-command-palette__search-icon">
+      <IconSlot size="sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true" focusable="false">
+        <circle cx="10.5" cy="10.5" r="5.75" /><path d="m15 15 4 4" />
+      </svg></IconSlot>
+    </div>
+    <SearchCommandList ref={input} label={searchLabel} hideLabel integrated items={items} controlSize={density === "compact" ? "sm" : "md"}
+      query={query} defaultQuery={defaultQuery} onQueryChange={onQueryChange} loading={loading}
+      placeholder={placeholder} emptyMessage={emptyMessage} loadingMessage={loadingMessage}
+      onAction={id => { requestOpen(false); onAction(id); }} />
+  </Dialog>;
+});
 
 export interface DrawerProps extends DialogProps {
   side?: "start" | "end" | "top" | "bottom";
@@ -1081,6 +1436,8 @@ export const AlertDialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, AlertDi
 
 export interface CollapsibleProps extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "onChange"> {
   title: string;
+  /** Independent action beside the disclosure trigger, never nested inside it. */
+  headerAction?: ReactNode;
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -1296,6 +1653,7 @@ export interface ComboboxOption {
   description?: string;
   keywords?: readonly string[];
   disabled?: boolean;
+  group?: string;
 }
 export interface ComboboxProps extends Omit<InputProps, "type" | "value" | "defaultValue" | "onChange" | "children"> {
   options: readonly ComboboxOption[];
@@ -1308,7 +1666,31 @@ export interface ComboboxProps extends Omit<InputProps, "type" | "value" | "defa
   toggleLabel?: string;
   clearLabel?: string;
   invalidSelectionMessage?: string;
+  query?: string;
+  onQueryChange?: (query: string) => void;
+  /** Manual results require a controlled query and a matching optionsQuery. */
+  filtering?: "local" | "manual";
+  optionsQuery?: string;
+  /** Retain the selected record's presentation while remote results change. */
+  selectedOptions?: readonly ComboboxOption[];
+  loadState?: "ready" | "loading" | "error";
+  loadingMessage?: string;
+  errorMessage?: string;
+  onRetry?: () => void;
+  retryLabel?: string;
 }
+export interface AutocompleteProps extends Omit<ComboboxProps, "query" | "onQueryChange" | "selectedOptions" | "value" | "defaultValue" | "onValueChange"> {
+  value?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
+  onOptionSelect?: (option: ComboboxOption) => void;
+}
+/** A free text field with suggestions; FormData contains text rather than an option ID. @since 0.2.11 */
+export const Autocomplete = /* @__PURE__ */ forwardRef<HTMLInputElement, AutocompleteProps>(function Autocomplete(
+  {value, defaultValue = "", onValueChange, onOptionSelect, ...props}, ref,
+) {
+  return <SearchSelection {...props} ref={ref} freeText textValue={value} initialText={defaultValue} onTextChange={onValueChange} onOptionSelect={onOptionSelect} initialValues={[]} />;
+});
 /** @since 0.2.5 */
 export const Combobox = /* @__PURE__ */ forwardRef<HTMLInputElement, ComboboxProps>(function Combobox(
   { value, defaultValue = "", onValueChange, clearable = false, emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options", clearLabel = "Clear selection", invalidSelectionMessage = "Select an option.", controlSize = "md", ...props }, ref,
@@ -1525,9 +1907,14 @@ export const RadioGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, RadioG
     onSelectionChange={next => onValueChange?.(next[0] ?? "")} fieldsetComponent={Fieldset} choiceComponent={Radio} />;
 });
 
+export interface SegmentedControlOption extends ToggleOption {
+  /** Optional visible count read with the label. Format localized counts before passing them. @since 0.2.11 */
+  count?: number | string;
+}
+
 export interface SegmentedControlProps extends Omit<RadioGroupProps, "legend" | "options"> {
   label: string;
-  options: readonly ToggleOption[];
+  options: readonly SegmentedControlOption[];
   controlSize?: "sm" | "md" | "lg" | "xl";
   iconOnly?: boolean;
   fullWidth?: boolean;
@@ -1541,7 +1928,9 @@ export const SegmentedControl = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, 
     className={classes("flood-segmented", `flood-control--${controlSize}`, iconOnly && "flood-segmented--icons", fullWidth && "flood-segmented--full", className)}
     options={options.map(option => ({ ...option, label: <>
       {option.icon && <IconSlot size={controlSize}>{option.icon}</IconSlot>}
-      {iconOnly ? <span className="flood-segmented__name">{option.label}</span> : option.label}
+      {iconOnly ? <span className="flood-segmented__name">{option.label}</span>
+        : option.count == null || option.count === "" ? option.label
+        : <span className="flood-segmented__counted-label">{option.label}{" "}<span className="flood-segmented__count">{option.count}</span></span>}
     </> }))} onKeyDown={event => {
       onKeyDown?.(event);
       if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
@@ -1841,11 +2230,13 @@ export const IconSlot = /* @__PURE__ */ forwardRef<HTMLSpanElement, IconSlotProp
 });
 export interface IconButtonProps extends Omit<ButtonProps, "aria-label"> {
   label: string;
+  /** Glyph size only; size continues to own the interactive target and insets. */
+  iconSize?: ControlSize;
 }
 export const IconButton = /* @__PURE__ */ forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { label, size = "md", variant = "subtle", className, children, ...props }, ref,
+  { label, size = "md", iconSize = size, variant = "subtle", className, children, ...props }, ref,
 ) {
-  return <Button {...props} ref={ref} size={size} variant={variant} aria-label={label} className={classes("flood-icon-button", className)}><IconSlot size={size}>{children}</IconSlot></Button>;
+  return <Button {...props} ref={ref} size={size} variant={variant} aria-label={label} className={classes("flood-icon-button", className)}><IconSlot size={iconSize}>{children}</IconSlot></Button>;
 });
 
 export const Divider = /* @__PURE__ */ forwardRef<HTMLHRElement, HTMLAttributes<HTMLHRElement>>(
@@ -2055,6 +2446,60 @@ export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, "title">
 export const Section = /* @__PURE__ */ forwardRef<HTMLElement, SectionProps>(function Section(
   {headingLevel = 2, headingSize = "section", ...props}, ref,
 ) { return <ContentSection {...props} ref={ref} headingLevel={headingLevel} headingSize={headingSize} />; });
+
+export interface PageHeaderProps extends Omit<HTMLAttributes<HTMLElement>, "title" | "children"> {
+  title: string;
+  description?: ReactNode;
+  actions?: ReactNode;
+  headingId?: string;
+  /** Use level 2 when showing a page header inside an existing document outline. */
+  headingLevel?: 1 | 2;
+  headingSize?: "page" | "large" | "display";
+}
+/** The primary heading and associated actions inside a page's main region. @since 0.2.11 */
+export const PageHeader = /* @__PURE__ */ forwardRef<HTMLElement, PageHeaderProps>(function PageHeader(
+  {headingSize = "large", headingLevel = 1, ...props}, ref,
+) { return <PageHeading {...props} ref={ref} headingSize={headingSize} headingLevel={headingLevel} />; });
+
+export interface AppTopBarProps extends Omit<HTMLAttributes<HTMLElement>, "children"> {
+  start?: ReactNode;
+  end?: ReactNode;
+  bordered?: boolean;
+}
+/** Persistent application chrome with independent context and action slots. @since 0.2.11 */
+export const AppTopBar = /* @__PURE__ */ forwardRef<HTMLElement, AppTopBarProps>(function AppTopBar(
+  {bordered = false, ...props}, ref,
+) { return <ApplicationTopBar {...props} ref={ref} bordered={bordered} />; });
+
+export interface AppShellNavigationDrawer {
+  /** Switch below this shell width in CSS pixels. */
+  below: number;
+  title: string;
+  triggerLabel?: string;
+  size?: DrawerProps["size"];
+  renderContent: (close: () => void) => ReactNode;
+}
+export interface AppShellProps extends HTMLAttributes<HTMLDivElement> {
+  navigation?: ReactNode;
+  navigationSide?: "start" | "end";
+  navigationDrawer?: AppShellNavigationDrawer;
+  /** Render function places the shell's responsive trigger in a custom top bar. */
+  topBar?: ReactNode | ((navigationTrigger: ReactNode) => ReactNode);
+  footer?: ReactNode;
+  scroll?: "content" | "page";
+  mainId?: string;
+  /** Use section when embedding a shell inside an existing main landmark. */
+  mainAs?: "main" | "section";
+  mainLabel?: string;
+  mainRef?: Ref<HTMLElement>;
+  scrollLabel?: string;
+  scrollOrientation?: ScrollAreaProps["orientation"];
+  skipLabel?: string;
+}
+/** Composes application navigation and a main landmark with optional bounded scrolling. @since 0.2.11 */
+export const AppShell = /* @__PURE__ */ forwardRef<HTMLDivElement, AppShellProps>(function AppShell(
+  {navigationSide = "start", scroll = "content", mainAs = "main", ...props}, ref,
+) { return <ApplicationShell {...props} ref={ref} navigationSide={navigationSide} scroll={scroll} mainAs={mainAs} />; });
 
 export interface SplitProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   main: ReactNode;

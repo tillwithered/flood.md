@@ -98,9 +98,9 @@ test("custom checkbox and radio glyphs stay fixed when labels grow and remain ke
     if (kind === "checkbox") {
       await page.keyboard.press("Space");
       await expect(control).not.toBeChecked();
-      expect(await control.evaluate(node => getComputedStyle(node, "::before").opacity)).toBe("0");
+      await expect.poll(() => control.evaluate(node => getComputedStyle(node, "::before").opacity)).toBe("0");
       await control.evaluate((node: HTMLInputElement) => { node.indeterminate = true; });
-      expect(await control.evaluate(node => getComputedStyle(node, "::before").opacity)).toBe("1");
+      await expect.poll(() => control.evaluate(node => getComputedStyle(node, "::before").opacity)).toBe("1");
     } else {
       await page.keyboard.press("ArrowDown");
       await expect(page.locator(".preview-stage").getByRole("radio", { name: "Public", exact: true })).toBeChecked();
@@ -124,7 +124,7 @@ test("buttons stay intrinsic as direct Stack children while sibling actions shar
 test("workbench knobs use Flood controls with 8px inner and 16px group rhythm", async ({ page }) => {
   await page.goto("/components/button");
   const controls = page.locator(".workbench-controls").first();
-  await expect(controls.getByRole("combobox")).toHaveCount(2);
+  await expect(controls.getByRole("combobox")).toHaveCount(3);
   for (const rootSize of [16, 20]) {
     await page.evaluate((size) => { document.documentElement.style.fontSize = `${size}px`; }, rootSize);
     await expect(controls).toHaveCSS("column-gap", `${rootSize}px`);

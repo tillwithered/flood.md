@@ -1,5 +1,8 @@
 # Filter bar
 
+For staged conditions and persisted query definitions, see
+[Collection views](collection-views.md) and its two working consumers.
+
 Compose existing Field, SearchInput, Select and Button. Filtering belongs to the
 host collection, not to DataTable. This recipe filters the full local data set
 before handing it to the table and resets page and selection when filters change.
@@ -54,6 +57,12 @@ values. Expose active filters as removable Tag components when the filter set
 gets larger; do not add a duplicate generic FilterBar component just for layout.
 
 For remote data, debounce or submit at the host boundary, cancel obsolete requests
-and map loading/error states explicitly. Do not pass an individual server page to
-this client-paginated DataTable or interpret the page aggregate as server-wide
-selection. Use Table + Pagination for a remote query contract.
+and map loading/error states explicitly. Use DataTable paginationMode="server" for an individual server page with explicit
+controlled page/sort and totalRows; do not interpret its select-page checkbox as
+server-wide selection. Table + Pagination remains available for a host-owned
+contract. Follow recipe:record-workspace for request generations and recovery.
+
+When reviewing a dense toolbar, compare the filled edges and the text inside
+each control. Shared edges and consistent heights can communicate grouping
+even with small gaps. Judge the applied criteria and the filter trigger with
+long values and at the width where the toolbar wraps.

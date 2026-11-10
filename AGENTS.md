@@ -10,6 +10,9 @@ the public product, website, documentation, examples and verification tooling.
   Improve a missing capability in the small primitive first, then compose it.
   Follow [the composition skill](packages/agent/references/flood-composition/SKILL.md)
   when building or reviewing UI.
+- For new components or visual API changes, apply the same
+  [component-family contract](packages/agent/references/component-families.md)
+  shipped to consumers; compare the closest rendered siblings before adding a recipe.
 - Route the actual task through [the agent entry](packages/agent/SKILL.md) and
   read the relevant workflow, not every skill. Stabilize behavior and update its
   matching guidance together. The workflow/rules indexes identify applicable

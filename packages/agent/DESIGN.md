@@ -1,4 +1,4 @@
-# Flood design system · 0.2.10
+# Flood design system · 0.2.11
 
 ListBox owns native required validation for accepted selection. Use its
 description/message/status props rather than duplicating feedback markup. Visual
@@ -247,9 +247,9 @@ footer-only card has no redundant separator. Elevation is default or raised.
 No data access, selection or interactive-card behavior is implied.
 
 ```tsx
-<Card title="Project details" description="Keep your team in sync."
+<Card title="Project details"
   footer={<Button variant="subtle">Open project</Button>}>
-  <Text as="p" size="compact">A calm place for the next idea.</Text>
+  <Text as="p" size="compact">Homepage and checkout</Text>
 </Card>
 ```
 
@@ -418,8 +418,11 @@ an enclosing Fieldset for exclusive choices; derive aggregate checkbox state
 in the host. Read-only choice cards preserve submission and block editing; apply
 readOnly to an entire radio group consistently.
 
-DataTable pages and sorts one complete client-side collection. It is not a
-server query engine or a virtualized grid. Rich cells require explicit sortValues
+DataTable defaults to paging/sorting a complete client collection. Opt-in
+paginationMode="server" renders one supplied page with controlled page/sort and
+totalRows. It does not fetch, cancel requests or virtualize. Declare page/dataset
+selection scope and validate IDs in the host; never select an entire remote query
+by interpreting a select-page checkbox as that operation. Rich cells require explicit sortValues
 when they are sortable. Select all affects the current page only and preserves
 other pages; permission-restricted rows use selectionDisabled. Native links and
 actions in cells remain independent. Compose search and filters at the host

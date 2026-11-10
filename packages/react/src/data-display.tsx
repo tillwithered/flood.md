@@ -5,7 +5,7 @@ import { ScrollArea } from "./index.js";
 export const DescribedData = /* @__PURE__ */ forwardRef<HTMLDListElement, DescriptionListProps>(function DescribedData(
   { items, layout, density, dividers, className, ...props }, ref,
 ) {
-  if (items.some(item => !item.id.trim()) || new Set(items.map(item => item.id)).size !== items.length)
+  if (items.some(item => typeof item.id !== "string" || !item.id.trim()) || new Set(items.map(item => item.id)).size !== items.length)
     throw new Error("Flood description items require unique nonempty IDs");
   return <dl {...props} ref={ref} className={["flood-description-list", className].filter(Boolean).join(" ")}
     data-layout={layout} data-density={density} data-dividers={dividers}>

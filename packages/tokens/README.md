@@ -1,12 +1,20 @@
 # @flood-md/tokens
 
-Typed reference values and semantic CSS roles for Flood **0.2.10**. Keep Flood
+Typed reference values and semantic CSS roles for Flood **0.2.11**. Keep Flood
 package versions aligned. Existing 0.1.1 installs use their earlier token contract.
 
 React consumers import @flood-md/react/styles.css and use FloodRoot. Token-only
 consumers import @flood-md/tokens/foundations.css and set both attributes on the
 same scope element: data-flood-foundations="neutral" data-flood-theme="dark".
 Only the neutral/dark foundations profile is supplied.
+
+The 0.2.11 candidate adds base/filled contextual neutral recipes. Absolute
+material colors remain separate from inherited action, field, selection and
+supporting-element roles. React material owners establish the appropriate
+context; token-only hosts must apply their own scoped role mapping. See the
+foundations guide's material-context section and the generated manifest before
+overriding an elevated control recipe. Alpha fills need review over the actual
+backdrop; they do not establish accessibility by themselves.
 
 Exports include ./foundations (typed tokenNames lookup), ./foundations.css,
 ./foundations.manifest.json and ./neutral.dark.tokens.json. Values are authored
@@ -57,6 +65,6 @@ and Drawer retain surface.overlay. Backdrop filtering is progressive enhancement
 reduced transparency uses the opaque fill and forced colors use system colors.
 Keep text opaque and evaluate it against the actual composited background.
 
-Version 0.2.10 adds field-label, group-title and dialog-title type
+Version 0.2.11 adds field-label, group-title and dialog-title type
 roles. They separate form hierarchy without changing generic body/label roles
 or the host root font. Runtime values are compiled only from src/tokens.json.

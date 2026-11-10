@@ -1,0 +1,4 @@
+.flood-root .flood-collection-view-switcher { min-inline-size:0; }
+.flood-root .flood-collection-view-switcher__select { flex:0 1 13rem; min-inline-size:0; max-inline-size:100%; }
+.flood-root .flood-collection-view-switcher__actions { flex:1 1 16rem; min-inline-size:0; max-inline-size:36rem; }
+.flood-root .flood-collection-view-switcher[hidden] { display:none; }

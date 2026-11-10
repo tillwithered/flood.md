@@ -6,8 +6,191 @@ HTML semantics and refs, no third-party component library or Tailwind dependency
 Named imports support tree shaking in optimizing ES-module bundlers. Import the
 shared stylesheet explicitly; styles are not split by component.
 
-This package documents the **0.2.10** source API. Keep Flood package versions aligned and follow the guide matching
+SegmentedControl options can display a `count` alongside the label, for example
+`{value: "pending", label: "Pending", count: 2}`. Use this for a small, mutually
+exclusive choice that updates one collection. The count is read with the visible
+label and does not change the submitted value.
+
+The 0.2.11 candidate adds optional DataTable row `primaryAction` for opening an
+in-place detail panel, plus `toolbar` and `inset="roomy"` for a shared table edge.
+The title is a native button and the rest of the row also responds to pointer
+activation. Nested controls keep their own actions.
+Set `numeric: true` on a DataTable column of comparable amounts or quantities
+for logical end alignment and tabular digits. An explicit `align` still applies.
+
+The 0.2.11 candidate adds optional compact NavigationTree item `flyout` settings
+for mouse-hover previews and a separate positioning reference. Click, keyboard
+and touch activation still work. Popover `focusOnOpen` defaults to true; use false
+for a pointer preview that preserves the current keyboard focus.
+
+In the 0.2.11 candidate, `NavigationItem.trailingAction` adds a named sibling
+control to an expanded row. `NavigationTree` items accept the same slot.
+Enable `branchGuides` on a tree or Sidebar group for visual depth cues.
+Choose `Sidebar.headerLayout="inline"` to put the identity and collapse button
+on one line while expanded. The stacked layout keeps the original toggle position.
+
+CommandPalette (0.2.11 candidate) provides modal search over pages or commands.
+It shares the CommandList item contract and supports grouped results, disabled
+items, loading and two densities. The host supplies actions and any shortcut.
+
+Tooltip trigger props are HTMLElement-safe: render the existing Link or Button
+directly and forward its ref, hover/focus handlers and aria-describedby. Tooltip
+does not add button type, popup or navigation semantics. Raw button triggers
+inside forms keep an explicit type="button". Popover/Menu retain button trigger
+contracts. When one control owns both Tooltip and Popover, compose both refs,
+handlers and descriptions, and disable the tooltip while the interactive layer
+is open so Escape and focus remain owned by that layer.
+
+IconButton iconSize (0.2.11 candidate) sizes its inner IconSlot independently of
+the interactive size. It defaults to size; shrinking a supporting glyph must
+not shrink its target or bypass IconSlot with a custom SVG width. Existing glyph
+roles at a 16px root are 2xs=14px, xs/sm=16px and md/lg=20px.
+
+This package documents the **0.2.11** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
+
+NavigationItem (0.2.11 candidate) is the shared small row for destinations,
+commands and disclosures. Supply label and either href for a native Link or
+onAction for a Button command. disclosure supplies expanded, onExpandedChange,
+label and optional controls/disabled. With disclosure alone, the full primary
+row toggles the branch; with href or onAction, disclosure is a separate sibling
+IconButton. The row shares its visual surface across both controls, without
+nested interactive elements or making a link click toggle expansion. Current,
+ancestorCurrent, focus and disclosure expansion are separate states. icon,
+reserveIcon, trailing and description are optional anatomy, not required filler.
+Compact rows keep their accessible label and optional Tooltip; NavigationTree
+owns any branch hierarchy and compact Popover, not NavigationItem itself.
+Raw compact NavigationItem cannot combine a separate primary destination/action
+and disclosure: use the NavigationTree branch composition, which retains the
+parent destination alongside children in its flyout. trailing is noninteractive
+metadata; independent controls belong in their own sibling action anatomy.
+
+NavigationGroup (0.2.11 candidate) composes related children with optional label,
+hideLabel, headingAction and separator. collapsible uses the existing Collapsible;
+expanded/onExpandedChange or defaultExpanded control only the group disclosure.
+defaultExpanded is true. A collapsible group requires a nonempty label; hideLabel
+omits the visual title while preserving the toggle name. collapseDisabled disables
+only that disclosure, not arbitrary child destinations or heading actions.
+Compact presentation keeps children available and preserves the accepted expanded
+choice for return to expanded navigation. Heading actions remain available on the
+compact axis. Collapsible headerAction supplies a sibling action in its own header,
+so a group command need not be nested in the disclosure button or moved elsewhere.
+
+Sidebar (0.2.11 candidate) composes grouped NavigationTree destinations and a
+bounded ScrollArea between fixed header/footer slots. NavigationGroup owns each
+section's optional presentation; NavigationTree composes NavigationItem rows.
+Supply label
+and choose variant="quiet" (default) for restrained inactive navigation and
+rectangular current rows, or standard for the stronger pill recipe. This is a
+scoped component recipe using existing roles, not a global theme change.
+Supply groups `{id,label,items}` and currentValue; item values must be globally unique. Set a
+height on the host. Expanded width defaults to 16rem; collapsed rail is 4.5rem (5rem for coarse pointers).
+collapsed/defaultCollapsed/onCollapsedChange are independent of the route and
+expandedValues/defaultExpandedValues/onExpandedValuesChange. Controlled refusal
+preserves accepted state. side is logical start/end; size matches NavigationTree.
+Header/footer accept ReactNode or `({collapsed}) => ReactNode`; adapt their content
+explicitly. collapsible=false omits the toggle. Localize collapseLabel,
+expandLabel and expandItemLabel; group/item labels supply the navigation names.
+The component does not add preference storage, routing, a mobile drawer or shortcuts.
+Groups can set hideLabel to omit redundant visible section titles while retaining
+nav names. headingAction, separator and collapsible/expanded group configuration
+are independent of branch expandedValues. headerSeparator/footerSeparator are
+independent opt-in shell choices and default false. Header/footer content must
+follow the mode contract: common icon/text tracks when expanded and one full-rail
+axis for the actual brand, toggle, destinations and account target when compact.
+currentKind defaults to page; location identifies a current global
+module. Compose a flat compact Sidebar as a GlobalRail and another Sidebar as
+its ContextBar, keeping route, module, expansion and visibility in the host.
+
+Sidebar places its overlay scrollbar inside the existing outer edge spacing.
+Header, body and footer keep the same tracks without an additional reserved
+column, whether navigation overflows or not.
+NavigationTree rows share NavigationItem's space-3 start inset, icon/text tracks
+and deliberate columns for actual trailing anatomy. Iconless descendants begin at the parent text track; missing
+peer icons reserve a slot. Header content should use the same icon size and gap.
+
+NavigationTree rows use space-1 between peers and before an expanded branch;
+group separation remains owned by Sidebar.
+
+NavigationTree compact (0.2.11 candidate) exposes an icon rail: leaf destinations
+remain links, disabled items remain unavailable, branches use Popover with full
+navigation. flyoutSide controls its physical placement; Sidebar resolves its own
+side and RTL direction. Branch selection closes the flyout and preserves current
+destination/expanded state independently. trailing composes meaningful metadata
+such as Badge in expanded rows. Flood tooltips identify compact destinations on
+hover and focus while preserving the actual link/button; an open branch flyout
+suppresses its hint. Missing icons use a neutral fallback glyph. Current ancestor styling does not
+claim aria-current on a non-current parent.
+
+DataTable emptyContent (0.2.11 candidate) accepts a composed EmptyState and
+applicable actions inside the existing full-width body cell. It renders only
+when state="ready" has no visible rows; loading/error retain Spinner/Alert and
+retry ownership. Omitting it preserves labels.empty. Keep header/sort context
+and distinguish an empty collection from no matching results in host content.
+Reset filters in the host and return focus to a persistent query control.
+
+CollectionViewSwitcher (0.2.11 candidate) composes a hidden-label Select and
+applicable view commands. Supply views `{id,name,disabled?}`, controlled value
+and onValueChange. Optional actions/onAction use the OverflowActions contract:
+one command renders Button directly, multiple commands adapt through overflow.
+The host owns saved queries, persistence, naming, confirmation and recovery.
+Keep it separate from CollectionToolbar; selectRef gives host dialogs a stable
+focus destination. controlSize defaults to sm; disabled blocks choice/commands.
+Localize label, actionsLabel, moreLabel, view names and supplied action labels.
+Its multi-action rail uses OverflowActions containerVariant="plain" to match
+the adjacent field height. Toolbar variant="plain" removes its material and
+outer inset; contained remains the default for standalone rails. Button variant
+and toolbar containerVariant remain independent in OverflowActions.
+
+CollectionToolbar (0.2.11 candidate) composes a named search field, applied Tag
+summaries, reserved Clear filters action and end-aligned Filters Popover. Supply
+controlled searchValue/onSearchValueChange; appliedFilters and onRemoveFilter
+describe accepted conditions. filterContent supplies the host's staged editor.
+The host owns Apply/Cancel, query execution, validation and saved views. Omit
+filterContent for search/summary-only use. onClear is optional; canClear describes
+whether the host has anything to reset, including slot-owned quickFilters.
+Clearing and tag removal focus Filters (or search without a panel). The root is
+a fieldset with ordinary Tab navigation, not an action-only roving toolbar.
+Use summaryPrefix for meaningful all/any context, localized labels for controls,
+and keep saved-view management outside this query row. Narrow containers move
+summaries below search/actions; no material surface is added.
+
+FilterGroup (0.2.11 candidate) composes FilterCondition rows and SegmentedControl
+for a flat finite-choice draft. Supply label, properties, controlled value
+`{match:"all"|"any", conditions:[{id,property,operator,values}]}` and onValueChange.
+Rows keep stable IDs. All/any appears at two conditions; an empty group offers
+Add condition without extra explanatory chrome. New rows use an available
+enabled property and empty values. Duplicate properties are prevented for new
+choices by default; allowDuplicateProperties and maxConditions can change that
+policy. Existing accepted rows are preserved when constraints change.
+Accepted additions/removals restore useful focus; refused proposals retain state
+and focus. The host owns application, validation, persistence and query semantics.
+controlSize defaults to sm; labels and conditionLabels localize group/row text.
+
+FilterCondition (0.2.11 candidate) composes Fieldset, Field, Grid, two Selects,
+MultiSelect and an optional removal IconButton. Supply a named label, properties
+with finite options, controlled value `{property, operator: "is" | "is-not", values}`
+and onValueChange. Property changes propose an empty values array; operator
+changes preserve values. Empty values remain a draft for host validation.
+No query execution or Apply/Cancel state is built in. controlSize defaults to sm;
+labels localizes names/operator text and hideLabel defaults to true for a named
+row. disabled blocks all interaction; onRemove is optional. A wide host gets one
+row with a larger value track; container queries reflow narrow rows. Hosts own
+duplicate-property policy and focus after removal.
+MultiSelect shows its placeholder only while no values are selected. With chips
+and an empty query, the editor reserves only its real action/caret budget;
+typing expands the search area. A needless placeholder row must not enlarge the
+control, while actual chip overflow can still wrap without clipping values.
+
+Toolbar supports shape="rounded" (default) or "pill". OverflowActions uses
+shape="pill" by default and forwards that capability to Toolbar; choose rounded
+for the earlier geometry. A horizontal pill toolbar stays on one scrollable rail.
+Read-only text controls retain keyboard focus and copying while preventing edits
+and picker activation; they are not disabled controls.
+
+Tabs uses `variant="contained"` by default. Choose `variant="line"` for page
+sections with a selection marker along the edge next to the panel. Both variants
+support horizontal and vertical orientation and the same keyboard behavior.
 
 Version 0.2.10 adds Fieldset legendSize="label" | "section"
 (default label). Independent section legends use a 1rem/600 role; named fields
@@ -755,6 +938,26 @@ See [WAI Menu Button](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/) and
 
 ### Toolbar and Kbd (0.2.4)
 
+BulkActionBar (0.2.11 candidate) composes Toolbar and OverflowActions for selected
+records. Supply label, selectionCount, items and onClear; onAction receives the
+command ID. A zero count renders nothing. selectionLabel is the complete
+localized count. The pill rail stays in one row, with two visible commands by
+default; maxVisibleActions accepts 1, 2 or 3 and available width can reduce it
+further. Remaining commands use More. pending disables all commands and clearing.
+counter="label" (default) shows the summary, "number" shows only the number with
+the full accessible label, and "none" removes the counter slot. Label/number
+slots reserve 7rem/3rem respectively, bounded on narrow rails, and use tabular
+digits so changing selection does not move commands. counterWidth customizes
+that reservation for translations or larger counts; long summaries truncate
+visually while retaining their full text/title. A hidden counter frees its slot.
+The host owns accepted changes, captured IDs, confirmation and focus after the
+bar disappears. Positioning is host-owned: use a stable bounded width for a
+floating rail, plus viewport safe-area spacing and measured scroll clearance.
+
+OverflowActions also accepts leading/trailing slots and maxVisibleActions. Slot
+width is reserved before measuring commands; use action owners in those slots
+and retain a stable containing width. Do not add form inputs to the Toolbar.
+
 Toolbar groups Button, IconButton, Toggle, native buttons/links and Menu triggers
 under one named action panel. After hydration it uses one Tab entry, directional
 arrows, Home/End and optional looping. Disabled/hidden actions are skipped. Arrows
@@ -962,3 +1165,38 @@ Popover positionReference optionally supplies a connected same-document element 
 DateRangeField, RangeCalendar and DateRangePicker (0.2.7) share ordered range values and the original Calendar grid. ResizablePanels adds real pointer/keyboard geometry above static Split. ErrorSummary links host validation to native controls. See each generated catalog page and its guide under docs/components/. DateField validationMessage adds an external native constraint after the field's own date validity.
 
 Menu (0.2.7) supports recursive submenu items and ContextMenu reuses its native layer engine. Context triggers preserve the actual pointer/keyboard source; nested searches stay scoped, Escape unwinds one level and Tab exits through the root. See docs/components/menu.md and context-menu.md.
+
+## Collection contracts in 0.2.11
+
+Autocomplete submits free text, including strings outside its suggestions.
+Combobox and MultiSelect continue submitting IDs. Search controls accept local
+filtering (default) or manual filtering with controlled query/value and
+optionsQuery identifying the result. A mismatched result stays nonselectable.
+loadState distinguishes ready/loading/error; onRetry is an optional host action.
+Use selectedOptions to retain a selected record's presentation while results
+change. Query cancellation and transport stay with the host. Options may have
+group labels; option IDs remain globally unique.
+
+OverflowActions takes named command items, an onAction callback, optional priority,
+size/variant and a localized moreLabel. It preserves source order and moves lower
+priorities to an existing Menu. It is not a navigation-link container. Menubar
+coordinates menus with controlled/uncontrolled openValue and roving triggers;
+child commands reuse Menu. Use native links for destinations. Button/IconButton
+tone="danger" uses existing semantic colors within FloodRoot, independently of
+prominence. Tone itself does not confirm a destructive operation.
+
+DataTable paginationMode="server" renders supplied rows without sorting/slicing.
+Provide page/onPageChange and nonnegative totalRows; sortable columns also require
+controlled sort (null when absent) and onSortChange. Reconcile an out-of-range page
+when a query changes; ready rows must match pageSize/totalRows. Selection defaults
+to the supplied page in server mode and the full collection in client mode.
+Server selectionScope="dataset" requires controlled selectedIds/onSelectionChange;
+the host validates IDs outside the page. Checkboxes only select the current page.
+This API does not fetch, cancel requests, select an entire remote query, virtualize
+or manage column visibility/resizing/pinning.
+
+DatePicker and DateRangePicker pass viewLabels to their calendars. Calendar panels
+use minimal Popover chrome, with Escape/selection/trigger dismissal; there is no
+separate hidden close-button API. DateTimePicker datePickerLabels/timePickerLabels
+forward popup labels plus segmentLabels and validation messages. DateTimeRangePicker
+exposes corresponding start/end label objects; outer field labels remain distinct.

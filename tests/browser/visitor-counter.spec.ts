@@ -10,7 +10,7 @@ test('footer shows honest totals, preserves browser identity and reflows',async(
   expect(id).toMatch(/^[0-9a-f-]{36}$/);
   await page.reload();await expect(footer).toContainText('1,234 visitors');
   expect(new Set(ids)).toEqual(new Set([id]));
-  await page.goto('/components/button');await expect(footer).toContainText('1,234 visitors');
+  await page.goto('/components');await expect(footer).toContainText('1,234 visitors');
   await expect(footer.getByRole('link',{name:'Privacy'})).toHaveAttribute('href','/docs/privacy');
   await page.setViewportSize({width:320,height:900});await page.evaluate(()=>{document.documentElement.style.fontSize='24px';});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

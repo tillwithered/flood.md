@@ -1,0 +1,15 @@
+.format-filter-preview {
+  max-inline-size: 38rem;
+  margin-inline: auto;
+  padding-block: var(--flood-sys-space-8);
+}
+
+.format-filter-preview__control {
+  inline-size: 8rem;
+  max-inline-size: 100%;
+}
+
+.format-filter-preview__view {
+  inline-size: 13rem;
+  max-inline-size: 100%;
+}

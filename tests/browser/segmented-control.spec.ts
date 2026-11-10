@@ -24,7 +24,11 @@ h('button',{type:'reset'},'Reset'),h('button',{type:'button',onClick:()=>setCanc
 h('button',{type:'button',onClick:()=>ref.current.querySelector('input').focus()},'Focus ref'),
 h('output',{'aria-label':'Changes'},String(count))),
 h('form',{id:'external'}),h(SegmentedControl,{label:'External',name:'externalChoice',form:'external',options,defaultValue:'month'}),
-h('form',{id:'required'},h(SegmentedControl,{label:'Required',name:'requiredChoice',options,required:true})))
+h('form',{id:'required'},h(SegmentedControl,{label:'Required',name:'requiredChoice',options,required:true})),
+h(SegmentedControl,{label:'Queue',name:'queue',defaultValue:'pending',options:[
+  {value:'pending',label:'Pending',count:0},
+  {value:'reviewed',label:'Reviewed',count:'99+'},
+  {value:'all',label:'All'}]}))
 }createRoot(document.getElementById('app')).render(h(App));`);
   const result=await build({configFile:false,logLevel:"silent",define:{"process.env.NODE_ENV":JSON.stringify("production")},build:{write:false,minify:true,cssCodeSplit:false,lib:{entry,formats:["iife"],name:"SegmentFixture"}}});
   const outputs=(Array.isArray(result)?result:[result]).flatMap(item=>"output" in item?item.output:[]);
@@ -65,6 +69,20 @@ test("SegmentedControl keyboard selects, skips disabled, wraps and follows RTL",
   await page.keyboard.press("Tab");await expect(page.getByRole("radiogroup",{name:"Controlled",exact:true}).getByRole("radio",{name:"Day",exact:true})).toBeFocused();
 });
 
+test("counted segments keep native selection and include visible counts in their names", async ({page}) => {
+  await open(page);
+  const group = page.getByRole("radiogroup", {name:"Queue", exact:true});
+  const pending = group.getByRole("radio", {name:"Pending 0", exact:true});
+  const reviewed = group.getByRole("radio", {name:"Reviewed 99+", exact:true});
+  await expect(pending).toBeChecked();
+  await expect(group.getByRole("radio", {name:"All", exact:true})).toBeVisible();
+  await pending.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(reviewed).toBeFocused();
+  await expect(reviewed).toBeChecked();
+  await expect(reviewed).toHaveValue("reviewed");
+});
+
 test("SegmentedControl geometry is concentric and remains stable across choices and sizes",async({page},info)=>{
   await page.goto("/components/segmented-control");const stage=page.locator(".preview-stage"),group=stage.getByRole("radiogroup"),shell=group.locator(".flood-choice-group");
   for(const size of ["sm","md","lg","xl"]){
@@ -75,6 +93,9 @@ test("SegmentedControl geometry is concentric and remains stable across choices 
     expect((await shell.boundingBox())!.height).toBeCloseTo(before.height,1);expect((await shell.boundingBox())!.y).toBeCloseTo(before.y,1);
   }
   await chooseSelectOption(page.getByRole("combobox",{name:"SegmentedControl prop controlSize",exact:true}),"md");
+  await chooseSelectOption(page.getByRole("combobox",{name:"SegmentedControl prop content",exact:true}),"counts");
+  await expect(group.getByRole("radio",{name:"Month 20",exact:true})).toBeVisible();
+  await expect(page.locator("#usage .site-code-block code")).toContainText("count: 20");
   await page.locator(".component-workbench").screenshot({path:`.artifacts/segmented-${info.project.name}.png`});
   await page.getByRole("checkbox",{name:"SegmentedControl prop fullWidth",exact:true}).check();
   const labels=await shell.locator(".flood-choice").evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().width));

@@ -1,0 +1,37 @@
+.flood-root .flood-navigation-item { --flood-navigation-item-height:var(--flood-sys-control-md-height); --flood-navigation-item-target:var(--flood-navigation-item-height); --flood-navigation-item-text:var(--flood-sys-control-md-text-size); --flood-navigation-item-line:var(--flood-sys-control-md-line-height); --flood-navigation-item-inset:var(--flood-sys-space-3); display:flex; align-items:center; min-inline-size:0; box-sizing:border-box; border-radius:var(--flood-sys-radius-indicator); color:var(--flood-sys-color-content-subtle); }
+.flood-root .flood-navigation-item[data-size="sm"] { --flood-navigation-item-height:var(--flood-sys-control-sm-height); --flood-navigation-item-text:var(--flood-sys-control-sm-text-size); --flood-navigation-item-line:var(--flood-sys-control-sm-line-height); }
+.flood-root .flood-navigation-item[data-size="lg"] { --flood-navigation-item-height:var(--flood-sys-control-lg-height); --flood-navigation-item-text:var(--flood-sys-control-lg-text-size); --flood-navigation-item-line:var(--flood-sys-control-lg-line-height); }
+.flood-root .flood-navigation-item[data-variant="standard"] { color:var(--flood-sys-color-content-default); border-radius:var(--flood-sys-radius-action); }
+.flood-root .flood-navigation-item[data-current] { background:var(--flood-sys-color-selection-background); color:var(--flood-sys-color-selection-content); }
+.flood-root .flood-navigation-item[data-ancestor-current]:not([data-current],[data-disabled]) { color:var(--flood-sys-color-content-default); box-shadow:inset 0 0 0 var(--flood-sys-stroke-width) var(--flood-sys-color-divider-decorative); }
+@media (hover:hover) {
+  .flood-root .flood-navigation-item:not([data-disabled],[data-current]):hover { background:var(--flood-sys-color-action-on-surface-hover); }
+}
+.flood-root .flood-navigation-item:not([data-disabled],[data-current]):has(> :is(a,button).flood-navigation-item__control:active) { background:var(--flood-sys-color-selection-background); }
+.flood-root .flood-navigation-item[data-disabled] { color:var(--flood-sys-color-field-disabled-content); }
+.flood-root .flood-navigation-item .flood-navigation-item__control { display:flex; flex:1; justify-content:flex-start; align-items:center; min-inline-size:0; min-block-size:var(--flood-navigation-item-target); box-sizing:border-box; padding:var(--flood-sys-space-1) var(--flood-navigation-item-inset); gap:var(--flood-sys-space-2); border:0; border-radius:inherit; background:transparent; color:inherit; font-size:var(--flood-navigation-item-text); line-height:var(--flood-navigation-item-line); font-weight:var(--flood-sys-type-body-weight); letter-spacing:var(--flood-sys-type-control-tracking); white-space:normal; text-align:start; text-decoration:none; }
+.flood-root .flood-navigation-item[data-variant="standard"] .flood-navigation-item__control { font-weight:var(--flood-sys-type-control-weight); }
+.flood-root .flood-navigation-item .flood-navigation-item__control:is(:hover,:active,[aria-current],[disabled]),.flood-root .flood-navigation-item .flood-navigation-item__disclosure:is(:hover,:active,[disabled]) { background:transparent; color:inherit; }
+.flood-root .flood-navigation-item__content { display:flex; flex:1; flex-direction:column; min-inline-size:0; }
+.flood-root .flood-navigation-item .flood-navigation-item__label { color:inherit; font-size:inherit; font-weight:inherit; line-height:inherit; letter-spacing:inherit; overflow-wrap:anywhere; }
+.flood-root .flood-navigation-item__description { overflow-wrap:anywhere; }
+.flood-root .flood-navigation-item__trailing,.flood-root .flood-navigation-item__indicator { display:flex; flex:none; justify-content:center; align-items:center; min-inline-size:var(--flood-navigation-item-target); margin-inline-start:auto; }
+.flood-root .flood-navigation-item:is([data-disclosure],[data-trailing-action]),
+.flood-root .flood-navigation-item .flood-navigation-item__control:has(> :is(.flood-navigation-item__trailing,.flood-navigation-item__indicator)) { padding-inline-end:var(--flood-sys-space-1); }
+.flood-root .flood-navigation-item:is([data-disclosure],[data-trailing-action]) .flood-navigation-item__control { padding-inline-end:0; }
+.flood-root .flood-navigation-item__accessories { display:grid; grid-auto-flow:column; column-gap:var(--flood-sys-space-1); align-items:center; justify-items:center; flex:none; min-inline-size:var(--flood-navigation-item-target); }
+.flood-root .flood-navigation-item__action { display:flex; align-items:center; justify-content:center; min-inline-size:var(--flood-navigation-item-target); }
+.flood-root .flood-navigation-item__action .flood-icon-button:not(:disabled,[aria-disabled="true"]):is(:hover,:active) {
+  background:transparent;
+  color:var(--flood-sys-color-content-default);
+}
+.flood-root .flood-navigation-item .flood-navigation-item__disclosure { flex:none; inline-size:var(--flood-navigation-item-target); min-block-size:var(--flood-navigation-item-target); background:transparent; color:inherit; }
+.flood-root .flood-navigation-item :is(.flood-navigation-item__indicator,.flood-navigation-item__disclosure) svg { rotate:0deg; }
+.flood-root .flood-navigation-item:dir(rtl) :is(.flood-navigation-item__indicator,.flood-navigation-item__disclosure) svg { rotate:180deg; }
+.flood-root .flood-navigation-item[data-expanded="true"] :is(.flood-navigation-item__indicator,.flood-navigation-item__disclosure) svg { rotate:90deg; }
+.flood-root .flood-navigation-item[data-compact] { inline-size:var(--flood-navigation-item-target); margin-inline:auto; }
+.flood-root .flood-navigation-item[data-compact] .flood-navigation-item__control { flex:none; justify-content:center; inline-size:var(--flood-navigation-item-target); padding-inline:0; }
+.flood-root .flood-navigation-item[data-compact] .flood-navigation-item__content { position:absolute; inline-size:1px; block-size:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+@media(pointer:coarse) { .flood-root .flood-navigation-item { --flood-navigation-item-target:max(var(--flood-navigation-item-height),var(--flood-sys-size-touch)); } }
+@media(forced-colors:active) { .flood-root .flood-navigation-item[data-current] { outline:1px solid Highlight; color:Highlight; } .flood-root .flood-navigation-item[data-disabled] { color:GrayText; } }
+.flood-root .flood-navigation-item[hidden] { display:none; }

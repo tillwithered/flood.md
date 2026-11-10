@@ -5,6 +5,7 @@ export interface ComponentPage {
   slug: string;
   name: string;
   group: string;
+  previewLayout?: string;
   description: string;
   code: string;
   imports: string[];

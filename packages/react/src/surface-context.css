@@ -1,0 +1,111 @@
+/* Nearest material owners establish their own inherited recipes. Absolute surface
+   palette roles stay unchanged; descendants consume the existing semantic roles. */
+.flood-root :where(.flood-surface, .flood-dialog, .flood-overlay-panel,
+  .flood-select__menu, .flood-toast, .flood-toolbar:not([data-variant="plain"]), .flood-calendar:not(.flood-date-picker__panel .flood-calendar):not(.flood-date-range-picker__panel .flood-calendar),
+  .flood-file-list, .flood-color-picker__panel, .flood-bulk-action-bar,
+  .flood-tabs:not([data-variant="line"]), .flood-disclosure:not(.flood-accordion > .flood-disclosure), .flood-accordion,
+  .flood-segmented .flood-choice-group, .flood-data-table__footer, .flood-code-snippet),
+.flood-root :where([data-flood-surface="filled"], [data-flood-surface="floating"]),
+.flood-root:is([data-flood-surface="filled"], [data-flood-surface="floating"]) {
+  --flood-sys-color-action-subtle-rest: var(--flood-sys-color-context-filled-action-rest);
+  --flood-sys-color-action-subtle-hover: var(--flood-sys-color-context-filled-action-hover);
+  --flood-sys-color-action-subtle-pressed: var(--flood-sys-color-context-filled-action-pressed);
+  --flood-sys-color-action-subtle-disabled: var(--flood-sys-color-context-filled-action-disabled);
+  --flood-sys-color-action-ghost-hover: var(--flood-sys-color-context-filled-action-hover);
+  --flood-sys-color-action-ghost-pressed: var(--flood-sys-color-context-filled-action-pressed);
+  --flood-sys-color-action-on-surface-rest: var(--flood-sys-color-context-filled-action-rest);
+  --flood-sys-color-action-on-surface-hover: var(--flood-sys-color-context-filled-action-hover);
+  --flood-sys-color-action-on-surface-pressed: var(--flood-sys-color-context-filled-action-pressed);
+  --flood-sys-color-action-on-surface-disabled: var(--flood-sys-color-context-filled-action-disabled);
+  --flood-sys-color-field-background: var(--flood-sys-color-context-filled-field-background);
+  --flood-sys-color-field-border: var(--flood-sys-color-context-filled-field-border);
+  --flood-sys-color-field-readonly: var(--flood-sys-color-context-filled-field-readonly);
+  --flood-sys-color-field-disabled: var(--flood-sys-color-context-filled-field-disabled);
+  --flood-sys-color-selection-background: var(--flood-sys-color-context-filled-selection-background);
+  --flood-sys-color-border-decorative: var(--flood-sys-color-context-filled-border-decorative);
+  --flood-sys-color-divider-decorative: var(--flood-sys-color-context-filled-divider-decorative);
+  --flood-sys-color-surface-supporting: var(--flood-sys-color-context-filled-supporting-background);
+  --flood-sys-color-surface-avatar: var(--flood-sys-color-context-filled-avatar-background);
+  --flood-sys-color-surface-muted: var(--flood-sys-color-context-filled-muted-background);
+  --flood-sys-color-indicator-track: var(--flood-sys-color-context-filled-indicator-track);
+  --flood-sys-color-loading-placeholder: var(--flood-sys-color-context-filled-loading-placeholder);
+}
+
+.flood-root[data-flood-surface="filled"],
+.flood-root :where([data-flood-surface="filled"], .flood-surface[data-flood-elevation="default"], .flood-toolbar:not([data-variant="plain"]), .flood-file-list, .flood-color-picker__panel,
+  .flood-tabs:not([data-variant="line"]), .flood-disclosure:not(.flood-accordion > .flood-disclosure), .flood-accordion,
+  .flood-segmented .flood-choice-group, .flood-data-table__footer, .flood-code-snippet) {
+  --flood-sys-color-surface-current: var(--flood-sys-color-surface-default);
+}
+.flood-root :where(.flood-surface[data-flood-elevation="raised"], .flood-calendar:not(.flood-date-picker__panel .flood-calendar):not(.flood-date-range-picker__panel .flood-calendar)) {
+  --flood-sys-color-surface-current: var(--flood-sys-color-surface-raised);
+}
+.flood-root :where(.flood-surface[data-flood-elevation="overlay"], .flood-dialog) {
+  --flood-sys-color-surface-current: var(--flood-sys-color-surface-overlay);
+}
+.flood-root[data-flood-surface="floating"],
+.flood-root :where(.flood-overlay-panel, .flood-select__menu, .flood-toast, .flood-bulk-action-bar,
+  .flood-bulk-action-bar > .flood-overflow-actions__bar, [data-flood-surface="floating"]) {
+  --flood-sys-color-surface-current: var(--flood-sys-color-surface-floating);
+}
+/* Picker calendars shed their standalone material; the popup is their owner. */
+.flood-root :where(.flood-date-picker__panel, .flood-date-range-picker__panel) .flood-calendar {
+  --flood-sys-color-surface-current: inherit;
+}
+
+/* Explicit canvas scopes reset every role after automatic material owners. */
+.flood-root[data-flood-surface="base"],
+.flood-root :where([data-flood-surface="base"], .flood-dropzone,
+  .flood-tabs:not([data-variant="line"]) > .flood-tabs__scroll) {
+  --flood-sys-color-action-subtle-rest: var(--flood-sys-color-context-base-action-rest);
+  --flood-sys-color-action-subtle-hover: var(--flood-sys-color-context-base-action-hover);
+  --flood-sys-color-action-subtle-pressed: var(--flood-sys-color-context-base-action-pressed);
+  --flood-sys-color-action-subtle-disabled: var(--flood-sys-color-context-base-action-disabled);
+  --flood-sys-color-action-ghost-hover: var(--flood-sys-color-context-base-action-hover);
+  --flood-sys-color-action-ghost-pressed: var(--flood-sys-color-context-base-action-pressed);
+  --flood-sys-color-action-on-surface-rest: var(--flood-sys-color-context-base-on-surface-action-rest);
+  --flood-sys-color-action-on-surface-hover: var(--flood-sys-color-context-base-on-surface-action-hover);
+  --flood-sys-color-action-on-surface-pressed: var(--flood-sys-color-context-base-on-surface-action-pressed);
+  --flood-sys-color-action-on-surface-disabled: var(--flood-sys-color-context-base-on-surface-action-disabled);
+  --flood-sys-color-field-background: var(--flood-sys-color-context-base-field-background);
+  --flood-sys-color-field-border: var(--flood-sys-color-context-base-field-border);
+  --flood-sys-color-field-readonly: var(--flood-sys-color-context-base-field-readonly);
+  --flood-sys-color-field-disabled: var(--flood-sys-color-context-base-field-disabled);
+  --flood-sys-color-selection-background: var(--flood-sys-color-context-base-selection-background);
+  --flood-sys-color-border-decorative: var(--flood-sys-color-context-base-border-decorative);
+  --flood-sys-color-divider-decorative: var(--flood-sys-color-context-base-divider-decorative);
+  --flood-sys-color-surface-supporting: var(--flood-sys-color-context-base-supporting-background);
+  --flood-sys-color-surface-avatar: var(--flood-sys-color-context-base-avatar-background);
+  --flood-sys-color-surface-muted: var(--flood-sys-color-context-base-muted-background);
+  --flood-sys-color-indicator-track: var(--flood-sys-color-context-base-indicator-track);
+  --flood-sys-color-loading-placeholder: var(--flood-sys-color-context-base-loading-placeholder);
+  --flood-sys-color-surface-current: var(--flood-sys-color-surface-canvas);
+}
+
+/* Explicit host preference also works in engines without the media feature. */
+.flood-root[data-flood-transparency="reduced"] :is(.flood-overlay-panel, .flood-select__menu),
+.flood-root [data-flood-transparency="reduced"] :is(.flood-overlay-panel, .flood-select__menu),
+.flood-root :is(.flood-overlay-panel, .flood-select__menu)[data-flood-transparency="reduced"] {
+  background: var(--flood-sys-color-surface-floating);
+  backdrop-filter: none;
+}
+
+@media (forced-colors: active) {
+  .flood-root[data-flood-transparency="reduced"] :is(.flood-overlay-panel, .flood-select__menu),
+  .flood-root [data-flood-transparency="reduced"] :is(.flood-overlay-panel, .flood-select__menu),
+  .flood-root :is(.flood-overlay-panel, .flood-select__menu)[data-flood-transparency="reduced"] {
+    background: Canvas;
+  }
+  .flood-root, .flood-root :where(.flood-surface, .flood-dialog, .flood-overlay-panel,
+    .flood-select__menu, .flood-toast, .flood-toolbar:not([data-variant="plain"]), .flood-calendar:not(.flood-date-picker__panel .flood-calendar):not(.flood-date-range-picker__panel .flood-calendar),
+    .flood-file-list, .flood-color-picker__panel, .flood-bulk-action-bar,
+    .flood-tabs:not([data-variant="line"]), .flood-disclosure:not(.flood-accordion > .flood-disclosure), .flood-accordion,
+    .flood-segmented .flood-choice-group, .flood-data-table__footer, .flood-code-snippet,
+    .flood-dropzone, .flood-tabs:not([data-variant="line"]) > .flood-tabs__scroll, [data-flood-surface]) {
+    --flood-sys-color-surface-current: Canvas;
+    --flood-sys-color-surface-supporting: Canvas;
+    --flood-sys-color-surface-avatar: Canvas;
+    --flood-sys-color-surface-muted: Canvas;
+    --flood-sys-color-field-readonly: Canvas;
+  }
+}

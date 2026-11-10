@@ -24,6 +24,10 @@ Keep the user's language, task and domain vocabulary.
 | A record is Draft or a camera is Offline inside a prototype | Keep the meaningful record state | Removing prototype narration is not permission to strip operational information |
 | A mixed production list includes sample records that could be mistaken for real ones | Keep a clear sample distinction on the affected records | It prevents a concrete misunderstanding |
 | A printed invoice has a document title, number and party headings | Keep the meaningful document hierarchy | A document is not the application's decorative page header |
+| An approval queue has a task title, an instruction to review the queue, and a workspace label that adds no scope | Keep the task title and remove the redundant supporting copy | The title, rows and available decisions already describe the task |
+| The selected filter says “Reviewed 4” and the footer says “1–4 of 4” in an unpaginated list | Keep one count if useful; check both again when search or pagination changes their meaning | A total for all reviewed records and a range in the current results can serve different decisions |
+| The detail pane repeats “3 receipts attached” beside three visible receipt rows | Omit the routine caption; surface a missing receipt when it affects approval | The ordinary state is visible, and the exception changes the decision |
+| The page shows a queue-wide amount and the open record's amount | Keep short labels distinguishing the amounts | Nearby values alone cannot identify their scope |
 
 ## Contextual adaptation
 

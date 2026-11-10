@@ -118,8 +118,32 @@ test('the actual compiled catalog covers every component and serves the website 
   assert.deepEqual(entries.map(i=>i.id).sort(),expected.map(i=>'component:'+i.slug).sort());
   for(const component of expected){const body=await readFile(`apps/website/public/components/${component.slug}.md`,'utf8');const result=await reader.read('component:'+component.slug,{length:40000});assert.equal(result.text,body);assert.equal(result.truncated,false);}
   const info=await reader.info();assert.equal(info.capabilities.find(i=>i.id==='page-transitions').status,'not-provided');
-  assert.equal((await reader.list({kind:'workflow',group:'motion'})).total,0);
-  assert.equal((await reader.list({kind:'token',group:'motion'})).total,4);
+  assert.ok((await reader.list({kind:'workflow',group:'motion'})).items.some(item=>item.id==='workflow:motion'));
+  const motionTokens=(await reader.list({kind:'token',group:'motion',limit:50})).items;
+  for(const role of ['duration-reduced','duration-press','duration-enter','duration-layer','easing-enter','distance-panel']){
+    assert.ok(motionTokens.some(item=>item.id===`token:sys.motion.${role}`));
+  }
+  const motionGuide=await readFile('docs/motion.md','utf8');
+  for(const component of expected)assert.ok(motionGuide.includes(`\`${component.name}\``),`Missing motion decision for ${component.name}`);
+});
+
+test('installed knowledge routes collection controls to the record and content workflows', async () => {
+  const reader = createKnowledgeReader();
+  for (const id of ['component:segmented-control', 'component:collection-toolbar', 'component:data-table']) {
+    const material = await reader.read(id);
+    assert.ok(material.links.includes('workflow:records'), `${id} must link the record workflow`);
+  }
+  const records = await reader.read('workflow:records');
+  assert.match(records.text, /One selected value filters the same table \| SegmentedControl/);
+  assert.ok(records.links.includes('workflow:interface-content'));
+
+  const content = await reader.read('workflow:interface-content');
+  assert.match(content.text, /Compare count scope before dropping duplicates/);
+  assert.ok(content.links.includes('reference:interface-content-examples'));
+
+  const examples = await reader.read('reference:interface-content-examples');
+  assert.match(examples.text, /missing receipt when it affects approval/);
+  assert.equal(examples.installedTarget, '.agents/skills/flood-ui/references/interface-content-examples.md');
 });
 
 test('compiler output is deterministic under independent source enumeration and rejects stale annotations',async()=>{

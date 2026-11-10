@@ -1,5 +1,6 @@
 import {test,expect,type Locator} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+test.use({reducedMotion:'reduce'});
 const material = (surface:Locator) => surface.evaluate(node=>{const style=getComputedStyle(node);return{fill:style.backgroundColor,border:style.borderTopColor,shadow:style.boxShadow,backdrop:style.backdropFilter,opacity:style.opacity}});
 async function expectFloating(surface:Locator){
  await expect(surface).toBeVisible();const paint=await material(surface);

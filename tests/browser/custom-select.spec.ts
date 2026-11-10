@@ -9,6 +9,23 @@ async function activeOption(trigger: Locator) {
   return trigger.page().locator(`[id=${JSON.stringify(id)}]`);
 }
 
+test("a narrow Select opens a wider list without crossing the viewport edge", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await openSelectFixture(page);
+  await page.locator("#positioning-box").evaluate(node => Object.assign((node as HTMLElement).style, {
+    position: "fixed", right: "8px", top: "16px", width: "4rem",
+  }));
+  const trigger = page.getByRole("combobox", { name: "Region", exact: true });
+  await trigger.click();
+  const popup = page.locator(".flood-select__menu:popover-open");
+  await expect(popup).toBeVisible();
+  const button = (await trigger.boundingBox())!, panel = (await popup.boundingBox())!;
+  expect(panel.width).toBeGreaterThan(button.width + 24);
+  expect(panel.x + panel.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  await popup.getByRole("option", { name: "Alpha", exact: true }).click();
+  await expect(trigger).toContainText("Alpha");
+});
+
 test("custom popup supports uncommitted navigation, disabled groups, typeahead and dismissal", async ({ page }) => {
   await openSelectFixture(page);
   const trigger = page.getByRole("combobox", { name: "Region", exact: true });

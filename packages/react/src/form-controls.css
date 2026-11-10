@@ -6,7 +6,7 @@
 .flood-root .flood-list-box:focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: calc(-1 * var(--flood-sys-focus-width)); }
 .flood-root .flood-list-box-field { position:relative; }
 .flood-root .flood-list-box[data-status] { border-color:var(--flood-field-feedback); }
-.flood-root .flood-list-box[aria-readonly="true"][data-appearance="surface"] { background:var(--flood-sys-color-surface-canvas); border-style:dashed; }
+.flood-root .flood-list-box[aria-readonly="true"][data-appearance="surface"] { background:var(--flood-sys-color-field-readonly); border-style:dashed; }
 .flood-root .flood-list-box__feedback { margin-block-start:var(--flood-sys-space-1); }
 .flood-root .flood-list-box[data-appearance="plain"] { max-block-size:none; overflow:visible; padding:0; border:0; border-radius:0; background:transparent; }
 .flood-root .flood-list-box__option { display: flex; align-items: center; justify-content: space-between; gap: var(--flood-sys-space-2); padding: var(--flood-sys-space-2) var(--flood-sys-space-3); min-block-size: var(--flood-control-height); box-sizing: border-box; border-radius: max(0px, calc(var(--flood-sys-radius-field) - var(--flood-sys-space-1) - var(--flood-sys-stroke-width))); cursor: pointer; font-size: var(--flood-control-text); line-height: var(--flood-control-line); }
@@ -21,7 +21,7 @@
 .flood-root .flood-pin-input__slot { box-sizing: border-box; flex: 0 1 var(--flood-control-height); min-inline-size: 0; inline-size: var(--flood-control-height); block-size: var(--flood-control-height); display: grid; place-items: center; border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-field-border); border-radius: var(--flood-sys-radius-field); background: var(--flood-sys-color-field-background); font-size: var(--flood-control-text); line-height: var(--flood-control-line); font-variant-numeric: tabular-nums; pointer-events: none; }
 .flood-root .flood-pin-input:has(.flood-pin-input__editor:focus-visible) .flood-pin-input__slot[data-active] { border: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); }
 .flood-root .flood-pin-input[data-status] .flood-pin-input__slot { border-color: var(--flood-field-feedback); }
-.flood-root .flood-pin-input[data-readonly] .flood-pin-input__slot { background: var(--flood-sys-color-surface-canvas); border-style: dashed; }
+.flood-root .flood-pin-input[data-readonly] .flood-pin-input__slot { background: var(--flood-sys-color-field-readonly); border-style: dashed; }
 .flood-root .flood-pin-input:has(.flood-pin-input__editor:disabled) .flood-pin-input__slot { background: var(--flood-sys-color-field-disabled); color: var(--flood-sys-color-field-disabled-content); }
 .flood-root .flood-rating { display: block; min-inline-size: 0; max-inline-size: 100%; border: 0; padding: 0; margin: 0; }
 .flood-root .flood-rating__choices { display: flex; align-items: center; flex-wrap: wrap; gap: var(--flood-sys-space-1); }
@@ -29,7 +29,7 @@
 .flood-root .flood-rating--sm .flood-rating__choice { inline-size: var(--flood-sys-control-xs-height); block-size: var(--flood-sys-control-xs-height); }
 .flood-root .flood-rating--lg .flood-rating__choice { inline-size: var(--flood-sys-control-md-height); block-size: var(--flood-sys-control-md-height); }
 .flood-root .flood-rating__choice > input { position: absolute; inset: 0; margin: 0; inline-size: 100%; block-size: 100%; opacity: 0; cursor: inherit; }
-.flood-root .flood-rating__choice > svg { inline-size: 1.25rem; block-size: 1.25rem; pointer-events: none; }
+.flood-root .flood-rating__choice > svg { inline-size: 1.25rem; block-size: 1.25rem; pointer-events: none; fill: transparent; }
 .flood-root .flood-rating--sm .flood-rating__choice > svg { inline-size: 1rem; block-size: 1rem; }
 .flood-root .flood-rating--lg .flood-rating__choice > svg { inline-size: 1.5rem; block-size: 1.5rem; }
 .flood-root .flood-rating__choice[data-filled] > svg { fill: currentColor; }

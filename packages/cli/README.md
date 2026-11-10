@@ -3,14 +3,14 @@
 `npx @flood-md/cli init [--dry-run]` connects an existing React/Next.js npm project.
 `npx @flood-md/cli doctor` checks package versions and agent file presence.
 
-Version 0.2.10 adds read-only JSON discovery. Use the CLI version matching
+Version 0.2.11 adds read-only JSON discovery. Use the CLI version matching
 flood.json; source availability does not mean the candidate is published.
 
 ```sh
-npx @flood-md/cli@0.2.10 info
-npx @flood-md/cli@0.2.10 catalog --kind workflow --group composition
-npx @flood-md/cli@0.2.10 read component:data-table
-npx @flood-md/cli@0.2.10 read recipe:table-bulk-actions
+npx @flood-md/cli@0.2.11 info
+npx @flood-md/cli@0.2.11 catalog --kind workflow --group composition
+npx @flood-md/cli@0.2.11 read component:data-table
+npx @flood-md/cli@0.2.11 read recipe:table-bulk-actions
 ```
 
 info distinguishes connected, bundle-only, version-mismatch and missing-packages

@@ -11,7 +11,7 @@ test("readOnly prevents edits, permits selection and focus, and can be switched 
     await checkbox.check();
     await expect(field).toHaveAttribute("readonly", "");
     await expect(field).toHaveCSS("border-top-style", "dashed");
-    await expect(page.locator(".preview-stage")).toContainText("Read only. Select and copy.");
+    await expect(page.locator(".preview-stage")).not.toContainText("Read only. Select and copy.");
     await field.focus();
     await expect(field).toBeFocused();
     await expect(field).toHaveCSS("border-top-style", "solid");
@@ -25,9 +25,8 @@ test("readOnly prevents edits, permits selection and focus, and can be switched 
   }
 });
 
-test("field feedback is described, advisory states are not invalid, and errors take precedence", async ({ page }, info) => {
+for (const slug of ["input", "textarea", "select", "field"] as const) test(`${slug} field feedback is described, advisory states are not invalid, and errors take precedence`, async ({ page }, info) => {
   const messages = { warning: "Check this value before continuing.", success: "Looks good.", info: "You can change this later.", error: "Please review this value." };
-  for (const slug of ["input", "textarea", "select", "field"]) {
     const name = { input: "Input", textarea: "Textarea", select: "Select", field: "Field" }[slug];
     await page.goto(`/components/${slug}`);
     const stage = page.locator(".preview-stage");
@@ -49,5 +48,4 @@ test("field feedback is described, advisory states are not invalid, and errors t
     await expect(control).toHaveAttribute("data-status", "error");
     await expect(control).toHaveAttribute("aria-invalid", "true");
     await page.screenshot({ path: `.artifacts/field-status-${slug}-${info.project.name}.png` });
-  }
 });

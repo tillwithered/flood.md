@@ -19,7 +19,7 @@
     "name": "Text",
     "group": "typography",
     "description": "Role-based interface text, from introductory copy to small supporting details.",
-    "code": "<Stack gap=\"3\">\n  <Text as=\"p\" size=\"lead\">A calm foundation for your next idea.</Text>\n  <Text as=\"p\" size=\"compact\">Use the space to make it yours.</Text>\n</Stack>",
+    "code": "<Stack gap=\"3\">\n  <Text as=\"p\" size=\"lead\">Quarterly revenue</Text>\n  <Text as=\"p\" size=\"compact\">Revenue increased by 8% this quarter.</Text>\n</Stack>",
     "notes": [
       "Use as=\"p\" for paragraphs. The label size does not create a form association.",
       "Subtle is a supplementary tone; evaluate small required instructions against the actual background and font size."
@@ -444,12 +444,14 @@
     "slug": "segmented-control",
     "name": "SegmentedControl",
     "group": "forms",
-    "description": "A compact single-value choice with native radio semantics and a shared inset surface.",
-    "code": "<SegmentedControl label=\"Time range\" name=\"period\" defaultValue=\"day\" options={[{value: \"day\", label: \"Day\"}, {value: \"week\", label: \"Week\"}, {value: \"month\", label: \"Month\"}]} />",
+    "description": "A compact single-value choice or collection view switcher with native radio semantics.",
+    "code": "<SegmentedControl label=\"Claims view\" name=\"claims-view\" defaultValue=\"pending\" options={[{value: \"pending\", label: \"Pending\", count: 2}, {value: \"reviewed\", label: \"Reviewed\"}]} />",
     "notes": [
       "Uses original RadioGroup behavior and native inputs.",
       "Arrow keys move focus and select; Home/End select endpoints, skipping disabled segments. Selecting the current value does not clear it.",
-      "Native name/form/required, reset and controlled values are preserved. Use actual tabs for tab panels, ToggleGroup for optional pressed actions."
+      "Use SegmentedControl to switch a shared collection between mutually exclusive views. Use Tabs for associated content panels and ToggleGroup for optional pressed actions.",
+      "An option count can communicate workload without a nested badge or a second control. Counts are read with visible labels, preserve zero, and are omitted in icon-only mode. Format localized counts before passing them.",
+      "Native name/form/required, reset and controlled values are preserved."
     ],
     "imports": [
       "SegmentedControl"
@@ -538,6 +540,7 @@
     "description": "Connected tab buttons and retained content panels with roving keyboard focus.",
     "code": "<Tabs label=\"Project sections\" items={[{value:\"overview\",label:\"Overview\",content:\"Project context.\"},{value:\"activity\",label:\"Activity\",content:\"Recent updates.\"}]} />",
     "notes": [
+      "Use variant=\"line\" for page-level sections with an active marker beside the panel. The default contained variant joins tabs and content in one surface.",
       "Arrow keys navigate enabled tabs; automatic activation is default, manual needs Enter/Space. Tab leaves the tablist. Horizontal direction follows RTL.",
       "Inactive panels remain mounted but hidden. Keep form validation and persistent selection under host control. Invalid, missing or disabled selected values fall back to the first available item."
     ],
@@ -751,7 +754,9 @@
       "Use Button, IconButton, Toggle, native buttons/links and Menu triggers. Keep inputs, Select, Tabs and ToggleGroup outside this action-only toolbar.",
       "Arrows move focus without activation; Home/End jump to the ends. Disabled and hidden actions are skipped. One Tab entry is established after hydration; before JavaScript native child tab order remains.",
       "Horizontal arrows follow writing direction. Vertical arrows move between actions; open a vertical toolbar Menu with Enter/Space. Horizontal menus retain ArrowUp/Down opening.",
-      "loop defaults to true. Native div props/ref target the toolbar; preserve a meaningful label. Available in 0.2.4."
+      "loop defaults to true. Native div props/ref target the toolbar; preserve a meaningful label. Available in 0.2.4.",
+      "shape defaults to rounded; pill uses the action radius and a horizontal single scrollable rail.",
+      "variant=\"plain\" removes the material and outer inset for grouping peer controls; contained remains the default. Keyboard ownership is unchanged."
     ]
   },
   {
@@ -773,7 +778,7 @@
     "name": "Card",
     "group": "content",
     "description": "A structured surface for a heading, supporting content and independent actions.",
-    "code": "<Card title=\"Project details\" description=\"Keep your team in sync.\"\n  footer={<Button variant=\"subtle\">Open project</Button>}>\n  <Text as=\"p\" size=\"compact\">A calm place for the next idea.</Text>\n</Card>",
+    "code": "<Card title=\"Project details\" description=\"Release on 12 November\"\n  footer={<Button variant=\"subtle\">Open project</Button>}>\n  <Text as=\"p\" size=\"compact\">Homepage and checkout</Text>\n</Card>",
     "imports": [
       "Card",
       "Button",
@@ -1062,6 +1067,7 @@
     "notes": [
       "Uses Flood native Dialog focus containment, scroll lock, background inertness, nested layers and return focus. Escape and the named close IconButton dismiss it; closeOnOutsideClick defaults to true. Controlled open/onOpenChange and initialFocusRef match Dialog.",
       "side is logical start/end or physical top/bottom. size sets 20/26/34rem for sm/md/lg, capped to the viewport. Vertical drawers occupy the viewport height; horizontal drawers occupy its width. Entry motion respects reduced motion; closing is immediate.",
+      "Choose width against a populated record. For longer messages and several controls, compare md and lg. Use the description slot for short context and compose independent body groups with Section or Fieldset. Keep persistent actions in footer.",
       "The body scrolls with Flood ScrollArea while the header and optional footer remain visible when space allows. Responsive padding and full-width narrow descriptions preserve the reading area at enlarged text; if the chrome cannot fit, the whole panel can scroll rather than clipping the body. Footer actions are host-owned, without implicit save or close. No swipe/drag gesture or nested navigation engine is included. Available in 0.2.5."
     ]
   },
@@ -1129,7 +1135,7 @@
     "name": "Figure",
     "group": "content",
     "description": "A native figure that keeps media and its caption together.",
-    "code": "<Figure caption=\"A calm foundation for the next idea.\"><Surface padding=\"6\">Project preview</Surface></Figure>",
+    "code": "<Figure caption=\"Homepage, desktop layout\"><Surface padding=\"6\">Project preview</Surface></Figure>",
     "imports": [
       "Figure",
       "Surface"
@@ -1230,6 +1236,45 @@
       "Steps renders an ordered list, not tabs. currentValue identifies aria-current=step; preceding steps default to complete and later steps to upcoming. Item status may explicitly mark complete/upcoming/error. Omitted currentValue starts at the first step.",
       "Without onStepChange, steps are informative content. Providing it renders native step buttons; the host owns navigation and currentValue updates. Disabled items only affect those actions. Every state has text through customizable statusLabels; color and icons are additional cues. Horizontal presentation stacks in narrow viewports.",
       "Original compatible addition in the unpublished 0.2.5 source candidate."
+    ]
+  },
+  {
+    "slug": "app-shell",
+    "name": "AppShell",
+    "previewLayout": "workspace",
+    "group": "layout",
+    "description": "A workspace layout with optional navigation, top bar and footer, plus a keyboard skip target.",
+    "code": "<AppShell topBar={<AppTopBar start={<Text>Workspace</Text>} />}><PageHeader title=\"Projects\" /></AppShell>",
+    "imports": ["AppShell", "AppTopBar", "PageHeader", "Text"],
+    "notes": [
+      "Content scrolling keeps navigation, top bar and footer outside the work scrollport. Use scroll=\"page\" for a document that scrolls as a whole.",
+      "Supply Sidebar for docked navigation. Set navigationDrawer with a shell-width threshold and Drawer content to swap automatically. Share accepted route and branch state between the two presentations.",
+      "Use mainAs=\"section\" only when embedding a shell inside an existing main landmark."
+    ]
+  },
+  {
+    "slug": "app-top-bar",
+    "name": "AppTopBar",
+    "group": "layout",
+    "description": "Application context and global actions in two independent, wrapping slots.",
+    "code": "<AppTopBar start={<Text>Workspace</Text>} end={<Button size=\"sm\">Search</Button>} />",
+    "imports": ["AppTopBar", "Text", "Button"],
+    "notes": [
+      "Use in AppShell or in a host-owned layout. Use PageHeader for the current page's title and actions.",
+      "The start and end groups wrap on narrow hosts without changing keyboard order. Use bordered only where the toolbar needs a visible boundary."
+    ]
+  },
+  {
+    "slug": "page-header",
+    "name": "PageHeader",
+    "group": "layout",
+    "description": "The main page heading with optional supporting text and page actions.",
+    "code": "<PageHeader title=\"Projects\" actions={<Button>New project</Button>} />",
+    "imports": ["PageHeader", "Button"],
+    "notes": [
+      "Use inside main for the page's h1. An embedded preview can choose headingLevel={2}. Use Section for titled content within the page.",
+      "Add a description only when it supplies context the title cannot. Keep filters in the collection toolbar.",
+      "Actions wrap below the title when the header's own container narrows. The heading stays first in reading and keyboard order."
     ]
   },
   {
@@ -1422,6 +1467,19 @@
     ]
   },
   {
+    "slug": "command-palette",
+    "name": "CommandPalette",
+    "group": "overlays",
+    "description": "A modal search surface for navigating pages or running commands.",
+    "code": "<CommandPalette title=\"Go to page\" searchLabel=\"Search pages\" trigger={props => <Button {...props}>Go to page</Button>} items={[{id:\"projects\",label:\"All projects\"}]} onAction={id => console.log(id)} />",
+    "imports": ["CommandPalette", "Button"],
+    "notes": [
+      "Choose comfortable or compact density. Items can be grouped, described or disabled.",
+      "Opening focuses search. Enter or click runs an enabled action and requests closure. Escape and the close button return focus to the trigger.",
+      "Use controlled query and loading for asynchronous search. The application owns requests, navigation and any global shortcut."
+    ]
+  },
+  {
     "slug": "date-field",
     "name": "DateField",
     "group": "forms",
@@ -1602,6 +1660,42 @@
     ]
   },
   {
+    "slug": "navigation-item",
+    "name": "NavigationItem",
+    "group": "navigation",
+    "description": "One shared navigation row for destinations, commands and independent disclosure.",
+    "code": "<NavigationItem label=\"Projects\" href=\"/projects\" current />",
+    "imports": [
+      "NavigationItem"
+    ],
+    "notes": [
+      "Uses Flood Link or Button; navigation links remain native anchors with host handlers. Commands and destination clicks do not silently toggle a branch.",
+      "disclosure without a destination makes the complete row a disclosure button. href plus disclosure creates separate link and disclosure targets in one shared surface; expanded is controlled by the host.",
+      "compact leaf rows retain names through Tooltip. Use NavigationTree for compact branches and link-plus-branch items so the full navigation remains reachable in a Popover.",
+      "IconSlot owns leading artwork; IconButton keeps the disclosure target with smaller supporting artwork. trailing is noninteractive metadata, not a place to nest another button inside a link.",
+      "trailingAction is an independent sibling control in expanded rows. It is visible alongside any trailing metadata. Use a named IconButton and apply its own disabled state.",
+      "Original compatible addition in the unpublished 0.2.11 source candidate."
+    ]
+  },
+  {
+    "slug": "navigation-group",
+    "name": "NavigationGroup",
+    "group": "navigation",
+    "description": "Related navigation with optional headings, section actions, separators and disclosure.",
+    "code": "<NavigationGroup label=\"Projects\">\n  <NavigationItem label=\"Design system\" href=\"/projects/design\" />\n  <NavigationItem label=\"Website\" href=\"/projects/website\" />\n</NavigationGroup>",
+    "imports": [
+      "NavigationGroup",
+      "NavigationItem"
+    ],
+    "notes": [
+      "Groups related navigation without inventing routes or application-menu semantics. Compose actual NavigationItem destinations or NavigationTree children.",
+      "label, hideLabel, headingAction and separator are independent optional presentation choices. Keep headings and separators only when they clarify real relationships.",
+      "collapsible uses Flood Collapsible and independent expanded/defaultExpanded/onExpandedChange state; an unaccepted request does not hide accepted content.",
+      "Compact mode keeps destinations reachable while removing redundant heading text; compare section actions and body rows on the same rail axis.",
+      "Original compatible addition in the unpublished 0.2.11 source candidate."
+    ]
+  },
+  {
     "slug": "navigation-tree",
     "name": "NavigationTree",
     "group": "navigation",
@@ -1614,7 +1708,10 @@
       "Native nav, lists and anchors preserve ordinary Tab order and browser modifier navigation. This component does not use ARIA tree/menu/tab roles.",
       "A branch may have both href and children: its native link navigates while a separate disclosure button expands. currentValue marks the matching destination; ancestors are expanded explicitly by the host.",
       "Expansion is controlled or uncontrolled through expandedValues/defaultExpandedValues/onExpandedValuesChange. Translate disclosure names with expandLabel; content can render host-owned loading or empty branch content.",
-      "Item values must be globally unique and children acyclic. Disabled destinations have no active href; parent disability does not propagate to children. Introduced in 0.2.7."
+      "Item values must be globally unique and children acyclic. Disabled destinations have no active href; parent disability does not propagate to children. Introduced in 0.2.7.",
+      "compact creates an icon rail with real leaf links and full Popover navigation for branches. flyoutSide controls placement; current descendant styling is separate from aria-current. trailing accepts metadata in expanded rows. Compact labels remain accessible and have native title hints.",
+      "currentKind defaults to page. Use location when the active value identifies a broader global navigation context rather than the exact current page.",
+      "Enable branchGuides for dense nested lists. Item trailingAction uses the shared NavigationItem slot in expanded rows and on destinations inside branch flyouts."
     ]
   },
   {
@@ -1738,7 +1835,7 @@
     "name": "RadioCard",
     "group": "forms",
     "description": "A native radio choice presented as a selectable content card.",
-    "code": "<Fieldset legend=\"Plan\">\n  <Stack gap=\"2\">\n    <RadioCard name=\"plan\" value=\"starter\" label=\"Starter\" description=\"For your next idea.\" metadata=\"Free\" defaultChecked />\n    <RadioCard name=\"plan\" value=\"team\" label=\"Team\" description=\"For working together.\" metadata=\"$12 / month\" />\n  </Stack>\n</Fieldset>",
+    "code": "<Fieldset legend=\"Plan\">\n  <Stack gap=\"2\">\n    <RadioCard name=\"plan\" value=\"starter\" label=\"Starter\" description=\"1 project, up to 3 members\" metadata=\"Free\" defaultChecked />\n    <RadioCard name=\"plan\" value=\"team\" label=\"Team\" description=\"Unlimited projects, up to 25 members\" metadata=\"$12 / month\" />\n  </Stack>\n</Fieldset>",
     "notes": [
       "Group choices in a Fieldset and give them the same name.",
       "Native arrow-key behavior, forms and reset remain available. Apply readOnly consistently to the whole group."
@@ -1754,11 +1851,16 @@
     "name": "DataTable",
     "group": "content",
     "description": "A native data table with local sorting, page-scoped selection and pagination.",
-    "code": "<DataTable caption=\"Projects\" selectable pageSize={5}\n  columns={[{id:\"name\",label:\"Project\",sortable:true},{id:\"status\",label:\"Status\"}]}\n  rows={[{id:\"design\",label:\"Design system\",cells:{name:\"Design system\",status:\"Active\"}}]} />",
+    "code": "<DataTable caption=\"Projects\" selectable pageSize={5}\n  columns={[{id:\"name\",label:\"Project\",sortable:true},{id:\"status\",label:\"Status\"},{id:\"members\",label:\"Members\",numeric:true}]}\n  rows={[{id:\"design\",label:\"Design system\",cells:{name:\"Design system\",status:\"Active\",members:12}}]} />",
     "notes": [
       "Supply the complete client collection; remote/server pagination and virtualization are not part of this API.",
       "Select all affects selectable rows on the current page and preserves selection on other pages.",
-      "Use sortValues for rich React cells; missing values sort last in both directions."
+      "Use sortValues for rich React cells; missing values sort last in both directions.",
+      "Use showResults={false} to omit a redundant result range. Selection feedback and pagination remain, and the footer disappears when it has no other content.",
+      "Set column.numeric for comparable amounts and quantities. Header and cells align to the logical end with tabular figures, while explicit align takes precedence. Keep numeric identifiers as text and provide raw sortValues for localized amounts.",
+      "For in-place record details, supply row.primaryAction with the identity column, title, optional description and native button props. Pointer activation extends across the row, while keyboard focus lands on the title button. Secondary controls retain their own behavior.",
+      "Use toolbar for the heading and filters that share the table surface. Set inset to roomy for a shared outer inset on toolbar, table cells and footer.",
+      "emptyContent renders a host-composed EmptyState/actions only for ready with no visible rows, preserving headers. Loading/error retain their Spinner and Alert/retry owners. Omit it to keep labels.empty. Distinguish an empty collection from no matching results and restore focus when an empty-state action disappears."
     ],
     "imports": [
       "DataTable"
@@ -1881,6 +1983,166 @@
     ],
     "imports": [
       "DateTimeRangePicker"
+    ]
+  },
+  {
+    "slug": "autocomplete",
+    "name": "Autocomplete",
+    "group": "forms",
+    "description": "A free text field with optional suggestions; accepts values outside the list.",
+    "code": "<Field label=\"Team\">{control => <Autocomplete {...control} name=\"team\" options={[{value:\"design\",label:\"Design\",group:\"Product\"},{value:\"engineering\",label:\"Engineering\",group:\"Product\"},{value:\"operations\",label:\"Operations\",group:\"Business\"}]} />}</Field>",
+    "imports": [
+      "Field",
+      "Autocomplete"
+    ],
+    "notes": [
+      "The submitted value is text, not an option ID. Use Combobox for fixed choices.",
+      "Manual suggestions use controlled value and optionsQuery; stale results cannot be chosen. Network ownership remains with the host."
+    ]
+  },
+  {
+    "slug": "overflow-actions",
+    "name": "OverflowActions",
+    "group": "actions",
+    "description": "A priority-based action row that moves commands into a More menu when space is limited.",
+    "code": "<OverflowActions label=\"Document actions\" shape=\"pill\" items={[{id:\"save\",label:\"Save\",priority:10},{id:\"duplicate\",label:\"Duplicate\"},{id:\"archive\",label:\"Archive\"}]} />",
+    "imports": [
+      "OverflowActions"
+    ],
+    "notes": [
+      "Compose commands rather than links. Higher priority remains visible longer; source order is preserved.",
+      "Uses existing Toolbar, Button, IconSlot and Menu; hidden measurements are inert and excluded from the accessibility tree.",
+      "shape defaults to pill; rounded restores the field-radius Toolbar shell. Available width excludes Toolbar padding.",
+      "containerVariant=\"plain\" delegates a surface-free rail to Toolbar, keeping peer control heights aligned; contained is the default. variant still styles the actions themselves."
+    ]
+  },
+  {
+    "slug": "bulk-action-bar",
+    "name": "BulkActionBar",
+    "group": "actions",
+    "description": "A single-row selection command capsule with adaptive overflow.",
+    "code": "<BulkActionBar label=\"Selected projects\" selectionCount={2}\n  items={[{id:\"archive\",label:\"Archive\",priority:10},{id:\"pause\",label:\"Pause\"},{id:\"activate\",label:\"Set active\"}]}\n  onAction={(id) => console.log(id)} onClear={() => console.log(\"clear\")} />",
+    "notes": [
+      "The default is a pill-shaped single row with at most two visible commands. maxVisibleActions accepts 1, 2 or 3; available space can reduce that number further.",
+      "Lower-priority commands move to More. selectionLabel, clearLabel and moreLabel support localized content; selectionCount=0 renders nothing.",
+      "pending disables commands and clearing. The host owns selected IDs, accepted updates, confirmation and focus after removal.",
+      "The component is inline by default. A floating host supplies bounded viewport positioning, safe-area spacing and scroll clearance. Use a stable width so adaptive measurement does not depend on the currently visible commands.",
+      "counter accepts label (default), number or none. Visible counters reserve a stable width across digit changes; counterWidth adapts that reservation to a localized label. Numeric mode retains the complete accessible selectionLabel. Hidden mode removes the slot."
+    ],
+    "imports": [
+      "BulkActionBar"
+    ]
+  },
+  {
+    "slug": "menubar",
+    "name": "Menubar",
+    "group": "actions",
+    "description": "Coordinated desktop application command menus with roving triggers and shared open state.",
+    "code": "<Menubar label=\"Editor commands\" menus={[{id:\"file\",label:\"File\",items:[{id:\"new\",label:\"New document\"},{id:\"export\",label:\"Export\"}]},{id:\"edit\",label:\"Edit\",items:[{id:\"undo\",label:\"Undo\"},{id:\"redo\",label:\"Redo\",disabled:true}]}]} />",
+    "imports": [
+      "Menubar"
+    ],
+    "notes": [
+      "Arrow keys coordinate enabled menu triggers; child menus reuse Menu focus and dismissal.",
+      "Use native links and NavigationList for destinations, not Menubar. Controlled openValue may refuse transitions."
+    ]
+  },
+  {
+    "slug": "filter-condition",
+    "name": "FilterCondition",
+    "group": "forms",
+    "description": "One controlled filter predicate composed from property, operator and value controls.",
+    "imports": [
+      "FilterCondition"
+    ],
+    "code": "<FilterCondition label=\"Condition 1\"\n  properties={[{id:\"status\",label:\"Status\",options:[{value:\"active\",label:\"Active\"},{value:\"paused\",label:\"Paused\"}]}]}\n  value={{property:\"status\",operator:\"is\",values:[\"active\"]}}\n  onValueChange={(condition) => console.log(condition)} />",
+    "notes": [
+      "Compose one finite-choice condition from Fieldset, Field, Grid, Select, MultiSelect and IconButton. sm is the default; all controls share controlSize.",
+      "value and onValueChange are controlled. Changing the property proposes an empty values array; changing the operator preserves selected values. Empty values are an incomplete draft, never an instruction to match every record.",
+      "The host owns query evaluation, duplicate-property policy, Apply/Cancel, validation and focus after removing the row. onRemove is optional; no removal slot is reserved when omitted.",
+      "label names the condition group. hideLabel defaults to true; property/operator/value controls retain their accessible names. labels customizes control names, operator text, placeholder and removal text.",
+      "A wide host uses one row with a wider value track. Container-based reflow follows the space available to this row, including inside a popup or drawer. No extra background or border is added.",
+      "This version supports finite enumerated values and is/is-not predicates. Date, text, numeric operators, nested groups, remote fetching and query execution are not part of this component."
+    ]
+  },
+  {
+    "slug": "filter-group",
+    "name": "FilterGroup",
+    "group": "forms",
+    "description": "A flat controlled group of filter conditions with matching and row management.",
+    "imports": [
+      "FilterGroup"
+    ],
+    "code": "<FilterGroup label=\"Project conditions\"\n  properties={[{id:\"status\",label:\"Status\",options:[{value:\"active\",label:\"Active\"},{value:\"paused\",label:\"Paused\"}]}]}\n  value={{match:\"all\",conditions:[]}} onValueChange={(filters) => console.log(filters)} />",
+    "notes": [
+      "Composes FilterCondition, SegmentedControl, Fieldset, Stack, Inline, Button and IconSlot. The group adds no separate material or decorative nested container.",
+      "value and onValueChange are controlled. Stable condition IDs survive row edits and removals; new rows propose an enabled available property and empty values. Empty values remain an incomplete draft.",
+      "All/any is shown only with at least two conditions. Removing rows preserves the selected match value. An empty group offers Add condition; it does not invent an onboarding message.",
+      "Duplicate properties are prevented for new choices by default. allowDuplicateProperties enables them; maxConditions optionally limits additions. Existing accepted rows are never silently deleted when constraints change. Add remains visible and disabled when no additions are available.",
+      "Accepted additions focus the new property control. Accepted removal focuses a surviving neighbour or Add. Refused controlled proposals do not move focus or mutate accepted conditions; delayed acceptance must not steal focus from a different target.",
+      "label names the group, hideLabel defaults to true, labels localizes group controls, and conditionLabels localizes each row. controlSize defaults to sm; disabled blocks all edits.",
+      "The host owns Apply/Cancel, accepted query evaluation, persistence, validation and server semantics. This is a flat finite-choice editor, not a nested query engine."
+    ]
+  },
+  {
+    "slug": "collection-toolbar",
+    "name": "CollectionToolbar",
+    "group": "content",
+    "description": "Search, applied filter summaries and filter disclosure in one collection query row.",
+    "imports": [
+      "CollectionToolbar"
+    ],
+    "code": "<CollectionToolbar label=\"Project collection\" searchValue=\"\" onSearchValueChange={(search) => console.log(search)}\n  searchLabel=\"Search projects\" appliedFilters={[{id:\"status\",label:\"Status: Active\"}]}\n  onRemoveFilter={(id) => console.log(id)} onClear={() => console.log(\"clear\")} />",
+    "notes": [
+      "Composes Fieldset, Field, SearchInput, Inline, Tag, Popover, Button and IconSlot. Uses normal Tab order rather than the action-only Toolbar roving model. No additional material, title or result count is invented.",
+      "searchValue and accepted appliedFilters are host-owned. onSearchValueChange, onRemoveFilter and onClear request changes; callbacks do not imply acceptance. Summaries need meaningful labels and unique IDs.",
+      "filterContent supplies the existing filter editor, including FilterGroup or a project-specific form. The host retains draft validation, Apply/Cancel, query evaluation, persistence and saved views. filtersOpen/onFiltersOpenChange optionally control the existing Popover; filterPanelRef and filterPanelClassName support real panel focus and sizing.",
+      "Clear keeps its space immediately before the right-anchored Filters trigger while inactive. Removing a summary or clearing returns focus to Filters, or Search when no panel exists. Filter disclosure is omitted when no filterContent is supplied.",
+      "quickFilters is an optional slot for at most two task-important properties; larger property sets belong inside filterContent. The host owns the threshold and slot behavior. Supply canClear when active state is not represented by searchValue/appliedFilters, such as controls in that slot.",
+      "Search, accepted summaries and commands share a responsive row; long summaries can wrap without clipping and the filter action remains at the logical end. Saved-view selectors and save/rename actions stay outside this query row.",
+      "controlSize defaults to sm; action/field sizes and chip typography follow the shared family. disabled applies to the complete fieldset, including native quick-filter controls and panel descendants. Labels and summaries remain host-localizable."
+    ]
+  },
+  {
+    "slug": "collection-view-switcher",
+    "name": "CollectionViewSwitcher",
+    "group": "content",
+    "description": "A controlled view selector with adaptive commands, separate from the active filter query.",
+    "imports": [
+      "CollectionViewSwitcher"
+    ],
+    "code": "<CollectionViewSwitcher label=\"Project view\" views={[{id:\"all\",name:\"All projects\"},{id:\"active\",name:\"Active projects\"}]} value=\"all\" onValueChange={(id) => console.log(id)} actions={[{id:\"create\",label:\"Save as new view\"}]} onAction={(id) => console.log(id)} />",
+    "notes": [
+      "Compose Field, Select, Button, IconSlot, Inline and OverflowActions. controlSize defaults to sm; no extra surface surrounds the selector and commands.",
+      "value and onValueChange represent the accepted view ID. Commands request onAction(id); the component does not create, rename, delete, persist or execute queries. Keep application errors and confirmation in their existing host owners.",
+      "The host supplies only applicable actions: save a new definition, update an editable changed definition, reset a dirty query, rename or delete an editable definition. A dirty working query does not silently modify the selected definition.",
+      "One action uses Button directly. Multiple actions use priority-based OverflowActions with View actions disclosure at constrained widths. Source order remains meaningful; destructive actions belong last.",
+      "label names the hidden Field label. actionsLabel and moreLabel localize command names; views supply localized names. selectRef exposes the Select focus target for host-owned dialogs. disabled blocks selection and commands; per-view and per-action disabled flags remain supported.",
+      "Keep this row outside CollectionToolbar. Changing the selected view may reset the host query and selection, but saving or renaming a definition must not reset unrelated result selection.",
+      "The command rail uses the shared plain Toolbar variant so its outer height matches the adjacent Select, without a second container around the actions."
+    ]
+  },
+  {
+    "slug": "sidebar",
+    "name": "Sidebar",
+    "previewLayout": "workspace",
+    "group": "navigation",
+    "description": "A bounded workspace sidebar with grouped destinations, a compact rail and nested navigation flyouts.",
+    "imports": [
+      "Sidebar"
+    ],
+    "code": "<div style={{height:\"32rem\"}}><Sidebar label=\"Workspace navigation\" groups={[{id:\"workspace\",label:\"Workspace\",items:[{value:\"overview\",label:\"Overview\",href:\"#overview\"},{value:\"projects\",label:\"Projects\",children:[{value:\"design\",label:\"Design system\",href:\"#design\"}]}]}]} currentValue=\"overview\" /></div>",
+    "notes": [
+      "Composes NavigationTree, ScrollArea, IconButton, Stack and Text. Host controls height; header/footer remain fixed while the navigation body scrolls with reserved scrollbar clearance.",
+      "collapsed/defaultCollapsed/onCollapsedChange control the full-width versus compact rail. Controlled refusals preserve accepted geometry. side supports logical start/end; width affects expanded mode only. collapsible=false omits the toggle.",
+      "groups need unique IDs and globally unique item values. Destinations retain real links; expansion and currentValue are independent. Disabled items cannot navigate or open a branch.",
+      "expandedValues/defaultExpandedValues/onExpandedValuesChange retain branch disclosure across width changes. In compact mode a top-level branch opens a Popover with full navigation; choosing a destination closes that flyout. No route is inferred or persisted.",
+      "header/footer accept content or a ({collapsed}) render function. Adapt meaningful content using that state, rather than hiding arbitrary descendants with CSS. The host owns workspace/account menus and their actions.",
+      "The inline headerLayout puts the expanded identity and toggle on one row. The stacked default keeps the toggle in its original place across states. Enable branchGuides per group for dense nesting.",
+      "Item icons use IconSlot; trailing content can compose Badge or other meaningful metadata in expanded mode. Compact destinations retain accessible names and native title labels; missing icons have a neutral fallback glyph.",
+      "No automatic mobile drawer, routing, resizing, keyboard shortcut or preference storage is added. Check the bounded host, enlarged text, RTL, final scroll item, real destinations and focus across collapse/flyout transitions.",
+      "groups can hide a redundant visual label with hideLabel while preserving the navigation name. currentKind=\"location\" marks a global module; page is the default contextual destination. The workspace playground composes Sidebar profiles into GlobalRail plus ContextBar without duplicate flyouts.",
+      "variant defaults to quiet in the 0.2.11 candidate: muted inactive content, normal control weight and restrained rectangular selection through existing semantic roles. standard retains the stronger pill recipe. Both compose the same primitive anatomy and behavior; inspect them in the full-width navigation workspace."
     ]
   }
 ]

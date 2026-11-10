@@ -41,6 +41,9 @@ the relationship between indicator and label, and independent form semantics.
 Avoid negative margins or transforms that conceal a layout problem or overlap
 click targets. For nested surfaces, compare inner radius with outer radius minus
 padding and stroke; independent controls retain their own radius recipe.
+When a circular avatar sits against the rounded end of a pill control, use the
+same inset at the top, bottom and avatar-side edge. Keep the label gap and the
+trailing action inset separate from that geometry.
 
 ## Check the composition
 
@@ -59,3 +62,30 @@ host's verification workflow; add a regression check for a repeated failure rath
 than a test that merely repeats a CSS declaration. Report what was measured and
 what remains unverified. See [accessibility](accessibility.md) and
 [verification](verification.md) for related contracts.
+
+## Judge the space you can see
+
+1. Name what should read together, what starts a new group, and what should
+   catch the eye first. Start with shared edges and the actual reading order.
+2. Inspect the screen at its working size. Compare the painted edges of text,
+   icons, fills and rules as well as their layout boxes. Line boxes, internal
+   padding and hit areas already contribute space. A strong fill or divider
+   also changes how much separation the eye sees.
+3. Compare two plausible treatments with the same content and viewport.
+   Change one lever at a time: space, measure, weight, tone or a boundary.
+   Pick the token that makes the intended grouping read clearly, then recheck
+   with the actual token applied. Keep stable alignment for repeated elements.
+4. Compare short and wrapped content and the presence or absence of optional
+   content. Recheck narrow layouts, enlarged text and text spacing overrides.
+   Keep focus visible, hit areas usable and reading order intact.
+
+For example, if a heading appears closer to the previous section than to its
+own controls, inspect the heading line box and the first control's top inset
+before increasing the section gap. If an icon looks off-center inside a
+centered slot, compare its visible outline with a sibling icon before adjusting
+the icon artwork. Keep the slot and click area on the shared track.
+
+In review notes, name the visual problem, the competing treatments and the
+reason one reads better. A passing geometry check supports that judgment.
+For text beside an icon, inspect the actual baseline and visible glyphs,
+including accents and wrapped labels. [CSS Inline Layout](https://www.w3.org/TR/css-inline-3/#leading-trim)

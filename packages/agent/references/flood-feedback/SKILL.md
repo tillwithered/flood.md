@@ -56,3 +56,28 @@ enlargement. Keep content visible without stealing focus merely to announce it.
 Reserve feedback space in a demo when needed for a stable sample, not universally
 inside every production component. Report audible announcement behavior only
 when it was actually tested with the relevant assistive technology.
+
+## Distinguish persistence failures from emptiness
+
+Missing, valid, malformed, read-failed and write-failed are distinct states. A
+read/parse failure is not permission to initialize samples or overwrite records.
+Keep the raw snapshot where available and block editing/writes until recovery
+succeeds or the user explicitly replaces that collection. Offer a named retry
+and, when useful, a recovery export. A missing key can initialize an empty list;
+fixture records declared in a test brief must not mask read failure.
+
+A refused write preserves the last accepted collection and the current draft.
+Discarding that draft ends its own save error, not an unresolved collection read
+error. Accept results only for the current request/draft generation. These are
+host-state decisions; Alert itself does not read storage or own recovery.
+
+Describe the observed failure without inventing its cause. A refused browser
+write can mean quota, denied access or another storage failure; do not prescribe
+clearing data or freeing space unless that cause is actually known. Retain the
+draft and offer an applicable retry/recovery action first.
+
+Build write proposals without mutating the accepted collection or the current
+draft in place. A rejected save must not append history, change status or alter
+the next retry before acceptance. Retry should propose one operation, not repeat
+side effects from the failed attempt. When a read failed, do not present invented
+zero totals or an empty collection as if the data had loaded successfully.

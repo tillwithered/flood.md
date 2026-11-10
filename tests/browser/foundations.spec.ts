@@ -93,15 +93,19 @@ test("fields use a quiet uniform perimeter and textarea scrolls without a resize
     for (const control of controls) {
       const boundary = await control.evaluate((node) => {
         const css = getComputedStyle(node);
-        const luminance = (color: string) => color.match(/[\d.]+/g)!.slice(0, 3).map(Number).map((byte) => {
+        const channels = (color: string) => color.match(/[\d.]+/g)!.map(Number);
+        const luminance = (rgb: number[]) => rgb.slice(0, 3).map((byte) => {
           const value = byte / 255;
           return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
         }).reduce((sum, value, index) => sum + value * [.2126, .7152, .0722][index], 0);
-        const foreground = luminance(css.borderTopColor), background = luminance(css.backgroundColor);
+        const paint = channels(css.backgroundColor);
+        const [r, g, b, alpha = 1] = channels(css.borderTopColor);
+        const foreground = luminance([r, g, b].map((channel, index) => channel * alpha + paint[index] * (1 - alpha)));
+        const background = luminance(paint);
         return { colors: [css.borderTopColor, css.borderRightColor, css.borderBottomColor, css.borderLeftColor], ratio: (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05), shadow: css.boxShadow };
       });
       expect(new Set(boundary.colors).size).toBe(1);
-      expect(boundary.colors[0]).toBe("rgb(56, 56, 56)");
+      expect(boundary.colors[0]).toBe("rgba(255, 255, 255, 0.08)");
       expect(boundary.ratio).toBeLessThan(3);
       expect(boundary.shadow).toBe("none");
       const before = await control.boundingBox();
@@ -163,7 +167,7 @@ test("foundation layout reflows at 320px and increased root font size", async ({
 test("secondary containers remain visible on surfaces and selected state persists", async ({ page }) => {
   await page.goto(url);
   const secondary = page.getByRole("button", { name: "Reset form", exact: true });
-  await expect(secondary).toHaveCSS("background-color", "rgb(48, 48, 48)");
+  await expect(secondary).toHaveCSS("background-color", "rgba(255, 255, 255, 0.05)");
   const pin = page.getByRole("button", { name: "Pin project", exact: true });
   await pin.click();
   await expect(pin).toHaveAttribute("aria-pressed", "true");
@@ -202,7 +206,8 @@ test("coarse pointer targets expand and switch geometry follows RTL", async ({ b
     await toggle.check();
     await expect.poll(() => toggle.evaluate(node => {
       const s=getComputedStyle(node), thumb=getComputedStyle(node,"::before");
-      const left=parseFloat(thumb.left)+parseFloat(s.borderLeftWidth), width=parseFloat(thumb.width);
+      const translate=thumb.transform==="none"?0:new DOMMatrix(thumb.transform).m41;
+      const left=parseFloat(thumb.left)+parseFloat(s.borderLeftWidth)+translate, width=parseFloat(thumb.width);
       return left >= 0 && left+width <= node.clientWidth+2 && left < node.clientWidth/2;
     })).toBe(true);
     const box = await toggle.boundingBox();

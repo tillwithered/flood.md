@@ -36,7 +36,10 @@ export async function buildAgentConsumer(root) {
   assert.ok(grouped.requires.includes('workflow:forms'));
   await copyFile('apps/website/src/recipes/grouped-form.tsx',join(root,'agent-grouped-form.tsx'));
   read('component:data-table');read('reference:customization');read('token:sys.color.focus.ring');
-  assert.equal(command(['catalog','--kind','workflow','--group','motion']).total,0);
+  assert.ok(command(['catalog','--kind','workflow','--group','motion']).items.some(item=>item.id==='workflow:motion'));
+  const motion=read('workflow:motion');
+  assert.equal(motion.text,await readFile(join(root,motion.installedTarget),'utf8'));
+  read('token:sys.motion.duration-enter');
   assert.equal(info.knowledge.capabilities.find(item=>item.id==='page-transitions').status,'not-provided');
   const missing=spawnSync(process.execPath,[cli,'read','component:page-transition'],{cwd:root,encoding:'utf8'});
   assert.notEqual(missing.status,0);assert.equal(JSON.parse(missing.stderr).error.code,'UNKNOWN_MATERIAL');

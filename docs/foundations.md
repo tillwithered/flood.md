@@ -1,6 +1,6 @@
-# Foundations tokens · 0.2.5
+# Foundations tokens · 0.2.11 candidate
 
-This guide describes the **0.2.5** foundation exports. Keep Flood packages at
+This guide describes the **0.2.11 candidate** foundation exports. Keep Flood packages at
 matching exact versions. Existing 0.1.1 installs use their earlier token contract.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).
@@ -83,6 +83,49 @@ prepend `--flood-`. The generated typed lookup is the complete contract.
 | `color` | Surface/content, decorative border/divider, accent, focus, loading placeholder, indicator track/fill/accent and scrollbar rest/hover |
 | `motion` | `duration-fast`, `duration-normal`, `duration-reduced`, `easing` |
 | `layer` | `base`, `sticky`, `popover`, `modal`, `toast` |
+
+### Material and nested control context
+
+Absolute `color.surface.canvas/default/raised/overlay/floating` roles describe
+materials. A component that draws a material establishes the context for its
+children: Surface, Dialog/Drawer, anchored popups and selection menus, Toast,
+Toolbar/BulkActionBar, standalone Calendar and other shared material owners.
+Stack, Inline, Grid and other transparent layout wrappers inherit that context.
+Nesting a default Surface inside an overlay returns to the default material;
+DOM depth does not increment elevation.
+
+Neutral actions, fields, read-only/disabled fills, choices, selection, supporting
+chips/keycaps, skeletons and progress tracks consume inherited semantic roles.
+On filled materials, `color.context.filled.*` supplies translucent neutral state
+overlays: secondary actions use white 5% / 8% / 12% at rest / hover / press,
+fields use 5%, and quiet borders use 8%. This keeps a secondary action secondary
+on both a card and a floating panel. The canvas retains its established defaults.
+Primary actions, content, focus and semantic feedback colors remain independent.
+
+`color.surface.current` supplies the opaque material base for tinted feedback;
+`surface.supporting`, `surface.muted`, `surface.avatar` and `field.readonly`
+separate contextual fills from the absolute canvas color. Do not repurpose canvas
+to recolor controls: it also supplies contrasting content and document/media wells.
+
+Automatic owners require no extra Button/Input props. For an application-owned
+material boundary, `data-flood-surface="base|filled|floating"` selects the neutral
+control context. The attribute does not paint a background or implement a popup.
+Choose the actual material and override `color.surface.current` on that same
+scope if it differs from Flood's material. A transparent wrapper should not
+declare another material context.
+
+Customize contextual recipes using `--flood-sys-color-context-filled-*` and
+`--flood-sys-color-context-base-*` at the root. A direct consumer role override
+on the material owner can refine one scope; a canvas-only field override does
+not silently replace all elevated recipes. Review both contexts when opting into
+strong boundaries. The generated manifest is the complete list of roles.
+
+Floating panels use an opaque fallback, with glass enabled only where supported.
+`prefers-reduced-transparency: reduce` and `data-flood-transparency="reduced"`
+on a FloodRoot or an owning subtree request opaque panels without backdrop blur.
+Forced colors retain system backgrounds, boundaries and selection indicators.
+Translucency is a visual recipe, not an accessibility guarantee: inspect the
+composited background, content contrast and focus in the actual host.
 
 ### Inter typography
 

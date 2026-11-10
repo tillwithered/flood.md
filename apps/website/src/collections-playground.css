@@ -1,0 +1,17 @@
+.collection-examples { padding-block:var(--flood-sys-space-8); min-inline-size:0; }
+.collection-view-controls { min-inline-size:0; }
+.flood-root .collection-filter-editor { inline-size:min(42rem,calc(100vw - 2rem)); }
+
+.collection-selection-panel {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: max(var(--flood-sys-space-4), env(safe-area-inset-bottom));
+  margin-inline: auto;
+  inline-size: min(26rem, calc(100% - 2 * var(--flood-sys-space-4)));
+  max-inline-size: calc(100% - 2 * var(--flood-sys-space-4));
+  z-index: var(--flood-sys-layer-sticky);
+}
+
+.collection-projects[data-selected="true"] {
+  padding-block-end: calc(var(--collection-selection-height, 0px) + 2 * var(--flood-sys-space-4) + env(safe-area-inset-bottom));
+}

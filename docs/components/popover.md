@@ -3,6 +3,9 @@
 Popover owns anchored placement, dismissal, accessible naming and focus return.
 Its default chrome includes a visible title and an IconButton close action.
 
+Use `chrome="title-only"` for navigational flyouts that keep the heading
+visible and dismiss through Escape, outside interaction or the trigger.
+
 For compact selection surfaces use `chrome="minimal"`: the required `title`
 remains available to assistive technology, while the title row and close button
 are omitted. Escape, outside interaction and the trigger still dismiss the

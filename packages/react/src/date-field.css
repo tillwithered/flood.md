@@ -16,7 +16,7 @@
 .flood-root .flood-date-field__control[data-status="warning"] { --flood-field-feedback:var(--flood-sys-color-feedback-warning); }
 .flood-root .flood-date-field__control[data-status="success"] { --flood-field-feedback:var(--flood-sys-color-feedback-success); }
 .flood-root .flood-date-field__control[data-status="info"] { --flood-field-feedback:var(--flood-sys-color-feedback-info); }
-.flood-root .flood-date-field__control[data-readonly] { background:var(--flood-sys-color-surface-canvas); border-style:dashed; }
+.flood-root .flood-date-field__control[data-readonly] { background:var(--flood-sys-color-field-readonly); border-style:dashed; }
 .flood-root .flood-date-field__control:has(.flood-date-field__segment:focus-visible) { border-color:var(--flood-sys-color-focus-ring); border-style:solid; }
 .flood-root .flood-date-field__control[data-disabled] { background:var(--flood-sys-color-field-disabled); color:var(--flood-sys-color-field-disabled-content); border-color:var(--flood-sys-color-field-border); }
 .flood-root .flood-date-field__description,.flood-root .flood-date-field__error { font-size:var(--flood-sys-type-helper-size); line-height:var(--flood-sys-type-helper-line-height); }

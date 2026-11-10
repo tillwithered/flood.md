@@ -24,6 +24,10 @@ separate button expands it. A branch without a destination has a plain label and
 a separate disclosure button. `currentValue` marks the matching destination with `aria-current="page"`;
 the host chooses current location and initially expanded ancestors.
 
+A closed branch containing the current destination gets a quiet outline.
+Only the current destination gets `aria-current`. Branch content fades in
+in place and is removed immediately on collapse. Reduced motion skips the fade.
+
 Expansion uses `expandedValues`, `defaultExpandedValues` and
 `onExpandedValuesChange`. Controlled refusal leaves the visible state unchanged.
 The navigation uses native nav/list/link semantics and ordinary Tab order, without

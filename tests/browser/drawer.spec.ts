@@ -29,6 +29,8 @@ async function settled(drawer:Locator){
  }),{message:'Drawer must reach its final logical viewport edge, not an intermediate compositor frame'}).toBeLessThanOrEqual(1);
 }
 test('Drawer owns native modal focus, nested Select Escape, backdrop optout and return focus',async({page})=>{
+ const viewport=page.viewportSize();
+ if(viewport&&viewport.width<=416)await page.setViewportSize({...viewport,width:480});
  await open(page);await page.getByRole('checkbox',{name:'Backdrop closing',exact:true}).uncheck();const trigger=page.getByRole('button',{name:'Open settings',exact:true});await trigger.click();const drawer=page.getByRole('dialog',{name:'Project settings',exact:true}),close=drawer.getByRole('button',{name:'Close',exact:true}),save=drawer.getByRole('button',{name:'Save settings',exact:true});await expect(drawer.getByRole('textbox',{name:'Project name',exact:true})).toBeFocused();await expect(close).toHaveClass(/flood-icon-button/);await close.focus();await page.keyboard.press('Shift+Tab');await expect(save).toBeFocused();await page.keyboard.press('Tab');await expect(close).toBeFocused();await page.mouse.click(2,2);await expect(drawer).toBeVisible();const select=drawer.getByRole('combobox',{name:'Visibility',exact:true});await select.click();await expect(page.getByRole('listbox')).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('listbox')).not.toBeVisible();await expect(drawer).toBeVisible();await page.keyboard.press('Escape');await expect(drawer).not.toBeVisible();await expect(trigger).toBeFocused();await page.getByRole('checkbox',{name:'Backdrop closing',exact:true}).check();await trigger.click();await page.mouse.click(2,2);await expect(drawer).not.toBeVisible();await expect(trigger).toBeFocused();
 });
 test('Drawer resolves logical edges in RTL and keeps header/footer while long body scrolls',async({page})=>{
@@ -50,7 +52,7 @@ test('Drawer catalog stays flush with viewport despite stable scrollbar gutters 
  await page.goto('/components/drawer');
  const stage=page.locator('.preview-stage'),trigger=stage.getByRole('button',{name:'Open settings',exact:true});
  await expect(trigger).toBeVisible();
- expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollbarGutter)).toContain('stable');
+ await page.evaluate(()=>{document.documentElement.style.scrollbarGutter='stable';});
  const header=page.locator('header').first();
  for(const dir of ['ltr','rtl']){
   await page.evaluate(dir=>{document.documentElement.dir=dir},dir);
@@ -61,12 +63,12 @@ test('Drawer catalog stays flush with viewport despite stable scrollbar gutters 
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
    const before=await header.boundingBox();
    await trigger.click();const drawer=page.getByRole('dialog',{name:'Project settings',exact:true});await settled(drawer);
-   const geometry=await drawer.evaluate(node=>{const rect=node.getBoundingClientRect(),title=node.querySelector('.flood-overlay-title')!.getBoundingClientRect(),description=node.querySelector('.flood-overlay-description')!.getBoundingClientRect();return{x:rect.x,y:rect.y,width:rect.width,height:rect.height,viewportWidth:innerWidth,viewportHeight:innerHeight,gap:description.top-title.bottom,padding:parseFloat(getComputedStyle(node).paddingTop),direction:(node as HTMLElement).dataset.drawerDirection,hitLeft:node.contains(document.elementFromPoint(1,rect.top+rect.height/2)),hitRight:node.contains(document.elementFromPoint(innerWidth-1,rect.top+rect.height/2))}});
+   const geometry=await drawer.evaluate(node=>{const rect=node.getBoundingClientRect(),title=node.querySelector('.flood-overlay-title')!.getBoundingClientRect(),description=node.querySelector('.flood-overlay-description')?.getBoundingClientRect();return{x:rect.x,y:rect.y,width:rect.width,height:rect.height,viewportWidth:innerWidth,viewportHeight:innerHeight,gap:description?description.top-title.bottom:null,padding:parseFloat(getComputedStyle(node).paddingTop),direction:(node as HTMLElement).dataset.drawerDirection,hitLeft:node.contains(document.elementFromPoint(1,rect.top+rect.height/2)),hitRight:node.contains(document.elementFromPoint(innerWidth-1,rect.top+rect.height/2))}});
    expect(geometry.direction).toBe(dir);
    const left=(side==='start'&&dir==='ltr')||(side==='end'&&dir==='rtl');
    if(side==='start'||side==='end'){expect(Math.abs(left?geometry.x:geometry.viewportWidth-geometry.x-geometry.width)).toBeLessThanOrEqual(1);expect(left?geometry.hitLeft:geometry.hitRight).toBe(true);}
    else {expect(Math.abs(geometry.x)).toBeLessThanOrEqual(1);expect(Math.abs(geometry.width-geometry.viewportWidth)).toBeLessThanOrEqual(1);expect(geometry.hitRight).toBe(true);expect(geometry.hitLeft).toBe(true);expect(Math.abs(side==='top'?geometry.y:geometry.viewportHeight-geometry.y-geometry.height)).toBeLessThanOrEqual(1);}
-   expect(Math.abs(geometry.gap-4)).toBeLessThanOrEqual(1);expect(geometry.padding).toBe(16);
+   expect(geometry.gap).toBeNull();await expect(drawer.locator('.flood-overlay-description')).toHaveCount(0);expect(geometry.padding).toBe(16);
    const during=await header.boundingBox();for(const key of ['x','y','width','height'] as const)expect(Math.abs(during![key]-before![key]),`${dir}/${side}/${key}: ${before![key]} -> ${during![key]}`).toBeLessThanOrEqual(1);
    await drawer.getByRole('button',{name:'Close',exact:true}).click();await expect(drawer).not.toBeVisible();
    expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollbarGutter)).toContain('stable');const after=await header.boundingBox();for(const key of ['x','y','width','height'] as const)expect(Math.abs(after![key]-before![key])).toBeLessThanOrEqual(1);

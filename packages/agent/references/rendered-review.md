@@ -41,6 +41,11 @@ does not open controls or wait for layout on your behalf. It traverses the curre
 document, not iframes or shadow roots. It performs no network requests or writes.
 Keep reports local: labels and copy inventories may contain the host's user data.
 
+For a visual layout change, compare screenshots of the same content, viewport
+and settled state. Name what should stand out and which elements should read
+together. Use measured boxes to explain the difference. The observer cannot
+judge painted glyph edges, perceived contrast or the balance of empty space.
+
 Observations include likely text glyphs used as button icons, unslotted SVGs,
 passive cells offset from neighbouring input centres and complete cell blocks in
 record/action rows, supporting copy echoing a visible action label, a copy inventory

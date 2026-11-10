@@ -12,8 +12,10 @@ test("shared Flood header keeps its geometry and native navigation across routes
       await expect(link).not.toHaveAttribute("role","button");
     }
     const box=(await header.boundingBox())!;
-    if(height!==undefined)expect(Math.abs(box.height-height)).toBeLessThan(1);
-    height=box.height;
+    if(path==="/components/button")expect(box.height).toBeLessThan(height!);
+    else if(height!==undefined)expect(Math.abs(box.height-height)).toBeLessThan(1);
+    else height=box.height;
+    await expect(header.getByRole("link",{name:"flood.md home"})).toHaveText(path.startsWith("/components") ? "" : "flood.md");
     if(path.startsWith("/docs"))await expect(nav.getByRole("link",{name:"Docs",exact:true})).toHaveAttribute("aria-current","page");
     if(path.startsWith("/components"))await expect(nav.getByRole("link",{name:"Components",exact:true})).toHaveAttribute("aria-current","page");
     if(path==="/"||path==="/docs")await header.screenshot({path:`.artifacts/shared-header-${path==="/"?"home":"docs"}-${info.project.name}.png`});
@@ -58,8 +60,8 @@ test("document scrolling uses Flood tokens without replacing the native page vie
 
 test("sidebar item text is brighter than category labels before hover",async({page},info)=>{
   await page.goto("/components/button");
-  if(info.project.name==="mobile")await page.getByRole("button",{name:"Browse documentation",exact:true}).click();
-  const nav=page.locator(info.project.name==="mobile"?".mobile-navigation":".desktop-sidebar");
+  if(info.project.name==="mobile")await page.getByRole("button",{name:"Components",exact:true}).click();
+  const nav=page.locator("#studio-catalog");
   const color=await nav.getByRole("link",{name:"Input",exact:true}).evaluate(node=>getComputedStyle(node).color);
   const label=await nav.getByText("Forms",{exact:true}).evaluate(node=>getComputedStyle(node).color);
   expect(color).toBe("rgb(255, 255, 255)");expect(label).not.toBe(color);
@@ -68,8 +70,8 @@ test("sidebar item text is brighter than category labels before hover",async({pa
 test("mobile navigation search shares the disclosure surface while scrolling",async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.goto("/components/drawer");
-  await page.getByRole("button",{name:"Browse documentation",exact:true}).click();
-  const navigation=page.locator(".mobile-navigation");
+  await page.getByRole("button",{name:"Components",exact:true}).click();
+  const navigation=page.locator("#studio-catalog");
   const surface=await navigation.evaluate(node=>getComputedStyle(node).backgroundColor);
   const tools=navigation.locator(".catalog-nav-tools");
   await expect(tools).toHaveCSS("background-color",surface);

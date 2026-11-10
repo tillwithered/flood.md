@@ -37,6 +37,7 @@ async function open(page: Page) {
 }
 
 test("Select remains anchored through ancestor/page scrolling and viewport resize", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await open(page);
   const trigger = page.getByRole("combobox", { name: "Scrolling select", exact: true });
   await trigger.click();

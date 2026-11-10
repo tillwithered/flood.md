@@ -153,7 +153,10 @@ export const SingleSelect = /* @__PURE__ */ forwardRef<HTMLSelectElement, Select
       const gap = length("--flood-sys-space-2") || 0;
       const below = Math.max(0, viewportTop + viewportHeight - rect.bottom - gap * 2), above = Math.max(0, rect.top - viewportTop - gap * 2);
       const maxHeight = Math.min(length("--flood-sys-control-md-height") * 8, Math.max(below, above));
-      assign(popup, "width", `${Math.min(rect.width, Math.max(0, viewportWidth - gap * 2))}px`);
+      const availableWidth = Math.max(0, viewportWidth - gap * 2);
+      assign(popup, "width", "max-content");
+      assign(popup, "min-width", `${Math.min(rect.width, availableWidth)}px`);
+      assign(popup, "max-width", `${availableWidth}px`);
       assign(popup, "max-height", `${maxHeight}px`);
       // The shared positioner reads column-gap as its placement gap. On this
       // block listbox it does not add layout space between options.

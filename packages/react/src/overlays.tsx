@@ -1,7 +1,7 @@
 import {forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState} from "react";
-import type {TooltipProps,PopoverProps,DialogProps,OverlayTriggerProps} from "./index.js";
+import type {TooltipProps,TooltipTriggerProps,PopoverProps,DialogProps,OverlayTriggerProps} from "./index.js";
 import {IconButton,ScrollArea,VisuallyHidden} from "./index.js";
-import {positionLayer,registerLayer,returnFocus,lockScroll,tabbables} from "./overlay-runtime.js";
+import {positionLayer,registerLayer,returnFocus,lockScroll,tabbables,useLayerExitContent} from "./overlay-runtime.js";
 import {mergeDescriptions} from "./field-state.js";
 const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffect;
 function useCurrent<T>(value:T){const ref=useRef(value);useBrowserLayoutEffect(()=>{ref.current=value});return ref;}
@@ -17,7 +17,7 @@ function focusContent(panel:HTMLElement,preferred?:HTMLElement|null){
   }
 }
 function OverlayClose({label,onClick}:{label:string;onClick:()=>void}){
-  return <IconButton label={label} size="sm" variant="subtle" className="flood-overlay-close" onClick={onClick}>
+  return <IconButton label={label} size="sm" variant="ghost" className="flood-overlay-close" onClick={onClick}>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true" focusable="false"><path d="m4 4 16 16M20 4 4 20" /></svg>
   </IconButton>;
 }
@@ -28,14 +28,16 @@ export const AnchoredOverlay=/* @__PURE__ */ forwardRef<HTMLDivElement,AnchoredP
   const pop=allProps as PopoverProps,tip=allProps as TooltipProps;
   const [local,setLocal]=useState(kind==="popover"?Boolean(pop.defaultOpen):false);
   const open=kind==="tooltip"?local:pop.open??local;
-  const anchor=useRef<HTMLButtonElement>(null),panel=useRef<HTMLDivElement>(null),generated=useId();
-  const id=explicitId??`flood-overlay-${generated}`,setAnchor=useCallback((node:HTMLButtonElement|null)=>{anchor.current=node},[]);
+  const anchor=useRef<HTMLElement>(null),panel=useRef<HTMLDivElement>(null),generated=useId();
+  const id=explicitId??`flood-overlay-${generated}`,setAnchor=useCallback((node:HTMLElement|null)=>{anchor.current=node},[]);
   const hovered=useRef(false),overPanel=useRef(false),focused=useRef(false),suppressed=useRef(false);
   const timer=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
   const clear=()=>{clearTimeout(timer.current);timer.current=undefined;};
   const request=(next:boolean)=>{if(kind==="tooltip"||pop.open===undefined)setLocal(next);if(kind==="popover")pop.onOpenChange?.(next);};
   const close=()=>{clear();if(kind==="tooltip"){suppressed.current=true;overPanel.current=false;}request(false);};
-  const current=useCurrent({close,request,disabled,open,initialFocusRef:pop.initialFocusRef,positionReference:pop.positionReference});
+  const focusOnOpen=pop.focusOnOpen??true;
+  const current=useCurrent({close,request,disabled,open,focusOnOpen,initialFocusRef:pop.initialFocusRef,positionReference:pop.positionReference});
+  const previousFocusOnOpen=useRef(focusOnOpen);
   const positionReference=()=>{const node=current.current.positionReference?.current;return node?.isConnected&&node.ownerDocument===panel.current?.ownerDocument?node:anchor.current;};
   useImperativeHandle(forwardedRef,()=>panel.current!,[]);
   useEffect(()=>()=>clearTimeout(timer.current),[]);
@@ -52,7 +54,7 @@ export const AnchoredOverlay=/* @__PURE__ */ forwardRef<HTMLDivElement,AnchoredP
       if(typeof element.showPopover!=="function")throw new Error("Flood overlays require the native Popover API");
       element.style.visibility="hidden";element.showPopover();positionLayer(positionReference()!,element,side,align);
       unregister=registerLayer(document,{panel:element,anchor:()=>anchor.current,close:()=>current.current.close(),tooltip:kind==="tooltip"});
-      if(kind==="popover")focusContent(element,current.current.initialFocusRef?.current);
+      if(kind==="popover"&&current.current.focusOnOpen)focusContent(element,current.current.initialFocusRef?.current);
       const update=()=>{if(!alive)return;if(anchor.current?.isConnected)positionLayer(positionReference()!,element,side,align);frame=view.requestAnimationFrame(update)};
       frame=view.requestAnimationFrame(update);
     };
@@ -60,23 +62,33 @@ export const AnchoredOverlay=/* @__PURE__ */ forwardRef<HTMLDivElement,AnchoredP
     const toggle=(event:Event)=>{
       if(!alive||(event as ToggleEvent).newState!=="closed"||element.matches(":popover-open")||!current.current.open)return;
       current.current.request(false);
-      queueMicrotask(()=>{if(alive&&current.current.open&&element.isConnected&&!element.matches(":popover-open")&&anchor.current?.isConnected){element.showPopover();positionLayer(positionReference()!,element,side,align);if(kind==="popover")focusContent(element,current.current.initialFocusRef?.current)}});
+      queueMicrotask(()=>{if(alive&&current.current.open&&element.isConnected&&!element.matches(":popover-open")&&anchor.current?.isConnected){element.showPopover();positionLayer(positionReference()!,element,side,align);if(kind==="popover"&&current.current.focusOnOpen)focusContent(element,current.current.initialFocusRef?.current)}});
     };
     element.addEventListener("toggle",toggle);
-    return ()=>{alive=false;view.cancelAnimationFrame(frame);unregister();element.removeEventListener("toggle",toggle);if(kind==="popover")returnFocus(element,anchor.current);if(element.matches(":popover-open"))element.hidePopover();};
+    return ()=>{alive=false;view.cancelAnimationFrame(frame);unregister();element.removeEventListener("toggle",toggle);if(kind==="popover"&&(previousFocusOnOpen.current||element.contains(document.activeElement)))returnFocus(element,anchor.current);if(element.matches(":popover-open"))element.hidePopover();};
   },[open,side,align,kind]);
+  const titleOnly=kind==="popover"&&pop.chrome==="title-only";
+  const showContent=useLayerExitContent(panel,open,titleOnly);
+  useBrowserLayoutEffect(()=>{
+    const element=panel.current;
+    if(focusOnOpen&&!previousFocusOnOpen.current&&element?.matches(":popover-open")&&!element.contains(element.ownerDocument.activeElement)){
+      focusContent(element,pop.initialFocusRef?.current);
+    }
+    previousFocusOnOpen.current=focusOnOpen;
+  },[focusOnOpen]);
 
-  const triggerProps:OverlayTriggerProps={ref:setAnchor,type:"button",...(kind==="tooltip"?{
+  const tooltipTriggerProps:TooltipTriggerProps={ref:setAnchor,
     "aria-describedby":disabled?undefined:id,
     onPointerEnter:event=>{if(event.pointerType==="touch")return;hovered.current=true;enter();},
     onPointerLeave:()=>{hovered.current=false;leave();},onFocus:()=>{focused.current=true;enter(true)},onBlur:()=>{focused.current=false;leave()},
-  }:{disabled,"aria-haspopup":"dialog","aria-expanded":open,"aria-controls":id,onClick:()=>request(!open)})};
+  };
+  const popoverTriggerProps:OverlayTriggerProps={ref:setAnchor,type:"button",disabled,"aria-haspopup":"dialog","aria-expanded":open,"aria-controls":id,onClick:()=>request(!open)};
   // Remove component-only props before forwarding native div attributes.
-  const {title:unusedTitle,chrome:unusedChrome,content:unusedContent,children:unusedChildren,open:unusedOpen,defaultOpen:unusedDefault,onOpenChange:unusedChange,delay:unusedDelay,closeLabel:unusedClose,initialFocusRef:unusedFocus,positionReference:unusedPosition,...attributes}=native as Partial<PopoverProps&TooltipProps>;
-  return <>{trigger(triggerProps)}<div {...attributes} ref={panel} id={id} popover="manual" role={kind==="tooltip"?"tooltip":"dialog"} aria-labelledby={kind==="popover"?`${id}-title`:undefined}
-    tabIndex={kind==="popover"?-1:undefined} data-chrome={kind==="popover"?pop.chrome:undefined} className={["flood-overlay-panel",kind==="tooltip"?"flood-tooltip":"flood-popover",className].filter(Boolean).join(" ")} style={style}
+  const {title:unusedTitle,chrome:unusedChrome,content:unusedContent,children:unusedChildren,open:unusedOpen,defaultOpen:unusedDefault,onOpenChange:unusedChange,delay:unusedDelay,closeLabel:unusedClose,initialFocusRef:unusedFocus,positionReference:unusedPosition,focusOnOpen:unusedFocusOnOpen,...attributes}=native as Partial<PopoverProps&TooltipProps>;
+  return <>{kind==="tooltip"?tip.trigger(tooltipTriggerProps):pop.trigger(popoverTriggerProps)}<div {...attributes} ref={panel} id={id} popover="manual" role={kind==="tooltip"?"tooltip":"dialog"} aria-labelledby={kind==="popover"?`${id}-title`:undefined}
+    tabIndex={kind==="popover"?-1:undefined} aria-hidden={titleOnly&&!open?true:attributes["aria-hidden"]} data-chrome={kind==="popover"?pop.chrome:undefined} className={["flood-overlay-panel",kind==="tooltip"?"flood-tooltip":"flood-popover",className].filter(Boolean).join(" ")} style={style}
     onPointerEnter={event=>{attributes.onPointerEnter?.(event);if(kind==="tooltip"){overPanel.current=true;clear()}}} onPointerLeave={event=>{attributes.onPointerLeave?.(event);if(kind==="tooltip"){overPanel.current=false;leave()}}}>
-    {kind==="tooltip"?tip.content:<>{pop.chrome==="minimal"?<VisuallyHidden><h2 id={`${id}-title`}>{pop.title}</h2></VisuallyHidden>:<div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{pop.title}</h2><OverlayClose label={pop.closeLabel??"Close"} onClick={close} /></div>}{open&&<div className="flood-overlay-body">{pop.children}</div>}</>}
+    {kind==="tooltip"?tip.content:<>{pop.chrome==="minimal"?<VisuallyHidden><h2 id={`${id}-title`}>{pop.title}</h2></VisuallyHidden>:<div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{pop.title}</h2>{!titleOnly&&<OverlayClose label={pop.closeLabel??"Close"} onClick={close} />}</div>}{showContent&&<div className="flood-overlay-body">{pop.children}</div>}</>}
   </div></>;
 });
 
@@ -107,7 +119,11 @@ export const ModalOverlay=/* @__PURE__ */ forwardRef<HTMLDialogElement,ModalOver
     dispose=()=>{unregister();unlock();element.removeEventListener("cancel",cancel);element.removeEventListener("close",closed);if(element.open)element.close();returnFocus(element,anchor.current??previous);};
     };start();return()=>{alive=false;view.cancelAnimationFrame(frame);dispose()};
   },[open]);
-  return <>{trigger({ref:setAnchor,type:"button",disabled,"aria-haspopup":"dialog","aria-expanded":open,"aria-controls":id,onClick:()=>request(true)})}<dialog {...props} ref={dialog} id={id} aria-modal="true" aria-labelledby={`${id}-title`}
+  return <>{trigger({ref:setAnchor,type:"button",disabled,"aria-haspopup":"dialog","aria-expanded":open,"aria-controls":id,onClick:event=>{
+    // WebKit can leave pointer-activated buttons unfocused before showModal().
+    event.currentTarget.focus({preventScroll:true});
+    request(true);
+  }})}<dialog {...props} ref={dialog} id={id} aria-modal="true" aria-labelledby={`${id}-title`}
     aria-describedby={mergeDescriptions(describedBy,Boolean(description)&&`${id}-description`)} className={["flood-dialog",className].filter(Boolean).join(" ")} onKeyDown={event=>{
       onKeyDown?.(event);if(event.defaultPrevented||event.key!=="Tab")return;
       const items=tabbables(event.currentTarget),first=items[0],last=items.at(-1),active=event.currentTarget.ownerDocument.activeElement;

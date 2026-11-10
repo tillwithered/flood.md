@@ -187,11 +187,13 @@ test("explorer orientation choices demonstrate the selected axes without clippin
   const inset = page.getByRole("combobox", { name: "ScrollArea prop contentInset", exact: true });
   const content = viewport.locator(".flood-scroll-area__content");
   await expect(content).toHaveCSS("padding-inline-end", "14px");
-  expect(await viewport.evaluate(node => {
+  // ResizeObserver and font loading can update line wrapping after the first frame.
+  // Track positioning uses integer clientWidth; tolerate subpixel box rounding.
+  await expect.poll(() => viewport.evaluate(node => {
     const rail = node.parentElement!.querySelector(".flood-scroll-area__track--vertical")!.getBoundingClientRect();
     const range = document.createRange();
     range.selectNodeContents(node.querySelector("p")!);
-    return [...range.getClientRects()].every(line => line.right <= rail.left - 3.9);
+    return [...range.getClientRects()].every(line => line.right <= rail.left - 3);
   })).toBe(true);
   await expect(page.locator("#usage .site-code-block code")).toContainText('contentInset="scrollbar"');
   await chooseSelectOption(inset, "none");

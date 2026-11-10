@@ -1,0 +1,131 @@
+/* Shared visual owners keep motion separate from form, focus and layout state. */
+@media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+  .flood-root .flood-sidebar:not(:where([data-flood-motion="reduce"] *)) {
+    transition: inline-size var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing);
+  }
+
+  .flood-root:not([data-flood-motion="reduce"]) :is(
+    .flood-navigation-item,
+    .flood-tree__row,
+    .flood-select__option,
+    .flood-command-list__option,
+    .flood-list-box__option,
+    .flood-calendar__day,
+    .flood-steps__action,
+    .flood-choice-card,
+    .flood-scroll-area__thumb,
+    .flood-data-table tbody > tr,
+    .flood-menu__item,
+    .flood-segmented .flood-choice
+  ):not(:where([data-flood-motion="reduce"] *)) {
+    transition: background-color var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing);
+  }
+
+  .flood-root:not([data-flood-motion="reduce"]) .flood-check:not(:where([data-flood-motion="reduce"] *))::before {
+    transition: opacity var(--flood-sys-motion-duration-press) var(--flood-sys-motion-easing);
+  }
+  .flood-root .flood-rating__choice > svg:not(:where([data-flood-motion="reduce"] *)) {
+    transition: fill var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing),
+      color var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing);
+  }
+  .flood-root .flood-data-table__sort svg:not(:where([data-flood-motion="reduce"] *)) {
+    transition: rotate var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing);
+  }
+  .flood-root .flood-select--custom .flood-select__control:not(:where([data-flood-motion="reduce"] *))::after {
+    transition: transform var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing);
+  }
+  .flood-root:not([data-flood-motion="reduce"]) .flood-switch-input:not(:where([data-flood-motion="reduce"] *))::before {
+    transition: inset-inline-start var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing);
+  }
+
+  .flood-root:not([data-flood-motion="reduce"]) :is(
+    .flood-tree__chevron,
+    .flood-navigation-item__indicator svg,
+    .flood-navigation-item__disclosure svg
+  ):not(:where([data-flood-motion="reduce"] *)) {
+    transition: rotate var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing);
+  }
+  .flood-root:not([data-flood-motion="reduce"]) .flood-disclosure__indicator:not(:where([data-flood-motion="reduce"] *)) {
+    transition-duration: var(--flood-sys-motion-duration-normal);
+  }
+  .flood-root:not([data-flood-motion="reduce"]) :is(.flood-disclosure__panel, .flood-tabs__panel):not(:where([data-flood-motion="reduce"] *)):not([hidden]) {
+    animation: flood-reveal-content var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing-enter) both;
+  }
+  .flood-root:not([data-flood-motion="reduce"]) .flood-navigation-tree__branch:not(:where([data-flood-motion="reduce"] *)) {
+    animation: flood-reveal-navigation-branch var(--flood-sys-motion-duration-enter) var(--flood-sys-motion-easing-enter);
+  }
+  .flood-root:not([data-flood-motion="reduce"]) .flood-tabs[data-variant="line"] .flood-tab[aria-selected="true"]:not(:where([data-flood-motion="reduce"] *))::after {
+    animation: flood-reveal-mark var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing-enter) both;
+  }
+
+  .flood-root:not([data-flood-motion="reduce"]) .flood-copy-button__labels > span[data-visible]:not(:first-child) > .flood-icon:not(:where([data-flood-motion="reduce"] *)) {
+    animation: flood-reveal-mark var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing-enter) both;
+  }
+  .flood-root:not([data-flood-motion="reduce"]) .flood-avatar .flood-avatar__image:not(:where([data-flood-motion="reduce"] *)) {
+    transition: opacity var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing-enter);
+  }
+  .flood-root:not([data-flood-motion="reduce"]) .flood-spinner:not(:where([data-flood-motion="reduce"] *)) {
+    animation-duration: var(--flood-sys-motion-duration-loop);
+  }
+  .flood-root:not([data-flood-motion="reduce"]) .flood-indicator[data-indeterminate="true"] .flood-indicator__fill:not(:where([data-flood-motion="reduce"] *)) {
+    animation-duration: var(--flood-sys-motion-duration-loop);
+  }
+  .flood-root:not([data-flood-motion="reduce"]) .flood-skeleton[data-animate="true"]:not(:where([data-flood-motion="reduce"] *)) {
+    animation-duration: calc(2 * var(--flood-sys-motion-duration-loop));
+  }
+  .flood-root :is(
+    button.flood-button:not(.flood-button-group > .flood-button, .flood-disclosure__trigger, .flood-navigation-item__control),
+    .flood-check:not(.flood-segmented .flood-check),
+    .flood-switch-input,
+    .flood-segmented .flood-choice
+  ):not(:where([data-flood-motion="reduce"] *, :disabled, [aria-disabled="true"], [aria-busy="true"], :has(input:disabled))) {
+    transition: scale var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing-enter),
+      background-color var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing);
+  }
+  .flood-root :is(
+    button.flood-button:not(.flood-button-group > .flood-button, .flood-disclosure__trigger, .flood-navigation-item__control):active,
+    .flood-choice:active > :is(.flood-check:not(.flood-segmented .flood-check), .flood-switch-input),
+    .flood-segmented .flood-choice:active
+  ):not(:where([data-flood-motion="reduce"] *, :disabled, [aria-disabled="true"], [aria-busy="true"], :has(input:disabled))) {
+    scale: .96;
+    transition-duration: var(--flood-sys-motion-duration-press);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) and (forced-colors: none) and (hover: hover) {
+  .flood-root:not([data-flood-motion="reduce"]) :is(
+    .flood-input,
+    .flood-input-group,
+    .flood-date-field__control,
+    .flood-time-field__control
+  ):not(:where([data-flood-motion="reduce"] *)) {
+    transition: background-color var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing);
+  }
+}
+
+@media (hover: hover) and (forced-colors: none) {
+  .flood-root :is(
+    .flood-input:not(.flood-input-group > .flood-input, .flood-command-palette .flood-input),
+    .flood-input-group:not(:has(input:disabled)),
+    .flood-date-field__control,
+    .flood-time-field__control
+  ):not(:disabled, [readonly], [aria-readonly="true"], [aria-disabled="true"], [data-readonly], [data-disabled]):hover {
+    background-color: color-mix(in srgb, var(--flood-sys-color-field-background) 95%, var(--flood-sys-color-field-content));
+  }
+  .flood-root .flood-segmented .flood-choice:not(:has(input:is(:checked, :disabled))):hover {
+    background-color: var(--flood-sys-color-action-on-surface-hover);
+  }
+}
+
+@keyframes flood-reveal-content {
+  from { opacity: .84; }
+  to { opacity: 1; }
+}
+@keyframes flood-reveal-mark {
+  from { opacity: .55; }
+  to { opacity: 1; }
+}
+@keyframes flood-reveal-navigation-branch {
+  from { opacity:0; translate:0 calc(-1 * var(--flood-sys-motion-distance-small)); }
+  to { opacity:1; translate:0 0; }
+}

@@ -4,9 +4,9 @@ An independent design system for **React, TypeScript and Next.js**. Original
 components, semantic tokens, a small installer, and versioned instructions for
 coding agents. No third-party UI component library or Tailwind dependency.
 
-## Base dark design system · 0.2.10
+## Base dark design system · 0.2.11
 
-Flood 0.2.10 provides a dark foundations profile, 193 semantic token roles and 120 original components. See
+Flood 0.2.11 provides a dark foundations profile, 193 semantic token roles and 120 original components. See
 [Original primitives and controls](docs/base-components.md), including forms,
 selection groups, disclosures, overlays and navigation. A versioned agent bundle
 includes portable spacing and composition guidance. Use the matching installed
@@ -36,11 +36,11 @@ contract remains compatible outside FloodRoot.
 
 ## Connect
 
-This branch prepares 0.2.10; registry publication is pending. Use matching published
+This branch prepares 0.2.11; registry publication is pending. Use matching published
 Flood packages and verify availability before running the versioned command.
 
 ```sh
-npx @flood-md/cli@0.2.10 init
+npx @flood-md/cli@0.2.11 init
 ```
 
 Run in an existing npm-based React or Next.js project. Use `init --dry-run` to see
@@ -59,7 +59,7 @@ export function Example() {
 ```
 
 Give an agent `https://flood.md/llms.txt`. The guide
-uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.10 doctor` checks
+uses the same CLI as a manual installation. `npx @flood-md/cli@0.2.11 doctor` checks
 installed versions and owned instruction files.
 
 ## Documentation
@@ -84,7 +84,7 @@ variables; host application owns layout, data fetching and side effects.
 ## Develop
 
 See [foundations](docs/foundations.md) and the [component guide](docs/components.md)
-for 0.2.10. Existing 0.1.1 projects should follow their matching guides. The Next.js
+for 0.2.11. Existing 0.1.1 projects should follow their matching guides. The Next.js
 example includes `/foundations` and `/team` for reviewing the current source.
 
 Node.js 22.12+ (Node 24 recommended), npm 11.

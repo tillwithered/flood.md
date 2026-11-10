@@ -1,23 +1,30 @@
 # Agent knowledge
 
-Flood 0.2.10 adds a versioned read-only catalog and reader. Use the CLI matching
+Flood 0.2.11 includes a versioned read-only catalog and reader. Use the CLI matching
 the project's flood.json; source availability does not prove npm publication.
 The same package sources build the website, CLI results and agent instructions.
 
 ## Discover, then read
 
 ```sh
-npx @flood-md/cli@0.2.10 info --json
-npx @flood-md/cli@0.2.10 catalog --kind workflow --group foundations
-npx @flood-md/cli@0.2.10 catalog --kind component --search table
-npx @flood-md/cli@0.2.10 read recipe:table-bulk-actions
-npx @flood-md/cli@0.2.10 read component:data-table
+npx @flood-md/cli@0.2.11 info --json
+npx @flood-md/cli@0.2.11 catalog --kind workflow --group foundations
+npx @flood-md/cli@0.2.11 catalog --kind component --search table
+npx @flood-md/cli@0.2.11 read recipe:table-bulk-actions
+npx @flood-md/cli@0.2.11 read component:data-table
 ```
 
 These commands return JSON and do not install dependencies, edit files, execute
 skill text or contact a Flood server. The package runner may fetch the CLI if
 it is not installed locally; keep its version deliberate. Existing project and
 agent instructions remain authoritative.
+
+For a screen that filters one table between two views, start with
+`read component:segmented-control` and follow its link to `workflow:records`.
+If the screen switches between independent panels, read `component:tabs`.
+Before delivery, open the list and a selected record together, then use
+`workflow:interface-content` and `reference:interface-content-examples` to
+decide which labels, counts and status messages the user needs in each view.
 
 info reports actual installed package versions, the configured guide version,
 framework detection, catalog identity and capability declarations. A version

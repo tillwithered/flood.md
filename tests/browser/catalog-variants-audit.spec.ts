@@ -48,7 +48,9 @@ for (const component of components.filter(component => cohort.includes(component
       await page.goto(`/components/${component.slug}`);
       const workbench = page.locator(".component-workbench"), stage = workbench.locator(".workbench-stage");
       const panel = workbench.locator(".workbench-controls"), code = page.locator("#usage .site-code-block code");
+      const properties = page.getByRole("button", { name: "Properties", exact: true });
       await expect(workbench).toBeVisible();
+      if (await properties.count()) await properties.click();
       await expect(code).toContainText("export function Example()");
       await page.evaluate(() => new Promise<void>(done => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
       const baselineCode = (await code.textContent())!, baselineBox = (await stage.boundingBox())!, baselineSignature = await sampleSignature(stage);
@@ -77,6 +79,7 @@ for (const component of components.filter(component => cohort.includes(component
             await workbench.getByRole("button", { name: "Reset", exact: true }).click();
             await expect(code).toHaveText(baselineCode);
             const target = panel.getByRole(control.kind === "select" ? "combobox" : control.kind === "checkbox" ? "checkbox" : "textbox", { name: control.label, exact: true });
+            if (await properties.count() && await properties.getAttribute("aria-expanded") !== "true") await properties.click();
             if (control.kind === "select") await chooseSelectOption(target, String(value));
             else if (control.kind === "checkbox") { await target.setChecked(Boolean(value)); await expect(target).toBeChecked({ checked: Boolean(value) }); }
             else { await target.fill(String(value)); await expect(target).toHaveValue(String(value)); }

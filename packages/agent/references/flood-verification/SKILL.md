@@ -11,6 +11,12 @@ rule IDs; it is an index of guidance, not an automatic pass/fail policy engine.
 
 ## Bound the coverage
 
+Run the screen's task trace with real interactions. Check the starting state,
+the accepted result and a relevant refusal or empty result. After rejection,
+verify that the user can find the correction, keep their input and try again.
+After success, inspect the updated data and the next focus target. For read-only
+screens, use a reachable navigation or recovery path where one applies.
+
 Record the affected primitive, its real consumers, supported states and ownership.
 Mark an inapplicable check with a reason rather than forcing keyboard behavior
 onto decoration or readOnly onto every control. Distinguish existing test coverage
@@ -36,10 +42,20 @@ visual changes inspect rendered geometry, long/optional content, narrow/wide,
 enlarged text and the relevant pointer/RTL/forced-color modes. A CSS declaration
 or component count is not evidence that the user-visible relationship works.
 
+Check that key controls have usable visible space. For search, read the
+placeholder and enter a realistic query at each relevant layout breakpoint.
+Inspect the field and text area width, including when a clear action appears.
+Check computed layout if a host class changes an existing layout primitive.
+
 For geometry and screenshots, wait for fonts, pending animations and a settled
 rendering frame. A zero running-animation count alone may precede final
 presentation. Preserve real motion and strict geometry tolerances; distinguish
 an entry frame from the final layout rather than accepting either as proof.
+
+For a spacing or typography decision, keep two settled renders of the same
+state and compare them at the working size. State which visible relationship
+improved and use measurements to explain why. Test enlarged text separately
+from the user's line, paragraph, letter and word spacing overrides.
 
 During local iteration run focused checks and show the result promptly. A shared
 primitive correction also checks its consumers. At a consolidated Flood source
@@ -55,6 +71,10 @@ For record composition, apply the [records workflow](../flood-records/SKILL.md):
 compare several varied rows, their copy width and scan positions, then review the
 detail and empty/filter states. Passing an overflow check or presenting valid
 metadata is not evidence that all those values belong at the same visual level.
+When the same table has a view selector, use the keyboard to change its value.
+Verify the selected state, matching rows, surviving query and focus. Read the
+shell, toolbar, list and opened detail together and record one concrete decision
+about repeated copy or metadata in the verification notes.
 
 ## Report a usable result
 

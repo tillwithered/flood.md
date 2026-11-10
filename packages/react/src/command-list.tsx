@@ -3,11 +3,15 @@ import {Input, Label, ScrollArea, Surface, Text, VisuallyHidden, type CommandLis
 
 const searchable = (value: string) => value.normalize("NFKD").replace(/\p{M}/gu,"").toLowerCase();
 
+interface SearchCommandListProps extends CommandListProps {
+  integrated?: boolean;
+}
+
 /** Searchable action suggestions. No selected form value or modal lifecycle. */
-export const SearchCommandList = /* @__PURE__ */ forwardRef<HTMLInputElement, CommandListProps>(function SearchCommandList({
+export const SearchCommandList = /* @__PURE__ */ forwardRef<HTMLInputElement, SearchCommandListProps>(function SearchCommandList({
   label, hideLabel = false, items, query, defaultQuery = "", onQueryChange, onAction,
   disabled = false, loading = false, placeholder = "Search commands…", emptyMessage = "No commands found.",
-  loadingMessage = "Loading commands…", controlSize = "md", id: explicitId, className, onKeyDown, ...props
+  loadingMessage = "Loading commands…", controlSize = "md", integrated = false, id: explicitId, className, onKeyDown, ...props
 }, forwardedRef) {
   if (![label,emptyMessage,loadingMessage].every(value => value.trim())) throw new Error("Flood CommandList requires nonempty accessible labels and state messages");
   if (new Set(items.map(item => item.id)).size !== items.length || items.some(item => !item.id.trim() || !item.label.trim())) throw new Error("Flood CommandList items require unique nonempty IDs and labels");
@@ -73,8 +77,9 @@ export const SearchCommandList = /* @__PURE__ */ forwardRef<HTMLInputElement, Co
       role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="true" aria-controls={listId} aria-activedescendant={active ? optionId(active) : undefined}
       onCompositionStart={() => { composing.current = true; }} onCompositionEnd={() => { composing.current = false; }}
       onChange={event => { const next = event.currentTarget.value; if (disabled || event.currentTarget.matches(":disabled")) return; if (query === undefined) setLocalQuery(next); onQueryChange?.(next); }} />
-    <Surface padding="1" className="flood-command-list__surface">
-      <ScrollArea ref={viewport} id={listId} role="listbox" aria-label={label} aria-busy={loading || undefined} aria-disabled={effectiveDisabled || undefined} tabIndex={-1} className="flood-command-list__viewport" style={{maxHeight:"18rem"}}>
+    <Surface elevation={integrated ? "overlay" : "default"} padding={integrated ? "2" : "1"}
+      style={integrated ? {background:"transparent"} : undefined} className="flood-command-list__surface">
+      <ScrollArea ref={viewport} id={listId} role="listbox" aria-label={label} aria-busy={loading || undefined} aria-disabled={effectiveDisabled || undefined} tabIndex={-1} className="flood-command-list__viewport">
         {status ? <div role="option" aria-disabled="true" aria-selected="false" className="flood-command-list__empty"><Text size="compact" tone="subtle">{status}</Text></div> : [...groups].map(([group,entries],groupIndex) => {
           const content = entries.map(item => <div key={item.id} id={optionId(item)} role="option"
             aria-disabled={item.disabled || effectiveDisabled || undefined} aria-selected={item.id === active?.id} data-active={item.id === active?.id || undefined} className="flood-command-list__option"

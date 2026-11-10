@@ -8,7 +8,7 @@ const triggerSizes = {sm:"xs", md:"sm", lg:"md", xl:"lg"} as const;
 /** Calendar selection and keyboard date entry share one DateField value/form bridge. */
 export const CalendarDatePicker = /* @__PURE__ */ forwardRef<HTMLDivElement, DatePickerProps>(function CalendarDatePicker({
   value, defaultValue = "", onValueChange, open: controlledOpen, defaultOpen = false, onOpenChange,
-  calendarLabel, openCalendarLabel, locale, weekStartsOn, today, previousMonthLabel, nextMonthLabel,
+  calendarLabel, openCalendarLabel, viewLabels, locale, weekStartsOn, today, previousMonthLabel, nextMonthLabel,
   label, disabled = false, readOnly = false, controlSize = "md", min, max, form,
   className, onKeyDown, ...props
 }, forwardedRef) {
@@ -94,7 +94,7 @@ export const CalendarDatePicker = /* @__PURE__ */ forwardRef<HTMLDivElement, Dat
         event.preventDefault(); requestOpen(true);
       }
     }}
-    end={<Popover title={panelLabel} className="flood-date-picker__panel" align="end" positionReference={positionReference}
+    end={<Popover title={panelLabel} chrome="minimal" className="flood-date-picker__panel" align="end" positionReference={positionReference}
       style={{"--flood-date-picker-width": fieldWidth === undefined ? undefined : `${fieldWidth}px`} as CSSProperties}
       open={!blocked && requestedOpen} onOpenChange={requestOpen} disabled={blocked}
       trigger={trigger => <IconButton {...trigger} label={triggerLabel} variant="ghost" size={triggerSizes[controlSize]}>
@@ -102,7 +102,7 @@ export const CalendarDatePicker = /* @__PURE__ */ forwardRef<HTMLDivElement, Dat
           <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>
         </svg>
       </IconButton>}>
-      <Calendar label={panelLabel} value={committed} min={min} max={max} locale={locale}
+      <Calendar label={panelLabel} viewLabels={viewLabels} value={committed} min={min} max={max} locale={locale}
         weekStartsOn={weekStartsOn} today={today} previousMonthLabel={previousMonthLabel} nextMonthLabel={nextMonthLabel}
         autoFocus onValueChange={changeDate} onDateSelect={() => {
           if (blocked || nativeDisabled()) return;

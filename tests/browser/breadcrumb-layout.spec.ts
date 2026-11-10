@@ -4,6 +4,9 @@ for (const destination of [{slug:"pagination",label:"Pagination"},{slug:"stack",
 test(`Breadcrumb keeps ${destination.label} labels whole and wraps items before breaking words`, async ({ page }, info) => {
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.goto(`/components/${destination.slug}`);
+  // The Studio hides reader breadcrumbs. Exercise the original host fixture
+  // to retain coverage for the Firefox last-character wrapping regression.
+  await page.addStyleTag({content: '.docs-layout[data-preview-layout="workspace"] .doc-breadcrumb { display: flex; }'});
   const breadcrumb = page.getByRole("navigation", { name: "Page breadcrumb" });
   await page.evaluate(() => document.fonts.ready);
   const lineCounts = () => breadcrumb.locator("li > a, li > span:not([aria-hidden])").evaluateAll(nodes => nodes.map(node => {
