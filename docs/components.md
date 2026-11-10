@@ -1,5 +1,12 @@
 # Components
 
+NavigationItem is the shared row owner for NavigationList and NavigationTree.
+NavigationGroup supplies optional headings, section actions, separators and group
+disclosure. Sidebar composes those owners between fixed header/footer regions.
+Destination links and disclosure actions remain distinct; a disclosure-only row
+uses one full-row button. Compact branches use NavigationTree's flyout so both
+the parent destination and children remain reachable.
+
 ## Dark foundations · 0.2.5
 
 This guide describes the **0.2.11** API. See the [base component inventory](base-components.md)
@@ -65,7 +72,7 @@ may render from server components; the React entry retains its client boundary.
 | Surface | `elevation`: default / raised / overlay (default); `padding` (6) | Visual container; overlay is not a dialog, portal, or focus trap |
 | Divider | Native hr props | Semantic separator; grouping must not rely on its faint line alone |
 | IconSlot | `size` (md); optional `label` | Host SVG adapter; decorative without label |
-| IconButton | Required `label`; Button props; subtle by default | Names the action; child icon stays decorative |
+| IconButton | Required `label`; Button props; optional `iconSize` independent of `size`; subtle by default | Names the action; child icon stays decorative; target size is preserved |
 | CodeSnippet | Required `code` string; optional `action`; native div props/ref | Selectable wrapping code; host owns copy behavior and feedback |
 
 Space keys are strings `"0"`, `"1"`, `"2"`, `"3"`, `"4"`, `"6"`, `"8"`, `"12"`:
@@ -330,8 +337,11 @@ motion disables that transition. Both APIs are available in 0.2.3.
 
 ## Contextual overlays
 
-Tooltip, Popover and Dialog take a trigger render function. Forward all supplied
-props and ref onto one actual button: `trigger={p => <Button {...p}>Open</Button>}`.
+Tooltip, Popover and Dialog take a trigger render function. Forward supplied
+props and ref onto the actual control. Popover/Dialog use a button:
+`trigger={p => <Button {...p}>Open</Button>}`. Tooltip also accepts a native Link
+without changing its semantics; preserve any host handlers and descriptions.
+For a raw tooltip button inside a form, set `type="button"` explicitly.
 Modern native Popover API and dialog showModal are required; the panels remain
 in their DOM/theme scope while appearing in the browser top layer.
 

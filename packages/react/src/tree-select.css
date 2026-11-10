@@ -2,7 +2,7 @@
 .flood-root .flood-tree-select[hidden] { display:none; }
 .flood-root .flood-tree-select>.flood-label { margin:0; }
 .flood-root .flood-tree-select [data-placeholder] { color:var(--flood-sys-color-field-placeholder); }
-.flood-root .flood-tree-select [data-readonly]:not(:focus-visible) { background:var(--flood-sys-color-surface-canvas); border-style:dashed; cursor:default; }
+.flood-root .flood-tree-select [data-readonly]:not(:focus-visible) { background:var(--flood-sys-color-field-readonly); border-style:dashed; cursor:default; }
 .flood-root .flood-tree-select__panel { inline-size:min(var(--flood-tree-select-width,22rem),var(--flood-overlay-available-width,calc(100dvw - 1rem))); padding:var(--flood-sys-space-1); }
 .flood-root .flood-tree-select__panel>.flood-overlay-header { display:none; }
 .flood-root .flood-tree-select__panel>.flood-overlay-body { margin-block-start:0; }

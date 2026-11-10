@@ -1,10 +1,107 @@
 # Changelog
 
-## 0.2.11 · Unreleased — collection and workspace contracts
+## 0.2.11 — Studio, navigation and motion
+
+- Open every component in the full-window Studio with a searchable catalog,
+  inline properties, canvas drag and fit controls, and a reference drawer.
+  The AppShell preview composes a Flood workspace with navigation, metrics,
+  and project statuses.
+
+- Add AppShell and AppTopBar for reusable application chrome, named regions,
+  a keyboard skip target, and page or bounded content scrolling.
+
+- Add PageHeader for page titles, optional descriptions and wrapping actions.
+  Use it across the documentation and component catalog.
+
+- Add optional counts to SegmentedControl choices for switching views of a
+  shared collection. Counts join the visible choice label and preserve form values.
+- Add opt-in numeric columns to DataTable. Headers and values share logical
+  alignment and tabular digits while explicit alignment stays available.
+- Allow DataTable to omit redundant result ranges independently of selection
+  feedback and pagination.
+- Route collection controls to the records workflow in agent knowledge. Add
+  rendered review checks for repeated copy across the list and selected record,
+  including competing counts and receipt summaries.
+- Clarify the landing-page description and link directly to agent setup.
+
+- Add independent trailing navigation actions and optional tree branch guides,
+  including per-group guides in Sidebar. Keep the current row's surface intact
+  on hover and press.
+
+- Add Flood motion roles and a versioned agent workflow. Apply shared motion
+  to controls, disclosure, native layer entrances, and feedback. Add a preview
+  with a scoped reduced-motion setting.
+
+- Add CommandPalette for modal page and command search, with compact and
+  comfortable density, grouped results and loading and empty states. Use it in
+  the navigation workspace.
+
+- Add NavigationItem as the shared destination/command/disclosure row and
+  NavigationGroup for configurable section headings, actions, separators and
+  independent group collapse. Recompose NavigationTree and Sidebar from these
+  owners; a branch-only row is one full-width toggle, while a destination keeps
+  a native link and separate disclosure within a coherent row surface. Compact
+  groups retain destinations and their saved expanded choice; fixed Sidebar
+  regions share the actual rail axis, including account controls. Header/footer
+  separators are opt-in. Collapsible gains a sibling headerAction slot.
+
+- Add independent IconButton iconSize and native link-safe Tooltip trigger props.
+  Compact navigation uses hover/focus hints without replacing links; disclosure
+  glyphs stay smaller than destination icons and pane toggles show distinct states.
+  Sidebar uses its existing edge spacing for overlay scrollbars without an extra
+  reserved column. Remove the unused document scrollbar strip in the website.
+
+- Add a full-width navigation workspace comparing standalone Sidebar and
+  GlobalRail/ContextBar profiles. Quiet Sidebar styling becomes the candidate
+  default; standard preserves the stronger pill recipe. Support hidden group
+  captions and page/location current semantics without routing or storage.
+
+- Add Sidebar with controlled/uncontrolled compact mode, grouped destinations,
+  fixed slots and one bounded navigation scroll owner. Extend NavigationTree
+  with compact branch flyouts and trailing metadata; retain native links,
+  disabled/current semantics and independent accepted expansion state.
+
+- Let DataTable compose EmptyState through emptyContent while preserving its
+  headers and loading/error owners. Keep the Projects table mounted for an empty
+  filter result and provide an actual query reset with persistent focus.
+
+- Add a plain Toolbar container variant, forwarded by OverflowActions, and use
+  it beside the view selector to align control heights without nested chrome.
+
+- Add CollectionViewSwitcher for controlled saved/preset view choice and
+  adaptive commands. Reuse it in both collection consumers while keeping query,
+  naming, persistence, confirmation and recovery in the host.
+
+- Add CollectionToolbar for search, accepted filter summaries, reserved reset
+  and end-aligned filter disclosure. Reuse it in both collection consumers;
+  keep draft application, saved views and query execution in the host.
+
+- Add FilterGroup composed from FilterCondition and existing matching/action
+  owners, with stable IDs, controlled row management and acceptance-aware focus.
+  Use it in the collection recipe without moving Apply/Cancel or query execution
+  into the component.
+
+- Add FilterCondition for controlled finite-choice property/operator/value rows;
+  reuse it in the collection recipe's advanced editor. Keep query application,
+  validation and removal-focus ownership in the host. Align selected MultiSelect
+  tag and nested icon-action insets with the existing control height, including
+  compact controls.
+  Keep a selected MultiSelect's empty query editor compact instead of reserving
+  another row for a redundant placeholder; actual search still expands normally.
+
+- Add BulkActionBar: a single-row selection capsule with a small visible command
+  budget, adaptive overflow, a localized count and a separate clear action.
+  Offer label/numeric/hidden counter modes and stable configurable counter space.
+- Establish nearest-surface neutral control contexts across actions, fields,
+  choices, selection and supporting elements. Filled surfaces use translucent
+  state overlays, with opaque/reduced-transparency and forced-color fallbacks.
+  Keep focus, primary and feedback roles independent. Update author/agent rules
+  and surface comparison tooling with the shared contracts.
 
 - Add a typed collection-views recipe with shared filters/saved definitions for
   DataTable and FileList. Reuse existing atoms; keep persistence/query ownership
   in the host. Let OverflowActions fit its actual commands within available space.
+- Add an opt-in line variant to Tabs for page-level panels.
 
 - Add shared Toolbar shape control and use pill geometry for OverflowActions;
   route component authors and downstream composites to the same family guide.

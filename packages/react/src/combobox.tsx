@@ -178,7 +178,8 @@ export const SearchSelection = /* @__PURE__ */ forwardRef<HTMLInputElement, Sear
   }, [open, active?.value, query, options]);
   const glyph = (clear: boolean) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{clear ? <path d="m6 6 12 12M18 6 6 18" /> : <path d="m6 9 6 6 6-6" />}</svg>;
   const inputProps: InputProps & {type:"text"} = {
-    ...props, id, type:"text", value:displayed, name:freeText ? name : undefined, disabled, readOnly, required:required && (!multiple || !selections.length), controlSize, autoComplete,
+    ...props, id, type:"text", value:displayed, placeholder: multiple && selections.length ? undefined : props.placeholder,
+    name:freeText ? name : undefined, disabled, readOnly, required:required && (!multiple || !selections.length), controlSize, autoComplete,
     role:"combobox", "aria-autocomplete":"list", "aria-haspopup":"listbox", "aria-expanded":open, "aria-controls":open ? menuId : undefined,
     "aria-required":required || undefined, "aria-activedescendant":open && active ? optionId(active.value) : undefined,
     "aria-describedby":mergeDescriptions(props["aria-describedby"], validation && validationId, multiple && Boolean(selections.length) && `${id}-selection`),
@@ -227,6 +228,7 @@ export const SearchSelection = /* @__PURE__ */ forwardRef<HTMLInputElement, Sear
   return <div className={multiple ? "flood-combobox flood-multi-select" : "flood-combobox"} ref={root} hidden={props.hidden} dir={props.dir} lang={props.lang}>
     {multiple ? <div className={["flood-input-group", "flood-multi-select__control", `flood-control--${controlSize}`, className].filter(Boolean).join(" ")} style={props.style}
       data-disabled={disabled || undefined} data-readonly={readOnly || undefined} data-status={resolveFieldStatus(props.status, props.invalid || Boolean(validation), props["aria-invalid"])}
+      data-has-selection={Boolean(selections.length) || undefined} data-query={Boolean(displayed) || undefined} data-clearable={clearable || undefined}
       onClick={event => { if (event.target === event.currentTarget && !inert()) { input.current?.focus(); show(); } }}>
       {selections.map(option => <Tag key={option.value} size={controlSize === "sm" ? "sm" : controlSize === "md" ? "md" : "lg"} disabled={disabled || option.disabled}
         onRemove={readOnly ? undefined : () => remove(option.value)} removeLabel={`${removeItemLabel} ${option.label}`}

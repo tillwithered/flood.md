@@ -32,3 +32,8 @@ Independent sections use Fieldset legendSize="section" and keep one shared outer
 Grid across peer groups. Field labels retain the compact inner gap; Stack owns
 row separation. The hierarchy workflow explains why section titles and choice
 captions are different roles.
+
+Compare a short and a wrapped legend with the same fields. Check the visible
+gap from the legend to its first field and from the previous group to the
+legend. Use the [visible weight review](../layout.md#review-visible-weight)
+before changing the shared grid or a group gap.

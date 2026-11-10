@@ -1,7 +1,7 @@
 .flood-root .flood-command-list { display: grid; min-inline-size: 0; gap: var(--flood-sys-space-1); }
 .flood-root .flood-command-list[hidden] { display: none; }
 .flood-root .flood-command-list > .flood-command-list__surface { border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius: var(--flood-sys-radius-field); }
-.flood-root .flood-command-list__viewport { border-radius: max(0px, calc(var(--flood-sys-radius-field) - var(--flood-sys-space-1) - var(--flood-sys-stroke-width))); }
+.flood-root .flood-command-list__viewport { max-block-size: 18rem; border-radius: max(0px, calc(var(--flood-sys-radius-field) - var(--flood-sys-space-1) - var(--flood-sys-stroke-width))); }
 .flood-root .flood-command-list__option { box-sizing: border-box; display: grid; align-content: center; min-inline-size: 0; min-block-size: var(--flood-control-height); padding: var(--flood-sys-space-2) var(--flood-sys-space-3); gap: calc(var(--flood-sys-space-1) / 2); border-radius: max(0px, calc(var(--flood-sys-radius-field) - var(--flood-sys-space-1) - var(--flood-sys-stroke-width))); color: var(--flood-sys-color-content-default); font-size: var(--flood-control-text); line-height: var(--flood-control-line); overflow-wrap: break-word; cursor: pointer; }
 .flood-root .flood-command-list__option[data-active="true"] { background: var(--flood-sys-color-selection-background); color: var(--flood-sys-color-selection-content); }
 .flood-root .flood-command-list__description { font-size: var(--flood-sys-type-helper-size); line-height: var(--flood-sys-type-helper-line-height); color: var(--flood-sys-color-content-subtle); }
@@ -15,4 +15,66 @@
   .flood-root .flood-command-list__option[data-active="true"] { background: Highlight; color: HighlightText; }
   .flood-root .flood-command-list__option[data-active="true"] .flood-command-list__description { color: inherit; }
   .flood-root .flood-command-list__option[aria-disabled="true"], .flood-root .flood-command-list__option[aria-disabled="true"] .flood-command-list__description { color: GrayText; }
+}
+
+.flood-root .flood-dialog.flood-command-palette {
+  --flood-palette-search-height: 3.5rem;
+  padding: 0;
+  inset-block-start: min(12dvh, 6rem);
+  inset-block-end: auto;
+  margin-block: 0;
+  max-block-size: calc(100dvh - min(12dvh, 6rem) - var(--flood-sys-space-4));
+}
+.flood-root .flood-command-palette > .flood-overlay-header {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: var(--flood-sys-space-3);
+  block-size: var(--flood-palette-search-height);
+  align-items: center;
+  z-index: 1;
+}
+.flood-root .flood-command-palette .flood-overlay-title {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.flood-root .flood-command-palette .flood-overlay-close { align-self: center; }
+.flood-root .flood-dialog.flood-command-palette > .flood-overlay-body { margin: 0; }
+.flood-root .flood-command-palette__search-icon {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: 0;
+  inset-inline-start: var(--flood-sys-space-4);
+  block-size: var(--flood-palette-search-height);
+  display: grid;
+  place-items: center;
+  color: var(--flood-sys-color-content-subtle);
+  pointer-events: none;
+}
+.flood-root .flood-command-palette .flood-command-list { gap: 0; }
+.flood-root .flood-command-palette .flood-command-list > .flood-input {
+  block-size: var(--flood-palette-search-height);
+  padding-inline: var(--flood-sys-space-12) calc(var(--flood-sys-space-12) + var(--flood-sys-space-2));
+  padding-block: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.flood-root .flood-command-palette .flood-command-list > .flood-command-list__surface {
+  border: 0;
+  border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-radius: 0;
+}
+.flood-root .flood-command-palette .flood-command-list__viewport {
+  min-block-size: 5rem;
+  max-block-size: min(18rem, calc(100dvh - min(12dvh, 6rem) - var(--flood-palette-search-height) - var(--flood-sys-space-8)));
+}
+@media (forced-colors: active) {
+  .flood-root .flood-command-palette .flood-command-list > .flood-command-list__surface { border-block-start-color: CanvasText; }
+  .flood-root .flood-command-palette .flood-command-list > .flood-input:focus-visible {
+    outline: var(--flood-sys-focus-width) solid Highlight;
+    outline-offset: calc(-1 * var(--flood-sys-focus-width));
+  }
 }

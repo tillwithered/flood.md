@@ -1,0 +1,12 @@
+.settings-switches {
+  max-inline-size: 16rem;
+}
+
+.flood-root .settings-switch {
+  inline-size: 100%;
+  justify-content: space-between;
+}
+
+.settings-switch input {
+  flex: none;
+}

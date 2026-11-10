@@ -138,9 +138,9 @@ Link defaults to text; opt-in solid/subtle/outline/ghost and
 Button sizes share the button recipe without changing native anchor semantics.
 Use href/target for navigation, Button for actions; never nest the two or add
 role=button. Link has no disabled/loading contract. Available in 0.2.3.
-Tabs switches linked content panels (not modes or radio values) on a shared
-contained surface. Avoid a second enclosing card inside the panel; selected fill
-joins the panel without an additional underline. Arrows activate by default,
+Tabs switches linked content panels. Use the default contained variant for a
+shared surface where the selected fill joins the panel. Use variant="line" for
+page-level sections whose content sits on the page canvas. Arrows activate by default,
 or focus only with activationMode=manual; Enter/Space commit. One tab
 stop, RTL/orientation aware, disabled skip. Panels stay mounted/hidden and retain
 native form constraints. Controlled/missing/disabled selected values derive first
@@ -278,4 +278,4 @@ Section headingLevel controls native h2–h6 semantics. Its independent headingS
 uses the existing Heading roles (section/page/large/display), defaulting to section.
 Keep document hierarchy meaningful when changing visual emphasis.
 
-For a command palette, compose Dialog and CommandList. The host owns commands, permissions, query reset and shortcuts; keep Escape available to the dialog. Avoid a duplicate modal or command-search engine. The project recipe lives in docs/recipes/command-palette.md in the source repository.
+Use CommandPalette for modal navigation and command search. The host owns commands, permissions, controlled query reset and shortcuts. Keep CommandList for inline search. The project recipe lives in docs/recipes/command-palette.md in the source repository.

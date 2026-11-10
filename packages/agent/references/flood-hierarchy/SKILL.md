@@ -3,6 +3,11 @@ name: flood-hierarchy
 description: Establish visual hierarchy, shared form tracks and vertical rhythm in Flood screens, forms and overlays. Use when titles, groups and labels compete or a composed interface feels flat; not a fixed page template.
 ---
 
+Use PageHeader for the page's main heading and page-wide actions. Use Section
+for a named block within the page. Keep breadcrumbs outside the header and
+collection filters next to the collection. Add supporting copy only when it
+changes what the user can understand or do on this page.
+
 # Structure before emphasis
 
 Start with the user's task, reading order and installed component contracts.
@@ -49,18 +54,29 @@ semantic grouping can justify another order. Do not turn every group into a box.
 
 ## Choose a rhythm, not a uniform gap
 
-For an ordinary desktop form, start with space-6 between field rows and space-8
-between independent groups or before the closing action row. The Dialog body
-inset is already space-6: do not add the same inset again to the first child.
-Keep a label nearer its control than the next field and a group title nearer
-its own fields than the next group. Dense filters, table editors and choice lists
-have different budgets; apply their component recipes instead of spreading this
-form rhythm everywhere.
+For a compact settings form, start with the page heading, section legends,
+and ordinary Field labels. Check that each level is recognizable by size,
+weight and proximity. Use space-6 between sections as a starting point.
+Repeated switch rows already provide a full hit area. Keep those rows close
+and align the switches on one shared edge within a readable column.
+Check actual row centers and wrapping at enlarged text.
+
+Keep a label visually nearer its control than the next field and a group title
+nearer its own fields than the next group. Inspect the rendered line height,
+control padding and fill before adjusting a parent gap. Dialog already supplies
+its body inset. Compare one change in size, weight, contrast, or spacing at a
+time using the [spacing review](../spacing.md#judge-the-space-you-can-see).
 
 Treat action order/alignment as part of the task. An end-aligned cancel/primary
 pair can finish a short desktop dialog clearly. This is not a universal order:
 respect host conventions, direction, destructive confirmation and keyboard flow.
 Do not add a footer surface or separator unless it resolves a real boundary.
+
+Choose the strongest action within the current task region. Check the page,
+each repeated row and any open overlay separately. In a settings form, Save
+can lead and Discard can stay secondary. In a filtered empty list, clearing
+filters may become the most useful action. A read-only detail can have no
+primary action. Keep the intended next action recognizable across states.
 
 Record lists and details need an information budget as well as type hierarchy.
 Use the [records workflow](../flood-records/SKILL.md) for metadata placement,

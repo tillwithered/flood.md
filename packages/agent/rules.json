@@ -3,6 +3,15 @@
   "scope": "Installed Flood React/Next.js projects",
   "rules": [
     {
+      "id": "motion.state",
+      "when": "Adding or changing animation or transitions",
+      "for": ["designer", "developer", "agent"],
+      "requires": ["Installed motion tokens", "Component state and focus contract"],
+      "sourceOfTruth": "references/flood-motion/SKILL.md",
+      "guide": "references/flood-motion/SKILL.md",
+      "verify": ["Reduced motion", "Keyboard and pointer behavior", "Interrupted or reversed transitions"]
+    },
+    {
       "id": "api.installed",
       "when": "Importing or changing Flood APIs",
       "for": [
@@ -102,6 +111,7 @@
       "verify": [
         "Resolved scoped semantic values",
         "Text and non-text contrast",
+        "For tinted themes, compare closed fields and open floating layers on canvas and filled surfaces, including the opaque fallback",
         "No parallel raw palette"
       ]
     },
@@ -140,7 +150,9 @@
       "guide": "references/verification.md",
       "verify": [
         "Commands and actual results recorded",
+        "For a new task screen, exercise the accepted result and applicable recovery path, including retained user state and focus",
         "Manual checks distinguished",
+        "For visual layout changes, compare settled renders and state the reason for the chosen treatment",
         "Untested behavior stated"
       ]
     },
@@ -179,6 +191,7 @@
       "guide": "references/spacing.md",
       "verify": [
         "Measure visible gaps and row pitch, including padding and minimum height",
+        "Compare two rendered treatments at the same viewport and name which preserves the intended grouping and visible emphasis",
         "Check wrapping and enlarged text",
         "Check fine/coarse pointers and nonoverlapping interactive targets",
         "Preserve keyboard focus and label activation",
@@ -223,6 +236,9 @@
       "guide": "references/flood-foundations/SKILL.md",
       "verify": [
         "Trace changed roles to their actual consumers",
+        "Compare actions, fields, choice/selection, supporting elements and indicators on canvas/default/raised/modal/floating materials",
+        "Nearest nested material resets context; transparent wrappers and picker bodies inherit it",
+        "Opaque/reduced-transparency and forced-colors paths retain readable content and reachable focus",
         "Distinguish decoration, necessary boundaries, selection and accent focus",
         "Check explicit icon sizing, heading semantics, long text and enlarged root geometry"
       ]
@@ -304,6 +320,7 @@
       "guide": "references/flood-forms/SKILL.md",
       "verify": [
         "Normal and prevented reset preserve documented ownership",
+        "A settings reset restores the last accepted values, including after a successful save",
         "Minute/second defaults match selected precision",
         "Advisory messages remain valid; native errors and disabled/read-only retain distinct semantics"
       ]
@@ -344,6 +361,7 @@
       "guide": "references/flood-overlays/SKILL.md",
       "verify": [
         "Check used sides, viewport edges, resize, long content and RTL",
+        "Select fits ordinary option labels even when the trigger is narrow, and stays within the viewport with long labels",
         "No drawer gap caused by page scrollbar gutter",
         "Header, footer and padding leave a useful body reading area at enlarged narrow sizes; fitting rectangles alone is insufficient",
         "Popup remains distinguishable with no rail-covered or clipped essential content"
@@ -367,7 +385,20 @@
         "Native link behavior and current destination preserved",
         "Selection, focus and expansion remain distinct",
         "Long labels and final sidebar items remain usable in actual supported orientations",
-        "Compare top header anchors across short/long routes and check focus when an action moves into overflow."
+        "Check sidebar width in both directions and with reduced motion; omit visible group titles that repeat context",
+        "Compare top header anchors across short/long routes and check focus when an action moves into overflow.",
+        "Global module, contextual page, disclosure and context visibility have separate owners",
+        "Modifier clicks preserve the current tab; location versus page current semantics are accurate",
+        "Validate complete route identity; invalid extra segments cannot produce unnamed destinations",
+        "Scoped filters/search do not leak between modules; disappearing focus has a stable fallback after row/pane/dialog removal",
+        "Collapsed hints appear on hover and keyboard focus without replacing native links or competing with an open flyout",
+        "Disclosure glyphs remain subordinate to destination icons while hit areas and shared trailing centers remain intact",
+        "Pane toggle artwork, accessible name and aria-expanded reflect the accepted visible state",
+        "Scrollbars use a deliberate edge budget without permanent unused document strips or shifting navigation tracks",
+        "NavigationItem is the shared row owner for NavigationList and NavigationTree; split selection spans both link and disclosure",
+        "Disclosure-only rows have one full-row button; link-plus-disclosure keeps separate native targets and independent accepted state",
+        "Configurable group headings, separators and collapse preserve accessible names and reachable compact destinations",
+        "Measure actual account/profile trigger centers with header and body in every compact profile, not only decorative glyph centers"
       ]
     },
     {
@@ -549,6 +580,7 @@
       "verify": [
         "Changed copy has a necessary role or is removed",
         "Titles, subtitles and hints do not repeat obvious context",
+        "Compare copy across the shell, list and opened record; keep a repeated fact only when it changes scope, action or comprehension in its location",
         "Accessible names, needed constraints and recovery remain available",
         "Each supporting sentence serves a specific decision or recovery need in the current state, not a hypothetical future risk",
         "No standing implementation/storage caption merely because the data has a retention limitation",
@@ -611,7 +643,7 @@
       "guide": "references/flood-hierarchy/SKILL.md",
       "verify": [
         "Task, group and field roles are distinguishable without redundant headings",
-        "Label is closer to its control than independent fields/groups",
+        "Labels and controls read as groups after accounting for line height, fill and adjacent boundaries",
         "Related rows share measured control edges; width exceptions have a content reason",
         "Dialog title/body inset is owned once; actions remain reachable at enlarged text",
         "Calendar content remains readable inside viewport collision limits"
@@ -637,7 +669,10 @@
         "Field to decision and list/detail placement choices recorded outside UI",
         "Identity and summary remain readable with long and missing metadata",
         "Stable scan positions or real named comparison columns, not drifting pseudo-columns",
-        "List, details, first-use and filtered empty states reviewed separately"
+        "List, details, first-use and filtered empty states reviewed separately",
+        "A short mutually exclusive filter for one table uses a selection control; verify keyboard selection, surviving search/sort and focused control",
+        "Record edits preserve applied filters and list position; focus returns to the opener or a surviving list control",
+        "For a row opening in-place details, compare title-to-metadata rhythm and the shared table edge; exercise row activation, keyboard entry and independent nested controls"
       ]
     },
     {
@@ -658,7 +693,8 @@
         "Category/state/urgency distinguished with names where needed, not color alone",
         "Essential triage/comparison fields retained; optional attributes do not compete equally",
         "Dates identify useful events with suitable precision; formatted equality is not event equality",
-        "Counts and supporting text add current value; necessary announcements remain"
+        "Compare filter and footer count scope before keeping both; show missing evidence where it changes a decision",
+        "Necessary announcements remain"
       ]
     },
     {
@@ -681,6 +717,29 @@
         "Shape, nested inset and content-box overflow budget checked together",
         "Read-only editing restrictions kept separate from focus and disabled semantics",
         "Another consumer checked after a shared primitive correction"
+      ]
+    },
+    {
+      "id": "spacing.shared-tracks",
+      "when": "Composing repeated navigation or record rows with headers, groups or fixed footers",
+      "for": [
+        "designer",
+        "developer",
+        "agent",
+        "reviewer"
+      ],
+      "requires": [
+        "Rendered role anatomy",
+        "Declared leading/text/trailing tracks and nested-indent rule"
+      ],
+      "sourceOfTruth": "Shared rendered content tracks, including scroll gutter budget",
+      "guide": "references/flood-spacing/SKILL.md",
+      "verify": [
+        "Measure glyph centers and text starts across header, peer rows, groups and footer",
+        "Compare badge and disclosure centers; reserve missing peer icon slots",
+        "Check tracks with and without overflow, nested rows, RTL and enlarged text",
+        "Repair the owning component/shared grid rather than applying per-item offsets",
+        "Compare outer start/end clearance in expanded and compact states; internally aligned content must not drift to one edge"
       ]
     }
   ],

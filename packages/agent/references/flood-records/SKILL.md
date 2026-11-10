@@ -25,8 +25,9 @@ planning text in the interface. Read the
 - If users compare several independent attributes across records, use Table or
   DataTable with actual named columns. A long Inline of unrelated values at each
   row end is not a substitute for comparison columns.
-- Use DescriptionList for named values in details. A detail view can expose more
-  information than a list; it does not need to repeat the list's chip arrangement.
+- Use DescriptionList for named values in details. Each item requires a unique,
+  stable string `id` alongside `term` and `description`. A detail view can expose
+  more information than a list; it does not need to repeat the list's chip arrangement.
 - Selection is not navigation. A record list does not become ListBox merely
   because users click its entries. Retain a real Link and independent actions.
 
@@ -61,6 +62,34 @@ a default low/medium priority does not automatically need a separate visual acce
 
 ## Distribute information between list and details
 
+For a table row whose main action opens an in-place Drawer, use DataTable's
+`primaryAction` when the installed version provides it. Title and metadata
+share a compact cell, pointer activation extends across the row, and a native
+button provides the keyboard entry. Keep checkbox, links and menus independent.
+For a real destination, preserve a Link. Use the table toolbar and matching
+edge inset when the heading, filters, cells and footer share one surface.
+
+Give a queue's summaries only the prominence they earn in the task. If a
+count changes which work to pick up, make the relevant scope clear. If the
+table already exposes the decision, compare a quiet inline count with a
+separate metric surface before spending the first viewport on summaries.
+
+Classify a collection toolbar control by the thing it changes:
+
+| What changes | Owner |
+| --- | --- |
+| One selected value filters the same table | SegmentedControl for a few visible choices, Select when the choices need a compact menu |
+| The current panel and its associated content | Tabs |
+| The current destination | Link |
+| An operation runs | Button |
+
+For example, Pending and Reviewed can filter one table even when each state shows
+different columns. Use the installed SegmentedControl when its value model fits.
+Read its component contract before composing the toolbar. Keep one table and
+preserve applicable search and sorting; reset a page or close a detail only when
+the new result invalidates it. Keep focus on the selected control. Exercise arrow
+keys and check that the selected value updates the rows and accessible state.
+
 Protect enough width for the identity and useful summary. Category and recency
 can read as secondary information near the title; status may stay in a stable
 trailing position. This is one pattern, not a required arrangement. DataListItem
@@ -80,6 +109,17 @@ value, one visible date may suffice; if exact time matters, use adequate precisi
 instead of suppressing the distinction based only on equal formatted dates.
 
 ## Compose collection states deliberately
+
+Use the `recipe:record-management` material when users need to find a record,
+edit it and continue working through the same list. Keep the applied query,
+filters, ordering, page and scroll with the mounted collection. After saving,
+reapply the current filter to the updated data. If the source row disappears,
+return focus to a surviving list control such as search. In a long list, verify
+the scroll position and focus separately after both Save and Cancel.
+
+Keep search and a frequently used filter visible when there is room. Put
+occasional or grouped criteria behind a named Filters action. Show applied
+criteria at the list edge so users can tell why a record is missing.
 
 First-use empty, filtered no-results, loading and read failure are different
 states. Keep a relevant reset/action and meaningful feedback. A result count can

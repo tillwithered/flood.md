@@ -47,6 +47,76 @@ not establish that capability for other consumers.
 
 ## Compare the family in one scene
 
+Repeated navigation/record rows share columns, not just height and font. Before
+accepting a composition, compare glyph centers, label starts and trailing action
+centers between header, groups, iconless/icon-bearing rows and footer. Define the
+indent of descendants deliberately and reserve missing peer anatomy. Scrollbar
+visibility must not silently change only the middle pane's content tracks.
+
+NavigationItem owns shared row geometry for native Link destinations, Button
+commands and disclosure. A branch without a destination uses a full-row toggle;
+a destination with children has distinct sibling link and disclosure targets,
+never nested controls or a link click that also toggles. The complete row owns
+its current/hover surface, so selection does not end at an unrelated shorter pill
+before the chevron. Budget real trailing anatomy once. NavigationTree composes
+these rows and manages hierarchy rather than supplying a parallel visual recipe.
+
+NavigationGroup owns optional label/action/separator and independent group
+disclosure. Its compact presentation reveals destinations without discarding the
+accepted expanded choice. Hiding a title cannot remove a needed accessible name
+or make a command unreachable. Compare headed/unheaded groups and all optional
+anatomy; an available slot is not a reason to populate it.
+
+Sidebar reuses NavigationGroup and NavigationTree. Its compact branches reuse
+Popover; full destinations retain Link and normal Tab behavior. Header/footer
+adapt through slots, with opt-in shell separators. The actual brand, toggle,
+destination and account hit areas share the full compact rail axis; a centered
+wrapper around a start-aligned Menu trigger is insufficient. Expanded slots share
+icon/text tracks. Its ScrollArea uses the existing edge lane for clearance. Keep
+material at the sidebar owner, without another material behind each group.
+Separate route identity, group/branch expansion and sidebar width; compare both
+profiles beside the small owners at the same size, with long text and bounded
+height. The 0.2.11 candidate's APIs require matching installed declarations.
+Disclosure artwork stays subordinate to destination icons without reducing hit
+areas; IconButton.iconSize separates these responsibilities. Compact hints reuse
+Tooltip on the actual Link/button, preserve refs and event handlers, and disappear
+when a branch flyout opens. Pane-toggle glyphs change with accepted visibility.
+
+Material context is part of the family contract. Compare actions, fields,
+choices, selection and supporting elements on the same material. A shared
+semantic context should correct the family together; a descendant-only button
+override leaves fields and composed controls inconsistent. Keep absolute
+material colors separate from contextual control roles and verify the nearest
+nested owner resets those roles. Preserve accent focus and destructive meaning.
+
+BulkActionBar is a one-row capsule for a small set of selection commands. Keep
+one to three visible commands, prefer two, and disclose the remainder through
+its overflow owner. Do not wrap this floating rail into a second row or use it
+as another general toolbar. The host owns selected IDs, confirmation, accepted
+updates, positioning and scroll clearance.
+BulkActionBar counter can be label, number or none. Visible counters reserve
+their width across count changes; choose counterWidth for the expected localized
+summary rather than sizing it from each current count. Hiding it removes its slot.
+
+CollectionToolbar composes the search, Tag, Button and Popover families without
+adding a surface. Use normal Tab navigation for this mixed input/action group.
+Compare SearchInput and existing collection controls at the same controlSize;
+preserve the end anchor, reserved reset space and contextual action colors.
+Keep saved views and query execution in the host; filterContent supplies its draft.
+
+CollectionViewSwitcher composes Select and existing action owners on a separate
+saved-view row. One command uses Button; multiple commands use OverflowActions.
+Use its plain container variant beside peer fields so another material/inset does
+not enlarge the command group. Contained remains appropriate for standalone rails.
+Use the same controlSize and keep Select and action hit areas coherent. Queries,
+dirty-state policy, permissions, dialogs and persistence belong to the host.
+
+FilterGroup composes FilterCondition and existing matching/actions. Preserve
+stable row IDs and accepted controlled state. Addition/removal focus belongs to
+the group after acceptance; Apply/Cancel, validation and query evaluation remain
+host-owned. Do not add a nested material or empty-state narration just because
+the flat group has its own component name.
+
 Render the new control beside its nearest sibling, with the same label/content,
 size, surface and root text scale. Review rest, hover, keyboard focus and the
 states the component actually supports. Include long content, empty/optional

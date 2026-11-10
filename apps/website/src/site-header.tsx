@@ -5,7 +5,6 @@ export function SiteHeader({ path }: { path: string }) {
   return <header className="site-header">
     <Link href="/" className="wordmark" aria-label="flood.md home">
       <img src="/flood-mark.png" alt="" width="34" height="34" />
-      <span>flood<span className="wordmark-suffix">.md</span></span>
     </Link>
     <nav aria-label="Main navigation" className="header-nav">
       <Inline gap="2" className="header-links">

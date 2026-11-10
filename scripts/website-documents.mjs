@@ -26,8 +26,13 @@ export async function readWebsiteDocument(file, {workflows} = {}) {
     content = content.replace('<!-- flood:record-workspace -->', '```tsx\n' + source.trimEnd() + '\n```');
   }
   for (const [marker,path,language] of [
+    ['record-management','apps/website/src/recipes/record-management.tsx','tsx'],
+    ['settings-workspace','apps/website/src/recipes/settings-workspace.tsx','tsx'],
+    ['settings-workspace-styles','apps/website/src/recipes/settings-workspace.css','css'],
     ['collection-views-model','apps/website/src/recipes/collection-views-model.ts','ts'],
     ['collection-views-controls','apps/website/src/recipes/collection-views.tsx','tsx'],
+    ['project-selection-actions','apps/website/src/recipes/project-selection-actions.tsx','tsx'],
+    ['collection-views-styles','apps/website/src/collections-playground.css','css'],
     ['collection-views-examples','apps/website/src/collections-playground.tsx','tsx'],
   ]) {
     if (content.includes(`<!-- flood:${marker} -->`)) {

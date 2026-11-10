@@ -99,9 +99,10 @@ export interface CodeBlockProps {
   language?: string;
   filename?: string;
   label?: string;
+  maxHeight?: string;
 }
 
-export function CodeBlock({ code, language = "plaintext", filename, label = "Code example" }: CodeBlockProps) {
+export function CodeBlock({ code, language = "plaintext", filename, label = "Code example", maxHeight = "38rem" }: CodeBlockProps) {
   const normalizedLanguage = language.toLowerCase().trim();
   const canonical = Object.hasOwn(languageAliases, normalizedLanguage) ? languageAliases[normalizedLanguage] : undefined;
   const displayLanguage = canonical ? languageLabels[canonical] : "Plain text";
@@ -122,7 +123,7 @@ export function CodeBlock({ code, language = "plaintext", filename, label = "Cod
 
   const tokens = highlighted?.code === code && highlighted.language === canonical ? highlighted.tokens : null;
   return (
-    <figure className="site-code-block" aria-label={label} data-language={canonical ?? "plaintext"} data-highlighted={tokens ? "true" : "false"}>
+    <figure className="site-code-block" data-flood-surface="filled" aria-label={label} data-language={canonical ?? "plaintext"} data-highlighted={tokens ? "true" : "false"}>
       <figcaption className="site-code-block__toolbar">
         <span className="site-code-block__identity">
           <IconSlot size="sm"><FileCode2 /></IconSlot>
@@ -131,7 +132,7 @@ export function CodeBlock({ code, language = "plaintext", filename, label = "Cod
         </span>
         <CopyButton value={code} text="Copy code" />
       </figcaption>
-      <ScrollArea contentInset="none" className="site-code-block__scroll" style={{ maxHeight: "38rem" }} role="group" aria-label={filename ? `${filename} source code` : `${displayLanguage} source code`}>
+      <ScrollArea contentInset="none" className="site-code-block__scroll" style={{ maxHeight }} role="group" aria-label={filename ? `${filename} source code` : `${displayLanguage} source code`}>
       <pre className="site-code-block__pre">
         <code className="site-code-block__code">{tokens ? tokens.map((line, lineIndex) => (
           <Fragment key={lineIndex}>

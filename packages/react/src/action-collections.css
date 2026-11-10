@@ -1,6 +1,8 @@
 .flood-root .flood-overflow-actions { position:relative; inline-size:100%; min-inline-size:0; }
 .flood-root .flood-overflow-actions__bar { display:flex; flex-wrap:nowrap; gap:var(--flood-sys-space-2); inline-size:fit-content; max-inline-size:100%; min-inline-size:0; overflow:auto; }
 .flood-root .flood-overflow-actions__bar > button { flex:none; }
+.flood-root :is(.flood-overflow-actions__leading,.flood-overflow-actions__trailing) { display:flex; align-items:center; flex:none; min-inline-size:0; }
+.flood-root .flood-overflow-actions__trailing { margin-inline-start:auto; }
 .flood-root .flood-overflow-actions__measure { position:absolute; visibility:hidden; pointer-events:none; inline-size:max-content; block-size:0; overflow:hidden; display:flex; gap:var(--flood-sys-space-2); }
 .flood-root .flood-menubar { display:flex; align-items:center; gap:var(--flood-sys-space-1); min-inline-size:0; max-inline-size:100%; overflow:auto; }
 .flood-root .flood-menubar > button { flex:none; }
@@ -11,3 +13,11 @@
   --flood-action-pressed:color-mix(in srgb,var(--flood-sys-color-action-danger-content),black 10%);
   --flood-action-content:var(--flood-sys-color-surface-canvas);
 }
+
+/* BulkActionBar shares Toolbar geometry and adaptive command ownership. */
+.flood-root .flood-bulk-action-bar { inline-size:100%; max-inline-size:32rem; }
+.flood-root .flood-bulk-action-bar > .flood-overflow-actions__bar { inline-size:100%; background:var(--flood-sys-color-surface-floating); border-color:var(--flood-sys-color-border-floating); box-shadow:0 var(--flood-sys-effect-floating-shadow-offset) var(--flood-sys-effect-floating-shadow-blur) var(--flood-sys-color-shadow-floating); }
+.flood-root .flood-bulk-action-bar > .flood-overflow-actions__bar > .flood-overflow-actions__leading { max-inline-size:35%; }
+.flood-root .flood-bulk-action-bar__selection { box-sizing:border-box; inline-size:7rem; max-inline-size:100%; padding-inline:var(--flood-sys-space-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+.flood-root .flood-bulk-action-bar__selection[data-counter="number"] { inline-size:3rem; text-align:center; }
+@media(forced-colors:active) { .flood-root .flood-bulk-action-bar > .flood-overflow-actions__bar { background:Canvas; border-color:CanvasText; box-shadow:none; } }

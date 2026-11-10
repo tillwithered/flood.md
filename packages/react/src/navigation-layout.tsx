@@ -1,7 +1,7 @@
 import {forwardRef, useId} from "react";
 import type {CSSProperties} from "react";
-import type {NavigationListProps, NavigationListItem, StepsProps, SectionProps, SplitProps, CenterProps, SkipLinkProps} from "./index.js";
-import {IconSlot,Heading} from "./index.js";
+import type {NavigationListProps, NavigationListItem, StepsProps, SectionProps, PageHeaderProps, SplitProps, CenterProps, SkipLinkProps} from "./index.js";
+import {Heading,NavigationGroup,NavigationItem} from "./index.js";
 
 const classes = (...names: Array<string | undefined | false>) => names.filter(Boolean).join(" ");
 function uniqueValues(items: readonly {value:string}[], component:string) {
@@ -21,15 +21,15 @@ export const NavigationMenu = /* @__PURE__ */ forwardRef<HTMLElement, Navigation
     else groups.push({label:item.group ?? "",items:[item]});
   }
   const links = (entries: NavigationListItem[]) => entries.map(item => <li key={item.value}>
-    <a {...item.linkProps} href={item.href} aria-current={item.value === currentValue ? "page" : undefined} className={classes("flood-navigation-list__link",item.linkProps?.className)}>
-      {item.icon != null && <IconSlot size={size}>{item.icon}</IconSlot>}
-      <span className="flood-navigation-list__text"><span className="flood-navigation-list__label">{item.label}</span>{item.description && <span className="flood-navigation-list__description">{item.description}</span>}</span>
-    </a>
+    <NavigationItem label={item.label} description={item.description} href={item.href} icon={item.icon}
+      reserveIcon={entries.some(entry=>entry.icon!=null)} current={item.value===currentValue} size={size}
+      linkProps={{...item.linkProps,className:classes("flood-navigation-list__link",item.linkProps?.className)}}/>
   </li>);
   return <nav {...props} ref={ref} aria-label={label} className={classes("flood-navigation-list",className)} data-size={size}>
     <ul role="list" className="flood-navigation-list__groups">{groups.map((group,index) => group.label ? <li key={index} className="flood-navigation-list__group">
-      <p className="flood-navigation-list__group-title" id={`${id}-${index}`}>{group.label}</p>
-      <ul role="list" aria-labelledby={`${id}-${index}`}>{links(group.items)}</ul>
+      <NavigationGroup label={group.label} id={`${id}-${index}`} size={size}>
+        <ul role="list" aria-labelledby={`${id}-${index}`}>{links(group.items)}</ul>
+      </NavigationGroup>
     </li> : links(group.items))}</ul>
   </nav>;
 });
@@ -55,6 +55,30 @@ export const StepSequence = /* @__PURE__ */ forwardRef<HTMLOListElement, StepsPr
   </ol>;
 });
 
+type ContentHeaderProps = Omit<PageHeaderProps, "headingSize" | "headingLevel"> & {
+  headingLevel: 1 | NonNullable<SectionProps["headingLevel"]>;
+  headingSize: NonNullable<SectionProps["headingSize"]>;
+};
+
+const ContentHeader = /* @__PURE__ */ forwardRef<HTMLElement, ContentHeaderProps>(function ContentHeader({
+  title, description, actions, headingId, headingLevel, headingSize, className, ...props
+}, ref) {
+  return <header {...props} ref={ref} className={classes("flood-section__header", className)}>
+    <div className="flood-section__heading">
+      <Heading id={headingId} level={headingLevel} size={headingSize} className="flood-section__title">{title}</Heading>
+      {description != null && <div className="flood-section__description">{description}</div>}
+    </div>
+    {actions != null && <div className="flood-section__actions">{actions}</div>}
+  </header>;
+});
+
+export const PageHeading = /* @__PURE__ */ forwardRef<HTMLElement, PageHeaderProps>(function PageHeader({
+  title, headingSize = "large", headingLevel = 1, className, ...props
+}, ref) {
+  if (!title.trim()) throw new Error("Flood PageHeader requires a nonempty title");
+  return <ContentHeader {...props} ref={ref} title={title} headingLevel={headingLevel} headingSize={headingSize} className={classes("flood-page-header", className)} />;
+});
+
 export const ContentSection = /* @__PURE__ */ forwardRef<HTMLElement, SectionProps>(function ContentSection({
   title, description, actions, headingLevel = 2, headingSize = "section", children, id: explicitId, className,
   "aria-labelledby": labelledBy, ...props
@@ -62,10 +86,7 @@ export const ContentSection = /* @__PURE__ */ forwardRef<HTMLElement, SectionPro
   if (!title.trim() || ![2,3,4,5,6].includes(headingLevel)) throw new Error("Flood Section requires a nonempty title and headingLevel from 2 to 6");
   const generated = useId(), headingId = `${explicitId ?? `flood-section-${generated}`}-title`;
   return <section {...props} ref={ref} id={explicitId} aria-labelledby={labelledBy ?? headingId} className={classes("flood-section",className)}>
-    <header className="flood-section__header"><div className="flood-section__heading">
-      <Heading id={headingId} level={headingLevel} size={headingSize} className="flood-section__title">{title}</Heading>
-      {description != null && <div className="flood-section__description">{description}</div>}
-    </div>{actions != null && <div className="flood-section__actions">{actions}</div>}</header>
+    <ContentHeader title={title} description={description} actions={actions} headingId={headingId} headingLevel={headingLevel} headingSize={headingSize} />
     {children != null && <div className="flood-section__body">{children}</div>}
   </section>;
 });

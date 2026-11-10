@@ -2,8 +2,7 @@
 
 A searchable list of actions. Choosing an item calls `onAction(id)`; it does not
 store a selected form value. Use Combobox or MultiSelect for data-entry choices.
-CommandList does not create a modal. A future command palette can compose it with
-Dialog, with the host owning open/close state and the resulting navigation/action.
+For modal search, use [CommandPalette](../recipes/command-palette.md).
 This document describes an unpublished source candidate, not an npm release.
 
 ```tsx

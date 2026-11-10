@@ -19,6 +19,13 @@ skill text or contact a Flood server. The package runner may fetch the CLI if
 it is not installed locally; keep its version deliberate. Existing project and
 agent instructions remain authoritative.
 
+For a screen that filters one table between two views, start with
+`read component:segmented-control` and follow its link to `workflow:records`.
+If the screen switches between independent panels, read `component:tabs`.
+Before delivery, open the list and a selected record together, then use
+`workflow:interface-content` and `reference:interface-content-examples` to
+decide which labels, counts and status messages the user needs in each view.
+
 info reports actual installed package versions, the configured guide version,
 framework detection, catalog identity and capability declarations. A version
 mismatch prevents catalog/read from serving an ambiguous guide train. A

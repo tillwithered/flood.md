@@ -1,66 +1,45 @@
 # Command palette
 
-Compose Dialog and CommandList when commands need a modal search surface. Keep
-routing, permissions and business actions in your application. This is a project
-recipe using the 0.2.7 source API, not another package export.
+Use CommandPalette for a workspace-wide page finder or a set of searchable
+commands. It shares filtering and keyboard behavior with CommandList and uses
+Dialog for modal focus and dismissal. CommandPalette is available in the
+unreleased 0.2.11 candidate.
 
 ```tsx
 "use client";
 
-import { useState } from "react";
-import { Button, CommandList, Dialog, FloodRoot } from "@flood-md/react";
+import { Button, CommandPalette, FloodRoot } from "@flood-md/react";
 
-export function CommandPalette({ onCommand }: { onCommand: (id: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-
-  function changeOpen(next: boolean) {
-    if (next) setQuery("");
-    setOpen(next);
-  }
-
+export function WorkspaceSearch({ onNavigate }: { onNavigate: (id: string) => void }) {
   return (
     <FloodRoot>
-      <Dialog
-        title="Commands"
-        open={open}
-        onOpenChange={changeOpen}
-        trigger={props => <Button {...props} variant="subtle">Commands</Button>}
-      >
-        <CommandList
-          label="Search commands"
-          hideLabel
-          query={query}
-          onQueryChange={setQuery}
-          items={[
-            { id: "new-project", label: "New project", group: "Projects", keywords: ["create"] },
-            { id: "recent-projects", label: "Recent projects", group: "Projects" },
-            { id: "settings", label: "Open settings", group: "Workspace" },
-          ]}
-          onAction={id => {
-            changeOpen(false);
-            onCommand(id);
-          }}
-        />
-      </Dialog>
+      <CommandPalette
+        title="Go to page"
+        searchLabel="Search pages"
+        placeholder="Search pages…"
+        emptyMessage="No matching pages."
+        trigger={props => <Button {...props} variant="subtle">Go to page</Button>}
+        items={[
+          { id: "projects", label: "All projects", group: "Projects" },
+          { id: "assigned", label: "Assigned to me", group: "Projects", keywords: ["mine"] },
+          { id: "inbox", label: "Inbox", group: "Workspace" },
+        ]}
+        onAction={onNavigate}
+      />
     </FloodRoot>
   );
 }
 ```
 
-Import the Flood stylesheet once at your application entry. If this component
-already lives inside FloodRoot, reuse that scope instead of adding another one.
+Import the Flood stylesheet once. Keep the trigger inside the existing FloodRoot.
+Translate the dialog title, search label, placeholder, close label and state
+messages. The title and search label remain available to assistive technology.
+Use comfortable density by default and compact density for denser workspaces.
 
-Dialog owns modal focus, Escape, outside dismissal and trigger focus restoration.
-CommandList owns filtering, grouped results and keyboard invocation. Opening the
-palette clears its query; closing it does not execute a command. Escape stays
-available to Dialog rather than being consumed by the search control.
-
-`onCommand` identifies a host-owned action. It is not awaited: keep saving state,
-errors and navigation in your application. An action may move focus to its own
-destination; the layer should preserve that deliberate focus change.
-
-Add a global shortcut only at the application boundary, with your own editing,
-permission and nested-layer policy. Do not display a shortcut hint until that
-shortcut actually works. No shortcut, router, fuzzy-ranking service or command
-permission engine is installed by this recipe.
+Opening focuses the search input. Arrow keys move through available results.
+Enter or click calls the host action and requests closure. Escape, the close
+button and optional outside dismissal close without invoking an action. Use
+open/onOpenChange when the host owns visibility. A local query starts from
+defaultQuery on each opening. For a controlled query, the host owns persistence
+and reset. Set loading while replacing results asynchronously. The application
+owns requests, permissions, actions, routing and any global shortcut.

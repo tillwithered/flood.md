@@ -4,7 +4,7 @@ import {Button, IconSlot, Link, ScrollArea} from "./index.js";
 import {pageWindow} from "./page-window.js";
 const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffect;
 
-export const TabNavigation=/* @__PURE__ */ forwardRef<HTMLDivElement,TabsProps>(function TabNavigation({label,items,value,defaultValue,onValueChange,activationMode="automatic",orientation="horizontal",controlSize="md",disabled=false,iconOnly=false,className,onKeyDown,id:explicitId,...props},ref){
+export const TabNavigation=/* @__PURE__ */ forwardRef<HTMLDivElement,TabsProps>(function TabNavigation({label,items,value,defaultValue,onValueChange,activationMode="automatic",orientation="horizontal",variant="contained",controlSize="md",disabled=false,iconOnly=false,className,onKeyDown,id:explicitId,...props},ref){
   const generated=useId(),id=explicitId??`flood-tabs-${generated}`;
   const [local,setLocal]=useState(defaultValue),[focused,setFocused]=useState<string>();
   const root=useRef<HTMLDivElement>(null),list=useRef<HTMLDivElement>(null),focusedPanel=useRef<string|undefined>(undefined);
@@ -24,7 +24,7 @@ export const TabNavigation=/* @__PURE__ */ forwardRef<HTMLDivElement,TabsProps>(
     }
     focusedPanel.current=undefined;
   },[selected,id,items]);
-  return <div {...props} ref={root} id={id} className={["flood-tabs",className].filter(Boolean).join(" ")} data-orientation={orientation} onKeyDown={event=>{
+  return <div {...props} ref={root} id={id} className={["flood-tabs",className].filter(Boolean).join(" ")} data-orientation={orientation} data-variant={variant} onKeyDown={event=>{
     onKeyDown?.(event);if(event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey||event.nativeEvent.isComposing)return;
     const buttons=Array.from(list.current?.querySelectorAll<HTMLButtonElement>(':scope > button[role="tab"]:not(:disabled)')??[]),index=buttons.indexOf(event.target as HTMLButtonElement);
     if(index<0)return;const rtl=getComputedStyle(event.currentTarget).direction==="rtl";

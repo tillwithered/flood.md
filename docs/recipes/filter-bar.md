@@ -61,3 +61,8 @@ and map loading/error states explicitly. Use DataTable paginationMode="server" f
 controlled page/sort and totalRows; do not interpret its select-page checkbox as
 server-wide selection. Table + Pagination remains available for a host-owned
 contract. Follow recipe:record-workspace for request generations and recovery.
+
+When reviewing a dense toolbar, compare the filled edges and the text inside
+each control. Shared edges and consistent heights can communicate grouping
+even with small gaps. Judge the applied criteria and the filter trigger with
+long values and at the width where the toolbar wraps.

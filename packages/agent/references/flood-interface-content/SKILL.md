@@ -78,6 +78,14 @@ affected object named again, a long form may repeat its primary action at the en
 and a printed document has its own content hierarchy. Do not remove those merely
 because similar words appear elsewhere on the screen.
 
+Review shared context across the shell, page header, toolbar, list and open
+record. A page title can carry the task, a section can name the collection, and
+column labels can carry units or field meaning. Trace each repeated fact to its
+visible owner. Temporarily remove optional subtitles, count captions and labels
+beside values. Restore a string when its absence hides scope, changes a decision
+or makes a pane ambiguous when it opens on its own. Keep names required by
+assistive technology when the corresponding visible caption goes away.
+
 ## Explain only what changes a decision
 
 Prefer a clear label or unit to an added helper paragraph. Add a field hint for a
@@ -128,11 +136,16 @@ location, remove it. Read the decision examples when uncertain; reading this
 workflow without applying that review does not satisfy it. Preserve essential
 consequences and actionable errors rather than stripping every explanation.
 
-Read the whole screen in task order, including navigation, heading, fields,
-actions and the state after an action. Review visible strings together with
-accessible names, placeholders and announcements. Check repeated meaning across
-locations, not just repeated words in one file. Removing a subtitle should not
-leave its reserved space or an empty banner behind.
+Read the whole screen in task order, including navigation, heading, fields and
+actions. For a collection, repeat with populated and empty results, then with the
+record open. Compare count scope before dropping duplicates. An active filter
+count and a footer range may differ when search or pagination is active. If all
+receipts are already visible in their column, omit a routine completion caption;
+keep a missing-receipt signal if it affects approval. Name totals when two
+simultaneously visible amounts represent different scopes.
+
+Review visible strings together with accessible names, placeholders and
+announcements. Removing a subtitle should also remove its reserved space.
 
 For a writing pass, report the consequential keep/rewrite/move/remove decisions
 outside the product UI, and exercise the affected action or error. Automated

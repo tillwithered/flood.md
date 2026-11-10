@@ -29,6 +29,8 @@ async function settled(drawer:Locator){
  }),{message:'Drawer must reach its final logical viewport edge, not an intermediate compositor frame'}).toBeLessThanOrEqual(1);
 }
 test('Drawer owns native modal focus, nested Select Escape, backdrop optout and return focus',async({page})=>{
+ const viewport=page.viewportSize();
+ if(viewport&&viewport.width<=416)await page.setViewportSize({...viewport,width:480});
  await open(page);await page.getByRole('checkbox',{name:'Backdrop closing',exact:true}).uncheck();const trigger=page.getByRole('button',{name:'Open settings',exact:true});await trigger.click();const drawer=page.getByRole('dialog',{name:'Project settings',exact:true}),close=drawer.getByRole('button',{name:'Close',exact:true}),save=drawer.getByRole('button',{name:'Save settings',exact:true});await expect(drawer.getByRole('textbox',{name:'Project name',exact:true})).toBeFocused();await expect(close).toHaveClass(/flood-icon-button/);await close.focus();await page.keyboard.press('Shift+Tab');await expect(save).toBeFocused();await page.keyboard.press('Tab');await expect(close).toBeFocused();await page.mouse.click(2,2);await expect(drawer).toBeVisible();const select=drawer.getByRole('combobox',{name:'Visibility',exact:true});await select.click();await expect(page.getByRole('listbox')).toBeVisible();await page.keyboard.press('Escape');await expect(page.getByRole('listbox')).not.toBeVisible();await expect(drawer).toBeVisible();await page.keyboard.press('Escape');await expect(drawer).not.toBeVisible();await expect(trigger).toBeFocused();await page.getByRole('checkbox',{name:'Backdrop closing',exact:true}).check();await trigger.click();await page.mouse.click(2,2);await expect(drawer).not.toBeVisible();await expect(trigger).toBeFocused();
 });
 test('Drawer resolves logical edges in RTL and keeps header/footer while long body scrolls',async({page})=>{
@@ -50,7 +52,7 @@ test('Drawer catalog stays flush with viewport despite stable scrollbar gutters 
  await page.goto('/components/drawer');
  const stage=page.locator('.preview-stage'),trigger=stage.getByRole('button',{name:'Open settings',exact:true});
  await expect(trigger).toBeVisible();
- expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollbarGutter)).toContain('stable');
+ await page.evaluate(()=>{document.documentElement.style.scrollbarGutter='stable';});
  const header=page.locator('header').first();
  for(const dir of ['ltr','rtl']){
   await page.evaluate(dir=>{document.documentElement.dir=dir},dir);

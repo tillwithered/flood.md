@@ -29,10 +29,11 @@
     {
       "id": "motion",
       "name": "Motion",
-      "description": "Existing motion tokens; page-transition workflows are not provided."
+      "description": "Component motion roles, transition recipes and reduced-motion verification."
     }
   ],
   "workflows": {
+    "motion": ["motion", "quality"],
     "composition": [
       "composition"
     ],
@@ -263,8 +264,13 @@
     {
       "id": "component-motion-tokens",
       "status": "available",
-      "description": "Existing short-transition and reduced-motion tokens; not a route-transition implementation.",
+      "description": "Semantic timing, easing, travel and reduced-motion roles for component states.",
       "materials": [
+        "workflow:motion",
+        "token:sys.motion.duration-press",
+        "token:sys.motion.duration-enter",
+        "token:sys.motion.duration-layer",
+        "token:sys.motion.duration-exit",
         "token:sys.motion.duration-fast",
         "token:sys.motion.duration-normal",
         "token:sys.motion.duration-reduced",
@@ -309,9 +315,21 @@
       "materials": [
         "recipe:collection-views"
       ]
+    },
+    {
+      "id": "navigation-workspace-recipe",
+      "status": "available",
+      "description": "Host composition of Sidebar profiles for global modules and contextual pages, independent visibility and scoped focus/query state; no additional GlobalRail runtime export.",
+      "materials": [
+        "component:sidebar",
+        "recipe:navigation-workspace",
+        "workflow:navigation"
+      ]
     }
   ],
   "documentGroups": {
+    "recipes/record-management.md": ["data-feedback", "composition"],
+    "recipes/settings-workspace.md": ["interaction", "composition"],
     "README.md": [
       "composition"
     ],
@@ -324,6 +342,7 @@
     "foundations.md": [
       "foundations"
     ],
+    "motion.md": ["foundations", "motion"],
     "layout.md": [
       "composition"
     ],
@@ -392,6 +411,11 @@
       "data-feedback",
       "interaction",
       "quality"
+    ],
+    "recipes/navigation-workspace.md": [
+      "composition",
+      "interaction",
+      "quality"
     ]
   },
   "prerequisites": {
@@ -454,6 +478,16 @@
       "workflow:interface-content",
       "workflow:hierarchy"
     ],
+    "recipe:record-management": [
+      "workflow:records",
+      "workflow:overlays",
+      "workflow:forms"
+    ],
+    "recipe:settings-workspace": [
+      "workflow:composition",
+      "workflow:forms",
+      "workflow:feedback"
+    ],
     "recipe:record-workspace": [
       "workflow:composition",
       "workflow:hierarchy",
@@ -475,6 +509,13 @@
       "workflow:data-display",
       "workflow:records",
       "workflow:feedback",
+      "workflow:interface-content"
+    ],
+    "recipe:navigation-workspace": [
+      "workflow:composition",
+      "workflow:navigation",
+      "workflow:spacing",
+      "workflow:accessibility",
       "workflow:interface-content"
     ]
   }

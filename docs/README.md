@@ -25,6 +25,8 @@ them without a separate content service.
 | [Command palette](recipes/command-palette.md) | Compose Dialog and CommandList with host-owned actions |
 | [Table bulk actions](recipes/table-bulk-actions.md) | Controlled cross-page selection and local confirmation |
 | [Grouped form](recipes/grouped-form.md) | Shared tracks, semantic groups and optional fields |
+| [Record management](recipes/record-management.md) | Search, filter and edit records without losing the working list |
+| [Settings workspace](recipes/settings-workspace.md) | Group settings, validate a draft and save changes |
 
 ## Versions
 

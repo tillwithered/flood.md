@@ -1,0 +1,18 @@
+.flood-root .flood-filter-condition { container: flood-filter-condition / inline-size; min-inline-size:0; }
+.flood-root .flood-filter-condition__row { grid-template-columns:minmax(7rem,.9fr) minmax(8rem,1fr) minmax(10rem,1.6fr); align-items:center; }
+.flood-root .flood-filter-condition[data-removable="true"] .flood-filter-condition__row { grid-template-columns:minmax(7rem,.9fr) minmax(8rem,1fr) minmax(10rem,1.6fr) auto; }
+.flood-root .flood-filter-condition__values { min-inline-size:0; }
+@container flood-filter-condition (max-width:34rem) {
+  .flood-root .flood-filter-condition__row,
+  .flood-root .flood-filter-condition[data-removable="true"] .flood-filter-condition__row { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .flood-root .flood-filter-condition[data-removable="true"] .flood-filter-condition__row { grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto; }
+  .flood-root .flood-filter-condition__values { grid-column:1 / -1; }
+  .flood-root .flood-filter-condition[data-removable="true"] .flood-filter-condition__values { grid-column:1 / 3; }
+  .flood-root .flood-filter-condition__remove { grid-column:3; grid-row:2; }
+}
+@container flood-filter-condition (max-width:22rem) {
+  .flood-root .flood-filter-condition__row,
+  .flood-root .flood-filter-condition[data-removable="true"] .flood-filter-condition__row { grid-template-columns:minmax(0,1fr); }
+  .flood-root .flood-filter-condition__row > :is(.flood-field,.flood-filter-condition__values) { grid-column:1 / -1; }
+  .flood-root .flood-filter-condition__remove { grid-column:1; grid-row:auto; justify-self:end; }
+}

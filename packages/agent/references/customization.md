@@ -18,6 +18,20 @@ Keep reference values separate from semantic roles. Component recipes consume
 roles, and screen composition consumes components. An accent/material experiment
 must be scoped; it must not silently alter ordinary fields, text or focus.
 
+Filled material owners establish contextual neutral recipes for their children.
+Customize context-filled/base roles for a shared change; a direct consumer-role
+override on the owning material can refine that one scope. Verify canvas and
+elevated recipes together when increasing boundary contrast. Do not override
+surface.canvas to soften nested controls: it also supplies contrasting content
+and document/media wells. Use surface.current and the contextual supporting or
+readonly roles for those jobs. Explicit data-flood-surface attributes change
+context only, not the rendered material or overlay behavior.
+
+For a tinted theme, map the floating surface, translucent floating surface,
+floating border and floating selection alongside canvas and base/filled field
+roles. Open a Select on both canvas and a filled surface and check its trigger,
+panel and highlighted option. Check the opaque fallback as well.
+
 Keep layout/typography in rem, role line heights and tracking intact unless the
 task explicitly changes them. Never impose a root 16px or 62.5% reset. Bundled
 Inter retains its OFL notice; external icon/font assets keep their own notices.

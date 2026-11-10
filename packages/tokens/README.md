@@ -8,6 +8,14 @@ consumers import @flood-md/tokens/foundations.css and set both attributes on the
 same scope element: data-flood-foundations="neutral" data-flood-theme="dark".
 Only the neutral/dark foundations profile is supplied.
 
+The 0.2.11 candidate adds base/filled contextual neutral recipes. Absolute
+material colors remain separate from inherited action, field, selection and
+supporting-element roles. React material owners establish the appropriate
+context; token-only hosts must apply their own scoped role mapping. See the
+foundations guide's material-context section and the generated manifest before
+overriding an elevated control recipe. Alpha fills need review over the actual
+backdrop; they do not establish accessibility by themselves.
+
 Exports include ./foundations (typed tokenNames lookup), ./foundations.css,
 ./foundations.manifest.json and ./neutral.dark.tokens.json. Values are authored
 only in src/tokens.json. Generated artifacts must not be edited.

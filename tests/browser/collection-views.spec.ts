@@ -4,53 +4,87 @@ import AxeBuilder from '@axe-core/playwright';
 
 const projectKey='flood-project-views-v1';
 async function open(page:Page){await page.goto('/playground/collections');await expect(page.getByRole('table',{name:'Projects',exact:true})).toBeVisible();return page.getByRole('region',{name:'Projects collection',exact:true});}
+async function openAdvanced(page: Page, scope: Locator) {
+  await scope.getByRole('button', { name: 'Filters', exact: true }).click();
+  const advanced = page.getByRole('button', { name: 'Advanced conditions', exact: true });
+  if (await advanced.isVisible()) await advanced.click();
+}
 async function action(page:Page,scope:Locator,name:string){const button=scope.getByRole('button',{name,exact:true});if(await button.isVisible())await button.click();else{await scope.getByRole('button',{name:'View actions',exact:true}).click();await page.getByRole('menuitem',{name,exact:true}).click();}}
 async function saveAs(page:Page,scope:Locator,name:string){await action(page,scope,'Save as new view');const dialog=page.getByRole('dialog',{name:'Save view',exact:true});await dialog.getByRole('textbox',{name:'View name',exact:false}).fill(name);await dialog.getByRole('button',{name:'Save view',exact:true}).click();await expect(dialog).toBeHidden();}
 async function values(page:Page,panel:Locator,index:number,labels:string[]){const input=panel.getByRole('combobox',{name:`Condition ${index} values`,exact:true});await input.click();for(const label of labels)await page.getByRole('option',{name:label,exact:true}).click();await input.press('Escape');await expect(panel).toBeVisible();}
 const stored=(search:string)=>JSON.stringify({version:1,views:[{id:'saved-existing',name:'My view',query:{search,match:'all',conditions:[],sort:null}}]});
 
-test('compact filters compose with search and sort and restore from a saved project view', async ({ page }) => {
+test('Filters keeps its right anchor when reset appears or disappears', async ({ page }) => {
+  const scope = await open(page);
+  const trigger = scope.getByRole('button', { name: 'Filters', exact: true });
+  const clear = scope.getByRole('button', { name: 'Clear filters', exact: true });
+  const search = scope.getByRole('searchbox', { name: 'Search projects', exact: true });
+  await page.evaluate(() => document.fonts.ready);
+  const initial = (await trigger.boundingBox())!;
+  const region = (await scope.boundingBox())!;
+  expect(Math.abs(initial.x + initial.width - region.x - region.width)).toBeLessThan(1);
+  await expect(clear).toHaveCount(0);
+  await search.fill('Design');
+  await expect(clear).toBeVisible();
+  const active = (await trigger.boundingBox())!;
+  expect(Math.abs(active.x - initial.x)).toBeLessThan(1);
+  const reset = (await clear.boundingBox())!;
+  expect(reset.x + reset.width).toBeLessThanOrEqual(active.x);
+  await clear.press('Enter');
+  await expect(trigger).toBeFocused();
+  await expect(clear).toHaveCount(0);
+  expect(Math.abs((await trigger.boundingBox())!.x - initial.x)).toBeLessThan(1);
+});
+
+test('three secondary filters collapse into a staged panel and restore with search and sort', async ({ page }) => {
   const scope = await open(page);
   const table = scope.getByRole('table', { name: 'Projects', exact: true });
   const search = scope.getByRole('searchbox', { name: 'Search projects', exact: true });
   const filters = scope.getByRole('group', { name: 'Projects applied filters', exact: true });
-  const status = filters.getByRole('button', { name: 'Status', exact: true });
-
-  await status.click();
-  await page.getByRole('menuitemradio', { name: 'Active', exact: true }).click();
-  await filters.getByRole('button', { name: 'Owner', exact: true }).click();
-  await page.getByRole('menuitemradio', { name: 'Maya', exact: true }).click();
+  const trigger = scope.getByRole('button', { name: 'Filters', exact: true });
+  await expect(scope.getByRole('button', { name: 'Status', exact: true })).toHaveCount(0);
+  await trigger.click();
+  const panel = page.getByRole('dialog', { name: 'Projects filters', exact: true });
+  await chooseSelectOption(panel.getByRole('combobox', { name: 'Status', exact: true }), 'active');
+  await chooseSelectOption(panel.getByRole('combobox', { name: 'Owner', exact: true }), 'maya');
+  await expect(table.locator('tbody tr')).toHaveCount(5);
+  await panel.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await trigger.click();
+  await expect(panel.getByRole('combobox', { name: 'Status', exact: true })).toContainText('All');
+  await chooseSelectOption(panel.getByRole('combobox', { name: 'Status', exact: true }), 'active');
+  await chooseSelectOption(panel.getByRole('combobox', { name: 'Owner', exact: true }), 'maya');
+  await panel.getByRole('button', { name: 'Apply filters', exact: true }).click();
   await expect(table.locator('tbody tr')).toHaveCount(2);
   await search.fill('Customer');
   await table.getByRole('button', { name: 'Sort by Project' }).click();
   await expect(table.locator('tbody tr')).toHaveCount(1);
   await saveAs(page, scope, 'Maya active');
   await filters.getByRole('button', { name: 'Remove status filter: Active', exact: true }).press('Enter');
-  await expect(status).toBeFocused();
+  await expect(trigger).toBeFocused();
   await expect(search).toHaveValue('Customer');
-  await expect(filters.getByText('Owner: Maya')).toBeVisible();
+  await expect(filters.getByText('Owner: Maya', { exact: true })).toBeVisible();
 
   await page.reload();
   await scope.getByRole('combobox', { name: 'Projects view', exact: true }).click();
   await page.getByRole('option', { name: 'Maya active', exact: true }).click();
-  await expect(filters.getByText('Status: Active')).toBeVisible();
-  await expect(filters.getByText('Owner: Maya')).toBeVisible();
+  await expect(filters.getByText('Status: Active', { exact: true })).toBeVisible();
+  await expect(filters.getByText('Owner: Maya', { exact: true })).toBeVisible();
   await expect(table.locator('tbody tr')).toHaveCount(1);
   await expect(table.getByRole('columnheader', { name: /Project/ })).toHaveAttribute('aria-sort', 'ascending');
 });
 
 test('conditions have draft/apply/cancel, all/any, exclusion and real removal semantics',async({page})=>{
  const scope=await open(page),table=scope.getByRole('table',{name:'Projects',exact:true});
- await scope.getByRole('button',{name:'Filters',exact:true}).click();const panel=page.getByRole('dialog',{name:'Projects filters',exact:true});
+ await openAdvanced(page, scope);const panel=page.getByRole('dialog',{name:'Projects filters',exact:true});
  await panel.getByRole('button',{name:'Add condition',exact:true}).click();await values(page,panel,1,['Active']);
  await panel.getByRole('button',{name:'Add condition',exact:true}).click();await values(page,panel,2,['Maya']);
  await panel.getByRole('button',{name:'Cancel',exact:true}).click();await expect(table.locator('tbody tr')).toHaveCount(5);await expect(scope.getByText('1–5 of 8',{exact:true})).toBeVisible();
- await scope.getByRole('button',{name:'Filters',exact:true}).click();await expect(panel.getByRole('combobox')).toHaveCount(0);
+ await openAdvanced(page, scope);await expect(panel.getByRole('combobox')).toHaveCount(0);
  await panel.getByRole('button',{name:'Add condition',exact:true}).click();await values(page,panel,1,['Active']);await panel.getByRole('button',{name:'Add condition',exact:true}).click();await values(page,panel,2,['Maya']);await panel.getByRole('button',{name:'Apply filters',exact:true}).click();
  await expect(table.locator('tbody tr')).toHaveCount(2);await expect(table).toContainText('Design system');await expect(table).toContainText('Customer portal');
- await scope.getByRole('button',{name:'Filters',exact:true}).click();await panel.getByRole('radio',{name:'Any condition',exact:true}).check();await panel.getByRole('button',{name:'Apply filters',exact:true}).click();await expect(table.locator('tbody tr')).toHaveCount(5);await expect(scope.getByText('Any:',{exact:true})).toBeVisible();
+ await openAdvanced(page, scope);await panel.getByRole('radio',{name:'Any condition',exact:true}).check();await panel.getByRole('button',{name:'Apply filters',exact:true}).click();await expect(table.locator('tbody tr')).toHaveCount(5);await expect(scope.getByText('Any:',{exact:true})).toBeVisible();
  await scope.getByRole('button',{name:'Remove owner filter',exact:true}).click();await expect(table.locator('tbody tr')).toHaveCount(4);
- await scope.getByRole('button',{name:'Filters',exact:true}).click();await chooseSelectOption(panel.getByRole('combobox',{name:'Condition 1 operator',exact:true}),'is-not');await panel.getByRole('button',{name:'Apply filters',exact:true}).click();await expect(table.locator('tbody tr')).toHaveCount(4);await expect(table).not.toContainText('Design system');
+ await openAdvanced(page, scope);await chooseSelectOption(panel.getByRole('combobox',{name:'Condition 1 operator',exact:true}),'is-not');await panel.getByRole('button',{name:'Apply filters',exact:true}).click();await expect(table.locator('tbody tr')).toHaveCount(4);await expect(table).not.toContainText('Design system');
  await scope.getByRole('button',{name:'Clear filters',exact:true}).click();await expect(scope.getByText('1–5 of 8',{exact:true})).toBeVisible();
 });
 
@@ -96,11 +130,11 @@ test('unknown option IDs and duplicate names fail instead of broadening saved fi
 
 test('query changes reset pagination/selection, and cancelled incomplete filters do not change the view',async({page})=>{
  const scope=await open(page);await scope.getByRole('button',{name:'Next page',exact:true}).click();await scope.getByRole('checkbox',{name:'Select Onboarding',exact:true}).check();await scope.getByRole('searchbox',{name:'Search projects',exact:true}).fill('Design');await expect(scope.getByText('1–1 of 1',{exact:true})).toBeVisible();await expect(scope.getByRole('checkbox',{name:'Select Design system',exact:true})).not.toBeChecked();
- await scope.getByRole('button',{name:'Filters',exact:true}).click();const panel=page.getByRole('dialog',{name:'Projects filters',exact:true});await panel.getByRole('button',{name:'Add condition',exact:true}).click();await panel.getByRole('button',{name:'Apply filters',exact:true}).click();await expect(panel.getByText('Choose a value for each condition.',{exact:true})).toBeVisible();await panel.getByRole('button',{name:'Cancel',exact:true}).click();await expect(scope.getByRole('table',{name:'Projects',exact:true})).toContainText('Design system');
+ await openAdvanced(page, scope);const panel=page.getByRole('dialog',{name:'Projects filters',exact:true});await panel.getByRole('button',{name:'Add condition',exact:true}).click();await panel.getByRole('button',{name:'Apply filters',exact:true}).click();await expect(panel.getByText('Choose a value for each condition.',{exact:true})).toBeVisible();await panel.getByRole('button',{name:'Cancel',exact:true}).click();await expect(scope.getByRole('table',{name:'Projects',exact:true})).toContainText('Design system');
 });
 
 test('filters and their nested value popup stay reachable at enlarged text with semantic roles',async({page})=>{
- await page.setViewportSize({width:1280,height:1000});const scope=await open(page);await page.evaluate(()=>document.documentElement.style.fontSize='24px');await scope.getByRole('button',{name:'Filters',exact:true}).click();const panel=page.getByRole('dialog',{name:'Projects filters',exact:true});await panel.getByRole('button',{name:'Add condition',exact:true}).click();await values(page,panel,1,['Active']);
+ await page.setViewportSize({width:1280,height:1000});const scope=await open(page);await page.evaluate(()=>document.documentElement.style.fontSize='24px');await openAdvanced(page, scope);const panel=page.getByRole('dialog',{name:'Projects filters',exact:true});await panel.getByRole('button',{name:'Add condition',exact:true}).click();await values(page,panel,1,['Active']);
  await panel.getByRole('button',{name:'Add condition',exact:true}).click();await values(page,panel,2,['Maya']);await panel.getByRole('button',{name:'Add condition',exact:true}).click();await values(page,panel,3,['Urgent']);
  await panel.getByRole('button',{name:'Apply filters',exact:true}).scrollIntoViewIfNeeded();await expect(panel.getByRole('button',{name:'Apply filters',exact:true})).toBeInViewport();expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(1281);expect((await new AxeBuilder({page}).disableRules(['color-contrast']).analyze()).violations).toEqual([]);
  await panel.getByRole('button',{name:'Remove condition 3',exact:true}).click();await expect(panel.getByRole('combobox',{name:'Condition 3 property',exact:true})).toHaveCount(0);
@@ -120,10 +154,10 @@ test('a refused delete retains the accepted view and records until a successful 
 });
 
 test('an outside query change abandons an obsolete condition draft',async({page})=>{
- const scope=await open(page);await scope.getByRole('button',{name:'Filters',exact:true}).click();const panel=page.getByRole('dialog',{name:'Projects filters',exact:true});await panel.getByRole('button',{name:'Add condition',exact:true}).click();await values(page,panel,1,['Archived']);
- await scope.getByRole('searchbox',{name:'Search projects',exact:true}).fill('Design');await expect(panel).toBeHidden();await expect(scope.getByRole('table',{name:'Projects',exact:true})).toContainText('Design system');await scope.getByRole('button',{name:'Filters',exact:true}).click();await expect(panel.getByRole('combobox')).toHaveCount(0);
+ const scope=await open(page);await openAdvanced(page, scope);const panel=page.getByRole('dialog',{name:'Projects filters',exact:true});await panel.getByRole('button',{name:'Add condition',exact:true}).click();await values(page,panel,1,['Archived']);
+ await scope.getByRole('searchbox',{name:'Search projects',exact:true}).fill('Design');await expect(panel).toBeHidden();await expect(scope.getByRole('table',{name:'Projects',exact:true})).toContainText('Design system');await openAdvanced(page, scope);await expect(panel.getByRole('combobox')).toHaveCount(0);
 });
 
-test('selection serves an actual copy command and can be cleared independently',async({page})=>{
- await page.addInitScript(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async(text:string)=>{(window as any).copiedProjectNames=text;}}}));const scope=await open(page);await scope.getByRole('checkbox',{name:'Select Design system',exact:true}).check();await scope.getByRole('checkbox',{name:'Select Checkout',exact:true}).check();await scope.getByRole('button',{name:'Copy 2 project names',exact:true}).click();expect(await page.evaluate(()=>(window as any).copiedProjectNames)).toBe('Design system\nCheckout');await scope.getByRole('button',{name:'Clear selection',exact:true}).click();await expect(scope.getByRole('toolbar',{name:'Selected projects',exact:true})).toHaveCount(0);
+test('selection exposes bounded commands and can be cleared independently',async({page})=>{
+ const scope=await open(page);await scope.getByRole('checkbox',{name:'Select Design system',exact:true}).check();await scope.getByRole('checkbox',{name:'Select Checkout',exact:true}).check();const bar=scope.getByRole('toolbar',{name:'Selected projects',exact:true});await expect(bar.getByText('2 selected',{exact:true})).toBeVisible();await expect(bar.getByRole('button',{name:'Archive',exact:true})).toBeVisible();await scope.getByRole('button',{name:'Clear selection',exact:true}).click();await expect(bar).toHaveCount(0);
 });

@@ -28,6 +28,28 @@ createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
 }
 async function openFixture(page:Page){bundle??=fixture();await page.route("**/__menu.html",async route=>route.fulfill({contentType:"text/html",body:await bundle}));await page.goto("/__menu.html");}
 
+test("Menu fades out while releasing focus and interaction immediately",async({page,browserName})=>{
+  test.skip(browserName!=="chromium","Checks Chromium discrete top-layer transitions");
+  await page.emulateMedia({reducedMotion:"no-preference"});
+  await openFixture(page);
+  await page.addStyleTag({content:".flood-root { --flood-sys-motion-duration-exit: 1s; }"});
+  const trigger=page.getByRole("button",{name:"Actions",exact:true});
+  const panel=page.locator('.flood-menu[aria-label="Actions"]');
+  await trigger.click();
+  await expect(panel).toHaveCSS("opacity","1");
+  await page.keyboard.press("Escape");
+  await expect(trigger).toBeFocused();
+  await expect(panel).toHaveAttribute("aria-hidden","true");
+  await expect(panel).toHaveCSS("pointer-events","none");
+  expect(await panel.evaluate(node=>node.getAnimations().some(animation=>animation instanceof CSSTransition&&animation.transitionProperty==="opacity"))).toBe(true);
+  await expect(panel).toBeHidden();
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await trigger.click();
+  await expect(panel).toHaveCSS("transition-duration","0s");
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+});
+
 test("Menu supports edge opening, arrows, typeahead, disabled discovery and activation",async({page})=>{
   await openFixture(page);const trigger=page.getByRole("button",{name:"Actions",exact:true});await trigger.focus();await page.keyboard.press("ArrowUp");
   const menu=page.getByRole("menu",{name:"Actions",exact:true});await expect(menu.getByRole("menuitem",{name:"Delete project"})).toBeFocused();

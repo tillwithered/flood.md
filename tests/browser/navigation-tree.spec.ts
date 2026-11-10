@@ -26,8 +26,25 @@ test('navigation hierarchy retains native lists, links, current page and separat
  await expect(destination).toBeFocused();await destination.press('Enter');await expect(page).toHaveURL(/#install$/);
 });
 
+test('only a closed ancestor is marked, and reduced motion skips the branch fade',async({page})=>{
+ await page.emulateMedia({reducedMotion:'no-preference'});await open(page);
+ const root=nav(page);
+ const guides=root.getByRole('link',{name:'Guides',exact:true});
+ const row=guides.locator('..');
+ await expect(row).not.toHaveAttribute('data-ancestor-current');
+ await root.getByRole('button',{name:'Collapse Guides',exact:true}).click();
+ await expect(row).toHaveAttribute('data-ancestor-current','true');
+ await expect(guides).not.toHaveAttribute('aria-current');
+ await root.getByRole('button',{name:'Expand Guides',exact:true}).click();
+ const branch=root.getByRole('link',{name:'Installation',exact:true}).locator('xpath=ancestor::div[contains(@class,"flood-navigation-tree__branch")][1]');
+ await expect(branch).toHaveCSS('animation-name','flood-reveal-navigation-branch');
+ await expect(row).not.toHaveAttribute('data-ancestor-current');
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await expect(branch).toHaveCSS('animation-name','none');
+});
+
 test('disabled navigation omits anchors and expansion, while host loading content is explicit',async({page})=>{
- await open(page);const root=nav(page);await expect(root.getByRole('link',{name:'Unavailable',exact:true})).toHaveCount(0);await expect(root.locator('.flood-navigation-tree__text').filter({hasText:'Unavailable'})).toHaveAttribute('aria-disabled','true');await expect(root.getByRole('button',{name:'Expand Unavailable',exact:true})).toBeDisabled();await expect(root.getByRole('link',{name:'Hidden',exact:true})).toHaveCount(0);
+ await open(page);const root=nav(page);await expect(root.locator('a[href="#disabled"]')).toHaveCount(0);await expect(root.locator('.flood-navigation-item__control').filter({hasText:'Unavailable'})).toHaveAttribute('aria-disabled','true');await expect(root.getByRole('button',{name:'Expand Unavailable',exact:true})).toBeDisabled();await expect(root.getByRole('link',{name:'Hidden',exact:true})).toHaveCount(0);
  await root.getByRole('button',{name:'Expand Extensions',exact:true}).click();await expect(root.getByRole('status')).toHaveText('Loading extensionsвЂ¦');
 });
 

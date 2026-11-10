@@ -295,7 +295,7 @@ option values. Preserve required, reset cancellation, IME and readonly/disabled
 behavior instead of replacing these with presentation-only chips.
 
 CommandList filters and invokes commands without a submitted field value or modal
-lifecycle. A command palette is a [Dialog + CommandList recipe](recipes/command-palette.md),
+lifecycle. A command palette is a [CommandPalette component](recipes/command-palette.md),
 not another export. The host owns routing, shortcuts, effects and closure.
 
 Menu now supports controlled checkbox/radio preferences and nested submenus.
@@ -382,11 +382,26 @@ controls which remain visible. It reuses Toolbar, Button and Menu. Menubar is a
 desktop command pattern, not a destination menu. Button and IconButton may use
 tone="danger" for destructive commands within FloodRoot.
 
+Use PageHeader inside the main region for the page title and optional actions.
+It renders an h1. Use Section for a titled block within the page and
+CollectionToolbar for filters and search. Actions wrap within the available
+header width while keeping the title first.
+
 DataTable's opt-in server mode receives one page, totalRows and controlled page.
 It neither slices that page again nor sorts it locally. Sort and selection have
 explicit host ownership; dataset selection requires controlled IDs. Filtering,
 permissions and late-result rejection are host responsibilities. Read the
 matching component API and record-workspace recipe before adding bulk actions.
+
+Set `numeric: true` on DataTable columns that compare quantities or amounts.
+It applies the same end alignment and tabular figures as Table's
+`data-numeric`. Explicit column `align` takes precedence. Keep identifiers
+in the ordinary text alignment even when every value consists of digits.
+Supply raw numeric `sortValues` for locale-formatted amounts and rich cells.
+
+Use Table for static details without managed sorting, selection or pagination.
+For a managed DataTable whose result range duplicates the visible context, set
+`showResults={false}`. Selection feedback and pagination stay available.
 
 Date/calendar action labels must be forwarded through the composed owner.
 DatePicker/DateRangePicker expose viewLabels. DateTimePicker's datePickerLabels

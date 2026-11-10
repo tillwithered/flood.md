@@ -23,6 +23,12 @@ invented as a package API. No external component library or parallel token syste
 
 ## Read only the relevant reference
 
+Before composing a screen, write a short task trace in the development notes:
+what the user arrives with, the next meaningful action, what changes when it
+succeeds, and how the user recovers if it fails. Name which inputs, filters,
+selection and focus should survive each transition. Use the trace to select
+the relevant workflows and exercise the rendered screen before delivery.
+
 For a reusable component or visual API change, the composition skill routes to
 [component families](references/component-families.md). Flood's own authors use
 that same contract; it is not limited to downstream screen generation.
@@ -56,6 +62,7 @@ message lifetime belongs to the operation/record, not merely the page's Alert.
 | New screen, layout or form | [Composition](references/composition.md) | Existing primitives, correct host width and form ownership |
 | Task/group/field hierarchy, flat forms or inconsistent row tracks | [Hierarchy skill](references/flood-hierarchy/SKILL.md) | Distinct roles, shared control edges and deliberate vertical rhythm |
 | Spacing, density, nested geometry or shifting previews | [Spacing skill](references/flood-spacing/SKILL.md) | Measured visual relationships and nonoverlapping interactive areas |
+| Animation, transitions or reduced motion | [Motion skill](references/flood-motion/SKILL.md) | Motion roles, immediate semantics and reduced-motion behavior |
 | Existing dark surfaces, type, control and icon sizing | [Foundations skill](references/flood-foundations/SKILL.md) | Correct semantic roles and coherent consumers |
 | Keyboard, names, focus, perception or reflow | [Accessibility skill](references/flood-accessibility/SKILL.md) | Real interaction and associations preserved |
 | Field ownership, validation, submission and reset | [Forms skill](references/flood-forms/SKILL.md) | Actual form values and accepted/refused transitions |

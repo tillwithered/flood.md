@@ -43,6 +43,12 @@ need no inner heading. Field labels and values keep their documented sizes.
 
 ## Group before laying out fields
 
+For settings with one Save action, keep a draft and the last saved values
+separate. Group related fields under named sections, validate the complete
+draft, and keep entered values available after a refused save. Reset returns
+to the latest saved values. Confirm a successful save only after the host
+accepts it. See `recipe:settings-workspace` for a working local example.
+
 Choose the form's reading order and semantic groups before placing controls in
 columns. Establish shared outer tracks, gap and group padding. Use a single Grid for
 related rows; do not narrow one numeric field in only one row merely because its
@@ -78,6 +84,11 @@ catalog. It demonstrates shared tracks and two-field peer groups in a workspace
 form. Adapt its grouping to the host; do not copy its business content or add
 unrequested sample records.
 
+Choose the number of field tracks from the width available to the form. A wide
+viewport can still contain a narrow drawer or a form squeezed by a sidebar.
+Verify the same field group in wide and narrow hosts at the same viewport width.
+Check reading order, control widths and labels after the group wraps.
+
 ## Exercise transitions, not just props
 
 Check entry, clear, incomplete drafts, invalid input, accepted/refused controlled
@@ -94,6 +105,11 @@ or repeated captions about its implementation. Follow the interface-content
 workflow for placement and wording.
 
 ## Search values and remote collections
+
+Selected chips supply a MultiSelect's visible context. Its empty query should
+not reserve a redundant placeholder row; account for actual action/caret space
+and let real search or overflowing chip content grow. Do not hide the combobox
+or its keyboard entry to force a fixed-height appearance.
 
 Combobox/MultiSelect submit selected IDs. Autocomplete accepts arbitrary text and
 submits that text; choosing a suggestion does not turn it into an ID field.

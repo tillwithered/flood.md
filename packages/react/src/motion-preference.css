@@ -1,0 +1,23 @@
+/* Application-level reduction composes with the system preference. */
+.flood-root:is([data-flood-motion="reduce"], [data-flood-motion="reduce"] *) {
+  --flood-sys-motion-duration-press: var(--flood-sys-motion-duration-reduced);
+  --flood-sys-motion-duration-fast: var(--flood-sys-motion-duration-reduced);
+  --flood-sys-motion-duration-normal: var(--flood-sys-motion-duration-reduced);
+  --flood-sys-motion-duration-enter: var(--flood-sys-motion-duration-reduced);
+  --flood-sys-motion-duration-layer: var(--flood-sys-motion-duration-reduced);
+  --flood-sys-motion-duration-exit: var(--flood-sys-motion-duration-reduced);
+}
+
+.flood-root[data-flood-motion="reduce"] :is(.flood-spinner, .flood-skeleton[data-animate="true"]),
+.flood-root[data-flood-motion="reduce"] .flood-indicator[data-indeterminate="true"] .flood-indicator__fill {
+  animation: none;
+}
+.flood-root[data-flood-motion="reduce"] .flood-indicator[data-indeterminate="true"] .flood-indicator__fill {
+  background: var(--flood-indicator-color);
+  inline-size: 35%;
+}
+@media (forced-colors: active) {
+  .flood-root[data-flood-motion="reduce"] .flood-indicator[data-indeterminate="true"] .flood-indicator__fill {
+    background: Highlight;
+  }
+}

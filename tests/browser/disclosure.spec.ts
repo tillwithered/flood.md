@@ -62,9 +62,15 @@ test("Disclosure previews preserve frame geometry, heading semantics and reduced
     await page.setViewportSize(info.project.name==="mobile"?{width:390,height:844}:{width:1440,height:1000});
     await page.goto(`/components/${slug}`);const stage=page.locator(".preview-stage"),box=(await stage.boundingBox())!,trigger=stage.getByRole("button").first();
     const header=(await trigger.boundingBox())!,item=(await stage.locator(".flood-disclosure").first().boundingBox())!;
+    const indicator=trigger.locator(".flood-disclosure__indicator");
+    const mark=(await indicator.boundingBox())!;
     expect(header.width).toBeGreaterThanOrEqual(item.width-2.1);
-    expect((await trigger.locator(".flood-disclosure__indicator").boundingBox())!.x).toBeGreaterThan(header.x+header.width*.75);
-    await trigger.click();await expect(trigger).toHaveAttribute("aria-expanded","true");
+    expect(mark.x).toBeGreaterThan(header.x+header.width*.75);
+    expect(mark.y+mark.height/2).toBeCloseTo(header.y+header.height/2,1);
+    await trigger.hover();await page.mouse.down();
+    await expect(trigger).toHaveCSS("scale","none");
+    expect(await trigger.boundingBox()).toEqual(header);
+    await page.mouse.up();await expect(trigger).toHaveAttribute("aria-expanded","true");
     expect((await stage.boundingBox())!.height).toBeCloseTo(box.height,1);
     await page.locator(".component-workbench").screenshot({path:`.artifacts/${slug}-${info.project.name}.png`});
     await page.emulateMedia({reducedMotion:"reduce"});await expect(trigger.locator(".flood-disclosure__indicator")).toHaveCSS("transition-duration","0s");

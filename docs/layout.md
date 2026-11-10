@@ -30,13 +30,14 @@ translation may increase a control's height; do not hide overflowing labels.
 
 ## Keep labels close and groups distinct
 
-The indicator and its visible label are one choice control: their gap is
-`.5rem` (8px at the reference root). Do not add `justify-content: space-between`
-or a large spacer between a checkbox/radio/switch and its own label.
+In a compact inline choice, keep the indicator and label together. The
+component's default gap is `.5rem` at the reference root. In a settings list,
+switches can share a trailing edge within a bounded column. Keep each label
+and switch in one clickable row and check that the eye can follow the pair
+across that row. See the [settings recipe](recipes/settings-workspace.md).
 
-The gap between separate choices should usually be `1rem` (16px at the reference
-root). These two gaps serve different purposes. Preserve `Inline`'s default
-`gap="2"` for compatibility; choose `gap="4"` explicitly for a choice group:
+For separate horizontal choices, `gap="4"` is a starting point. In a vertical
+list, inspect the pitch created by the existing hit areas before adding a gap:
 
 ```tsx
 <Inline gap="4" align="center">
@@ -181,13 +182,41 @@ explain a short form. For a necessary independent group use Fieldset with
 legendSize="section"; the default label-sized legend remains appropriate for
 choices. It preserves native fieldset semantics rather than adding a heading.
 
-Named fields keep a .25rem inner label/control gap. For ordinary desktop forms,
-start with Stack gap="6" between field rows and gap="8" between independent groups
-or before actions. Dialog already supplies its body inset. Choice lists, compact
-filters and table editors have different spacing budgets.
+Named fields keep their component-owned label/control gap. Pick the parent
+spacing by reading the rendered relationships. In a quiet form, compare how
+strongly each legend belongs to its first control and how clearly the next
+section begins. In a dense filter bar, control height and shared alignment
+already organize most of the row. Dialog supplies its own body inset.
 
 Place four related short fields in one Grid columns={2} so their row edges align.
 A short numeric value alone does not justify a narrower column in only one row;
 long text fields can use a separate full-width row. Verify actual control edges
 with long labels, optional content and 24px root text, not just Grid boxes.
 See [Skills](skills.md) for the shipped hierarchy workflow.
+
+## Review visible weight
+
+Read the screen at its working size. Name the first thing to notice, the
+content that belongs together, and the edges that should line up. Compare the
+visible text and shapes alongside their boxes. A taller line box, a strong
+divider, or a filled control can make two equal gaps read differently.
+
+Choose the text role before its treatment. A short title may need more
+weight or a wider measure. A paragraph that wraps poorly often needs a
+different measure or line height. Review the actual script, digits and accents
+before adjusting tracking. For comparisons, keep repeated values on shared
+axes. [The Details of UI Typography](https://developer.apple.com/videos/play/wwdc2020/10175/)
+
+Compare two treatments with the same content and viewport. Change one variable
+at a time, then choose the closest existing token that preserves the reading
+order. For example, in a Drawer compare a quieter description in the title
+group with the same text given body weight. Then check the gap before the details
+with a long title and with the description omitted.
+
+The shared axes follow Müller-Brockmann's use of grids as a working tool. The
+attention to letterforms and blank space draws on Ruder, and the comparison of
+contrast and rhythm draws on Hofmann. These are Flood applications of those
+principles. [Grid Systems in Graphic Design](https://niggli.ch/en/products/rastersysteme-fur-die-visuelle-gestaltung) · [The Typography of Order](https://www.neugraphic.com/ruder/ruder-text2.html) · [Graphic Design Manual](https://niggli.ch/en/products/methodik-der-form-und-bildgestaltung)
+
+Recheck with wrapping, enlarged text, and the user's text spacing overrides.
+Controls and content must stay usable when those values change. [W3C Text Spacing](https://www.w3.org/WAI/WCAG22/Understanding/text-spacing.html)

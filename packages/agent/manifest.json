@@ -73,6 +73,11 @@
       "kind": "skill"
     },
     {
+      "source": "references/flood-motion/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-motion/SKILL.md",
+      "kind": "skill"
+    },
+    {
       "source": "references/flood-foundations/SKILL.md",
       "target": ".agents/skills/flood-ui/references/flood-foundations/SKILL.md",
       "kind": "skill"

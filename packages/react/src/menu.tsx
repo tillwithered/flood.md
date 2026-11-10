@@ -1,7 +1,7 @@
 import {Fragment, forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode} from "react";
 import type {MenuItem, MenuProps, MenuSubmenuItem, OverlayTriggerProps} from "./index.js";
 import {Button, Kbd, ScrollArea} from "./index.js";
-import {positionLayer, registerLayer, returnFocus, tabbables} from "./overlay-runtime.js";
+import {positionLayer, registerLayer, returnFocus, tabbables, useLayerExitContent} from "./overlay-runtime.js";
 
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 type InternalItem = MenuItem | MenuSubmenuItem;
@@ -147,6 +147,8 @@ export const MenuLayer = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuLayerPro
       if (element.matches(":popover-open")) element.hidePopover();
     };
   }, [open, side, align, nested]);
+
+  const showContent=useLayerExitContent(panel,open);
   useBrowserLayoutEffect(() => {
     if (openChild && !items.some(item => item.id === openChild && item.type === "submenu" && !item.disabled)) setOpenChild(undefined);
     if (open && panel.current?.matches(":popover-open") && panel.current.ownerDocument.activeElement === panel.current.ownerDocument.body) focusMenuEdge(panel.current, edge?.() ?? "first");
@@ -225,7 +227,7 @@ export const MenuLayer = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuLayerPro
       <div className="flood-menu__group-label" aria-hidden="true">{item.group}</div>{group.map(renderItem)}
     </div>);
   }
-  return <div {...props} ref={panel} id={id} popover="manual" role="menu" aria-label={label} aria-orientation="vertical" tabIndex={-1}
+  return <div {...props} ref={panel} id={id} popover="manual" role="menu" aria-label={label} aria-orientation="vertical" aria-hidden={!open || undefined} tabIndex={-1}
     className={["flood-overlay-panel", "flood-menu", nested && "flood-menu--submenu", className].filter(Boolean).join(" ")}
     onKeyDown={event => {
       if ((event.target as Element).closest('[role="menu"]') !== panel.current) return;
@@ -264,7 +266,7 @@ export const MenuLayer = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuLayerPro
       }
       if (next >= 0 && all[next]) {event.preventDefault(); all[next].focus({preventScroll:true}); all[next].scrollIntoView({block:"nearest",inline:"nearest"});}
     }}>
-    {open && <ScrollArea orientation="vertical" role="group" tabIndex={-1} className="flood-menu__viewport">{rows}</ScrollArea>}
+    {showContent && <ScrollArea orientation="vertical" role="group" tabIndex={-1} className="flood-menu__viewport">{rows}</ScrollArea>}
   </div>;
 });
 
