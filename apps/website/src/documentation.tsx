@@ -110,6 +110,7 @@ export default function Documentation({ path }: { path: string }) {
   const [workspacePanel, setWorkspacePanel] = useState<"catalog" | "reference" | null>(null);
   const panelTrigger = useRef<HTMLButtonElement>(null);
   const referenceDrawer = useRef<HTMLDialogElement>(null);
+  const referenceTarget = useRef<HTMLElement>(null);
   const [referenceAnchor, setReferenceAnchor] = useState("");
   useEffect(()=>{
     if(!workspacePreview) return;
@@ -143,13 +144,22 @@ export default function Documentation({ path }: { path: string }) {
     };
   },[workspacePreview]);
   useEffect(()=>{
-    if (!workspacePreview || workspacePanel!=="reference") return;
-    const frame = requestAnimationFrame(() => {
-      const target = document.getElementById(referenceAnchor);
-      const viewport = referenceDrawer.current?.querySelector(".flood-overlay-body");
-      if (target && viewport?.contains(target)) target.scrollIntoView({ block: "start", behavior: "instant" });
-    });
-    return () => cancelAnimationFrame(frame);
+    if (!workspacePreview || workspacePanel !== "reference" || !referenceAnchor) return;
+    const drawer = referenceDrawer.current;
+    const target = referenceTarget.current;
+    const viewport = drawer?.querySelector<HTMLElement>(".flood-overlay-body");
+    if (!drawer || !target || !viewport?.contains(target)) return;
+    const align = () => {
+      target.focus({ preventScroll: true });
+      viewport.scrollTop += target.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
+    };
+    const frame = requestAnimationFrame(align);
+    const alignAfterEntry = (event: AnimationEvent) => { if (event.target === drawer) align(); };
+    drawer.addEventListener("animationend", alignAfterEntry);
+    return () => {
+      cancelAnimationFrame(frame);
+      drawer.removeEventListener("animationend", alignAfterEntry);
+    };
   },[workspacePanel,workspacePreview,referenceAnchor,path]);
   const visibleGroups = componentGroups.map(group => ({ ...group, components: group.components.filter(page => matchesComponent(page, query)) })).filter(group => group.components.length > 0);
   const title = doc?.label ?? component?.name ?? (catalog ? "Components" : "Page not found");
@@ -189,7 +199,7 @@ export default function Documentation({ path }: { path: string }) {
   }, [title, workspacePreview]);
   const referenceContent = component && (
           <div className="studio-reference-content">
-          <section id="usage" className="doc-section"><Heading level={2} size="section">Use {component.name}</Heading>
+          <section id="usage" className="doc-section" tabIndex={-1} ref={referenceAnchor === "usage" ? referenceTarget : undefined}><Heading level={2} size="section">Use {component.name}</Heading>
             <Text as="p" size="compact" tone="subtle">{component.description}</Text>
             <Inline gap="4" className="studio-reference-links">
               <Link href="/docs/installation">Install Flood</Link>
@@ -201,10 +211,10 @@ export default function Documentation({ path }: { path: string }) {
             <CodeBlock code={exampleCode} language="tsx" filename={`${component.slug}.tsx`} maxHeight="none" />
             {importMode === "project" && <Collapsible title="Project UI adapter files" className="adapter-instructions" controlSize="sm"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{ a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>, pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock> }}>{projectAdapters(exampleImports)}</Markdown></Collapsible>}
           </section>
-          <section id="design-notes" className="doc-section"><Heading level={2} size="section">Design notes</Heading>
+          <section id="design-notes" className="doc-section" tabIndex={-1} ref={referenceAnchor === "design-notes" ? referenceTarget : undefined}><Heading level={2} size="section">Design notes</Heading>
             <ul className="usage-notes">{component.notes.map(note => <li key={note}>{note}</li>)}</ul>
           </section>
-          <section id="api" className="doc-section"><Heading level={2} size="section">API reference</Heading>
+          <section id="api" className="doc-section" tabIndex={-1} ref={referenceAnchor === "api" ? referenceTarget : undefined}><Heading level={2} size="section">API reference</Heading>
             {component.api.length > 0 && <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label={`${component.name} props`}><table><thead><tr><th scope="col">Prop</th><th scope="col">Values</th><th scope="col">Default</th></tr></thead><tbody>{component.api.map(([prop, values, fallback]) => <tr key={prop}><td><code>{prop}</code></td><td>{values}</td><td>{fallback}</td></tr>)}</tbody></table></ScrollArea>}
             <Link href={`${repository}/blob/v${release.version}/packages/react/src/index.tsx`}>View TypeScript source <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link>
           </section>
@@ -263,7 +273,7 @@ export default function Documentation({ path }: { path: string }) {
               </Inline>} />
           </section>
           <Drawer ref={referenceDrawer} id="studio-reference" className="studio-reference-drawer" title="Component reference"
-            side="end" size="lg" open={workspacePanel === "reference"}
+            side="end" size="lg" open={workspacePanel === "reference"} initialFocusRef={referenceTarget}
             onOpenChange={open => setWorkspacePanel(open ? "reference" : null)}
             trigger={props => <Button {...props} id="studio-reference-trigger" className="studio-reference-trigger"
               size="sm" variant="subtle" aria-label="Reference Alt R" aria-keyshortcuts="Alt+R">
