@@ -28,7 +28,7 @@ export function ProjectSelectionActions({ projects, pending, onUpdate, onClear }
     <VisuallyHidden role="status">{pending ? 'Updating…' : ''}</VisuallyHidden>
     {archive && <AlertDialog
         title={`Archive ${archive.length} ${archive.length === 1 ? 'project' : 'projects'}?`}
-        description={`${archive.map(project => project.name).join(', ')} will move to Archived.`}
+        description={`${archive.map(project => project.name).join(', ')}\n${archive.length === 1 ? 'It' : 'They'} will move to Archived.`}
         confirmLabel="Archive projects"
         cancelLabel="Keep projects"
         open

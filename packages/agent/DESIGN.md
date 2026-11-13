@@ -1,4 +1,4 @@
-# Flood design system · 0.2.11
+# Flood design system · 0.2.12
 
 ListBox owns native required validation for accepted selection. Use its
 description/message/status props rather than duplicating feedback markup. Visual

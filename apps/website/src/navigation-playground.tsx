@@ -175,6 +175,10 @@ export default function NavigationPlayground(){
   const classicItems:NavigationTreeItem[]=globalItems.map(item=>({...item,value:`${item.value}/all`,children:item.value===module?contextItems[module].filter(child=>child.value!==`${module}/all`):undefined}));
   const groups:SidebarGroup[]=layout==='composed'?[{id:`${module}-views`,label:`${moduleNames[module]} views`,hideLabel:true,items:contextItems[module]}]:[{id:'workspace',label:'Workspace',hideLabel:true,items:classicItems}];
   if(module==='projects'&&projectCollections.length)groups.push({id:'project-collections',label:'Collections',separator:true,items:projectCollections});
+  const drawerGroups: SidebarGroup[] = layout === 'composed'
+    ? [{ id: 'modules', label: 'Workspace', items: globalItems.map(item => ({ ...item, value: `${item.value}/all` })) },
+      ...groups.map(group => ({ ...group, hideLabel: false }))]
+    : groups;
   const railItems= contextVisible ? globalItems : globalItems.map(item => {
     const section=item.value as Module;
     return {...item,href:undefined,flyout:{openOnHover:true,positionReference:rail},content:<ScrollArea tabIndex={-1} className="navigation-lab__rail-flyout-body"><Stack gap="4">
@@ -213,13 +217,13 @@ export default function NavigationPlayground(){
       <SegmentedControl name="navigation-layout" label="Navigation layout" hideLabel controlSize="sm" value={layout} onValueChange={setLayout} options={[{value:'classic',label:'Sidebar'},{value:'composed',label:'Rail + context'}]}/>
     </div>
     <AppShell className="navigation-lab__frame" mainRef={main} mainLabel={`${moduleNames[module]} workspace`} scrollLabel={`${moduleNames[module]} content`} scrollOrientation="vertical"
-      navigationDrawer={layout==='classic' ? {below:480,title:'Workspace navigation',renderContent:close=><Stack gap="4">
-        {groups.map(group=><NavigationGroup key={group.id} label={group.label} hideLabel={group.hideLabel} separator={group.separator} size="sm">
-          <NavigationTree label={group.label} items={drawerItems(group.items,close)} currentValue={route} size="sm"
+      navigationDrawer={{below:560,title:'Workspace navigation',renderContent:close=><Stack gap="4">
+        {drawerGroups.map(group=><NavigationGroup key={group.id} label={group.label} hideLabel={group.hideLabel} separator={group.separator} size="sm">
+          <NavigationTree label={group.label} items={drawerItems(group.items,close)} currentValue={group.id === 'modules' ? `${module}/all` : route} currentKind={group.id === 'modules' ? 'location' : 'page'} size="sm"
             expandedValues={expandedValues} onExpandedValuesChange={setExpandedValues}/>
         </NavigationGroup>)}
         {account({collapsed:false})}
-      </Stack>} : undefined}
+      </Stack>}}
       navigation={<>
       {layout==='composed'&&<Sidebar ref={rail} label="Global navigation" groups={[{id:'modules',label:'Modules',hideLabel:true,items:railItems}]} currentValue={module} currentKind="location" collapsed collapsible={false} size="sm" header={state=><div className="navigation-lab__rail-header">
         <IconButton className="navigation-lab__pane-toggle" label={contextVisible?'Hide context navigation':'Show context navigation'}

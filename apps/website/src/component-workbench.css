@@ -2,6 +2,7 @@
 .workbench-title { display: flex; align-items: center; justify-content: space-between; gap: var(--flood-sys-space-4); padding: var(--flood-sys-space-4) var(--flood-sys-space-6); background: var(--flood-sys-color-surface-default); border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
 .workbench-actions { flex: none; max-inline-size: 100%; justify-content: flex-end; }
 .workbench-actions .flood-button { white-space: nowrap; }
+.flood-root .workbench-reset-icon { display: none; }
 .component-workbench .workbench-stage { position: relative; box-sizing: border-box; block-size: 28rem; min-block-size: 0; padding: 3rem var(--flood-sys-space-6); display: grid; align-items: safe center; justify-items: safe center; overflow: auto; background: var(--site-preview-background); }
 .component-workbench .workbench-stage[data-size="compact"] { block-size: 22rem; }
 .component-workbench .workbench-stage[data-size="display"] { block-size: 34rem; }
@@ -12,32 +13,43 @@
   position: relative;
   container: studio-workbench / inline-size;
   min-block-size: 0;
-  grid-template: "header" auto "canvas" minmax(0, 1fr) / minmax(0, 1fr);
+  grid-template: "header properties" auto "canvas canvas" minmax(0, 1fr) / auto minmax(0, 1fr);
   border: 0;
   border-radius: 0;
 }
-.component-workbench[data-studio] .studio-tools {
+.component-workbench[data-studio] .workbench-canvas {
+  grid-area: canvas;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-inline-size: 0;
+}
+.component-workbench[data-studio] .workbench-canvas[data-feedback] {
+  padding-block-end: var(--studio-panel-bottom);
+}
+.studio-action-row {
   position: absolute;
   inset-block-end: var(--flood-sys-space-4);
-  inset-inline-start: var(--flood-sys-space-4);
+  inset-inline: var(--flood-sys-space-4);
   z-index: var(--flood-sys-layer-sticky);
-  max-inline-size: calc(100% - 2 * var(--flood-sys-space-4) - var(--flood-sys-space-2) - var(--studio-reference-width));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--flood-sys-space-2);
+  pointer-events: none;
+}
+.studio-action-row > * { pointer-events: auto; }
+.component-workbench[data-studio] .studio-tools {
   border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-floating);
-  border-radius: var(--flood-sys-radius-field);
+  border-radius: var(--flood-sys-radius-action);
   background: var(--flood-sys-color-surface-floating);
   padding: var(--flood-sys-space-1);
   box-shadow: 0 .25rem 1rem var(--flood-sys-color-shadow-floating);
 }
-@container studio-workbench (min-width: 49rem) {
-  .component-workbench[data-studio] .studio-tools {
-    border-radius: var(--flood-sys-radius-action);
-  }
-}
 .flood-root .studio-tools .studio-view-controls { display: contents; }
-.flood-root .studio-view-controls > .flood-select { inline-size: 7.5rem; }
-.flood-root .studio-view-controls > .flood-select:nth-child(2) { inline-size: 6rem; }
+.flood-root .studio-tools .studio-compact-tools { display: none; }
+.flood-root .studio-tools .flood-select:has(> .studio-width-control) { inline-size: 7.5rem; }
+.flood-root .studio-tools .flood-select:has(> .studio-zoom-control) { inline-size: 6rem; min-inline-size: 0; }
 .component-workbench[data-studio] .workbench-stage {
-  grid-area: canvas;
   container-type: size;
   --flood-workbench-shell-height: max(12rem, 100cqh);
   block-size: auto;
@@ -45,6 +57,19 @@
   overscroll-behavior: contain;
   background: transparent;
   cursor: grab;
+}
+.component-workbench[data-studio] .workbench-canvas[data-feedback] .workbench-stage {
+  padding-block-end: var(--flood-sys-space-3);
+}
+.component-workbench .workbench-feedback {
+  box-sizing: border-box;
+  min-block-size: 2lh;
+  margin: 0;
+  padding-inline: var(--flood-sys-space-4);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 .component-workbench[data-studio] .workbench-stage > .flood-root {
   max-inline-size: 100cqw;
@@ -73,25 +98,28 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--flood-sys-space-4);
-  padding: var(--flood-sys-space-3) var(--flood-sys-space-4);
+  padding: var(--flood-sys-space-3) 0 var(--flood-sys-space-3) var(--flood-sys-space-4);
 }
 .flood-root .studio-heading {
   flex-wrap: nowrap;
-  max-inline-size: 55%;
+  flex: none;
+  max-inline-size: 100%;
 }
 .studio-heading .flood-heading {
   min-inline-size: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .studio-properties {
+  grid-area: properties;
+  align-self: center;
   min-inline-size: 0;
+  padding: var(--flood-sys-space-3) var(--flood-sys-space-4);
 }
+.flood-root .studio-properties-title { display: none; }
 .component-workbench[data-studio] .workbench-controls {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--flood-sys-space-4);
+  gap: var(--flood-sys-space-3);
   justify-content: safe flex-end;
   padding: var(--flood-sys-space-1) var(--flood-sys-space-1) var(--flood-sys-space-2);
   border: 0;
@@ -108,19 +136,95 @@
   inline-size: max-content;
 }
 .studio-properties .workbench-control--select .flood-select__control { inline-size: max-content; }
+.flood-root .studio-choice {
+  inline-size: 100%;
+  justify-content: space-between;
+  text-align: start;
+}
+.studio-choice-value { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; }
 .studio-properties .workbench-control--select .flood-select__value::before {
   content: var(--studio-select-prefix, none);
   color: var(--flood-sys-color-content-subtle);
 }
-@media (max-width: 48rem) {
-  .flood-root .studio-tools { gap: var(--flood-sys-space-1); }
+@container studio-workbench (max-width: 49rem) {
+  .flood-root .studio-tools { flex-wrap: nowrap; }
+  .flood-root .studio-tools > .studio-view-controls { display: none; }
+  .flood-root .studio-tools .studio-compact-tools { display: contents; }
+  .flood-root .studio-tools .workbench-actions { flex-wrap: nowrap; }
+  .flood-root .studio-tools .workbench-reset-icon { display: inline-grid; }
+  .flood-root .studio-tools .workbench-reset {
+    inline-size: var(--flood-sys-control-sm-height);
+    padding-inline: 0;
+  }
+  .flood-root .studio-tools .workbench-reset > :last-child {
+    display: none;
+  }
+}
+@media (pointer: coarse) {
+  .flood-root .studio-tools .workbench-reset { min-inline-size: var(--flood-sys-size-touch); }
+}
+@media (max-width: 36rem) {
+  .component-workbench[data-studio] {
+    grid-template: "header" auto "canvas" auto "actions" auto "properties" auto / minmax(0, 1fr);
+    row-gap: var(--flood-sys-space-3);
+    overflow: visible;
+  }
+  .studio-header, .studio-properties { padding: 0; }
+  .component-workbench[data-studio] .workbench-canvas[data-feedback] { padding-block-end: 0; }
+  .flood-root .studio-properties-title {
+    display: block;
+    margin-block: 0 var(--flood-sys-space-2);
+  }
+  .studio-action-row {
+    grid-area: actions;
+    position: static;
+    pointer-events: auto;
+  }
+  .component-workbench[data-studio] .studio-tools {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .component-workbench[data-studio] .workbench-controls {
+    justify-content: flex-start;
+    padding: var(--flood-sys-space-1);
+  }
+  .component-workbench[data-studio] .workbench-controls > .workbench-control--select {
+    flex: 1 0 auto;
+    max-inline-size: 100%;
+  }
+  .studio-properties .workbench-control--select .flood-select__control { inline-size: 100%; }
+  .component-workbench[data-studio] .workbench-stage {
+    block-size: clamp(16rem, 42svh, 24rem);
+    padding: var(--flood-sys-space-3);
+    overscroll-behavior: auto;
+    border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+    border-radius: var(--flood-sys-radius-block);
+    background: var(--site-preview-background);
+  }
+  .component-workbench[data-studio] .workbench-stage[data-size="compact"] {
+    block-size: clamp(12rem, 34svh, 17rem);
+  }
+  .component-workbench[data-studio] .workbench-stage[data-wide-frame],
+  .component-workbench[data-studio] .workbench-stage[data-size="display"] {
+    block-size: clamp(22rem, 60svh, 36rem);
+  }
 }
 .component-workbench:has(.workbench-stage[data-component="app-shell"], .workbench-stage[data-component="sidebar"]) .workbench-title { flex-wrap: wrap; }
 .workbench-stage[data-component="app-shell"] .flood-app-shell {
+  container: app-shell-preview / inline-size;
   border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
   border-radius: var(--flood-sys-radius-field);
   background: var(--flood-sys-color-surface-canvas);
   overflow: clip;
+}
+.workbench-stage .flood-app-shell .app-shell-preview-metrics { grid-template-columns: minmax(0, 1fr); }
+@container app-shell-preview (min-width: 36rem) {
+  .workbench-stage .flood-app-shell .app-shell-preview-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container app-shell-preview (min-width: 48rem) {
+  .workbench-stage .flood-app-shell .app-shell-preview-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 .workbench-stage[data-component="app-shell"] .flood-card {
   border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
@@ -139,7 +243,6 @@
 .component-workbench .workbench-stage[data-component="segmented-control"] > .flood-root { inline-size: fit-content; max-inline-size: 100%; }
 .component-workbench .workbench-stage:is([data-component="collapsible"], [data-component="accordion"]) > .flood-root { inline-size: min(100%, 28rem); }
 .workbench-stage .flood-type--display { overflow-wrap: anywhere; }
-.workbench-stage .workbench-feedback { position: absolute; inset-inline: var(--flood-sys-space-4); inset-block-end: var(--flood-sys-space-4); margin: 0; text-align: center; pointer-events: none; font-size: var(--flood-sys-type-helper-size); color: var(--flood-sys-color-content-subtle); }
 .workbench-stage[data-component="input-group"] .flood-field,
 .workbench-stage[data-component="input"] .flood-field,
 .workbench-stage[data-component="textarea"] .flood-field,

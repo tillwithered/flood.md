@@ -288,9 +288,9 @@ test('compact touch targets fit the rail without clipping its scroll gutter',asy
 });
 
 test('workspace compact profile and navigation targets share the full rail axis in both profiles',async({page})=>{
+  await page.setViewportSize({width:900,height:900});
   await page.goto('/playground/navigation');
   for(const profile of ['Rail + context','Sidebar']){
-    if(profile==='Sidebar')await page.setViewportSize({width:900,height:900});
     await page.getByRole('radio',{name:profile,exact:true}).check();
     if(profile==='Sidebar')await page.getByRole('button',{name:'Collapse sidebar',exact:true}).first().click();
     const sidebar=page.getByRole('complementary',{name:profile==='Sidebar'?'Workspace navigation':'Global navigation',exact:true});

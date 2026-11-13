@@ -4,7 +4,7 @@ import { Button, Field, Fieldset, IconSlot, Inline, Popover, SearchInput, Tag, T
 /** Query chrome only: the host supplies filter drafts, accepted query and saved views. */
 export const CollectionQueryBar = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, CollectionToolbarProps>(function CollectionQueryBar({
   label, searchValue, onSearchValueChange, searchLabel = 'Search', searchPlaceholder = 'Search…', clearSearchLabel = 'Clear search',
-  appliedFilters = [], onRemoveFilter, appliedFiltersLabel = 'Applied filters', summaryPrefix, quickFilters,
+  appliedFilters = [], onRemoveFilter, appliedFiltersLabel = 'Applied filters', summaryPrefix, quickFilters, actions,
   filterContent, filtersLabel = 'Filters', filterTitle = filtersLabel, filtersOpen, onFiltersOpenChange,
   filterPanelRef, filterPanelClassName, onClear, canClear = Boolean(searchValue || appliedFilters.length), clearLabel = 'Clear filters',
   controlSize = 'sm', disabled = false, hideLabel = true, className, ...props
@@ -36,7 +36,7 @@ export const CollectionQueryBar = /* @__PURE__ */ forwardRef<HTMLFieldSetElement
             focusPersistent(); onRemoveFilter(filter.id);
           } : undefined}>{filter.label}</Tag>)}
       </Inline>}
-      {(onClear || hasPanel) && <Inline gap="2" align="center" className="flood-collection-toolbar__commands">
+      {(onClear || hasPanel || actions) && <Inline gap="2" align="center" className="flood-collection-toolbar__commands">
         {onClear && <Button size={controlSize} variant="outline" className="flood-collection-toolbar__clear" data-visible={canClear}
           disabled={disabled || !canClear} aria-hidden={!canClear || undefined}
           onClick={() => { if (disabled || !canClear) return; focusPersistent(); onClear(); }}>{clearLabel}</Button>}
@@ -46,6 +46,7 @@ export const CollectionQueryBar = /* @__PURE__ */ forwardRef<HTMLFieldSetElement
             <IconSlot size={controlSize}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true"><path d="M4 6h16M7 12h10m-7 6h4" /></svg></IconSlot>
             {filtersLabel}
           </Button>}>{filterContent}</Popover>}
+        {actions}
       </Inline>}
     </Inline>
   </Fieldset>;

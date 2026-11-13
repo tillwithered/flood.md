@@ -65,6 +65,9 @@
 .flood-root .flood-app-top-bar__end { margin-inline-start: auto; }
 .flood-root :is(.flood-app-shell, .flood-app-top-bar)[hidden] { display: none; }
 .flood-root .flood-section__body { margin-block-start: var(--flood-sys-space-4); min-inline-size: 0; }
+.flood-root .flood-section:has(> .flood-section__header .flood-type--group) > .flood-section__body {
+  margin-block-start: var(--flood-sys-space-3);
+}
 
 .flood-root .flood-split { container: flood-split / inline-size; min-inline-size: 0; inline-size: 100%; }
 .flood-root .flood-split__layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--flood-layout-gap); align-items: start; min-inline-size: 0; }

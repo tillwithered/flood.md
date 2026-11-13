@@ -81,7 +81,8 @@ test("unsupported source contracts fail rather than silently documenting incompl
 });
 
 test("literal options and defaults track additive API changes without evaluating expressions", () => {
-  const changed = source.replace('"2xl";', '"2xl" | "3xl";').replace('size = "md",', 'size = "lg",');
+  const changed = source.replace('"2xl";', '"2xl" | "3xl";')
+    .replace(/(export const Button =[^]*?size = )"md"/, '$1"lg"');
   const contract = readComponentContract(changed);
   assert.deepEqual(prop(contract, "Button", "size").options, ["2xs", "xs", "sm", "md", "lg", "xl", "2xl", "3xl"]);
   assert.equal(prop(contract, "Button", "size").defaultLiteral, "lg");

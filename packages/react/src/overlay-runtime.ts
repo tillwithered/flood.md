@@ -4,16 +4,17 @@ export type Side = "top" | "bottom" | "left" | "right";
 export type Align = "start" | "center" | "end";
 type Rect = {left:number; top:number; right:number; bottom:number; width:number; height:number};
 /** Pure collision handling in layout-viewport coordinates. */
-export function placeOverlay(anchor:Rect, size:{width:number;height:number}, viewport:{left:number;top:number;width:number;height:number}, side:Side, align:Align, gap:number, rtl=false) {
+export function placeOverlay(anchor:Rect, size:{width:number;height:number}, viewport:{left:number;top:number;width:number;height:number}, side:Side, align:Align, gap:number, rtl=false, overlap=false) {
   const edge={left:viewport.left+gap,right:viewport.left+viewport.width-gap,top:viewport.top+gap,bottom:viewport.top+viewport.height-gap};
   const space={top:anchor.top-edge.top,bottom:edge.bottom-anchor.bottom,left:anchor.left-edge.left,right:edge.right-anchor.right};
   const opposite={top:"bottom",bottom:"top",left:"right",right:"left"} as const;
   const needed=(side==="top"||side==="bottom"?size.height:size.width)+gap;
-  if(space[side]<needed && space[opposite[side]]>space[side]) side=opposite[side];
+  if(!overlap && space[side]<needed && space[opposite[side]]>space[side]) side=opposite[side];
   const horizontal=side==="top"||side==="bottom";
   const resolved=horizontal&&rtl?(align==="start"?"end":align==="end"?"start":align):align;
   let left=horizontal?(resolved==="start"?anchor.left:resolved==="end"?anchor.right-size.width:anchor.left+(anchor.width-size.width)/2):side==="left"?anchor.left-size.width-gap:anchor.right+gap;
   let top=horizontal?(side==="top"?anchor.top-size.height-gap:anchor.bottom+gap):(resolved==="start"?anchor.top:resolved==="end"?anchor.bottom-size.height:anchor.top+(anchor.height-size.height)/2);
+  if(overlap)top=anchor.top;
   left=Math.max(edge.left,Math.min(left,edge.right-size.width)); top=Math.max(edge.top,Math.min(top,edge.bottom-size.height));
   return {left,top,side};
 }
@@ -33,7 +34,7 @@ export function tabbables(root:HTMLElement) {
   }).sort((a,b)=>(a.tabIndex>0?a.tabIndex:Infinity)-(b.tabIndex>0?b.tabIndex:Infinity));
 }
 
-type Layer={panel:HTMLElement; anchor:()=>HTMLElement|null; close:()=>void; outside?:()=>void; modal?:boolean; tooltip?:boolean};
+type Layer={panel:HTMLElement; anchor:()=>HTMLElement|null; close:()=>void; outside?:()=>void; closeOnFocusOutside?:boolean; modal?:boolean; tooltip?:boolean};
 const stacks=new WeakMap<Document,Layer[]>();
 export function registerLayer(document:Document,layer:Layer) {
   let layers=stacks.get(document);
@@ -51,7 +52,7 @@ export function registerLayer(document:Document,layer:Layer) {
     (layer.outside??layer.close)();
   };
   const focus=(event:FocusEvent)=>{
-    if(top()!==layer||layer.modal)return;
+    if(top()!==layer||layer.modal||layer.closeOnFocusOutside===false)return;
     const target=event.target as Node;
     if(!layer.panel.contains(target)&&!layer.anchor()?.contains(target))layer.close();
   };
@@ -97,7 +98,7 @@ export function lockScroll(document: Document) {
   };
 }
 
-export function positionLayer(anchor:HTMLElement,panel:HTMLElement,side:Side,align:Align){
+export function positionLayer(anchor:HTMLElement,panel:HTMLElement,side:Side,align:Align,overlap=false){
   const view=panel.ownerDocument.defaultView!;const visual=view.visualViewport;
   const viewport={left:visual?.offsetLeft??0,top:visual?.offsetTop??0,width:visual?.width??view.innerWidth,height:visual?.height??view.innerHeight};
   const gap=parseFloat(getComputedStyle(panel).columnGap)||8;
@@ -105,7 +106,7 @@ export function positionLayer(anchor:HTMLElement,panel:HTMLElement,side:Side,ali
   const bounds=anchor.getBoundingClientRect(),anchorWidth=`${bounds.width}px`,anchorHeight=`${bounds.height}px`;
   if(panel.style.getPropertyValue("--flood-overlay-anchor-width")!==anchorWidth)panel.style.setProperty("--flood-overlay-anchor-width",anchorWidth);
   if(panel.style.getPropertyValue("--flood-overlay-anchor-height")!==anchorHeight)panel.style.setProperty("--flood-overlay-anchor-height",anchorHeight);
-  const position=placeOverlay(bounds,panel.getBoundingClientRect(),viewport,side,align,gap,getComputedStyle(anchor).direction==="rtl");
+  const position=placeOverlay(bounds,panel.getBoundingClientRect(),viewport,side,align,gap,getComputedStyle(anchor).direction==="rtl",overlap);
   const left=`${position.left}px`,top=`${position.top}px`;
   if(panel.style.left!==left)panel.style.left=left;if(panel.style.top!==top)panel.style.top=top;
   panel.dataset.side=position.side;panel.style.visibility="visible";
@@ -116,7 +117,7 @@ export function returnFocus(panel:HTMLElement,anchor:HTMLElement|null){
   if(anchor?.isConnected&&!anchor.matches(":disabled")&&(panel.contains(active)||active===panel.ownerDocument.body))anchor.focus({preventScroll:true});
 }
 /** Retain pixels for a CSS exit after the native layer has released focus. */
-export function useLayerExitContent(panel:RefObject<HTMLElement|null>,open:boolean,enabled=true) {
+export function useLayerExitContent(panel:RefObject<HTMLElement|null>,open:boolean,enabled=true,transitionProperty="opacity") {
   const [retained,setRetained]=useState(false);
   useLayerLayoutEffect(()=>{
     const node=panel.current;
@@ -124,14 +125,14 @@ export function useLayerExitContent(panel:RefObject<HTMLElement|null>,open:boole
     if(open){setRetained(true);return;}
     node.inert=true;
     const transitions=node.getAnimations().filter(animation=>
-      "transitionProperty" in animation&&animation.transitionProperty==="opacity");
+      "transitionProperty" in animation&&animation.transitionProperty===transitionProperty);
     let active=true;
     if(!transitions.length)setRetained(false);
     else void Promise.allSettled(transitions.map(animation=>animation.finished)).then(()=>{
       if(active)setRetained(false);
     });
     return ()=>{active=false;node.inert=false;};
-  },[panel,open,enabled]);
+  },[panel,open,enabled,transitionProperty]);
   return open||enabled&&retained;
 }
 

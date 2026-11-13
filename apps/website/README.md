@@ -10,12 +10,14 @@ The website uses the current Flood packages and original page compositions.
 Home, guides, component pages and /playground share one SiteHeader composition.
 Its navigation uses Flood Link button variants and IconSlot. The shared shell uses
 Flood SkipLink with a focusable main target; installation, code and agent actions
-use Flood CopyButton instead of a separate clipboard implementation. Only brand and
-page layout remain website styles. Header dimensions are shared across routes.
-The reader composes Breadcrumb, SegmentedControl (import mode), Collapsible
-(mobile navigation and adapter source), Surface/Stack/Inline/Text (catalog cards),
-Link button variants (sidebar, categories and previous/next), and Label (lab
-controls). Markdown prose, semantic HTML tables and page grids remain website
+use Flood CopyButton. Guide readers link to their Markdown source. The component
+Reference drawer contains the agent action with the current example. Only brand and
+page layout remain website styles. Component studio uses the compact header.
+The reader composes SegmentedControl (import mode), Sheet (mobile navigation,
+reference and touch choices), Drawer (wide component reference), Collapsible (compact outline and adapter source),
+Surface/Stack/Inline/Text (catalog cards), Link button variants (sidebar,
+categories and previous/next), and Label (lab controls). Markdown prose, semantic
+HTML tables and page grids remain website
 content rather than pretending to be library components. Document scrollbars use
 the same foundation tokens through the explicit dark scope on the HTML root;
 page scrolling remains native with forced-color fallback and a stable gutter.
@@ -80,8 +82,11 @@ uses react-markdown and remark-gfm, not a third-party UI component implementatio
 
 Preview scenes have a fixed relative height for each example category. Prop
 changes do not resize the scene; oversized content scrolls inside it. Live
-feedback stays in a separate positioned region and does not enter the sample's
-layout. This preview-only presentation is not added to the printed recipe.
+feedback has its own reserved row below the canvas. Panning, zooming and
+scrolling the sample leave that row in place. The printed recipe keeps the
+status text in the example's own layout.
+Studio properties wrap as complete controls when the space beside the component
+name runs out. On phones, properties follow the canvas and its actions.
 Field examples reserve description rows so validation does not shift the control.
 
 The build compares public runtime exports, catalog entries, routes and live

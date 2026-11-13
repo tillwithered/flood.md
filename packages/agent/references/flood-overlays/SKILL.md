@@ -56,6 +56,12 @@ DescriptionList or Fieldset as appropriate. Put the next action in the footer
 when it must stay reachable during scrolling. Avoid repeating the heading
 as a section name or showing two equivalent dismiss actions in a clean state.
 
+Use Sheet when a short touch task, navigation list or option list needs the
+width of the phone. Keep the current choice visible on its trigger and compose
+single-choice options with ListBox. Commit on selection, keep the previous value
+on dismissal, and return focus to the trigger. Use one scrolling body and keep
+long content, the close action and safe-area padding reachable.
+
 Overlay material establishes the nested neutral control context automatically.
 Compare its fields, secondary actions, selection and supporting chips with their
 canvas counterparts. Avoid opaque dark action islands or hiding the entire

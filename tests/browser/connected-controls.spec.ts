@@ -9,7 +9,7 @@ test("connected actions retain Tab order, visible end corners and RTL/vertical s
   await expect(buttons.nth(0)).toBeFocused();
   await page.keyboard.press("Tab"); await expect(buttons.nth(1)).toBeFocused();
   await buttons.nth(1).click();
-  await expect(page.locator(".preview-stage").getByRole("status")).toHaveText("Redo selected.");
+  await expect(page.locator(".workbench-feedback")).toHaveText("Redo selected.");
   const seam = async () => { const boxes = await buttons.evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().toJSON())); return boxes[1].x - boxes[0].right; };
   expect(await seam()).toBeCloseTo(0, 1);
   await group.evaluate(node => { node.setAttribute("dir", "rtl"); });
@@ -44,7 +44,7 @@ test("InputGroup has one perimeter, stable focus geometry and real form/readonly
     const value = new FormData(form).get("website"); input.removeAttribute("form"); form.remove(); return value;
   })).toBe("flood.md");
   await stage.getByRole("button", { name: "Open", exact: true }).click();
-  await expect(stage.getByRole("status")).toHaveText("Opened locally.");
+  await expect(page.locator(".workbench-feedback")).toHaveText("Opened locally.");
   await expect(stage.getByRole("button", { name: "Open", exact: true })).toBeFocused();
   await page.getByRole("checkbox", { name: "InputGroup prop readOnly", exact: true }).check();
   await expect(input).toHaveAttribute("readonly", "");
@@ -125,7 +125,7 @@ test("ButtonGroup supports icon-only and mixed actions with full separators", as
     await chooseSelectOption(page.getByRole("combobox", { name: "ButtonGroup prop content", exact: true }), content);
     await expect(group.getByRole("button")).toHaveCount(3);
     await group.getByRole("button", { name: "History", exact: true }).click();
-    await expect(stage.getByRole("status")).toHaveText("History selected.");
+    await expect(page.locator(".workbench-feedback")).toHaveText("History selected.");
     const icon = group.locator(".flood-icon-button").last(), bounds = (await icon.boundingBox())!;
     expect(bounds.width).toBeGreaterThanOrEqual(bounds.height);
     await expect(icon).toHaveCSS("border-left-width", "1px");

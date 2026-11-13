@@ -51,6 +51,17 @@ export function inspectRenderedUI(options = {}) {
     return matches.slice(0, limit);
   };
   if(root===document&&document.documentElement.scrollWidth>innerWidth+1)addIssue({id:'layout.page-overflow',target:{tag:'html',id:document.documentElement.id||null,className:document.documentElement.getAttribute('class')||'',label:'Document'},offset:document.documentElement.scrollWidth-innerWidth,message:'The document extends beyond the viewport. Review the actual overflow owner at this text size; dense content can scroll locally. Hiding page overflow does not repair the layout.'});
+  const documentGutter = innerWidth - document.documentElement.clientWidth;
+  const scrollOwner = document.scrollingElement;
+  if (documentGutter > 1 && scrollOwner && scrollOwner.scrollHeight > scrollOwner.clientHeight + 1) {
+    const table = select('.flood-data-table').find(visible);
+    if (table) addIssue({
+      id: 'layout.record-scroll-owner',
+      target: target(table),
+      offset: documentGutter,
+      message: 'A document scrollbar consumes width on this record view. Compare full and filtered views with classic scrollbars. For a full-window workspace, use AppShell content scrolling so changes in row count keep the table edges in place.',
+    });
+  }
   for (const button of select('button.flood-button, button.flood-icon-button')) {
     // Text is inspected outside real icon slots, SVGs and visually hidden names.
     const walker = document.createTreeWalker(button, NodeFilter.SHOW_TEXT);

@@ -268,7 +268,7 @@ test("default content inset keeps full-width rows clear of the rail in LTR and R
 test("documentation navigation row backgrounds end before the overlay rail", async ({ page }, info) => {
   test.skip(info.project.name === "mobile", "Desktop sidebar is intentionally hidden on mobile");
   await page.goto("/components/scroll-area");
-  const viewport = page.getByRole("region", { name: "Documentation sections scroll" });
+  const viewport = page.getByRole("region", { name: "Component list scroll" });
   const selected = viewport.locator('[aria-current="page"]');
   const rail = viewport.locator("..").locator(".flood-scroll-area__track--vertical");
   await expect(rail).toBeVisible();

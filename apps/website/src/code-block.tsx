@@ -78,10 +78,11 @@ export interface CopyButtonProps {
   value: string;
   label?: string;
   text?: string;
+  errorText?: string;
 }
 
 /** Copies the original value, independently of highlighted/rendered output. */
-export function CopyButton({ value, label = "Copy code", text = "Copy" }: CopyButtonProps) {
+export function CopyButton({ value, label = "Copy code", text = "Copy", errorText = "Select the code and copy it manually." }: CopyButtonProps) {
   const [failed, setFailed] = useState(false);
   useEffect(() => { setFailed(false); }, [value]);
   return <span className="site-copy-control">
@@ -89,7 +90,7 @@ export function CopyButton({ value, label = "Copy code", text = "Copy" }: CopyBu
       variant="ghost" size="sm" aria-label={label} copyLabel={text} copiedLabel="Copied"
       onCopied={() => setFailed(false)} onCopyError={() => setFailed(true)} />
     {failed && <Text size="helper" tone="subtle" className="site-copy-control__error">
-      Select the code and copy it manually.
+      {errorText}
     </Text>}
   </span>;
 }
@@ -100,9 +101,10 @@ export interface CodeBlockProps {
   filename?: string;
   label?: string;
   maxHeight?: string;
+  compact?: boolean;
 }
 
-export function CodeBlock({ code, language = "plaintext", filename, label = "Code example", maxHeight = "38rem" }: CodeBlockProps) {
+export function CodeBlock({ code, language = "plaintext", filename, label = "Code example", maxHeight = "38rem", compact = false }: CodeBlockProps) {
   const normalizedLanguage = language.toLowerCase().trim();
   const canonical = Object.hasOwn(languageAliases, normalizedLanguage) ? languageAliases[normalizedLanguage] : undefined;
   const displayLanguage = canonical ? languageLabels[canonical] : "Plain text";
@@ -123,16 +125,16 @@ export function CodeBlock({ code, language = "plaintext", filename, label = "Cod
 
   const tokens = highlighted?.code === code && highlighted.language === canonical ? highlighted.tokens : null;
   return (
-    <figure className="site-code-block" data-flood-surface="filled" aria-label={label} data-language={canonical ?? "plaintext"} data-highlighted={tokens ? "true" : "false"}>
+    <figure className="site-code-block" data-compact={compact || undefined} data-flood-surface="filled" aria-label={label} data-language={canonical ?? "plaintext"} data-highlighted={tokens ? "true" : "false"}>
       <figcaption className="site-code-block__toolbar">
         <span className="site-code-block__identity">
           <IconSlot size="sm"><FileCode2 /></IconSlot>
-          <span className="site-code-block__filename">{filename || displayLanguage}</span>
+          <span className="site-code-block__filename" title={filename}>{filename || displayLanguage}</span>
           {filename && <span className="site-code-block__language">{displayLanguage}</span>}
         </span>
-        <CopyButton value={code} text="Copy code" />
+        <CopyButton value={code} text={compact ? "Copy" : "Copy code"} />
       </figcaption>
-      <ScrollArea contentInset="none" className="site-code-block__scroll" style={{ maxHeight }} role="group" aria-label={filename ? `${filename} source code` : `${displayLanguage} source code`}>
+      <ScrollArea orientation={compact ? "both" : "vertical"} contentInset="none" className="site-code-block__scroll" style={{ maxHeight }} role="group" aria-label={filename ? `${filename} source code` : `${displayLanguage} source code`}>
       <pre className="site-code-block__pre">
         <code className="site-code-block__code">{tokens ? tokens.map((line, lineIndex) => (
           <Fragment key={lineIndex}>

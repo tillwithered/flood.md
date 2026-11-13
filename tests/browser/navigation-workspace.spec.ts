@@ -1,10 +1,16 @@
 import {test,expect,type Page} from '@playwright/test';
 import {chooseSelectOption} from './select-helpers';
 import AxeBuilder from '@axe-core/playwright';
-async function open(page:Page){await page.goto('/playground/navigation');await expect(page.getByRole('complementary',{name:'Global navigation',exact:true})).toBeVisible();await page.evaluate(()=>document.fonts.ready);}
+async function open(page:Page, hash = ''){
+  const viewport = page.viewportSize();
+  if (viewport && viewport.width < 640) await page.setViewportSize({ ...viewport, width: 640 });
+  await page.goto('/playground/navigation' + hash);
+  await expect(page.getByRole('complementary',{name:'Global navigation',exact:true})).toBeVisible();
+  await page.evaluate(()=>document.fonts.ready);
+}
 
 test('page search finds available destinations and reveals the selected branch',async({page})=>{
-  await page.goto('/playground/navigation#labs/projects/all');
+  await open(page, '#labs/projects/all');
   await page.getByRole('button',{name:'Collapse Product delivery',exact:true}).click();
   const trigger=page.getByRole('button',{name:'Go to page',exact:true});
   await trigger.click();
@@ -102,11 +108,33 @@ test('workspace switching from the account menu restores route, branches and foc
 });
 
 test('full viewport workspaces do not reserve an unused document scrollbar strip',async({page})=>{
-  await open(page);
+  await page.goto('/playground/navigation');
+  await expect(page.getByRole('heading', { name: 'All projects', exact: true })).toBeVisible();
   const measure=()=>page.evaluate(()=>({width:innerWidth,root:document.documentElement.getBoundingClientRect().width,scroll:document.documentElement.scrollHeight,height:innerHeight}));
   for(const profile of ['Rail + context','Sidebar']){
     await page.getByRole('radio',{name:profile,exact:true}).check();
     const bounds=await measure();expect(Math.abs(bounds.width-bounds.root)).toBeLessThan(1);expect(bounds.scroll).toBeLessThanOrEqual(bounds.height+1);
+  }
+});
+
+test('both workspace layouts move navigation into a drawer when content is narrow', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 760 });
+  await page.goto('/playground/navigation');
+  const navigation = page.getByRole('button', { name: 'Navigation', exact: true });
+  const drawer = page.getByRole('dialog', { name: 'Workspace navigation' });
+  for (const layout of ['Rail + context', 'Sidebar']) {
+    await page.getByRole('radio', { name: layout, exact: true }).check();
+    await expect(navigation).toBeVisible();
+    const content = page.getByRole('main');
+    expect((await content.boundingBox())!.width).toBeGreaterThan(280);
+    await navigation.click();
+    await expect(drawer).toBeVisible();
+    await drawer.getByRole('link', { name: 'Files', exact: true }).click();
+    await expect(drawer).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'All files', exact: true })).toBeFocused();
+    await navigation.click();
+    await drawer.getByRole('link', { name: 'Projects', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'All projects', exact: true })).toBeFocused();
   }
 });
 
@@ -174,7 +202,7 @@ test('global location contextual page and explicit pane visibility are independe
   await page.goBack();await expect(page).toHaveURL(/#projects\/active$/);
 });
 
-test('modified links retain browser ownership and classic mode reuses routes',async({page})=>{
+test('modified links retain browser ownership and classic mode reuses routes',async({page},info)=>{
   await open(page);
   const rail=page.getByRole('complementary',{name:'Global navigation',exact:true});
   const files=rail.getByRole('link',{name:'Files',exact:true});
@@ -192,7 +220,8 @@ test('modified links retain browser ownership and classic mode reuses routes',as
   await expect(page.getByRole('heading',{name:'All projects',exact:true})).toBeVisible();
   await page.getByRole('radio',{name:'Sidebar',exact:true}).check();
   await expect(rail).toHaveCount(0);
-  const narrow=(page.viewportSize()?.width??0)<480;
+  const narrow = info.project.name === 'mobile';
+  if (narrow) await page.setViewportSize({ width: 390, height: 844 });
   if(narrow)await page.getByRole('button',{name:'Navigation',exact:true}).click();
   const sidebar=page.getByRole(narrow?'dialog':'complementary',{name:'Workspace navigation',exact:true});
   await sidebar.getByRole('link',{name:'Files',exact:true}).click();await expect(page).toHaveURL(/#files\/all$/);
@@ -238,7 +267,7 @@ test('project filters stay scoped across modules and archived is a reachable All
 });
 
 test('disappearing actions and dialog triggers restore a stable heading without stealing surviving focus',async({page})=>{
-  await page.goto('/playground/navigation#inbox/unread');
+  await open(page, '#inbox/unread');
   const heading=page.getByRole('heading',{name:'Unread',exact:true});
   await page.getByRole('button',{name:'Mark all as read',exact:true}).focus();
   await page.keyboard.press('Enter');await expect(heading).toBeFocused();

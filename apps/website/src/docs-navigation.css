@@ -1,0 +1,63 @@
+.guide-navigation {
+  padding-block-end: var(--flood-sys-space-1);
+}
+
+.guide-navigation-scroll {
+  max-block-size: calc(100svh - 9rem);
+}
+
+.guide-navigation .flood-navigation-item:not([data-current]) {
+  color: var(--flood-sys-color-content-default);
+}
+
+.guide-navigation .guide-components-link {
+  inline-size: 100%;
+  justify-content: flex-start;
+  text-align: start;
+}
+
+.guide-mobile-navigation,
+.flood-root .guide-outline-mobile {
+  display: none;
+}
+
+.guide-outline-scroll {
+  max-block-size: calc(100svh - 6rem);
+}
+
+.guide-outline-links .flood-link {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 75rem) {
+  .flood-root .guide-outline-mobile {
+    display: block;
+    margin-block-end: var(--flood-sys-space-6);
+  }
+
+  .guide-outline-mobile .guide-outline-links > .flood-stack {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 50rem) {
+  .guide-mobile-navigation {
+    display: block;
+    margin-block-end: var(--flood-sys-space-4);
+  }
+}
+
+@media (scripting: none) and (max-width: 75rem) {
+  .flood-root .guide-outline-mobile { display: none; }
+  .guide-outline { display: block; position: static; margin-block-start: var(--flood-sys-space-6); }
+}
+
+@media (scripting: none) and (max-width: 50rem) {
+  .guide-mobile-navigation { display: none; }
+  .desktop-sidebar:has(.guide-navigation) {
+    display: block;
+    position: static;
+    margin-block-end: var(--flood-sys-space-6);
+  }
+  .guide-navigation-scroll { max-block-size: 12rem; }
+}

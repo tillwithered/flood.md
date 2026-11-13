@@ -69,6 +69,29 @@ button provides the keyboard entry. Keep checkbox, links and menus independent.
 For a real destination, preserve a Link. Use the table toolbar and matching
 edge inset when the heading, filters, cells and footer share one surface.
 
+For transient selection commands, look up `recipe:collection-views` in the
+installed catalog. For a full-window record workspace with a changing row count,
+use `AppShell scroll="content" scrollOrientation="vertical"` as the vertical
+scroll owner, including when the page has no app chrome. Keep fixed actions
+outside that ScrollArea. Test a populated view and a filtered or empty view in a
+browser with space-reserving scrollbars. Compare the table's inline edges
+and the document's client width across those views.
+
+Place BulkActionBar in a fixed host centered near the bottom
+of the viewport. Keep the host outside the table toolbar. Budget any needed
+bottom clearance in the base layout so selecting rows preserves both the table
+position and the scroll height. Use `showSelection={false}` when BulkActionBar displays the count.
+The table still announces selection and can show its result range and pagination.
+When a bordered Surface wraps a flush table, apply `overflow: clip` to that
+frame. Keep horizontal scrolling on the table's own ScrollArea. Verify the
+outline at both lower corners with a visible footer and check keyboard focus at
+the frame's edges.
+
+If a detail table's total summarizes its rows, put it in Table's `tfoot`. Use a
+row header for the label and align the amount with the corresponding numeric
+column. The existing footer border separates it from the last item. Use an
+external summary when its scope includes data beyond the table.
+
 Give a queue's summaries only the prominence they earn in the task. If a
 count changes which work to pick up, make the relevant scope clear. If the
 table already exposes the decision, compare a quiet inline count with a

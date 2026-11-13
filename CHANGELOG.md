@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.12 — Data tables and Studio
+
+- Add DataTable column visibility and layout reset, pointer and keyboard resizing,
+  logical edge pinning, and expandable row details. Keep constrained headers
+  on one line and support unit badges and full-label tooltips.
+- Add bounded table scrolling with optional sticky headers. Place Columns
+  beside search and filters through CollectionToolbar.actions.
+- Add Sparkline for compact trends with an optional shared scale and an area
+  gradient. Use a compact floating Editable field for budget edits so the
+  table keeps its geometry during editing.
+- Add Sheet for touch-friendly choices and short tasks. Improve the mobile
+  Studio catalog and reference panels, and restore the home wordmark.
+- Refine vertical toolbars, disclosure spacing, surface feedback and collection
+  layout guidance. Extend the shipped agent rules and component references.
+
 ## 0.2.11 — Studio, navigation and motion
 
 - Open every component in the full-window Studio with a searchable catalog,

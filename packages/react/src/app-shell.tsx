@@ -14,7 +14,7 @@ export const ApplicationTopBar = /* @__PURE__ */ forwardRef<HTMLElement, AppTopB
 
 export const ApplicationShell = /* @__PURE__ */ forwardRef<HTMLDivElement, AppShellProps>(function ApplicationShell({
   navigation, navigationSide, navigationDrawer, topBar, footer, scroll, mainId, mainAs: Main = "main", mainLabel, mainRef,
-  scrollLabel, scrollOrientation = "both", skipLabel, children, className, ...props
+  scrollLabel, scrollOrientation = "both", scrollContentInset = "scrollbar", skipLabel, children, className, ...props
 }, ref) {
   const generatedId = useId();
   const contentId = mainId ?? `flood-app-${generatedId}`;
@@ -80,7 +80,7 @@ export const ApplicationShell = /* @__PURE__ */ forwardRef<HTMLDivElement, AppSh
       {chrome}
       <Main ref={mainRef} id={contentId} aria-label={mainLabel} tabIndex={-1} className="flood-app-shell__main">
         {scroll === "content"
-          ? <ScrollArea orientation={scrollOrientation} aria-label={scrollLabel} className="flood-app-shell__scroll">{children}</ScrollArea>
+          ? <ScrollArea orientation={scrollOrientation} contentInset={scrollContentInset} aria-label={scrollLabel} className="flood-app-shell__scroll">{children}</ScrollArea>
           : children}
       </Main>
       {footer}

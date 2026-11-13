@@ -754,6 +754,7 @@
       "Use Button, IconButton, Toggle, native buttons/links and Menu triggers. Keep inputs, Select, Tabs and ToggleGroup outside this action-only toolbar.",
       "Arrows move focus without activation; Home/End jump to the ends. Disabled and hidden actions are skipped. One Tab entry is established after hydration; before JavaScript native child tab order remains.",
       "Horizontal arrows follow writing direction. Vertical arrows move between actions; open a vertical toolbar Menu with Enter/Space. Horizontal menus retain ArrowUp/Down opening.",
+      "A vertical pill centers its controls on one axis. Use consistently sized icon-only actions with accessible names. Use the rounded shape for a vertical group of labeled actions.",
       "loop defaults to true. Native div props/ref target the toolbar; preserve a meaningful label. Available in 0.2.4.",
       "shape defaults to rounded; pill uses the action radius and a horizontal single scrollable rail.",
       "variant=\"plain\" removes the material and outer inset for grouping peer controls; contained remains the default. Keyboard ownership is unchanged."
@@ -1072,6 +1073,19 @@
     ]
   },
   {
+    "slug": "sheet",
+    "name": "Sheet",
+    "group": "overlays",
+    "description": "A bottom-aligned modal for short tasks, navigation and touch-friendly choices.",
+    "code": "<Sheet title=\"Project settings\" trigger={props => <Button {...props}>Open settings</Button>}>\n  <Field label=\"Project name\">{control => <Input {...control} defaultValue=\"Flood\" />}</Field>\n</Sheet>",
+    "imports": ["Sheet", "Button", "Field", "Input"],
+    "notes": [
+      "Sheet shares Drawer's modal semantics, dismissal, focus restoration, scrollable body and optional footer. Its scrollbar fits in the panel padding. Placement is always bottom.",
+      "The panel grows with content up to its size limit. Keep actions that must remain visible in the footer and use ListBox for selectable options.",
+      "Use a sheet for touch navigation or short choices that benefit from a wider target. Anchored popovers and selects remain useful on desktop. Available in 0.2.12."
+    ]
+  },
+  {
     "slug": "copy-button",
     "name": "CopyButton",
     "group": "actions",
@@ -1193,6 +1207,19 @@
     ]
   },
   {
+    "slug": "sparkline",
+    "name": "Sparkline",
+    "group": "content",
+    "description": "A compact line or area chart for trends in a table cell, list or metric.",
+    "code": "<Sparkline label=\"Revenue rose from $8,000 to $12,000\" values={[8000, 8200, null, 9500, 11000, 12000]} domain={[0, 15000]} />",
+    "imports": ["Sparkline"],
+    "notes": [
+      "Give the graphic a label that communicates the metric and the trend. Set showLabel to make that label visible.",
+      "Use a shared domain for comparing magnitudes across rows. Null and nonfinite samples leave gaps in both the stroke and area.",
+      "The default area uses an accent stroke with a gradient below it. Choose variant line for stroke only and use semantic tones only when the data has a known interpretation."
+    ]
+  },
+  {
     "slug": "timeline",
     "name": "Timeline",
     "group": "content",
@@ -1248,6 +1275,7 @@
     "imports": ["AppShell", "AppTopBar", "PageHeader", "Text"],
     "notes": [
       "Content scrolling keeps navigation, top bar and footer outside the work scrollport. Use scroll=\"page\" for a document that scrolls as a whole.",
+      "Content mode uses Flood ScrollArea. Set scrollContentInset=\"none\" when existing workspace padding clears the overlay rails and the content width needs to stay fixed.",
       "Supply Sidebar for docked navigation. Set navigationDrawer with a shell-width threshold and Drawer content to swap automatically. Share accepted route and branch state between the two presentations.",
       "Use mainAs=\"section\" only when embedding a shell inside an existing main landmark."
     ]
@@ -1850,13 +1878,18 @@
     "slug": "data-table",
     "name": "DataTable",
     "group": "content",
-    "description": "A native data table with local sorting, page-scoped selection and pagination.",
+    "description": "A native data table with sorting, selection, pagination, column layout and expandable records.",
     "code": "<DataTable caption=\"Projects\" selectable pageSize={5}\n  columns={[{id:\"name\",label:\"Project\",sortable:true},{id:\"status\",label:\"Status\"},{id:\"members\",label:\"Members\",numeric:true}]}\n  rows={[{id:\"design\",label:\"Design system\",cells:{name:\"Design system\",status:\"Active\",members:12}}]} />",
     "notes": [
-      "Supply the complete client collection; remote/server pagination and virtualization are not part of this API.",
+      "Supply the complete collection in client mode. Server mode accepts one page with controlled page and totalRows, and controlled sort when enabled.",
+      "Offer Columns when users need different subsets of fields. Pass its toolbar control into CollectionToolbar.actions alongside search and filters. Reset restores initial visibility and widths.",
+      "Opt in to resizable columns and logical start/end pinning for wider tables. Persist width and visibility preferences by column ID.",
+      "Keep headers short and use the optional column unit badge for values such as USD or kg. A constrained header remains on one line with its full accessible name.",
+      "Use expandedContent for short related details and a captioned Flood Table for nested line items. Use Sparkline for compact trend cells with a shared domain when comparing magnitudes.",
       "Select all affects selectable rows on the current page and preserves selection on other pages.",
       "Use sortValues for rich React cells; missing values sort last in both directions.",
       "Use showResults={false} to omit a redundant result range. Selection feedback and pagination remain, and the footer disappears when it has no other content.",
+      "Use showSelection={false} when a floating BulkActionBar displays the selected count. The table retains its accessible selection status.",
       "Set column.numeric for comparable amounts and quantities. Header and cells align to the logical end with tabular figures, while explicit align takes precedence. Keep numeric identifiers as text and provide raw sortValues for localized amounts.",
       "For in-place record details, supply row.primaryAction with the identity column, title, optional description and native button props. Pointer activation extends across the row, while keyboard focus lands on the title button. Secondary controls retain their own behavior.",
       "Use toolbar for the heading and filters that share the table surface. Set inset to roomy for a shared outer inset on toolbar, table cells and footer.",
@@ -2099,7 +2132,7 @@
       "filterContent supplies the existing filter editor, including FilterGroup or a project-specific form. The host retains draft validation, Apply/Cancel, query evaluation, persistence and saved views. filtersOpen/onFiltersOpenChange optionally control the existing Popover; filterPanelRef and filterPanelClassName support real panel focus and sizing.",
       "Clear keeps its space immediately before the right-anchored Filters trigger while inactive. Removing a summary or clearing returns focus to Filters, or Search when no panel exists. Filter disclosure is omitted when no filterContent is supplied.",
       "quickFilters is an optional slot for at most two task-important properties; larger property sets belong inside filterContent. The host owns the threshold and slot behavior. Supply canClear when active state is not represented by searchValue/appliedFilters, such as controls in that slot.",
-      "Search, accepted summaries and commands share a responsive row; long summaries can wrap without clipping and the filter action remains at the logical end. Saved-view selectors and save/rename actions stay outside this query row.",
+      "Search, accepted summaries and commands share a responsive row. The actions slot places table commands, such as Columns, next to Filters. Saved-view selectors and save/rename actions stay outside this query row.",
       "controlSize defaults to sm; action/field sizes and chip typography follow the shared family. disabled applies to the complete fieldset, including native quick-filter controls and panel descendants. Labels and summaries remain host-localizable."
     ]
   },

@@ -146,7 +146,7 @@ export function RecordManagement() {
           <Surface elevation="raised" padding="4">
             <ScrollArea ref={list} role="region" aria-label="Request results" style={{maxBlockSize: "22rem"}}>
               {results.length > 0
-                ? <DataList aria-label="Requests">
+                ? <DataList aria-label="Requests" className="request-results">
                   {results.map(record => <DataListItem
                     key={record.id}
                     title={record.title}

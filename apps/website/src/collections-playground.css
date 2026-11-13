@@ -2,16 +2,35 @@
 .collection-view-controls { min-inline-size:0; }
 .flood-root .collection-filter-editor { inline-size:min(42rem,calc(100vw - 2rem)); }
 
+.collection-projects {
+  --collection-selection-inset: max(var(--flood-sys-space-4), env(safe-area-inset-bottom));
+  --collection-selection-control-height: var(--flood-sys-control-sm-height);
+  --collection-selection-height: calc(var(--collection-selection-control-height) + 2 * (var(--flood-sys-space-1) + var(--flood-sys-stroke-width)));
+  padding-block-end: calc(var(--collection-selection-inset) + var(--collection-selection-height) + var(--flood-sys-space-2));
+}
+
+@media (pointer: coarse) {
+  .collection-projects {
+    --collection-selection-control-height: max(var(--flood-sys-control-sm-height), var(--flood-sys-size-touch));
+  }
+}
+
+.collection-table-frame {
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  overflow: clip;
+}
+
 .collection-selection-panel {
   position: fixed;
   inset-inline: 0;
-  inset-block-end: max(var(--flood-sys-space-4), env(safe-area-inset-bottom));
+  inset-block-end: var(--collection-selection-inset);
   margin-inline: auto;
   inline-size: min(26rem, calc(100% - 2 * var(--flood-sys-space-4)));
   max-inline-size: calc(100% - 2 * var(--flood-sys-space-4));
   z-index: var(--flood-sys-layer-sticky);
 }
 
-.collection-projects[data-selected="true"] {
-  padding-block-end: calc(var(--collection-selection-height, 0px) + 2 * var(--flood-sys-space-4) + env(safe-area-inset-bottom));
+.flood-root .collection-selection-panel + .flood-toast-region {
+  inset-block-end: calc(var(--collection-selection-inset) + var(--collection-selection-height) + var(--flood-sys-space-2));
+  max-block-size: calc(100dvh - var(--collection-selection-inset) - var(--collection-selection-height) - var(--flood-sys-space-6));
 }

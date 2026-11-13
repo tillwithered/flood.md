@@ -8,6 +8,9 @@ test.describe("readable without JavaScript", () => {
     await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Docs", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Introduction");
     await expect(page.locator(".markdown-content")).not.toBeEmpty();
+    const sections = page.getByRole("navigation", { name: "Documentation sections" });
+    await sections.getByRole("link", { name: "Installation", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Installation");
     await page.goto("/components/button");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Button");
     await expect(page.getByRole("heading", { name: "API reference", exact: true })).toBeVisible();
@@ -31,7 +34,7 @@ test("hydration retains document semantics, interactions and anchors", async ({ 
   await expect(page.locator(".preview-stage").getByRole("button", { name: "Save changes" })).toBeDisabled();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await page.locator(".preview-stage").getByRole("button", { name: "Save changes" }).click();
-  await expect(page.locator(".preview-stage").getByRole("status")).toContainText("Action completed locally.");
+  await expect(page.locator(".workbench-feedback")).toContainText("Action completed locally.");
   await page.goto("/docs/installation#updates-from-011");
   await expect(page.locator("html")).toHaveCSS("scroll-behavior", "auto");
   await page.evaluate(() => document.fonts.ready);

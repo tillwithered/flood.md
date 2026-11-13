@@ -1,10 +1,5 @@
 # Motion
 
-`PageHeader` stays static. Its actions keep their own Flood interaction feedback,
-and container reflow does not animate the title or move focus.
-`AppShell` and `AppTopBar` do not animate layout or scroll position. Sidebar
-and Drawer own their own transitions.
-
 Flood uses short motion to show where an interface changed. Motion follows the
 component's own state and respects the operating system's reduced-motion preference.
 
@@ -43,10 +38,11 @@ behavior of their children. State updates and focus take effect immediately.
 | `FloodRoot` | Applies the motion preference to its scope. Preference changes are immediate. |
 | `Text`, `Heading`, `Kbd`, `VisuallyHidden`, `Blockquote`, `InlineCode`, `IconSlot`, `Label` | Static text and artwork. The containing control owns feedback. |
 | `Stack`, `Inline`, `Surface`, `Divider`, `Container`, `Grid`, `AspectRatio`, `Section`, `Split`, `Center`, `Fieldset` | Stable layout. Children own any appearance or interaction feedback. |
+| `PageHeader`, `AppShell`, `AppTopBar` | Titles, layout and scroll position stay stable during reflow. Actions, Sidebar and Drawer own their interaction feedback. |
 | `ScrollArea`, `ResizablePanels`, `Slider` | Direct pointer tracking. Only scrollbar hover paint eases. Resize, scroll and slider positions stay under the pointer. |
 | `Button`, `IconButton`, `Toggle`, `CopyButton` | Hover paint and short press compression. Toggle holds selected paint. Copy shows its result glyph without resizing the button. |
 | `ButtonGroup`, `ToggleGroup`, `Toolbar`, `OverflowActions`, `BulkActionBar`, `Menubar` | Actions inherit Button and Menu feedback. Joined button surfaces keep their geometry. Bulk actions fade in when available. |
-| `CommandList`, `ListBox`, `Tree`, `NavigationItem`, `NavigationList`, `NavigationTree`, `NavigationGroup`, `Sidebar` | Row paint, disclosure glyphs and optional flyouts. NavigationTree fades in branch content in place and removes it immediately on collapse. Sidebar eases between expanded and rail widths. Focus, route and tree reflow update immediately. |
+| `CommandList`, `ListBox`, `Tree`, `NavigationItem`, `NavigationList`, `NavigationTree`, `NavigationGroup`, `Sidebar` | Row paint, disclosure glyphs and optional flyouts. NavigationTree fades in branch content in place and removes it immediately on collapse. Sidebar eases between expanded and rail widths and truncates its row text to keep it on one line. Its toggle shows a filled keyboard focus state, with the system outline in forced colors. Focus, route and tree reflow update immediately. |
 | `Link`, `Breadcrumb`, `Pagination`, `SkipLink`, `Steps` | Navigation is immediate. Button-style actions and step rows can ease their paint. Skip links appear immediately on focus. |
 | `Tabs`, `SegmentedControl` | Selected paint and, for line tabs, an arriving indicator. Tabs reveal the visible panel with a short fade while selection and focus update immediately. |
 | `Field`, `Input`, `Textarea`, `InputGroup`, `SearchInput`, `PasswordInput`, `NumberInput`, `PinInput`, `DateField`, `TimeField`, `DateRangeField`, `Editable`, `CharacterCount` | Field hover paint and inherited action feedback. Typing, caret, counts, validation and edit-mode focus are immediate. |
@@ -57,13 +53,14 @@ behavior of their children. State updates and focus take effect immediately.
 | `Collapsible`, `Accordion` | Keep the header flush on press, rotate the centered disclosure mark and reveal panel content. Closing immediately hides the panel and restores focus where needed. |
 | `CodeSnippet`, `Card`, `DataList`, `DataListItem`, `FileItem`, `FileList`, `AvatarGroup` | Embedded actions and avatars own motion. Reading order and record layout remain stable. |
 | `Badge`, `DescriptionList`, `Table`, `Image`, `List`, `Figure`, `Metric`, `Timeline`, `ColorSwatch`, `FileMeta` | Static content. Changes to data, labels and supporting media render immediately. |
+| `Sparkline` | Hover briefly strengthens the latest point and area. Data changes render immediately. |
 | `Avatar` | Loaded image eases in within a fixed frame. Fallback text is immediately available. |
-| `DataTable` | Selected row paint and sort chevron rotation. Sorting, pagination and table geometry update immediately. |
-| `Tooltip`, `Popover`, `Menu`, `ContextMenu`, `HoverCard`, `CommandPalette`, `Dialog`, `AlertDialog`, `Drawer`, `ImagePreview` | Anchored entrances follow placement. Modal and edge panels have their own timing. Controls, focus, close and positioning retain their native behavior. |
+| `DataTable` | Selected row paint, chevron rotation and a short height transition for row details. Sorting, pagination and column resize update geometry immediately. |
+| `Tooltip`, `Popover`, `Menu`, `ContextMenu`, `HoverCard`, `CommandPalette`, `Dialog`, `AlertDialog`, `Drawer`, `Sheet`, `ImagePreview` | Anchored entrances follow placement. Modal and edge panels have their own timing. Sheet uses the bottom Drawer entrance. Controls, focus, close and positioning retain their native behavior. |
+| `Spinner`, `Skeleton`, `Progress`, `Meter`, `ToastRegion`, `UploadItem`, `UploadList` | Busy indicators and value fill. A floating toast enters as a card from its placement edge; an inline toast fades in place. Upload compositions inherit the progress and action recipes. Announcements and final values are immediate. |
+| `Alert`, `EmptyState`, `StatusIndicator`, `ErrorSummary` | State and message changes are immediate. Embedded actions keep Button feedback. |
 
 Menu, ContextMenu and title-only navigation flyouts fade in and out where
 discrete top-layer transitions are supported. Dismissal releases focus and
 pointer interaction immediately. When a sibling navigation flyout takes over
 the same rail position, the outgoing panel yields immediately.
-| `Spinner`, `Skeleton`, `Progress`, `Meter`, `ToastRegion`, `UploadItem`, `UploadList` | Busy indicators, value fill and floating toast arrivals. Upload compositions inherit the progress and action recipes. Announcements and final values are immediate. |
-| `Alert`, `EmptyState`, `StatusIndicator`, `ErrorSummary` | State and message changes are immediate. Embedded actions keep Button feedback. |
