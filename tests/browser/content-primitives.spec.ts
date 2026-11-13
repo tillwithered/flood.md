@@ -3,7 +3,11 @@ import AxeBuilder from "@axe-core/playwright";
 import { chooseSelectOption } from "./select-helpers";
 
 async function documentBox(locator: Locator) {
-  return locator.evaluate(el => { const r=el.getBoundingClientRect(); return {x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height}; });
+  return locator.evaluate(el => {
+    const r=el.getBoundingClientRect();
+    const viewport=el.closest(".site-page-scroll");
+    return {x:r.x+(viewport?.scrollLeft??scrollX),y:r.y+(viewport?.scrollTop??scrollY),width:r.width,height:r.height};
+  });
 }
 
 test("content board composes named and decorative primitives without overflow", async ({ page }, info) => {

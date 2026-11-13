@@ -45,7 +45,9 @@ test("Select sizing, invalid, focus and disabled states share the field geometry
     }
     const layoutBox = () => select.evaluate(node => {
       const rect = node.getBoundingClientRect();
-      return { x: rect.x + scrollX, y: rect.y + scrollY, width: rect.width, height: rect.height };
+      const canvas = node.closest(".preview-stage")!;
+      const frame = canvas.getBoundingClientRect();
+      return { x: rect.x - frame.x + canvas.scrollLeft, y: rect.y - frame.y + canvas.scrollTop, width: rect.width, height: rect.height };
     });
     const before = await layoutBox();
     await page.keyboard.press("Tab");

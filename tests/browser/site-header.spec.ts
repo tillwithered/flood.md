@@ -88,6 +88,8 @@ test("deep links and Studio use the page and preview ScrollAreas independently",
   await expect(canvas.locator("..").locator(":scope > .flood-scroll-area__track")).toHaveCount(0);
   if(info.project.name!=="mobile") return;
   await page.goto("/components/data-table");
+  await canvas.evaluate(node=>{node.style.blockSize="12rem";});
+  await expect.poll(()=>canvas.evaluate(node=>node.scrollHeight-node.clientHeight)).toBeGreaterThan(0);
   await expect(canvas.locator("..").locator(":scope > .flood-scroll-area__track--vertical")).toBeVisible();
   await expect(canvas).toHaveCSS("scrollbar-width","none");
   await page.getByRole("button",{name:"Reference Alt R"}).click();
