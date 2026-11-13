@@ -8,6 +8,7 @@ FROM node:24-alpine
 ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=build --chown=node:node /app/apps/website/dist ./apps/website/dist
+COPY --from=build --chown=node:node /app/apps/website/dist-server ./apps/website/dist-server
 COPY --from=build --chown=node:node /app/apps/website/server.mjs ./apps/website/server.mjs
 COPY --from=build --chown=node:node /app/apps/website/visitors.mjs ./apps/website/visitors.mjs
 COPY --from=build --chown=node:node /app/apps/website/routes.mjs ./apps/website/routes.mjs

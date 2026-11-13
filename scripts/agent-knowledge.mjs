@@ -102,7 +102,7 @@ export async function buildAgentKnowledge() {
   ]);
   const {docPages} = await import('../apps/website/routes.mjs');
   const components = await Promise.all(generated.components.map(async item => ({...item, markdown: await readFile(`apps/website/public/components/${item.slug}.md`, 'utf8')})));
-  const documents = docPages.map(page => ({...page, content: generated.docs[page.file]}));
+  const documents = docPages.filter(page => !page.websiteOnly).map(page => ({...page, content: generated.docs[page.file]}));
   const sources = Object.fromEntries(await Promise.all(manifest.files.filter(item => ['skill','reference','contract','rules'].includes(item.kind)).map(async item => [item.source, await readFile('packages/agent/' + item.source, 'utf8')])));
   const {catalog, bodies} = await compileAgentKnowledge({version: pkg.version, definition, manifest, workflows, components, documents, tokens: tokenManifest, sources});
   const target = resolve('packages/agent/dist/materials'), workspace = resolve('.');

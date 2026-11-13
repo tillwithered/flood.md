@@ -1,0 +1,10 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "flood": {
+      "type": "streamable-http",
+      "url": "https://flood.md/mcp",
+      "extensions": { "com.openai": { "auth": { "type": "none" } } }
+    }
+  }
+}

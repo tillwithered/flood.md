@@ -1,5 +1,6 @@
 node_modules/
 dist/
+apps/website/dist-server/
 .next/
 .backups/
 .artifacts/

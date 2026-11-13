@@ -11,6 +11,7 @@ export const docPages = [
     shareImage: { path: "/charts-share.png", alt: "Flood charts with a request latency line chart, histogram and box plot", width: 1200, height: 630 } },
   { path: "/docs/theming", label: "Customization", file: "theming.md", description: "Adapt semantic roles to your project." },
   { path: "/docs/agents", label: "Agent guide", file: "agents.md", description: "Give your agent the matching design instructions." },
+  { path: "/docs/mcp", label: "MCP", file: "mcp.md", description: "Connect an agent to Flood's public component catalog, tokens and skills.", websiteOnly: true },
   { path: "/docs/skills", label: "Skills", file: "skills.md", description: "Task-focused agent workflows for composing and verifying the dark base." },
   { path: "/docs/interface-content", label: "Interface content", file: "interface-content.md", description: "Purposeful interface copy, information hierarchy and contextual reference adaptation." },
   { path: "/docs/agent-knowledge", label: "Agent knowledge", file: "agent-knowledge.md", description: "Versioned discovery, selected reading and knowledge growth safeguards." },

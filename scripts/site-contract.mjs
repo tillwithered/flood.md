@@ -30,6 +30,7 @@ async function regularTree(directory) {
 
 export async function prepareSiteBundle() {
   await regularTree(join(website, 'dist'));
+  await regularTree(join(website, 'dist-server'));
   await mkdir(join(workspace, '.artifacts'), { recursive: true });
   const directory = await mkdtemp(join(workspace, '.artifacts/website-runtime-'));
   const target = join(directory, 'apps/website');
@@ -37,6 +38,7 @@ export async function prepareSiteBundle() {
   for (const file of ['server.mjs', 'routes.mjs', 'visitors.mjs']) await cp(join(website, file), join(target, file));
   await cp(join(website, 'src/component-catalog.json'), join(target, 'src/component-catalog.json'));
   await cp(join(website, 'dist'), join(target, 'dist'), { recursive: true });
+  await cp(join(website, 'dist-server'), join(target, 'dist-server'), { recursive: true });
   await writeFile(join(directory, 'Dockerfile'), 'FROM node:24-alpine\nENV NODE_ENV=production\nWORKDIR /app\nCOPY --chown=node:node apps/website ./apps/website\nUSER node\nEXPOSE 4173\nCMD ["node", "apps/website/server.mjs"]\n');
   return directory;
 }
@@ -85,7 +87,44 @@ export async function verifySite(base, { expectedCommit, expectedVersion, expect
   if (missing.status !== 404) throw new Error('Missing documentation must return 404');
   const rejected = await fetch(new URL('/', origin), { method: 'POST', redirect: 'error' });
   if (rejected.status !== 405) throw new Error('Static runtime accepted an unsupported method');
+  await verifyIntegrations(origin, metadata.version);
   return metadata;
+}
+
+async function verifyIntegrations(origin, version) {
+  const endpoint = new URL('/mcp', origin);
+  const rpc = async (method, params = {}, protocolVersion) => {
+    const response = await fetch(endpoint, {
+      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(10000),
+      headers: {
+        'content-type': 'application/json', accept: 'application/json, text/event-stream',
+        ...(protocolVersion ? { 'mcp-protocol-version': protocolVersion } : {}),
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    });
+    if (response.status !== 200) throw new Error('MCP ' + method + ' failed with HTTP ' + response.status);
+    const { result, error } = await response.json();
+    if (!result || result.isError || error) throw new Error('MCP ' + method + ' failed');
+    return result;
+  };
+  const session = await rpc('initialize', { protocolVersion: '2025-11-25', capabilities: {}, clientInfo: { name: 'flood-site-check', version: '1.0.0' } });
+  const protocol = session.protocolVersion;
+  if (!protocol || session.serverInfo?.name !== 'flood') throw new Error('MCP did not initialize');
+  const { tools } = await rpc('tools/list', {}, protocol);
+  if (tools.map(tool => tool.name).sort().join(',') !== 'flood_info,read_flood,search_flood' ||
+      tools.some(tool => tool.annotations?.readOnlyHint !== true)) throw new Error('Invalid public MCP tools');
+  const info = await rpc('tools/call', { name: 'flood_info', arguments: {} }, protocol);
+  if (info.structuredContent?.version !== version || !info.structuredContent?.materialCount) throw new Error('MCP catalog version differs');
+  const search = await rpc('tools/call', { name: 'search_flood', arguments: { kind: 'component', search: 'button', limit: 1 } }, protocol);
+  const id = search.structuredContent?.items?.[0]?.id;
+  if (id !== 'component:button' || !search.structuredContent.nextCursor) throw new Error('MCP catalog discovery failed');
+  const read = await rpc('tools/call', { name: 'read_flood', arguments: { id, length: 40 } }, protocol);
+  if (!read.structuredContent?.text?.startsWith('# Button') || read.structuredContent.nextOffset !== 40) throw new Error('MCP material read failed');
+  const denied = await fetch(endpoint, { method: 'POST', headers: { origin: 'https://untrusted.example' }, signal: AbortSignal.timeout(10000) });
+  if (denied.status !== 403) throw new Error('MCP accepted an untrusted origin');
+  const archive = await fetch(new URL('/flood-plugin.zip', origin), { redirect: 'error', signal: AbortSignal.timeout(10000) });
+  if (!archive.ok || !archive.headers.get('content-type')?.includes('application/zip') ||
+      Buffer.from(await archive.arrayBuffer()).readUInt32LE(0) !== 0x04034b50) throw new Error('Plugin archive is missing or invalid');
 }
 
 export async function checkLocalSite(directory, { expectedCommit } = {}) {

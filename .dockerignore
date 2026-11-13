@@ -5,6 +5,7 @@ node_modules
 .artifacts
 .superdesign
 **/dist
+**/dist-server
 **/.next
 .env*
 .npmrc

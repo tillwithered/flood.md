@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "flood",
+  "version": "0.1.0",
+  "description": "Find Flood components, design rules, tokens and skills for building interfaces.",
+  "author": { "name": "Flood", "url": "https://flood.md" },
+  "homepage": "https://flood.md/docs/mcp",
+  "repository": "https://github.com/tillwithered/flood.md",
+  "license": "MIT",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Flood",
+        "shortDescription": "Find Flood components, design rules and skills.",
+        "longDescription": "Search the public Flood design system. Read component APIs, tokens, recipes and design guidance with links to the source documentation.",
+        "category": "Developer Tools",
+        "websiteURL": "https://flood.md/docs/mcp",
+        "privacyPolicyURL": "https://flood.md/docs/mcp#privacy",
+        "logo": "./assets/flood-mark.png",
+        "composerIcon": "./assets/flood-mark.png"
+      }
+    }
+  }
+}
