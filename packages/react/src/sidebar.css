@@ -18,6 +18,13 @@
   justify-self:start;
   margin-inline-start:calc((var(--flood-sidebar-rail-width) - var(--flood-sys-stroke-width) - var(--flood-sidebar-row)) / 2 - var(--flood-sidebar-edge) - var(--flood-sys-space-3));
 }
+@media (forced-colors: none) {
+  .flood-root .flood-sidebar__toggle.flood-icon-button:focus-visible {
+    outline:none;
+    background:var(--flood-sys-color-selection-background);
+    color:var(--flood-sys-color-selection-content);
+  }
+}
 @media(pointer:coarse) {
   .flood-root .flood-sidebar { --flood-sidebar-rail-width:5rem; }
   .flood-root .flood-sidebar:not([data-collapsed="true"]) .flood-sidebar__toggle {
@@ -27,6 +34,12 @@
 .flood-root .flood-sidebar > .flood-scroll-area { flex:1; min-block-size:0; min-inline-size:0; }
 .flood-root .flood-sidebar__body { block-size:100%; min-block-size:0; min-inline-size:0; }
 .flood-root .flood-sidebar__navigation { padding-inline:var(--flood-sidebar-edge); }
+.flood-root .flood-sidebar__navigation :is(.flood-navigation-group__label,.flood-navigation-item__label,.flood-navigation-item__description) {
+  min-inline-size:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
 .flood-root .flood-sidebar__group-label { padding-inline:var(--flood-sys-space-3); }
 .flood-root .flood-sidebar__group[data-icon-column] .flood-navigation-group__label { padding-inline-start:calc(var(--flood-sys-space-3) + var(--flood-sidebar-icon) + var(--flood-sys-space-2)); }
 .flood-root .flood-sidebar__footer { display:flex; flex-direction:column; align-items:stretch; gap:var(--flood-sys-space-1); flex:none; min-inline-size:0; padding-block-start:var(--flood-sys-space-3); padding-inline:var(--flood-sidebar-edge); }

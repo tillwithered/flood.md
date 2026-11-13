@@ -16,7 +16,7 @@ test("home stays focused and navigation exposes documentation and GitHub", async
   await page.screenshot({ path: `.artifacts/docs-home-${info.project.name}.png`, fullPage: true });
   await nav.getByRole("link", { name: "Docs", exact: true }).click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Introduction");
-  await expect(page.getByRole("button", { name: "Copy for agent", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy for agent", exact: true })).toHaveCount(0);
   await expect(page.getByRole("group", { name: "Page format" })).toHaveCount(0);
 });
 
@@ -51,21 +51,22 @@ test("component code, clipboard, local interactions and mobile navigation work",
   await page.goto("/components/button");
   await expect(page).toHaveTitle("Button — flood.md");
   await expect(page.locator("#usage .site-code-block code")).toContainText('from "@flood-md/react"');
-  await page.getByRole("button", { name: "Copy for agent", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Copy for agent", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Reference Alt R", exact: true }).click();
+  await page.getByRole("dialog", { name: "Component reference" }).getByRole("button", { name: "Copy for agent", exact: true }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("# Button");
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain(new URL("/agent/SKILL.md", page.url()).href);
-  await page.getByRole("button", { name: "Reference Alt R", exact: true }).click();
   await page.locator("#usage").getByRole("button", { name: "Copy code" }).click();
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toContain("export function Example()");
   await page.keyboard.press("Escape");
   if (info.project.name === "mobile") {
     await page.getByRole("button", { name: "Components", exact: true }).click();
-    await page.locator("#studio-catalog").getByRole("link", { name: "Checkbox", exact: true }).click();
+    await page.getByRole("dialog", { name: "Components" }).getByRole("link", { name: "Checkbox", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Checkbox");
   }
   await page.goto("/components/icon-button");
   await page.getByRole("button", { name: "Add idea", exact: true }).click();
-  await expect(page.locator(".preview-stage").getByRole("status")).toContainText("Action completed locally.");
+  await expect(page.locator(".workbench-feedback")).toContainText("Action completed locally.");
   await page.goto("/components/field");
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Project name" })).toHaveAttribute("aria-invalid", "true");
@@ -98,4 +99,48 @@ test("docs reflow with enlarged text and retain active-page and heading semantic
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Installation");
   await expect(page.locator(".markdown-content a[href='/components']").first()).toBeVisible();
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test("studio properties leave component names readable at tablet widths", async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 900 });
+  await page.goto("/components/date-range-picker");
+  const heading = page.getByRole("heading", { name: "DateRangePicker", exact: true });
+  await expect(heading).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await expect.poll(() => heading.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+  await expect(page.getByRole("region", { name: "Preview properties" })).toBeVisible();
+
+  await page.goto("/components/app-shell");
+  const properties = page.getByRole("region", { name: "Preview properties" });
+  await page.evaluate(() => document.fonts.ready);
+  await expect.poll(() => properties.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+  const showFooter = properties.getByRole("checkbox", { name: "AppShell prop showFooter" });
+  await expect(showFooter).toBeInViewport({ ratio: 1 });
+  await showFooter.check();
+  await expect(page.getByRole("region", { name: "Preview canvas" }).getByText("All changes saved", { exact: true })).toBeVisible();
+});
+
+test("phone previews show the component before its wrapping properties", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto("/components/overflow-actions");
+  const preview = page.getByRole("region", { name: "Preview canvas" });
+  const properties = page.getByRole("region", { name: "Preview properties" });
+  const reference = page.getByRole("button", { name: "Reference Alt R" });
+  await expect(preview.getByRole("button", { name: "More actions" })).toBeVisible();
+  const [canvas, referenceButton, controls] = await Promise.all([preview.boundingBox(), reference.boundingBox(), properties.boundingBox()]);
+  expect(canvas!.y + canvas!.height).toBeLessThan(referenceButton!.y);
+  expect(referenceButton!.y + referenceButton!.height).toBeLessThan(controls!.y);
+  expect(await properties.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
+  await reference.click();
+  await expect(page.getByRole("dialog", { name: "Component reference" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(reference).toBeFocused();
+  const catalog = page.getByRole("button", { name: "Components", exact: true });
+  await catalog.click();
+  const panel = page.getByRole("dialog", { name: "Components" });
+  await expect.poll(() => panel.evaluate(node => node.contains(document.activeElement))).toBe(true);
+  await expect(panel.getByRole("searchbox", { name: "Search components" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(catalog).toBeFocused();
 });

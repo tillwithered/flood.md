@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { componentSlugs } from "../../apps/website/routes.mjs";
-import { chooseSelectOption } from "./select-helpers";
+import { chooseSelectOption, chooseStudioSheetOption } from "./select-helpers";
 import { catalogCohort } from "../../scripts/ci-cohort.mjs";
 
 // Whole-catalog geometry complements component-specific interaction regressions.
@@ -78,7 +78,7 @@ test("coarse pointer controls retain usable adjacent targets in served pages",as
     const boxes=await buttons.evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height};}));
     for(const box of boxes)expect(box.h).toBeGreaterThanOrEqual(44);
     for(let i=1;i<boxes.length;i++)expect(boxes[i].x).toBeGreaterThanOrEqual(boxes[i-1].x+boxes[i-1].w-1);
-    await chooseSelectOption(page.getByRole("combobox",{name:"ButtonGroup prop content",exact:true}),"icons");
+    await chooseStudioSheetOption(page,"Content","icons");
     const iconBoxes=await page.locator(".workbench-stage .flood-icon-button").evaluateAll(nodes=>nodes.map(node=>{const r=node.getBoundingClientRect();return{w:r.width,h:r.height};}));
     for(const box of iconBoxes){expect(box.w).toBeGreaterThanOrEqual(44);expect(box.h).toBeGreaterThanOrEqual(44);}
     await page.goto((process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173") + "/components/checkbox-group");

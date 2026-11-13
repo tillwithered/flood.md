@@ -1,0 +1,59 @@
+.flood-root .flood-sparkline {
+  --flood-sparkline-color: var(--flood-sys-color-content-subtle);
+  --flood-sparkline-height: var(--flood-sys-space-8);
+  display: inline-grid;
+  gap: var(--flood-sys-space-1);
+  inline-size: 6rem;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  vertical-align: middle;
+}
+
+.flood-root .flood-sparkline[data-size="sm"] {
+  --flood-sparkline-height: var(--flood-sys-space-6);
+  inline-size: 5rem;
+}
+
+.flood-root .flood-sparkline[data-tone="success"] { --flood-sparkline-color: var(--flood-sys-color-feedback-success); }
+.flood-root .flood-sparkline[data-tone="accent"] { --flood-sparkline-color: var(--flood-sys-color-accent-content); }
+.flood-root .flood-sparkline[data-tone="warning"] { --flood-sparkline-color: var(--flood-sys-color-feedback-warning); }
+.flood-root .flood-sparkline[data-tone="error"] { --flood-sparkline-color: var(--flood-sys-color-feedback-error); }
+
+.flood-root .flood-sparkline__plot {
+  display: block;
+  inline-size: 100%;
+  block-size: var(--flood-sparkline-height);
+  color: var(--flood-sparkline-color);
+  overflow: visible;
+}
+
+.flood-root :is(.flood-sparkline__line, .flood-sparkline__point, .flood-sparkline__halo) {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.flood-root .flood-sparkline__line { stroke-width: calc(1.5 * var(--flood-sys-stroke-width)); }
+.flood-root .flood-sparkline__point { stroke-width: calc(3 * var(--flood-sys-stroke-width)); }
+.flood-root .flood-sparkline__point[data-latest] { stroke-width: calc(4 * var(--flood-sys-stroke-width)); }
+.flood-root .flood-sparkline__halo { stroke-width: calc(8 * var(--flood-sys-stroke-width)); opacity: .16; }
+.flood-root .flood-sparkline__area { opacity: .88; }
+.flood-root .flood-sparkline__label { overflow-wrap: anywhere; }
+
+@media (hover: hover) {
+  .flood-root .flood-sparkline:hover .flood-sparkline__halo { opacity: .34; }
+  .flood-root .flood-sparkline:hover .flood-sparkline__area { opacity: 1; }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .flood-root:not([data-flood-motion="reduce"]) :is(.flood-sparkline__halo, .flood-sparkline__area):not(:where([data-flood-motion="reduce"] *)) {
+    transition: opacity var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing);
+  }
+}
+.flood-root .flood-sparkline__empty { display: grid; place-items: center; min-block-size: var(--flood-sparkline-height); }
+
+@media (forced-colors: active) {
+  .flood-root .flood-sparkline__plot { color: CanvasText; }
+  .flood-root :is(.flood-sparkline__area, .flood-sparkline__halo) { display: none; }
+}

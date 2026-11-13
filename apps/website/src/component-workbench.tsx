@@ -1,21 +1,143 @@
 import { Fragment, createElement, useEffect, useId, useRef, useState, type ReactNode, type CSSProperties } from "react";
-import { House, Folder, Layers3, Bell, ChartNoAxesColumn, Settings, CircleHelp, ArrowRight, Copy, Plus, Undo2, Redo2, History, Bold, Italic, Underline, CalendarDays, CalendarRange, Calendar, Pencil, Archive, Trash2, Ellipsis } from "lucide-react";
+import { House, Folder, Layers3, Bell, ChartNoAxesColumn, Settings, CircleHelp, ArrowRight, Copy, Plus, Undo2, Redo2, History, Bold, Italic, Underline, Share2, CalendarDays, CalendarRange, Calendar, Pencil, Archive, Trash2, Ellipsis, ChevronDown } from "lucide-react";
 import * as Flood from "@flood-md/react";
 import type { ComponentPage } from "./component-catalog";
 import "./component-workbench.css";
 import { importStatements } from "../project-imports.mjs";
 import release from "./release.json";
-import { CopyButton } from "./code-block";
+import { phoneViewport, touchPhone, useStudioMedia } from "./studio-media";
 
 type Values = Record<string, string | boolean>;
 type Knob = { name: string; label?: string; options?: string[]; initial: string | boolean };
 type Binding = { expression: string; value: unknown };
-type ElementRecipe = { tag: string; props?: Record<string, unknown>; children?: Array<ElementRecipe | string | Binding>; field?: ElementRecipe; previewSlot?: CSSProperties };
+type ElementRecipe = { tag: string; props?: Record<string, unknown>; children?: Array<ElementRecipe | string | Binding>; field?: ElementRecipe; previewSlot?: CSSProperties; previewFeedback?: true; previewClassName?: string };
 const element = (tag: string, props: Record<string, unknown> = {}, ...children: Array<ElementRecipe | string | Binding>): ElementRecipe => ({ tag, props, children });
 const binding = (expression: string, value: unknown): Binding => ({ expression, value });
 const sizes = ["2xs", "xs", "sm", "md", "lg", "xl", "2xl"];
 const spaces = ["0", "1", "2", "3", "4", "6", "8", "12"];
 const variants = ["solid", "subtle", "outline", "ghost"];
+const projectTableColumns: Flood.DataTableColumn[] = [
+  { id: "name", label: "Project", sortable: true, hideable: false, pinned: "start", width: "10rem", resizable: true, minWidth: 120, maxWidth: 320 },
+  { id: "status", label: "Status", sortable: true },
+  { id: "members", label: "Members", numeric: true, sortable: true },
+  { id: "owner", label: "Owner", sortable: true, width: "8.5rem", resizable: true, minWidth: 88, maxWidth: 240 },
+  { id: "team", label: "Team", sortable: true, width: "6.5rem" },
+  { id: "priority", label: "Priority", sortable: true },
+  { id: "region", label: "Region", sortable: true },
+  { id: "budget", label: "Budget", unit: "USD", numeric: true, sortable: true },
+  { id: "trend", label: "5-week trend" },
+];
+const projectTableRows: Flood.DataTableRow[] = [
+  { id: "design", label: "Design system", cells: { name: "Design system", status: "Active", members: 12, owner: "Maya", team: "Design", priority: "High", region: "Global", budget: 12000 } },
+  { id: "website", label: "Website", cells: { name: "Website", status: "Active", members: 4, owner: "Noah", team: "Growth", priority: "Normal", region: "Europe", budget: 8000 } },
+  { id: "agents", label: "Agent guides", cells: { name: "Agent guides", status: "Draft", members: 2, owner: "Sam", team: "Content", priority: "Normal", region: "Global", budget: 4500 } },
+  { id: "mobile", label: "Mobile app", cells: { name: "Mobile app", status: "Draft", members: 8, owner: "Maya", team: "Product", priority: "High", region: "Asia", budget: 15000 } },
+  { id: "research", label: "Research", selectionDisabled: true, cells: { name: "Research", status: "Archived", members: 3, owner: "Sam", team: "Research", priority: "Low", region: "Europe", budget: 3000 } },
+  { id: "marketing", label: "Marketing", cells: { name: "Marketing", status: "Active", members: 6, owner: "Noah", team: "Growth", priority: "Normal", region: "Americas", budget: 7600 } },
+  { id: "support", label: "Support", cells: { name: "Support", status: "Active", members: 5, owner: "Sam", team: "Operations", priority: "High", region: "Global", budget: 6000 } },
+];
+const projectBudgetTrends: Record<string, number[]> = {
+  design: [7200, 8800, 8400, 10100, 12000],
+  website: [8400, 9200, 8900, 8600, 8000],
+  agents: [3500, 4000, 3900, 4400, 4500],
+  mobile: [10400, 11500, 13200, 12400, 15000],
+  research: [2900, 3000, 3100, 2900, 3000],
+  marketing: [6900, 7200, 7100, 7800, 7600],
+  support: [5200, 5900, 5800, 6100, 6000],
+};
+const milestoneRows = [
+  { name: "Foundations", due: "Oct 24", status: "Complete", tone: "success" },
+  { name: "Table components", due: "Nov 14", status: "In progress", tone: "accent" },
+  { name: "Documentation", due: "Nov 21", status: "Planned", tone: "neutral" },
+];
+const projectMilestones = element("Table", { caption: "Design system milestones", hideCaption: true, density: "compact" },
+  element("thead", {}, element("tr", {}, ...["Milestones", "Due", "Status"].map(label => element("th", { scope: "col" }, label)))),
+  element("tbody", {}, ...milestoneRows.map(({ name, due, status, tone }) =>
+    element("tr", {},
+      element("th", { scope: "row" }, name),
+      element("td", {}, due),
+      element("td", {}, element("StatusIndicator", { label: status, tone, size: "sm" })),
+    ),
+  )),
+);
+const budgetTrendLabel = (values: number[]) => `Five-week budget: USD ${values[0]} to ${values.at(-1)}`;
+const budgetFormat = new Intl.NumberFormat("en-US");
+const projectStatusTones = { Active: "success", Draft: "info", Archived: "neutral" } as const;
+const projectOwners = ["Maya", "Noah", "Sam"];
+type ProjectEditField = "budget" | "status" | "owner";
+type ProjectEdits = Record<string, Partial<Record<ProjectEditField, string>>>;
+const budgetError = "Enter a non-negative amount with up to two decimal places.";
+function parseProjectBudget(value: string) {
+  const amount = value.trim();
+  return /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?$/.test(amount)
+    ? Number(amount.replaceAll(",", ""))
+    : NaN;
+}
+const projectRowsForPreview = (longList: boolean): Flood.DataTableRow[] => longList ? [
+  ...projectTableRows,
+  ...projectTableRows.map(row => ({
+    ...row, id: `${row.id}-next`, label: `${row.label} · Q2`, cells: { ...row.cells, name: `${row.label} · Q2` },
+  })),
+] : projectTableRows;
+function projectTablePreviewRows(longList: boolean, edits: ProjectEdits, update: PreviewActions["setProjectEdit"]) {
+  const domain = [0, Math.max(16000, ...Object.values(edits).map(edit => Number(edit.budget ?? 0)))] as const;
+  return projectRowsForPreview(longList).map(row => {
+    const values = [...projectBudgetTrends[row.id.replace(/-next$/, "")]];
+    const edit = edits[row.id];
+    const budget = edit?.budget === undefined ? values[values.length - 1] : Number(edit.budget);
+    values[values.length - 1] = budget;
+    const status = (edit?.status ?? row.cells.status) as keyof typeof projectStatusTones;
+    const owner = String(edit?.owner ?? row.cells.owner);
+    const choice = (field: "status" | "owner", selected: string, options: string[], content: ReactNode) => {
+      const label = `${field === "status" ? "Status" : "Owner"} for ${row.label}`;
+      return <Flood.Menu label={label} items={options.map(option => ({
+        id: option, label: option, type: "radio", group: field, checked: selected === option,
+        closeOnSelect: true, onCheckedChange: () => update(row.id, field, option),
+      }))} trigger={props => <Flood.Button {...props} variant="ghost" size="sm" aria-label={`${label}: ${selected}`}>
+        {content}<Flood.IconSlot size="xs"><ChevronDown /></Flood.IconSlot>
+      </Flood.Button>} />;
+    };
+    return {
+      ...row,
+      sortValues: { budget, status, owner },
+      cells: {
+        ...row.cells,
+        status: choice("status", status, Object.keys(projectStatusTones), <Flood.Badge size="sm" tone={projectStatusTones[status]}>{status}</Flood.Badge>),
+        owner: choice("owner", owner, projectOwners, owner),
+        budget: <Flood.Editable label={`Budget for ${row.label}`} hideLabel value={budgetFormat.format(budget)}
+          previewVariant="ghost" controlSize="sm" inputMode="decimal" blurAction="cancel" editorOverlayWidth="fit-content"
+          validate={value => Number.isSafeInteger(Math.round(parseProjectBudget(value) * 100)) ? undefined : budgetError}
+          onCommit={value => update(row.id, "budget", String(parseProjectBudget(value)))} />,
+        trend: <Flood.Sparkline label={budgetTrendLabel(values)} values={values} domain={domain} size="sm" />,
+      },
+      expandedContent: row.id === "design" ? renderRecipe(projectMilestones) : undefined,
+    };
+  });
+}
+const projectPreviewRowsCode = (longList: boolean) => JSON.stringify(projectRowsForPreview(longList)) + ".map(row => {\n" +
+  "    const trends: Record<string, number[]> = " + JSON.stringify(projectBudgetTrends) + ";\n" +
+  '    const values = [...trends[row.id.replace(/-next$/, "")]];\n' +
+  '    const edit = projectEdits[row.id];\n' +
+  '    const budget = edit?.budget === undefined ? values[values.length - 1] : Number(edit.budget);\n' +
+  '    values[values.length - 1] = budget;\n' +
+  '    const status = (edit?.status ?? row.cells.status) as keyof typeof statusTones;\n' +
+  '    const owner = edit?.owner ?? row.cells.owner;\n' +
+  '    const choice = (field: "status" | "owner", selected: string, options: string[], content: ReactNode) => {\n' +
+  '      const label = `${field === "status" ? "Status" : "Owner"} for ${row.label}`;\n' +
+  '      return <Menu label={label} items={options.map(option => ({ id: option, label: option, type: "radio", group: field,\n' +
+  '        checked: selected === option, closeOnSelect: true, onCheckedChange: () => updateProject(row.id, field, option) }))}\n' +
+  '        trigger={props => <Button {...props} variant="ghost" size="sm" aria-label={`${label}: ${selected}`}>{content}<IconSlot size="xs"><ChevronDown /></IconSlot></Button>} />;\n' +
+  '    };\n' +
+  '    return { ...row, sortValues: { budget, status, owner }, cells: { ...row.cells,\n' +
+  '      status: choice("status", status, Object.keys(statusTones), <Badge size="sm" tone={statusTones[status]}>{status}</Badge>),\n' +
+  '      owner: choice("owner", owner, ' + JSON.stringify(projectOwners) + ', owner),\n' +
+  '      budget: <Editable label={`Budget for ${row.label}`} hideLabel value={new Intl.NumberFormat("en-US").format(budget)}\n' +
+  '        previewVariant="ghost" controlSize="sm" inputMode="decimal" blurAction="cancel" editorOverlayWidth="fit-content"\n' +
+  '        validate={value => Number.isSafeInteger(Math.round(parseBudget(value) * 100)) ? undefined : ' + JSON.stringify(budgetError) + '}\n' +
+  '        onCommit={value => updateProject(row.id, "budget", String(parseBudget(value)))} />,\n' +
+  '      trend: <Sparkline label={`Five-week budget: USD ${values[0]} to ${budget}`} values={values} domain={budgetDomain} size="sm" /> },\n' +
+  "      expandedContent: row.id === \"design\" ? (\n" + printRecipe(projectMilestones, new Set(), new Set(), 4) + "\n      ) : undefined };\n" +
+  "  })";
 const collectionPreviewProperties=[{id:"status",label:"Status",options:[{value:"active",label:"Active"},{value:"paused",label:"Paused"}]},{id:"owner",label:"Owner",options:[{value:"maya",label:"Maya"},{value:"noah",label:"Noah"}]},{id:"priority",label:"Priority",options:[{value:"urgent",label:"Urgent"},{value:"normal",label:"Normal"}]}];
 const studioDestinations = [
   {value:"overview",label:"Overview",href:"#shell-overview"},
@@ -48,7 +170,7 @@ const knobs: Record<string, Knob[]> = {
   "upload-item": [select("state", ["queued", "uploading", "success", "error", "cancelled"], "uploading"),select("progress", ["unknown", "0", "25", "45", "75", "100"], "45"),toggle("showActions",true),toggle("disabled")],
   "upload-list": [select("density", ["compact", "comfortable"], "comfortable"),select("progress", ["unknown", "0", "25", "45", "75", "100"], "45"),toggle("showActions",true),toggle("disabled")],
   "image-preview": [select("image", ["brand", "missing"], "brand"),toggle("showCaption",true),toggle("showDownload"),toggle("disabled")],
-  "data-table": [select("density", ["compact", "comfortable"], "comfortable"),select("pageSize", ["3", "5", "10"], "5"),toggle("selectable",true),toggle("showResults",true),toggle("striped"),select("state", ["ready", "loading", "error"], "ready"),toggle("emptyRows"),toggle("customEmpty",true)],
+  "data-table": [select("density", ["compact", "comfortable"], "comfortable"),select("pageSize", ["3", "5", "10", "15"], "5"),toggle("stickyHeader"),toggle("selectable",true),toggle("showResults",true),toggle("showSelection",true),toggle("striped"),select("state", ["ready", "loading", "error"], "ready"),toggle("emptyRows"),toggle("customEmpty",true)],
   "data-list": [select("density", ["compact", "comfortable"], "comfortable"),toggle("dividers",true),toggle("showDescription",true),toggle("showMedia",true),toggle("showMetadata",true),toggle("showActions",true),toggle("longTitle")],
   "data-list-item": [select("density", ["compact", "comfortable"], "comfortable"),toggle("showDescription",true),toggle("showMedia",true),toggle("showMetadata",true),toggle("showActions",true),toggle("longTitle")],
   "check-card": [select("density", ["compact", "comfortable"], "comfortable"),toggle("showDescription",true),toggle("showMetadata",true),toggle("indeterminate"),toggle("readOnly"),toggle("disabled")],
@@ -83,7 +205,7 @@ const knobs: Record<string, Knob[]> = {
   "navigation-list": [select("size", ["sm", "md", "lg"], "md"), select("currentValue", ["overview", "activity", "settings"], "overview"), toggle("grouped", true), toggle("showDescriptions")],
   steps: [select("orientation", ["horizontal", "vertical"], "horizontal"), select("currentValue", ["details", "access", "review"], "access"), toggle("interactive"), toggle("error"), toggle("disableLast")],
   "page-header": [select("headingSize", ["page", "large", "display"], "large"), toggle("showDescription"), toggle("showActions", true)],
-  section: [{...select("headingLevel", ["2", "3", "4", "5", "6"], "2"),label:"Heading level (HTML)"}, {...select("headingSize", ["section", "page", "large", "display"], "section"),label:"Heading size"}, toggle("showDescription", true), toggle("showActions", true)],
+  section: [{...select("headingLevel", ["2", "3", "4", "5", "6"], "2"),label:"Heading level (HTML)"}, {...select("headingSize", ["group", "section", "page", "large", "display"], "section"),label:"Heading size"}, toggle("showDescription", true), toggle("showActions", true)],
   split: [select("side", ["start", "end"], "end"), select("ratio", ["balanced", "main", "aside"], "main"), select("collapseAt", ["sm", "md", "lg", "never"], "sm"), select("gap", spaces, "6")],
   center: [toggle("inline"), select("maxWidth", ["16rem", "24rem", "100%"], "16rem"), select("minHeight", ["8rem", "12rem", "16rem"], "12rem")],
   "skip-link": [],
@@ -94,10 +216,11 @@ const knobs: Record<string, Knob[]> = {
   blockquote: [toggle("attribution", true)],
   "inline-code": [select("size", ["sm", "md", "lg"], "md"), toggle("wrap", true), toggle("longValue")],
   metric: [select("size", ["sm", "md", "lg"], "md"), select("direction", ["up", "down", "flat"], "up"), select("tone", ["neutral", "success", "warning", "error", "info"], "success"), toggle("trend", true), toggle("hint", true)],
+  sparkline: [select("size", ["sm", "md"], "md"), select("tone", ["neutral", "accent", "success", "warning", "error"], "accent"), select("variant", ["line", "area"], "area"), select("series", ["rising", "falling", "gaps"], "rising"), toggle("showLabel")],
   timeline: [toggle("descriptions", true), toggle("times", true)],
 
   "copy-button": [select("size", sizes, "md"), select("variant", variants, "subtle"), toggle("disabled")],
-  "toast-region": [select("status", ["success", "info", "warning", "error", "neutral"], "success"), select("limit", ["1", "2", "3"], "3"), toggle("autoDismiss")],
+  "toast-region": [select("status", ["success", "info", "warning", "error", "neutral"], "success"), select("limit", ["1", "2", "3"], "3"), select("placement", ["bottom-end", "bottom-start", "top-end", "top-start"], "bottom-end"), toggle("inline"), toggle("autoDismiss")],
   "file-input": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("multiple", true), toggle("clearable", true), statusKnob(), toggle("required"), toggle("disabled")],
   "search-input": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("clearable", true), statusKnob(), toggle("disabled"), toggle("readOnly")],
   "password-input": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), statusKnob(), toggle("disabled"), toggle("readOnly")],
@@ -121,7 +244,7 @@ const knobs: Record<string, Knob[]> = {
   table: [select("density", ["compact", "comfortable"], "comfortable"), select("cellVerticalAlign", ["top", "middle", "bottom"], "middle"), toggle("striped"), toggle("hideCaption"), select("minWidth", ["auto", "32rem", "48rem"], "32rem"), toggle("empty"), toggle("footer", true)],
   progress: [select("value", ["0", "25", "50", "75", "100"], "50"), toggle("indeterminate"), select("size", ["sm", "md", "lg"], "md"), select("tone", ["neutral", "accent", "info", "success", "warning", "error"], "accent"), toggle("showValue", true)],
   meter: [select("value", ["0", "25", "50", "75", "100"], "50"), select("size", ["sm", "md", "lg"], "md"), select("tone", ["neutral", "accent", "info", "success", "warning", "error"], "neutral"), toggle("showValue", true)],
-  alert: [select("tone", ["neutral", "info", "success", "warning", "error"], "info"), select("announcement", ["off", "polite", "assertive"], "off"), toggle("showTitle", true), toggle("showIcon", true)],
+  alert: [select("tone", ["neutral", "info", "success", "warning", "error"], "info"), select("announcement", ["off", "polite", "assertive"], "off"), toggle("showTitle", true), toggle("showIcon", true), toggle("showAction", false)],
   badge: [select("tone", ["neutral", "accent", "success", "warning", "error", "info"], "neutral"), select("variant", ["subtle", "outline"], "subtle"), select("size", ["sm", "md", "lg"], "md")],
   spinner: [select("size", ["sm", "md", "lg"], "md"), toggle("decorative")],
   skeleton: [select("shape", ["text", "rounded", "circle"], "text"), toggle("animate", true)],
@@ -133,6 +256,7 @@ const knobs: Record<string, Knob[]> = {
   popover: [select("side", ["top", "bottom", "left", "right"], "bottom"), select("align", ["start", "center", "end"], "start"), toggle("defaultOpen"), toggle("disabled")],
   "alert-dialog": [toggle("defaultOpen"), toggle("confirmDisabled"), toggle("disabled")],
   drawer: [select("side", ["start", "end", "top", "bottom"], "end"), select("size", ["sm", "md", "lg"], "md"), toggle("showFooter", true), toggle("longContent"), toggle("defaultOpen"), toggle("closeOnOutsideClick", true), toggle("disabled")],
+  sheet: [select("size", ["sm", "md", "lg"], "md"), toggle("showFooter"), toggle("longContent"), toggle("closeOnOutsideClick", true), toggle("disabled")],
   dialog: [toggle("defaultOpen"), toggle("closeOnOutsideClick", true), toggle("disabled")],
   collapsible: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("defaultOpen"), toggle("disabled")],
   accordion: [select("expansionMode", ["single", "multiple"], "single"), select("controlSize", ["sm", "md", "lg", "xl"], "md"), select("headingLevel", ["2", "3", "4", "5", "6"], "3"), toggle("disabled"), toggle("disableLast")],
@@ -151,7 +275,7 @@ const knobs: Record<string, Knob[]> = {
   radio: [toggle("checked", true), toggle("disabled")],
   switch: [toggle("checked", true), toggle("disabled")],
   text: [select("size", ["lead", "body", "compact", "label", "helper"], "body"), select("tone", ["default", "subtle", "error", "success", "warning", "info"], "default")],
-  heading: [select("size", ["display", "large", "page", "section"], "page"), select("level", ["1", "2", "3", "4", "5", "6"], "2")],
+  heading: [select("size", ["display", "large", "page", "section", "group"], "page"), select("level", ["1", "2", "3", "4", "5", "6"], "2")],
   stack: [select("gap", spaces, "4")],
   inline: [select("gap", spaces, "4"), select("align", ["start", "center", "end", "baseline"], "center")],
   surface: [select("elevation", ["default", "raised", "overlay"], "default"), select("padding", spaces, "6")],
@@ -176,14 +300,13 @@ function componentKnobs(component: ComponentPage): Knob[] {
   });
 }
 const initialValues = (component: ComponentPage): Values => Object.fromEntries(componentKnobs(component).map(knob => [knob.name, knob.initial]));
-const registry = { ...Flood, Plus, ArrowRight, Copy, Undo2, Redo2, History, Bold, Italic, Underline } as unknown as Record<string, Parameters<typeof createElement>[0]>;
+const registry = { ...Flood, Plus, ArrowRight, Copy, Undo2, Redo2, History, Bold, Italic, Underline, Share2 } as unknown as Record<string, Parameters<typeof createElement>[0]>;
 const isBinding = (value: unknown): value is Binding => Boolean(value && typeof value === "object" && "expression" in value && "value" in value);
 
 function renderRecipe(node: ElementRecipe, extraProps: Record<string, unknown> = {}): ReactNode {
   const props = Object.fromEntries(Object.entries(node.props ?? {}).map(([key, value]) => [key, isBinding(value) ? value.value : value]));
+  if (node.previewClassName) props.className = [props.className, node.previewClassName].filter(Boolean).join(" ");
   const tag = registry[node.tag] ?? node.tag;
-  // Demo feedback belongs to the preview chrome, never the sample's flow.
-  if (props.role === "status") props.className = [props.className, "workbench-feedback"].filter(Boolean).join(" ");
   const rendered = node.field ? createElement(tag, props, ((control: Record<string, unknown>) => renderRecipe(node.field!, control)) as unknown as ReactNode)
     : createElement(tag, { ...extraProps, ...props }, ...(node.children ?? []).map((child, index) => typeof child === "string" ? child : isBinding(child) ? child.value as ReactNode : createElement(Fragment, { key: index }, renderRecipe(child))));
   return node.previewSlot ? createElement("div", {style:node.previewSlot}, rendered) : rendered;
@@ -191,7 +314,7 @@ function renderRecipe(node: ElementRecipe, extraProps: Record<string, unknown> =
 
 function printRecipe(node: ElementRecipe, imports: Set<string>, icons: Set<string>, depth = 0): string {
   if (node.tag in Flood) imports.add(node.tag);
-  if (["Plus", "ArrowRight", "Copy", "Undo2", "Redo2", "History", "Bold", "Italic", "Underline"].includes(node.tag)) icons.add(node.tag);
+  if (["Plus", "ArrowRight", "Copy", "Undo2", "Redo2", "History", "Bold", "Italic", "Underline", "Share2"].includes(node.tag)) icons.add(node.tag);
   const pad = "  ".repeat(depth);
   const props = Object.entries(node.props ?? {}).filter(([key, value]) => value !== undefined && !(value === false && ["disabled", "loading", "invalid", "readOnly", "required", "hideLabel"].includes(key))).map(([key, value]) => {
     if (isBinding(value)) return `${key}={${value.expression}}`;
@@ -210,6 +333,9 @@ function printRecipe(node: ElementRecipe, imports: Set<string>, icons: Set<strin
 }
 
 interface PreviewActions {
+  phone?: boolean;
+  projectEdits: ProjectEdits;
+  setProjectEdit: (id: string, field: ProjectEditField, value: string) => void;
   shellDrawerOpen:boolean;
   setShellDrawerOpen:(open:boolean)=>void;
   navValue:string;
@@ -251,7 +377,10 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
   const fieldStatus = v.invalid || (slug === "field" && v.error) ? "error" : v.status === "none" ? undefined : v.status;
   const message = ({ error: "Please review this value.", warning: "Check this value before continuing.", success: "Looks good.", info: "You can change this later." } as Record<string, string>)[String(fieldStatus)];
   const text = (value: string) => element("Text", { as: "p", size: "compact" }, value);
-  const status = element("Text", { as: "p", size: "compact", role: "status" }, binding("status", actions.status));
+  const status: ElementRecipe = {
+    ...element("Text", { as: "p", size: "compact", role: "status" }, binding("status", actions.status)),
+    previewFeedback: true,
+  };
   const action = binding('() => setStatus("Action completed locally.")', () => actions.setStatus("Action completed locally."));
   const choice = {
     checked: binding("checked", Boolean(v.checked)), disabled: Boolean(v.disabled),
@@ -340,15 +469,31 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       properties:[{id:"status",label:"Status",options:[{value:"active",label:"Active"},{value:"paused",label:"Paused"},{value:"archived",label:"Archived"}]},{id:"owner",label:"Owner",options:[{value:"maya",label:"Maya"},{value:"noah",label:"Noah"}]},{id:"priority",label:"Priority",options:[{value:"urgent",label:"Urgent"},{value:"normal",label:"Normal"}]}],
       value:binding("filters",actions.filterGroup),onValueChange:binding("setFilters",actions.setFilterGroup),
     }));
-    case "filter-condition": return actions.status === "Condition removed" ? status : element("Stack",{gap:"4",style:{width:v.width,maxWidth:"100%"}},element("FilterCondition",{
+    case "filter-condition": return element("Stack",{gap:"4",style:{width:v.width,maxWidth:"100%"}},...(actions.status === "Condition removed" ? [] : [element("FilterCondition",{
       label:"Condition 1",controlSize:v.controlSize,disabled:v.disabled,hideLabel:v.hideLabel,
       properties:[{id:"status",label:"Status",options:[{value:"active",label:"Active"},{value:"paused",label:"Paused"},{value:"archived",label:"Archived"}]},{id:"owner",label:"Owner",options:[{value:"maya",label:"Maya"},{value:"noah",label:"Noah"}]}],
       value:binding("condition",actions.filterValue),onValueChange:binding("setCondition",actions.setFilterValue),
       onRemove:v.removable?binding('() => setStatus("Condition removed")',()=>actions.setStatus("Condition removed")):undefined,
-    }));
+    })]),status);
     case "bulk-action-bar": return element("Stack",{gap:"4",style:{width:v.width,maxWidth:"100%"}},element("BulkActionBar",{label:"Selected projects",selectionCount:actions.status==="Selection cleared"?0:Number(v.selectionCount),counter:v.counter,size:v.size,maxVisibleActions:Number(v.maxVisibleActions),pending:v.pending,disabled:v.disabled,items:[{id:"archive",label:"Archive",priority:10},{id:"pause",label:"Pause"},{id:"activate",label:"Set active"}],onAction:binding("(id) => setStatus(id)",(id:string)=>actions.setStatus(id)),onClear:binding('() => setStatus("Selection cleared")',()=>actions.setStatus("Selection cleared"))}),status);
     case "autocomplete": return element("div",{style:{width:"26rem",maxWidth:"100%"}},{tag:"Field",props:{label:"Team"},field:element("Autocomplete",{name:"team",controlSize:v.controlSize,loadState:v.loadState,required:v.required,readOnly:v.readOnly,disabled:v.disabled,options:[{value:"design",label:"Design",group:"Product"},{value:"engineering",label:"Engineering",group:"Product"},{value:"operations",label:"Operations",group:"Business"}]})});
-    case "overflow-actions": return element("Stack",{gap:"4",style:{width:v.width,maxWidth:"100%"}},element("OverflowActions",{label:"Document actions",size:v.size,variant:v.variant,shape:v.shape,containerVariant:v.containerVariant,disabled:v.disabled,items:[{id:"save",label:"Save",priority:10},{id:"duplicate",label:"Duplicate"},{id:"archive",label:"Archive"},{id:"delete",label:"Delete",tone:"danger"}],onAction:binding("(id) => setStatus(id)",(id:string)=>actions.setStatus(id))}),status);
+    case "overflow-actions": {
+      const items = [
+        { id: "save", label: "Save", priority: 10 },
+        { id: "duplicate", label: "Duplicate" },
+        { id: "archive", label: "Archive" },
+        { id: "delete", label: "Delete", tone: "danger" },
+      ] satisfies Flood.OverflowAction[];
+      return element("Stack", { gap: "4", style: { width: v.width, maxWidth: "100%" } },
+        element("OverflowActions", {
+          label: "Document actions", size: v.size, variant: v.variant, shape: v.shape,
+          containerVariant: v.containerVariant, disabled: v.disabled, items,
+          onAction: binding(
+            `(id) => setStatus("Selected action: " + (new Map(${JSON.stringify(items.map(({ id, label }) => [id, label]))}).get(id) ?? id))`,
+            (id: string) => actions.setStatus(`Selected action: ${items.find(item => item.id === id)?.label ?? id}`),
+          ),
+        }), status);
+    }
     case "menubar": return element("Stack",{gap:"4"},element("Menubar",{label:"Editor commands",controlSize:v.controlSize,disabled:v.disabled,menus:[{id:"file",label:"File",items:[{id:"new",label:"New document"},{id:"export",type:"submenu",label:"Export",items:[{id:"pdf",label:"PDF"},{id:"text",label:"Plain text"}]}]},{id:"edit",label:"Edit",items:[{id:"undo",label:"Undo"},{id:"redo",label:"Redo",disabled:true}]},{id:"help",label:"Help",items:[{id:"shortcuts",label:"Keyboard shortcuts"}]}],onAction:binding('(menu, id) => setStatus(menu + ":" + id)',(menu:string,id:string)=>actions.setStatus(menu+":"+id))}),status);
     case "time-picker": return element("div",{style:{width:"26rem",maxWidth:"100%"}},element("TimePicker",{label:"Start time",name:"time",defaultValue:"09:30",min:"08:00",max:"18:00",interval:Number(v.interval),controlSize:v.controlSize,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled}));
     case "date-time-range-picker": return element("div",{style:{width:"34rem",maxWidth:"100%"}},element("DateTimeRangePicker",{key:String(v.precision),label:"Booking",startDateName:"startDate",startTimeName:"startTime",endDateName:"endDate",endTimeName:"endTime",defaultValue:{start:{date:"2026-10-27",time:v.precision==="second"?"09:00:00":"09:00"},end:{date:"2026-10-27",time:v.precision==="second"?"18:00:00":"18:00"}},precision:v.precision,locale:v.locale,controlSize:v.controlSize,required:v.required,hideLabel:v.hideLabel,readOnly:v.readOnly,disabled:v.disabled}));
@@ -367,7 +512,34 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     })),status);
     case "image-preview": return element("ImagePreview",{title:"Flood mark",src:v.image==="missing"?"/missing-preview.png":"/flood-mark.png",alt:"Pink Flood mark",caption:v.showCaption?"Original Flood brand asset.":undefined,downloadHref:v.showDownload?"/flood-mark.png":undefined,disabled:v.disabled,trigger:binding('(props) => <Button {...props} variant="subtle">Preview image</Button>',(props:Flood.OverlayTriggerProps)=><Flood.Button {...props} variant="subtle">Preview image</Flood.Button>)});
 
-    case "data-table": return element("div",{style:{width:"100%",maxWidth:"100%"}},element("DataTable",{caption:"Projects",density:v.density,pageSize:Number(v.pageSize),selectable:v.selectable,showResults:v.showResults,striped:v.striped,state:binding("tableState",v.state),minWidth:"32rem",onRetry:binding('() => setTableState("ready")',actions.restoreTable),emptyContent:v.customEmpty?binding('<EmptyState title="No projects yet" />',renderRecipe(element("EmptyState",{title:"No projects yet"}))):undefined,columns:[{id:"name",label:"Project",sortable:true},{id:"status",label:"Status",sortable:true},{id:"members",label:"Members",numeric:true,sortable:true}],rows:binding('emptyRows ? [] : ' + JSON.stringify([{id:"design",label:"Design system",cells:{name:"Design system",status:"Active",members:12}},{id:"website",label:"Website",cells:{name:"Website",status:"Active",members:4}},{id:"agents",label:"Agent guides",cells:{name:"Agent guides",status:"Draft",members:2}},{id:"mobile",label:"Mobile app",cells:{name:"Mobile app",status:"Draft",members:8}},{id:"research",label:"Research",cells:{name:"Research",status:"Archived",members:3},selectionDisabled:true},{id:"marketing",label:"Marketing",cells:{name:"Marketing",status:"Active",members:6}},{id:"support",label:"Support",cells:{name:"Support",status:"Active",members:5}}]),v.emptyRows?[]:[{id:"design",label:"Design system",cells:{name:"Design system",status:"Active",members:12}},{id:"website",label:"Website",cells:{name:"Website",status:"Active",members:4}},{id:"agents",label:"Agent guides",cells:{name:"Agent guides",status:"Draft",members:2}},{id:"mobile",label:"Mobile app",cells:{name:"Mobile app",status:"Draft",members:8}},{id:"research",label:"Research",cells:{name:"Research",status:"Archived",members:3},selectionDisabled:true},{id:"marketing",label:"Marketing",cells:{name:"Marketing",status:"Active",members:6}},{id:"support",label:"Support",cells:{name:"Support",status:"Active",members:5}}])}),status);
+    case "data-table": return element("Surface", {padding:"0", style:{
+      width:"100%", maxWidth:"100%", overflow:"clip",
+      border:"var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative)",
+    }},
+      element("DataTable", {
+        caption: "Projects",
+        hideCaption: true,
+        toolbar: binding('<Text size="compact">Projects</Text>', <Flood.Text size="compact">Projects</Flood.Text>),
+        density: v.density,
+        pageSize: Number(v.pageSize),
+        selectable: v.selectable,
+        showResults: v.showResults,
+        showSelection: v.showSelection,
+        striped: v.striped,
+        showColumnVisibility: true,
+        defaultExpandedIds: [],
+        state: binding("tableState", v.state),
+        stickyHeader: v.stickyHeader || undefined,
+        maxViewportHeight: v.stickyHeader ? "16rem" : undefined,
+        minWidth: "min-content",
+        onRetry: binding('() => setTableState("ready")', actions.restoreTable),
+        emptyContent: v.customEmpty
+          ? binding('<EmptyState title="No projects yet" />', renderRecipe(element("EmptyState", {title:"No projects yet"})))
+          : undefined,
+        columns: actions.phone ? projectTableColumns.map(({ pinned, ...column }) => column) : projectTableColumns,
+        rows: binding("emptyRows ? [] : " + projectPreviewRowsCode(Boolean(v.stickyHeader)),
+          v.emptyRows ? [] : projectTablePreviewRows(Boolean(v.stickyHeader), actions.projectEdits, actions.setProjectEdit)),
+      }), status);
 
     case "data-list":
     case "data-list-item": return element("div",{style:{width:"34rem",maxWidth:"100%"}},element("DataList",{density:v.density,dividers:slug==="data-list"?v.dividers:true},...["Design system",...(slug==="data-list"?["Website","Agent guides"]:[])].map((title,index)=>element("DataListItem",{title:binding(`<Link href="#project-${index}">${v.longTitle?title+" — foundations, components and documentation":title}</Link>`,<Flood.Link href={`#project-${index}`}>{v.longTitle?title+" — foundations, components and documentation":title}</Flood.Link>),description:v.showDescription?["Foundations and reusable components","Documentation and live examples","Design instructions for your agent"][index]:undefined,media:v.showMedia?binding(`<Avatar name=${JSON.stringify(title)} size="sm" />`,<Flood.Avatar name={title} size="sm"/>):undefined,metadata:v.showMetadata?"Updated today":undefined,actions:v.showActions?binding('<Button variant="subtle" size="sm" onClick={() => setStatus("Action completed locally.")}>Manage</Button>',<Flood.Button variant="subtle" size="sm" onClick={()=>actions.setStatus("Action completed locally.")}>Manage</Flood.Button>):undefined}))),status);
@@ -385,6 +557,11 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     case "blockquote": return element("Blockquote",{attribution:v.attribution?"The Flood team":undefined},"Good interfaces make room for what matters.");
     case "inline-code": return element("Text",{as:"p",size:"compact"},"Import ",element("InlineCode",{size:v.size,wrap:v.wrap},v.longValue?"@/ui/project-settings/notifications/preferences":"@/ui/button")," in your project.");
     case "metric": return element("Metric",{label:"Monthly revenue",value:"$24,580",size:v.size,hint:v.hint?"Compared with the previous month.":undefined,trend:v.trend?{label:v.direction==="up"?"12.8% higher":v.direction==="down"?"4.2% lower":"No change",direction:v.direction,tone:v.tone}:undefined});
+    case "sparkline": {
+      const values = v.series === "falling" ? [12000, 10400, 11200, 9500, 8000] : [8000, 8900, v.series === "gaps" ? null : 8500, 10700, 12000];
+      const label = v.series === "gaps" ? "Revenue rose from $8,000 to $12,000 with one missing week" : v.series === "falling" ? "Revenue fell from $12,000 to $8,000" : "Revenue rose from $8,000 to $12,000";
+      return element("Sparkline", {values, label, size:v.size, tone:v.tone, variant:v.variant, showLabel:v.showLabel});
+    }
     case "timeline": return element("Timeline",{label:"Project activity",items:[{id:"created",title:"Project created",state:"complete",description:v.descriptions?"Your workspace is ready.":undefined,dateTime:"2026-10-26T09:00:00Z",timeLabel:v.times?"09:00":undefined},{id:"review",title:"Design review",state:"current",description:v.descriptions?"Reviewing the dark foundations.":undefined,dateTime:"2026-10-26T10:30:00Z",timeLabel:v.times?"10:30":undefined},{id:"release",title:"Release",state:"upcoming",description:v.descriptions?"Publish when the review is complete.":undefined}]});
 
     case "tree": return element("div", {style:{width:"26rem",maxWidth:"100%"}}, element("Tree", {label:"Project files",controlSize:v.controlSize,multiple:v.multiple,hideLabel:v.hideLabel,readOnly:v.readOnly,disabled:v.disabled,defaultExpandedValues:["source","ui","docs"],items:v.empty?[]:[{value:"source",label:"Source",selectable:false,children:[{value:"ui",label:"Components",selectable:false,children:[{value:"button",label:"Button.tsx",description:v.showDescriptions?"Reusable project action":undefined},{value:"input",label:"Input.tsx"}]},{value:"tokens",label:"tokens.json"}]},{value:"docs",label:"Documentation",hasChildren:true,loading:v.loading,children:v.loading?undefined:[{value:"intro",label:"Introduction.md"}]},{value:"readme",label:"README.md"},{value:"archived",label:"Archived",disabled:true}]}));
@@ -403,7 +580,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
           if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) actions.setShellDrawerOpen(false);
         }}}))} />
       </Flood.Drawer> : undefined;
-      const groups = [{id:"workspace",label:"Workspace",items:destinations.map((item, index) => ({
+      const groups = [{id:"workspace",label:"Workspace",hideLabel:true,items:destinations.map((item, index) => ({
         ...item, icon: createElement([House, Folder, Archive][index]),
       }))}];
       const projects = [
@@ -414,13 +591,13 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       ] as const;
       const archivedProjects = ["Research library", "Brand exploration"];
       return element("AppShell", {
-        scroll:v.scroll, navigationSide:side, mainAs:"section", mainLabel:"Workspace preview",
+        scroll:v.scroll, scrollContentInset:"none", navigationSide:side, mainAs:"section", mainLabel:"Workspace preview",
         skipLabel:"Skip to workspace preview", style:v.scroll==="content"?{blockSize:"var(--flood-workbench-shell-height, 20rem)",width:"100%"}:{width:"100%"},
         navigation:v.navigationMode==="docked"||responsive?binding(
-          `<Sidebar label="Workspace navigation" size="sm" width="13rem" side="${side}" currentValue="overview" headerLayout="inline" header={({collapsed}) => <Inline gap="2"><IconSlot size="sm"><Layers3 /></IconSlot>{!collapsed && <Text size="label">Flood</Text>}</Inline>} footer={({collapsed}) => <Inline gap="2"><Avatar name="Maya Chen" size="sm" decorative={!collapsed} />{!collapsed && <Text size="compact">Maya Chen</Text>}</Inline>} groups={[{id:"workspace",label:"Workspace",items:destinations.map((item, index) => { const Icon = [House, Folder, Archive][index]; return {...item, icon:<Icon />}; })}]} />`,
+          `<Sidebar label="Workspace navigation" size="sm" width="13rem" side="${side}" currentValue="overview" headerLayout="inline" header={({collapsed}) => collapsed ? null : <Inline gap="2" style={{ flexWrap: "nowrap", whiteSpace: "nowrap", overflow: "clip" }}><IconSlot size="sm"><Layers3 /></IconSlot><Text size="label">Flood</Text></Inline>} footer={({collapsed}) => <Inline gap="2" style={{ flexWrap: "nowrap", whiteSpace: "nowrap", overflow: "clip" }}><Avatar name="Maya Chen" size="sm" decorative={!collapsed} />{!collapsed && <Text size="compact">Maya Chen</Text>}</Inline>} groups={[{id:"workspace",label:"Workspace",hideLabel:true,items:destinations.map((item, index) => { const Icon = [House, Folder, Archive][index]; return {...item, icon:<Icon />}; })}]} />`,
           <Flood.Sidebar label="Workspace navigation" size="sm" width="13rem" side={side} currentValue="overview" groups={groups} headerLayout="inline"
-            header={({collapsed})=><Flood.Inline gap="2"><Flood.IconSlot size="sm"><Layers3 /></Flood.IconSlot>{!collapsed && <Flood.Text size="label">Flood</Flood.Text>}</Flood.Inline>}
-            footer={({collapsed})=><Flood.Inline gap="2"><Flood.Avatar name="Maya Chen" size="sm" decorative={!collapsed} />{!collapsed && <Flood.Text size="compact">Maya Chen</Flood.Text>}</Flood.Inline>} />,
+            header={({collapsed})=>collapsed ? null : <Flood.Inline gap="2" style={{flexWrap:"nowrap",whiteSpace:"nowrap",overflow:"clip"}}><Flood.IconSlot size="sm"><Layers3 /></Flood.IconSlot><Flood.Text size="label">Flood</Flood.Text></Flood.Inline>}
+            footer={({collapsed})=><Flood.Inline gap="2" style={{flexWrap:"nowrap",whiteSpace:"nowrap",overflow:"clip"}}><Flood.Avatar name="Maya Chen" size="sm" decorative={!collapsed} />{!collapsed && <Flood.Text size="compact">Maya Chen</Flood.Text>}</Flood.Inline>} />,
         ):undefined,
         navigationDrawer:responsive?binding(
           '{below:480,title:"Workspace navigation",renderContent:close => <NavigationList label="Workspace" items={destinations.map(item => ({...item,linkProps:{onClick:event => {if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) close();}}}))} />}',
@@ -438,10 +615,10 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
         footer:v.showFooter?binding('<Surface padding="2"><Text size="helper">All changes saved</Text></Surface>', <Flood.Surface padding="2"><Flood.Text size="helper">All changes saved</Flood.Text></Flood.Surface>):undefined,
       }, element("Stack", {gap:"6",style:{padding:"var(--flood-sys-space-6)",maxInlineSize:"76rem",marginInline:"auto"}},
         element("PageHeader", {title:"Overview", headingLevel:2, headingSize:"page", headingId:"shell-overview"}),
-        element("Grid", {minItemWidth:"9rem",gap:"3"},
+        {...element("Grid", {minItemWidth:"9rem",gap:"3"},
           ...[["Current projects",projects.length],["In review",projects.filter(project=>project.status==="In review").length],["Archived",archivedProjects.length]].map(([label,value])=>
             element("Card", {density:"compact"}, element("Metric", {label,value,size:"md"}))),
-        ),
+        ), previewClassName:"app-shell-preview-metrics"},
         element("section", {id:"shell-projects"},
           element("Card", {title:"Projects", headingLevel:3, density:"compact"},
             element("DataList", {"aria-label":"Projects",density:"compact",dividers:true},
@@ -482,7 +659,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     case "character-count": return element("CharacterCount", {count:Number(v.count),max:40,mode:v.mode});
 
     case "copy-button": return element("CopyButton",{value:"npm install @flood-md/react",size:v.size,variant:v.variant,disabled:v.disabled});
-    case "toast-region": return element("Stack",{gap:"4"},element("Button",{size:"sm",variant:"subtle",onClick:binding('() => setNotifications(current => [...current, {id: crypto.randomUUID(), title: "Changes saved", description: "Your project preferences are up to date.", duration: 0}])',actions.addToast)},"Show notification"),element("ToastRegion",{inline:true,hotkey:false,limit:Number(v.limit),items:binding(`notifications.map(item => ({...item, status: ${JSON.stringify(v.status)} as const, duration: ${v.autoDismiss?5000:0}}))`,actions.notifications.map(item=>({...item,status:v.status as Flood.ToastItem["status"],duration:v.autoDismiss?5000:0}))),onDismiss:binding('(id) => setNotifications(current => current.filter(item => item.id !== id))',actions.dismissToast)}));
+    case "toast-region": return element("Stack",{gap:"4"},element("Button",{size:"sm",variant:"subtle",onClick:binding('() => setNotifications(current => [...current, {id: crypto.randomUUID(), title: "Changes saved", description: "Your project preferences are up to date.", duration: 0}])',actions.addToast)},"Show notification"),element("ToastRegion",{inline:v.inline||undefined,placement:v.inline?undefined:v.placement,hotkey:false,limit:Number(v.limit),items:binding(`notifications.map(item => ({...item, status: ${JSON.stringify(v.status)} as const, duration: ${v.autoDismiss?5000:0}}))`,actions.notifications.map(item=>({...item,status:v.status as Flood.ToastItem["status"],duration:v.autoDismiss?5000:0}))),onDismiss:binding('(id) => setNotifications(current => current.filter(item => item.id !== id))',actions.dismissToast)}));
     case "file-input": return {tag:"Field",props:{label:"Attachments",hideLabel:v.hideLabel,status:fieldStatus,message},field:element("FileInput",{name:"attachments",multiple:v.multiple,clearable:v.clearable,controlSize:v.controlSize,required:v.required,disabled:v.disabled})};
     case "search-input": case "password-input": return {tag:"Field",props:{label:slug === "search-input" ? "Search components" : "Password",hideLabel:v.hideLabel,status:fieldStatus,message},field:element(slug === "search-input" ? "SearchInput" : "PasswordInput",{name:slug,defaultValue:slug === "search-input" ? "Design systems" : "flood-demo-password",autoComplete:slug === "search-input" ? "off" : "new-password",controlSize:v.controlSize,disabled:v.disabled,readOnly:v.readOnly,...(slug === "search-input" ? {clearable:v.clearable} : {})})};
     case "multi-select": return {tag:"Field",props:{label:"Frameworks",hideLabel:v.hideLabel,status:fieldStatus,message},field:element("MultiSelect",{name:"frameworks",placeholder:"Search frameworks",defaultValue:["react","vue"],options:[{value:"react",label:v.longLabels?"React for thoughtfully composed product interfaces":"React",description:"Component-based interfaces"},{value:"vue",label:v.longLabels?"Vue for progressive web applications":"Vue"},{value:"svelte",label:"Svelte",disabled:Boolean(v.disableLast)}],clearable:v.clearable,controlSize:v.controlSize,required:v.required,disabled:v.disabled,readOnly:v.readOnly})};
@@ -498,12 +675,27 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     case "empty-state": return element("Stack",{gap:"4"},element("EmptyState",{title:"No projects yet",description:v.showDescription?"Create a project to get started.":undefined,density:v.density,icon:v.showIcon?binding('<Plus />',<Plus />):undefined,actions:v.showActions?binding('<Button size="sm" onClick={() => setStatus("Creation requested locally.")}>Create project</Button>',<Flood.Button size="sm" onClick={()=>actions.setStatus("Creation requested locally.")}>Create project</Flood.Button>):undefined}),status);
     case "card": return element("div", {style:{width:"26rem",maxWidth:"100%"}}, element("Card", {density:v.density,elevation:v.elevation,title:v.showTitle?"Project details":undefined,description:v.showDescription?"Release on 12 November":undefined,actions:v.showActions?binding('<Badge tone="success">Active</Badge>', <Flood.Badge tone="success">Active</Flood.Badge>):undefined,footer:v.showFooter?binding('<Button variant="subtle" size="sm" onClick={() => setStatus("Opened locally.")}>Open project</Button>',<Flood.Button variant="subtle" size="sm" onClick={()=>actions.setStatus("Opened locally.")}>Open project</Flood.Button>):undefined},element("Text",{as:"p",size:"compact"},"Homepage and checkout")),status);
     case "kbd": return element("Inline", {gap:"2"}, element("Kbd", {size:v.size}, "Ctrl"), element("Text", {size:"compact",tone:"subtle"}, "+"), element("Kbd", {size:v.size}, "K"));
-    case "toolbar": return element("Stack", {gap:"4"}, element("Toolbar", {label:"Editor actions",variant:v.variant,shape:v.shape,orientation:v.orientation,loop:v.loop},
-      element("IconButton", {label:"Undo",variant:"ghost",size:"sm",disabled:v.disableUndo,onClick:binding('() => setStatus("Undone locally.")',()=>actions.setStatus("Undone locally."))},element("Undo2")),
-      element("Toggle", {"aria-label":"Bold",iconOnly:true,variant:"ghost",size:"sm"},element("Bold")),
-      element("Toggle", {"aria-label":"Italic",iconOnly:true,variant:"ghost",size:"sm"},element("Italic")),
-      element("Divider", {"aria-orientation":v.orientation === "vertical"?"horizontal":"vertical"}),
-      element("Button", {variant:"ghost",size:"sm",onClick:binding('() => setStatus("Shared locally.")',()=>actions.setStatus("Shared locally."))},"Share")),status);
+    case "toolbar": {
+      const vertical = v.orientation === "vertical";
+      const iconRail = vertical && v.shape === "pill";
+      const labeledColumn = vertical && !iconRail;
+      const control = {
+        variant: "ghost", size: "sm",
+        style: labeledColumn ? { inlineSize: "100%" } : undefined,
+      };
+      const undo = { ...control, disabled: v.disableUndo, onClick: binding('() => setStatus("Undone locally.")', () => actions.setStatus("Undone locally.")) };
+      const share = { ...control, onClick: binding('() => setStatus("Shared locally.")', () => actions.setStatus("Shared locally.")) };
+      return element("Stack", { gap: "4" }, element("Toolbar", {
+        label: "Editor actions", variant: v.variant, shape: v.shape, orientation: v.orientation, loop: v.loop,
+      },
+      labeledColumn ? element("Button", undo, "Undo") : element("IconButton", { ...undo, label: "Undo" }, element("Undo2")),
+      ...["Bold", "Italic"].map(label => labeledColumn
+        ? element("Toggle", control, label)
+        : element("Toggle", { ...control, "aria-label": label, iconOnly: true }, element(label))),
+      element("Divider", { "aria-orientation": vertical ? "horizontal" : "vertical" }),
+      iconRail ? element("IconButton", { ...share, label: "Share" }, element("Share2")) : element("Button", share, "Share")),
+      status);
+    }
     case "context-menu": return element("Stack",{gap:"4"},element("ContextMenu",{label:"Project actions",controlSize:v.controlSize,disabled:v.disabled,items:[{id:"rename",label:"Rename"},{id:"duplicate",label:"Duplicate"},{id:"export",type:"submenu",label:"Export",items:[{id:"json",label:"JSON"},{id:"markdown",label:"Markdown"}]}],onAction:binding('(id) => setStatus(`Selected ${id}.`)',(id:string)=>actions.setStatus(`Selected ${id}.`))},element("Surface",{padding:"6",style:{width:"26rem",maxWidth:"100%",minHeight:"10rem",display:"grid",placeItems:"center"}},element("Text",{size:"compact"},"Right-click or use Shift+F10."))),status);
     case "error-summary": return element("div",{style:{width:"28rem",maxWidth:"100%"}},element("Stack",{gap:"4"},
       {...element("ErrorSummary",{title:"Review the form",errors:v.showErrors?[{id:"project",fieldId:"summary-project",message:"Enter a project name."},{id:"email",fieldId:"summary-email",message:"Enter an email address."}]:[],description:v.showDescription?"Check the highlighted fields.":undefined,announcement:v.announcement,autoFocus:v.autoFocus}),previewSlot:{minBlockSize:"8rem"}},
@@ -555,7 +747,9 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       ...(v.footer&&!v.empty?[element("tfoot",{},element("tr",{},element("th",{scope:"row",colSpan:2},"Total"),element("td",{"data-numeric":true},"40"),element("td",{"data-numeric":true},"50 GB")))]:[]));
     case "progress": return element("div", {style:{width:"22rem",maxWidth:"100%"}}, element("Progress", {label:"Uploading files",value:v.indeterminate?undefined:Number(v.value),size:v.size,tone:v.tone,hideLabel:v.hideLabel,valueText:v.showValue?(v.indeterminate?"Estimating…":`${v.value}%`):undefined}));
     case "meter": return element("div", {style:{width:"22rem",maxWidth:"100%"}}, element("Meter", {label:"Storage used",value:Number(v.value),size:v.size,tone:v.tone,hideLabel:v.hideLabel,valueText:v.showValue?`${v.value} of 100 GB`:undefined}));
-    case "alert": return element("div", {style:{width:"26rem",maxWidth:"100%"}}, element("Alert", {title:v.showTitle?({neutral:"Project note",info:"A new version is available",success:"Changes saved",warning:"Storage is almost full",error:"Changes could not be saved"} as Record<string,string>)[String(v.tone)]:undefined,tone:v.tone,announcement:v.announcement,icon:v.showIcon?undefined:null}, "Your work stays here. Choose the next step when you are ready."));
+    case "alert": return element("div", {style:{width:"26rem",maxWidth:"100%"}}, element("Alert", {title:v.showTitle?({neutral:"Project note",info:"A new version is available",success:"Changes saved",warning:"Storage is almost full",error:"Changes could not be saved"} as Record<string,string>)[String(v.tone)]:undefined,tone:v.tone,announcement:v.announcement,icon:v.showIcon?undefined:null}, v.showAction
+      ? element("Inline", {gap:"2"}, element("Text", {size:"compact",tone:"subtle"}, "Storage usage is 92%."), element("Button", {size:"sm",variant:"ghost",onClick:binding('() => setStatus("Storage opened.")',()=>actions.setStatus("Storage opened."))}, "View usage"))
+      : "Your work stays here. Choose the next step when you are ready."),status);
     case "badge": return element("Badge", {tone:v.tone, variant:v.variant, size:v.size}, ({neutral:"Draft",accent:"Beta",success:"Active",warning:"Pending",error:"Failed",info:"Updated"} as Record<string,string>)[String(v.tone)]);
     case "spinner": return element("Spinner", {size:v.size,decorative:v.decorative,label:"Loading workspace"});
     case "skeleton": return element("div", {style:{width:"16rem",maxWidth:"100%"}}, element("Skeleton", {shape:v.shape,animate:v.animate}));
@@ -574,7 +768,8 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       trigger:binding('(trigger) => <Button {...trigger} variant="subtle">Project settings</Button>', (trigger:Flood.OverlayTriggerProps)=>createElement(Flood.Button,{...trigger,variant:"subtle"},"Project settings"))},
       element("Stack",{gap:"3"},{tag:"Field",props:{label:"Project name"},field:element("Input",{defaultValue:"Flood"})}));
     case "alert-dialog": return element("Stack", {gap:"4"}, element("AlertDialog",{key:String(v.defaultOpen),title:"Archive this project?",description:"It will leave your active projects. You can restore it from the archive.",confirmLabel:"Archive project",defaultOpen:v.defaultOpen,disabled:v.disabled,confirmDisabled:v.confirmDisabled,onConfirm:binding('() => setStatus("Project archived locally.")',()=>actions.setStatus("Project archived locally.")),onCancel:binding('() => setStatus("Cancelled.")',()=>actions.setStatus("Cancelled.")),trigger:binding('(trigger) => <Button {...trigger} variant="subtle">Archive project</Button>',(trigger:Flood.OverlayTriggerProps)=>createElement(Flood.Button,{...trigger,variant:"subtle"},"Archive project"))}), status);
-    case "drawer": return element("Stack",{gap:"4"},element("Drawer",{key:String(v.defaultOpen),title:"Project settings",side:v.side,size:v.size,defaultOpen:v.defaultOpen,closeOnOutsideClick:v.closeOnOutsideClick,disabled:v.disabled,trigger:binding('(trigger) => <Button {...trigger} variant="subtle">Open settings</Button>',(trigger:Flood.OverlayTriggerProps)=>createElement(Flood.Button,{...trigger,variant:"subtle"},"Open settings")),footer:v.showFooter?binding('<Button onClick={(event) => { setStatus("Preferences saved locally."); event.currentTarget.closest("dialog")?.close(); }}>Save changes</Button>',<Flood.Button onClick={event=>{actions.setStatus("Preferences saved locally.");event.currentTarget.closest("dialog")?.close();}}>Save changes</Flood.Button>):undefined},element("Stack",{gap:"4"},{tag:"Field",props:{label:"Project name"},field:element("Input",{defaultValue:"Flood"})},{tag:"Field",props:{label:"Visibility"},field:element("Select",{defaultValue:"private"},element("option",{value:"private"},"Private"),element("option",{value:"team"},"Team"))},...(v.longContent?Array.from({length:12},(_,index)=>text(`Project note ${index+1}: Access review due on 12 November.`)):[]))),status);
+    case "sheet":
+    case "drawer": return element("Stack",{gap:"4"},element(slug === "sheet" ? "Sheet" : "Drawer",{key:String(v.defaultOpen),title:"Project settings",side:v.side,size:v.size,defaultOpen:v.defaultOpen,closeOnOutsideClick:v.closeOnOutsideClick,disabled:v.disabled,trigger:binding('(trigger) => <Button {...trigger} variant="subtle">Open settings</Button>',(trigger:Flood.OverlayTriggerProps)=>createElement(Flood.Button,{...trigger,variant:"subtle"},"Open settings")),footer:v.showFooter?binding('<Button onClick={(event) => { setStatus("Preferences saved locally."); event.currentTarget.closest("dialog")?.close(); }}>Save changes</Button>',<Flood.Button onClick={event=>{actions.setStatus("Preferences saved locally.");event.currentTarget.closest("dialog")?.close();}}>Save changes</Flood.Button>):undefined},element("Stack",{gap:"4"},{tag:"Field",props:{label:"Project name"},field:element("Input",{defaultValue:"Flood"})},{tag:"Field",props:{label:"Visibility"},field:element("Select",{defaultValue:"private"},element("option",{value:"private"},"Private"),element("option",{value:"team"},"Team"))},...(v.longContent?Array.from({length:12},(_,index)=>text(`Project note ${index+1}: Access review due on 12 November.`)):[]))),status);
     case "command-palette": {
       const commands = v.scenario === "commands";
       const title = commands ? "Run a command" : "Go to page";
@@ -597,7 +792,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       element("Stack",{gap:"4"},{tag:"Field",props:{label:"Project name"},field:element("Input",{defaultValue:"My project"})},{tag:"Field",props:{label:"Visibility"},field:element("Select",{defaultValue:"private"},element("option",{value:"private"},"Private"),element("option",{value:"team"},"Team"))}));
     case "collapsible": return element("Collapsible", {
       key: String(v.defaultOpen), title: "Advanced settings", defaultOpen: v.defaultOpen, controlSize: v.controlSize, disabled: v.disabled,
-    }, element("Stack", {gap: "3"}, text("Keep additional settings close, without crowding the main flow."), element("Input", {"aria-label":"Project prefix", defaultValue:"flood"})));
+    }, {tag:"Field",props:{label:"Project prefix"},field:element("Input",{defaultValue:"flood"})});
     case "accordion": {
       const items = [
         {value:"install", title:"How do I install Flood?", content:"Install the matching packages, import the stylesheet and add FloodRoot."},
@@ -703,8 +898,25 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
   }
 }
 
-export function ComponentWorkbench({ component, onCodeChange, onImportsChange, agentContext, importMode = "package", studioHeading }: { studioHeading?: ReactNode; component: ComponentPage; onCodeChange: (code: string) => void; onImportsChange?: (names: string[]) => void; agentContext: string; importMode?: "package" | "project" }) {
+function StudioChoice({ label, value, options, onChange }: { label: string; value: string; options: readonly { value: string; label: string }[]; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const list = useRef<HTMLDivElement>(null);
+  const currentLabel = options.find(option => option.value === value)?.label ?? value;
+  return <Flood.Sheet title={label} size="sm" open={open} onOpenChange={setOpen} initialFocusRef={list}
+    trigger={props => <Flood.Button {...props} size="sm" variant="subtle" className="studio-choice">
+      <span className="studio-choice-value"><Flood.Text tone="subtle">{label}: </Flood.Text>{currentLabel}</span>
+      <Flood.IconSlot size="sm"><ChevronDown /></Flood.IconSlot>
+    </Flood.Button>}>
+    <Flood.ListBox ref={list} label={label} hideLabel appearance="plain" selectionBehavior="manual"
+      options={options} value={value}
+      onValueChange={next => { if (typeof next === "string") { onChange(next); setOpen(false); } }} />
+  </Flood.Sheet>;
+}
+
+export function ComponentWorkbench({ component, onCodeChange, onImportsChange, importMode = "package", studioHeading, studioReference }: { studioHeading?: ReactNode; studioReference?: ReactNode; component: ComponentPage; onCodeChange: (code: string) => void; onImportsChange?: (names: string[]) => void; importMode?: "package" | "project" }) {
   const studio = Boolean(studioHeading);
+  const phone = useStudioMedia(phoneViewport);
+  const useChoiceSheets = useStudioMedia(touchPhone);
   const id = useId();
   const [state, setState] = useState(() => ({ slug: component.slug, values: initialValues(component) }));
   const resetAction = useRef<HTMLButtonElement>(null);
@@ -767,6 +979,18 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   };
   const values = state.slug === component.slug ? state.values : initialValues(component);
   const [fileStates,setFileStates] = useState<Record<string,string>>({});
+  const [projectEdits, setProjectEdits] = useState<ProjectEdits>({});
+  const setProjectEdit: PreviewActions["setProjectEdit"] = (id, field, value) => {
+    const document = stage.current?.ownerDocument;
+    const row = document?.activeElement?.closest("tr");
+    const table = row?.closest("table");
+    setProjectEdits(current => ({ ...current, [id]: { ...current[id], [field]: value } }));
+    if (row && table) document?.defaultView?.requestAnimationFrame(() => {
+      if (!row.isConnected && document.activeElement === document.body) {
+        table.tHead?.querySelector<HTMLButtonElement>(`[data-data-table-column="${field}"] button`)?.focus();
+      }
+    });
+  };
   const change = (name: string, value: string | boolean) => { setState({ slug: component.slug, values: { ...values, ...(name === "status" ? { invalid: false, ...(component.slug === "field" ? { error: false } : {}) } : {}), [name]: value } }); setStatus(""); if(name==="state")setFileStates({}); };
   const callback = useRef(onCodeChange);
   const importsCallback = useRef(onImportsChange);
@@ -778,10 +1002,16 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
     catch { setStatus("Select the code and copy it manually."); }
   };
   const currentPage=component.slug==="pagination"?Math.min(pagination.slug===component.slug?pagination.page:1,Number(values.pageCount)):1;
-  const recipe = recipeFor(component.slug, values, { shellDrawerOpen,setShellDrawerOpen,navValue,setNavValue,setCollapsed:(next)=>change("collapsed",next),restoreTable:()=>change("state","ready"),viewValue,setViewValue,toolbarSearch,setToolbarSearch,toolbarOpen,setToolbarOpen,draftFilters,setDraftFilters,filterGroup,setFilterGroup,filterValue,setFilterValue,fileStates,setFileState:(id,next)=>setFileStates(current=>({...current,[id]:next})), menuChecked, setMenuChecked, menuDensity, setMenuDensity, notifications, addToast:()=>setNotifications(current=>[...current,{id:crypto.randomUUID(),title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]), dismissToast:id=>setNotifications(current=>current.filter(item=>item.id!==id)), status, setStatus:(next)=>{if(next==="Condition removed")resetAction.current?.focus({preventScroll:true});setStatus(next);}, checked: (checked) => change("checked", checked), visible: visible => {
+  const recipe = recipeFor(component.slug, values, { phone, projectEdits, setProjectEdit, shellDrawerOpen,setShellDrawerOpen,navValue,setNavValue,setCollapsed:(next)=>change("collapsed",next),restoreTable:()=>change("state","ready"),viewValue,setViewValue,toolbarSearch,setToolbarSearch,toolbarOpen,setToolbarOpen,draftFilters,setDraftFilters,filterGroup,setFilterGroup,filterValue,setFilterValue,fileStates,setFileState:(id,next)=>setFileStates(current=>({...current,[id]:next})), menuChecked, setMenuChecked, menuDensity, setMenuDensity, notifications, addToast:()=>setNotifications(current=>[...current,{id:crypto.randomUUID(),title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]), dismissToast:id=>setNotifications(current=>current.filter(item=>item.id!==id)), status, setStatus:(next)=>{if(next==="Condition removed")resetAction.current?.focus({preventScroll:true});setStatus(next);}, checked: (checked) => change("checked", checked), visible: visible => {
     change("visible", visible);
     if (!visible) queueMicrotask(() => stage.current?.ownerDocument.getElementById(`${id}-visible`)?.focus());
   }, copy, page:currentPage,setPage:page=>setPagination({slug:component.slug,page}) });
+  const hasFeedback = recipe.children?.some(child => typeof child !== "string" && !isBinding(child) && child.previewFeedback);
+  const showFeedbackSlot = hasFeedback || component.slug === "code-snippet";
+  const previewRecipe = hasFeedback ? {
+    ...recipe,
+    children: recipe.children?.filter(child => typeof child === "string" || isBinding(child) || !child.previewFeedback),
+  } : recipe;
   const imports = new Set<string>(["FloodRoot"]), icons = new Set<string>();
   const jsx = printRecipe(element("FloodRoot", {}, recipe), imports, icons, 2);
   if (component.slug === "code-snippet" && values.copyAction) imports.add("Button");
@@ -807,7 +1037,30 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
     preamble+='  const [expanded, setExpanded] = useState(true);\n  const [projectCount, setProjectCount] = useState(2);\n';
   }
   if (component.slug === "sidebar") {for(const name of ["Inline","IconSlot","Text","Badge","NavigationTree"])imports.add(name);for(const name of ["House","Folder","Bell","ChartNoAxesColumn","Archive","Settings","CircleHelp"])icons.add(name);preamble += '  const [current, setCurrent] = useState("overview");\n  const [collapsed, setCollapsed] = useState(' + JSON.stringify(values.collapsed) + ');\n';}
-  if (component.slug === "data-table") {if(values.customEmpty)imports.add("EmptyState");preamble += '  const [tableState, setTableState] = useState<"ready"|"loading"|"error">(' + JSON.stringify(values.state) + ');\n  const [emptyRows] = useState(' + JSON.stringify(values.emptyRows) + ');\n';}
+  if (component.slug === "data-table") {
+    for (const name of ["Sparkline", "Text", "Badge", "Menu", "Button", "IconSlot", "Editable"]) imports.add(name);
+    icons.add("ChevronDown");
+    printRecipe(projectMilestones, imports, icons);
+    if (values.customEmpty) imports.add("EmptyState");
+    preamble += '  const [tableState, setTableState] = useState<"ready"|"loading"|"error">(' + JSON.stringify(values.state) + ');\n' +
+      '  const [emptyRows] = useState(' + JSON.stringify(values.emptyRows) + ');\n' +
+      '  type Field = "budget" | "status" | "owner";\n' +
+      '  const [projectEdits, setProjectEdits] = useState<Record<string, Partial<Record<Field, string>>>>({});\n' +
+      '  const updateProject = (id: string, field: Field, value: string) => {\n' +
+      '    const row = document.activeElement?.closest("tr");\n' +
+      '    const table = row?.closest("table");\n' +
+      '    setProjectEdits(current => ({ ...current, [id]: { ...current[id], [field]: value } }));\n' +
+      '    if (row && table) requestAnimationFrame(() => {\n' +
+      '      if (!row.isConnected && document.activeElement === document.body) {\n' +
+      '        table.tHead?.querySelector<HTMLButtonElement>(`[data-data-table-column="${field}"] button`)?.focus();\n' +
+      '      }\n' +
+      '    });\n' +
+      '  };\n' +
+      '  const statusTones = ' + JSON.stringify(projectStatusTones) + ' as const;\n' +
+      '  const budgetDomain = [0, Math.max(16000, ...Object.values(projectEdits).map(edit => Number(edit.budget ?? 0)))] as const;\n' +
+      '  const parseBudget = (value: string) => /^(?:\\d+|\\d{1,3}(?:,\\d{3})+)(?:\\.\\d{1,2})?$/.test(value.trim())\n' +
+      '    ? Number(value.replaceAll(",", "")) : NaN;\n';
+  }
   if (component.slug === "collection-view-switcher") preamble += '  const [view, setView] = useState("all");\n  const [, setAction] = useState("");\n';
   if (component.slug === "collection-toolbar") { for(const name of ["Stack","Inline","FilterGroup","Button"])imports.add(name); preamble += "  const properties = " + JSON.stringify(collectionPreviewProperties) + ";\n"; preamble += '  const [search, setSearch] = useState("");\n  const [filterOpen, setFilterOpen] = useState(false);\n  const [filters, setFilters] = useState<{match:"all"|"any";conditions:{id:string;property:string;operator:"is"|"is-not";values:string[]}[]}>({match:"all",conditions:[{id:"status",property:"status",operator:"is",values:["active"]},{id:"owner",property:"owner",operator:"is",values:["maya"]}]});\n  const [draftFilters, setDraftFilters] = useState(filters);\n'; }
   if (component.slug === "filter-group") preamble += '  const [filters, setFilters] = useState<{match:"all"|"any";conditions:{id:string;property:string;operator:"is"|"is-not";values:string[]}[]}>({match:"all",conditions:[{id:"status",property:"status",operator:"is",values:["active"]},{id:"owner",property:"owner",operator:"is",values:["maya"]}]});\n';
@@ -839,41 +1092,80 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   if (component.slug === "resizable-panels") { imports.add("Surface"); imports.add("Text"); }
   if (component.slug === "card") { if (values.showActions) imports.add("Badge"); if (values.showFooter) imports.add("Button"); }
   if (component.slug === "empty-state") { if (values.showIcon) icons.add("Plus"); if (values.showActions) imports.add("Button"); }
-  const usesStatus = ["filter-condition","file-item", "file-list", "upload-item", "upload-list","data-table","data-list", "data-list-item","context-menu", "command-list", "command-palette", "steps", "section", "drawer", "alert-dialog", "empty-state", "card", "toolbar", "menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
+  const usesStatus = hasFeedback || ["filter-condition","file-item", "file-list", "upload-item", "upload-list","data-table","data-list", "data-list-item","context-menu", "command-list", "command-palette", "steps", "section", "drawer", "alert-dialog", "empty-state", "card", "toolbar", "menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
   if (usesChecked) preamble += `  const [checked, setChecked] = useState(${JSON.stringify(Boolean(values.checked))});\n`;
   if (component.slug === "menu" && ["preferences", "mixed"].includes(String(values.scenario))) preamble += '  const [notificationsEnabled, setNotificationsEnabled] = useState(true);\n  const [density, setDensity] = useState("Compact");\n';
   if (usesStatus) preamble += '  const [status, setStatus] = useState("");\n';
   if (component.slug==="pagination") preamble += `  const [page, setPage] = useState(${currentPage});\n`;
   if (component.slug === "code-snippet" && values.copyAction) preamble += `  async function copy() {\n    try {\n      await navigator.clipboard.writeText(${JSON.stringify(String(values.code))});\n      setStatus("Copied command.");\n    } catch {\n      setStatus("Select the code and copy it manually.");\n    }\n  }\n`;
   const stylesheet = importMode === "project" ? "@/ui/styles.css" : "@flood-md/react/styles.css";
-  const code = '"use client";\n\n' + (navigationState || usesPresence || usesChecked || usesStatus || (component.slug === "app-shell" && values.navigationMode === "drawer") || component.slug === "toast-region" || component.slug === "filter-group" || component.slug === "collection-toolbar" || component.slug === "collection-view-switcher" || component.slug === "data-table" || component.slug === "sidebar" || component.slug==="pagination" ? 'import { useState } from "react";\n' : "") + importStatements([...imports].sort(), importMode) + "\n" + (icons.size ? `import { ${[...icons].sort().join(", ")} } from "lucide-react";\n` : "") + `import "${stylesheet}";\n\nexport function Example() {\n` + preamble + `  return (\n${jsx}\n  );\n}\n`;
+  const code = '"use client";\n\n' + (component.slug === "data-table" ? 'import { useState, type ReactNode } from "react";\n' : navigationState || usesPresence || usesChecked || usesStatus || (component.slug === "app-shell" && values.navigationMode === "drawer") || component.slug === "toast-region" || component.slug === "filter-group" || component.slug === "collection-toolbar" || component.slug === "collection-view-switcher" || component.slug === "sidebar" || component.slug==="pagination" ? 'import { useState } from "react";\n' : "") + importStatements([...imports].sort(), importMode) + "\n" + (icons.size ? `import { ${[...icons].sort().join(", ")} } from "lucide-react";\n` : "") + `import "${stylesheet}";\n\nexport function Example() {\n` + preamble + `  return (\n${jsx}\n  );\n}\n`;
   useEffect(() => { callback.current(code); importsCallback.current?.([...imports].sort()); }, [code]);
 
   const controls = componentKnobs(component).filter(knob => {
     if(component.slug==="navigation-item"&&values.compareStates)return ["compareStates","size","variant"].includes(knob.name);
+    if(component.slug==="toast-region"&&values.inline&&knob.name==="placement")return false;
     return !(component.slug === "menu" && values.scenario === "preferences" && ["icons", "shortcuts", "disableArchive"].includes(knob.name));
   });
   const hasFocusAction = ["input", "input-group", "textarea", "select"].includes(component.slug);
   const spacious = ["navigation-item","navigation-group","sidebar","collection-view-switcher","collection-toolbar","filter-group","calendar","time-picker","file-item", "upload-item","data-list", "data-list-item", "check-card", "radio-card","color-picker", "date-time-picker", "tree-select", "tree", "navigation-tree", "list-box", "navigation-list", "steps", "section", "center", "container", "grid", "aspect-ratio", "empty-state", "card", "table", "description-list", "accordion", "input", "input-group", "textarea", "select", "field", "label", "fieldset", "radio-group", "checkbox-group", "scroll-area", "surface", "flood-root", "stack", "code-snippet"].includes(component.slug);
-  const labelFor = (knob: Knob) => knob.label ?? ({ controlSize: "Size", contentInset: "Content clearance", readOnly: "Read only", copyAction: "Copy button", label: "Accessible name" } as Record<string, string>)[knob.name] ?? knob.name[0].toUpperCase() + knob.name.slice(1);
-  const previewActions = <Flood.Inline gap="2" className="workbench-actions">
-    <CopyButton value={agentContext} label="Copy for agent" text="Copy for agent" />
-    <Flood.Button ref={resetAction} variant="subtle" size="sm" onClick={() => {
+  const labelFor = (knob: Knob) => knob.label
+    ?? ({ controlSize: "Size", contentInset: "Content clearance", copyAction: "Copy button", label: "Accessible name" } as Record<string, string>)[knob.name]
+    ?? (knob.name[0].toUpperCase() + knob.name.slice(1).replace(/[A-Z]/g, letter => ` ${letter.toLowerCase()}`));
+  const resetPreview = () => {
       setState({ slug: component.slug, values: initialValues(component) });
       setStatus(""); setPagination({slug:component.slug,page:1}); setResetKey(key => key + 1);
       resetViewPosition();
       setFilterValue({property:"status",operator:"is",values:["active"]});
       setFilterGroup({match:"all",conditions:[{id:"status",property:"status",operator:"is",values:["active"]},{id:"owner",property:"owner",operator:"is",values:["maya"]}]});
       setFileStates({}); setNavValue("overview"); setViewValue("all"); setToolbarSearch(""); setToolbarOpen(false);
+      setProjectEdits({});
       setShellDrawerOpen(false); setDraftFilters({match:"all",conditions:[]}); setMenuChecked(true); setMenuDensity("Compact");
       setNotifications([{id:"welcome",title:"Changes saved",description:"Your project preferences are up to date.",duration:0}]);
-    }}>Reset</Flood.Button>
+  };
+  const previewActions = <Flood.Inline gap="2" className="workbench-actions">
+    <Flood.Button ref={resetAction} className="workbench-reset" variant="subtle" size="sm" aria-label="Reset" title="Reset preview" onClick={resetPreview}>
+      <Flood.IconSlot className="workbench-reset-icon" size="sm"><Undo2 /></Flood.IconSlot>
+      <span>Reset</span>
+    </Flood.Button>
   </Flood.Inline>;
+  const frameWidths = [{ value: "auto", label: "Auto width" }, ...["1200", "768", "390"].map(value => ({ value, label: `${value} px` }))];
+  const widthControl = <Flood.Select aria-label="Frame width" className="studio-width-control" controlSize="sm" value={frameWidth} onChange={event => setFrameWidth(event.currentTarget.value)}>
+    {frameWidths.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+  </Flood.Select>;
+  const changeZoom = (value: string) => {
+    if (value === "fit") resetViewPosition();
+    setZoom(value);
+  };
+  const zoomLevels = [...["50", "75", "100", "125", "150", "200"].map(value => ({ value, label: `${value}%` })),
+    { value: "fit", label: zoom === "fit" ? `Fit · ${Math.round(fitScale * 100)}%` : "Fit" }];
+  const zoomControl = <Flood.Select aria-label="Canvas zoom" className="studio-zoom-control" controlSize="sm" value={zoom} onChange={event => changeZoom(event.currentTarget.value)}>
+    {zoomLevels.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+  </Flood.Select>;
+  const fitAction = <Flood.Button variant={zoom === "fit" ? "solid" : "subtle"} size="sm" aria-pressed={zoom === "fit"} onClick={() => changeZoom("fit")}>Fit</Flood.Button>;
+  const resetViewAction = <Flood.Button variant="subtle" size="sm" onClick={() => {
+    setFrameWidth("auto");
+    setZoom("100");
+    resetViewPosition();
+  }}>Reset view</Flood.Button>;
+  const viewTrigger = (props: Flood.OverlayTriggerProps) =>
+    <Flood.Button {...props} size="sm" variant="subtle" aria-label="View options">View</Flood.Button>;
+  const viewControls = <Flood.Stack gap="2">
+    {useChoiceSheets ? <>
+      <StudioChoice label="Frame width" value={frameWidth} options={frameWidths} onChange={setFrameWidth} />
+      <StudioChoice label="Canvas zoom" value={zoom} options={zoomLevels} onChange={changeZoom} />
+    </> : <Flood.Inline gap="2">{widthControl}{zoomControl}</Flood.Inline>}
+    <Flood.Inline gap="2">{fitAction}{resetViewAction}</Flood.Inline>
+  </Flood.Stack>;
   const propertyControls = (controls.length > 0 || hasFocusAction) && (
     <div className="workbench-controls" data-flood-surface="filled" role="group" aria-label={`${component.name} API controls`}>
       {controls.map((knob) => typeof knob.initial === "boolean" ?
         <div className="workbench-control workbench-control--toggle" key={knob.name}>
           <Flood.Checkbox id={`${id}-${knob.name}`} label={labelFor(knob)} aria-label={`${component.name} ${knob.name === "hideLabel" && ["input", "input-group", "textarea", "select"].includes(component.slug) ? "Field wrapper" : "prop"} ${knob.name}`} checked={Boolean(values[knob.name])} onChange={(event) => change(knob.name, event.currentTarget.checked)} />
+        </div> : studio && useChoiceSheets && knob.options ?
+        <div className="workbench-control workbench-control--select" key={knob.name}>
+          <StudioChoice label={labelFor(knob)} value={String(values[knob.name])}
+            options={knob.options.map(value => ({ value, label: value }))} onChange={value => change(knob.name, value)} />
         </div> :
         <Flood.Label className={studio && knob.options ? "workbench-control workbench-control--select" : "workbench-control"} htmlFor={`${id}-${knob.name}`} key={knob.name}>
           {(!studio || !knob.options) && <span>{labelFor(knob)}</span>}
@@ -890,60 +1182,56 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, a
   );
   return <section className="component-workbench" data-studio={studio || undefined} aria-label={`${component.name} live playground`}>
     {!studio && <div className="workbench-title" data-flood-surface="filled"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text>{previewActions}</div>}
-    {studio && <Flood.Inline ref={studioToolbar} gap="2" className="studio-tools" data-flood-surface="filled">
-      <Flood.Inline gap="2" className="studio-view-controls">
-        <Flood.Select aria-label="Frame width" controlSize="sm" value={frameWidth} onChange={event=>setFrameWidth(event.currentTarget.value)}>
-          <option value="auto">Auto width</option><option value="1200">1200 px</option><option value="768">768 px</option><option value="390">390 px</option>
-        </Flood.Select>
-        <Flood.Select aria-label="Canvas zoom" controlSize="sm" value={zoom} onChange={event=>setZoom(event.currentTarget.value)}>
-          <option value="50">50%</option><option value="75">75%</option><option value="100">100%</option><option value="125">125%</option><option value="150">150%</option><option value="200">200%</option>
-          <option value="fit">Fit{zoom === "fit" ? ` · ${Math.round(fitScale * 100)}%` : ""}</option>
-        </Flood.Select>
-        <Flood.Button variant={zoom === "fit" ? "solid" : "subtle"} size="sm" aria-pressed={zoom === "fit"} onClick={() => {
-          resetViewPosition();
-          setZoom("fit");
-        }}>Fit</Flood.Button>
-        <Flood.Button variant="subtle" size="sm" onClick={()=>{
-          setFrameWidth("auto"); setZoom("100"); resetViewPosition();
-        }}>Reset view</Flood.Button>
+    {studio && <header className="studio-header">{studioHeading}</header>}
+    <div className="workbench-canvas" data-feedback={showFeedbackSlot || undefined}>
+      <div className="workbench-stage preview-stage" data-component={component.slug} data-size={["heading", "timeline", "toast-region", "dropzone", "color-picker", "data-table", "file-list", "upload-list", "date-time-range-picker"].includes(component.slug) ? "display" : spacious ? "regular" : "compact"}
+        data-wide-frame={studio && (frameWidth !== "auto" || component.previewLayout === "workspace") || undefined} ref={stage} key={component.slug + resetKey}
+        role={studio ? "region" : undefined} aria-label={studio ? "Preview canvas" : undefined} tabIndex={studio ? 0 : undefined}
+        onPointerDown={event=>{
+          const canvas = event.currentTarget;
+          if (!studio || event.pointerType === "touch" || event.button !== 0 || drag.current) return;
+          if (event.target !== canvas && event.target !== previewFrame.current) return;
+          drag.current = { pointer: event.pointerId, x: event.clientX, y: event.clientY, origin: pan };
+          canvas.setPointerCapture(event.pointerId);
+          canvas.dataset.dragging = "";
+          event.preventDefault();
+        }}
+        onPointerMove={event=>{
+          const start=drag.current;
+          if(start?.pointer!==event.pointerId) return;
+          setPan({ x: start.origin.x + event.clientX - start.x, y: start.origin.y + event.clientY - start.y });
+        }}
+        onLostPointerCapture={event => {
+          if (drag.current?.pointer !== event.pointerId) return;
+          drag.current = null;
+          delete event.currentTarget.dataset.dragging;
+        }}
+        style={studio ? {
+          "--studio-frame-width": frameWidth === "auto" ? "100cqw" : `${frameWidth}px`,
+          "--studio-zoom": zoom === "fit" ? fitScale : Number(zoom) / 100,
+          "--studio-pan-x": `${pan.x}px`,
+          "--studio-pan-y": `${pan.y}px`,
+        } as CSSProperties : undefined}
+      ><Flood.FloodRoot ref={previewFrame}>{renderRecipe(previewRecipe)}</Flood.FloodRoot></div>
+      {showFeedbackSlot && <Flood.Text as="p" size="compact" tone="subtle" role="status" className="workbench-feedback">{status}</Flood.Text>}
+    </div>
+    {studio && <div ref={studioToolbar} className="studio-action-row">
+      <Flood.Inline gap="2" className="studio-tools" data-flood-surface="filled">
+        <Flood.Inline gap="2" className="studio-view-controls">
+          {widthControl}{zoomControl}{fitAction}{resetViewAction}
+        </Flood.Inline>
+        <div className="studio-compact-tools">
+          {phone ? <Flood.Sheet title="Preview options" size="sm" trigger={viewTrigger}>{viewControls}</Flood.Sheet>
+            : <Flood.Popover title="Preview options" chrome="minimal" side="top" trigger={viewTrigger}>{viewControls}</Flood.Popover>}
+        </div>
+        {previewActions}
       </Flood.Inline>
-      {previewActions}
-    </Flood.Inline>}
-    {studio && <header className="studio-header">
-      {studioHeading}
-      {propertyControls && <div className="studio-properties">
-        <Flood.ScrollArea orientation="horizontal" contentInset="none" aria-label="Preview properties">{propertyControls}</Flood.ScrollArea>
-      </div>}
-    </header>}
-    <div className="workbench-stage preview-stage" data-component={component.slug} data-size={["heading", "timeline", "toast-region", "dropzone", "color-picker", "data-table", "file-list", "upload-list", "date-time-range-picker"].includes(component.slug) ? "display" : spacious ? "regular" : "compact"}
-      data-wide-frame={studio && (frameWidth !== "auto" || component.previewLayout === "workspace") || undefined} ref={stage} key={component.slug + resetKey}
-      role={studio ? "region" : undefined} aria-label={studio ? "Preview canvas" : undefined} tabIndex={studio ? 0 : undefined}
-      onPointerDown={event=>{
-        const canvas = event.currentTarget;
-        if (!studio || event.pointerType === "touch" || event.button !== 0 || drag.current) return;
-        if (event.target !== canvas && event.target !== previewFrame.current) return;
-        drag.current = { pointer: event.pointerId, x: event.clientX, y: event.clientY, origin: pan };
-        canvas.setPointerCapture(event.pointerId);
-        canvas.dataset.dragging = "";
-        event.preventDefault();
-      }}
-      onPointerMove={event=>{
-        const start=drag.current;
-        if(start?.pointer!==event.pointerId) return;
-        setPan({ x: start.origin.x + event.clientX - start.x, y: start.origin.y + event.clientY - start.y });
-      }}
-      onLostPointerCapture={event => {
-        if (drag.current?.pointer !== event.pointerId) return;
-        drag.current = null;
-        delete event.currentTarget.dataset.dragging;
-      }}
-      style={studio ? {
-        "--studio-frame-width": frameWidth === "auto" ? "100cqw" : `${frameWidth}px`,
-        "--studio-zoom": zoom === "fit" ? fitScale : Number(zoom) / 100,
-        "--studio-pan-x": `${pan.x}px`,
-        "--studio-pan-y": `${pan.y}px`,
-      } as CSSProperties : undefined}
-    ><Flood.FloodRoot ref={previewFrame}>{renderRecipe(recipe)}</Flood.FloodRoot></div>
+      {studioReference}
+    </div>}
+    {studio && propertyControls && <div className="studio-properties">
+      <Flood.Text as="p" size="label" className="studio-properties-title">Properties</Flood.Text>
+      <Flood.ScrollArea orientation="horizontal" contentInset="none" aria-label="Preview properties">{propertyControls}</Flood.ScrollArea>
+    </div>}
     {!studio && propertyControls}
   </section>;
 }

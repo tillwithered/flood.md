@@ -64,7 +64,10 @@ test("Disclosure previews preserve frame geometry, heading semantics and reduced
     const header=(await trigger.boundingBox())!,item=(await stage.locator(".flood-disclosure").first().boundingBox())!;
     const indicator=trigger.locator(".flood-disclosure__indicator");
     const mark=(await indicator.boundingBox())!;
-    expect(header.width).toBeGreaterThanOrEqual(item.width-2.1);
+    const startInset = header.x - item.x;
+    const endInset = item.x + item.width - header.x - header.width;
+    expect(startInset).toBeCloseTo(endInset, 1);
+    expect(startInset).toBeCloseTo(slug === "collapsible" ? 5 : 0, 0);
     expect(mark.x).toBeGreaterThan(header.x+header.width*.75);
     expect(mark.y+mark.height/2).toBeCloseTo(header.y+header.height/2,1);
     await trigger.hover();await page.mouse.down();
@@ -98,6 +101,12 @@ test("Accordion hover corners follow the outer shell rather than rounding every 
   await page.locator(".component-workbench").screenshot({path:`.artifacts/accordion-hover-${info.project.name}.png`});
   await buttons.nth(2).click();expect(await radii(2)).toEqual([0,0,0,0]);
   await page.goto("/components/collapsible");const trigger=page.locator(".preview-stage").getByRole("button");
-  await expect(trigger).not.toHaveCSS("border-bottom-left-radius","0px");await trigger.click();
-  await expect(trigger).toHaveCSS("border-bottom-left-radius","0px");await expect(trigger).not.toHaveCSS("border-top-left-radius","0px");
+  const closedRadius = await trigger.evaluate(node => getComputedStyle(node).borderBottomLeftRadius);
+  await trigger.click();
+  await trigger.hover();
+  await expect(trigger).toHaveCSS("border-bottom-left-radius",closedRadius);
+  expect(parseFloat(closedRadius)).toBeGreaterThan(0);
+  const triggerBox = (await trigger.boundingBox())!;
+  const contentBox = (await page.locator(".preview-stage .flood-disclosure__panel label").boundingBox())!;
+  expect(contentBox.y - triggerBox.y - triggerBox.height).toBeGreaterThanOrEqual(8);
 });

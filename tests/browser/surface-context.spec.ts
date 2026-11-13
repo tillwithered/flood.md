@@ -1,5 +1,17 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 
+test('surface study fields reflow without widening the page', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto('/playground/surfaces');
+  await expect(page.getByRole('heading', { name: 'Surface study' })).toBeVisible();
+  const raised = page.locator('[data-study-controls="raised"]');
+  const readOnly = await raised.getByRole('textbox', { name: 'Read only' }).boundingBox();
+  const unavailable = await raised.getByRole('textbox', { name: 'Unavailable' }).boundingBox();
+  expect(readOnly!.x).toBeCloseTo(unavailable!.x, 1);
+  expect(unavailable!.y).toBeGreaterThan(readOnly!.y + readOnly!.height);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+});
+
 async function open(page: Page) {
   await page.goto('/playground/surfaces');
   await expect(page.locator('[data-study-controls="overlay"]')).toBeVisible();

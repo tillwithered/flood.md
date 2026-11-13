@@ -66,6 +66,10 @@
 .navigation-lab__account > .flood-text { min-inline-size:0; overflow:hidden; text-overflow:ellipsis; }
 .navigation-lab__account > .flood-icon:last-child { margin-inline-start:auto; }
 
+@media (max-width: 52rem) {
+  .flood-root .navigation-lab__main-header > .flood-app-top-bar__start { display:none; }
+  .navigation-lab__main-header > .flood-app-top-bar__end { flex-wrap:nowrap; margin-inline-start:0; }
+}
 @media (max-width: 36rem) {
   .flood-root.navigation-lab { padding:var(--flood-sys-space-2); }
   .flood-root .navigation-lab__frame .flood-app-shell__navigation > .flood-sidebar[data-collapsed="false"] {
@@ -73,8 +77,6 @@
   }
   .flood-root .navigation-lab__main-header.flood-app-top-bar,
   .navigation-lab__content-inner { padding-inline:var(--flood-sys-space-2); }
-  .flood-root .navigation-lab__main-header > .flood-app-top-bar__start { display:none; }
-  .navigation-lab__main-header > .flood-app-top-bar__end { flex-wrap:nowrap; margin-inline-start:0; }
   .navigation-lab__main-header .navigation-lab__help { padding-inline:var(--flood-sys-space-2); }
   .navigation-lab__main-header .navigation-lab__toolbar-label {
     position:absolute;

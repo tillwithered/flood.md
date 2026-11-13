@@ -13,6 +13,7 @@ async function sidebarProperty(page:Page, name:string, value:string|boolean){
 test('sidebar width eases in both directions and respects reduced motion',async({page})=>{
   await page.emulateMedia({reducedMotion:'no-preference'});
   const sidebar=await open(page);
+  await sidebar.evaluate(node=>{node.style.transitionDuration='5s';});
   for(const collapsed of [true,false]){
     const start=await sidebar.evaluate(node=>node.offsetWidth);
     await sidebar.getByRole('button',{name:collapsed?'Collapse sidebar':'Expand sidebar',exact:true}).evaluate(node=>(node as HTMLButtonElement).click());
@@ -30,6 +31,7 @@ test('sidebar width eases in both directions and respects reduced motion',async(
     expect(widths.middle).toBeGreaterThan(Math.min(start,widths.end));
     expect(widths.middle).toBeLessThan(Math.max(start,widths.end));
   }
+  await sidebar.evaluate(node=>node.style.removeProperty('transition-duration'));
   await page.emulateMedia({reducedMotion:'reduce'});
   await sidebar.getByRole('button',{name:'Collapse sidebar',exact:true}).click();
   await expect(sidebar).toHaveAttribute('data-collapsed','true');
@@ -288,9 +290,9 @@ test('compact touch targets fit the rail without clipping its scroll gutter',asy
 });
 
 test('workspace compact profile and navigation targets share the full rail axis in both profiles',async({page})=>{
+  await page.setViewportSize({width:900,height:900});
   await page.goto('/playground/navigation');
   for(const profile of ['Rail + context','Sidebar']){
-    if(profile==='Sidebar')await page.setViewportSize({width:900,height:900});
     await page.getByRole('radio',{name:profile,exact:true}).check();
     if(profile==='Sidebar')await page.getByRole('button',{name:'Collapse sidebar',exact:true}).first().click();
     const sidebar=page.getByRole('complementary',{name:profile==='Sidebar'?'Workspace navigation':'Global navigation',exact:true});

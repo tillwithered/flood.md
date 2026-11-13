@@ -6,10 +6,21 @@ HTML semantics and refs, no third-party component library or Tailwind dependency
 Named imports support tree shaking in optimizing ES-module bundlers. Import the
 shared stylesheet explicitly; styles are not split by component.
 
+Sheet is a bottom-aligned Drawer for short tasks, navigation and touch-friendly
+choices. It fits short content, caps long content to the viewport, and keeps
+Drawer dismissal, focus restoration, body scrolling and the optional footer.
+
 SegmentedControl options can display a `count` alongside the label, for example
 `{value: "pending", label: "Pending", count: 2}`. Use this for a small, mutually
 exclusive choice that updates one collection. The count is read with the visible
 label and does not change the submitted value.
+
+Version 0.2.12 adds opt-in DataTable column visibility. Set
+`showColumnVisibility` for the Columns menu, and supply `hiddenColumnIds` and
+`onHiddenColumnIdsChange` when the host saves preferences. The active sort and
+record-opening columns stay visible. See [DataTable](../../docs/components/data-table.md).
+Pass the Columns control from `toolbar={({ columns }) => …}` into
+`CollectionToolbar.actions` to keep it alongside search and filters.
 
 The 0.2.11 candidate adds optional DataTable row `primaryAction` for opening an
 in-place detail panel, plus `toolbar` and `inset="roomy"` for a shared table edge.
@@ -46,7 +57,7 @@ the interactive size. It defaults to size; shrinking a supporting glyph must
 not shrink its target or bypass IconSlot with a custom SVG width. Existing glyph
 roles at a 16px root are 2xs=14px, xs/sm=16px and md/lg=20px.
 
-This package documents the **0.2.11** source API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.12** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
 NavigationItem (0.2.11 candidate) is the shared small row for destinations,
@@ -431,6 +442,10 @@ edge-to-edge content when the host already provides safe padding. The default
 padding can wrap text and change content height. Native
 fallback scrollbars retain their platform behavior.
 
+AppShell content mode uses the same ScrollArea. For a workspace whose layout
+already provides clearance, `scrollContentInset="none"` keeps the content
+width stable when rails appear. The default protects edge-to-edge content.
+
 ```tsx
 <ScrollArea aria-label="Activity" style={{ maxHeight: "12rem" }}>
   <Stack gap="4">{/* Long activity content */}</Stack>
@@ -604,8 +619,9 @@ Available in 0.2.3. Import Flood CSS and use FloodRoot for dark foundations.
 
 Disclosure corner geometry: Accordion headers have square internal seams. Only
 the first header has upper shell corners, and only a closed last header has lower
-shell corners. An open Collapsible header has square lower corners where its
-panel begins. Hover backgrounds follow that same shape without clipping focus.
+shell corners. A standalone Collapsible has an inset, rounded trigger and a
+separate gap before the revealed content. The trigger label and panel share
+an inline edge.
 
 
 ## Tooltip, Popover and Dialog
@@ -804,7 +820,12 @@ assertive uses role=alert. Choose urgency deliberately for dynamically inserted
 content. Announcements depend on actual assistive technology; initial static
 markup is not guaranteed to be read aloud. No focus movement, auto-dismiss,
 timeout or built-in close/action button is supplied. Compose named host actions
-inside children when needed. Alert is separate from Dialog and future Toast.
+inside children when needed. A titleless Alert centers its glyph alongside a
+single Inline row. Subtle and ghost actions inherit the feedback tint on
+interactive states. Use a floating ToastRegion for brief operation results.
+ToastRegion defaults to `placement="bottom-end"`. Choose `bottom-start`,
+`top-end` or `top-start` for a different logical corner, or `inline` to
+embed it in a layout. New floating cards enter from their placement edge.
 
 See the [WAI Meter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/meter/),
 [Alert pattern](https://www.w3.org/WAI/ARIA/apg/patterns/alert/) and
@@ -953,6 +974,9 @@ visually while retaining their full text/title. A hidden counter frees its slot.
 The host owns accepted changes, captured IDs, confirmation and focus after the
 bar disappears. Positioning is host-owned: use a stable bounded width for a
 floating rail, plus viewport safe-area spacing and measured scroll clearance.
+For table selection, place the rail at the viewport's bottom center. Set
+`showSelection={false}` on DataTable to keep its count available to assistive
+technology while BulkActionBar displays the visible count.
 
 OverflowActions also accepts leading/trailing slots and maxVisibleActions. Slot
 width is reserved before measuring commands; use action owners in those slots
@@ -963,6 +987,9 @@ under one named action panel. After hydration it uses one Tab entry, directional
 arrows, Home/End and optional looping. Disabled/hidden actions are skipped. Arrows
 move focus, not activation. Horizontal order follows writing direction. In vertical
 toolbars open Menu with Enter/Space; horizontal menus retain Up/Down opening.
+A vertical pill centers its actions on a single axis. Use same-size icon controls
+with accessible names for a compact rail. Use a rounded toolbar for a vertical
+group of labeled actions.
 Keep text inputs and independent selection widgets outside this action-only API.
 Native child handlers and refs remain attached; Toolbar owns their tabIndex while
 mounted and restores original attributes on cleanup. Without JavaScript, native
@@ -1109,6 +1136,7 @@ relative path, without reading their contents. Single mode replaces its selectio
 
 AlertDialog (0.2.5) is a concise confirmation, composed from Flood's
 native modal layer and Button. Supply title, description, trigger and onConfirm.
+Line breaks in the description separate distinct thoughts while allowing each line to wrap.
 Cancel receives initial focus; Escape cancels; outside clicks do not dismiss.
 Tab containment, background inertness, scroll lock and return focus reuse Dialog.
 Translate confirmLabel/cancelLabel. onConfirm runs before requesting close, while
@@ -1145,7 +1173,8 @@ The CSS build assembles the original component styles into the shared stylesheet
 
 
 Section headingLevel controls native h2–h6 semantics. Its independent headingSize
-uses the existing Heading roles (section/page/large/display), defaulting to section.
+uses the Heading roles (group/section/page/large/display), defaulting to section.
+Choose group for a compact section inside a Drawer or another constrained panel.
 Keep document hierarchy meaningful when changing visual emphasis.
 
 ## Editable and TagInput · 0.2.7
@@ -1192,8 +1221,11 @@ when a query changes; ready rows must match pageSize/totalRows. Selection defaul
 to the supplied page in server mode and the full collection in client mode.
 Server selectionScope="dataset" requires controlled selectedIds/onSelectionChange;
 the host validates IDs outside the page. Checkboxes only select the current page.
-This API does not fetch, cancel requests, select an entire remote query, virtualize
-or manage column visibility/resizing/pinning.
+The host owns request execution and cancellation, remote query selection and
+virtualization. DataTable supports optional column visibility, width preferences,
+logical edge pinning and expandable record details. Use Sparkline for a compact
+trend cell. See [DataTable](../../docs/components/data-table.md) and
+[Sparkline](../../docs/components/sparkline.md).
 
 DatePicker and DateRangePicker pass viewLabels to their calendars. Calendar panels
 use minimal Popover chrome, with Escape/selection/trigger dismissal; there is no

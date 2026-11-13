@@ -1,6 +1,27 @@
 import { test, expect } from "@playwright/test";
 import { chooseSelectOption } from "./select-helpers";
 
+test("OverflowActions feedback stays below the canvas and preserves the action row", async ({ page }) => {
+  await page.goto("/components/overflow-actions");
+  const canvas = page.getByRole("region", { name: "Preview canvas" });
+  const actions = canvas.locator(".flood-overflow-actions");
+  const feedback = page.locator(".workbench-feedback");
+  await expect(feedback).toBeEmpty();
+  const before = (await actions.boundingBox())!;
+  const duplicate = actions.getByRole("button", { name: "Duplicate", exact: true });
+  if (await duplicate.isVisible()) {
+    await duplicate.click();
+  } else {
+    await actions.getByRole("button", { name: "More actions" }).click();
+    await page.getByRole("menuitem", { name: "Duplicate", exact: true }).click();
+  }
+  await expect(feedback).toHaveText("Selected action: Duplicate");
+  await expect(feedback).toHaveAttribute("role", "status");
+  expect((await feedback.boundingBox())!.y).toBeGreaterThanOrEqual((await canvas.boundingBox())!.y + (await canvas.boundingBox())!.height - 1);
+  expect((await actions.boundingBox())!.y).toBeCloseTo(before.y, 1);
+  expect((await actions.boundingBox())!.x).toBeCloseTo(before.x, 1);
+});
+
 test("preview geometry stays stable across icon sizes, feedback and reset", async ({ page }, info) => {
   await page.goto("/components/icon-button");
   const workbench = page.locator(".component-workbench"), stage = page.locator(".preview-stage");
@@ -18,12 +39,12 @@ test("preview geometry stays stable across icon sizes, feedback and reset", asyn
     expect(next.y).toBeCloseTo(before.y, 1);
   }
   await icon.click();
-  await expect(stage.getByRole("status")).toHaveText("Action completed locally.");
+  await expect(page.locator(".workbench-feedback")).toHaveText("Action completed locally.");
   expect(await geometry()).toEqual(before);
   await expect(page.locator("#usage .site-code-block code")).not.toContainText("workbench-feedback");
   await page.screenshot({ path: `.artifacts/workbench-icon-feedback-${info.project.name}.png` });
   await workbench.getByRole("button", { name: "Reset", exact: true }).click();
-  await expect(stage.getByRole("status")).toBeEmpty();
+  await expect(page.locator(".workbench-feedback")).toBeEmpty();
   expect(await geometry()).toEqual(before);
 });
 

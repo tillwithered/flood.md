@@ -1,6 +1,6 @@
 "use client";
-import {useEffect,useRef,useState} from 'react';
-import {Alert,Button,DataTable,EmptyState,Field,FileItem,FileList,FloodRoot,Heading,Inline,Select,Stack,StatusIndicator,Tabs} from '@flood-md/react';
+import {useRef,useState} from 'react';
+import {Button,DataTable,EmptyState,Field,FileItem,FileList,FloodRoot,Heading,Select,Stack,StatusIndicator,Surface,Tabs,ToastRegion,type ToastItem} from '@flood-md/react';
 import {SiteHeader} from './site-header';
 import {SiteFooter} from './site-footer';
 import {CollectionViewControls} from './recipes/collection-views';
@@ -35,10 +35,8 @@ export function ProjectCollection({storage,onUpdateStatus}: {
  const [page, setPage] = useState(1);
  const [selection, setSelection] = useState<readonly string[]>([]);
  const [pending, setPending] = useState(false);
- const [feedback, setFeedback] = useState<
-   { kind: 'success'; message: string } |
-   { kind: 'error'; update: ProjectStatusUpdate; message: string } | null
- >(null);
+ const [feedback, setFeedback] = useState<ToastItem | null>(null);
+ const feedbackSequence = useRef(0);
  const inFlight = useRef(false);
  const collection = useRef<HTMLElement>(null);
  const selectionPanel = useRef<HTMLDivElement>(null);
@@ -51,20 +49,6 @@ export function ProjectCollection({storage,onUpdateStatus}: {
  const rows=records.filter(project=>matchesCollectionQuery(query,`${project.name} ${owners.find(owner=>owner.value===project.owner)!.label}`,property=>project[property as 'status'|'owner'|'priority']));
  const selectedProjects=rows.filter(project=>selection.includes(project.id));
  const hasSelection = selectedProjects.length > 0;
-
- useEffect(() => {
-   const panel = selectionPanel.current;
-   const host = collection.current;
-   if (!hasSelection || !panel || !host) return;
-   const measure = () => host.style.setProperty('--collection-selection-height', `${panel.getBoundingClientRect().height}px`);
-   measure();
-   const observer = new ResizeObserver(measure);
-   observer.observe(panel);
-   return () => {
-     observer.disconnect();
-     host.style.removeProperty('--collection-selection-height');
-   };
- }, [hasSelection]);
 
  async function updateStatus(proposal: ProjectStatusUpdate) {
    if (inFlight.current) return;
@@ -83,33 +67,38 @@ export function ProjectCollection({storage,onUpdateStatus}: {
      setSelection(current => current.filter(id => !ids.has(id)));
      setPage(1);
      const result = update.status === 'active' ? 'set active' : update.status;
-     setFeedback({ kind: 'success', message: `${ids.size} ${ids.size === 1 ? 'project' : 'projects'} ${result}.` });
+     setFeedback({ id: String(++feedbackSequence.current), status: 'success', title: `${ids.size} ${ids.size === 1 ? 'project' : 'projects'} ${result}.` });
    } catch {
-     setFeedback({ kind: 'error', update, message: `Couldn’t update ${update.ids.length} ${update.ids.length === 1 ? 'project' : 'projects'}.` });
+     setFeedback({
+       id: String(++feedbackSequence.current),
+       status: 'error',
+       title: `Couldn’t update ${update.ids.length} ${update.ids.length === 1 ? 'project' : 'projects'}.`,
+       action: { label: 'Retry update', onClick: () => {
+         collection.current?.focus({ preventScroll: true });
+         void updateStatus(update);
+       }},
+     });
    } finally {
      inFlight.current = false;
      setPending(false);
    }
  }
 
- return <section ref={collection} tabIndex={-1} className="collection-projects" data-selected={hasSelection || undefined} aria-label="Projects collection"><Stack gap="6">
-  <CollectionViewControls label="Projects" schema={projectSchema} presets={projectPresets} value={query} onValueChange={change} storageKey="flood-project-views-v1" storage={storage}/>
+ return <section ref={collection} tabIndex={-1} className="collection-projects" aria-label="Projects collection"><Stack gap="6">
   {hasSelection&&<div ref={selectionPanel} className="collection-selection-panel"><ProjectSelectionActions projects={selectedProjects} pending={pending} onUpdate={update=>{void updateStatus(update);}} onClear={()=>{
    collection.current?.focus({preventScroll:true});setSelection([]);setFeedback(null);
   }}/></div>}
-  {feedback&&<Alert tone={feedback.kind==='error'?'error':'success'} announcement="polite"><Inline gap="3">
-   {feedback.message}
-   {feedback.kind==='error'&&<Button size="sm" variant="subtle" disabled={pending} onClick={()=>{
-    collection.current?.focus({preventScroll:true});void updateStatus(feedback.update);
-   }}>Retry update</Button>}
-   <Button size="sm" variant="ghost" disabled={pending} onClick={()=>{
-    collection.current?.focus({preventScroll:true});setFeedback(null);
-   }}>Dismiss</Button>
-  </Inline></Alert>}
-  <DataTable caption="Projects" hideCaption minWidth="36rem" selectable pageSize={5} page={page} onPageChange={setPage} selectedIds={selection} onSelectionChange={ids=>{setSelection(ids);setFeedback(null);}} sort={query.sort} onSortChange={sort=>change({...query,sort})}
+  <ToastRegion label="Project updates" items={feedback ? [feedback] : []}
+   onDismiss={id=>setFeedback(current=>current?.id===id?null:current)}/>
+  <Surface padding="0" className="collection-table-frame">
+   <DataTable caption="Projects" hideCaption minWidth="36rem" selectable showSelection={false} pageSize={5} page={page} onPageChange={setPage} selectedIds={selection} onSelectionChange={ids=>{setSelection(ids);setFeedback(null);}} sort={query.sort} onSortChange={sort=>change({...query,sort})}
+   inset="roomy" showColumnVisibility
+   toolbar={({columns}) => <CollectionViewControls label="Projects" schema={projectSchema} presets={projectPresets}
+     value={query} onValueChange={change} storageKey="flood-project-views-v1" storage={storage} toolbarActions={columns}/>}
    emptyContent={<EmptyState title="No matching projects" actions={<Button variant="subtle" onClick={()=>{change({...query,search:'',conditions:[]});collection.current?.querySelector<HTMLInputElement>('.flood-collection-toolbar input')?.focus({preventScroll:true});}}>Reset filters</Button>}/>}
-   columns={[{id:'name',label:'Project',sortable:true},{id:'owner',label:'Owner',sortable:true},{id:'status',label:'Status',sortable:true},{id:'priority',label:'Priority',sortable:true}]}
+   columns={[{id:'name',label:'Project',sortable:true,hideable:false},{id:'owner',label:'Owner',sortable:true},{id:'status',label:'Status',sortable:true},{id:'priority',label:'Priority',sortable:true}]}
    rows={rows.map(project=>({id:project.id,label:project.name,cells:{name:project.name,owner:owners.find(owner=>owner.value===project.owner)!.label,status:<StatusIndicator label={projectSchema.properties[0].options.find(option=>option.value===project.status)!.label} tone={project.status==='active'?'success':project.status==='paused'?'warning':'neutral'}/>,priority:project.priority==='urgent'?'Urgent':'Normal'},sortValues:{name:project.name,owner:project.owner,status:project.status,priority:project.priority==='urgent'?1:0}}))}/>
+  </Surface>
  </Stack></section>;
 }
 

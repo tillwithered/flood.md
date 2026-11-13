@@ -74,6 +74,13 @@ and compact states. Center an icon-only rail against the full rail, not the
 remainder after a one-sided gutter. A scrollbar appearing must not shift body
 tracks relative to the fixed header/footer. Full-viewport workspaces without
 document overflow must not reserve a document scrollbar strip.
+For a floating action bar, size its host to the actual count, commands and close
+control. Keep the count slot stable across digit changes and bound the panel to
+the viewport. Measure the clearance below the last row with the panel open.
+Compare scroll height, available content width and table position before and
+after selection. Check a viewport where all rows fit and one where the last
+row needs scrolling. Put required clearance in the base layout so selection
+keeps the same scroll geometry.
 Test expanded/compact, missing icons, badges/disclosures, long labels, RTL and
 enlarged text. Measure rendered glyph centers, text starts and action centers
 across distant rows; include the header and footer. Correct the owning primitive

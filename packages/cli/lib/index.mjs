@@ -5,7 +5,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from 'node:crypto';
 import { createKnowledgeReader } from '@flood-md/agent';
 
-export const VERSION = "0.2.11";
+export const VERSION = "0.2.12";
 const packages = ["@flood-md/tokens", "@flood-md/react", "@flood-md/agent"];
 const json = async (path) => JSON.parse(await readFile(path, "utf8"));
 const agentFile = (name) =>

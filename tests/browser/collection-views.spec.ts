@@ -14,15 +14,29 @@ async function saveAs(page:Page,scope:Locator,name:string){await action(page,sco
 async function values(page:Page,panel:Locator,index:number,labels:string[]){const input=panel.getByRole('combobox',{name:`Condition ${index} values`,exact:true});await input.click();for(const label of labels)await page.getByRole('option',{name:label,exact:true}).click();await input.press('Escape');await expect(panel).toBeVisible();}
 const stored=(search:string)=>JSON.stringify({version:1,views:[{id:'saved-existing',name:'My view',query:{search,match:'all',conditions:[],sort:null}}]});
 
-test('Filters keeps its right anchor when reset appears or disappears', async ({ page }) => {
+test('Columns shares the tool row and Filters stays anchored when reset appears', async ({ page }, info) => {
   const scope = await open(page);
   const trigger = scope.getByRole('button', { name: 'Filters', exact: true });
   const clear = scope.getByRole('button', { name: 'Clear filters', exact: true });
   const search = scope.getByRole('searchbox', { name: 'Search projects', exact: true });
+  const columns = scope.getByRole('button', { name: 'Columns', exact: true });
   await page.evaluate(() => document.fonts.ready);
   const initial = (await trigger.boundingBox())!;
-  const region = (await scope.boundingBox())!;
-  expect(Math.abs(initial.x + initial.width - region.x - region.width)).toBeLessThan(1);
+  const columnsBox = (await columns.boundingBox())!;
+  const row = scope.locator('.flood-collection-toolbar__row');
+  await expect(row.getByRole('button', { name: 'Columns', exact: true })).toHaveCount(1);
+  await expect(columns).toHaveCount(1);
+  expect(initial.x + initial.width).toBeLessThan(columnsBox.x);
+  expect(initial.y + initial.height / 2).toBeCloseTo(columnsBox.y + columnsBox.height / 2, 0);
+  if (info.project.name === 'desktop') {
+    const searchBox = (await search.boundingBox())!;
+    expect(searchBox.y + searchBox.height / 2).toBeCloseTo(columnsBox.y + columnsBox.height / 2, 0);
+  }
+  await columns.click();
+  await page.getByRole('menuitemcheckbox', { name: 'Owner', exact: true }).click();
+  await expect(scope.getByRole('columnheader', { name: 'Sort by Owner' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(columns).toBeFocused();
   await expect(clear).toHaveCount(0);
   await search.fill('Design');
   await expect(clear).toBeVisible();
@@ -159,5 +173,17 @@ test('an outside query change abandons an obsolete condition draft',async({page}
 });
 
 test('selection exposes bounded commands and can be cleared independently',async({page})=>{
- const scope=await open(page);await scope.getByRole('checkbox',{name:'Select Design system',exact:true}).check();await scope.getByRole('checkbox',{name:'Select Checkout',exact:true}).check();const bar=scope.getByRole('toolbar',{name:'Selected projects',exact:true});await expect(bar.getByText('2 selected',{exact:true})).toBeVisible();await expect(bar.getByRole('button',{name:'Archive',exact:true})).toBeVisible();await scope.getByRole('button',{name:'Clear selection',exact:true}).click();await expect(bar).toHaveCount(0);
+ const scope=await open(page);
+ const header=scope.getByRole('table',{name:'Projects'}).locator('thead');
+ const headerTop=()=>header.evaluate(node=>node.getBoundingClientRect().top+window.scrollY);
+ const before=await headerTop();
+ await scope.getByRole('checkbox',{name:'Select Design system',exact:true}).check();
+ await scope.getByRole('checkbox',{name:'Select Checkout',exact:true}).check();
+ const bar=scope.getByRole('toolbar',{name:'Selected projects',exact:true});
+ await expect(bar.getByText('2 selected',{exact:true})).toBeVisible();
+ await expect(bar.getByRole('button',{name:'Archive',exact:true})).toBeVisible();
+ await expect(scope.locator('.flood-data-table__footer').getByRole('status')).toHaveCount(0);
+ expect(await headerTop()).toBeCloseTo(before,0);
+ await scope.getByRole('button',{name:'Clear selection',exact:true}).click();
+ await expect(bar).toHaveCount(0);
 });

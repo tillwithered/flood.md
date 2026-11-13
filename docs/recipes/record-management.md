@@ -36,11 +36,11 @@ and filters that share the table surface.
         },
       }]} />
   )}>
-  <Stack gap="6">
-    <Section title="Customer message">
+  <Stack gap="8">
+    <Section title="Customer message" headingLevel={3} headingSize="group">
       <Text as="p">Confirm who should manage member permissions.</Text>
     </Section>
-    <Section title="Assignment">
+    <Section title="Assignment" headingLevel={3} headingSize="group">
       <Field label="Owner">{field => <Input {...field} />}</Field>
     </Section>
   </Stack>
@@ -51,6 +51,20 @@ Use `size="lg"` when long messages and several field groups need the wider
 reading area. Compose the body from Section for separately named content,
 DescriptionList for facts and Fieldset for related controls. Check wrapping and
 scrolling with the longest title and a real footer action before selecting a size.
+Use the group heading size inside a detail Drawer to keep the record name prominent.
+
+When the detail contains line items and a total, use the Table footer to mark
+the summary and keep its amount aligned with the line-item amounts. A row header
+labels the total, and the Table footer supplies the separator and emphasis.
+
+```tsx
+<tfoot>
+  <tr>
+    <th scope="row" colSpan={2}>Total</th>
+    <td data-numeric>{formattedTotal}</td>
+  </tr>
+</tfoot>
+```
 
 ## Keep browsing state and edit state separate
 

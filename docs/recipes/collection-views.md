@@ -61,7 +61,9 @@ checkboxes with no resulting action.
 
 Selecting projects reveals one shared action bar floating at the viewport bottom. It shows the
 selected count, changes status, confirms archiving and clears the
-selection. Selection spans the filtered client collection across its pages.
+selection. DataTable uses `showSelection={false}` to keep its result range and
+pagination while announcing the selected count without displaying it again.
+Selection spans the filtered client collection across its pages.
 Changing the query resets it. Archiving captures IDs and names before opening
 the confirmation. Cancel keeps the selection and records intact.
 
@@ -70,6 +72,10 @@ records after the optional onUpdateStatus callback accepts the whole operation.
 Reload returns to the declared fixtures. A rejection keeps accepted records and
 selection intact. Retry uses the failed operation's captured IDs and status.
 Dismiss or a deliberate query/selection change abandons its feedback.
+Report results in a floating ToastRegion so the table stays in place.
+Use the default bottom-end placement. Success expires automatically. A failed
+update offers a persistent Retry action. While the selection rail is visible,
+raise the toast above it without changing the table's scroll clearance.
 
 Only one update can run at a time. Pending actions are disabled. If the user
 changes the query or selection while an update is pending, its result still
@@ -86,11 +92,15 @@ roving Toolbar so the dialog retains its own focus model.
 
 The panel uses the existing floating-surface tokens and a viewport-safe inset.
 It leaves normal document flow and stays centered when the document scrolls.
+Check the table header position and scroll dimensions with zero, one and
+several selected records. A collection that fits should keep fitting on selection.
 BulkActionBar keeps a single pill-shaped row with at most two visible commands
 by default. Lower-priority commands move into More as space shrinks; the host
-does not add a second row of commands. ResizeObserver measures its actual height, and the
-collection reserves enough bottom space for the final rows and pagination to
-scroll above the panel. Keep this measured clearance with the host styles.
+keeps the commands on one row. Budget bottom clearance in the base layout
+using the control height, the panel chrome and the viewport inset. At the end
+of a scroll, the final rows and pagination should be reachable above the panel.
+Keep the scroll area inside the bordered Surface and clip the frame at its
+rounded corners so the table footer cannot cover the outline.
 
 <!-- flood:collection-views-styles -->
 
@@ -149,6 +159,9 @@ defines reset scope and supplies canClear for any state held by quickFilters.
 At most two task-important quick properties remain inline; additional properties
 belong inside Filters. Summaries outside the panel name the property and preserve
 any-match meaning. Container width, rather than viewport size, governs reflow.
+The Projects table places its Columns control in CollectionToolbar's `actions`
+slot via DataTable's `toolbar` render function. It shares the tool row with
+search and filters, and the commands wrap as a group in a narrow container.
 
 CollectionViewSwitcher owns the separate accepted-view choice and adaptive
 commands. It reuses Field/Select and Button/OverflowActions with the same size.
@@ -161,7 +174,7 @@ SearchInput, Select, Menu, MultiSelect and SegmentedControl own input/choice beh
 Popover contains the condition draft and Tag removes applied conditions. Button
 and IconButton perform actions. Several view commands use OverflowActions; a
 single command uses Button directly. Field/Fieldset, Grid/Stack/Inline, Dialog,
-AlertDialog and Alert retain their own roles. DataTable/StatusIndicator and
+AlertDialog and ToastRegion retain their own roles. DataTable/StatusIndicator and
 FileList/FileItem/FileMeta demonstrate two result structures. No owner is inserted
 merely to increase its usage count, and no new package atom is needed for layout.
 

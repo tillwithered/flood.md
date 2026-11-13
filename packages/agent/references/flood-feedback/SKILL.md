@@ -35,6 +35,14 @@ visible even when reducing decorative emphasis.
 
 ## Scope feedback to its operation
 
+Use a floating ToastRegion for the result of a discrete action in a collection
+that is still usable. Keep a failed action's toast available while its retry
+is offered, and preserve the operation's captured targets. Start at bottom-end
+and keep the toast clear of selection actions. Use an inline Alert when the message belongs to
+the affected section, for example when a read failure blocks the table itself.
+Keep its action on the same visual axis as the message in a short titleless
+row. Use Flood Button variants so hover and press inherit the Alert tone.
+
 Associate a message with the operation and record that produced it. Preserve
 entered data after refusal and keep a useful error while that operation remains
 unresolved. A successful retry clears/replaces its failure. Explicitly discarding
@@ -47,6 +55,10 @@ after changing views and must remain until resolved. The host's state model owns
 that distinction; the feedback primitive only presents the supplied state.
 
 ## Evidence
+
+After a collection action, check that its result is visible at the current
+scroll position and that success, refusal, retry and dismissal leave the
+table header and scroll height in place.
 
 Trigger the operation and observe each applicable transition, including failure
 and retry. Also follow failure → explicit discard → list → reopen a saved record;

@@ -74,6 +74,7 @@ import { ClockTimePicker } from "./time-picker.js";
 import { CivilDateTimeRangePicker } from "./date-time-range-picker.js";
 import { FileRecord, UploadRecord, ModalImagePreview, FileMetadata } from "./file-records.js";
 import { ManagedDataTable } from "./data-table.js";
+import { TrendPlot } from "./sparkline.js";
 import { CheckableCard, ExclusiveCard } from "./collection-cards.js";
 import { ColorPreview, ColorEditor } from "./color-controls.js";
 import { HoverPreview } from "./hover-card.js";
@@ -167,6 +168,8 @@ export interface CollectionToolbarProps extends Omit<FieldsetProps, "children" |
   summaryPrefix?: ReactNode;
   /** At most two task-important quick filters; move additional properties into filterContent. */
   quickFilters?: ReactNode;
+  /** Additional commands beside Filters in the same tool row. */
+  actions?: ReactNode;
   filterContent?: ReactNode;
   filtersLabel?: string;
   filterTitle?: string;
@@ -353,10 +356,21 @@ export const ImagePreview = /* @__PURE__ */ forwardRef<HTMLDialogElement,ImagePr
 export interface DataTableColumn {
   id: string;
   label: string;
+  /** Short unit shown alongside the label, such as USD or kg. */
+  unit?: string;
   sortable?: boolean;
   numeric?: boolean;
   align?: "start" | "end";
   width?: CSSProperties["width"];
+  /** Keep this column visible when the host or Columns menu hides other columns. */
+  hideable?: boolean;
+  /** Opt into pointer and keyboard width adjustments for this column. */
+  resizable?: boolean;
+  /** Interactive width bounds in CSS pixels. */
+  minWidth?: number;
+  maxWidth?: number;
+  /** Keep the column at a logical edge when the table scrolls horizontally. */
+  pinned?: "start" | "end";
 }
 export interface DataTableRow {
   id: string;
@@ -364,6 +378,8 @@ export interface DataTableRow {
   cells: Readonly<Record<string, ReactNode>>;
   sortValues?: Readonly<Record<string, string | number | null>>;
   selectionDisabled?: boolean;
+  /** Related detail rendered in a separate full-width row on disclosure. */
+  expandedContent?: ReactNode;
   /** One named record-opening action. Other controls in the row remain independent. */
   primaryAction?: {
     column: string;
@@ -383,6 +399,13 @@ export interface DataTableLabels {
   results?: (from: number, to: number, total: number) => string;
   selection?: (selected: number, total: number) => string;
   sort?: (label: string) => string;
+  columns?: string;
+  resetColumns?: string;
+  sortedColumn?: (label: string) => string;
+  resizeColumn?: (label: string) => string;
+  expandRow?: (label: string) => string;
+  collapseRow?: (label: string) => string;
+  rowDetails?: string;
   pagination?: string;
   previousPage?: string;
   nextPage?: string;
@@ -390,17 +413,31 @@ export interface DataTableLabels {
 }
 export interface DataTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   /** Host-owned heading, search and filters aligned with the outer table cells. */
-  toolbar?: ReactNode;
+  toolbar?: ReactNode | ((controls: { columns: ReactNode }) => ReactNode);
   inset?: "standard" | "roomy";
   /** Ready with no rows only. Compose EmptyState/actions here; loading and error keep their owners. */
   emptyContent?: ReactNode;
   caption: string;
   hideCaption?: boolean;
   columns: readonly DataTableColumn[];
+  showColumnVisibility?: boolean;
+  hiddenColumnIds?: readonly string[];
+  /** Initial hidden columns and the layout restored by Reset columns. */
+  defaultHiddenColumnIds?: readonly string[];
+  onHiddenColumnIdsChange?: (ids: string[]) => void;
+  columnWidths?: Readonly<Record<string, number>>;
+  defaultColumnWidths?: Readonly<Record<string, number>>;
+  onColumnWidthsChange?: (widths: Record<string, number>) => void;
   rows: readonly DataTableRow[];
+  expandedIds?: readonly string[];
+  defaultExpandedIds?: readonly string[];
+  onExpandedChange?: (ids: string[]) => void;
   density?: "compact" | "comfortable";
   striped?: boolean;
   minWidth?: CSSProperties["minWidth"];
+  /** Maximum height of the scroll viewport, including the header. */
+  maxViewportHeight?: CSSProperties["maxBlockSize"];
+  stickyHeader?: boolean;
   sort?: DataTableSort | null;
   defaultSort?: DataTableSort | null;
   onSortChange?: (sort: DataTableSort | null) => void;
@@ -415,6 +452,8 @@ export interface DataTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
   onPageChange?: (page: number) => void;
   /** Hide the result range while preserving selection and pagination controls. */
   showResults?: boolean;
+  /** Hide the visible selection count while retaining its accessible status. */
+  showSelection?: boolean;
   /** Server mode renders rows as the supplied page, without local sorting/slicing. */
   paginationMode?: "client" | "server";
   totalRows?: number;
@@ -426,6 +465,26 @@ export interface DataTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
 }
 /** A client-side table composed from native table, checkbox and pagination. @since 0.2.8 */
 export const DataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTableProps>(function DataTable(props,ref){return <ManagedDataTable {...props} ref={ref}/>;});
+
+export interface SparklineProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label" | "aria-labelledby"> {
+  /** Equally spaced observations in order. Missing or nonfinite values break the line. */
+  values: readonly (number | null)[];
+  /** Localized text conveying the trend or the absence of data. */
+  label: string;
+  showLabel?: boolean;
+  /** Shared lower and upper bounds for comparisons. Values outside the bounds are clipped. */
+  domain?: readonly [number, number];
+  size?: "sm" | "md";
+  tone?: "neutral" | "accent" | "success" | "warning" | "error";
+  variant?: "line" | "area";
+}
+
+/** @since 0.2.11 */
+export const Sparkline = /* @__PURE__ */ forwardRef<HTMLDivElement, SparklineProps>(function Sparkline(
+  { showLabel = false, size = "md", tone = "accent", variant = "area", ...props }, ref,
+) {
+  return <TrendPlot {...props} showLabel={showLabel} size={size} tone={tone} variant={variant} ref={ref} />;
+});
 
 export interface DataListProps extends Omit<HTMLAttributes<HTMLUListElement>, "role"> {
   density?: "compact" | "comfortable";
@@ -953,6 +1012,12 @@ export interface EditableProps extends Omit<HTMLAttributes<HTMLDivElement>, "def
   onEditingChange?: (editing: boolean) => void;
   onCommit?: (value: string) => void;
   onCancel?: () => void;
+  /** Return a message to keep the draft open and prevent a commit. */
+  validate?: (value: string) => string | undefined;
+  inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
+  previewVariant?: "subtle" | "ghost";
+  /** Render the editor over its trigger at this preferred width. */
+  editorOverlayWidth?: CSSProperties["inlineSize"];
   blurAction?: "commit" | "cancel" | "none";
   readOnly?: boolean;
   disabled?: boolean;
@@ -1093,14 +1158,17 @@ export interface TableProps extends Omit<TableHTMLAttributes<HTMLTableElement>, 
   density?: DataDensity;
   striped?: boolean;
   scrollLabel?: string;
+  /** Maximum height of the scroll viewport, including the header and caption. */
+  maxViewportHeight?: CSSProperties["maxBlockSize"];
+  stickyHeader?: boolean;
   /** Shared cell alignment. Middle keeps mixed record/action rows coherent; top is an explicit prose-table choice. */
   cellVerticalAlign?: "top" | "middle" | "bottom";
 }
 /** @since 0.2.4 */
 export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(function Table(
-  { caption, children, hideCaption = false, density = "comfortable", striped = false, scrollLabel, cellVerticalAlign = "middle", ...props }, ref,
+  { caption, children, hideCaption = false, density = "comfortable", striped = false, scrollLabel, cellVerticalAlign = "middle", stickyHeader = false, ...props }, ref,
 ) {
-  return <TabularData {...props} ref={ref} caption={caption} hideCaption={hideCaption} density={density} striped={striped} scrollLabel={scrollLabel} cellVerticalAlign={cellVerticalAlign}>{children}</TabularData>;
+  return <TabularData {...props} ref={ref} caption={caption} hideCaption={hideCaption} density={density} striped={striped} scrollLabel={scrollLabel} cellVerticalAlign={cellVerticalAlign} stickyHeader={stickyHeader}>{children}</TabularData>;
 });
 
 export type SemanticTone = "neutral" | "accent" | "error" | "warning" | "success" | "info";
@@ -1418,6 +1486,16 @@ export const Drawer = /* @__PURE__ */ forwardRef<HTMLDialogElement, DrawerProps>
   {side = "end", size = "md", defaultOpen = false, closeLabel = "Close", closeOnOutsideClick = true, className, footer, ...props}, ref,
 ) {
   return <ModalOverlay {...props} ref={ref} defaultOpen={defaultOpen} closeLabel={closeLabel} closeOnOutsideClick={closeOnOutsideClick} className={classes("flood-drawer", className)} data-side={side} data-size={size} scrollBody footer={footer} />;
+});
+
+export type SheetProps = Omit<DrawerProps, "side">;
+
+/** A modal bottom sheet for a short task or a list of choices. @since 0.2.12 */
+export const Sheet = /* @__PURE__ */ forwardRef<HTMLDialogElement, SheetProps>(function Sheet(
+  { className, size = "md", ...props }, ref,
+) {
+  return <ModalOverlay {...props} ref={ref} data-side="bottom" data-size={size}
+    className={classes("flood-drawer", "flood-sheet", className)} scrollBody bodyContentInset="none" />;
 });
 
 export interface AlertDialogProps extends Omit<DialogProps, "children" | "role" | "description" | "closeLabel" | "closeOnOutsideClick" | "initialFocusRef"> {
@@ -2055,7 +2133,7 @@ export const Text = /* @__PURE__ */ forwardRef<HTMLElement, TextProps>(function 
 
 export interface HeadingProps extends HTMLAttributes<HTMLHeadingElement> {
   level?: 1 | 2 | 3 | 4 | 5 | 6;
-  size?: "display" | "large" | "page" | "section";
+  size?: "display" | "large" | "page" | "section" | "group";
 }
 export const Heading = /* @__PURE__ */ forwardRef<HTMLHeadingElement, HeadingProps>(function Heading(
   { level = 2, size = "page", className, ...props }, ref,
@@ -2441,7 +2519,7 @@ export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, "title">
   description?: ReactNode;
   actions?: ReactNode;
   headingLevel?: 2 | 3 | 4 | 5 | 6;
-  headingSize?: "display" | "large" | "page" | "section";
+  headingSize?: HeadingProps["size"];
 }
 export const Section = /* @__PURE__ */ forwardRef<HTMLElement, SectionProps>(function Section(
   {headingLevel = 2, headingSize = "section", ...props}, ref,
@@ -2494,6 +2572,8 @@ export interface AppShellProps extends HTMLAttributes<HTMLDivElement> {
   mainRef?: Ref<HTMLElement>;
   scrollLabel?: string;
   scrollOrientation?: ScrollAreaProps["orientation"];
+  /** Keep the content width stable with "none" when the layout already clears the overlay rails. */
+  scrollContentInset?: ScrollAreaProps["contentInset"];
   skipLabel?: string;
 }
 /** Composes application navigation and a main landmark with optional bounded scrolling. @since 0.2.11 */

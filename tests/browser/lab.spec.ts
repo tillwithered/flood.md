@@ -8,7 +8,7 @@ import { catalogCohort } from "../../scripts/ci-cohort.mjs";
 test("component props, preview, highlighted code and Markdown stay aligned", async ({ page }, info) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/components/button");
-  await expect(page.locator(".studio-tools").getByRole("button", { name: "Copy for agent", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Copy for agent", exact: true })).toHaveCount(0);
   await chooseSelectOption(page.getByRole("combobox", { name: "Button prop variant", exact: true }), "subtle");
   await chooseSelectOption(page.getByRole("combobox", { name: "Button prop size", exact: true }), "lg");
   const button = page.locator(".preview-stage").getByRole("button", { name: "Save changes" });
@@ -31,10 +31,8 @@ test("component props, preview, highlighted code and Markdown stay aligned", asy
   await source.scrollIntoViewIfNeeded();
   await expect(source).toHaveAttribute("data-highlighted", "true");
   await page.screenshot({ path: `.artifacts/lab-project-ui-${info.project.name}.png` });
-  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Copy for agent" }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("## Optional project UI boundary");
-  await reference.click();
   await page.getByRole("radio", { name: "Package", exact: true }).check();
   await expect(source.locator("code")).toContainText('from "@flood-md/react"');
   const colors = await source.locator(".site-code-block__token").evaluateAll(nodes => [...new Set(nodes.map(node => getComputedStyle(node).color))]);
@@ -44,6 +42,7 @@ test("component props, preview, highlighted code and Markdown stay aligned", asy
   await expect(button).toBeDisabled();
   await expect(button).toHaveAttribute("aria-busy", "true");
   await expect(source.locator("code")).toContainText("loading={true}");
+  await reference.click();
   await page.getByRole("button", { name: "Copy for agent", exact: true }).click();
   const agentContext = await page.evaluate(() => navigator.clipboard.readText());
   expect(agentContext).toContain("# Button");
@@ -58,6 +57,7 @@ test("component props, preview, highlighted code and Markdown stay aligned", asy
   expect(agentContext).toContain(new URL("/components/button.md", page.url()).href);
   await expect(page.getByRole("button", { name: "Markdown", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Download .md", exact: true })).toHaveCount(0);
+  await page.keyboard.press("Escape");
   await expect(button).toBeDisabled();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(button).toBeEnabled();
@@ -134,8 +134,7 @@ test("Markdown is a real readable format with valid raw endpoints", async ({ pag
   }
   expect((await request.get("/components/missing.md")).status()).toBe(404);
   await page.goto("/docs/installation");
-  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.getByRole("button", { name: "Copy for agent", exact: true }).click();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("# Installation");
+  await expect(page.getByRole("link", { name: "Page Markdown", exact: true })).toHaveAttribute("href", "/docs/installation.md");
+  await expect(page.getByRole("button", { name: "Copy for agent", exact: true })).toHaveCount(0);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });

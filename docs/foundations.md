@@ -1,6 +1,6 @@
-# Foundations tokens · 0.2.11 candidate
+# Foundations tokens · 0.2.12 candidate
 
-This guide describes the **0.2.11 candidate** foundation exports. Keep Flood packages at
+This guide describes the **0.2.12 candidate** foundation exports. Keep Flood packages at
 matching exact versions. Existing 0.1.1 installs use their earlier token contract.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).

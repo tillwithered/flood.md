@@ -24,7 +24,7 @@ test('large component pages open directly in the studio with catalog and API con
  const documentHeight=()=>page.evaluate(()=>document.documentElement.scrollHeight);
  const originalHeight=await documentHeight();
  expect(originalHeight).toBe(950);
- const catalog=page.getByRole('complementary',{name:'Documentation navigation',exact:true});
+ const catalog=page.getByRole('complementary',{name:'Component navigation',exact:true});
  await expect(catalog.getByRole('searchbox',{name:'Search components'})).toBeVisible();
  const sidebarBox=(await catalog.boundingBox())!;
  const canvasBox=(await preview.boundingBox())!;
@@ -51,6 +51,47 @@ test('small components use the same studio and open reference anchors in the pan
  await expect(reference.getByRole('heading',{name:'Design notes',exact:true})).toBeInViewport();
  await page.evaluate(()=>{ location.hash = 'api'; });
  await expect(reference.getByRole('heading',{name:'API reference',exact:true})).toBeInViewport();
+});
+
+test('AppShell sidebar keeps the rows and metrics steady through both transitions', async ({page}) => {
+ await page.setViewportSize({width:768,height:900});
+ await page.goto('/components/app-shell');
+ const shell=page.locator('.preview-stage .flood-app-shell');
+ const sidebar=shell.getByRole('complementary',{name:'Workspace navigation',exact:true});
+ const toggle=sidebar.locator('.flood-sidebar__toggle');
+ await expect(toggle).toBeVisible();
+ await page.evaluate(()=>document.fonts.ready);
+ const positions=()=>shell.evaluate(node=>{
+  const top=(item:Element)=>Math.round(item.getBoundingClientRect().top-node.getBoundingClientRect().top);
+  return [...node.querySelectorAll('.flood-sidebar__navigation .flood-navigation-item, .app-shell-preview-metrics > *')].map(top);
+ });
+ const before=await positions();
+ await toggle.click();
+ await expect(toggle).toHaveAttribute('aria-expanded','false');
+ await expect(toggle).toHaveCSS('outline-style','none');
+ await sidebar.evaluate(node=>node.getAnimations().forEach(animation=>animation.finish()));
+ expect(await positions()).toEqual(before);
+ await page.keyboard.press('Tab');
+ await toggle.focus();
+ await expect(toggle).toBeFocused();
+ await expect(toggle).toHaveCSS('outline-style','none');
+ await expect(toggle).not.toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+ // Hold the real transition long enough to sample its intermediate layout under CI load.
+ await sidebar.evaluate(node=>{(node as HTMLElement).style.transitionDuration='5s';});
+ await toggle.press('Enter');
+ await expect(toggle).toHaveAttribute('aria-expanded','true');
+ await sidebar.evaluate(node=>{
+  const transition=node.getAnimations().find(animation=>animation instanceof CSSTransition);
+  if(!transition)throw new Error('Expected sidebar width transition');
+  transition.pause();
+  transition.currentTime=1;
+ });
+ expect(await positions()).toEqual(before);
+ await sidebar.evaluate(node=>{
+  node.getAnimations().forEach(animation=>animation.finish());
+  (node as HTMLElement).style.removeProperty('transition-duration');
+ });
+ expect(await positions()).toEqual(before);
 });
 
 test('studio zoom and direct canvas dragging preserve the live component', async ({page}) => {
@@ -100,6 +141,8 @@ test('AppShell preserves fixed chrome, skip focus and logical navigation order',
  const footer=stage.getByText('All changes saved',{exact:true});
  const before={bar:(await bar.boundingBox())!.y,footer:(await footer.boundingBox())!.y,sidebar:(await sidebar.boundingBox())!.y};
  const viewport=work.locator('.flood-app-shell__scroll');
+ await expect(viewport).toHaveAttribute('data-scrollbars','overlay');
+ await expect(viewport.locator('.flood-scroll-area__content')).toHaveCSS('padding-inline-end','0px');
  await viewport.evaluate(node=>{node.scrollTop=node.scrollHeight;});
  await expect.poll(()=>viewport.evaluate(node=>node.scrollTop)).toBeGreaterThan(0);
  expect({bar:(await bar.boundingBox())!.y,footer:(await footer.boundingBox())!.y,sidebar:(await sidebar.boundingBox())!.y}).toEqual(before);
@@ -168,7 +211,7 @@ test('NavigationList catalog keeps grouped native links and explicit current-pag
 
 test('Steps requests host navigation without pretending to be tabs or changing current value',async({page})=>{
  await page.goto('/components/steps');const stage=page.locator('.preview-stage');await expect(stage.locator('ol[aria-label="Project setup"]')).toBeVisible();await expect(stage.locator('[aria-current=step]')).toContainText('Access');await expect(stage.getByRole('button')).toHaveCount(0);
- await page.getByRole('checkbox',{name:'Steps prop interactive',exact:true}).check();await stage.getByRole('button',{name:/Review/}).click();await expect(stage.getByRole('status')).toHaveText('Step requested: review');await expect(stage.locator('[aria-current=step]')).toContainText('Access');await expect(stage.getByRole('tab')).toHaveCount(0);
+ await page.getByRole('checkbox',{name:'Steps prop interactive',exact:true}).check();await stage.getByRole('button',{name:/Review/}).click();await expect(page.locator('.workbench-feedback')).toHaveText('Step requested: review');await expect(stage.locator('[aria-current=step]')).toContainText('Access');await expect(stage.getByRole('tab')).toHaveCount(0);
  await page.getByRole('checkbox',{name:'Steps prop disableLast',exact:true}).check();await expect(stage.getByRole('button',{name:/Review/})).toBeDisabled();await page.getByRole('checkbox',{name:'Steps prop error',exact:true}).check();await expect(stage.locator('[data-state=error]')).toContainText('Needs attention');
 });
 

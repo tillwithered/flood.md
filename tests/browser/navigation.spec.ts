@@ -2,7 +2,7 @@ import {test,expect,type Page} from "@playwright/test";
 import {build} from "vite";
 import {resolve} from "node:path";
 import {mkdir,writeFile} from "node:fs/promises";
-import {chooseSelectOption} from "./select-helpers";
+import {chooseSelectOption,chooseStudioSheetOption} from "./select-helpers";
 let bundle:Promise<string>;
 async function fixture(){
   const file=(path:string)=>JSON.stringify(resolve(path).replaceAll("\\","/"));
@@ -97,7 +97,7 @@ test("Navigation keeps touch targets and forced-color selection cues",async({bro
     const pages=page.getByRole("navigation",{name:"Local pages"});for(const button of await pages.getByRole("button").all()){const bounds=(await button.boundingBox())!;expect(bounds.width).toBeGreaterThanOrEqual(43.99);expect(bounds.height).toBeGreaterThanOrEqual(43.99)}
     await page.emulateMedia({forcedColors:"active"});
     const selected=await first.evaluate(node=>getComputedStyle(node).backgroundColor),other=await list.getByRole("tab",{name:"Gamma"}).evaluate(node=>getComputedStyle(node).backgroundColor);expect(selected).not.toBe(other);
-    await page.goto("/components/pagination");await chooseSelectOption(page.getByRole("combobox",{name:"Pagination prop siblingCount",exact:true}),"0");
+    await page.goto("/components/pagination");await chooseStudioSheetOption(page,"Sibling count","0");
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   }finally{await context.close()}
 });

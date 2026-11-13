@@ -43,6 +43,18 @@ adapter such as @/ui/button may re-export Flood, but does not change React APIs.
 Before handing off, inspect a real composed screen at narrow and wide widths,
 not only isolated controls. See [verification](verification.md).
 
+Choose the scroll owner when laying out a screen. In an application workspace
+with fixed chrome or floating collection actions, use AppShell with
+`scroll="content"`. For a padded workspace, set `scrollContentInset="none"`
+when that prop is available and the existing edge padding clears the rails.
+Use the document as scroll owner for pages designed to flow as one document.
+Apply the workspace recipe to filterable or pageable record queues with floating
+actions even when they have no persistent top bar. Keep viewport-fixed actions
+outside the scrolling content. Table's horizontal ScrollArea handles wide
+columns independently.
+When testing a floating selection bar, select the first row and check that the
+viewport and the table keep the same inline size as the overlay rail appears.
+
 For constrained overflow, use installed ScrollArea when available. Set height or
 maxHeight on its viewport, choose the needed axis, and provide a useful accessible
 name. Rails overlay content with insets; keep essential content out of the rail

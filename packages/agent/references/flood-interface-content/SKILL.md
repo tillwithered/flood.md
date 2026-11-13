@@ -38,6 +38,13 @@ Do not hide essential instructions or risks behind a tooltip merely
 to make a screen quieter. Preserve accessible names and associations when reducing
 visible copy; use the component's documented hideLabel API where appropriate.
 
+For a bulk confirmation, put the action and its scope first. Use the title for
+the count when it reads naturally there. If the count belongs in the body, give
+it the first sentence. Put a meaningful consequence on a separate line or in a
+separate paragraph. Let each thought wrap naturally on narrow screens. Preserve
+the dialog's accessible description and check singular and plural copy.
+AlertDialog preserves a newline in its string description.
+
 ## Separate prototype provenance from product state
 
 An explicitly requested local prototype or fixture-backed test app does not need

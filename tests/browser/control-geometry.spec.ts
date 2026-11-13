@@ -118,17 +118,17 @@ test("buttons stay intrinsic as direct Stack children while sibling actions shar
   expect(geometry.directStack).toBe(true);
   expect(geometry.width).toBeLessThan(geometry.parentWidth - 16);
   await button.click();
-  await expect(page.locator(".preview-stage").getByRole("status")).toHaveText("Action completed locally.");
+  await expect(page.locator(".workbench-feedback")).toHaveText("Action completed locally.");
 });
 
-test("workbench knobs use Flood controls with 8px inner and 16px group rhythm", async ({ page }) => {
+test("studio properties keep the compact 8px inner and 12px group rhythm", async ({ page }) => {
   await page.goto("/components/button");
   const controls = page.locator(".workbench-controls").first();
   await expect(controls.getByRole("combobox")).toHaveCount(3);
   for (const rootSize of [16, 20]) {
     await page.evaluate((size) => { document.documentElement.style.fontSize = `${size}px`; }, rootSize);
-    await expect(controls).toHaveCSS("column-gap", `${rootSize}px`);
-    await expect(controls).toHaveCSS("row-gap", `${rootSize}px`);
+    await expect(controls).toHaveCSS("column-gap", `${rootSize * 0.75}px`);
+    await expect(controls).toHaveCSS("row-gap", `${rootSize * 0.75}px`);
     const toggle = controls.getByRole("checkbox", { name: "Button prop disabled", exact: true });
     const grouping = await toggle.evaluate(node => {
       const label = node.closest("label")!;

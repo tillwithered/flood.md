@@ -19,10 +19,14 @@ test('property changes discard incompatible values, operator changes preserve se
   await values.click();await page.getByRole('option',{name:'Maya',exact:true}).click();await values.press('Escape');
   await chooseSelectOption(row.getByRole('combobox',{name:'Condition 1 operator',exact:true}),'is-not');
   await expect(row.locator('.flood-tag__label')).toHaveText('Maya');
+  const feedback=page.locator('.workbench-feedback');
+  await expect(feedback).toBeEmpty();
   await row.getByRole('button',{name:'Remove condition 1',exact:true}).click();
   await expect(row).toHaveCount(0);
+  await expect(feedback).toHaveText('Condition removed');
   await expect(page.getByRole('button',{name:'Reset',exact:true})).toBeFocused();
   await page.getByRole('button',{name:'Reset',exact:true}).click();
+  await expect(feedback).toBeEmpty();
   await expect(row.locator('.flood-tag__label')).toHaveText('Active');
 });
 

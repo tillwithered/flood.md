@@ -13,7 +13,7 @@ export function SurfaceControls({ name }: { name: string }) {
     </Inline>
     <Field label="Project">{props => <Input {...props} defaultValue="Design system" />}</Field>
     <Field label="Visibility">{props => <Select {...props} defaultValue="private"><option value="private">Private</option><option value="team">Team</option></Select>}</Field>
-    <Grid columns={2} gap="3">
+    <Grid minItemWidth="10rem" gap="3">
       <Field label="Read only">{props => <Input {...props} value="Workspace" readOnly />}</Field>
       <Field label="Unavailable">{props => <Input {...props} value="Workspace" disabled />}</Field>
     </Grid>
@@ -36,7 +36,7 @@ export default function SurfaceStudy() {
   return <FloodRoot className="site-root"><div className="site-shell"><SiteHeader path="/playground/surfaces" />
     <main id="main-content" className="surface-study"><Stack gap="6">
       <Heading level={1} size="page">Surface study</Heading>
-      <Grid columns={3} gap="6">
+      <Grid minItemWidth="18rem" gap="6">
         <Stack gap="4" data-study="base"><Heading size="section" level={2}>Canvas</Heading><SurfaceControls name="base" /></Stack>
         <Surface elevation="default" padding="4" data-study="default"><Stack gap="4"><Heading size="section" level={2}>Surface</Heading><SurfaceControls name="default" /></Stack></Surface>
         <Surface elevation="overlay" padding="4" data-study="overlay"><Stack gap="4"><Heading size="section" level={2}>Overlay</Heading><SurfaceControls name="overlay" /></Stack></Surface>

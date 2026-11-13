@@ -51,6 +51,7 @@ export function pageMetadata(path) {
     "/playground/collections": "Collections playground",
     "/playground/surfaces": "Surface study",
     "/playground/navigation": "Navigation workspace",
+    "/playground/motion": "Motion playground",
     "/playground/records": "Record management",
     "/playground/settings": "Settings workspace",
     "/playground/collections/format": "Format filter",

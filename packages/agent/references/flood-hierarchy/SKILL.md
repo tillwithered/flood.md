@@ -21,6 +21,10 @@ this workflow makes that meaning visible.
 
 - Dialog owns its task heading and the body inset. Its dark title uses the
   dialog-title role (1.25rem / 600); it is distinct from compact popup captions.
+- For independent blocks inside a record Drawer, use Section with
+  `headingSize="group"` when installed. Keep the Drawer title one level stronger
+  visually. Set the semantic heading level separately. Start with a tighter gap
+  from each heading to its content and space-8 between independent sections.
 - Field owns the label-to-control relationship: space-1 (.25rem) in the dark
   profile. DateField/TimeField already use that relationship. Leave room between
   independent fields instead of increasing the gap inside every label/control pair.

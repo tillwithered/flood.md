@@ -14,12 +14,14 @@ const ids=(group:ReturnType<Page['locator']>)=>group.locator('[data-filter-condi
 test('accepted row management preserves IDs and matching, with useful addition/removal focus and a minimal empty state',async({page})=>{
   const group=await open(page),initial=await ids(group);
   await group.getByRole('radio',{name:'Any condition',exact:true}).check();
-  const firstRowY=(await group.locator('.flood-filter-condition').first().boundingBox())!.y;
+  const firstRowOffset=()=>group.locator('.flood-filter-condition').first().evaluate(row =>
+    row.getBoundingClientRect().top - row.closest('.flood-filter-group')!.getBoundingClientRect().top);
+  const initialOffset=await firstRowOffset();
   await group.getByRole('button',{name:'Add condition',exact:true}).click();
   await expect(group.getByRole('combobox',{name:'Condition 3 property',exact:true})).toBeFocused();
   await expect(group.getByRole('combobox',{name:'Condition 3 property',exact:true})).toContainText('Priority');
   const added=await ids(group);expect(added.slice(0,2)).toEqual(initial);
-  expect(Math.abs((await group.locator('.flood-filter-condition').first().boundingBox())!.y-firstRowY)).toBeLessThan(1);
+  expect(await firstRowOffset()).toBeCloseTo(initialOffset,0);
   await expect(group.getByRole('button',{name:'Add condition',exact:true})).toBeDisabled();
   await group.getByRole('button',{name:'Remove condition 2',exact:true}).click();
   await expect(group.getByRole('combobox',{name:'Condition 2 property',exact:true})).toBeFocused();

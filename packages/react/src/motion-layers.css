@@ -10,9 +10,13 @@
   from { translate: var(--flood-motion-layer-x, 0) var(--flood-motion-layer-y, 0); }
 }
 
+@keyframes flood-toast-enter {
+  from { opacity: .35; translate: 0 var(--flood-toast-entry-offset, 0px); }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   /* The native layer owns open state and positioning. Its measured box stays still. */
-  .flood-root :where(.flood-overlay-panel, .flood-select__menu, .flood-dialog, .flood-toast__message) {
+  .flood-root :where(.flood-overlay-panel, .flood-select__menu, .flood-dialog) {
     --flood-motion-layer-x: 0;
     --flood-motion-layer-y: 0;
   }
@@ -54,14 +58,26 @@
     animation: flood-motion-hint-in var(--flood-sys-motion-duration-enter) var(--flood-sys-motion-easing-enter);
   }
 
-  .flood-root .flood-toast-region:not([data-inline]) .flood-toast__message:not([data-flood-motion="reduce"] *) {
-    --flood-motion-layer-y: var(--flood-sys-motion-distance-small);
-    animation: flood-motion-hint-in var(--flood-sys-motion-duration-enter) var(--flood-sys-motion-easing-enter),
-      flood-motion-layer-content-in var(--flood-sys-motion-duration-enter) var(--flood-sys-motion-easing-enter);
+  .flood-root .flood-toast-region:not([data-inline]):not([data-flood-motion="reduce"] *) {
+    --flood-toast-travel: calc(2 * var(--flood-sys-motion-distance-small));
+    box-sizing: border-box;
   }
 
-  .flood-root .flood-toast-region[data-placement^="top"] .flood-toast__message {
-    --flood-motion-layer-y: calc(-1 * var(--flood-sys-motion-distance-small));
+  /* Reserve room within the scrolling region for the card's entry. */
+  .flood-root .flood-toast-region[data-placement^="bottom"]:has(.flood-toast):not([data-inline]):not([data-flood-motion="reduce"] *) {
+    --flood-toast-entry-offset: var(--flood-toast-travel);
+    padding-block-end: var(--flood-toast-travel);
+    margin-block-end: calc(-1 * var(--flood-toast-travel));
+  }
+
+  .flood-root .flood-toast-region[data-placement^="top"]:has(.flood-toast):not([data-inline]):not([data-flood-motion="reduce"] *) {
+    --flood-toast-entry-offset: calc(-1 * var(--flood-toast-travel));
+    padding-block-start: var(--flood-toast-travel);
+    margin-block-start: calc(-1 * var(--flood-toast-travel));
+  }
+
+  .flood-root .flood-toast:not([data-flood-motion="reduce"] *) {
+    animation: flood-toast-enter var(--flood-sys-motion-duration-enter) var(--flood-sys-motion-easing-enter);
   }
 }
 

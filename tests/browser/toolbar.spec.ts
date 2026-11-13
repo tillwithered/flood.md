@@ -3,6 +3,7 @@ import {build} from "vite";
 import {resolve} from "node:path";
 import {mkdir,writeFile} from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
+import { chooseSelectOption } from "./select-helpers";
 let bundle:Promise<string>;
 async function fixture(){
   const file=(p:string)=>JSON.stringify(resolve(p).replaceAll("\\","/"));
@@ -11,7 +12,7 @@ async function fixture(){
 import{FloodRoot,Button,IconButton,Toolbar,Toggle,Menu,Kbd}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};
 const h=React.createElement;
 function App(){const[vertical,V]=useState(false),[rtl,R]=useState(false),[loop,L]=useState(true),[off,D]=useState(false),[gone,G]=useState(false),[count,C]=useState(0),ref=useRef();return h(FloodRoot,null,
-h(Button,{id:'before'},'Before'),h(Toolbar,{label:'Editor',orientation:vertical?'vertical':'horizontal',dir:rtl?'rtl':'ltr',loop,ref},
+h(Button,{id:'before'},'Before'),h(Toolbar,{label:'Editor',orientation:vertical?'vertical':'horizontal',shape:vertical?'pill':'rounded',dir:rtl?'rtl':'ltr',loop,ref},
 h(Button,{id:'undo',disabled:off,onClick:()=>C(n=>n+1)},'Undo'),h(Button,{disabled:true},'Disabled'),h(Button,{hidden:true},'Hidden'),!gone&&h(Toggle,{'aria-label':'Bold'},'Bold'),h(Menu,{label:'Options',trigger:p=>h(Button,{...p},'Options'),items:[{id:'export',label:'Export',shortcut:'Ctrl+E'}]}),h('a',{href:'#destination'},'Help')),
 h(Button,{id:'after'},'After'),h(Button,{onClick:()=>V(v=>!v)},'Vertical'),h(Button,{onClick:()=>R(v=>!v)},'RTL'),h(Button,{onClick:()=>L(v=>!v)},'Loop'),h(Button,{onClick:()=>D(v=>!v)},'Disable undo'),h(Button,{onClick:()=>G(v=>!v)},'Remove bold'),h('output',{'aria-label':'Clicks'},String(count)),h(Kbd,null,'Ctrl'),h(Kbd,{size:'md'},'K'),h(Kbd,{size:'lg'},'Enter'));}
 createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
@@ -31,6 +32,23 @@ test("Toolbar has one Tab entry, skips unavailable actions and leaves activation
 test("Toolbar composes horizontal and vertical Menu navigation",async({page})=>{
  await openFixture(page);const toolbar=page.getByRole('toolbar'),trigger=toolbar.getByRole('button',{name:'Options'});await trigger.focus();await page.keyboard.press('ArrowDown');const menu=page.getByRole('menu',{name:'Options'});await expect(menu.getByRole('menuitem',{name:'Export'})).toBeFocused();await expect(menu.locator('kbd')).toHaveText('Ctrl+E');await page.keyboard.press('Escape');await expect(trigger).toBeFocused();await page.getByRole('button',{name:'Vertical',exact:true}).click();await trigger.focus();await page.keyboard.press('ArrowDown');await expect(toolbar.getByRole('link')).toBeFocused();await expect(menu).toBeHidden();await page.keyboard.press('ArrowUp');await page.keyboard.press('Enter');await expect(menu).toBeVisible();await page.keyboard.press('Tab');await expect(page.locator('#after')).toBeFocused();
 });
+test("a vertical pill centers actions of different widths on the toolbar axis", async ({ page }) => {
+  await openFixture(page);
+  await page.getByRole("button", { name: "Vertical", exact: true }).click();
+  const toolbar = page.getByRole("toolbar", { name: "Editor" });
+  const geometry = await toolbar.evaluate(node => {
+    const center = (box: DOMRect) => box.left + box.width / 2;
+    return {
+      axis: center(node.getBoundingClientRect()),
+      actions: Array.from(node.querySelectorAll("button:not([hidden]), a")).map(action => {
+        const box = action.getBoundingClientRect();
+        return { center: center(box), width: box.width };
+      }),
+    };
+  });
+  expect(new Set(geometry.actions.map(action => action.width)).size).toBeGreaterThan(1);
+  for (const action of geometry.actions) expect(Math.abs(action.center - geometry.axis)).toBeLessThan(1);
+});
 test("Toolbar handles RTL, nonlooping edges and DOM changes without stealing outside focus",async({page})=>{
  await openFixture(page);const toolbar=page.getByRole('toolbar');await page.getByRole('button',{name:'RTL',exact:true}).click();await toolbar.getByRole('button',{name:'Undo'}).focus();await page.keyboard.press('ArrowLeft');await expect(toolbar.getByRole('button',{name:'Bold'})).toBeFocused();await page.getByRole('button',{name:'Loop',exact:true}).click();await toolbar.getByRole('button',{name:'Undo'}).focus();await page.keyboard.press('ArrowRight');await expect(toolbar.getByRole('button',{name:'Undo'})).toBeFocused();await page.getByRole('button',{name:'Disable undo',exact:true}).focus();await page.getByRole('button',{name:'Disable undo',exact:true}).press('Enter');await expect(page.getByRole('button',{name:'Disable undo',exact:true})).toBeFocused();await expect(toolbar.getByRole('button',{name:'Bold'})).toHaveAttribute('tabindex','0');await page.getByRole('button',{name:'Remove bold',exact:true}).click();await expect(toolbar.getByRole('button',{name:'Options'})).toHaveAttribute('tabindex','0');
 });
@@ -38,7 +56,26 @@ test("Toolbar and key hints remain usable at enlarged text and pass automated se
  await openFixture(page);await page.evaluate(()=>document.documentElement.style.fontSize='24px');const toolbar=page.getByRole('toolbar');await expect(toolbar).toBeVisible();const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);expect(overflow).toBe(false);const results=await new AxeBuilder({page}).analyze();expect(results.violations).toEqual([]);await expect(page.locator('kbd')).toHaveCount(3);await expect(page.locator('kbd[tabindex]')).toHaveCount(0);
 });
 test("Toolbar catalog recipes render and retain a stable preview",async({page})=>{
- await page.goto('/components/toolbar');const stage=page.locator('.workbench-stage');await expect(stage.getByRole('toolbar')).toBeVisible();const before=(await stage.boundingBox())!;await stage.getByRole('button',{name:'Share',exact:true}).click();expect((await stage.boundingBox())!.height).toBe(before.height);await page.goto('/components/kbd');await expect(page.locator('.workbench-stage kbd')).toHaveCount(2);
+ await page.goto('/components/toolbar');
+ const stage=page.locator('.workbench-stage'), toolbar=stage.getByRole('toolbar');
+ const share=toolbar.getByRole('button',{name:'Share',exact:true});
+ await expect(share).toHaveText('Share');
+ await chooseSelectOption(page.getByRole('combobox',{name:'Toolbar prop orientation'}),'vertical');
+ for(const name of ['Undo','Bold','Italic','Share']) {
+   await expect(toolbar.getByRole('button',{name,exact:true})).toHaveText(name);
+ }
+ await chooseSelectOption(page.getByRole('combobox',{name:'Toolbar prop shape'}),'pill');
+ await expect(share.locator('svg')).toBeVisible();
+ await expect(share).toHaveText('');
+ const before=(await stage.boundingBox())!.height;
+ await toolbar.getByRole('button',{name:'Italic'}).focus();
+ await page.keyboard.press('ArrowDown');
+ await expect(share).toBeFocused();
+ await page.keyboard.press('Enter');
+ await expect(page.locator('.workbench-feedback')).toHaveText('Shared locally.');
+ expect((await stage.boundingBox())!.height).toBe(before);
+ await page.goto('/components/kbd');
+ await expect(page.locator('.workbench-stage kbd')).toHaveCount(2);
 });
 
 test("Toolbar keeps owned focus recoverable when an action becomes unavailable",async({page})=>{

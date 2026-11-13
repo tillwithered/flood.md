@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { build } from "vite";
 import { resolve } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
-import { chooseSelectOption } from "./select-helpers";
+import { chooseSelectOption, chooseStudioSheetOption } from "./select-helpers";
 
 let bundle: Promise<string>;
 async function fixture() {
@@ -101,7 +101,7 @@ test("Toggle touch targets and forced-color pressed state remain usable", async 
   const context = await browser.newContext({baseURL:(process.env.FLOOD_WEBSITE_TEST_URL ?? "http://127.0.0.1:4173"),hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
   try {
     const page = await context.newPage(); await page.goto("/components/toggle");
-    await chooseSelectOption(page.getByRole("combobox",{name:"Toggle prop size",exact:true}),"2xs");
+    await chooseStudioSheetOption(page,"Size","2xs");
     await page.getByRole("checkbox",{name:"Toggle prop iconOnly",exact:true}).check();
     const toggle = page.locator(".preview-stage").getByRole("button",{name:"Bold",exact:true});
     const box = (await toggle.boundingBox())!; expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44);

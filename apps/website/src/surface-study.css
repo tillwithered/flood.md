@@ -1,4 +1,3 @@
 .surface-study { padding-block: var(--flood-sys-space-8); }
 .surface-study .flood-grid { align-items: start; }
 .surface-study .flood-overlay-panel { max-block-size: 80dvh; }
-@media (max-width: 60rem) { .surface-study > .flood-stack > .flood-grid { grid-template-columns: minmax(0, 1fr); } }

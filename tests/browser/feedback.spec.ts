@@ -51,6 +51,20 @@ test("Alert defaults to static content, supports explicit urgency and preserves 
   await page.getByRole("checkbox", { name: "Alert prop showTitle" }).uncheck();
   await expect(alert.locator(".flood-alert__title")).toHaveCount(0);
   await expect(alert).toContainText("Your work stays here");
+  await page.getByRole("checkbox", { name: "Alert prop showIcon" }).check();
+  await page.getByRole("checkbox", { name: "Alert prop showAction" }).check();
+  await chooseSelectOption(page.getByRole("combobox", { name: "Alert prop tone" }), "warning");
+  const action = alert.getByRole("button", { name: "View usage" });
+  const button = (await action.boundingBox())!;
+  const glyph = (await alert.locator(".flood-alert__icon").boundingBox())!;
+  expect(glyph.y + glyph.height / 2).toBeCloseTo(button.y + button.height / 2, 0);
+  await action.hover();
+  await expect(action).toHaveCSS("background-color", /color\(srgb /);
+  const warningHover = await action.evaluate(node => getComputedStyle(node).backgroundColor);
+  await chooseSelectOption(page.getByRole("combobox", { name: "Alert prop tone" }), "success");
+  await action.hover();
+  await expect(action).toHaveCSS("background-color", /color\(srgb /);
+  await expect(action).not.toHaveCSS("background-color", warningHover);
 });
 
 test("feedback examples remain accessible and reflow at enlarged text", async ({ page }, info) => {

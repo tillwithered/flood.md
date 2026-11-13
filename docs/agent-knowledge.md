@@ -7,11 +7,11 @@ The same package sources build the website, CLI results and agent instructions.
 ## Discover, then read
 
 ```sh
-npx @flood-md/cli@0.2.11 info --json
-npx @flood-md/cli@0.2.11 catalog --kind workflow --group foundations
-npx @flood-md/cli@0.2.11 catalog --kind component --search table
-npx @flood-md/cli@0.2.11 read recipe:table-bulk-actions
-npx @flood-md/cli@0.2.11 read component:data-table
+npx @flood-md/cli@0.2.12 info --json
+npx @flood-md/cli@0.2.12 catalog --kind workflow --group foundations
+npx @flood-md/cli@0.2.12 catalog --kind component --search table
+npx @flood-md/cli@0.2.12 read recipe:table-bulk-actions
+npx @flood-md/cli@0.2.12 read component:data-table
 ```
 
 These commands return JSON and do not install dependencies, edit files, execute

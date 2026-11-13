@@ -60,6 +60,35 @@ the interface-content workflow for contextual placement.
   Keep identifiers, such as postal codes and account numbers, aligned as text
   even when they contain only digits. Preserve formatted units and use raw sort
   values when localized text or rich cells would sort differently.
+- Offer column visibility when users need different subsets of fields for real
+  tasks in the same table. Leave it off for compact tables with a fixed task.
+  Use one layout control per table. If the screen already has View options or
+  Display settings, put column visibility there and pass `hiddenColumnIds`.
+  Otherwise enable `showColumnVisibility`. If the table already has search and
+  filters, use the `toolbar` render function and put its Columns control in
+  `CollectionToolbar.actions` to share the existing tool row. Keep the record
+  identity visible with `hideable: false` and save preferences by column ID in
+  the host. Keep layout preferences independent of the data query. Verify that
+  visibility changes preserve page, selection and sort.
+- Enable resizing for columns with variable-length content when readers need
+  control over width. Use logical start pinning for record identity and logical
+  end for recurring actions when horizontal scrolling would hide them. Persist
+  widths by column ID with visibility, and verify keyboard resize, reset, RTL
+  and access to the unpinned middle at the smallest intended width.
+- Choose short one-line column labels and use DataTable's `unit` badge for
+  a shared short unit. Preserve the complete label when a narrow column
+  truncates it. Compare the label, sort icon and resize grip on the same row.
+- Use DataTable's row disclosure for short details the reader needs while
+  scanning parent records. Compose a named nested Table for related line items.
+  Keep the disclosure and any record-opening action independent. Use a Drawer
+  or separate page for longer detail or editing tasks.
+- Use Sparkline when the shape of a series helps a comparison. Supply a label
+  that describes the trend, use a shared scale for comparing magnitudes, and
+  show decision-critical numbers as text. If a rich trend cell is sortable,
+  define the metric it sorts by and supply its raw value.
+  Keep the same tone across rows of one metric. A soft area fill supports the
+  stroke and follows the same gaps. Reserve semantic tones for meaning and
+  keep numbers and labels readable independently of color.
 - DescriptionList expresses named values; DataList/DataListItem express records.
   Card/Section/Surface organize groups without inventing a second typography or
   spacing system. A heading's semantic level does not prescribe its visual size.

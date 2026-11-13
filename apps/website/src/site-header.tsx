@@ -12,8 +12,9 @@ export function SiteHeader({ path }: { path: string }) {
       <Inline gap="2" className="header-links">
         <Link href="/docs" variant="ghost" size="sm" aria-current={path.startsWith("/docs") ? "page" : undefined}>Docs</Link>
         <Link href="/components" variant="ghost" size="sm" aria-current={inComponents ? "page" : undefined}>Components</Link>
-        <Link href="https://github.com/tillwithered/flood.md" variant="subtle" size="sm">
-          <IconSlot size="sm"><img className="github-mark" src="/github-mark.svg" alt="" width="20" height="20" /></IconSlot>GitHub
+        <Link href="https://github.com/tillwithered/flood.md" variant="subtle" size="sm" className="header-github" aria-label="GitHub">
+          <IconSlot size="sm"><img className="github-mark" src="/github-mark.svg" alt="" width="20" height="20" /></IconSlot>
+          <span>GitHub</span>
         </Link>
       </Inline>
     </nav>

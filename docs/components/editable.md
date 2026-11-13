@@ -15,8 +15,9 @@ Uncontrolled equivalents are `defaultValue` and `defaultEditing`. An externally
 changed value does not overwrite an active draft. Cancel reads the latest host
 value, and a controlled host may refuse a value or editing request. `onCommit`
 runs for a deliberate commit (including unchanged text); `onCancel` runs for user
-cancellation. Async saving, failure messages and validation belong to the host;
-these callbacks are not awaited.
+cancellation. Use `validate` for synchronous draft validation. Returning a message
+keeps the editor open and associates the error with the input. The host owns
+asynchronous saving. These callbacks are synchronous.
 
 `blurAction` is `commit` by default, or `cancel` / `none`. Moving between the input
 and its action buttons is internal focus movement, not an outside blur. Outside
@@ -28,6 +29,12 @@ and blur policies are enough for the intended interaction.
 `editLabel`, `saveLabel`, `cancelLabel` and `placeholder`. `readOnly` shows a native
 read-only field so users can focus/select/copy; `disabled` blocks activation.
 `controlSize` uses the existing sm/md/lg/xl field geometry and semantic roles.
+Use `inputMode` to choose a mobile keyboard and `previewVariant="ghost"` for
+a quiet edit trigger in a dense table.
+Set `editorOverlayWidth` to a preferred CSS width to open the editor over
+its trigger while preserving the surrounding layout. Use `"fit-content"` for
+short values such as table amounts. The overlay grows with the draft and keeps
+its actions beside the input.
 The root ref targets its native div. `inputRef` targets the input while editing
 (or read-only), and is null while only the preview is rendered. Native root props
 such as id, dir, lang, hidden and ARIA descriptions remain available.

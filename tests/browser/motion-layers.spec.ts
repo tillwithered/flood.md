@@ -78,9 +78,23 @@ test("toast arrival keeps the live message available during motion", async ({ pa
   await page.getByRole("button", { name: "Menu", exact: true }).click();
   await page.getByRole("menuitem", { name: "Duplicate project" }).click();
   const toast = page.locator(".flood-toast");
-  await expect(toast).toHaveCSS("animation-name", "none");
+  await expect(toast).toHaveCSS("animation-name", "flood-toast-enter");
   await expect(toast.getByRole("status")).toContainText("Action complete");
-  await expect(toast.getByRole("status")).toHaveCSS("animation-name", /flood-motion-hint-in/);
+  await expect(toast.getByRole("status")).toHaveCSS("animation-name", "none");
+  const entry = await toast.evaluate(card => {
+    const animation = card.getAnimations()[0];
+    animation.pause();
+    animation.currentTime = 0;
+    const start = card.getBoundingClientRect().top;
+    animation.finish();
+    return start - card.getBoundingClientRect().top;
+  });
+  expect(entry).toBeGreaterThan(4);
   await toast.getByRole("button", { name: /Action complete/ }).click();
   await expect(toast).toHaveCount(0);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Duplicate project" }).click();
+  await expect(toast).toHaveCSS("animation-name", "none");
+  await expect(toast.getByRole("status")).toContainText("Action complete");
 });

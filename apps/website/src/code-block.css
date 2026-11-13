@@ -31,6 +31,17 @@
 }
 .site-root .site-code-block__filename { overflow-wrap: anywhere; min-inline-size: 0; }
 .site-root .site-code-block__language { flex: none; font-size: .6875rem; }
+.site-root .site-code-block[data-compact] .site-code-block__toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--flood-sys-space-1);
+}
+.site-root .site-code-block[data-compact] .site-code-block__filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.site-root .site-code-block[data-compact] .site-code-block__language { display: none; }
 .site-root .site-code-block__pre {
   box-sizing: border-box;
   min-inline-size: 0;
@@ -63,6 +74,7 @@
   letter-spacing: inherit;
 }
 .site-root .site-code-block__line, .site-root .site-code-block__token { white-space: inherit; overflow-wrap: inherit; }
+.site-root .site-code-block[data-compact] .site-code-block__pre { white-space: pre; }
 .site-root .site-copy-control {
   display: inline-flex;
   flex-wrap: wrap;
@@ -85,6 +97,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .site-root .site-copy-control__button { transition: none; }
+}
+@media (scripting: none) {
+  .site-root .site-copy-control { display: none; }
 }
 @media (forced-colors: active) {
   .site-root .site-code-block, .site-root .site-code-block__toolbar { border-color: CanvasText; }

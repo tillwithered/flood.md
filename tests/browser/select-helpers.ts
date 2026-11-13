@@ -1,4 +1,13 @@
-import { expect, type Locator } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+
+/** Phone Studio properties open a Flood Sheet instead of an anchored Select. */
+export async function chooseStudioSheetOption(page: Page, property: string, value: string) {
+  await page.getByRole("button", { name: new RegExp(`^${property}: `) }).click();
+  const sheet = page.getByRole("dialog", { name: property, exact: true });
+  await sheet.getByRole("option", { name: value, exact: true }).click();
+  await expect(sheet).toBeHidden();
+  await expect(page.getByRole("button", { name: `${property}: ${value}`, exact: true })).toBeFocused();
+}
 
 /** The native form/ref bridge remains testable without opening an OS menu. */
 export function selectBridge(trigger: Locator): Locator {

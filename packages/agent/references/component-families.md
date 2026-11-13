@@ -89,6 +89,10 @@ override leaves fields and composed controls inconsistent. Keep absolute
 material colors separate from contextual control roles and verify the nearest
 nested owner resets those roles. Preserve accent focus and destructive meaning.
 
+Vertical pill Toolbar keeps one column on a shared center axis. Use named
+icon-only actions and a consistent control size for a compact rail. Use a
+rounded vertical Toolbar with consistently labeled controls when text is needed.
+
 BulkActionBar is a one-row capsule for a small set of selection commands. Keep
 one to three visible commands, prefer two, and disclose the remainder through
 its overflow owner. Do not wrap this floating rail into a second row or use it
