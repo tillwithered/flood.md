@@ -1,7 +1,7 @@
 import { test, expect, type Locator } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { openSelectFixture } from "./select-fixture";
-import { chooseSelectOption, selectBridge } from "./select-helpers";
+import { chooseSelectOption, chooseStudioSheetOption, selectBridge } from "./select-helpers";
 
 async function activeOption(trigger: Locator) {
   const id = await trigger.getAttribute("aria-activedescendant");
@@ -196,9 +196,9 @@ test("forced-color numeric options commit zero through a real pointer",async({br
       },true);
     });
     await page.goto("/components/pagination");
-    const trigger=page.getByRole("combobox",{name:"Pagination prop siblingCount",exact:true});
     try {
-      await chooseSelectOption(trigger,"0");
+      await chooseStudioSheetOption(page,"Sibling count","0");
+      await page.getByRole("button",{name:"Reference Alt R",exact:true}).click();
       await expect(page.locator("#usage .site-code-block code")).toContainText("siblingCount={0}");
     } catch(error) {
       const history=await page.evaluate(()=>(window as unknown as {numericSelectHistory:unknown}).numericSelectHistory);

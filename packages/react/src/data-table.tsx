@@ -3,7 +3,7 @@ import {Table,Checkbox,Button,Badge,IconSlot,VisuallyHidden,Pagination,Text,Spin
 import { useDataTableColumnLayout } from "./data-table-columns.js";
 import { DataTableExpandableRow, useDataTableExpansion } from "./data-table-expansion.js";
 
-const columnName = (column: DataTableColumn) => column.unit ? `${column.label} (${column.unit})` : column.label;
+const columnName = (column: DataTableColumn) => column.unit ? `${column.label} ${column.unit}` : column.label;
 
 function DataTableHeading({ column, sortLabel, disabled, descending, onSort }: {
   column: DataTableColumn;
@@ -31,7 +31,7 @@ function DataTableHeading({ column, sortLabel, disabled, descending, onSort }: {
   }, [column.label, column.unit]);
 
   const content = <>
-    <span ref={label} className="flood-data-table__header-label">{column.label}</span>
+    <span ref={label} className="flood-data-table__header-label">{column.label}</span>{" "}
     {column.unit && <Badge size="sm" variant="outline" className="flood-data-table__header-unit" aria-hidden="true">{column.unit}</Badge>}
   </>;
   return <Tooltip content={columnName(column)} disabled={!truncated} trigger={trigger =>

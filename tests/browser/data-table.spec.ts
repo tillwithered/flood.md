@@ -191,7 +191,7 @@ test("DataTable keeps headings on one line and exposes unit and resize cues", as
   await expect(handle).toHaveAttribute("title", "Resize Project column");
   await expect(handle.locator("svg")).toBeVisible();
   await handle.press("Home");
-  const header = table.getByRole("columnheader", { name: "Sort by Budget (USD)" });
+  const header = table.getByRole("columnheader", { name: "Sort by Budget USD" });
   await expect(header.getByText("USD", { exact: true })).toBeVisible();
   const wrapping = await table.locator(".flood-data-table__header-label").evaluateAll(labels =>
     labels.filter(label => getComputedStyle(label).whiteSpace !== "nowrap").map(label => label.textContent));
@@ -255,9 +255,9 @@ test("cell edits update the status badge and sort by the saved budget", async ({
   const status = table.getByRole("button", { name: "Status for Design system: Draft" });
   await expect(status.locator(".flood-badge")).toHaveAttribute("data-tone", "info");
 
-  await table.getByRole("button", { name: "Sort by Budget (USD)" }).click();
+  await table.getByRole("button", { name: "Sort by Budget USD" }).click();
   const original = table.getByRole("button", { name: "Edit: Budget for Agent guides. 4,500" });
-  const column = table.getByRole("columnheader", { name: "Sort by Budget (USD)" });
+  const column = table.getByRole("columnheader", { name: "Sort by Budget USD" });
   const columnBox = (await column.boundingBox())!;
   const row = table.getByRole("row").filter({ hasText: "Agent guides" });
   const rowHeight = (await row.boundingBox())!.height;
@@ -297,7 +297,7 @@ test("cell edits update the status badge and sort by the saved budget", async ({
   await input.fill("20000");
   await input.press("Enter");
   await expect(saved).toHaveCount(0);
-  await expect(table.getByRole("button", { name: "Sort by Budget (USD)" })).toBeFocused();
+  await expect(table.getByRole("button", { name: "Sort by Budget USD" })).toBeFocused();
 });
 
 test("a stale saved layout retains a data column and gives empty content the visible span", async ({ page }) => {

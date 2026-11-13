@@ -76,6 +76,8 @@ test('AppShell sidebar keeps the rows and metrics steady through both transition
  await expect(toggle).toBeFocused();
  await expect(toggle).toHaveCSS('outline-style','none');
  await expect(toggle).not.toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+ // Hold the real transition long enough to sample its intermediate layout under CI load.
+ await sidebar.evaluate(node=>{(node as HTMLElement).style.transitionDuration='5s';});
  await toggle.press('Enter');
  await expect(toggle).toHaveAttribute('aria-expanded','true');
  await sidebar.evaluate(node=>{
@@ -85,7 +87,10 @@ test('AppShell sidebar keeps the rows and metrics steady through both transition
   transition.currentTime=1;
  });
  expect(await positions()).toEqual(before);
- await sidebar.evaluate(node=>node.getAnimations().forEach(animation=>animation.finish()));
+ await sidebar.evaluate(node=>{
+  node.getAnimations().forEach(animation=>animation.finish());
+  (node as HTMLElement).style.removeProperty('transition-duration');
+ });
  expect(await positions()).toEqual(before);
 });
 
