@@ -3,8 +3,7 @@
   "mcpServers": {
     "flood": {
       "type": "streamable-http",
-      "url": "https://flood.md/mcp",
-      "extensions": { "com.openai": { "auth": { "type": "none" } } }
+      "url": "https://flood.md/mcp"
     }
   }
 }
