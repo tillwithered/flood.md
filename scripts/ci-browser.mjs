@@ -6,15 +6,19 @@ const plan = JSON.parse(await readFile('.artifacts/ci-plan.json','utf8'));
 if(typeof plan.full !== 'boolean' || !Array.isArray(plan.components) || !Array.isArray(plan.testFiles))throw Error('Missing browser coverage plan');
 const engine=process.argv[2];
 if(!['chromium','firefox','webkit'].includes(engine))throw Error('Unknown browser engine');
-const gateOnly=process.env.FLOOD_PUBLICATION_ONLY === 'true';
-const config=gateOnly?'playwright.site.config.ts':engine==='chromium'?'playwright.config.ts':'playwright.engines.config.ts';
+const scope=process.env.FLOOD_CI_SCOPE ?? 'full';
+if (!['full','publication','integration'].includes(scope)) throw Error('Unknown verification scope');
+if (scope !== 'full' && engine !== 'chromium') throw Error('Website scopes require Chromium');
+const config=scope==='integration'?'playwright.integration.config.ts'
+  :scope==='publication'?'playwright.site.config.ts'
+  :engine==='chromium'?'playwright.config.ts':'playwright.engines.config.ts';
 const args=['node_modules/@playwright/test/cli.js','test','--config='+config];
 if(engine !== 'chromium')args.push('--project='+engine);
 if(process.argv[3]) {
   if(!validShard(process.argv[3]))throw Error('Invalid shard');
   args.push('--shard='+process.argv[3]);
 }
-if(!gateOnly && !plan.full) {
+if(scope === 'full' && !plan.full) {
   if(!plan.components.length || !plan.testFiles.length || plan.testFiles.some(p=>!/^tests\/browser\/[a-z0-9-]+\.spec\.ts$/.test(p)))throw Error('Invalid affected coverage plan');
   args.push(...plan.testFiles);
   // A small affected cohort may have no tests in the engine-specific subset.
@@ -22,7 +26,7 @@ if(!gateOnly && !plan.full) {
   if(engine !== 'chromium') args.push('--pass-with-no-tests');
   process.env.FLOOD_AFFECTED_COMPONENTS=plan.components.join(',');
 }
-console.log(`${engine}: ${gateOnly?'publication-only website':plan.full?'full candidate':plan.components.join(', ')}`);
+console.log(`${engine}: ${scope === 'full' && !plan.full ? plan.components.join(', ') : scope}`);
 // Detect a broken browser installation/container once, before per-test retries.
 const browser = await ({chromium,firefox,webkit})[engine].launch();
 await browser.close();

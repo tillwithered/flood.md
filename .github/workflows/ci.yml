@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     outputs:
-      gate_only: ${{ steps.scope.outputs.gate_only }}
+      scope: ${{ steps.scope.outputs.scope }}
       chromium_shards: ${{ steps.affected.outputs.chromium_shards }}
       chromium_total: ${{ steps.affected.outputs.chromium_total }}
       engine_shards: ${{ steps.affected.outputs.engine_shards }}
@@ -31,20 +31,20 @@ jobs:
       - run: npm ci
       - name: Fail early on release-train drift
         run: node scripts/release.mjs --source-only
-      - name: Classify publication-only changes
+      - name: Classify verification scope
         id: scope
         run: node scripts/ci-scope.mjs
       - name: Select affected component consumers
         id: affected
         run: node scripts/ci-affected.mjs
       - run: npm run verify
-        if: steps.scope.outputs.gate_only != 'true'
-      - name: Verify publication-only website
-        if: steps.scope.outputs.gate_only == 'true'
-        run: npm run build && npm run check && npm test && npm run site:check
+        if: steps.scope.outputs.scope == 'full'
+      - name: Verify website build and contracts
+        if: contains(fromJSON('["publication","integration"]'), steps.scope.outputs.scope)
+        run: npm run build && npm run check && npm test
       - run: npm run release:check
       - name: Pack immutable release candidate
-        if: github.event_name == 'push' && steps.scope.outputs.gate_only != 'true'
+        if: github.event_name == 'push' && steps.scope.outputs.scope == 'full'
         run: npm run ci:candidate
       - name: Prepare verified website runtime
         id: website
@@ -72,7 +72,7 @@ jobs:
           retention-days: 14
           if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: github.event_name == 'push' && steps.scope.outputs.gate_only != 'true'
+        if: github.event_name == 'push' && steps.scope.outputs.scope == 'full'
         with:
           name: candidate-bytes-${{ github.sha }}
           path: .artifacts/release-candidate
@@ -89,7 +89,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.build.outputs.chromium_shards) }}
+        shard: ${{ fromJSON(needs.build.outputs.scope == 'integration' && '[1]' || needs.build.outputs.chromium_shards) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -105,9 +105,9 @@ jobs:
           path: .artifacts
       - run: tar -xzf .artifacts/browser-build.tgz
       - name: Browser behavior and styles
-        run: node scripts/ci-browser.mjs chromium ${{ matrix.shard }}/${{ needs.build.outputs.chromium_total }}
+        run: node scripts/ci-browser.mjs chromium ${{ matrix.shard }}/${{ needs.build.outputs.scope == 'integration' && '1' || needs.build.outputs.chromium_total }}
         env:
-          FLOOD_PUBLICATION_ONLY: ${{ needs.build.outputs.gate_only }}
+          FLOOD_CI_SCOPE: ${{ needs.build.outputs.scope }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: failure()
         with:
@@ -119,7 +119,7 @@ jobs:
           retention-days: 7
   browser-engines:
     needs: build
-    if: needs.build.outputs.gate_only != 'true'
+    if: needs.build.outputs.scope == 'full'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
@@ -167,8 +167,12 @@ jobs:
           BUILD: ${{ needs.build.result }}
           CHROMIUM: ${{ needs.chromium.result }}
           ENGINES: ${{ needs.browser-engines.result }}
-          GATE_ONLY: ${{ needs.build.outputs.gate_only }}
+          SCOPE: ${{ needs.build.outputs.scope }}
         run: |
           test "$BUILD" = success
           test "$CHROMIUM" = success
-          if [ "$GATE_ONLY" = true ]; then test "$ENGINES" = skipped; else test "$ENGINES" = success; fi
+          case "$SCOPE" in
+            full) test "$ENGINES" = success ;;
+            publication|integration) test "$ENGINES" = skipped ;;
+            *) exit 1 ;;
+          esac
