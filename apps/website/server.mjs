@@ -1,11 +1,13 @@
 import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
-import { resolve, extname, sep } from "node:path";
+import { resolve, extname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pagePaths, siteOrigin } from "./routes.mjs";
 import { visitorRequest } from './visitors.mjs';
+import { createFloodMcpHandler } from "./dist-server/mcp.mjs";
 
 const root = fileURLToPath(new URL("./dist", import.meta.url));
+const floodMcp = createFloodMcpHandler({ root: join(root, "agent"), siteOrigin });
 const types = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -17,6 +19,7 @@ const types = {
   ".txt": "text/plain; charset=utf-8",
   ".md": "text/markdown; charset=utf-8",
   ".xml": "application/xml; charset=utf-8",
+  ".zip": "application/zip",
 };
 const server = createServer(async (request, response) => {
   try {
@@ -29,6 +32,7 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (pathname === '/api/visitors') { await visitorRequest(request,response,siteOrigin); return; }
+    if (pathname === "/mcp") { await floodMcp(request, response); return; }
     if (!["GET", "HEAD"].includes(request.method)) {
       response.writeHead(405, { Allow: "GET, HEAD" });
       response.end();
@@ -53,6 +57,7 @@ const server = createServer(async (request, response) => {
     response.writeHead(200, {
       "Content-Type": types[extname(file)] ?? "application/octet-stream",
       "X-Content-Type-Options": "nosniff",
+      ...(pathname === "/flood-plugin.zip" ? { "Content-Disposition": 'attachment; filename="flood-plugin.zip"' } : {}),
       ...(pathname.startsWith("/playground") ? { "X-Robots-Tag": "noindex, follow" } : {}),
       ...(pathname.endsWith(".md") && pagePaths.has(pathname.slice(0, -3)) ? {
         "X-Robots-Tag": "noindex, follow",

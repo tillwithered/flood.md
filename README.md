@@ -54,7 +54,7 @@ with an agent. In a connected project, the installed `flood/DESIGN.md` and
 `.agents/skills/flood-ui/SKILL.md` guide component selection, composition and
 verification. The [agent knowledge guide](docs/agent-knowledge.md) explains how
 to look up a component or workflow with the CLI version recorded in `flood.json`.
-See [agent setup](docs/agents.md) for the full workflow.
+See [agent setup](docs/agents.md) for the full workflow and [Flood MCP](https://flood.md/docs/mcp) to connect to the public catalog.
 
 ## Develop
 

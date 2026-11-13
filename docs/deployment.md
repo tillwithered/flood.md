@@ -1,8 +1,8 @@
 # Hosting the public website
 
 The website is a static React application with public agent guides and a JSON
-schema. The production container serves only its built dist directory through a
-dependency-free Node HTTP server. It runs as an unprivileged user and needs no
+schema. The production container serves built files through a Node HTTP server
+with a bundled read-only MCP transport. It runs as an unprivileged user and needs no
 database or account system for serving documentation. The optional visitor
 counter uses a separate private service and persistent volume; the website
 itself retains no writable data and continues running unprivileged.
@@ -30,6 +30,11 @@ which define the explicit page allowlist.
 Known `/docs` and `/components` pages serve their own prerendered HTML; unknown paths
 return 404. Documentation Markdown is bundled at build time from `docs/` and
 does not depend on a live GitHub connection.
+
+The same origin serves the stateless Streamable HTTP endpoint at `/mcp` and
+the plugin archive at `/flood-plugin.zip`. The deployment check initializes MCP,
+verifies the public tools, reads a versioned component contract and checks the
+download. Hosting both uses the existing website service.
 
 The build also emits canonical Markdown counterparts for the documentation and
 component pages. For example `/docs/installation.md` and `/components/button.md`

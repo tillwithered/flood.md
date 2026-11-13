@@ -64,6 +64,7 @@ for (const { source } of agentManifest.files) {
   await copyFile(`packages/agent/${source}`, destination);
 }
 await cp('packages/agent/dist', 'apps/website/public/agent/dist', {recursive:true});
+await copyFile('packages/agent/package.json', 'apps/website/public/agent/package.json');
 const release = JSON.parse(
   await readFile("apps/website/src/release.json", "utf8"),
 );

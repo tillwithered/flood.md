@@ -14,6 +14,11 @@ Railway serves the landing page, JSON schema and plain-text agent docs. npm is
 delivery infrastructure, not the component engine. No runtime Flood API, database,
 login, telemetry, remote agent execution or mandatory hosted state is required.
 
+The website also serves an optional public MCP endpoint and plugin archive.
+The MCP uses the canonical read-only catalog reader against the deployed
+website bundle. Local npm consumers can continue to use their installed
+catalog and project-owned guidance.
+
 Tokens → React CSS/components → host app. The CLI installs tokens, React and agent
 packages at the same exact release version. It writes only owned configuration
 and agent files, and tells the user where to import CSS. It does not guess at
