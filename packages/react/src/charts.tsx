@@ -589,14 +589,16 @@ export const HeatmapGrid = /* @__PURE__ */ forwardRef<HTMLDivElement, HeatmapGri
       panel.style.top = `${(top - bounds.top) / scale}px`;
     };
     position();
-    const observer = new ResizeObserver(position);
-    observer.observe(area);
-    observer.observe(panel);
-    observer.observe(cell);
+    const observer = typeof ResizeObserver === "undefined" ? undefined : new ResizeObserver(position);
+    observer?.observe(area);
+    observer?.observe(panel);
+    observer?.observe(cell);
     area.addEventListener("scroll", position, true);
+    window.addEventListener("resize", position);
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
       area.removeEventListener("scroll", position, true);
+      window.removeEventListener("resize", position);
     };
   }, [active, width]);
   const navigate = (event: KeyboardEvent<HTMLTableCellElement>, index: number) => {
