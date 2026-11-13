@@ -1,0 +1,104 @@
+.flood-root .flood-histogram {
+  --flood-histogram-height: var(--flood-chart-plot-height, 13rem);
+  min-inline-size: 0;
+  container-type: inline-size;
+}
+.flood-root .flood-histogram__plot { position: relative; cursor: crosshair; }
+.flood-root .flood-histogram__plot:focus-visible {
+  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
+  outline-offset: var(--flood-sys-focus-offset);
+  border-radius: var(--flood-sys-radius-indicator);
+}
+.flood-root .flood-histogram__columns {
+  position: relative;
+  display: flex;
+  block-size: var(--flood-histogram-height);
+  box-sizing: border-box;
+  padding-block-start: var(--flood-sys-space-3);
+  border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative);
+}
+.flood-root .flood-histogram__columns::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--flood-chart-grid);
+  mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent),
+    linear-gradient(transparent, black 18%, black 84%, transparent);
+  mask-composite: intersect;
+  pointer-events: none;
+}
+.flood-root .flood-histogram__bin { position: relative; flex: 1 1 0; min-inline-size: 0; }
+.flood-root .flood-histogram__bin[data-active] {
+  background: color-mix(in srgb, var(--flood-chart-accent) 5%, transparent);
+}
+.flood-root .flood-histogram__bar {
+  position: absolute;
+  inset-inline: min(7%, var(--flood-sys-space-1) / 2);
+  inset-block-end: 0;
+  block-size: var(--flood-histogram-bin-height);
+  border-radius: var(--flood-sys-radius-indicator) var(--flood-sys-radius-indicator) 0 0;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--flood-chart-accent) 32%, transparent), color-mix(in srgb, var(--flood-chart-accent) 5%, transparent));
+  --flood-histogram-ink: color-mix(in srgb, var(--flood-chart-accent) 72%, transparent);
+  box-shadow: inset 0 var(--flood-chart-stroke-width) var(--flood-histogram-ink);
+}
+.flood-root .flood-histogram__bar[data-zero] {
+  block-size: var(--flood-sys-stroke-width);
+  border-radius: 0;
+  background: var(--flood-sys-color-border-decorative);
+  box-shadow: none;
+}
+.flood-root .flood-histogram__bin[data-active] > .flood-histogram__bar {
+  --flood-histogram-ink: var(--flood-chart-accent);
+}
+.flood-root .flood-histogram__bin[data-active] > .flood-histogram__bar[data-zero] { background: var(--flood-histogram-ink); }
+.flood-root .flood-histogram__axis {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin-block-start: var(--flood-sys-space-2);
+  font-variant-numeric: tabular-nums;
+}
+.flood-root .flood-histogram__axis > .flood-text {
+  max-inline-size: 30%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flood-root .flood-histogram__mid-label { position: absolute; translate: -50% 0; }
+.flood-root .flood-histogram__axis-label { display: block; text-align: center; margin-block-start: var(--flood-sys-space-2); }
+.flood-root .flood-histogram__tooltip {
+  --flood-histogram-tip-gap: calc(var(--flood-histogram-half-bin) + var(--flood-chart-tip-gap));
+  --flood-histogram-tip-width: min(8rem, max(5rem, calc(50% - var(--flood-histogram-tip-gap))));
+  --flood-histogram-tip-offset: calc(var(--flood-histogram-tip-side) * (var(--flood-histogram-tip-width) + 2 * var(--flood-histogram-tip-gap)) + var(--flood-histogram-tip-gap));
+  position: absolute;
+  z-index: 1;
+  top: var(--flood-sys-space-2);
+  left: clamp(0px, calc(var(--flood-histogram-active) + var(--flood-histogram-tip-offset)), calc(100% - var(--flood-histogram-tip-width)));
+  inline-size: var(--flood-histogram-tip-width);
+  display: grid;
+  gap: var(--flood-sys-space-1);
+}
+.flood-root .flood-histogram__tooltip-count { justify-content: space-between; }
+.flood-root .flood-histogram__plot:has(.flood-histogram__bin:only-child) .flood-histogram__tooltip {
+  left: 50%;
+  translate: -50% 0;
+}
+.flood-root .flood-histogram__empty { display: grid; place-items: center; min-block-size: var(--flood-histogram-height); }
+@media (prefers-reduced-motion: no-preference) {
+  .flood-root:not([data-flood-motion="reduce"]) .flood-histogram__bar:not(:where([data-flood-motion="reduce"] *)) {
+    transition: box-shadow var(--flood-chart-motion);
+  }
+}
+@media (forced-colors: active) {
+  .flood-root .flood-histogram__columns::before { display: none; }
+  .flood-root .flood-histogram__bar[data-zero] { forced-color-adjust: none; background: GrayText; }
+  .flood-root .flood-histogram__bin[data-active] > .flood-histogram__bar[data-zero] { background: Highlight; }
+  .flood-root .flood-histogram__bar:not([data-zero]) {
+    forced-color-adjust: none;
+    background: Canvas;
+    box-shadow: inset 0 0 0 var(--flood-chart-stroke-width) CanvasText;
+  }
+  .flood-root .flood-histogram__bin[data-active] > .flood-histogram__bar:not([data-zero]) {
+    box-shadow: inset 0 0 0 var(--flood-chart-stroke-width) Highlight;
+  }
+}

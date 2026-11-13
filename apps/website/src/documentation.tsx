@@ -2,7 +2,7 @@ import { isValidElement, useEffect, useRef, useState, type ReactNode, type RefOb
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowRight, ArrowUpRight, List } from "lucide-react";
-import { Breadcrumb, Button, Collapsible, Drawer, Grid, Heading, IconButton, IconSlot, Inline, Kbd, Link, PageHeader, ScrollArea, SearchInput, SegmentedControl, Sheet, Stack, Surface, Text } from "@flood-md/react";
+import { Breadcrumb, Button, Collapsible, Drawer, Grid, Heading, IconButton, IconSlot, Inline, Kbd, Link, PageHeader, ScrollArea, SearchInput, Select, SegmentedControl, Sheet, Stack, Surface, Text } from "@flood-md/react";
 import { docPages, siteOrigin } from "../routes.mjs";
 import { componentPages, componentGroups, matchesComponent } from "./component-catalog";
 import { ComponentWorkbench } from "./component-workbench";
@@ -12,6 +12,7 @@ import { compactNavigation, phoneViewport, useStudioMedia } from "./studio-media
 import { usageCode, componentMarkdown } from "../component-docs.mjs";
 import content from "./generated/content.json";
 import { projectAdapters } from "../project-imports.mjs";
+import ChartsPlayground from "./charts-playground";
 import release from "./release.json";
 
 const sources: Record<string, string> = content.docs;
@@ -43,6 +44,7 @@ function MarkdownCodeBlock({ children }: { children?: ReactNode }) {
 }
 function markdownLink(href: string | undefined) {
   if (!href) return undefined;
+  if (href.startsWith(`${siteOrigin}/`)) return href.slice(siteOrigin.length);
   if (/^(https?:|mailto:|#|\/)/.test(href)) return href;
   const [file, hash] = href.split("#");
   if (file.startsWith("../packages/agent/")) return "/agent/" + file.slice("../packages/agent/".length) + (hash ? `#${hash}` : "");
@@ -55,6 +57,12 @@ function markdownLink(href: string | undefined) {
 function ComponentNavigation({ path, query, onQueryChange, initialFocusRef }: { path: string; query: string; onQueryChange: (query: string) => void; initialFocusRef?: RefObject<HTMLElement | null> }) {
   const localNav = useRef<HTMLElement>(null);
   const nav = initialFocusRef ?? localNav;
+  const [category, setCategory] = useState("");
+  const groups = componentGroups.filter(group => !category || group.id === category);
+  const scrollToStart = () => {
+    const viewport = nav.current?.closest<HTMLElement>(".flood-scroll-area__viewport");
+    if (viewport) viewport.scrollTop = 0;
+  };
   useEffect(() => {
     let cancelled = false;
     const align = () => {
@@ -76,17 +84,22 @@ function ComponentNavigation({ path, query, onQueryChange, initialFocusRef }: { 
     void document.fonts.ready.then(align);
     return () => { cancelled = true; cancelAnimationFrame(frame); observer.disconnect(); };
   }, [nav, path]);
-  const results = componentPages.filter(page => matchesComponent(page, query));
+  const results = groups.flatMap(group => group.components.filter(page => matchesComponent(page, query)));
   return <nav ref={nav} tabIndex={initialFocusRef ? -1 : undefined} aria-label="Component list" className="side-nav">
       <div className="catalog-nav-tools">
         <Link href="/components" variant="ghost" size="sm" className="side-link catalog-link" aria-current={path === "/components" ? "page" : undefined}>All components <span>{componentPages.length}</span></Link>
         <SearchInput controlSize="sm" aria-label="Search components" placeholder="Find a component…" value={query}
-          onChange={event => onQueryChange(event.currentTarget.value)}
+          onChange={event => { onQueryChange(event.currentTarget.value); scrollToStart(); }}
           onKeyDown={event => { if (event.key === "Escape" && query) { event.preventDefault(); onQueryChange(""); } }} />
-        {query && <Text size="helper" tone="subtle" role="status">{results.length ? `${results.length} results` : "No components found."}</Text>}
+        <Select controlSize="sm" aria-label="Filter by component category" value={category}
+          onChange={event => { setCategory(event.currentTarget.value); scrollToStart(); }}>
+          <option value="">All categories</option>
+          {componentGroups.map(group => <option key={group.id} value={group.id}>{group.label}</option>)}
+        </Select>
+        {(query || category) && <Text size="helper" tone="subtle" role="status">{results.length ? `${results.length} results` : "No components found."}</Text>}
       </div>
-      {componentGroups.map(group => {
-        const entries = group.components.filter(page => matchesComponent(page, query));
+      {groups.map(group => {
+        const entries = results.filter(page => page.group === group.id);
         return entries.length > 0 && <div className="side-group" key={group.id} role="group" aria-label={group.label}>
           <Text size="helper" tone="subtle" className="side-label">{group.label}</Text>
           {entries.map(page => <Link key={page.slug} variant="ghost" size="sm" className="side-link" href={`/components/${page.slug}`} aria-current={path === `/components/${page.slug}` ? "page" : undefined}>
@@ -102,6 +115,7 @@ export default function Documentation({ path }: { path: string }) {
   const component = componentPages.find(page => path === `/components/${page.slug}`);
   const catalog = path === "/components";
   const [query, setQuery] = useState("");
+  const [catalogJump, setCatalogJump] = useState("");
   const workspacePreview = Boolean(component);
   const [workspacePanel, setWorkspacePanel] = useState<"catalog" | "reference" | null>(null);
   const phone = useStudioMedia(phoneViewport);
@@ -173,7 +187,8 @@ export default function Documentation({ path }: { path: string }) {
   const [importMode, setImportMode] = useState<"package" | "project">("package");
   const [exampleImports, setExampleImports] = useState(() => component ? ["FloodRoot", ...component.imports.filter(name => componentPages.some(page => page.name === name))] : []);
   const [exampleCode, setExampleCode] = useState(() => component ? usageCode(component) : "");
-  const toc = doc ? sections(markdown) : component
+  const docSections = doc ? sections(markdown) : [];
+  const toc = doc ? (doc.file === "charts.md" ? [...docSections, { id: "latency-example", label: "Request latency example" }] : docSections) : component
     ? [{ id: "preview", label: "Component lab" }, { id: "usage", label: "Use in your project" }, { id: "design-notes", label: "Design notes" }, { id: "api", label: "API reference" }]
     : [];
   const ordered = [...docPages.map(page => ({ path: page.path, name: page.label })), { path: "/components", name: "Components" }, ...componentGroups.flatMap(group => group.components).map(page => ({ path: `/components/${page.slug}`, name: page.name }))];
@@ -191,7 +206,9 @@ export default function Documentation({ path }: { path: string }) {
     let cancelled = false;
     // A deep link can arrive before the lazy article exists. Resolve it after
     // the article and local font are ready, without a global navigation handler.
-    if (!workspacePreview && window.location.hash) {
+    const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    const restored = navigation?.type === "back_forward" && typeof history.state?.floodScrollTop === "number";
+    if (!workspacePreview && window.location.hash && !restored) {
       const hash = window.location.hash;
       void document.fonts.ready.then(() => {
         if (cancelled) return;
@@ -207,6 +224,7 @@ export default function Documentation({ path }: { path: string }) {
             <Text as="p" size="compact" tone="subtle">{component.description}</Text>
             <Inline gap="2" className="studio-reference-links">
               <Link href="/docs/installation">Install Flood</Link>
+              {component.group === "charts" && <Link href="/docs/charts">Chart guide</Link>}
               <Link href="#design-notes">Design notes</Link>
               <Link href="#api">API reference</Link>
             </Inline>
@@ -228,7 +246,7 @@ export default function Documentation({ path }: { path: string }) {
   );
   return <div className="docs-layout" data-preview-layout={workspacePreview ? "workspace" : undefined} data-catalog={catalog || undefined}>
     {(doc || component) && <aside className="desktop-sidebar" id={workspacePreview ? "studio-catalog" : undefined} aria-label={doc ? "Documentation navigation" : "Component navigation"}>
-      <ScrollArea contentInset="scrollbar" aria-label={doc ? "Documentation sections scroll" : "Component list scroll"} className={doc ? "guide-navigation-scroll" : undefined} style={component ? { maxHeight: "100%" } : undefined}>
+      <ScrollArea contentInset={doc ? "scrollbar" : "none"} aria-label={doc ? "Documentation sections scroll" : "Component list scroll"} className={doc ? "guide-navigation-scroll" : undefined} style={component ? { maxHeight: "100%" } : undefined}>
         {doc ? <DocsNavigation path={path} /> : <ComponentNavigation path={path} query={query} onQueryChange={setQuery} />}
       </ScrollArea>
     </aside>}
@@ -255,16 +273,32 @@ export default function Documentation({ path }: { path: string }) {
             return <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label={`${section?.label??title} table ${ordinal}`}><table>{children}</table></ScrollArea>;
           },
         }}>{markdown}</Markdown></div>}
+        {doc?.file === "charts.md" && <section id="latency-example" className="chart-guide-example" aria-label="Request latency example">
+          <ChartsPlayground headingLevel={2} />
+        </section>}
         {catalog && <Stack gap="8" className="component-catalog">
           <Stack gap="3">
             <SearchInput className="catalog-search" aria-label="Search components" placeholder="Find a component…" value={query}
               onChange={event => setQuery(event.currentTarget.value)} onKeyDown={event => { if (event.key === "Escape") setQuery(""); }} />
-            <Text as="p" size="compact" tone="subtle" role="status">{searching && resultCount === 0 ? "No components found." : `${resultCount} ${resultCount === 1 ? "component" : "components"}`}</Text>
-            {!searching && <nav aria-label="Component categories"><Inline gap="2">
-              {componentGroups.map(group => <Link key={group.id} variant="outline" size="sm" href={`#${group.id}`}>
-                {group.label}<Text size="helper" tone="subtle">{group.components.length}</Text>
-              </Link>)}
-            </Inline></nav>}
+            <Inline gap="3" align="center" className="catalog-summary">
+              <Text as="p" size="compact" tone="subtle" role="status">{searching && resultCount === 0 ? "No components found." : `${resultCount} ${resultCount === 1 ? "component" : "components"}`}</Text>
+              <Link href="/docs/charts" size="sm">Chart guide <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
+            </Inline>
+            {!searching && <>
+              <nav className="catalog-category-links" aria-label="Component categories"><Inline gap="2">
+                {componentGroups.map(group => <Link key={group.id} variant="outline" size="sm" href={`#${group.id}`}>{group.label}</Link>)}
+              </Inline></nav>
+              <div className="catalog-category-picker">
+                <Select aria-label="Jump to component category" controlSize="sm" value={catalogJump} onChange={event => {
+                  const category = event.currentTarget.value;
+                  setCatalogJump(category);
+                  if (category) window.location.hash = category;
+                }}>
+                  <option value="">Jump to category</option>
+                  {componentGroups.map(group => <option key={group.id} value={group.id}>{group.label}</option>)}
+                </Select>
+              </div>
+            </>}
           </Stack>
           {visibleGroups.map(group => <section id={group.id} key={group.id}>
             <Stack gap="4">

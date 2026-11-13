@@ -3,16 +3,21 @@ import { build } from "vite";
 import { resolve } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import { chooseSelectOption } from "./select-helpers";
+import { assertWorkspaceScroll } from "../../packages/agent/lib/inspect.mjs";
 
 let bundle: Promise<string> | undefined;
 async function fixture() {
   const file = (path: string) => JSON.stringify(resolve(path).replaceAll("\\", "/"));
   const source = `import React,{useState}from ${file("node_modules/react/index.js")};
 import{createRoot}from ${file("node_modules/react-dom/client.js")};
-import{FloodRoot,ScrollArea,Button,Inline,Stack}from ${file("packages/react/dist/index.js")};
+import{AppShell,AppTopBar,FloodRoot,ScrollArea,Button,Inline,Stack}from ${file("packages/react/dist/index.js")};
 import ${file("packages/react/dist/styles.css")};
 const h=React.createElement;
 function Example(){const[rows,setRows]=useState(30),[height,setHeight]=useState(160),[rtl,setRtl]=useState(false);
+if(location.pathname==='/__flood-workspace.html')return h(FloodRoot,null,
+h(AppShell,{id:'workspace',mainAs:'section',scroll:location.search==='?pageScroll'?'page':'content',scrollOrientation:'vertical',scrollContentInset:'none',scrollLabel:'Workspace content',
+topBar:h(AppTopBar,{start:h(Button,{onClick:()=>setRows(rows===30?0:30)},'Toggle results')})},
+h('section',{id:'results',style:{marginInline:'24px'}},...Array.from({length:rows},(_,i)=>h('p',{key:i},'Record '+(i+1))))));
 const controls=h(Inline,null,h(Button,{onClick:()=>setRows(60)},'Add content'),h(Button,{onClick:()=>setRows(2)},'Short content'),h(Button,{onClick:()=>setHeight(240)},'Enlarge viewport'),h(Button,{onClick:()=>setRtl(v=>!v)},'Toggle direction'));
 const content=h('div',{style:{width:560}},...Array.from({length:rows},(_,i)=>h('div',{key:i,style:{height:30}},'Activity row '+(i+1))));
 const navigation=h(ScrollArea,{'aria-label':'Navigation',dir:rtl?'rtl':'ltr',style:{width:280,height}},
@@ -36,6 +41,14 @@ async function open(page: Page, enhanced = true) {
   await expect(viewport).toBeVisible();
   if (enhanced) await expect(viewport).toHaveAttribute("data-scrollbars", "overlay");
   else await expect(viewport).not.toHaveAttribute("data-scrollbars", "overlay");
+}
+
+async function openWorkspace(page: Page, query = "") {
+  bundle ??= fixture();
+  const html = await bundle;
+  await page.route(url => url.pathname === "/__flood-workspace.html", route => route.fulfill({ contentType: "text/html", body: html }));
+  await page.goto("/__flood-workspace.html" + query);
+  await expect(page.getByRole("button", { name: "Toggle results" })).toBeVisible();
 }
 
 async function nativeScrollbarWidth(page: Page) {
@@ -129,6 +142,33 @@ test("rail wheel chains at the edge unless the viewport explicitly contains over
   expect(await cancelled()).toBe(true);
 });
 
+test("workspace gate fails even if the browser hides the document scrollbar", async ({page}) => {
+  await openWorkspace(page, "?pageScroll");
+  await page.addStyleTag({ content: "html { scrollbar-width: none } html::-webkit-scrollbar { display: none }" });
+  const metrics = await page.evaluate(() => ({
+    gutter: innerWidth - document.documentElement.clientWidth,
+    overflow: document.documentElement.scrollHeight - document.documentElement.clientHeight,
+  }));
+  expect(metrics.gutter).toBe(0);
+  expect(metrics.overflow).toBeGreaterThan(1);
+  await expect(page.evaluate(assertWorkspaceScroll, { rootSelector: "#workspace" })).rejects.toThrow('AppShell scroll="content"');
+});
+
+test("workspace gate catches document overflow outside a correctly configured AppShell", async ({page}) => {
+  await openWorkspace(page);
+  const workspace = page.getByRole("region", { name: "Workspace content" });
+  await expect(workspace).toHaveAttribute("data-scrollbars", "overlay");
+  await expect(workspace.locator("..").locator(".flood-scroll-area__track--vertical")).toBeVisible();
+  const assertScroll = () => page.evaluate(assertWorkspaceScroll, { rootSelector: "#workspace", expectOverflow: true });
+  expect((await assertScroll()).workspaceOverflow).toBeGreaterThan(1);
+  await page.evaluate(() => {
+    const extra = document.createElement("div");
+    extra.style.blockSize = "100px";
+    document.body.append(extra);
+  });
+  await expect(assertScroll()).rejects.toThrow(/document has .* vertical overflow/);
+});
+
 test("classic browser scrollbars reserve space while ScrollArea still overlays the full viewport", async ({browserName}, info) => {
   test.skip(browserName !== "chromium", "This fixture explicitly launches Chromium with classic-scrollbar flags; other engines use the shared native-scroll tests.");
   const browser = await chromium.launch({ ignoreDefaultArgs: ["--hide-scrollbars"], args: ["--disable-features=OverlayScrollbar,FluentOverlayScrollbar,FluentScrollbar"] });
@@ -145,7 +185,37 @@ test("classic browser scrollbars reserve space while ScrollArea still overlays t
     const viewport = page.getByRole("region", { name: "Activity" });
     expect(await viewport.evaluate((node) => ({ width: node.clientWidth, height: node.clientHeight }))).toEqual({ width: 280, height: 160 });
     await viewport.locator("..").screenshot({ path: `.artifacts/scroll-area-classic-overlay-${info.project.name}.png` });
-    await info.attach("classic-gutter-proof.json", { body: JSON.stringify({ native, overlay: { width: 280, height: 160 } }), contentType: "application/json" });
+    await openWorkspace(page);
+    const workspace = page.getByRole("region", { name: "Workspace content" });
+    await expect(workspace).toHaveAttribute("data-scrollbars", "overlay");
+    const rail = workspace.locator("..").locator(".flood-scroll-area__track--vertical");
+    const geometry = () => page.locator("#results").evaluate(node => {
+      const {left, right}=node.getBoundingClientRect();
+      return {left, right, documentGutter: innerWidth-document.documentElement.clientWidth};
+    });
+    await expect(rail).toBeVisible();
+    const assertScroll = (expectOverflow: boolean) => page.evaluate(assertWorkspaceScroll, { rootSelector: "#workspace", expectOverflow });
+    expect((await assertScroll(true)).documentGutter).toBe(0);
+    const populated = await geometry();
+    expect(populated.documentGutter).toBe(0);
+    await workspace.evaluate(node => {node.scrollTop=120;});
+    expect(await workspace.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
+    expect(await page.evaluate(() => scrollY)).toBe(0);
+    await page.getByRole("button", { name: "Toggle results" }).click();
+    await expect(rail).toHaveCount(0);
+    expect((await assertScroll(false)).workspaceOverflow).toBe(0);
+    await expect(assertScroll(true)).rejects.toThrow(/populated fixture must overflow/);
+    expect(await geometry()).toEqual(populated);
+    await page.getByRole("button", { name: "Toggle results" }).click();
+    await expect(rail).toBeVisible();
+    await page.addStyleTag({ content: [
+      "#workspace .flood-app-shell__scroll { scrollbar-width: auto; }",
+      "#workspace .flood-app-shell__scroll::-webkit-scrollbar { display: initial; width: auto; }",
+    ].join("\n") });
+    await expect(assertScroll(true)).rejects.toThrow(/native scrollbar reserves/);
+    await page.emulateMedia({ forcedColors: "active" });
+    expect((await assertScroll(true)).documentGutter).toBe(0);
+    await info.attach("classic-gutter-proof.json", { body: JSON.stringify({ native, overlay: { width: 280, height: 160 }, workspace: populated }), contentType: "application/json" });
   } finally { await browser.close(); }
 });
 

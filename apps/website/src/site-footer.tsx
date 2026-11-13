@@ -6,6 +6,7 @@ export function SiteFooter() {
     <VisitorCounter />
     <Inline gap="4">
       <Link href="https://github.com/tillwithered/flood.md/blob/main/LICENSE">MIT licensed</Link>
+      <Link href="https://github.com/tillwithered/flood.md/releases">Releases</Link>
       <Link href="/agent/SKILL.md">For your agent</Link>
       <Link href="/docs/privacy">Privacy</Link>
     </Inline>

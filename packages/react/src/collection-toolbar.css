@@ -15,3 +15,19 @@
   .flood-root .flood-collection-toolbar__commands { grid-column:1; grid-row:2; }
   .flood-root .flood-collection-toolbar__summaries { grid-row:3; }
 }
+
+.flood-root .flood-collection-toolbar[data-align="end"] .flood-collection-toolbar__row {
+  display:flex;
+  justify-content:flex-end;
+}
+.flood-root .flood-collection-toolbar[data-align="end"] .flood-collection-toolbar__search {
+  flex:0 1 24rem;
+  min-inline-size:min(100%, 12rem);
+}
+.flood-root .flood-collection-toolbar[data-align="end"] :is(.flood-collection-toolbar__summaries, .flood-collection-toolbar__commands) {
+  justify-content:flex-end;
+}
+.flood-root .flood-collection-toolbar[data-align="end"] .flood-collection-toolbar__commands { margin-inline-start:0; }
+@container (max-width:28rem) {
+  .flood-root .flood-collection-toolbar[data-align="end"] .flood-collection-toolbar__search { flex-basis:100%; }
+}

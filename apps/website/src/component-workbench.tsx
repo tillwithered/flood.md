@@ -155,7 +155,7 @@ const knobs: Record<string, Knob[]> = {
   "navigation-group": [select("size",["sm","md","lg"],"sm"),toggle("hideLabel"),toggle("separator"),toggle("collapsible"),toggle("compact"),toggle("showHeadingAction",true)],
   sidebar: [toggle("collapsed"),select("variant",["quiet","standard"],"quiet"),select("size",["sm","md","lg"],"sm"),select("side",["start","end"],"start"),select("width",["14rem","16rem","19rem"],"16rem"),toggle("longNavigation"),toggle("branchGuides",true),select("headerLayout",["inline","stacked"],"inline"),toggle("collapsible",true)],
   "collection-view-switcher": [select("controlSize",["sm","md","lg","xl"],"sm"),select("width",["18rem","32rem","52rem"],"52rem"),toggle("editable",true),toggle("dirty"),toggle("disabled")],
-  "collection-toolbar": [select("controlSize",["sm","md","lg","xl"],"sm"),select("width",["24rem","40rem","52rem"],"52rem"),toggle("showFilters",true),toggle("showClear",true),toggle("disabled")],
+  "collection-toolbar": [select("controlSize",["sm","md","lg","xl"],"sm"),select("width",["24rem","40rem","52rem"],"52rem"),select("align",["stretch","end"],"stretch"),toggle("showFilters",true),toggle("showClear",true),toggle("disabled")],
   "filter-group": [select("controlSize",["sm","md","lg","xl"],"sm"),select("width",["26rem","40rem","52rem"],"52rem"),select("maxConditions",["none","1","2","3","5"],"none"),toggle("allowDuplicateProperties"),toggle("hideLabel",true),toggle("disabled")],
   "filter-condition": [select("controlSize",["sm","md","lg","xl"],"sm"),select("width",["26rem","40rem","52rem"],"52rem"),toggle("removable",true),toggle("hideLabel",true),toggle("disabled")],
   "bulk-action-bar": [select("counter",["label","number","none"],"label"),select("selectionCount",["1","2","9","10","99","100","999"],"2"),select("width",["16rem","24rem","32rem"],"32rem"),select("size",["sm","md","lg","xl"],"sm"),select("maxVisibleActions",["1","2","3"],"2"),toggle("pending"),toggle("disabled")],
@@ -217,9 +217,21 @@ const knobs: Record<string, Knob[]> = {
   "inline-code": [select("size", ["sm", "md", "lg"], "md"), toggle("wrap", true), toggle("longValue")],
   metric: [select("size", ["sm", "md", "lg"], "md"), select("direction", ["up", "down", "flat"], "up"), select("tone", ["neutral", "success", "warning", "error", "info"], "success"), toggle("trend", true), toggle("hint", true)],
   sparkline: [select("size", ["sm", "md"], "md"), select("tone", ["neutral", "accent", "success", "warning", "error"], "accent"), select("variant", ["line", "area"], "area"), select("series", ["rising", "falling", "gaps"], "rising"), toggle("showLabel")],
+  "line-chart": [select("variant", ["line", "area"], "area"), select("curve", ["linear", "smooth"], "smooth"), select("data", ["complete", "month", "gap", "single", "empty"], "complete"), toggle("comparison", true), {...toggle("showYAxis"), label:"Y axis"}, {...toggle("showLegend"), label:"Legend"}],
+  "bar-chart": [select("layout", ["grouped", "stacked", "percent"], "grouped"), select("data", ["complete", "missing", "signed", "zero", "empty"], "complete"), toggle("comparison", true), {...toggle("showLegend"), label:"Legend"}],
+  "donut-chart": [select("data", ["complete", "single", "zero", "empty"], "complete"), {...toggle("showLegend"), label:"Legend"}],
+  "heatmap": [select("data", ["complete", "gaps", "empty"], "complete")],
+  "scatter-chart": [select("data", ["complete", "single", "empty"], "complete")],
+  "range-chart": [select("data", ["complete", "gap", "empty"], "complete"), {...toggle("midpoint", true), label:"Median"}],
+  "dumbbell-chart": [select("data", ["complete", "missing", "empty"], "complete")],
+  "box-plot": [select("data", ["complete", "gap", "flat", "empty"], "complete"), {...toggle("outliers", true), label:"Outliers"}],
+  "bullet-chart": [select("data", ["complete", "zero", "empty"], "complete")],
+  "waterfall-chart": [select("data", ["complete", "signed", "empty"], "complete")],
+  "histogram": [select("data", ["complete", "zero", "empty"], "complete")],
+  "bar-list": [select("tone", ["accent", "neutral"], "accent"), select("data", ["ranked", "zero", "empty"], "ranked")],
   timeline: [toggle("descriptions", true), toggle("times", true)],
 
-  "copy-button": [select("size", sizes, "md"), select("variant", variants, "subtle"), toggle("disabled")],
+  "copy-button": [select("size", sizes, "md"), select("variant", variants, "subtle"), toggle("iconOnly"), toggle("disabled")],
   "toast-region": [select("status", ["success", "info", "warning", "error", "neutral"], "success"), select("limit", ["1", "2", "3"], "3"), select("placement", ["bottom-end", "bottom-start", "top-end", "top-start"], "bottom-end"), toggle("inline"), toggle("autoDismiss")],
   "file-input": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("multiple", true), toggle("clearable", true), statusKnob(), toggle("required"), toggle("disabled")],
   "search-input": [select("controlSize", ["sm", "md", "lg", "xl"], "md"), toggle("clearable", true), statusKnob(), toggle("disabled"), toggle("readOnly")],
@@ -280,7 +292,7 @@ const knobs: Record<string, Knob[]> = {
   inline: [select("gap", spaces, "4"), select("align", ["start", "center", "end", "baseline"], "center")],
   surface: [select("elevation", ["default", "raised", "overlay"], "default"), select("padding", spaces, "6")],
   "icon-slot": [select("size", sizes, "md"), { name: "label", initial: "" }],
-  "code-snippet": [select("codeDirection", ["ltr", "rtl", "auto"], "ltr"), { name: "code", initial: `npx @flood-md/cli@${release.version} init` }, toggle("copyAction", true)],
+  "code-snippet": [select("codeDirection", ["ltr", "rtl", "auto"], "ltr"), { name: "code", initial: `npx @flood-md/cli@${release.version} init` }, toggle("showPrompt", true), toggle("copyAction", true)],
   label: [toggle("required")],
   "radio-group": [select("orientation", ["vertical", "horizontal"], "vertical"), statusKnob(), toggle("disabled"), toggle("required")],
   "checkbox-group": [select("orientation", ["vertical", "horizontal"], "vertical"), statusKnob(), toggle("disabled")],
@@ -452,7 +464,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
         element("FilterGroup",{label:"Project conditions",properties:binding("properties",properties),controlSize:v.controlSize,value:binding("draftFilters",actions.draftFilters),onValueChange:binding("setDraftFilters",actions.setDraftFilters)}),
         element("Inline",{gap:"3"},element("Button",{disabled:binding("draftFilters.conditions.some(condition => !condition.values.length)",actions.draftFilters.conditions.some(condition=>!condition.values.length)),onClick:binding("() => {setFilters(draftFilters); setFilterOpen(false);}",()=>{actions.setFilterGroup(actions.draftFilters);actions.setToolbarOpen(false);})},"Apply filters"),element("Button",{variant:"subtle",onClick:binding("() => setFilterOpen(false)",()=>actions.setToolbarOpen(false))},"Cancel")));
       return element("div",{style:{width:v.width,maxWidth:"100%"}},element("CollectionToolbar",{
-        label:"Project collection",controlSize:v.controlSize,disabled:v.disabled,
+        label:"Project collection",controlSize:v.controlSize,disabled:v.disabled,align:v.align,
         summaryPrefix:binding('filters.match === "any" && filters.conditions.length > 1 ? "Any:" : undefined',actions.filterGroup.match === "any" && actions.filterGroup.conditions.length > 1 ? "Any:" : undefined),
         searchValue:binding("search",actions.toolbarSearch),onSearchValueChange:binding("setSearch",actions.setToolbarSearch),searchLabel:"Search projects",searchPlaceholder:"Search projects…",
         appliedFilters:binding('filters.conditions.map(condition => {const property = properties.find(property => property.id === condition.property)!; return {id:condition.id, label:property.label + (condition.operator === "is" ? ": " : " excludes ") + condition.values.map(value => property.options.find(option => option.value === value)?.label ?? value).join(", ")};})',actions.filterGroup.conditions.map(condition=>{const property=properties.find(property=>property.id===condition.property)!;return{id:condition.id,label:property.label+(condition.operator==="is"?": ":" excludes ")+condition.values.map(value=>property.options.find(option=>option.value===value)?.label??value).join(", ")};})),
@@ -562,6 +574,174 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       const label = v.series === "gaps" ? "Revenue rose from $8,000 to $12,000 with one missing week" : v.series === "falling" ? "Revenue fell from $12,000 to $8,000" : "Revenue rose from $8,000 to $12,000";
       return element("Sparkline", {values, label, size:v.size, tone:v.tone, variant:v.variant, showLabel:v.showLabel});
     }
+    case "line-chart": {
+      const monthly = v.data === "month";
+      const categories = monthly ? Array.from({length:30}, (_, i) => `Jun ${i + 1}`) : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const current = monthly ? [36,42,37,48,53,43,46,59,55,48,57,71,68,62,51,63,74,69,78,72,64,75,93,85,92,78,87,106,95,101] : [38, 55, 48, 74, 68, 96, 87];
+      const previous = monthly ? [27,33,38,31,42,47,35,41,46,40,49,55,52,58,49,61,57,62,55,68,62,58,67,73,69,64,76,70,78,83] : [32, 39, 36, 52, 47, 62, 58];
+      if (v.data === "single") { categories.splice(1); current.splice(1); }
+      const series = [
+        {id:"current", label:monthly ? "This month" : "This week", values:current.map((value, i) => v.data === "gap" && i === 3 ? null : value)},
+        ...(v.comparison ? [{id:"previous", label:monthly ? "Last month" : "Last week", values:previous.slice(0, categories.length)}] : []),
+      ];
+      return element("Surface", {padding:"6", style:{width:"50rem",maxWidth:"100%"}},
+        element("Stack", {gap:"4"},
+          ...(v.data === "complete" || monthly ? [element("Metric", {label:monthly ? "Monthly visits" : "Weekly visits", value:new Intl.NumberFormat("en").format(current.reduce((sum, value) => sum + value, 0))})] : []),
+          element("LineChart", {label:"Daily visits", categories, series:v.data === "empty" ? [] : series, domain:[0,120], variant:v.variant, curve:v.curve, showYAxis:v.showYAxis || undefined, showLegend:v.showLegend || undefined})));
+    }
+    case "bar-chart": {
+      const percent = v.layout === "percent";
+      const signed = !percent && v.data === "signed";
+      const stacked = v.layout !== "grouped";
+      const categories = stacked ? ["Week 1", "Week 2", "Week 3", "Week 4", "Week 5"] : ["Product", "Design", "Growth", "Support", "Platform"];
+      const actual = percent ? [380, 180, 460, 180, 540] : signed ? [38, -16, 30, 0, 24] : [38, 29, 46, 18, 54];
+      const plan = percent ? [320, 420, 40, 240, 180] : signed ? [32, -10, 24, 12, 26] : [32, 36, 40, 24, 48];
+      const observations = (values: number[]) => values.map((value, index) => v.data === "zero" && index === 2 ? 0 : value);
+      const series = [
+        {id:"actual", label:stacked ? "Web" : "Actual", values:observations(actual).map((value, i) => v.data === "missing" && i === 2 ? null : value)},
+        ...(v.comparison ? [{id:"plan", label:stacked ? "Email" : "Plan", values:observations(plan)}] : []),
+        ...(percent && v.comparison ? [{id:"chat", label:"Chat", values:observations([300, 150, 100, 180, 180])}] : []),
+      ];
+      const label = percent ? "Request share by channel" : stacked ? (signed ? "Change in requests by channel" : "Requests by channel") : (signed ? "Budget change by team" : "Hours by team");
+      return element("Surface", {padding:"6", style:{width:"46rem",maxWidth:"100%"}},
+        element("Stack", {gap:"4"}, element("Heading", {level:2,size:"group"}, label),
+          element("BarChart", {label, categories, series:v.data === "empty" ? [] : series, layout:stacked ? v.layout : undefined, showLegend:v.showLegend || undefined})));
+    }
+    case "donut-chart": {
+      const items = [
+        {id:"direct", label:"Direct", value:6420},
+        {id:"search", label:"Search", value:3720},
+        {id:"referrals", label:"Referrals", value:1960},
+        {id:"social", label:"Social", value:900},
+      ];
+      return element("Surface", {padding:"6", style:{width:"26rem",maxWidth:"100%"}},
+        element("Stack", {gap:"3"}, element("Heading", {level:2,size:"group"}, "Traffic sources"),
+          element("DonutChart", {label:"Traffic sources", totalLabel:"Visits", showLegend:v.showLegend || undefined,
+            items:v.data === "empty" ? [] : v.data === "single" ? items.slice(0, 1) :
+              items.map(item => v.data === "zero" ? {...item, value:0} : item)})));
+    }
+    case "heatmap": {
+      const columns = ["08:00", "10:00", "12:00", "14:00", "16:00", "18:00"];
+      const readings = [
+        [4, 13, 23, 20, 12, 6],
+        [7, 17, 32, 26, 18, 8],
+        [5, 22, 38, 30, 20, 9],
+        [8, 26, 41, 33, 19, 11],
+        [4, 16, 29, 22, 11, 3],
+        [0, 5, 10, 7, 3, 0],
+        [0, 2, 5, 4, 2, 0],
+      ];
+      const rows = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label, i) => ({
+        id:label, label, values:readings[i].map((value, j) => v.data === "gaps" && i === 2 && j >= 3 ? null : value),
+      }));
+      return element("Surface", {padding:"4", style:{width:"36rem",maxWidth:"100%"}},
+        element("Stack", {gap:"3"}, element("Heading", {level:2,size:"group"}, "Requests by hour"),
+          element("Heatmap", {label:"Requests by hour", columns, rows:v.data === "empty" ? [] : rows, max:42})));
+    }
+    case "scatter-chart": {
+      const samples = [[12,110],[18,136],[24,121],[31,155],[39,147],[43,177],[52,162],[58,204],[65,195],[72,235],[78,216],[86,265],[95,252],[104,301]];
+      const points = samples.map(([x, y], i) => ({id:String(i + 1), label:`Run ${i + 1}`, x, y}));
+      return element("Surface", {padding:"4", style:{width:"42rem",maxWidth:"100%"}},
+        element("Stack", {gap:"3"}, element("Heading", {level:2,size:"group"}, "Response time by traffic"),
+          element("ScatterChart", {label:"Response time by traffic", xLabel:"Requests / sec", yLabel:"Response time (ms)",
+            points:v.data === "empty" ? [] : v.data === "single" ? points.slice(6, 7) : points})));
+    }
+    case "range-chart": {
+      const samples = [[84,162,119],[92,176,125],[78,149,106],[104,207,151],[92,188,133],[66,134,93],[71,145,98]];
+      const items = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map((label, i) => {
+        const [low, high, midpoint] = samples[i];
+        const missing = v.data === "gap" && i === 2;
+        return {id:label, label, low:missing ? null : low, high:missing ? null : high,
+          midpoint:!missing && v.midpoint ? midpoint : undefined};
+      });
+      return element("Surface", {padding:"4", style:{width:"42rem",maxWidth:"100%"}},
+        element("Stack", {gap:"3"}, element("Heading", {level:2,size:"group"}, "Daily response time"),
+          element("RangeChart", {label:"Daily response time in milliseconds", items:v.data === "empty" ? [] : items,
+            lowLabel:"P10 (ms)", highLabel:"P90 (ms)", midpointLabel:"Median (ms)"})));
+    }
+    case "dumbbell-chart": {
+      const items = [
+        {id:"api",label:"API",before:242,after:164},
+        {id:"search",label:"Search",before:188,after:128},
+        {id:"billing",label:"Billing",before:153,after:190},
+        {id:"auth",label:"Auth",before:112,after:112},
+        {id:"reports",label:"Reports",before:279,after:218},
+      ];
+      return element("Surface", {padding:"4", style:{width:"42rem",maxWidth:"100%"}},
+        element("Stack", {gap:"3"}, element("Heading", {level:2,size:"group"}, "Response time before and after"),
+          element("DumbbellChart", {label:"Response time before and after", domain:[80,300],
+            items:v.data === "empty" ? [] : items.map(item => v.data === "missing" && item.id === "billing" ? {...item,after:null} : item),
+            formatValue:binding('(value: number) => `${value} ms`', (value:number)=>`${value} ms`)})));
+    }
+    case "box-plot": {
+      const rows = [
+        ["api", "API", 42, 74, 96, 128, 176],
+        ["search", "Search", 32, 58, 88, 154, 210],
+        ["billing", "Billing", 54, 87, 117, 145, 185],
+        ["auth", "Auth", 26, 43, 58, 71, 102],
+        ["reports", "Reports", 66, 91, 131, 171, 224],
+      ] as const;
+      const items = rows.map(([id, label, low, q1, median, q3, high], index) => ({
+        id, label,
+        summary:v.data === "gap" && index === 2 ? null :
+          v.data === "flat" && index === 2 ? {low:median, q1:median, median, q3:median, high:median} : {low, q1, median, q3, high},
+        outliers:v.outliers && index === 0 ? [203] : undefined,
+      }));
+      return element("Surface", {padding:"4", style:{width:"42rem",maxWidth:"100%"}},
+        element("Stack", {gap:"3"}, element("Heading", {level:2,size:"group"}, "Request latency (ms)"),
+          element("BoxPlot", {label:"Request latency by service", items:v.data === "empty" ? [] : items, domain:[0, 240]})));
+    }
+    case "bullet-chart": {
+      const items = [
+        {id:"web",label:"Web",value:74,target:80},
+        {id:"email",label:"Email",value:56,target:50},
+        {id:"chat",label:"Chat",value:42,target:65},
+      ];
+      return element("Surface", {padding:"4", style:{width:"36rem",maxWidth:"100%"}},
+        element("Stack", {gap:"3"}, element("Heading", {level:2,size:"group"}, "Resolved requests"),
+          element("BulletChart", {label:"Resolved requests by channel", items:v.data === "empty" ? [] :
+            items.map(item => v.data === "zero" ? {...item,value:0} : item), max:100})));
+    }
+    case "histogram": {
+      const counts = [5, 16, 34, 49, 41, 28, 17, 9, 4, 0];
+      return element("Surface", {padding:"4", style:{width:"42rem",maxWidth:"100%"}},
+        element("Stack", {gap:"3"}, element("Heading", {level:2,size:"group"}, "Request latency distribution"),
+          element("Histogram", {label:"Request latency distribution", xLabel:"Latency (ms)", countLabel:"Requests",
+            start:0, binWidth:50, counts:v.data === "empty" ? [] : v.data === "zero" ? counts.map(() => 0) : counts})));
+    }
+    case "waterfall-chart": {
+      const signed = v.data === "signed";
+      const label = signed ? "Cash balance" : "Net revenue";
+      const steps = signed ? [
+        {id:"opening",label:"Opening",value:8000,kind:"total"},
+        {id:"payroll",label:"Payroll",value:-11000},
+        {id:"receipts",label:"Receipts",value:7000},
+        {id:"rent",label:"Rent",value:-2000},
+        {id:"closing",label:"Closing",value:2000,kind:"total"},
+      ] : [
+        {id:"gross",label:"Gross",value:32000,kind:"total"},
+        {id:"upsells",label:"Upsells",value:6000},
+        {id:"refunds",label:"Refunds",value:-4500},
+        {id:"fees",label:"Fees",value:-2500},
+        {id:"net",label:"Net",value:31000,kind:"total"},
+      ];
+      return element("Surface", {padding:"4", style:{width:"42rem",maxWidth:"100%"}},
+        element("Stack", {gap:"3"}, element("Heading", {level:2,size:"group"}, label),
+          element("WaterfallChart", {label, steps:v.data === "empty" ? [] : steps,
+            formatValue:binding('(value: number) => new Intl.NumberFormat("en-US", {style:"currency",currency:"USD",maximumFractionDigits:0}).format(value)',
+              new Intl.NumberFormat("en-US", {style:"currency",currency:"USD",maximumFractionDigits:0}).format)})));
+    }
+    case "bar-list": {
+      const items = [
+        {id:"overview", label:"Overview", value:214},
+        {id:"components", label:"Components", value:136},
+        {id:"installation", label:"Installation", value:82},
+        {id:"foundations", label:"Foundations", value:34},
+      ];
+      return element("Surface", {padding:"4", style:{width:"26rem",maxWidth:"100%"}},
+        element("Stack", {gap:"4"}, element("Heading", {level:2,size:"group"}, "Visits by page"),
+          element("BarList", {label:"Visits by page", tone:v.tone, items:v.data === "empty" ? [] : items.map(item => v.data === "zero" ? {...item, value:0} : item)})));
+    }
     case "timeline": return element("Timeline",{label:"Project activity",items:[{id:"created",title:"Project created",state:"complete",description:v.descriptions?"Your workspace is ready.":undefined,dateTime:"2026-10-26T09:00:00Z",timeLabel:v.times?"09:00":undefined},{id:"review",title:"Design review",state:"current",description:v.descriptions?"Reviewing the dark foundations.":undefined,dateTime:"2026-10-26T10:30:00Z",timeLabel:v.times?"10:30":undefined},{id:"release",title:"Release",state:"upcoming",description:v.descriptions?"Publish when the review is complete.":undefined}]});
 
     case "tree": return element("div", {style:{width:"26rem",maxWidth:"100%"}}, element("Tree", {label:"Project files",controlSize:v.controlSize,multiple:v.multiple,hideLabel:v.hideLabel,readOnly:v.readOnly,disabled:v.disabled,defaultExpandedValues:["source","ui","docs"],items:v.empty?[]:[{value:"source",label:"Source",selectable:false,children:[{value:"ui",label:"Components",selectable:false,children:[{value:"button",label:"Button.tsx",description:v.showDescriptions?"Reusable project action":undefined},{value:"input",label:"Input.tsx"}]},{value:"tokens",label:"tokens.json"}]},{value:"docs",label:"Documentation",hasChildren:true,loading:v.loading,children:v.loading?undefined:[{value:"intro",label:"Introduction.md"}]},{value:"readme",label:"README.md"},{value:"archived",label:"Archived",disabled:true}]}));
@@ -658,7 +838,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     case "dropzone": return element("Dropzone", {label:"Project attachments",name:"attachments",multiple:v.multiple,clearable:v.clearable,required:v.required,disabled:v.disabled,style:{width:"26rem",maxWidth:"100%"}});
     case "character-count": return element("CharacterCount", {count:Number(v.count),max:40,mode:v.mode});
 
-    case "copy-button": return element("CopyButton",{value:"npm install @flood-md/react",size:v.size,variant:v.variant,disabled:v.disabled});
+    case "copy-button": return element("CopyButton",{value:"npm install @flood-md/react",size:v.size,variant:v.variant,iconOnly:v.iconOnly,disabled:v.disabled});
     case "toast-region": return element("Stack",{gap:"4"},element("Button",{size:"sm",variant:"subtle",onClick:binding('() => setNotifications(current => [...current, {id: crypto.randomUUID(), title: "Changes saved", description: "Your project preferences are up to date.", duration: 0}])',actions.addToast)},"Show notification"),element("ToastRegion",{inline:v.inline||undefined,placement:v.inline?undefined:v.placement,hotkey:false,limit:Number(v.limit),items:binding(`notifications.map(item => ({...item, status: ${JSON.stringify(v.status)} as const, duration: ${v.autoDismiss?5000:0}}))`,actions.notifications.map(item=>({...item,status:v.status as Flood.ToastItem["status"],duration:v.autoDismiss?5000:0}))),onDismiss:binding('(id) => setNotifications(current => current.filter(item => item.id !== id))',actions.dismissToast)}));
     case "file-input": return {tag:"Field",props:{label:"Attachments",hideLabel:v.hideLabel,status:fieldStatus,message},field:element("FileInput",{name:"attachments",multiple:v.multiple,clearable:v.clearable,controlSize:v.controlSize,required:v.required,disabled:v.disabled})};
     case "search-input": case "password-input": return {tag:"Field",props:{label:slug === "search-input" ? "Search components" : "Password",hideLabel:v.hideLabel,status:fieldStatus,message},field:element(slug === "search-input" ? "SearchInput" : "PasswordInput",{name:slug,defaultValue:slug === "search-input" ? "Design systems" : "flood-demo-password",autoComplete:slug === "search-input" ? "off" : "new-password",controlSize:v.controlSize,disabled:v.disabled,readOnly:v.readOnly,...(slug === "search-input" ? {clearable:v.clearable} : {})})};
@@ -877,7 +1057,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     case "inline": return element("Inline", { gap: v.gap, align: v.align }, element("Button", { onClick: action }, "Save changes"), element("Button", { variant: "subtle", onClick: binding('() => setStatus("Cancelled locally.")', () => actions.setStatus("Cancelled locally.")) }, "Cancel"), status);
     case "surface": return element("Surface", { elevation: v.elevation, padding: v.padding }, element("Stack", { gap: "2" }, element("Heading", { size: "section", level: 2 }, "Your workspace"), text("A surface gives related content a shared place.")));
     case "icon-slot": return element("IconSlot", { size: v.size, label: v.label || undefined }, element("ArrowRight"));
-    case "code-snippet": return element("Stack", { gap: "3" }, element("CodeSnippet", { codeDirection:v.codeDirection, code: String(v.code), ...(v.copyAction ? { action: binding(`<Button variant="subtle" size="sm" onClick={copy}>Copy</Button>`, createElement(Flood.Button, { variant: "subtle", size: "sm", onClick: actions.copy }, "Copy")) } : {}) }), ...(v.copyAction ? [status] : []));
+    case "code-snippet": return element("Stack", { gap: "3" }, element("CodeSnippet", { codeDirection:v.codeDirection, code: String(v.code), ...(v.showPrompt ? { prompt: "$" } : {}), ...(v.copyAction ? { action: binding(`<Button variant="subtle" size="sm" onClick={copy}>Copy</Button>`, createElement(Flood.Button, { variant: "subtle", size: "sm", onClick: actions.copy }, "Copy")) } : {}) }), ...(v.copyAction ? [status] : []));
     case "radio-group": case "checkbox-group": {
       const radio = slug === "radio-group";
       const options = radio ? [{ value: "private", label: "Private" }, { value: "team", label: "Team" }, { value: "public", label: "Public", disabled: true }] : [{ value: "updates", label: "Product updates" }, { value: "releases", label: "Release notes" }, { value: "marketing", label: "Marketing", disabled: true }];
@@ -1184,13 +1364,13 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, i
     {!studio && <div className="workbench-title" data-flood-surface="filled"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text>{previewActions}</div>}
     {studio && <header className="studio-header">{studioHeading}</header>}
     <div className="workbench-canvas" data-feedback={showFeedbackSlot || undefined}>
-      <div className="workbench-stage preview-stage" data-component={component.slug} data-size={["heading", "timeline", "toast-region", "dropzone", "color-picker", "data-table", "file-list", "upload-list", "date-time-range-picker"].includes(component.slug) ? "display" : spacious ? "regular" : "compact"}
+      <Flood.ScrollArea orientation="both" contentInset="none" className="workbench-stage preview-stage" data-component={component.slug} data-size={["heading", "timeline", "toast-region", "dropzone", "color-picker", "data-table", "file-list", "upload-list", "date-time-range-picker", "line-chart", "bar-chart", "donut-chart", "heatmap", "scatter-chart", "range-chart", "bullet-chart", "waterfall-chart", "histogram", "box-plot", "dumbbell-chart", "bar-list"].includes(component.slug) ? "display" : spacious ? "regular" : "compact"}
         data-wide-frame={studio && (frameWidth !== "auto" || component.previewLayout === "workspace") || undefined} ref={stage} key={component.slug + resetKey}
         role={studio ? "region" : undefined} aria-label={studio ? "Preview canvas" : undefined} tabIndex={studio ? 0 : undefined}
         onPointerDown={event=>{
           const canvas = event.currentTarget;
           if (!studio || event.pointerType === "touch" || event.button !== 0 || drag.current) return;
-          if (event.target !== canvas && event.target !== previewFrame.current) return;
+          if (event.target !== canvas && event.target !== canvas.firstElementChild && event.target !== previewFrame.current) return;
           drag.current = { pointer: event.pointerId, x: event.clientX, y: event.clientY, origin: pan };
           canvas.setPointerCapture(event.pointerId);
           canvas.dataset.dragging = "";
@@ -1212,7 +1392,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, i
           "--studio-pan-x": `${pan.x}px`,
           "--studio-pan-y": `${pan.y}px`,
         } as CSSProperties : undefined}
-      ><Flood.FloodRoot ref={previewFrame}>{renderRecipe(previewRecipe)}</Flood.FloodRoot></div>
+      ><Flood.FloodRoot ref={previewFrame}>{renderRecipe(previewRecipe)}</Flood.FloodRoot></Flood.ScrollArea>
       {showFeedbackSlot && <Flood.Text as="p" size="compact" tone="subtle" role="status" className="workbench-feedback">{status}</Flood.Text>}
     </div>
     {studio && <div ref={studioToolbar} className="studio-action-row">

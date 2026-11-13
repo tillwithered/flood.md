@@ -175,7 +175,7 @@ test('an outside query change abandons an obsolete condition draft',async({page}
 test('selection exposes bounded commands and can be cleared independently',async({page})=>{
  const scope=await open(page);
  const header=scope.getByRole('table',{name:'Projects'}).locator('thead');
- const headerTop=()=>header.evaluate(node=>node.getBoundingClientRect().top+window.scrollY);
+ const headerTop=()=>header.evaluate(node=>node.getBoundingClientRect().top+(node.closest(".site-page-scroll")?.scrollTop??window.scrollY));
  const before=await headerTop();
  await scope.getByRole('checkbox',{name:'Select Design system',exact:true}).check();
  await scope.getByRole('checkbox',{name:'Select Checkout',exact:true}).check();

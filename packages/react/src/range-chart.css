@@ -1,0 +1,118 @@
+.flood-root .flood-range-chart {
+  --flood-range-height: 13rem;
+  min-inline-size: 0;
+  container-type: inline-size;
+}
+.flood-root .flood-range-chart__plot {
+  position: relative;
+  cursor: crosshair;
+}
+.flood-root .flood-range-chart__plot:focus-visible {
+  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
+  outline-offset: var(--flood-sys-focus-offset);
+  border-radius: var(--flood-sys-radius-indicator);
+}
+.flood-root .flood-range-chart__columns {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--flood-range-columns), minmax(0, 1fr));
+}
+.flood-root .flood-range-chart__columns::before {
+  content: "";
+  position: absolute;
+  inset: var(--flood-sys-space-2) 0 auto;
+  block-size: var(--flood-range-height);
+  background: var(--flood-chart-grid);
+  mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent),
+    linear-gradient(transparent, black 14%, black 86%, transparent);
+  mask-composite: intersect;
+  pointer-events: none;
+}
+.flood-root .flood-range-chart__column {
+  position: relative;
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--flood-sys-space-2);
+  padding-block: var(--flood-sys-space-2);
+  border-radius: var(--flood-sys-radius-indicator);
+}
+.flood-root .flood-range-chart__column[data-active] {
+  background: color-mix(in srgb, var(--flood-chart-accent) 5%, transparent);
+}
+.flood-root .flood-range-chart__track {
+  position: relative;
+  block-size: var(--flood-range-height);
+  inline-size: min(1.5rem, 68%);
+  margin-inline: auto;
+}
+.flood-root .flood-range-chart__band,
+.flood-root .flood-range-chart__midpoint {
+  position: absolute;
+  inset-inline: 0;
+  box-sizing: border-box;
+}
+.flood-root .flood-range-chart__band {
+  border-radius: var(--flood-sys-radius-indicator);
+  box-shadow: inset 0 0 0 var(--flood-chart-stroke-width) color-mix(in srgb, var(--flood-chart-accent) 65%, transparent);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--flood-chart-accent) 40%, transparent),
+    color-mix(in srgb, var(--flood-chart-accent) 10%, transparent));
+}
+.flood-root .flood-range-chart__band[data-flat] {
+  box-shadow: none;
+  block-size: var(--flood-chart-stroke-width);
+  translate: 0 -50%;
+  background: var(--flood-chart-accent);
+}
+.flood-root .flood-range-chart__midpoint {
+  inset-inline: var(--flood-chart-stroke-width);
+  block-size: var(--flood-chart-stroke-width);
+  translate: 0 -50%;
+  border-radius: var(--flood-sys-radius-action);
+  background: var(--flood-sys-color-content-default);
+}
+.flood-root .flood-range-chart__category {
+  padding-inline: var(--flood-sys-space-1);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flood-root .flood-range-chart__tooltip {
+  --flood-range-tip-width: min(9rem, 42%);
+  --flood-range-tip-gap: min(2.75rem, calc(50% / var(--flood-range-columns) + var(--flood-sys-space-1)));
+  --flood-range-tip-offset: calc(var(--flood-range-tip-side) * (var(--flood-range-tip-width) + 2 * var(--flood-range-tip-gap)) + var(--flood-range-tip-gap));
+  position: absolute;
+  z-index: 2;
+  inset-block-start: var(--flood-sys-space-2);
+  left: clamp(0px, calc(var(--flood-range-position) + var(--flood-range-tip-offset)), calc(100% - var(--flood-range-tip-width)));
+  display: grid;
+  gap: var(--flood-sys-space-1);
+  inline-size: var(--flood-range-tip-width);
+}
+.flood-root .flood-range-chart__reading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--flood-sys-space-1);
+}
+.flood-root .flood-range-chart__reading > :last-child { text-align: end; }
+.flood-root .flood-range-chart__empty {
+  display: grid;
+  place-items: center;
+  min-block-size: var(--flood-range-height);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .flood-root:not([data-flood-motion="reduce"]) .flood-range-chart__column:not(:where([data-flood-motion="reduce"] *)) {
+    transition: background-color var(--flood-chart-motion);
+  }
+}
+@media (forced-colors: active) {
+  .flood-root .flood-range-chart__band:not([data-flat]) { outline: 1px solid CanvasText; outline-offset: -1px; }
+  .flood-root .flood-range-chart__band[data-flat],
+  .flood-root .flood-range-chart__midpoint {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+  .flood-root .flood-range-chart__column[data-active] { outline: 1px solid Highlight; outline-offset: -1px; }
+}

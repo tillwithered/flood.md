@@ -93,11 +93,13 @@ export const AnchoredOverlay=/* @__PURE__ */ forwardRef<HTMLDivElement,AnchoredP
 });
 
 interface ModalOverlayProps extends DialogProps { showCloseButton?: boolean; role?: "dialog" | "alertdialog"; scrollBody?: boolean; bodyContentInset?: "none" | "scrollbar"; footer?: import("react").ReactNode; }
-export const ModalOverlay=/* @__PURE__ */ forwardRef<HTMLDialogElement,ModalOverlayProps>(function ModalOverlay({showCloseButton=true,scrollBody=false,bodyContentInset,footer,title,description,trigger,children,open:controlled,defaultOpen=false,onOpenChange,disabled=false,closeLabel="Close",closeOnOutsideClick=true,initialFocusRef,id:explicitId,className,onKeyDown,"aria-describedby":describedBy,...props},forwardedRef){
+export const ModalOverlay=/* @__PURE__ */ forwardRef<HTMLDialogElement,ModalOverlayProps>(function ModalOverlay({showCloseButton=true,scrollBody=false,bodyContentInset,footer,title,description,trigger,children,open:controlled,defaultOpen=false,onOpenChange,disabled=false,closeLabel="Close",closeOnOutsideClick=true,initialFocusRef,getFallbackFocus,id:explicitId,className,onKeyDown,"aria-describedby":describedBy,...props},forwardedRef){
   const [local,setLocal]=useState(defaultOpen),open=controlled??local;
   const dialog=useRef<HTMLDialogElement>(null),anchor=useRef<HTMLButtonElement>(null),generated=useId(),id=explicitId??`flood-dialog-${generated}`;
   const request=(next:boolean)=>{if(controlled===undefined)setLocal(next);onOpenChange?.(next);};
   const current=useCurrent({open,request,closeOnOutsideClick,initialFocusRef});
+  const fallbackFocus=useRef(getFallbackFocus);
+  fallbackFocus.current=getFallbackFocus;
   const setAnchor=useCallback((node:HTMLButtonElement|null)=>{anchor.current=node},[]);
   useImperativeHandle(forwardedRef,()=>dialog.current!,[]);
   useBrowserLayoutEffect(()=>{
@@ -116,7 +118,7 @@ export const ModalOverlay=/* @__PURE__ */ forwardRef<HTMLDialogElement,ModalOver
     const closed=()=>{if(element.open||!current.current.open)return;current.current.request(false);queueMicrotask(()=>{if(current.current.open&&element.isConnected&&!element.open){element.showModal();focusContent(element,current.current.initialFocusRef?.current)}})};
     element.addEventListener("cancel",cancel);element.addEventListener("close",closed);
     focusContent(element,current.current.initialFocusRef?.current);
-    dispose=()=>{unregister();unlock();element.removeEventListener("cancel",cancel);element.removeEventListener("close",closed);if(element.open)element.close();returnFocus(element,anchor.current??previous);};
+    dispose=()=>{unregister();unlock();element.removeEventListener("cancel",cancel);element.removeEventListener("close",closed);if(element.open)element.close();returnFocus(element,anchor.current??previous,fallbackFocus.current ? () => fallbackFocus.current?.() ?? null : undefined);};
     };start();return()=>{alive=false;view.cancelAnimationFrame(frame);dispose()};
   },[open]);
   return <>{trigger({ref:setAnchor,type:"button",disabled,"aria-haspopup":"dialog","aria-expanded":open,"aria-controls":id,onClick:event=>{

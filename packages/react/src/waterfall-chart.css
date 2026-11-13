@@ -1,0 +1,136 @@
+.flood-root .flood-waterfall-chart {
+  --flood-waterfall-height: 13rem;
+  --flood-waterfall-bar-width: min(2.75rem, 58%);
+  min-inline-size: 0;
+  container-type: inline-size;
+}
+.flood-root .flood-waterfall-chart__plot {
+  position: relative;
+  cursor: crosshair;
+}
+.flood-root .flood-waterfall-chart__plot:focus-visible {
+  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
+  outline-offset: var(--flood-sys-focus-offset);
+  border-radius: var(--flood-sys-radius-indicator);
+}
+.flood-root .flood-waterfall-chart__columns {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--flood-waterfall-columns), minmax(0, 1fr));
+}
+.flood-root .flood-waterfall-chart__columns::before {
+  content: "";
+  position: absolute;
+  inset: var(--flood-sys-space-2) 0 auto;
+  block-size: var(--flood-waterfall-height);
+  background: var(--flood-chart-grid);
+  mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent),
+    linear-gradient(transparent, black 14%, black 86%, transparent);
+  mask-composite: intersect;
+  pointer-events: none;
+}
+.flood-root .flood-waterfall-chart__columns::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc(var(--flood-sys-space-2) + var(--flood-waterfall-height) * var(--flood-waterfall-zero));
+  block-size: var(--flood-sys-stroke-width);
+  background: var(--flood-sys-color-divider-decorative);
+  pointer-events: none;
+}
+.flood-root .flood-waterfall-chart__column {
+  position: relative;
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--flood-sys-space-2);
+  padding-block: var(--flood-sys-space-2);
+  border-radius: var(--flood-sys-radius-indicator);
+}
+.flood-root .flood-waterfall-chart__column[data-active] {
+  background: color-mix(in srgb, var(--flood-chart-accent) 5%, transparent);
+}
+.flood-root .flood-waterfall-chart__track {
+  position: relative;
+  block-size: var(--flood-waterfall-height);
+}
+.flood-root .flood-waterfall-chart__bar {
+  --flood-waterfall-color: var(--flood-sys-color-content-subtle);
+  position: absolute;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: var(--flood-waterfall-bar-width);
+  border-radius: var(--flood-sys-radius-indicator);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--flood-waterfall-color) 39%, transparent),
+    color-mix(in srgb, var(--flood-waterfall-color) 12%, transparent));
+  box-shadow: inset 0 0 0 var(--flood-chart-stroke-width) color-mix(in srgb, var(--flood-waterfall-color) 60%, transparent);
+}
+.flood-root .flood-waterfall-chart__bar[data-kind="total"] { --flood-waterfall-color: var(--flood-chart-accent); }
+.flood-root .flood-waterfall-chart__bar[data-kind="decrease"] {
+  background: color-mix(in srgb, var(--flood-waterfall-color) 12%, transparent);
+  outline: var(--flood-chart-stroke-width) dashed color-mix(in srgb, var(--flood-waterfall-color) 58%, transparent);
+  outline-offset: calc(-1 * var(--flood-chart-stroke-width));
+  box-shadow: none;
+}
+.flood-root .flood-waterfall-chart__bar[data-flat] {
+  min-block-size: var(--flood-chart-stroke-width);
+  outline: none;
+  background: var(--flood-waterfall-color);
+  box-shadow: none;
+}
+.flood-root .flood-waterfall-chart__connector {
+  position: absolute;
+  inline-size: calc((100% - var(--flood-waterfall-bar-width)) / 2);
+  border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-content-subtle);
+  opacity: .46;
+}
+.flood-root .flood-waterfall-chart__connector[data-side="before"] { inset-inline-start: 0; }
+.flood-root .flood-waterfall-chart__connector[data-side="after"] { inset-inline-end: 0; }
+.flood-root .flood-waterfall-chart__category {
+  padding-inline: var(--flood-sys-space-1);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flood-root .flood-waterfall-chart__tooltip {
+  --flood-waterfall-tip-width: min(9rem, 42%);
+  --flood-waterfall-tip-gap: min(calc(2 * var(--flood-chart-tip-gap)), calc(50% / var(--flood-waterfall-columns)));
+  --flood-waterfall-tip-offset: calc(var(--flood-waterfall-tip-side) * (var(--flood-waterfall-tip-width) + 2 * var(--flood-waterfall-tip-gap)) + var(--flood-waterfall-tip-gap));
+  position: absolute;
+  z-index: 2;
+  inset-block-start: var(--flood-sys-space-2);
+  left: clamp(0px, calc(var(--flood-waterfall-position) + var(--flood-waterfall-tip-offset)), calc(100% - var(--flood-waterfall-tip-width)));
+  display: grid;
+  gap: var(--flood-sys-space-1);
+  inline-size: var(--flood-waterfall-tip-width);
+}
+.flood-root .flood-waterfall-chart__reading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--flood-sys-space-1);
+}
+.flood-root .flood-waterfall-chart__reading > :last-child { text-align: end; }
+.flood-root .flood-waterfall-chart__empty {
+  display: grid;
+  min-block-size: var(--flood-waterfall-height);
+  place-items: center;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .flood-root:not([data-flood-motion="reduce"]) .flood-waterfall-chart__column:not(:where([data-flood-motion="reduce"] *)) {
+    transition: background-color var(--flood-chart-motion);
+  }
+}
+@media (forced-colors: active) {
+  .flood-root .flood-waterfall-chart__bar {
+    forced-color-adjust: none;
+    background: Canvas;
+    box-shadow: inset 0 0 0 var(--flood-chart-stroke-width) CanvasText;
+  }
+  .flood-root .flood-waterfall-chart__bar[data-kind="total"] { background: Highlight; }
+  .flood-root .flood-waterfall-chart__bar[data-kind="decrease"] {
+    outline-color: CanvasText;
+    box-shadow: none;
+  }
+  .flood-root .flood-waterfall-chart__bar[data-flat] { background: CanvasText; }
+}

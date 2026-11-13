@@ -1,6 +1,7 @@
 import {test, expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {readFile} from 'node:fs/promises';
+import {assertWorkspaceScroll} from '../../packages/agent/lib/inspect.mjs';
 
 test.beforeEach(async ({page}) => {
   const report=JSON.parse(await readFile('.artifacts/agent-consumer/report.json','utf8'));
@@ -43,4 +44,34 @@ test('installed composition remains reachable with enlarged narrow RTL content',
   const scroll=page.locator('.flood-data-table .flood-scroll-area');
   await expect(scroll).toHaveCount(1);
   await page.screenshot({path:info.outputPath('agent-consumer-narrow.png'),fullPage:true});
+});
+
+test('installed workspace keeps scroll ownership as the table shrinks', async ({page}) => {
+  await page.setViewportSize({width: 1440, height: 1000});
+  const viewport = page.getByRole('region', {name: 'Workspace content'});
+  await expect(viewport).toHaveAttribute('data-scrollbars', 'overlay');
+  const contentHeight = await viewport.locator('.consumer-content').evaluate(node => node.offsetHeight);
+  await page.setViewportSize({width: 1440, height: contentHeight - 40});
+  const checkScroll = (expectOverflow: boolean) =>
+    page.evaluate(assertWorkspaceScroll, {rootSelector: '#workspace', expectOverflow});
+  await expect(async () => { await checkScroll(true); }).toPass({timeout: 3000});
+  const results = page.getByRole('table', {name: 'Project list'});
+  const edges = () => results.evaluate(node => {
+    const {left, right} = node.getBoundingClientRect();
+    return {left, right};
+  });
+  const before = await edges();
+
+  for (const project of ['Design system', 'Website', 'Documentation']) {
+    await page.getByRole('checkbox', {name: 'Select ' + project, exact: true}).check();
+  }
+  await page.getByRole('button', {name: 'Next page', exact: true}).click();
+  for (const project of ['Research', 'Component preview']) {
+    await page.getByRole('checkbox', {name: 'Select ' + project, exact: true}).check();
+  }
+  await page.getByRole('button', {name: 'Archive projects', exact: true}).click();
+  await page.getByRole('alertdialog').getByRole('button', {name: 'Archive selected', exact: true}).click();
+  await expect(results.getByRole('row', {name: /Protected project/})).toBeVisible();
+  await checkScroll(false);
+  expect(await edges()).toEqual(before);
 });

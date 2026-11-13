@@ -101,7 +101,7 @@ test("installation follows the publication gate and exposes real documentation l
     await expect(copy).toBeDisabled();
   }
   await expect(page.getByRole("link", { name: "Components", exact: true }).first()).toHaveAttribute("href", "/components");
-  await expect(page.getByRole("link", { name: "Set up your agent", exact: true })).toHaveAttribute("href", "/docs/agents");
+  await expect(page.getByRole("main").getByRole("link")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /For your agent/i })).toHaveAttribute("href", "/agent/SKILL.md");
 });
 

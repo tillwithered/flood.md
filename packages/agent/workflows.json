@@ -18,6 +18,11 @@
       "all": true
     },
     {
+      "id": "screen-composition",
+      "guide": "references/flood-screen-composition/SKILL.md",
+      "components": ["AppShell", "PageHeader", "Section", "DataTable"]
+    },
+    {
       "id": "hierarchy",
       "guide": "references/flood-hierarchy/SKILL.md",
       "groups": [
@@ -121,6 +126,18 @@
       "components": [
         "FilterCondition",
         "FilterGroup",
+        "LineChart",
+        "BarChart",
+        "DonutChart",
+        "Heatmap",
+        "ScatterChart",
+        "RangeChart",
+        "BulletChart",
+        "WaterfallChart",
+        "Histogram",
+        "BoxPlot",
+        "DumbbellChart",
+        "BarList",
         "UploadItem",
         "UploadList",
         "EmptyState",
@@ -171,6 +188,11 @@
     {
       "id": "verification",
       "guide": "references/flood-verification/SKILL.md",
+      "all": true
+    },
+    {
+      "id": "visual-review",
+      "guide": "references/flood-visual-review/SKILL.md",
       "all": true
     }
   ]

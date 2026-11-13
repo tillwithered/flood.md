@@ -36,6 +36,11 @@ brief did not enumerate every affordance of choosing a date.
 - Error is invalid; warning/success/info are advisory, not validation algorithms.
   Host validation decides the error and useful message. Keep native constraints,
   invalid focus and the accessible message association coherent.
+- For a validation message users need while correcting a value, render it with
+  the associated Field. An application-specific error should remain visible
+  during correction. Preserve the native form constraint and focus on the first
+  invalid field, then check the message and nearby controls after the failed
+  submission. Native validity by itself does not verify the error presentation.
 
 For visual roles and rhythm, read the [hierarchy skill](../flood-hierarchy/SKILL.md).
 Fieldset legendSize="section" is for an independent section; a short form may

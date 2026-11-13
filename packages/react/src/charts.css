@@ -1,0 +1,496 @@
+.flood-root :is(.flood-line-chart, .flood-bar-chart, .flood-donut-chart, .flood-heatmap, .flood-sparkline, .flood-bar-list, .flood-scatter-chart, .flood-range-chart, .flood-bullet-chart, .flood-waterfall-chart, .flood-histogram, .flood-box-plot, .flood-dumbbell-chart) {
+  --flood-chart-stroke-width: calc(2 * var(--flood-sys-stroke-width));
+  --flood-chart-tip-gap: var(--flood-sys-space-4);
+  --flood-chart-accent: var(--flood-sys-color-accent-content);
+  --flood-chart-motion: var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing);
+  --flood-chart-fill-strength: .3;
+  --flood-chart-grid: radial-gradient(circle, var(--flood-sys-color-divider-decorative) .045rem, transparent .06rem) 0 0 / var(--flood-sys-space-3) var(--flood-sys-space-3);
+}
+.flood-root .flood-line-chart { --flood-chart-height: 15rem; min-inline-size: 0; container-type: inline-size; }
+.flood-root .flood-line-chart__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--flood-sys-space-2) var(--flood-sys-space-3);
+  direction: ltr;
+}
+.flood-root .flood-line-chart__body[data-y-axis] { grid-template-columns: fit-content(28%) minmax(0, 1fr); }
+.flood-root .flood-line-chart__y {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: end;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.flood-root .flood-line-chart__x { display: flex; justify-content: space-between; gap: var(--flood-sys-space-2); min-block-size: var(--flood-sys-space-6); align-items: start; }
+.flood-root .flood-line-chart__body[data-y-axis] > .flood-line-chart__x { grid-column: 2; }
+.flood-root .flood-line-chart__y[data-flat] { justify-content: center; }
+.flood-root .flood-line-chart__x > [data-covered] { visibility: hidden; }
+.flood-root .flood-line-chart__x > :only-child { margin-inline: auto; }
+.flood-root .flood-line-chart__x > * { min-inline-size: 0; overflow-wrap: anywhere; }
+.flood-root .flood-line-chart__plot {
+  --flood-chart-x: var(--flood-chart-pointer, var(--flood-chart-point));
+  --flood-chart-ratio: var(--flood-chart-pointer-ratio, var(--flood-chart-point-ratio));
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  block-size: var(--flood-chart-height);
+  padding-block: var(--flood-sys-space-2);
+  cursor: crosshair;
+}
+.flood-root :is(.flood-line-chart__plot, .flood-bar-chart__plot, .flood-donut-chart__plot, .flood-dumbbell-chart__plot):focus-visible {
+  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
+  outline-offset: var(--flood-sys-focus-offset);
+  border-radius: var(--flood-sys-radius-indicator);
+}
+.flood-root .flood-line-chart__plot > svg {
+  position: relative;
+  display: block;
+  inline-size: 100%;
+  overflow: visible;
+}
+.flood-root .flood-line-chart__plot::before {
+  content: "";
+  position: absolute;
+  inset: var(--flood-sys-space-2) 0;
+  background: var(--flood-chart-grid);
+  mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent),
+    linear-gradient(transparent, black 12%, black 88%, transparent);
+  mask-composite: intersect;
+  pointer-events: none;
+}
+.flood-root .flood-line-chart__grid { stroke: var(--flood-sys-color-divider-decorative); opacity: .65; }
+.flood-root :is(.flood-line-chart__grid, .flood-line-chart__stroke, .flood-line-chart__point) {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.flood-root .flood-line-chart__gradient,
+.flood-root :is(.flood-line-chart, .flood-bar-chart) [data-series="0"] { color: var(--flood-chart-accent); }
+.flood-root .flood-line-chart__gradient > stop:first-child { stop-opacity: var(--flood-chart-fill-strength); }
+.flood-root :is(.flood-line-chart, .flood-bar-chart) [data-series="1"] { color: var(--flood-sys-color-content-subtle); --flood-chart-dash: 5 4; }
+.flood-root :is(.flood-line-chart, .flood-bar-chart) [data-series="2"] { color: var(--flood-sys-color-content-default); --flood-chart-dash: 1 4; }
+.flood-root :is(.flood-line-chart, .flood-bar-chart) [data-series="3"] { color: var(--flood-sys-color-content-subtle); --flood-chart-dash: 8 4 2 4; }
+.flood-root .flood-line-chart__stroke {
+  stroke: currentColor;
+  stroke-width: var(--flood-chart-stroke-width);
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  stroke-dasharray: var(--flood-chart-dash, none);
+}
+.flood-root .flood-line-chart__point { stroke: currentColor; stroke-width: .4rem; stroke-linecap: round; }
+.flood-root .flood-line-chart__plot[data-inspecting] > svg > [data-series] { opacity: .46; }
+.flood-root .flood-line-chart__highlight { opacity: 0; }
+.flood-root .flood-line-chart__plot[data-inspecting] .flood-line-chart__highlight { opacity: 1; }
+.flood-root .flood-line-chart__highlight-window { translate: calc(var(--flood-chart-ratio) * 600px) 0; }
+.flood-root .flood-line-chart__inspection {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.flood-root .flood-line-chart__plot[data-inspecting] > .flood-line-chart__inspection { opacity: 1; visibility: visible; }
+.flood-root .flood-line-chart__cursor {
+  position: absolute;
+  left: var(--flood-chart-x);
+  inset-block: var(--flood-sys-space-2);
+  inline-size: var(--flood-sys-stroke-width);
+  translate: -50% 0;
+  background: linear-gradient(transparent, var(--flood-chart-accent) 22% 78%, transparent);
+}
+.flood-root .flood-line-chart__marker {
+  position: absolute;
+  left: 50%;
+  inline-size: .4375rem;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 .1875rem color-mix(in srgb, currentColor 24%, transparent);
+}
+.flood-root .flood-line-chart__date {
+  position: absolute;
+  top: 100%;
+  left: clamp(0px, calc(var(--flood-chart-x) - 3rem), calc(100% - min(100%, 6rem)));
+  inline-size: min(100%, 6rem);
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.flood-root .flood-line-chart__date > .flood-text {
+  display: block;
+  max-inline-size: 100%;
+  box-sizing: border-box;
+  padding: var(--flood-sys-space-1) var(--flood-sys-space-2);
+  background: var(--flood-sys-color-surface-raised);
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-radius: var(--flood-sys-radius-action);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flood-root .flood-line-chart__tooltip-position {
+  --flood-chart-tip-y: var(--flood-chart-pointer-tip-y, var(--flood-chart-point-y));
+  --flood-chart-tip-y-ratio: var(--flood-chart-pointer-tip-ratio, var(--flood-chart-point-y-ratio));
+  --flood-chart-tip-lift: clamp(0, calc((var(--flood-chart-ratio) - .52) / .23), 1);
+  --flood-chart-tip-width: min(9rem, calc(100% - 2 * var(--flood-sys-space-2)));
+  position: absolute;
+  z-index: 1;
+  inset: var(--flood-sys-space-2) 0;
+}
+.flood-root :is(.flood-line-chart__tooltip, .flood-bar-chart__tooltip) {
+  position: absolute;
+  --flood-chart-tip-height: 0px;
+  --flood-chart-tip-direction: clamp(0, sign(var(--flood-chart-tip-y-ratio) - .31), 1);
+  --flood-chart-tip-offset: calc(.5 * (1 - var(--flood-chart-tip-lift)) + var(--flood-chart-tip-direction) * var(--flood-chart-tip-lift));
+  top: clamp(0px,
+    calc(var(--flood-chart-tip-y) - var(--flood-chart-tip-height) * var(--flood-chart-tip-offset) + var(--flood-chart-tip-lift) * var(--flood-chart-tip-gap) * (1 - 2 * var(--flood-chart-tip-direction))),
+    max(0px, calc(100% - var(--flood-chart-tip-height))));
+  left: clamp(var(--flood-sys-space-2), calc(var(--flood-chart-x) + var(--flood-chart-tip-gap)), calc(100% - var(--flood-chart-tip-width) - var(--flood-sys-space-2)));
+  display: grid;
+  gap: var(--flood-sys-space-1);
+  inline-size: var(--flood-chart-tip-width);
+}
+.flood-root :is(.flood-line-chart__tooltip, .flood-bar-chart__tooltip, .flood-heatmap__tooltip, .flood-chart__tooltip) {
+  box-sizing: border-box;
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-radius: var(--flood-sys-radius-field);
+  box-shadow: 0 .35rem 1.1rem rgb(0 0 0 / .18);
+  pointer-events: none;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.flood-root .flood-line-chart__tooltip-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, auto);
+  align-items: baseline;
+  gap: var(--flood-sys-space-2);
+}
+.flood-root .flood-line-chart__tooltip-row > :last-child { text-align: end; }
+.flood-root .flood-line-chart__tooltip-row .flood-line-chart__key { inline-size: var(--flood-sys-space-3); }
+@container (max-width: 24rem) {
+  .flood-root .flood-line-chart__tooltip-row { gap: var(--flood-sys-space-1); }
+  .flood-root .flood-line-chart__tooltip-position { --flood-chart-tip-lift: clamp(0, calc((var(--flood-chart-ratio) - .34) / .25), 1); }
+  .flood-root .flood-line-chart__x > [data-intermediate] { display: none; }
+}
+.flood-root .flood-line-chart__key {
+  inline-size: var(--flood-sys-space-6);
+  block-size: var(--flood-sys-space-1);
+  flex: none;
+}
+.flood-root .flood-line-chart__readout {
+  display: grid;
+  gap: var(--flood-sys-space-1);
+  border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative);
+  margin-block-start: var(--flood-sys-space-3);
+  padding-block-start: var(--flood-sys-space-3);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.flood-root .flood-line-chart__empty { display: grid; place-items: center; min-block-size: var(--flood-chart-height); }
+.flood-root .flood-bar-chart {
+  --flood-chart-height: 13rem;
+  min-inline-size: 0;
+  container-type: inline-size;
+}
+.flood-root .flood-bar-chart__plot { position: relative; cursor: crosshair; }
+.flood-root .flood-bar-chart__marks {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--flood-bar-categories), minmax(0, 1fr));
+}
+.flood-root .flood-bar-chart__marks::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  block-size: var(--flood-chart-height);
+  background: var(--flood-chart-grid);
+  mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent),
+    linear-gradient(transparent, black 18%, black 84%, transparent);
+  mask-composite: intersect;
+  pointer-events: none;
+}
+.flood-root .flood-bar-chart__marks::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc((1 - var(--flood-bar-zero)) * var(--flood-chart-height));
+  block-size: var(--flood-sys-stroke-width);
+  background: var(--flood-sys-color-divider-decorative);
+  pointer-events: none;
+}
+.flood-root .flood-bar-chart__group {
+  position: relative;
+  display: grid;
+  min-inline-size: 0;
+  gap: var(--flood-sys-space-2);
+  border-radius: var(--flood-sys-radius-indicator);
+}
+.flood-root .flood-bar-chart__group[data-active] {
+  background: color-mix(in srgb, var(--flood-chart-accent) 5%, transparent);
+}
+.flood-root .flood-bar-chart__plot[data-inspecting] .flood-bar-chart__group:not([data-active]) .flood-bar-chart__pair {
+  opacity: .45;
+}
+.flood-root .flood-bar-chart__pair {
+  display: flex;
+  justify-content: center;
+  gap: min(5%, var(--flood-sys-space-1));
+  block-size: var(--flood-chart-height);
+  padding-inline: min(9%, var(--flood-sys-space-2));
+}
+.flood-root .flood-bar-chart__slot {
+  position: relative;
+  flex: 0 1 1.75rem;
+  min-inline-size: 0;
+}
+.flood-root .flood-bar-chart__bar {
+  --flood-bar-direction: to bottom;
+  --flood-bar-end-radius: .375rem;
+  position: absolute;
+  inset-inline: 0;
+  min-block-size: var(--flood-sys-stroke-width);
+  box-sizing: border-box;
+  box-shadow: inset 0 0 0 var(--flood-chart-stroke-width) color-mix(in srgb, currentColor 64%, transparent);
+  border-radius: var(--flood-bar-end-radius) var(--flood-bar-end-radius) 0 0;
+  background: linear-gradient(var(--flood-bar-direction), color-mix(in srgb, currentColor 58%, transparent), color-mix(in srgb, currentColor 22%, transparent));
+}
+.flood-root .flood-bar-chart__bar[data-negative] {
+  --flood-bar-direction: to top;
+  border-radius: 0 0 var(--flood-bar-end-radius) var(--flood-bar-end-radius);
+}
+.flood-root .flood-bar-chart[data-layout="grouped"] :where(.flood-bar-chart__slot[data-series]:not([data-series="0"])) .flood-bar-chart__bar:not([data-zero]) {
+  border: var(--flood-chart-stroke-width) dashed color-mix(in srgb, currentColor 55%, transparent);
+  box-shadow: none;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.flood-root .flood-bar-chart__bar[data-zero] { border-radius: 0; background: currentColor; }
+.flood-root .flood-bar-chart:is([data-layout="stacked"], [data-layout="percent"]) .flood-bar-chart__pair {
+  display: grid;
+  grid-template-columns: minmax(0, 2.5rem);
+}
+.flood-root .flood-bar-chart:is([data-layout="stacked"], [data-layout="percent"]) .flood-bar-chart__slot { grid-area: 1 / 1; }
+.flood-root .flood-bar-chart:is([data-layout="stacked"], [data-layout="percent"]) [data-series="2"] { color: var(--flood-sys-color-feedback-info); }
+.flood-root .flood-bar-chart:is([data-layout="stacked"], [data-layout="percent"]) [data-series="3"] { color: var(--flood-sys-color-content-default); }
+.flood-root .flood-bar-chart:is([data-layout="stacked"], [data-layout="percent"]) .flood-bar-chart__bar {
+  background: color-mix(in srgb, currentColor 32%, var(--flood-sys-color-surface-raised));
+}
+.flood-root .flood-bar-chart:is([data-layout="stacked"], [data-layout="percent"]) .flood-bar-chart__bar:not([data-outer]) { border-radius: 0; }
+.flood-root .flood-bar-chart:is([data-layout="stacked"], [data-layout="percent"]) .flood-line-chart__stroke { stroke-dasharray: none; }
+.flood-root .flood-bar-chart__category {
+  padding-inline: var(--flood-sys-space-1);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flood-root .flood-bar-chart__tooltip {
+  --flood-chart-tip-width: min(9rem, 100%);
+  --flood-bar-tip-gap: min(4rem, calc(50% / var(--flood-bar-categories) + var(--flood-sys-space-1)));
+  --flood-bar-tip-offset: calc(var(--flood-bar-tip-side) * (var(--flood-chart-tip-width) + 2 * var(--flood-bar-tip-gap)) + var(--flood-bar-tip-gap));
+  z-index: 2;
+  top: var(--flood-sys-space-2);
+  left: clamp(0px, calc(var(--flood-bar-active) + var(--flood-bar-tip-offset)), calc(100% - var(--flood-chart-tip-width)));
+}
+@container (max-width: 22rem) {
+  .flood-root .flood-bar-chart__tooltip {
+    --flood-chart-tip-width: min(6.5rem, 45%);
+    --flood-bar-tip-gap: min(2rem, calc(50% / var(--flood-bar-categories) + var(--flood-sys-space-1)));
+  }
+}
+.flood-root .flood-bar-chart[data-layout="percent"] .flood-bar-chart__tooltip {
+  --flood-chart-tip-width: min(10rem, 46%);
+}
+.flood-root .flood-bar-chart[data-layout="percent"] .flood-line-chart__tooltip-row .flood-line-chart__key {
+  inline-size: var(--flood-sys-space-2);
+}
+.flood-root .flood-donut-chart { min-inline-size: 0; }
+.flood-root .flood-donut-chart__plot {
+  position: relative;
+  display: grid;
+  inline-size: min(100%, 17rem);
+  aspect-ratio: 1;
+  margin-inline: auto;
+  border-radius: 50%;
+}
+.flood-root .flood-donut-chart__plot:focus-visible { border-radius: 50%; }
+.flood-root .flood-donut-chart__plot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--flood-chart-grid);
+  mask-image: radial-gradient(circle closest-side, transparent 48%, black 67% 88%, transparent);
+  pointer-events: none;
+}
+.flood-root .flood-donut-chart__plot > svg { position: relative; inline-size: 100%; block-size: 100%; }
+.flood-root .flood-donut-chart__track {
+  fill: none;
+  stroke: var(--flood-sys-color-divider-decorative);
+  stroke-width: 16;
+}
+.flood-root .flood-donut-chart__segment {
+  fill: color-mix(in srgb, currentColor 16%, transparent);
+  stroke: color-mix(in srgb, currentColor 52%, transparent);
+  stroke-width: var(--flood-chart-stroke-width);
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.flood-root .flood-donut-chart__segment[data-active] {
+  stroke: currentColor;
+}
+.flood-root .flood-donut-chart :is([data-slice="0"], [data-series="0"]) { color: var(--flood-chart-accent); }
+.flood-root .flood-donut-chart :is([data-slice="1"], [data-series="1"]) { color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-donut-chart :is([data-slice="2"], [data-series="2"]) {
+  color: color-mix(in srgb, var(--flood-chart-accent) 30%, var(--flood-sys-color-content-subtle));
+}
+.flood-root .flood-donut-chart :is([data-slice="3"], [data-series="3"]) {
+  color: color-mix(in srgb, var(--flood-sys-color-feedback-info) 25%, var(--flood-sys-color-content-subtle));
+}
+.flood-root .flood-donut-chart :is([data-slice="4"], [data-series="4"]) { color: var(--flood-sys-color-content-subtle); }
+.flood-root .flood-donut-chart :is([data-slice="5"], [data-series="5"]) { color: var(--flood-sys-color-content-default); }
+.flood-root .flood-donut-chart__key {
+  inline-size: var(--flood-sys-space-2);
+  block-size: var(--flood-sys-space-2);
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.flood-root .flood-donut-chart__readout {
+  position: absolute;
+  inset: 19%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--flood-sys-space-1);
+  text-align: center;
+  pointer-events: none;
+}
+.flood-root .flood-donut-chart__readout :is(dt, dd) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flood-root .flood-donut-chart__readout .flood-metric { position: relative; }
+.flood-root .flood-donut-chart__readout .flood-metric__hint {
+  position: absolute;
+  inset-block-start: calc(100% + var(--flood-sys-space-1));
+  inset-inline: 0;
+}
+.flood-root .flood-heatmap { position: relative; min-inline-size: 0; }
+.flood-root .flood-heatmap__tooltip {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  row-gap: var(--flood-sys-space-1);
+  column-gap: var(--flood-sys-space-2);
+  inline-size: max-content;
+  max-inline-size: min(10rem, calc(100% - 2 * var(--flood-sys-space-2)));
+}
+.flood-root .flood-heatmap__table.flood-table {
+  --flood-heatmap-inset: calc(var(--flood-sys-space-1) / 2);
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.flood-root .flood-heatmap__table.flood-table :is(th, td) {
+  padding: var(--flood-heatmap-inset);
+  border: 0;
+}
+.flood-root .flood-heatmap__table thead tr > :first-child { inline-size: clamp(2rem, 15%, 5rem); }
+.flood-root .flood-heatmap__table.flood-table > tbody > tr > th { border-block-end: 0; }
+.flood-root .flood-heatmap__table.flood-table thead th { text-align: center; }
+.flood-root .flood-heatmap__table th > .flood-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flood-root .flood-heatmap__table.flood-table .flood-heatmap__cell {
+  position: relative;
+  block-size: calc(1.75rem + var(--flood-sys-space-1));
+  padding: 0;
+  border: 0;
+}
+.flood-root .flood-heatmap__cell::before {
+  --flood-heatmap-fill: calc(var(--flood-heatmap-level) * 58%);
+  content: "";
+  position: absolute;
+  inset: var(--flood-heatmap-inset);
+  pointer-events: none;
+  border: var(--flood-chart-stroke-width) solid color-mix(in srgb, var(--flood-chart-accent) var(--flood-heatmap-fill), var(--flood-sys-color-border-decorative));
+  border-radius: var(--flood-sys-radius-indicator);
+  background: color-mix(in srgb, var(--flood-chart-accent) var(--flood-heatmap-fill), var(--flood-sys-color-surface-raised));
+}
+.flood-root .flood-heatmap__cell[data-missing]::before {
+  border-style: dashed;
+  background: var(--flood-chart-grid);
+}
+.flood-root .flood-heatmap__cell[data-active]::before {
+  border-color: var(--flood-sys-color-content-default);
+}
+.flood-root .flood-heatmap__cell:focus-visible { outline: none; }
+.flood-root .flood-heatmap__cell:focus-visible::before {
+  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
+  outline-offset: -2px;
+}
+.flood-root .flood-bar-list__items {
+  display: grid;
+  gap: var(--flood-sys-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.flood-root .flood-bar-list .flood-indicator {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-block-size: var(--flood-sys-control-md-height);
+}
+.flood-root .flood-bar-list :is(.flood-indicator__caption, .flood-indicator__track) { grid-area: 1 / 1; }
+.flood-root .flood-bar-list .flood-indicator__caption {
+  align-items: center;
+  z-index: 1;
+  margin: 0;
+  padding: var(--flood-sys-space-2) var(--flood-sys-space-3);
+}
+.flood-root .flood-bar-list .flood-indicator__caption > span { min-inline-size: 0; overflow-wrap: anywhere; }
+.flood-root .flood-bar-list .flood-indicator__value { color: var(--flood-sys-color-content-default); font-weight: var(--flood-sys-type-label-weight); }
+.flood-root .flood-bar-list .flood-indicator__track { block-size: 100%; background: transparent; border-radius: var(--flood-sys-radius-indicator); }
+.flood-root .flood-bar-list .flood-indicator__fill {
+  --flood-chart-bar-color: var(--flood-indicator-color);
+  background: linear-gradient(to right, color-mix(in srgb, var(--flood-chart-bar-color) 12%, transparent), color-mix(in srgb, var(--flood-chart-bar-color) 22%, transparent));
+  border-radius: inherit;
+  box-shadow: inset 0 calc(-1 * var(--flood-chart-stroke-width)) color-mix(in srgb, var(--flood-chart-bar-color) 38%, transparent);
+}
+.flood-root .flood-bar-list .flood-indicator[data-tone="accent"] .flood-indicator__fill { --flood-chart-bar-color: var(--flood-chart-accent); }
+.flood-root .flood-bar-list:dir(rtl) .flood-indicator__fill { background: linear-gradient(to left, color-mix(in srgb, var(--flood-chart-bar-color) 12%, transparent), color-mix(in srgb, var(--flood-chart-bar-color) 22%, transparent)); }
+@media (hover: hover) {
+  .flood-root .flood-bar-list li:hover .flood-indicator__fill { filter: brightness(1.25); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .flood-root:not([data-flood-motion="reduce"]) .flood-donut-chart__segment:not(:where([data-flood-motion="reduce"] *)) {
+    transition: stroke var(--flood-chart-motion);
+  }
+  .flood-root:not([data-flood-motion="reduce"]) :is(.flood-bar-chart__group, .flood-bar-chart__pair):not(:where([data-flood-motion="reduce"] *)) {
+    transition: background-color var(--flood-chart-motion), opacity var(--flood-chart-motion);
+  }
+  .flood-root:not([data-flood-motion="reduce"]) :is(.flood-line-chart__plot > svg > [data-series], .flood-line-chart__highlight, .flood-line-chart__inspection):not(:where([data-flood-motion="reduce"] *)) {
+    transition: opacity var(--flood-chart-motion), visibility var(--flood-chart-motion) allow-discrete;
+  }
+  .flood-root:not([data-flood-motion="reduce"]) .flood-bar-list .flood-indicator__fill:not(:where([data-flood-motion="reduce"] *)) {
+    transition: inline-size var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing), filter var(--flood-chart-motion);
+  }
+}
+@media (forced-colors: active) {
+  .flood-root .flood-donut-chart__track { stroke: GrayText; }
+  .flood-root .flood-donut-chart .flood-donut-chart__segment { forced-color-adjust: none; stroke: CanvasText; fill: Canvas; }
+  .flood-root .flood-donut-chart .flood-donut-chart__segment[data-active] { stroke: Highlight; }
+  .flood-root :is(.flood-line-chart, .flood-bar-chart) [data-series] { color: CanvasText; }
+  .flood-root .flood-bar-chart__marks::after { forced-color-adjust: none; background: GrayText; }
+  .flood-root .flood-bar-chart__group[data-active] { outline: 1px solid Highlight; outline-offset: -1px; }
+  .flood-root .flood-line-chart__grid { stroke: GrayText; }
+  .flood-root .flood-line-chart__cursor { forced-color-adjust: none; background: Highlight; }
+  .flood-root .flood-line-chart__marker { forced-color-adjust: none; background: CanvasText; }
+  .flood-root .flood-line-chart__area { display: none; }
+  .flood-root .flood-bar-list .flood-indicator__track { outline: none; }
+  .flood-root .flood-bar-list .flood-indicator__fill { forced-color-adjust: none; background: transparent; border-block-end: 2px solid Highlight; }
+}

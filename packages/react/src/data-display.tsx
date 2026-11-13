@@ -50,7 +50,7 @@ export const TabularData = /* @__PURE__ */ forwardRef<HTMLTableElement, TablePro
       } : undefined}>
       <table {...props} ref={ref} hidden={hidden} dir={dir} lang={lang}
         className={["flood-table", className].filter(Boolean).join(" ")} data-density={density} data-striped={striped} data-cell-vertical-align={cellVerticalAlign}
-        data-sticky-header={pinHeader || undefined}>
+        data-sticky-header={pinHeader || undefined} data-bounded={scrollVertically || undefined}>
         <caption className={hideCaption ? "flood-visually-hidden" : undefined}>{caption}</caption>
         {children}
       </table>

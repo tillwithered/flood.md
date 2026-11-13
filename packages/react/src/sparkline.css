@@ -15,7 +15,8 @@
 }
 
 .flood-root .flood-sparkline[data-tone="success"] { --flood-sparkline-color: var(--flood-sys-color-feedback-success); }
-.flood-root .flood-sparkline[data-tone="accent"] { --flood-sparkline-color: var(--flood-sys-color-accent-content); }
+.flood-root .flood-sparkline[data-tone="accent"] { --flood-sparkline-color: var(--flood-chart-accent); }
+.flood-root .flood-sparkline__plot stop:first-child { stop-opacity: var(--flood-chart-fill-strength); }
 .flood-root .flood-sparkline[data-tone="warning"] { --flood-sparkline-color: var(--flood-sys-color-feedback-warning); }
 .flood-root .flood-sparkline[data-tone="error"] { --flood-sparkline-color: var(--flood-sys-color-feedback-error); }
 
@@ -35,7 +36,7 @@
   vector-effect: non-scaling-stroke;
 }
 
-.flood-root .flood-sparkline__line { stroke-width: calc(1.5 * var(--flood-sys-stroke-width)); }
+.flood-root .flood-sparkline__line { stroke-width: var(--flood-chart-stroke-width); }
 .flood-root .flood-sparkline__point { stroke-width: calc(3 * var(--flood-sys-stroke-width)); }
 .flood-root .flood-sparkline__point[data-latest] { stroke-width: calc(4 * var(--flood-sys-stroke-width)); }
 .flood-root .flood-sparkline__halo { stroke-width: calc(8 * var(--flood-sys-stroke-width)); opacity: .16; }
@@ -48,7 +49,7 @@
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .flood-root:not([data-flood-motion="reduce"]) :is(.flood-sparkline__halo, .flood-sparkline__area):not(:where([data-flood-motion="reduce"] *)) {
-    transition: opacity var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing);
+    transition: opacity var(--flood-chart-motion);
   }
 }
 .flood-root .flood-sparkline__empty { display: grid; place-items: center; min-block-size: var(--flood-sparkline-height); }

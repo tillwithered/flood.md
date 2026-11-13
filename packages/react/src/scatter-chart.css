@@ -1,0 +1,168 @@
+.flood-root .flood-scatter-chart {
+  --flood-scatter-inset: var(--flood-sys-space-2);
+  --flood-scatter-height: 13rem;
+  min-inline-size: 0;
+  container-type: inline-size;
+}
+
+.flood-root .flood-scatter-chart__layout {
+  display: grid;
+  grid-template-columns: fit-content(26%) minmax(0, 1fr);
+  gap: var(--flood-sys-space-1) var(--flood-sys-space-2);
+}
+
+.flood-root .flood-scatter-chart__plot {
+  position: relative;
+  min-inline-size: 0;
+  block-size: var(--flood-scatter-height);
+  cursor: crosshair;
+}
+
+.flood-root .flood-scatter-chart__plot:focus-visible {
+  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
+  outline-offset: var(--flood-sys-focus-offset);
+  border-radius: var(--flood-sys-radius-indicator);
+}
+
+.flood-root .flood-scatter-chart__area {
+  position: absolute;
+  inset: var(--flood-scatter-inset);
+  pointer-events: none;
+}
+
+.flood-root .flood-scatter-chart__area::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--flood-chart-grid);
+  mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent),
+    linear-gradient(transparent, black 12%, black 88%, transparent);
+  mask-composite: intersect;
+}
+
+.flood-root .flood-scatter-chart__point {
+  position: absolute;
+  box-sizing: border-box;
+  inline-size: calc(1.6 * var(--flood-sys-space-1));
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: var(--flood-chart-stroke-width) solid color-mix(in srgb, var(--flood-chart-accent) 68%, transparent);
+  background: color-mix(in srgb, var(--flood-chart-accent) 22%, transparent);
+}
+
+.flood-root .flood-scatter-chart__point[data-active] {
+  z-index: 1;
+  border-color: var(--flood-chart-accent);
+  background: var(--flood-chart-accent);
+  box-shadow: 0 0 0 .1875rem color-mix(in srgb, var(--flood-chart-accent) 24%, transparent);
+}
+
+.flood-root .flood-scatter-chart__guides {
+  position: absolute;
+  inset: 0;
+}
+
+.flood-root .flood-scatter-chart__guides::before,
+.flood-root .flood-scatter-chart__guides::after {
+  content: "";
+  position: absolute;
+  opacity: .65;
+}
+
+.flood-root .flood-scatter-chart__guides::before {
+  left: var(--flood-scatter-x);
+  inset-block: 0;
+  inline-size: var(--flood-sys-stroke-width);
+  translate: -50% 0;
+  background: linear-gradient(transparent, var(--flood-chart-accent) 25% 75%, transparent);
+}
+
+.flood-root .flood-scatter-chart__guides::after {
+  top: var(--flood-scatter-y);
+  inset-inline: 0;
+  block-size: var(--flood-sys-stroke-width);
+  translate: 0 -50%;
+  background: linear-gradient(90deg, transparent, var(--flood-chart-accent) 25% 75%, transparent);
+}
+
+.flood-root .flood-scatter-chart__ticks {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--flood-sys-space-2);
+  min-inline-size: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.flood-root .flood-scatter-chart__ticks--y {
+  flex-direction: column;
+  text-align: end;
+}
+
+.flood-root .flood-scatter-chart__ticks--x,
+.flood-root .flood-scatter-chart__horizontal-label {
+  grid-column: 2;
+  padding-inline: var(--flood-scatter-inset);
+}
+.flood-root .flood-scatter-chart__ticks--x {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.flood-root .flood-scatter-chart__ticks > * {
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.flood-root .flood-scatter-chart__ticks--x > :nth-child(2) { text-align: center; }
+.flood-root .flood-scatter-chart__ticks--x > :last-child { grid-column: 3; text-align: end; }
+.flood-root .flood-scatter-chart__ticks--x > :only-child { grid-column: 2; text-align: center; }
+.flood-root .flood-scatter-chart__ticks--y > :only-child { margin-block: auto; }
+.flood-root .flood-scatter-chart__horizontal-label { text-align: center; }
+.flood-root .flood-scatter-chart__vertical-label {
+  display: block;
+  margin-block-end: var(--flood-sys-space-1);
+}
+
+.flood-root .flood-scatter-chart__tooltip {
+  position: absolute;
+  z-index: 2;
+  column-gap: var(--flood-chart-tip-gap);
+  inline-size: max-content;
+  max-inline-size: min(10rem, max(5rem, calc(50% - 1.25 * var(--flood-chart-tip-gap) - var(--flood-sys-stroke-width))));
+  visibility: hidden;
+}
+.flood-root .flood-scatter-chart__tooltip-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  align-items: baseline;
+  gap: var(--flood-sys-space-1) var(--flood-sys-space-2);
+}
+
+.flood-root .flood-scatter-chart__tooltip[data-positioned] { visibility: visible; }
+.flood-root .flood-scatter-chart__tooltip-content > [data-point-label] { grid-column: 1 / -1; }
+.flood-root .flood-scatter-chart__tooltip-content > [data-coordinate] { text-align: end; }
+.flood-root .flood-scatter-chart__empty {
+  display: grid;
+  place-items: center;
+  min-block-size: var(--flood-scatter-height);
+}
+
+@container (max-width: 20rem) {
+  .flood-root .flood-scatter-chart__plot { --flood-scatter-height: 10rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .flood-root:not([data-flood-motion="reduce"]) .flood-scatter-chart__point:not(:where([data-flood-motion="reduce"] *)) {
+    transition: background-color var(--flood-chart-motion), border-color var(--flood-chart-motion), box-shadow var(--flood-chart-motion);
+  }
+}
+
+@media (forced-colors: active) {
+  .flood-root .flood-scatter-chart__point { forced-color-adjust: none; background: Canvas; border-color: CanvasText; }
+  .flood-root .flood-scatter-chart__point[data-active] { background: Highlight; border-color: Highlight; box-shadow: none; }
+  .flood-root .flood-scatter-chart__guides::before,
+  .flood-root .flood-scatter-chart__guides::after { forced-color-adjust: none; background: Highlight; }
+}

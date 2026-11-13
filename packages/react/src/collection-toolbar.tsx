@@ -4,7 +4,7 @@ import { Button, Field, Fieldset, IconSlot, Inline, Popover, SearchInput, Tag, T
 /** Query chrome only: the host supplies filter drafts, accepted query and saved views. */
 export const CollectionQueryBar = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, CollectionToolbarProps>(function CollectionQueryBar({
   label, searchValue, onSearchValueChange, searchLabel = 'Search', searchPlaceholder = 'Search…', clearSearchLabel = 'Clear search',
-  appliedFilters = [], onRemoveFilter, appliedFiltersLabel = 'Applied filters', summaryPrefix, quickFilters, actions,
+  appliedFilters = [], onRemoveFilter, appliedFiltersLabel = 'Applied filters', summaryPrefix, align = 'stretch', quickFilters, actions,
   filterContent, filtersLabel = 'Filters', filterTitle = filtersLabel, filtersOpen, onFiltersOpenChange,
   filterPanelRef, filterPanelClassName, onClear, canClear = Boolean(searchValue || appliedFilters.length), clearLabel = 'Clear filters',
   controlSize = 'sm', disabled = false, hideLabel = true, className, ...props
@@ -22,7 +22,7 @@ export const CollectionQueryBar = /* @__PURE__ */ forwardRef<HTMLFieldSetElement
     document?.getElementById(hasPanel ? triggerId : searchId)?.focus({ preventScroll: true });
   }
   return <Fieldset {...props} ref={root} legend={label} hideLabel={hideLabel} disabled={disabled}
-    className={['flood-collection-toolbar', className].filter(Boolean).join(' ')}>
+    className={['flood-collection-toolbar', className].filter(Boolean).join(' ')} data-align={align}>
     <Inline gap="3" align="center" className="flood-collection-toolbar__row">
       <div className="flood-collection-toolbar__search"><Field id={searchId} label={searchLabel} hideLabel>{field => <SearchInput {...field}
         controlSize={controlSize} value={searchValue} placeholder={searchPlaceholder} clearLabel={clearSearchLabel} disabled={disabled}

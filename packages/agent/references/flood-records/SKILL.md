@@ -72,10 +72,13 @@ edge inset when the heading, filters, cells and footer share one surface.
 For transient selection commands, look up `recipe:collection-views` in the
 installed catalog. For a full-window record workspace with a changing row count,
 use `AppShell scroll="content" scrollOrientation="vertical"` as the vertical
-scroll owner, including when the page has no app chrome. Keep fixed actions
-outside that ScrollArea. Test a populated view and a filtered or empty view in a
-browser with space-reserving scrollbars. Compare the table's inline edges
-and the document's client width across those views.
+scroll owner, including when the page has no app chrome. If workspace padding
+already clears the overlay rail, set `scrollContentInset="none"` to keep the
+content width stable when the rail appears. Keep fixed actions outside that
+ScrollArea and wide table scrolling inside the table. Test populated and empty
+views with space-reserving system scrollbars enabled. Check which element
+scrolls, that the document reserves zero scrollbar width, and that table edges
+stay put when the app scrollbar appears or disappears.
 
 Place BulkActionBar in a fixed host centered near the bottom
 of the viewport. Keep the host outside the table toolbar. Budget any needed
@@ -139,6 +142,12 @@ filters, ordering, page and scroll with the mounted collection. After saving,
 reapply the current filter to the updated data. If the source row disappears,
 return focus to a surviving list control such as search. In a long list, verify
 the scroll position and focus separately after both Save and Cancel.
+
+For a table-to-Drawer flow, give DataTable's primary action the record title
+and open the same Drawer from the row surface and keyboard action. Group facts
+in DescriptionList and related rows in a captioned Table. Keep the Drawer body
+as the vertical scroll owner and keep the edit or save action in its footer.
+Use floating feedback for the save result so the table stays in place.
 
 Keep search and a frequently used filter visible when there is room. Put
 occasional or grouped criteria behind a named Filters action. Show applied

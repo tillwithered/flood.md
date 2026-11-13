@@ -270,9 +270,10 @@
     "name": "CodeSnippet",
     "group": "content",
     "description": "Selectable, wrapping code with an optional host-owned action.",
-    "code": "<CodeSnippet code=\"git status --short\" />",
+    "code": "<CodeSnippet prompt=\"$\" code=\"git status --short\" />",
     "notes": [
       "CodeSnippet escapes code content and uses the semantic system monospace font stack.",
+      "Use prompt for a decorative shell marker. Pass the original code to the copy action.",
       "The host implements copy behavior, failure handling and feedback. No clipboard or network API runs inside the component.",
       "Code text defaults to LTR independently of parent layout. codeDirection can be ltr/rtl/auto; native dir still controls the wrapper and action layout."
     ],
@@ -526,6 +527,7 @@
     "notes": [
       "Uses native showModal, not a simulated modal div.",
       "Escape closes the top layer; outside closing can be disabled independently. Tab remains inside the dialog.",
+      "Use getFallbackFocus to resolve a surviving focus target when the opener disappears or becomes unavailable on close.",
       "Closed content unmounts. Forward trigger props/ref; initialFocusRef can select a safe initial control. Modern native dialog support is required."
     ],
     "imports": [
@@ -713,7 +715,7 @@
     "notes": [
       "Caption is required and remains the accessible table name with hideCaption. Supply table sections and correct native header/cell associations.",
       "Native table props, className/style and HTMLTableElement ref target the actual table. Set style.minWidth when horizontal overflow is preferable to compressed columns.",
-      "Flood ScrollArea owns horizontal scrolling and keyboard access. scrollLabel can name its viewport independently; dir and hidden apply to the containing scroll area too.",
+      "Flood ScrollArea owns horizontal scrolling and keyboard access. Set maxViewportHeight for bounded vertical scrolling with stable clearance for the overlay rail. scrollLabel names the viewport independently.",
       "Use data-numeric on headers/cells for end alignment and tabular figures; data-align=start/center/end gives logical alignment. No automatic sorting, selection, pagination or data access.",
       "Striped and compact/comfortable density are opt-in presentation. Available in 0.2.4."
     ]
@@ -733,6 +735,7 @@
       "Enter/Space and ArrowDown open at the first item; ArrowUp opens at the last. Inside use arrows, Home/End and label-prefix typeahead.",
       "Disabled items stay keyboard-focusable with aria-disabled but cannot activate. Separators are noninteractive; action IDs must be unique and nonempty. At least one action is required.",
       "Escape closes and restores trigger focus. Tab moves to the next control after the trigger; Shift+Tab returns to the trigger. Outside interaction dismisses without stealing deliberately moved focus.",
+      "Use getFallbackFocus when an action can remove or disable its opener. Resolve the surviving control from the committed interface.",
       "Shortcut text is a visual hint, not an implemented key binding. No href or asynchronous task manager is included. Nested items use type=\"submenu\" and a nonempty items array. Checkbox/radio items are controlled preferences, available in 0.2.7.",
       "Controlled open needs host updates; onAction requests closure before calling the host. Modern native Popover API required. Native div props/ref target the popup. Available in 0.2.4.",
       "Checkbox items take checked (boolean or mixed) and onCheckedChange. Radio items take a nonempty group label, checked and onCheckedChange; the host keeps one selected item per group. Keep each radio group contiguous. Preference items stay open by default; closeOnSelect opts into dismissal. They do not call onAction or submit form values.",
@@ -1067,6 +1070,7 @@
     ],
     "notes": [
       "Uses Flood native Dialog focus containment, scroll lock, background inertness, nested layers and return focus. Escape and the named close IconButton dismiss it; closeOnOutsideClick defaults to true. Controlled open/onOpenChange and initialFocusRef match Dialog.",
+      "Drawer inherits getFallbackFocus from Dialog. Use it when saving or deleting can remove the opening row from a collection.",
       "side is logical start/end or physical top/bottom. size sets 20/26/34rem for sm/md/lg, capped to the viewport. Vertical drawers occupy the viewport height; horizontal drawers occupy its width. Entry motion respects reduced motion; closing is immediate.",
       "Choose width against a populated record. For longer messages and several controls, compare md and lg. Use the description slot for short context and compose independent body groups with Section or Fieldset. Keep persistent actions in footer.",
       "The body scrolls with Flood ScrollArea while the header and optional footer remain visible when space allows. Responsive padding and full-width narrow descriptions preserve the reading area at enlarged text; if the chrome cannot fit, the whole panel can scroll rather than clipping the body. Footer actions are host-owned, without implicit save or close. No swipe/drag gesture or nested navigation engine is included. Available in 0.2.5."
@@ -1096,7 +1100,8 @@
     ],
     "notes": [
       "Copies only on a user click. Requires a secure context and Clipboard API; onCopyError receives unavailable/denied errors. The host owns any manual-copy fallback. Native button ref and disabled semantics are preserved.",
-      "Localize copyLabel/copiedLabel/errorLabel. resetDelay restores the idle state after success. Labels reserve their common width and a live status announces the result. No remote data transfer is built in. Available in 0.2.5."
+      "Localize copyLabel/copiedLabel/errorLabel. resetDelay restores the idle state after success. Labels reserve their common width and a live status announces the result. No remote data transfer is built in. Available in 0.2.5.",
+      "Use iconOnly for a square IconButton when the nearby content makes the copy target clear. The button keeps its accessible name and success or failure feedback."
     ]
   },
   {
@@ -1209,7 +1214,7 @@
   {
     "slug": "sparkline",
     "name": "Sparkline",
-    "group": "content",
+    "group": "charts",
     "description": "A compact line or area chart for trends in a table cell, list or metric.",
     "code": "<Sparkline label=\"Revenue rose from $8,000 to $12,000\" values={[8000, 8200, null, 9500, 11000, 12000]} domain={[0, 15000]} />",
     "imports": ["Sparkline"],
@@ -1217,6 +1222,164 @@
       "Give the graphic a label that communicates the metric and the trend. Set showLabel to make that label visible.",
       "Use a shared domain for comparing magnitudes across rows. Null and nonfinite samples leave gaps in both the stroke and area.",
       "The default area uses an accent stroke with a gradient below it. Choose variant line for stroke only and use semantic tones only when the data has a known interpretation."
+    ]
+  },
+  {
+    "slug": "line-chart",
+    "name": "LineChart",
+    "group": "charts",
+    "description": "A line or area chart for comparing trends on a shared scale.",
+    "code": "<LineChart label=\"Daily visits\" categories={[\"Mon\", \"Tue\", \"Wed\"]}\n  series={[{id:\"this-week\", label:\"This week\", values:[38, 55, 48]}]}\n  domain={[0, 60]} variant=\"area\" />",
+    "imports": ["LineChart"],
+    "notes": [
+      "The chart shows dates and a quiet dot grid by default. Enable showYAxis when numeric levels need to be visible at a glance.",
+      "Series names appear in the inspection readout. Set showLegend when the key needs to be visible before interaction.",
+      "Supply equally spaced categories in reading order and up to four named series with the same number of values. Null and nonfinite values leave gaps. Zero is an observation.",
+      "Use a shared domain containing all observations when comparing separate charts. Area shading belongs to the first series. Line styles distinguish the series independently of color. Set curve to linear for straight segments.",
+      "Explore values by hovering, tapping, or using arrow keys, Home and End. The default number format is English; supply formatValue and translated empty, missing and navigation labels for other locales."
+    ]
+  },
+  {
+    "slug": "bar-chart",
+    "name": "BarChart",
+    "group": "charts",
+    "description": "Grouped or stacked columns for comparing values across categories on a shared zero baseline.",
+    "code": "<BarChart label=\"Hours by team\" categories={[\"Product\", \"Design\", \"Growth\"]}\n  series={[\n    {id:\"actual\", label:\"Actual\", values:[38, 29, 46]},\n    {id:\"plan\", label:\"Plan\", values:[32, 36, 40]}\n  ]} />",
+    "imports": ["BarChart"],
+    "notes": [
+      "Use layout stacked for additive series. Positive and negative values accumulate independently on either side of zero. A custom domain must contain the cumulative bounds.",
+      "Use layout percent for nonnegative shares on a fixed 0–100% scale. The readout shows each share of the observed total and its raw value. A zero total leaves the column empty and shows raw zeros. Supply formatShare to localize percentages.",
+      "Series names appear in the inspection readout. Set showLegend when the key needs to be visible before interaction.",
+      "Pass up to four series in display order with one value per category. Put the primary series first to give it the accent fill. Comparison series use outline and dash styling as well as color.",
+      "Grouped columns start at zero and reserve empty slots for missing observations. In stacks, zero and missing observations take no space and remain distinguishable in the readout. Use the same domain to compare separate charts.",
+      "Explore exact values by hovering, tapping, or using arrow keys, Home and End. Supply formatValue and translated empty, missing and navigation labels for other locales."
+    ]
+  },
+  {
+    "slug": "donut-chart",
+    "name": "DonutChart",
+    "group": "charts",
+    "description": "Shares of a whole with an in-ring total and exact values on inspection.",
+    "code": "<DonutChart label=\"Traffic sources\" totalLabel=\"Visits\" items={[\n  {id:\"direct\", label:\"Direct\", value:6420},\n  {id:\"search\", label:\"Search\", value:3720},\n  {id:\"referrals\", label:\"Referrals\", value:1960}\n]} />",
+    "imports": ["DonutChart"],
+    "notes": [
+      "Pass up to six mutually exclusive categories in display order. Values must be finite and nonnegative. The ring uses their sum as the whole.",
+      "Hover, tap or use arrow keys, Home and End to inspect a category. Its name, exact value and share appear inside the ring. Enable showLegend when readers need the category names before interacting.",
+      "An empty list displays the empty label. All-zero data displays a total of zero and omits percentages. Supply formatValue and formatShare for localized output."
+    ]
+  },
+  {
+    "slug": "heatmap",
+    "name": "Heatmap",
+    "group": "charts",
+    "description": "A two-axis matrix that shows intensity and reveals exact cell values.",
+    "code": "<Heatmap label=\"Requests by hour\" columns={[\"08:00\", \"10:00\", \"12:00\"]}\n  rows={[\n    {id:\"mon\", label:\"Mon\", values:[4, 13, 23]},\n    {id:\"tue\", label:\"Tue\", values:[7, null, 32]}\n  ]} max={40} />",
+    "imports": ["Heatmap"],
+    "notes": [
+      "Supply a value for each column. Values are finite and nonnegative; null represents a missing observation and gets a dashed tile. Zero is an observed value.",
+      "Use the same max across matrices that should be compared. Hover, tap or use arrow keys to inspect exact values in a tooltip beside the cell. Home and End move within a row.",
+      "Keep axis labels short at the target width. Provide formatValue and localized labels when needed."
+    ]
+  },
+  {
+    "slug": "scatter-chart",
+    "name": "ScatterChart",
+    "group": "charts",
+    "description": "Paired numeric observations for inspecting how two measures vary together.",
+    "code": "<ScatterChart label=\"Response time by traffic\" xLabel=\"Requests / sec\" yLabel=\"Response time (ms)\" points={[\n  {id:\"run-1\", label:\"Run 1\", x:12, y:110},\n  {id:\"run-2\", label:\"Run 2\", x:52, y:162},\n  {id:\"run-3\", label:\"Run 3\", x:104, y:301}\n]} />",
+    "imports": ["ScatterChart"],
+    "notes": [
+      "Give each point a stable ID and finite x and y values. Label both axes with their units.",
+      "Use matching xDomain and yDomain to compare separate plots. Use formatX and formatY for localized values.",
+      "Inspect the nearest point with the pointer or traverse observations in supplied order with the keyboard."
+    ]
+  },
+  {
+    "slug": "range-chart",
+    "name": "RangeChart",
+    "group": "charts",
+    "description": "Low and high values by category, with an optional midpoint.",
+    "code": "<RangeChart label=\"Response time (ms)\" lowLabel=\"P10\" highLabel=\"P90\" midpointLabel=\"Median\" items={[\n  {id:\"mon\", label:\"Mon\", low:84, high:162, midpoint:119},\n  {id:\"tue\", label:\"Tue\", low:92, high:176, midpoint:125}\n]} />",
+    "imports": ["RangeChart"],
+    "notes": [
+      "Use a shared scale to compare intervals. Supply a midpoint only when it adds information, such as a measured median.",
+      "Use null bounds for missing observations and give the bounds meaningful labels with units. Inspect a category to read its exact values."
+    ]
+  },
+  {
+    "slug": "dumbbell-chart",
+    "name": "DumbbellChart",
+    "group": "charts",
+    "description": "Paired values on one scale for comparing before and after across groups.",
+    "code": "<DumbbellChart label=\"Response time before and after\" items={[\n  {id:\"api\", label:\"API\", before:242, after:164},\n  {id:\"billing\", label:\"Billing\", before:153, after:190}\n]} formatValue={(value) => `${value} ms`} />",
+    "imports": ["DumbbellChart"],
+    "notes": [
+      "The hollow point marks Before and the filled point marks After. Equal values share a position. A null endpoint leaves the other point visible.",
+      "Compare the same measure in the same units. Supply a shared domain when comparing separate charts and use formatValue to include units.",
+      "Hover, tap or use the arrow keys to read both values. Rename beforeLabel and afterLabel when comparing other paired conditions."
+    ]
+  },
+  {
+    "slug": "box-plot",
+    "name": "BoxPlot",
+    "group": "charts",
+    "description": "Compare the median, quartiles and spread across groups, such as request latency by service.",
+    "code": "<BoxPlot label=\"Request latency (ms)\" items={[\n  {id:\"api\", label:\"API\", summary:{low:42, q1:74, median:96, q3:128, high:176}, outliers:[203]},\n  {id:\"search\", label:\"Search\", summary:{low:32, q1:58, median:88, q3:154, high:210}}\n]} />",
+    "imports": ["BoxPlot"],
+    "notes": [
+      "Supply a five-number summary for each group. The box spans Q1 to Q3 and the white line marks the median. Supply whiskers and outliers using the same statistical convention across groups.",
+      "Use null for a missing summary. Use the same domain across related charts and include all observations, including outliers.",
+      "Hover, tap or use the arrow keys to inspect the summary and outlier count. Use formatAxisValue for shorter ticks when units are already visible. Set --flood-chart-plot-height on a shared parent to align plot heights with Histogram."
+    ]
+  },
+  {
+    "slug": "bullet-chart",
+    "name": "BulletChart",
+    "group": "charts",
+    "description": "Actual values and targets on the same horizontal scale.",
+    "code": "<BulletChart label=\"Resolved requests\" max={100} items={[\n  {id:\"web\", label:\"Web\", value:74, target:80},\n  {id:\"email\", label:\"Email\", value:56, target:50}\n]} />",
+    "imports": ["BulletChart"],
+    "notes": [
+      "Supply finite nonnegative actuals and targets in the same unit. Use a shared max to compare separate charts.",
+      "The fill shows the actual value and the vertical marker shows the target. Both exact values are visible without interaction."
+    ]
+  },
+  {
+    "slug": "histogram",
+    "name": "Histogram",
+    "group": "charts",
+    "description": "Show how often values such as request latency fall into equal-width intervals.",
+    "code": "<Histogram label=\"Request latency distribution\" xLabel=\"Latency (ms)\" countLabel=\"Requests\" start={0} binWidth={50} counts={[5, 16, 34, 49, 41, 28, 17, 9, 4, 0]} />",
+    "imports": ["Histogram"],
+    "notes": [
+      "Supply precomputed nonnegative integer counts in ascending bin order. Every bin shares binWidth. Keep interior zero bins so the numeric scale stays continuous.",
+      "Count each observation in exactly one interval. A typical convention includes the lower boundary and excludes the upper boundary, with the last upper boundary included if needed.",
+      "Compare histograms on the same numeric boundaries and maxCount. Set showXAxisLabel to false when the title already supplies the unit. Hover, tap or use the keyboard to inspect an interval and its exact count."
+    ]
+  },
+  {
+    "slug": "waterfall-chart",
+    "name": "WaterfallChart",
+    "group": "charts",
+    "description": "Signed changes and checkpoints along a running total.",
+    "code": "<WaterfallChart label=\"Net revenue (USD)\" steps={[\n  {id:\"gross\", label:\"Gross\", value:32000, kind:\"total\"},\n  {id:\"refunds\", label:\"Refunds\", value:-4500},\n  {id:\"fees\", label:\"Fees\", value:-2500},\n  {id:\"net\", label:\"Net\", value:25000, kind:\"total\"}\n]} />",
+    "imports": ["WaterfallChart"],
+    "notes": [
+      "A change adds its signed value to the running total. A total is an absolute checkpoint that replaces the running total.",
+      "Use the same domain for charts you want to compare. It must contain zero and every intermediate total. Use formatValue to add units.",
+      "Hover, tap or use the keyboard to inspect exact changes and running totals. Decreases use a dashed outline."
+    ]
+  },
+  {
+    "slug": "bar-list",
+    "name": "BarList",
+    "group": "charts",
+    "description": "A compact ranked list of named values on one scale.",
+    "code": "<BarList label=\"Visits by page\" items={[\n  {id:\"overview\", label:\"Overview\", value:214},\n  {id:\"components\", label:\"Components\", value:136}\n]} />",
+    "imports": ["BarList"],
+    "notes": [
+      "Sort items before passing them in. The list preserves display order and uses a shared zero baseline. Pass the same max to compare separate lists.",
+      "Each item uses a proportional background bar from Flood Meter. Labels and exact values share one row and stay aligned across the list. Supply valueText for units or localized formatting."
     ]
   },
   {
@@ -1274,7 +1437,7 @@
     "code": "<AppShell topBar={<AppTopBar start={<Text>Workspace</Text>} />}><PageHeader title=\"Projects\" /></AppShell>",
     "imports": ["AppShell", "AppTopBar", "PageHeader", "Text"],
     "notes": [
-      "Content scrolling keeps navigation, top bar and footer outside the work scrollport. Use scroll=\"page\" for a document that scrolls as a whole.",
+      "Use content scrolling for a full-window application, including record queues whose row count changes. It keeps the navigation, top bar and footer outside the work scrollport. Use scroll=\"page\" for a document that scrolls as a whole.",
       "Content mode uses Flood ScrollArea. Set scrollContentInset=\"none\" when existing workspace padding clears the overlay rails and the content width needs to stay fixed.",
       "Supply Sidebar for docked navigation. Set navigationDrawer with a shell-width threshold and Drawer content to swap automatically. Share accepted route and branch state between the two presentations.",
       "Use mainAs=\"section\" only when embedding a shell inside an existing main landmark."
@@ -2133,6 +2296,7 @@
       "Clear keeps its space immediately before the right-anchored Filters trigger while inactive. Removing a summary or clearing returns focus to Filters, or Search when no panel exists. Filter disclosure is omitted when no filterContent is supplied.",
       "quickFilters is an optional slot for at most two task-important properties; larger property sets belong inside filterContent. The host owns the threshold and slot behavior. Supply canClear when active state is not represented by searchValue/appliedFilters, such as controls in that slot.",
       "Search, accepted summaries and commands share a responsive row. The actions slot places table commands, such as Columns, next to Filters. Saved-view selectors and save/rename actions stay outside this query row.",
+      "Use align=\"end\" when a sibling such as a view selector or status switcher occupies the start of the row. Search, quick filters, summaries and commands form an end-aligned group and wrap in their original order as space runs out.",
       "controlSize defaults to sm; action/field sizes and chip typography follow the shared family. disabled applies to the complete fieldset, including native quick-filter controls and panel descendants. Labels and summaries remain host-localizable."
     ]
   },

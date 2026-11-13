@@ -159,6 +159,9 @@ defines reset scope and supplies canClear for any state held by quickFilters.
 At most two task-important quick properties remain inline; additional properties
 belong inside Filters. Summaries outside the panel name the property and preserve
 any-match meaning. Container width, rather than viewport size, governs reflow.
+When search and filters share a wide row with a status or view selector, use
+`align="end"` on CollectionToolbar. Check that the final control reaches the
+row's trailing content edge and that the row wraps with enlarged text.
 The Projects table places its Columns control in CollectionToolbar's `actions`
 slot via DataTable's `toolbar` render function. It shares the tool row with
 search and filters, and the commands wrap as a group in a narrow container.

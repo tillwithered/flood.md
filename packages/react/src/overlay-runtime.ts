@@ -112,9 +112,26 @@ export function positionLayer(anchor:HTMLElement,panel:HTMLElement,side:Side,ali
   panel.dataset.side=position.side;panel.style.visibility="visible";
 }
 
-export function returnFocus(panel:HTMLElement,anchor:HTMLElement|null){
-  const active=panel.ownerDocument.activeElement;
-  if(anchor?.isConnected&&!anchor.matches(":disabled")&&(panel.contains(active)||active===panel.ownerDocument.body))anchor.focus({preventScroll:true});
+export function returnFocus(panel: HTMLElement, anchor: HTMLElement | null, fallback?: () => HTMLElement | null) {
+  const document = panel.ownerDocument;
+  const needsFocus = () => {
+    const active = document.activeElement;
+    return !active || active === document.body || panel.contains(active);
+  };
+  const focus = (target: HTMLElement | null) => {
+    if (!target?.isConnected || target.ownerDocument !== document || panel.contains(target) ||
+        target.matches(':disabled,[aria-disabled="true"]') || target.closest("[hidden],[inert]") ||
+        !target.getClientRects().length || document.defaultView?.getComputedStyle(target).visibility !== "visible") return;
+    target.focus({preventScroll: true});
+  };
+  if (needsFocus()) focus(anchor);
+  else if (document.activeElement !== anchor) return;
+  if (!fallback) return;
+  // A surviving opener can still be removed in the same React commit.
+  queueMicrotask(() => {
+    if (panel.matches("dialog[open]") || panel.matches(":popover-open") || !needsFocus()) return;
+    focus(fallback());
+  });
 }
 /** Retain pixels for a CSS exit after the native layer has released focus. */
 export function useLayerExitContent(panel:RefObject<HTMLElement|null>,open:boolean,enabled=true,transitionProperty="opacity") {

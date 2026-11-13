@@ -52,6 +52,13 @@ If discovery finds no suitable component, state the missing capability; do not
 claim that the library has no owner without checking. Keep this decision record
 in development notes, never as extra explanatory text in the product.
 
+For an unfamiliar composition, find the closest runnable recipe and reuse the
+relationship it demonstrates. For example, use `recipe:record-management` to see
+how a DataTable row opens a Drawer while the list preserves scroll and filters.
+Use `recipe:table-bulk-actions` when a selection needs shared commands and
+confirmation. Check the recipe against the installed contracts and adapt it to
+the host's actual task and data.
+
 - Reuse the matching component with its supported props and tokens.
 - If spacing or alignment is wrong, inspect both the primitive and the parent
   composition. Fix the owner of the relationship. Keep the primitive intact.

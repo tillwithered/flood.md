@@ -2,6 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {inspectSourceUI} from '../packages/agent/lib/inspect.mjs';
 
+test('host source flags explicit AppShell document scrolling for review',()=>{
+  const report=inspectSourceUI(`<AppShell scroll="page"/><AppShell scroll={'page'}/><AppShell scroll="content"/>`);
+  assert.deepEqual(report.issues.map(issue=>issue.id),['composition.page-scroll','composition.page-scroll']);
+});
+
 test('source review distinguishes visible native controls from selected Flood owners',()=>{
   const source=`<form><DatePicker label="Date"/><Select/><Button>Save</Button><table/></form>\nwindow.confirm('Discard?');\n<input type="date"/><select/><button>Save</button>`;
   const report=inspectSourceUI(source);

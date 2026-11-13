@@ -131,7 +131,7 @@
       "verify": [
         "320px width",
         "Root 24px and increased text spacing",
-        "Record workspace keeps table edges and document width stable across full, filtered and empty views with classic scrollbars",
+        "The assertWorkspaceScroll browser test passes across populated and empty workspace states with classic scrollbars enabled",
         "No glyph shrink or unintended page overflow"
       ]
     },
@@ -301,6 +301,7 @@
       "verify": [
         "Inspect actual FormData and field ownership",
         "Exercise accepted/refused controlled updates and incomplete drafts",
+        "When an application validation message is needed, check that it remains readable while correcting the associated field",
         "Defaults match representation; no defaultValue-as-update or invented save guarantee",
         "Verify submitted free text versus selected IDs and reject options belonging to an older manual query."
       ]
@@ -419,6 +420,8 @@
       "verify": [
         "Caption, headers and named-value relationships preserved",
         "Row actions remain independent named controls",
+        "When stable column tracks matter, compare populated, filtered and no-results states at the same viewport",
+        "A query group sharing a wide row with a view selector reaches the trailing edge with its last control and wraps in reading order",
         "When users need column visibility, the table has one layout control in its tool row or existing view settings",
         "If enabled, column resizing works by pointer and keyboard, pinned edges leave the middle reachable, and resetting layout preserves the query",
         "Expanded detail remains associated with its parent record and preserves native table semantics",
@@ -549,6 +552,19 @@
       ]
     },
     {
+      "id": "verification.visual-review",
+      "when": "Reviewing a visible UI change, screenshot report or visual regression",
+      "for": ["designer", "developer", "reviewer", "agent"],
+      "requires": ["Runnable route or component preview", "Affected interaction and visual states"],
+      "sourceOfTruth": "The affected states rendered in the browser for the current revision",
+      "guide": "references/flood-visual-review/SKILL.md",
+      "verify": [
+        "Affected states exercised and the captured images inspected",
+        "Material findings tied to a specific state and screenshot, trace or measurement",
+        "Fix rechecked in the same state, with coverage and evidence gaps reported"
+      ]
+    },
+    {
       "id": "knowledge.versioned",
       "when": "Discovering or extending Flood knowledge",
       "for": [
@@ -631,6 +647,20 @@
       ]
     },
     {
+      "id": "layout.screen-purpose",
+      "when": "Designing a screen or resolving unclear reading order, comparison or next actions",
+      "for": ["designer", "developer", "agent", "reviewer"],
+      "requires": ["User task and representative content", "Installed component contracts", "Rendered screen in the supported layout"],
+      "sourceOfTruth": "User task, host layout and Flood screen composition guidance",
+      "guide": "references/flood-screen-composition/SKILL.md",
+      "verify": [
+        "The first viewport establishes the task and reveals the next useful content or action",
+        "Repeated comparisons use predictable tracks; local controls stay with the region they affect",
+        "Reading and keyboard order preserve the task when the layout reflows",
+        "Each major surface and summary identifies scope, groups related content or supports a decision"
+      ]
+    },
+    {
       "id": "layout.hierarchy",
       "when": "Composing or reviewing task titles, group legends, named fields and shared form tracks",
       "for": [
@@ -676,7 +706,8 @@
         "List, details, first-use and filtered empty states reviewed separately",
         "A short mutually exclusive filter for one table uses a selection control; verify keyboard selection, surviving search/sort and focused control",
         "Record edits preserve applied filters and list position; focus returns to the opener or a surviving list control",
-        "For a row opening in-place details, compare title-to-metadata rhythm and the shared table edge; exercise row activation, keyboard entry and independent nested controls"
+        "For a row opening in-place details, compare title-to-metadata rhythm and the shared table edge; exercise row activation, keyboard entry and independent nested controls",
+        "A record Drawer keeps the next action reachable while the body scrolls; save feedback leaves the table geometry intact"
       ]
     },
     {
@@ -720,6 +751,7 @@
         "Closest siblings rendered at the same size, surface and root text scale",
         "Shape, nested inset and content-box overflow budget checked together",
         "Read-only editing restrictions kept separate from focus and disabled semantics",
+        "A real host composition keeps its intended geometry through the relevant state change",
         "Another consumer checked after a shared primitive correction"
       ]
     },

@@ -13,10 +13,18 @@ The hierarchy workflow covers task/group/field roles, common control tracks and
 relationship spacing. It complements editorial decisions and the spacing workflow;
 it does not prescribe one screen template.
 
+The screen composition workflow helps choose page structure and reading order
+for landing pages, workspaces, forms and documentation. Review it by running
+the user's find, compare or act task in the rendered screen.
+
 The records workflow covers list/detail information selection, stable scan
 positions and the distinction between category, lifecycle state, priority and
 time. It includes examples where those attributes should remain visible, rather
 than a universal rule to hide metadata or limit badge counts.
+
+Visual review exercises the running UI, captures the affected states and checks
+the screenshots before handoff. Use it for new UI, screenshot feedback and
+visible regressions. Keep browser evidence with the findings or the fix.
 
 Use [Agent knowledge](agent-knowledge.md) to discover these workflows by semantic
 group and read the installed version. The catalog separates prerequisites from

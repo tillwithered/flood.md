@@ -22,6 +22,28 @@ async function timersReady(page:Page,id:string){
 test('CopyButton writes only from enabled clicks and preserves label geometry',async({page})=>{
  await page.addInitScript(()=>{(window as any).copies=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async(text:string)=>{if((window as any).failCopy)throw new Error('Clipboard denied');(window as any).copies.push(text);}}});});await open(page);const copy=page.getByRole('button',{name:'Copy',exact:true}),width=(await copy.boundingBox())!.width;const geometry=async()=>page.locator('.flood-copy-button').first().evaluate(button=>{const row=button.querySelector('[data-visible]')!;const [icon,label]=Array.from(row.children).map(node=>node.getBoundingClientRect());const box=button.getBoundingClientRect();return {gap:label.left-icon.right,left:icon.left-box.left,right:box.right-label.right,width:box.width};});const idle=await geometry();expect(Math.abs(idle.left-idle.right)).toBeLessThan(1);await copy.click();await expect(page.getByRole('button',{name:'Copied',exact:true})).toBeVisible();const copied=await geometry();expect(copied.gap).toBe(idle.gap);expect(Math.abs(copied.left-copied.right)).toBeLessThan(1);expect((await page.getByRole('button',{name:'Copied',exact:true}).boundingBox())!.width).toBe(width);expect(await page.evaluate(()=>(window as any).copies)).toEqual(['local test']);await expect(page.getByRole('button',{name:'Disabled copy'})).toBeDisabled();await expect(copy).toBeVisible();await page.evaluate(()=>(window as any).failCopy=true);await copy.click();await expect(page.getByRole('button',{name:'Failed',exact:true})).toBeVisible();const failed=await geometry();expect(failed.gap).toBe(idle.gap);expect(failed.width).toBe(width);expect(Math.abs(failed.left-failed.right)).toBeLessThan(1);await expect(page.getByRole('status',{name:'Copy error'})).toHaveText('Clipboard denied');
 });
+
+test('icon-only CopyButton keeps its square target and announces the copy result', async ({ page }) => {
+ await page.addInitScript(() => {
+  Object.defineProperty(navigator, 'clipboard', {
+   configurable: true, value: { writeText: async (value: string) => { document.body.dataset.copiedValue = value; } },
+  });
+ });
+ await page.goto('/components/copy-button');
+ const iconOnly = page.getByRole('checkbox', { name: 'CopyButton prop iconOnly', exact: true });
+ await iconOnly.check();
+ const stage = page.locator('.workbench-stage');
+ const button = stage.getByRole('button', { name: 'Copy', exact: true });
+ const { width, height } = (await button.boundingBox())!;
+ expect(width).toBeCloseTo(height);
+ await button.focus();
+ await button.press('Enter');
+ const copied = stage.getByRole('button', { name: 'Copied', exact: true });
+ await expect(copied).toBeVisible();
+ await expect(stage.getByRole('status')).toHaveText('Copied');
+ await expect(page.locator('body')).toHaveAttribute('data-copied-value', 'npm install @flood-md/react');
+ expect((await copied.boundingBox())!.width).toBeCloseTo(width);
+});
 test('ToastRegion pauses visible timers and starts queued timers only on display',async({page})=>{
  await freezeClock(page);await open(page);await timersReady(page,'first');const region=page.getByRole('region',{name:'Active notices'});await page.mouse.move(1,1);await page.clock.runFor(150);await region.locator('.flood-toast').hover({position:{x:10,y:10}});await page.clock.runFor(700);await expect(region.getByText('First notice',{exact:true})).toBeVisible();await page.mouse.move(1,1);await page.clock.runFor(300);await expect(region.getByText('Second notice',{exact:true})).toBeVisible();await timersReady(page,'second');await page.clock.runFor(450);await expect(region.locator('.flood-toast')).toHaveCount(0);
 });

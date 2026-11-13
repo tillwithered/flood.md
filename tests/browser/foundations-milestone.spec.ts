@@ -111,6 +111,15 @@ test("CodeSnippet preserves reading width before allocating its copy action",asy
     const stage=page.locator(".workbench-stage"),snippet=stage.locator(".flood-code-snippet"),code=snippet.locator("code");
     await expect(snippet).toBeVisible();await page.evaluate(({root,dir})=>{document.documentElement.style.fontSize=`${root}px`;document.documentElement.dir=dir;},mode);
     await expect(code).toHaveAttribute("dir","ltr");
+    await expect(snippet.locator(".flood-code-snippet__prompt")).toHaveAttribute("aria-hidden", "true");
+    await expect(code).not.toContainText("$");
+    const action = snippet.getByRole("button", { name: "Copy" });
+    const [actionBounds, snippetBounds] = await Promise.all([action.boundingBox(), snippet.boundingBox()]);
+    const trailingInset = mode.dir === "ltr"
+      ? snippetBounds!.x + snippetBounds!.width - actionBounds!.x - actionBounds!.width
+      : actionBounds!.x - snippetBounds!.x;
+    expect(trailingInset).toBeGreaterThanOrEqual(0);
+    expect(trailingInset).toBeLessThanOrEqual(mode.root + 2);
     await expect.poll(()=>code.evaluate(node=>node.getBoundingClientRect().width/node.closest('.flood-code-snippet')!.getBoundingClientRect().width),"Code should retain useful width instead of breaking the command into single characters").toBeGreaterThanOrEqual(.5);
     await stage.screenshot({animations:"disabled",path:`.artifacts/foundations-milestone/code-readable-${info.project.name}-${mode.dir}.png`});
   }

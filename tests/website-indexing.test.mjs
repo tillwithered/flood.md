@@ -52,6 +52,22 @@ test("sitemap lists only public canonical HTML routes and robots advertises it",
   assert.match(await robots.text(), /Sitemap: https:\/\/flood.md\/sitemap.xml/);
 });
 
+test("the chart guide links the catalog, component references and the rendered example", async () => {
+  const catalog = await (await get("/components")).text();
+  assert.match(catalog, /href="\/docs\/charts"/);
+  const guide = await (await get("/docs/charts")).text();
+  assert.match(guide, /href="\/components\/box-plot"/);
+  assert.match(guide, /id="latency-example"/);
+  assert.match(guide, /Daily median latency/);
+  assert.match(guide, /property="og:image" content="https:\/\/flood.md\/charts-share.png"/);
+  assert.match(guide, /name="twitter:card" content="summary_large_image"/);
+  const shareImage = await get("/charts-share.png");
+  assert.equal(shareImage.headers.get("content-type"), "image/png");
+  const png = Buffer.from(await shareImage.arrayBuffer());
+  assert.equal(png.toString("ascii", 12, 16), "IHDR");
+  assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 630]);
+});
+
 test("verification pages and Markdown duplicates remain readable with indexing instructions", async () => {
   for (const path of pagePaths) {
     if (!path.startsWith("/playground")) continue;

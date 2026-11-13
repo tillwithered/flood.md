@@ -17,6 +17,10 @@ the public product, website, documentation, examples and verification tooling.
   read the relevant workflow, not every skill. Stabilize behavior and update its
   matching guidance together. The workflow/rules indexes identify applicable
   checks; they do not prove those checks passed.
+- For visible UI changes and visual bug reports, use the [visual review skill](packages/agent/references/flood-visual-review/SKILL.md).
+  Reproduce the relevant states in the browser, inspect the captured images and
+  link the evidence. Check the same state after a fix and another consumer for a
+  shared component change.
 - Keep knowledge metadata tied to canonical sources. New components, workflows,
   guides and token roles must regenerate the installed-version catalog. Preserve
   public material IDs and run the knowledge growth/CLI checks; do not hand-edit

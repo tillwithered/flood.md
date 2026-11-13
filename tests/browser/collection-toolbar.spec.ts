@@ -66,3 +66,30 @@ test('narrow enlarged RTL layout preserves reachability without trapping text-in
   await page.keyboard.press('Escape');
   await expect(bar.getByRole('button',{name:'Filters',exact:true})).toBeFocused();
 });
+
+test('end alignment keeps search and the final filter together at the logical edge',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  const bar=await open(page);
+  await page.getByRole('checkbox',{name:'CollectionToolbar prop showFilters',exact:true}).uncheck();
+  await page.getByRole('checkbox',{name:'CollectionToolbar prop showClear',exact:true}).uncheck();
+  await chooseSelectOption(page.getByRole('combobox',{name:'CollectionToolbar prop align',exact:true}),'end');
+  const search=bar.getByRole('searchbox');
+  const filters=bar.getByRole('group',{name:'Applied filters',exact:true});
+  const filter=bar.getByRole('button',{name:'Remove Owner: Maya',exact:true}).locator('..');
+  for(const direction of ['ltr','rtl']) {
+    await page.evaluate(dir=>{document.documentElement.dir=dir;},direction);
+    await expect.poll(async()=>{
+      const row=await bar.locator('.flood-collection-toolbar__row').boundingBox();
+      const last=await filter.boundingBox();
+      return direction==='rtl'?last!.x-row!.x:row!.x+row!.width-last!.x-last!.width;
+    }).toBeCloseTo(0,0);
+    const searchBox=(await bar.locator('.flood-collection-toolbar__search').boundingBox())!,firstBox=(await filters.boundingBox())!;
+    const gap=direction==='rtl'?searchBox.x-firstBox.x-firstBox.width:firstBox.x-searchBox.x-searchBox.width;
+    const rowGap=await bar.locator('.flood-collection-toolbar__row').evaluate(node=>parseFloat(getComputedStyle(node).columnGap));
+    expect(gap).toBeCloseTo(rowGap,0);
+  }
+  await chooseSelectOption(page.getByRole('combobox',{name:'CollectionToolbar prop width',exact:true}),'24rem');
+  const searchBox=(await search.boundingBox())!,filterBox=(await filter.boundingBox())!;
+  expect(filterBox.y).toBeGreaterThanOrEqual(searchBox.y+searchBox.height);
+  expect(await bar.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+});

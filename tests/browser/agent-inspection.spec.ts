@@ -149,3 +149,17 @@ test('document overflow observation distinguishes page escape from locally owned
   await page.locator('#bad').evaluate(node=>{node.style.removeProperty('width');const local=document.createElement('div');local.style.cssText='width:100px;overflow:auto';const content=document.createElement('div');content.style.width='2000px';content.textContent='Locally owned content';local.append(content);node.append(local);});
   expect((await page.evaluate(inspectRenderedUI,{})).issues.some(issue=>issue.id==='layout.page-overflow')).toBe(false);
 });
+
+test('record scroll owner is checked even without a visible document gutter',async({page})=>{
+  await page.setContent(`<!doctype html><style>body{margin:0}</style>
+    <div class="flood-app-shell" data-scroll="page">
+      <main class="flood-app-shell__main"><div class="flood-data-table">Requests</div></main>
+    </div>`);
+  const inspect=async()=> (await page.evaluate(inspectRenderedUI,{})).issues.filter(issue=>issue.id==='layout.record-scroll-owner');
+  expect(await inspect()).toEqual([expect.objectContaining({offset:0,target:expect.objectContaining({label:'Requests'})})]);
+  const shell=page.locator('.flood-app-shell');
+  await shell.evaluate(node=>node.setAttribute('data-scroll','content'));
+  expect(await inspect()).toEqual([]);
+  await shell.evaluate(node=>{node.setAttribute('data-scroll','page');node.style.width='50%';});
+  expect(await inspect()).toEqual([]);
+});

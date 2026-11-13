@@ -8,6 +8,8 @@ description: Verify Flood component or composed-interface changes against applic
 Read [verification](../verification.md), the host's scripts and the changed
 component's contract. Use project-root flood/rules.json to identify applicable
 rule IDs; it is an index of guidance, not an automatic pass/fail policy engine.
+For visible UI changes, use [visual review](../flood-visual-review/SKILL.md) to
+exercise the affected states, inspect captures and record the evidence.
 
 ## Bound the coverage
 
@@ -81,6 +83,10 @@ about repeated copy or metadata in the verification notes.
 Use the [rendered review observer](../rendered-review.md) when local browser
 tooling is available. Inspect findings and exceptions, then review hierarchy and
 copy separately; no findings is not an editorial or visual-quality pass.
+For full-window workspaces, run the
+[workspace scroll assertion](../rendered-review.md#require-workspace-scroll-in-browser-tests)
+on overflowing content and after filtering or another action that shrinks the
+view. Use the same assertion in the independent review of each clean agent run.
 Review host JSX/CSS with inspectSourceUI from that entry too, then resolve the
 actual owner at each candidate location. Include layout and cancel/confirmation
 paths, not just fields. A native browser dialog can be absent from a DOM snapshot;
@@ -117,3 +123,29 @@ agent instruction, screenshot or accessibility scanner cannot independently prov
 all behavior or certify conformance. A local build does not prove registry
 publication, website deployment or a host backend save. Keep installation upgrades
 deliberate and preserve customized/linked destination protections.
+
+## Compare agent guidance in clean runs
+
+When evaluating a rule or skill, give each fresh session the same short task,
+starting project, reference material and tool access. Keep the model, reasoning
+effort, library implementation and review viewport fixed. Change only the
+guidance being tested. When comparing models, keep the guidance fixed too. Do
+not pass along prior attempts, reviewer feedback or fixes.
+
+Decide what to inspect before running the task. Check the same states for task
+completion, correct component ownership, hierarchy, necessary copy and behavior.
+For a discovery comparison, vary the entry point while leaving the guidance
+available in both runs. Check the trace for the entry and selected references.
+For an application comparison, make the same entry available explicitly in both
+runs and vary the instruction under test. Check what the agent actually built.
+Use an unfamiliar task as well as an example already documented in the guidance.
+
+For visual comparisons, give a fresh reviewer the task, expected behavior and
+settled renders or live previews. Hide which variant produced each result.
+Walk the same interaction in each and cite the exact state and visible evidence
+for each finding. Check API choice and mechanics through source or browser
+assertions, and use the rendered comparison for hierarchy, copy and density.
+
+Keep failed attempts and record missing evidence. A single pair of runs can
+reveal a failure mode. Repeat clean runs before attributing a difference to the
+guidance or the model.

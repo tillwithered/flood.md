@@ -13,10 +13,14 @@ test("Progress exposes known and unknown values and keeps its label when hidden"
   await expect(bar).toHaveAttribute("aria-valuenow", "100");
   await page.getByRole("checkbox", { name: "Progress prop indeterminate" }).check();
   await expect(bar).not.toHaveAttribute("aria-valuenow");
-  const trackTop = await bar.evaluate(el => el.getBoundingClientRect().top + scrollY);
+  const trackTop = () => bar.evaluate(el => {
+    const canvas = el.closest(".preview-stage")!;
+    return el.getBoundingClientRect().top - canvas.getBoundingClientRect().top + canvas.scrollTop;
+  });
+  const before = await trackTop();
   await page.getByRole("checkbox", { name: "Progress prop hideLabel" }).check();
   await expect(bar).toBeVisible();
-  expect(await bar.evaluate(el => el.getBoundingClientRect().top + scrollY)).toBeCloseTo(trackTop, 1);
+  expect(await trackTop()).toBeCloseTo(before, 1);
   await expect(stage.locator(".flood-indicator > div").first()).toHaveClass("flood-visually-hidden");
   await expect(stage.getByRole("status")).toHaveCount(0);
   await expect(page.locator("#usage .site-code-block code")).toContainText("hideLabel={true}");

@@ -75,6 +75,14 @@ import { CivilDateTimeRangePicker } from "./date-time-range-picker.js";
 import { FileRecord, UploadRecord, ModalImagePreview, FileMetadata } from "./file-records.js";
 import { ManagedDataTable } from "./data-table.js";
 import { TrendPlot } from "./sparkline.js";
+import { SeriesPlot, GroupedBars, RankedBars, ShareRing, HeatmapGrid } from "./charts.js";
+import { ScatterPlot } from "./scatter-chart.js";
+import { RangePlot } from "./range-chart.js";
+import { DumbbellPlot } from "./dumbbell-chart.js";
+import { DistributionBoxes } from "./box-plot.js";
+import { BulletPlot } from "./bullet-chart.js";
+import { HistogramPlot } from "./histogram.js";
+import { WaterfallPlot } from "./waterfall-chart.js";
 import { CheckableCard, ExclusiveCard } from "./collection-cards.js";
 import { ColorPreview, ColorEditor } from "./color-controls.js";
 import { HoverPreview } from "./hover-card.js";
@@ -166,6 +174,8 @@ export interface CollectionToolbarProps extends Omit<FieldsetProps, "children" |
   onRemoveFilter?: (id: string) => void;
   appliedFiltersLabel?: string;
   summaryPrefix?: ReactNode;
+  /** Align search and filters as a group to the end of a shared control row. */
+  align?: "stretch" | "end";
   /** At most two task-important quick filters; move additional properties into filterContent. */
   quickFilters?: ReactNode;
   /** Additional commands beside Filters in the same tool row. */
@@ -484,6 +494,320 @@ export const Sparkline = /* @__PURE__ */ forwardRef<HTMLDivElement, SparklinePro
   { showLabel = false, size = "md", tone = "accent", variant = "area", ...props }, ref,
 ) {
   return <TrendPlot {...props} showLabel={showLabel} size={size} tone={tone} variant={variant} ref={ref} />;
+});
+
+export interface LineChartSeries {
+  id: string;
+  label: string;
+  /** One observation per category. Missing and nonfinite values break the line. */
+  values: readonly (number | null)[];
+}
+export type ChartSeries = LineChartSeries;
+
+export interface LineChartProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  /** Equally spaced categories in the order supplied. */
+  categories: readonly string[];
+  /** One to four comparable series sharing a scale. An empty array is also supported. */
+  series: readonly LineChartSeries[];
+  /** Shared finite bounds containing every observation. */
+  domain?: readonly [number, number];
+  variant?: "line" | "area";
+  /** Shape-preserving interpolation between observations. */
+  curve?: "linear" | "smooth";
+  /** Show the numeric scale and horizontal reference lines. */
+  showYAxis?: boolean;
+  /** Show the series key below the plot. Defaults to false. */
+  showLegend?: boolean;
+  formatValue?: (value: number) => string;
+  emptyLabel?: string;
+  missingLabel?: string;
+  navigationLabel?: string;
+}
+
+export const LineChart = /* @__PURE__ */ forwardRef<HTMLDivElement, LineChartProps>(function LineChart(
+  { variant = "area", curve = "smooth", showYAxis = false, emptyLabel = "No data", missingLabel = "No value",
+    navigationLabel = "Use the arrow keys to explore values, or Home and End to jump.", ...props }, ref,
+) {
+  return <SeriesPlot {...props} variant={variant} curve={curve} showYAxis={showYAxis} emptyLabel={emptyLabel} missingLabel={missingLabel} navigationLabel={navigationLabel} ref={ref} />;
+});
+
+export interface BarChartProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  categories: readonly string[];
+  /** Compare series side by side, by cumulative magnitude, or by share of each total. Defaults to grouped. */
+  layout?: "grouped" | "stacked" | "percent";
+  /** One to four grouped series. Use null for a missing value. */
+  series: readonly ChartSeries[];
+  /** Finite bounds containing zero and each observation or signed stack extent. Percent uses a fixed scale. */
+  domain?: readonly [number, number];
+  /** Show the series key below the plot. Defaults to false. */
+  showLegend?: boolean;
+  formatValue?: (value: number) => string;
+  /** Format a fraction from 0 to 1 in percent layout. */
+  formatShare?: (share: number) => string;
+  emptyLabel?: string;
+  missingLabel?: string;
+  navigationLabel?: string;
+}
+
+export const BarChart = /* @__PURE__ */ forwardRef<HTMLDivElement, BarChartProps>(function BarChart(
+  { emptyLabel = "No data", missingLabel = "No value",
+    navigationLabel = "Use the arrow keys to explore categories, or Home and End to jump.", ...props }, ref,
+) {
+  return <GroupedBars {...props} emptyLabel={emptyLabel} missingLabel={missingLabel} navigationLabel={navigationLabel} ref={ref} />;
+});
+
+export interface DonutChartItem {
+  id: string;
+  label: string;
+  /** A finite nonnegative part of the whole. */
+  value: number;
+}
+
+export interface DonutChartProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  /** Up to six categories in display order. */
+  items: readonly DonutChartItem[];
+  totalLabel?: string;
+  emptyLabel?: string;
+  navigationLabel?: string;
+  showLegend?: boolean;
+  formatValue?: (value: number) => string;
+  /** Receives the share as a fraction from 0 to 1. */
+  formatShare?: (share: number) => string;
+}
+
+export const DonutChart = /* @__PURE__ */ forwardRef<HTMLDivElement, DonutChartProps>(function DonutChart(
+  { totalLabel = "Total", emptyLabel = "No data",
+    navigationLabel = "Use the arrow keys to explore segments, or Home and End to jump.", ...props }, ref,
+) {
+  return <ShareRing {...props} totalLabel={totalLabel} emptyLabel={emptyLabel} navigationLabel={navigationLabel} ref={ref} />;
+});
+
+export interface HeatmapProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  label: string;
+  columns: readonly string[];
+  rows: readonly { id: string; label: string; values: readonly (number | null)[] }[];
+  /** Shared zero-based scale. Defaults to the largest observed value. */
+  max?: number;
+  formatValue?: (value: number) => string;
+  missingLabel?: string;
+  emptyLabel?: string;
+}
+
+export const Heatmap = /* @__PURE__ */ forwardRef<HTMLDivElement, HeatmapProps>(function Heatmap(
+  { missingLabel = "No data", emptyLabel = "No observations", ...props }, ref,
+) {
+  return <HeatmapGrid {...props} missingLabel={missingLabel} emptyLabel={emptyLabel} ref={ref} />;
+});
+
+export interface ScatterChartPoint {
+  id: string;
+  label?: string;
+  x: number;
+  y: number;
+}
+
+export interface ScatterChartProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  xLabel: string;
+  yLabel: string;
+  /** Observations in keyboard navigation order, with stable, unique IDs. */
+  points: readonly ScatterChartPoint[];
+  /** Finite, increasing bounds that contain all x observations. */
+  xDomain?: readonly [number, number];
+  /** Finite, increasing bounds that contain all y observations. */
+  yDomain?: readonly [number, number];
+  formatX?: (value: number) => string;
+  formatY?: (value: number) => string;
+  emptyLabel?: string;
+  navigationLabel?: string;
+}
+
+export const ScatterChart = /* @__PURE__ */ forwardRef<HTMLDivElement, ScatterChartProps>(function ScatterChart(props, ref) {
+  return <ScatterPlot {...props} ref={ref} />;
+});
+
+export interface RangeChartItem {
+  id: string;
+  label: string;
+  /** A missing bound leaves an empty category. */
+  low: number | null;
+  high: number | null;
+  /** Optional observed value within the interval, such as a median. */
+  midpoint?: number;
+}
+
+export interface RangeChartProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  items: readonly RangeChartItem[];
+  /** Finite increasing bounds containing all complete intervals. */
+  domain?: readonly [number, number];
+  formatValue?: (value: number) => string;
+  lowLabel?: string;
+  highLabel?: string;
+  midpointLabel?: string;
+  emptyLabel?: string;
+  missingLabel?: string;
+  navigationLabel?: string;
+}
+
+export const RangeChart = /* @__PURE__ */ forwardRef<HTMLDivElement, RangeChartProps>(function RangeChart(props, ref) {
+  return <RangePlot {...props} ref={ref} />;
+});
+
+export interface DumbbellChartItem {
+  id: string;
+  label: string;
+  before: number | null;
+  after: number | null;
+}
+
+export interface DumbbellChartProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  items: readonly DumbbellChartItem[];
+  /** Finite, increasing bounds containing all observed endpoints. */
+  domain?: readonly [number, number];
+  beforeLabel?: string;
+  afterLabel?: string;
+  missingLabel?: string;
+  emptyLabel?: string;
+  formatValue?: (value: number) => string;
+  navigationLabel?: string;
+}
+
+export const DumbbellChart = /* @__PURE__ */ forwardRef<HTMLDivElement, DumbbellChartProps>(function DumbbellChart(props, ref) {
+  return <DumbbellPlot {...props} ref={ref} />;
+});
+
+export interface BoxPlotSummary {
+  low: number;
+  q1: number;
+  median: number;
+  q3: number;
+  high: number;
+}
+
+export interface BoxPlotItem {
+  id: string;
+  label: string;
+  /** Ordered whiskers, quartiles and median. Null preserves an empty row. */
+  summary: BoxPlotSummary | null;
+  /** Optional observations beyond the supplied whiskers. */
+  outliers?: readonly number[];
+}
+
+export interface BoxPlotProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  items: readonly BoxPlotItem[];
+  /** Finite increasing bounds containing every observation. */
+  domain?: readonly [number, number];
+  formatValue?: (value: number) => string;
+  /** Format axis ticks independently of exact values. Defaults to formatValue. */
+  formatAxisValue?: (value: number) => string;
+  emptyLabel?: string;
+  missingLabel?: string;
+  navigationLabel?: string;
+  statisticLabels?: Partial<Record<keyof BoxPlotSummary | "outliers" | "whiskers", string>>;
+}
+
+export const BoxPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, BoxPlotProps>(function BoxPlot(props, ref) {
+  return <DistributionBoxes {...props} ref={ref} />;
+});
+
+export interface BulletChartItem {
+  id: string;
+  label: string;
+  value: number;
+  target: number;
+}
+
+export interface BulletChartProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  items: readonly BulletChartItem[];
+  /** Shared scale maximum. Defaults to the largest actual or target. */
+  max?: number;
+  formatValue?: (value: number) => string;
+  valueLabel?: string;
+  targetLabel?: string;
+  emptyLabel?: string;
+}
+
+export const BulletChart = /* @__PURE__ */ forwardRef<HTMLDivElement, BulletChartProps>(function BulletChart(props, ref) {
+  return <BulletPlot {...props} ref={ref} />;
+});
+
+export interface WaterfallChartStep {
+  id: string;
+  label: string;
+  value: number;
+  /** A change adjusts the running total. A total is an absolute checkpoint. */
+  kind?: "change" | "total";
+}
+
+export interface WaterfallChartProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  steps: readonly WaterfallChartStep[];
+  /** Finite increasing bounds containing zero and every running total. */
+  domain?: readonly [number, number];
+  formatValue?: (value: number) => string;
+  changeLabel?: string;
+  totalLabel?: string;
+  emptyLabel?: string;
+  navigationLabel?: string;
+}
+
+export const WaterfallChart = /* @__PURE__ */ forwardRef<HTMLDivElement, WaterfallChartProps>(function WaterfallChart(props, ref) {
+  return <WaterfallPlot {...props} ref={ref} />;
+});
+
+export interface HistogramProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  /** Name and unit for the numeric axis. */
+  xLabel: string;
+  /** Show the axis title below the numeric ticks. Defaults to true. */
+  showXAxisLabel?: boolean;
+  /** Inclusive lower boundary of the first bin. */
+  start: number;
+  /** Positive width shared by all bins. */
+  binWidth: number;
+  /** Counts in ascending bin order. Zero is a measured empty bin. */
+  counts: readonly number[];
+  /** Common count scale for comparing histograms. Defaults to the largest count or one. */
+  maxCount?: number;
+  countLabel?: string;
+  formatBoundary?: (value: number) => string;
+  formatCount?: (count: number) => string;
+  emptyLabel?: string;
+  navigationLabel?: string;
+}
+
+export const Histogram = /* @__PURE__ */ forwardRef<HTMLDivElement, HistogramProps>(function Histogram(props, ref) {
+  return <HistogramPlot {...props} ref={ref} />;
+});
+
+export interface BarListItem {
+  id: string;
+  label: string;
+  value: number;
+  valueText?: string;
+}
+
+export interface BarListProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  /** Nonnegative values in display order. */
+  items: readonly BarListItem[];
+  /** Shared positive upper bound. Defaults to the largest value, or 1 when all are zero. */
+  max?: number;
+  tone?: SemanticTone;
+  emptyLabel?: string;
+}
+
+export const BarList = /* @__PURE__ */ forwardRef<HTMLDivElement, BarListProps>(function BarList(
+  { tone = "accent", emptyLabel = "No data", ...props }, ref,
+) {
+  return <RankedBars {...props} tone={tone} emptyLabel={emptyLabel} ref={ref} />;
 });
 
 export interface DataListProps extends Omit<HTMLAttributes<HTMLUListElement>, "role"> {
@@ -1377,6 +1701,8 @@ export interface MenuProps extends Omit<HTMLAttributes<HTMLDivElement>, "childre
   open?: boolean;
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Resolve a fallback after close if the opener can no longer receive focus. */
+  getFallbackFocus?: () => HTMLElement | null;
   disabled?: boolean;
   side?: "top" | "bottom" | "left" | "right";
   align?: "start" | "center" | "end";
@@ -1434,6 +1760,8 @@ export interface DialogProps extends Omit<HTMLAttributes<HTMLDialogElement>, "ch
   closeLabel?: string;
   closeOnOutsideClick?: boolean;
   initialFocusRef?: RefObject<HTMLElement | null>;
+  /** Resolve a fallback after close if the opener can no longer receive focus. */
+  getFallbackFocus?: () => HTMLElement | null;
 }
 export const Dialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, DialogProps>(function Dialog(
   {defaultOpen = false, disabled = false, closeLabel = "Close", closeOnOutsideClick = true, ...props}, ref,
@@ -2326,15 +2654,20 @@ export const Divider = /* @__PURE__ */ forwardRef<HTMLHRElement, HTMLAttributes<
 export interface CodeSnippetProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   code: string;
   codeDirection?: "ltr" | "rtl" | "auto";
+  /** A decorative prompt placed beside the code, outside the selectable text. @since 0.2.13 */
+  prompt?: string;
   action?: ReactNode;
 }
 /** Selectable code with an optional host-owned action; no clipboard side effects. */
 export const CodeSnippet = /* @__PURE__ */ forwardRef<HTMLDivElement, CodeSnippetProps>(function CodeSnippet(
-  { code, codeDirection = "ltr", action, className, ...props }, ref,
+  { code, codeDirection = "ltr", prompt, action, className, ...props }, ref,
 ) {
   return (
     <div {...props} ref={ref} className={classes("flood-code-snippet", className)}>
-      <code dir={codeDirection} className="flood-code-snippet__code">{code}</code>
+      <div dir={codeDirection === "rtl" ? "rtl" : "ltr"} className="flood-code-snippet__line">
+        {prompt && <span aria-hidden="true" className="flood-code-snippet__prompt">{prompt}</span>}
+        <code dir={codeDirection} className="flood-code-snippet__code">{code}</code>
+      </div>
       {action != null && <div className="flood-code-snippet__action">{action}</div>}
     </div>
   );
@@ -2354,6 +2687,8 @@ export const ScrollArea = /* @__PURE__ */ forwardRef<HTMLDivElement, ScrollAreaP
 
 export interface CopyButtonProps extends Omit<ButtonProps, "children" | "value" | "type" | "onClick" | "loading"> {
   value: string;
+  /** Use a named square icon action with the same clipboard feedback. @since 0.2.13 */
+  iconOnly?: boolean;
   copyLabel?: string;
   copiedLabel?: string;
   errorLabel?: string;

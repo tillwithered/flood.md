@@ -60,6 +60,13 @@ the interface-content workflow for contextual placement.
   Keep identifiers, such as postal codes and account numbers, aligned as text
   even when they contain only digits. Preserve formatted units and use raw sort
   values when localized text or rich cells would sort differently.
+- For a collection that users repeatedly filter, preserve the important column
+  tracks at the same viewport as results change. Compare the populated, filtered
+  and no-results states. A table can keep its outer width while its headers move
+  because the body is empty. Where stable scan positions matter, use the
+  supported column sizing to keep the tracks instead of sizing from the rows.
+  Bounded Table and DataTable already keep clearance for their own overlay rail.
+  Reuse that clearance and compare column edges across the overflow threshold.
 - Offer column visibility when users need different subsets of fields for real
   tasks in the same table. Leave it off for compact tables with a fixed task.
   Use one layout control per table. If the screen already has View options or
@@ -99,6 +106,79 @@ the interface-content workflow for contextual placement.
   and preview are separate host operations. Do not manufacture upload completion.
 - Preserve native image alt/fallback semantics and aspect constraints. Decorative
   artwork should not duplicate an adjacent accessible identity.
+
+## Choose a chart by the question
+
+Use Metric for a current value, Sparkline for a compact trend in a row,
+LineChart for comparing observations over ordered, equally spaced categories,
+BarChart for comparing discrete groups such as actual and planned values per
+team, and BarList for ranking a few comparable nonnegative values. Sort BarList
+items in the host and retain their exact labels, values and units. Use the same
+domain or max across panels that readers must compare. Keep zero distinct
+from a missing observation and identify comparison series by line pattern
+as well as color. In a LineChart review, traverse dates by keyboard and check
+that the value readout exposes missing data without inventing a value.
+Keep the value readout compact and close to the active marker, within the plot's
+bounds. Keep the marker clear where the readout approaches the edge. Show the
+active category on the axis, where it stays tied to the guide. Exercise a dense
+series as well as a short one and keep only the axis labels that fit.
+Enable LineChart's numeric axis when the reader needs to estimate levels
+or compare them at a glance.
+Use DonutChart for mutually exclusive parts of one total. Group small categories
+only when a combined bucket is meaningful, and prefer BarList for precise
+comparisons between similar values. Check zero and empty separately. Keep the
+center readout as the single source for an inspected category's name and share.
+Keep pointer inspection continuous through the visual gaps between segments.
+Check that the center readout moves directly to the next share at each boundary.
+Give segments the same visual emphasis when the readout shows the total. Keep
+category colors stable and emphasize only the inspected segment's outline.
+Use a quiet categorical palette and the same accent and translucent fill as
+the other charts. Reserve feedback colors for data that actually carries
+success, warning or error meaning.
+Keep the LineChart and BarChart legends off by default. The inspection readout
+already names the series. Enable showLegend when a reader needs to identify
+series before interacting or when the chart is presented as a static image.
+Use Heatmap to find dense and quiet intersections across two labelled axes.
+Compare matrices on the same max and keep missing observations distinct from
+zero. Check exact values by keyboard and pointer with both axis labels present.
+Keep hit areas contiguous across visual gutters so inspection stays continuous.
+Show exact values in a compact tooltip anchored to the inspected cell. Check
+that it stays inside the chart at the edges and leaves the matrix in place.
+Anchor every BarChart to a shared zero baseline. Use stacked bars for additive
+parts and grouped bars for alternatives such as actual versus plan. Keep the
+series order consistent across stacks. Check positive and negative directions,
+missing values, and exact values with pointer and keyboard at the narrowest width.
+Use BarChart's percent layout to compare how the composition changes across
+categories with different totals. Keep the raw values in the readout and leave
+the column empty when its total is zero.
+Use smooth interpolation only when it preserves the observed extrema and
+breaks at missing values. Keep rank labels and values aligned independently
+of the fill widths.
+Use the same accent, translucent fills, tabular values and fast highlight
+motion across chart families. Use the LineChart stroke weight for data marks
+and keep guides, grids and tooltip borders quieter.
+Use ScatterChart for paired numeric observations, RangeChart for observed
+intervals, and BulletChart for actual values against targets. Give every axis
+or bound its unit and keep shared domains consistent across panels.
+Use WaterfallChart to explain a sequence of changes and checkpoints. Use
+Histogram to show frequencies across numeric intervals and BoxPlot to compare
+summaries across groups. Label the units and keep bin edges or scales consistent
+when comparing distributions. Name the meaning of the whiskers in the chart
+context when it affects interpretation.
+Keep Histogram bins contiguous for inspection. A small visual inset separates
+the marks while preserving the numeric interval and its full hit area.
+When a filter applies to several views of one dataset, derive every view from
+the same filtered observations. Keep comparable scales and bin edges stable
+across filter changes so a change in height reflects the data.
+For Histogram and BoxPlot cards in one row, set a shared
+`--flood-chart-plot-height` to align their tick rows. State shared units once
+in the surrounding title and keep them in exact values or axis names.
+Use DumbbellChart for two measurements of the same group. Preserve endpoint
+identity with hollow and filled marks even when the values cross or coincide.
+Keep a pointer guide continuous across the plot
+while the readout shows exact recorded samples. A visual marker may follow
+the curve between samples where data is continuous. Preserve gaps in the
+series and keep keyboard inspection tied to discrete samples.
 
 ## Choose the information, not all available slots
 
@@ -169,6 +249,11 @@ property text. A summary outside the panel needs its property named again.
 Use CollectionToolbar for the search/filter query row, with accepted summaries
 and a staged editor in filterContent. Keep saved views outside it. The fieldset
 uses normal Tab navigation; do not place its editable search in a roving Toolbar.
+When a view or status selector occupies the start of a shared row, set
+`align="end"` on CollectionToolbar to place search and filters as a group at
+the trailing edge. Compare the last visible control to the row's content edge,
+including when there is only a quick filter and no Filters button. Let the groups
+wrap in order at a narrower size.
 Reuse FilterGroup for finite-choice drafts. The host owns validation, Apply,
 Cancel, request execution and reset scope; canClear must include quickFilters
 state when that slot is used. Preserve any-match meaning in summaryPrefix.

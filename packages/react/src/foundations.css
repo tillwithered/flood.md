@@ -82,6 +82,25 @@
 .flood-root .flood-table[data-density="compact"] { --flood-data-padding: var(--flood-sys-space-2); }
 .flood-root .flood-table caption { text-align: start; padding-block-end: var(--flood-sys-space-3); font-weight: var(--flood-sys-type-label-weight); color: var(--flood-sys-color-content-default); }
 .flood-root .flood-table :is(th, td) { text-align: start; vertical-align: middle; padding: var(--flood-data-padding) var(--flood-sys-space-3); overflow-wrap: break-word; }
+.flood-root .flood-scroll-area__content:has(> .flood-table[data-bounded]) {
+  --flood-table-rail-clearance: 0px;
+  --flood-table-end-clearance: 0px;
+  --flood-table-external-clearance: var(--flood-table-rail-clearance);
+  padding-inline-end: var(--flood-table-external-clearance);
+}
+/* A bounded table keeps the same end clearance as rows grow and shrink. */
+@media (forced-colors: none) {
+  .flood-root .flood-scroll-area__viewport[data-scrollbars="overlay"] > .flood-scroll-area__content:has(> .flood-table[data-bounded]) {
+    --flood-table-rail-clearance: calc(var(--flood-sys-scrollbar-size) + 2 * var(--flood-sys-scrollbar-inset));
+  }
+}
+.flood-root .flood-scroll-area__content:has(> .flood-table[data-bounded]):not(:has(> .flood-table[data-fixed-columns], > .flood-table > thead > tr > [data-pin-edge="end"], > .flood-table > thead > tr > [data-resize-edge]:last-child)) {
+  --flood-table-end-clearance: var(--flood-table-rail-clearance);
+  --flood-table-external-clearance: 0px;
+}
+.flood-root .flood-table[data-bounded] > :is(thead, tbody, tfoot) > tr > :is(th, td):last-child {
+  padding-inline-end: calc(var(--flood-sys-space-3) + var(--flood-table-end-clearance));
+}
 .flood-root .flood-table :is(th, td)[data-wrap="anywhere"] { overflow-wrap: anywhere; }
 .flood-root .flood-table[data-cell-vertical-align="top"] > :where(thead, tbody, tfoot) > :where(tr) > :is(th, td) { vertical-align: top; }
 .flood-root .flood-table[data-cell-vertical-align="bottom"] > :where(thead, tbody, tfoot) > :where(tr) > :is(th, td) { vertical-align: bottom; }
@@ -96,6 +115,17 @@
 }
 .flood-root .flood-table[data-sticky-header] > thead > tr:last-child > :is(th, td) {
   box-shadow: inset 0 calc(-1 * var(--flood-sys-stroke-width)) var(--flood-sys-color-divider-decorative);
+}
+/* Carry the sticky header surface and its divider through the scrollbar clearance. */
+.flood-root .flood-table[data-sticky-header] > thead::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 100%;
+  inline-size: var(--flood-table-external-clearance);
+  background: inherit;
+  box-shadow: inset 0 calc(-1 * var(--flood-sys-stroke-width)) var(--flood-sys-color-divider-decorative);
+  pointer-events: none;
 }
 .flood-root .flood-table > tbody > tr:not(:last-child) > :is(th, td) { border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
 .flood-root .flood-table > tfoot > tr:first-child > :is(th, td) { border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
@@ -368,7 +398,10 @@
   background: var(--flood-sys-color-surface-default);
   color: var(--flood-sys-color-content-default);
 }
-.flood-root .flood-code-snippet__code {
+.flood-root .flood-code-snippet__line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--flood-sys-space-2);
   flex: 1 1 20ch;
   min-inline-size: 0;
   font-family: var(--flood-sys-font-mono);
@@ -376,11 +409,24 @@
   font-weight: var(--flood-sys-type-compact-weight);
   line-height: var(--flood-sys-type-compact-line-height);
   letter-spacing: normal;
+}
+.flood-root .flood-code-snippet__prompt {
+  flex: none;
+  max-inline-size: 25%;
+  overflow-wrap: anywhere;
+  color: var(--flood-sys-color-content-subtle);
+  user-select: none;
+}
+.flood-root .flood-code-snippet__code {
+  flex: 1;
+  min-inline-size: 0;
+  font: inherit;
+  text-align: start;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   user-select: text;
 }
-.flood-root .flood-code-snippet__action { flex: none; max-inline-size: 100%; }
+.flood-root .flood-code-snippet__action { flex: none; max-inline-size: 100%; margin-inline-start: auto; }
 .flood-root .flood-surface {
   box-sizing: border-box;
   border-radius: var(--flood-sys-radius-block);

@@ -23,6 +23,11 @@ invented as a package API. No external component library or parallel token syste
 
 ## Read only the relevant reference
 
+Use the requested task to choose the workflow. A critique produces prioritized
+findings. An implementation or fix includes the affected states and browser
+evidence for visible changes. A copy pass checks wording in context. When
+stabilizing a shared component, check the same contract in another consumer.
+
 Before composing a screen, write a short task trace in the development notes:
 what the user arrives with, the next meaningful action, what changes when it
 succeeds, and how the user recovers if it fails. Name which inputs, filters,
@@ -43,15 +48,19 @@ Before delivery, review the actual screen against those choices and the content
 workflow. Optional subtitle, description and hint slots start empty; fill one
 only for information the user needs beyond the title or control itself.
 
-For a new screen or composed form, read the hierarchy workflow to choose visual
+For a new screen or an unclear page structure, choose the reading order and task
+regions with the screen-composition workflow. For a new screen or composed
+form, read the hierarchy workflow to choose visual
 roles, shared tracks and relationship spacing. For a composed form, also read the forms workflow's grouping section; independent
 per-row grids do not establish a coherent hierarchy. For icon-bearing controls,
-use the foundations workflow. During browser verification use the optional
-[rendered review observer](references/rendered-review.md) and review its findings.
-It cannot replace the separate copy and grouping decisions.
+use the foundations workflow.
 For record lists or details, read the records workflow before assigning metadata
 to slots. Record each field's recognition/comparison/action purpose and list/detail
 placement outside the interface; an available slot is not a reason to fill it.
+For full-window workspaces, use AppShell content scrolling. Add the
+[workspace scroll assertion](references/rendered-review.md#require-workspace-scroll-in-browser-tests)
+to the host's browser tests and run it with overflowing and filtered content
+before reporting completion.
 For save, upload or other fallible operations, read the feedback workflow too:
 message lifetime belongs to the operation/record, not merely the page's Alert.
 
@@ -59,7 +68,8 @@ message lifetime belongs to the operation/record, not merely the page's Alert.
 | --- | --- | --- |
 | Introducing or editing interface copy, labels, hierarchy or adapting a reference | [Interface content skill](references/flood-interface-content/SKILL.md) | Necessary, accurate content with a clear job; no invented capabilities or redundant narration |
 | Component, composite, website or playground UI | [Composition skill](references/flood-composition/SKILL.md) | Reused primitives; missing small capabilities implemented before composites |
-| New screen, layout or form | [Composition](references/composition.md) | Existing primitives, correct host width and form ownership |
+| New screen, hard-to-scan page or unclear next action | [Screen composition skill](references/flood-screen-composition/SKILL.md) | Task-led layout, meaningful reading order and reachable actions |
+| Implementing a screen layout or form | [Composition](references/composition.md) | Existing primitives, correct host width and form ownership |
 | Task/group/field hierarchy, flat forms or inconsistent row tracks | [Hierarchy skill](references/flood-hierarchy/SKILL.md) | Distinct roles, shared control edges and deliberate vertical rhythm |
 | Spacing, density, nested geometry or shifting previews | [Spacing skill](references/flood-spacing/SKILL.md) | Measured visual relationships and nonoverlapping interactive areas |
 | Animation, transitions or reduced motion | [Motion skill](references/flood-motion/SKILL.md) | Motion roles, immediate semantics and reduced-motion behavior |
@@ -72,6 +82,7 @@ message lifetime belongs to the operation/record, not merely the page's Alert.
 | Tables, lists, cards, files and long content | [Data display skill](references/flood-data-display/SKILL.md) | Meaningful structures and reachable overflow |
 | Status, progress, alerts, loading or empty content | [Feedback skill](references/flood-feedback/SKILL.md) | Honest operation state with one announcement owner |
 | Brand or deliberate semantic overrides | [Customization](references/customization.md) | Scoped semantic overrides; unchanged behavior |
+| Visible UI change, screenshot feedback or visual bug | [Visual review skill](references/flood-visual-review/SKILL.md) | Browser interaction, inspected screenshots and a matched recheck after fixes |
 | Completion, stabilization or regression review | [Verification skill](references/flood-verification/SKILL.md) | Checks and limits reported against the actual host |
 | Decide which document governs a change | [Routing and sources](references/routing.md) | Source of truth and prerequisites identified |
 

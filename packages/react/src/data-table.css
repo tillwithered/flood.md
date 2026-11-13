@@ -11,6 +11,8 @@
 .flood-root .flood-data-table__table[data-inset="roomy"] > :is(thead,tbody) > tr > :last-child { padding-inline-end:var(--flood-data-table-edge); }
 .flood-root .flood-data-table__table[data-inset="roomy"] > thead > tr > th[data-sortable]:first-child { padding-inline-start:calc(var(--flood-data-table-edge) - var(--flood-sys-space-2)); }
 .flood-root .flood-data-table__table[data-inset="roomy"] > thead > tr > th[data-sortable]:last-child { padding-inline-end:calc(var(--flood-data-table-edge) - var(--flood-sys-space-2)); }
+.flood-root .flood-data-table__table[data-bounded][data-inset="roomy"] > :is(thead,tbody) > tr > :last-child { padding-inline-end:calc(var(--flood-data-table-edge) + var(--flood-table-end-clearance)); }
+.flood-root .flood-data-table__table[data-bounded][data-inset="roomy"] > thead > tr > th[data-sortable]:last-child { padding-inline-end:calc(var(--flood-data-table-edge) - var(--flood-sys-space-2) + var(--flood-table-end-clearance)); }
 .flood-root .flood-data-table[data-inset="roomy"] .flood-data-table__footer { padding-inline:var(--flood-data-table-edge); }
 .flood-root .flood-data-table .flood-data-table__primary-action {
   min-block-size:0;
@@ -132,7 +134,10 @@
   inset-inline-start:var(--flood-data-table-pin-offset);
 }
 .flood-root .flood-data-table__table > :is(thead,tbody) > tr > [data-pin-edge="end"] {
-  inset-inline-end:calc(var(--flood-data-table-pin-offset) + var(--flood-scroll-content-inline, 0px));
+  inset-inline-end:var(--flood-data-table-pin-offset);
+}
+.flood-root .flood-data-table__table[data-bounded] > :is(thead,tbody) > tr > [data-pin-edge="end"] {
+  inset-inline-end:calc(var(--flood-data-table-pin-offset) + var(--flood-table-external-clearance));
 }
 .flood-root .flood-data-table__table > :is(thead,tbody) > tr > [data-pin-boundary="true"]::before {
   content:"";
