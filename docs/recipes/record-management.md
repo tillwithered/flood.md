@@ -2,22 +2,22 @@
 
 [Open the working composition](/playground/records).
 
-Search requests, narrow the list by status, open one request, and edit it in a
-Drawer. Saving applies the accepted changes and returns to the same list.
+Search requests, narrow the table by status, open one request, and edit it in a
+Drawer. Saving updates the request and returns to the same table.
 The example uses in-memory fixtures that reset on reload.
 
 ## Choose where details open
 
 Use a Drawer for a bounded inspection or edit that starts and ends in the same
 list. Use a destination page for details that need a stable URL, substantial
-room, or several independent tasks. This example uses a named Open button
-because opening its Drawer is an action on the current screen.
+room, or several independent tasks.
 
 When users compare several attributes, DataTable can use a `primaryAction`
 in the identity column. Pass the Drawer trigger handlers and ref to that
 action. Check the row background, title and description, checkbox and any
 secondary menu independently. Use `toolbar` and `inset="roomy"` for a heading
-and filters that share the table surface.
+and filters that share the table surface. Use the request title as the visible
+action and keep its ID beside it for disambiguation.
 
 ```tsx
 <Drawer title="Review workspace access" size="lg"
@@ -52,6 +52,10 @@ reading area. Compose the body from Section for separately named content,
 DescriptionList for facts and Fieldset for related controls. Check wrapping and
 scrolling with the longest title and a real footer action before selecting a size.
 Use the group heading size inside a detail Drawer to keep the record name prominent.
+Keep the request facts in one DescriptionList and use a compact, captioned Table
+for related records that have comparable columns, such as activity dates and events.
+Give that table its own heading when it identifies a distinct section. The Drawer
+body owns vertical scrolling and the footer keeps the next action within reach.
 
 When the detail contains line items and a total, use the Table footer to mark
 the summary and keep its amount aligned with the line-item amounts. A row header
@@ -69,13 +73,14 @@ labels the total, and the Table footer supplies the separator and emphasis.
 ## Keep browsing state and edit state separate
 
 Keep search, filter, accepted records and the open record ID in the host.
-Keep the list and its ScrollArea mounted while the Drawer is open. Reset the
+Keep the DataTable and its ScrollArea mounted while the Drawer is open. Reset the
 scroll position only when the user changes the query or filter.
 
 Entering edit mode copies the selected record. Cancel edit returns to details
 without changing accepted data. Saving replaces the record by stable ID.
-Recompute matches using the existing search and filter. If the updated record
-leaves the results, explain why and preserve the query. For a remote save, close
+Recompute matches using the existing search and filter. Use a floating ToastRegion
+for the save result so it cannot move the table. If the updated record leaves
+the results, explain why and preserve the query. For a remote save, close
 on accepted data and retain the draft with actionable feedback on failure.
 
 ## Restore focus to a useful place
@@ -83,8 +88,9 @@ on accepted data and retain the draft with actionable feedback on failure.
 Forward the Drawer trigger props from the single overlay to the row action
 that opens it. Focus Edit request when details open, Subject when editing starts,
 and Edit request after Cancel edit. On close, return focus to the same row
-action without scrolling. If the row left the results, focus Search requests
-without clearing it.
+action without scrolling. Drawer resolves `getFallbackFocus` after closing
+if the row left the results. The recipe returns Search requests and keeps
+the current query.
 
 Keep subject and ID together in the list. Status earns a stable trailing slot
 because users filter and compare by it. Put owner and the longer summary in the

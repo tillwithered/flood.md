@@ -1,0 +1,31 @@
+name: Report a component issue
+description: Report a reproducible issue in Flood or its component previews.
+body:
+  - type: input
+    id: component
+    attributes:
+      label: Component or page
+      placeholder: DataTable or https://flood.md/components/data-table
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Flood version
+      description: Include the installed package version or say that you found this on flood.md.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: How to reproduce
+      description: Share the smallest example or the preview settings and steps that trigger the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: What happened and what you expected
+      description: For visual bugs, a screenshot plus the browser and viewport width helps us reproduce the same state.
+    validations:
+      required: true

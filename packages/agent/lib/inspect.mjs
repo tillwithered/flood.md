@@ -13,6 +13,7 @@ export function inspectSourceUI(source,options={}) {
   };
   if(format==='jsx'){
     for(const match of source.matchAll(/\b(?:window|globalThis)\.(confirm|alert|prompt)\s*\(/g))record(match,'composition.native-dialog',match[1]==='confirm'?'AlertDialog':match[1]==='prompt'?'Dialog':'Alert','Native browser dialog candidate. Review the actual call and use the installed Flood owner unless native UI is explicitly required.');
+    for(const match of source.matchAll(/<AppShell\b[^<>]*?\s+scroll\s*=\s*(?:(["'])page\1|\{\s*(["'])page\2\s*\})/g))record(match,'composition.page-scroll','AppShell / ScrollArea','AppShell page mode uses document scrolling. For a full-window application, use content mode and verify the Flood viewport owns vertical overflow. Document layouts may deliberately use page mode.');
     for(const match of source.matchAll(/<(select|button)\b|<input\b[^>]*\btype\s*=\s*["'](date|time|checkbox|radio|range)["']/g)){
       const role=match[1]||match[2],owner={select:'Select',button:'Button',date:'DatePicker',time:'TimeField',checkbox:'Checkbox',radio:'Radio',range:'Slider'}[role];
       record(match,'composition.native-control',owner,'Raw control candidate. Review whether an existing Flood component owns this role; native form/table structure and deliberate documented adapters are separate cases.');
@@ -27,6 +28,50 @@ export function inspectSourceUI(source,options={}) {
     }
   }
   return {schemaVersion:1,issues,truncated,notChecked:['Text matching is not parsing: comments, strings and examples can match; aliases, dynamic types and indirect calls can be missed. Review source context.','This function reads only the supplied text. It does not execute it, open files or inspect imports, component capability, rendered layout or editorial necessity.']};
+}
+
+/** Assert the scroll contract of a full-window AppShell in a settled browser state. */
+export function assertWorkspaceScroll({rootSelector = '.flood-app-shell', expectOverflow} = {}) {
+  const prefix = 'Flood workspace scroll';
+  if (typeof document === 'undefined') throw new Error(`${prefix}: run this check in the rendered browser document`);
+  const roots = document.querySelectorAll(rootSelector);
+  if (roots.length !== 1 || !roots[0].matches('.flood-app-shell[data-scroll="content"]')) {
+    throw new Error(`${prefix}: select one workspace rendered with AppShell scroll="content" (${rootSelector})`);
+  }
+  const root = roots[0];
+  const viewport = root.querySelector(':scope > .flood-app-shell__workspace > .flood-app-shell__main > .flood-scroll-area > .flood-app-shell__scroll');
+  const viewportStyle = viewport && getComputedStyle(viewport);
+  if (!viewport || viewport.clientHeight === 0 || !['auto', 'scroll'].includes(viewportStyle.overflowY) || viewport.dataset.scrollbars !== 'overlay') {
+    throw new Error(`${prefix}: the AppShell content must have a visible, enhanced vertical Flood ScrollArea`);
+  }
+
+  const documentGutter = innerWidth - document.documentElement.clientWidth;
+  const scrollOwner = document.scrollingElement ?? document.documentElement;
+  const documentOverflow = scrollOwner.scrollHeight - scrollOwner.clientHeight;
+  if (documentGutter > 1 || documentOverflow > 1) {
+    throw new Error(`${prefix}: the document has ${documentOverflow}px vertical overflow and a ${documentGutter}px gutter. Contain overflow in the workspace.`);
+  }
+
+  const workspaceOverflow = viewport.scrollHeight - viewport.clientHeight;
+  const hasOverflow = workspaceOverflow > 1;
+  if (expectOverflow === true && !hasOverflow) {
+    throw new Error(`${prefix}: the populated fixture must overflow the workspace viewport`);
+  }
+  if (expectOverflow === false && hasOverflow) {
+    throw new Error(`${prefix}: expected the workspace content to fit, but it overflows by ${workspaceOverflow}px`);
+  }
+  // Flood intentionally exposes native scrollbars inside the viewport in forced colors.
+  if (!matchMedia('(forced-colors: active)').matches) {
+    const viewportGutter = viewport.offsetWidth - viewport.clientWidth
+      - parseFloat(viewportStyle.borderLeftWidth) - parseFloat(viewportStyle.borderRightWidth);
+    if (viewportGutter > 1) {
+      throw new Error(`${prefix}: a native scrollbar reserves ${viewportGutter}px inside the Flood viewport`);
+    }
+    if (hasOverflow && !viewport.parentElement.querySelector(':scope > .flood-scroll-area__track--vertical')) {
+      throw new Error(`${prefix}: the overflowing workspace has no vertical Flood scrollbar`);
+    }
+  }
+  return {documentGutter, documentOverflow, workspaceOverflow};
 }
 
 /** Read-only DOM observations. Pass this self-contained function to page.evaluate. */
@@ -53,15 +98,24 @@ export function inspectRenderedUI(options = {}) {
   if(root===document&&document.documentElement.scrollWidth>innerWidth+1)addIssue({id:'layout.page-overflow',target:{tag:'html',id:document.documentElement.id||null,className:document.documentElement.getAttribute('class')||'',label:'Document'},offset:document.documentElement.scrollWidth-innerWidth,message:'The document extends beyond the viewport. Review the actual overflow owner at this text size; dense content can scroll locally. Hiding page overflow does not repair the layout.'});
   const documentGutter = innerWidth - document.documentElement.clientWidth;
   const scrollOwner = document.scrollingElement;
-  if (documentGutter > 1 && scrollOwner && scrollOwner.scrollHeight > scrollOwner.clientHeight + 1) {
-    const table = select('.flood-data-table').find(visible);
-    if (table) addIssue({
-      id: 'layout.record-scroll-owner',
-      target: target(table),
-      offset: documentGutter,
-      message: 'A document scrollbar consumes width on this record view. Compare full and filtered views with classic scrollbars. For a full-window workspace, use AppShell content scrolling so changes in row count keep the table edges in place.',
-    });
-  }
+  const recordTables = select('.flood-data-table');
+  const table = recordTables.find(element => {
+    const main = element.closest('main.flood-app-shell__main');
+    const shell = main?.closest('.flood-app-shell[data-scroll="page"]');
+    if (!shell || shell.parentElement?.closest('.flood-app-shell')) return false;
+    const {top, width} = shell.getBoundingClientRect();
+    return top + scrollY <= 1 && width >= document.documentElement.clientWidth - 1;
+  });
+  const reservedGutter = documentGutter > 1 && scrollOwner && scrollOwner.scrollHeight > scrollOwner.clientHeight + 1;
+  const recordView = table || (reservedGutter && recordTables[0]);
+  if (recordView) addIssue({
+    id: 'layout.record-scroll-owner',
+    target: target(recordView),
+    offset: documentGutter,
+    message: table
+      ? 'A full-window record workspace uses AppShell page mode. Use content mode so Flood owns vertical scrolling even when the OS currently hides its scrollbar.'
+      : 'A document scrollbar consumes width on this record view. Compare full and filtered views with classic scrollbars and check whether a Flood ScrollArea should own vertical overflow.',
+  });
   for (const button of select('button.flood-button, button.flood-icon-button')) {
     // Text is inspected outside real icon slots, SVGs and visually hidden names.
     const walker = document.createTreeWalker(button, NodeFilter.SHOW_TEXT);

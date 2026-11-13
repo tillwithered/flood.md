@@ -2,6 +2,18 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import catalog from "../../apps/website/src/component-catalog.json" with { type: "json" };
 import taxonomy from "../../apps/website/src/component-groups.json" with { type: "json" };
+import { chooseSelectOption } from "./select-helpers";
+
+test("catalog category narrows search and leads to a chart preview", async ({ page }, info) => {
+  await page.goto("/components/button");
+  if (info.project.name === "mobile") await page.getByRole("button", { name: "Components", exact: true }).click();
+  const sidebar = page.locator(info.project.name === "mobile" ? "#studio-catalog-sheet" : "#studio-catalog");
+  await chooseSelectOption(sidebar.getByRole("combobox", { name: "Filter by component category" }), "charts");
+  await expect(sidebar.getByRole("group", { name: "Actions", exact: true })).toHaveCount(0);
+  await sidebar.getByRole("searchbox", { name: "Search components" }).fill("quartile");
+  await sidebar.getByRole("link", { name: "BoxPlot", exact: true }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("BoxPlot");
+});
 
 test("catalog categories, search and canonical Markdown agree", async ({ page, request }, info) => {
   await page.goto("/components");
@@ -11,8 +23,12 @@ test("catalog categories, search and canonical Markdown agree", async ({ page, r
   await expect(page.locator(".catalog-card")).toHaveCount(catalog.length);
   const groups = taxonomy.filter(group => catalog.some(component => component.group === group.id));
   const categories = page.getByRole("navigation", { name: "Component categories" });
-  await expect(categories.getByRole("link")).toHaveCount(groups.length);
-  await categories.getByRole("link", { name: /^Forms\b/ }).click();
+  if (info.project.name === "mobile") {
+    await chooseSelectOption(main.getByRole("combobox", { name: "Jump to component category" }), "forms");
+  } else {
+    await expect(categories.getByRole("link")).toHaveCount(groups.length);
+    await categories.getByRole("link", { name: "Forms", exact: true }).click();
+  }
   await expect(page).toHaveURL(/#forms$/);
   await expect(main.getByRole("heading", { name: "Forms", exact: true })).toBeInViewport();
   await search.fill("forms");
@@ -70,4 +86,25 @@ test("a long catalog name fits before the sidebar scrollbar", async ({ page }, i
   expect(text.height).toBeLessThanOrEqual(text.lineHeight + 1);
   const [row, scrollbar] = await Promise.all([current.boundingBox(), track.boundingBox()]);
   expect(row!.x + row!.width).toBeLessThan(scrollbar!.x);
+});
+
+test("filtering keeps the component search and links the same width", async ({ page }, info) => {
+  await page.goto("/components/flood-root");
+  if (info.project.name === "mobile") await page.getByRole("button", { name: "Components", exact: true }).click();
+  const sidebar = page.locator(info.project.name === "mobile" ? "#studio-catalog-sheet" : "#studio-catalog");
+  const search = sidebar.getByRole("searchbox", { name: "Search components" }).locator("..");
+  const row = sidebar.getByRole("link", { name: "FloodRoot", exact: true });
+  const track = sidebar.locator(".flood-scroll-area__track--vertical");
+  await expect(track).toBeVisible();
+  const before = await Promise.all([search.boundingBox(), row.boundingBox()]);
+  await search.getByRole("searchbox").fill("FloodRoot");
+  await expect(track).toBeHidden();
+  const after = await Promise.all([search.boundingBox(), row.boundingBox()]);
+  for (const [i, box] of before.entries()) {
+    expect(after[i]!.x).toBeCloseTo(box!.x, 0);
+    expect(after[i]!.width).toBeCloseTo(box!.width, 0);
+  }
+  await search.getByRole("searchbox").fill("");
+  await expect(track).toBeVisible();
+  expect((await search.boundingBox())!.width).toBeCloseTo(before[0]!.width, 0);
 });

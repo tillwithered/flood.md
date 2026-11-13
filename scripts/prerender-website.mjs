@@ -22,6 +22,11 @@ for (const path of pagePaths) {
   if (metadata.indexable && (!html.includes("<h1") || html.includes("Loading documentation…"))) throw new Error(`Incomplete prerender: ${path}`);
   const readerStyles = path.startsWith("/docs") || path.startsWith("/components")
     ? (manifest["src/documentation.tsx"]?.css ?? []).map(file => `    <link rel="stylesheet" href="/${escape(file)}" />`).join("\n") : "";
+  const { shareImage } = metadata;
+  const image = shareImage ?? { path: "/flood-mark.png", alt: "Flood mark" };
+  const imageDimensions = shareImage ? `
+    <meta property="og:image:width" content="${shareImage.width}" />
+    <meta property="og:image:height" content="${shareImage.height}" />` : "";
   const head = `${readerStyles}
     <link rel="canonical" href="${escape(metadata.canonical)}" />
     <meta name="robots" content="${metadata.indexable ? "index, follow" : "noindex, follow"}" />
@@ -30,9 +35,9 @@ for (const path of pagePaths) {
     <meta property="og:title" content="${escape(metadata.title)}" />
     <meta property="og:description" content="${escape(metadata.description)}" />
     <meta property="og:url" content="${escape(metadata.canonical)}" />
-    <meta property="og:image" content="${siteOrigin}/flood-mark.png" />
-    <meta property="og:image:alt" content="Flood mark" />
-    <meta name="twitter:card" content="summary" />`;
+    <meta property="og:image" content="${escape(siteOrigin + image.path)}" />
+    <meta property="og:image:alt" content="${escape(image.alt)}" />${imageDimensions}
+    <meta name="twitter:card" content="${shareImage ? "summary_large_image" : "summary"}" />`;
   const document = template
     .replace(/<title>[^<]*<\/title>/, `<title>${escape(metadata.title)}</title>`)
     .replace(/<meta name="description" content="[^"]*"\s*\/>/, `<meta name="description" content="${escape(metadata.description)}" />`)

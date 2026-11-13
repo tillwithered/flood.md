@@ -18,6 +18,7 @@ chosen siblings and intentional differences in development notes, outside the UI
 | Command collection | Toolbar/Menu owners, action sizes and keyboard ownership |
 | Floating surface | Existing overlay material, layer placement, inset and focus restoration |
 | Named content or record | Typography, hierarchy and metadata owners, not a new title scale |
+| Data visualization | LineChart data-mark stroke weight, quiet plot grid, exact-value inspection and stable geometry |
 
 Reuse these owners inside the new component. Extend the smallest missing owner
 before adding a composite override. For example, the Toolbar that draws an
@@ -131,6 +132,15 @@ Measure what looked wrong: glyph/text centres, visible insets, nested curves,
 focus bounds and overflow thresholds. Exercise resize while an action or popup
 has focus. After a shared-owner correction, inspect another consumer. A green
 build or token reuse alone does not establish visual kinship.
+
+Check the same component in a real host composition. Record the geometry that
+should remain stable as state changes. For example, a table cell editor may
+open over its cell, but entering edit mode should keep the row height and
+column widths stable. Then exercise commit and cancel with a long value. If
+the failure repeats, fix the first owner that can enforce the relationship: a
+semantic token for a shared role, the primitive for its own states, or the
+composite for how siblings fit. Add guidance when callers can already choose
+the right behavior through the public API.
 
 ## Keep the contract discoverable
 

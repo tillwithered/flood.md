@@ -22,6 +22,11 @@
       "description": "Structured content, files and honest operation states."
     },
     {
+      "id": "charts",
+      "name": "Charts",
+      "description": "Visualize trends, comparisons, distributions and change."
+    },
+    {
       "id": "quality",
       "name": "Quality",
       "description": "Accessibility, evidence and regression checks."
@@ -65,9 +70,15 @@
     "verification": [
       "quality"
     ],
+    "visual-review": [
+      "quality"
+    ],
     "interface-content": [
       "composition",
       "quality"
+    ],
+    "screen-composition": [
+      "composition"
     ],
     "hierarchy": [
       "foundations",
@@ -247,6 +258,10 @@
     "content": [
       "data-feedback"
     ],
+    "charts": [
+      "charts",
+      "data-feedback"
+    ],
     "feedback": [
       "data-feedback"
     ]
@@ -328,6 +343,7 @@
     }
   ],
   "documentGroups": {
+    "charts.md": ["charts", "data-feedback", "composition"],
     "recipes/record-management.md": ["data-feedback", "composition"],
     "recipes/settings-workspace.md": ["interaction", "composition"],
     "README.md": [

@@ -102,6 +102,12 @@ test("installation follows the publication gate and exposes real documentation l
   }
   await expect(page.getByRole("link", { name: "Components", exact: true }).first()).toHaveAttribute("href", "/components");
   await expect(page.getByRole("link", { name: "Set up your agent", exact: true })).toHaveAttribute("href", "/docs/agents");
+  await expect(page.getByRole("link", { name: "Explore components", exact: true })).toHaveAttribute("href", "/components");
+  await expect(page.getByRole("link", { name: "Explore charts", exact: true })).toHaveAttribute("href", "/docs/charts");
+  const chart = page.getByRole("slider", { name: "Daily visits", exact: true });
+  await chart.focus();
+  await chart.press("Home");
+  await expect(chart).toHaveAttribute("aria-valuetext", "Mon, This week: 38, Last week: 28");
   await expect(page.getByRole("link", { name: /For your agent/i })).toHaveAttribute("href", "/agent/SKILL.md");
 });
 

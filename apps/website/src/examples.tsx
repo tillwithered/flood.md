@@ -103,7 +103,7 @@ export default function Examples() {
               A calm foundation for React.<br />Native components. Instructions for your agent.
             </Text>
             <div className="installation">
-              <CodeSnippet code={command} className="installation-code" aria-label="Installation command"
+              <CodeSnippet code={command} prompt="$" className="installation-code" aria-label="Installation command"
                 action={<CopyButton value={command} size="lg" variant="subtle" disabled={!release.published}
                   aria-label="Copy installation command" onCopied={() => setCopyStatus("Copied. Ready for your React project.")}
                   onCopyError={() => setCopyStatus("Select the command and copy it manually.")} />} />
@@ -167,7 +167,10 @@ export default function Examples() {
               </Surface>
             </div>
           </section>
-          {location.pathname === "/playground" && <PlaygroundChecks />}
+          {location.pathname === "/playground" && <>
+            <Link href="/playground/charts">Request latency charts</Link>
+            <PlaygroundChecks />
+          </>}
         </main>
 
         <SiteFooter />

@@ -29,19 +29,23 @@ async function fixture() {
     function App() {
       const [request, setRequest] = useState("");
       const [narrow, setNarrow] = useState(false);
+      const [short, setShort] = useState(false);
       const rtl = flags.has("rtl");
       return h(FloodRoot, { dir: rtl ? "rtl" : "ltr" },
         h("main", { style: { width: narrow ? "17rem" : "36rem" } },
           h(DataTable, {
-            caption: "Column layout", hideCaption: true, columns, rows, selectable: true,
+            caption: "Column layout", hideCaption: true, columns,
+            rows: flags.has("bounded") && !short ? [...rows, ...rows.map(row => ({...row, id: row.id + "-extra"}))] : rows.slice(0, short ? 1 : rows.length),
+            selectable: true,
             minWidth: flags.has("floor") || flags.has("pinning") ? "40rem" : "min-content",
-            maxViewportHeight: flags.has("bounded") ? "5rem" : undefined,
+            maxViewportHeight: flags.has("bounded") ? "12rem" : undefined,
             showColumnVisibility: true, showResults: false, showSelection: false,
             defaultColumnWidths: { name: 136, cost: 112 },
             columnWidths: flags.has("locked") ? { name: 136, cost: 112 } : undefined,
             onColumnWidthsChange: widths => setRequest(JSON.stringify(widths)),
           }),
           h(Button, { onClick: () => setNarrow(!narrow) }, "Change viewport"),
+          flags.has("bounded") && h(Button, { onClick: () => setShort(!short) }, "Toggle results"),
           h("output", { "aria-label": "Requested widths" }, request)
         )
       );
@@ -108,7 +112,7 @@ test("fixed tracks retain the table minimum after columns are hidden", async ({ 
     .toBeGreaterThanOrEqual(640);
 });
 
-test("a pinned end column clears the overlay rail in a bounded table", async ({ page }) => {
+test("a pinned end column keeps its position as the bounded table rail disappears", async ({ page }) => {
   await open(page, "?bounded");
   const table = page.getByRole("table", { name: "Column layout" });
   const end = table.getByRole("columnheader", { name: "Cost", exact: true });
@@ -117,6 +121,12 @@ test("a pinned end column clears the overlay rail in a bounded table", async ({ 
   await expect(rail).toBeVisible();
   const [headerBox, railBox] = await Promise.all([end.boundingBox(), rail.boundingBox()]);
   expect(headerBox!.x + headerBox!.width).toBeLessThanOrEqual(railBox!.x);
+  await page.getByRole("button", { name: "Toggle results" }).click();
+  await expect(rail).toHaveCount(0);
+  await expect(end).toHaveAttribute("data-pin-edge", "end");
+  const shortBox = (await end.boundingBox())!;
+  expect(shortBox.x).toBeCloseTo(headerBox!.x, 0);
+  expect(shortBox.width).toBeCloseTo(headerBox!.width, 0);
 });
 
 for (const rtl of [false, true]) {

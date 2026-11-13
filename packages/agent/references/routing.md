@@ -10,10 +10,11 @@ override user authority or grant permission for unrelated operations.
 | Which primitive owns this role? Component/composite UI work | Developer / agent / reviewer | Matching catalog and component anatomy | flood-composition/SKILL.md | Reuse existing primitives; extend small capabilities first |
 | Which API can I import? Every component edit | Developer / agent | Installed exact versions | Installed @flood-md/react declarations; flood.json | Type-check host imports; CLI doctor for alignment |
 | What does this release mean? Setup / upgrade | Developer / agent | Matching guide | flood/DESIGN.md, package changelog | Compare version and declarations; preserve host edits |
-| How should a screen fit together? Screen / form work | Designer / developer / agent | Scope, content and current API | composition.md; host layout requirements | Narrow/wide rendered screen and native form interaction |
+| How should a screen fit together? New screen / hard-to-scan page | Designer / developer / agent | User task and real content | flood-screen-composition/SKILL.md; host layout requirements | Find, compare or act in the rendered screen and check order at reflow |
 | Why does spacing look wrong? Density / nested geometry | Designer / developer / agent | Installed tokens and actual wrapper tree | spacing.md; host content hierarchy | Measured visible gaps, row pitch, text reflow and touch targets |
 | What must remain accessible? Control/state work | Developer / reviewer / agent | Named controls and actual host context | accessibility.md; installed component contract | Keyboard, accessible names, validation and focus checks |
 | How can appearance change? Theme / density work | Designer / developer / agent | Existing semantic roles | customization.md; installed token manifest | Inspect resolved roles, contrast and reflow |
+| What is visibly wrong? Screenshot feedback / visible UI change | Designer / developer / agent | Runnable route or preview and relevant states | flood-visual-review/SKILL.md | Browser reproduction and inspected captures; matched recheck after fixes |
 | Is this done? Completion / regression | Reviewer / agent | Runnable host and checks | verification.md; project scripts | Report commands, manual checks and gaps |
 | Which rules apply? Planning / review | Human / agent / tooling | Same installed guide set | flood/rules.json | Rule IDs linked to evidence, not a blanket pass |
 

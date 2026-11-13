@@ -20,6 +20,11 @@ output in a Node 24 image and starts the server. Container runtime contents are
 limited to the built website and server entry; source and build dependencies stay
 in the build stage.
 
+The site uses Flood ScrollArea for page scrolling and for the component canvas.
+These viewports use `contentInset="none"` so overflow can change without
+resizing the content. Keep page landmarks inside the scroll viewport and test
+fragment navigation, the skip link and modal dismissal after changing the shell.
+
 The runtime also includes `apps/website/routes.mjs`, `visitors.mjs` and its catalog JSON inventory,
 which define the explicit page allowlist.
 Known `/docs` and `/components` pages serve their own prerendered HTML; unknown paths

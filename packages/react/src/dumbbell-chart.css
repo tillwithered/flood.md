@@ -1,0 +1,100 @@
+.flood-root .flood-dumbbell-chart {
+  --flood-dumbbell-label-width: clamp(3.5rem, 20%, 7rem);
+  --flood-dumbbell-inset: var(--flood-sys-space-2);
+  min-inline-size: 0;
+}
+.flood-root .flood-dumbbell-chart__plot { position: relative; cursor: crosshair; }
+.flood-root .flood-dumbbell-chart__rows {
+  position: relative;
+  isolation: isolate;
+}
+.flood-root .flood-dumbbell-chart__rows::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--flood-dumbbell-inset) 0 var(--flood-dumbbell-label-width);
+  background: var(--flood-chart-grid);
+  mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+  pointer-events: none;
+}
+.flood-root .flood-dumbbell-chart__row {
+  display: grid;
+  grid-template-columns: var(--flood-dumbbell-label-width) minmax(0, 1fr);
+  align-items: center;
+  min-block-size: 2.75rem;
+  border-radius: var(--flood-sys-radius-indicator);
+  position: relative;
+}
+.flood-root .flood-dumbbell-chart__row[data-active] {
+  background: color-mix(in srgb, var(--flood-chart-accent) 6%, transparent);
+  z-index: 1;
+}
+.flood-root .flood-dumbbell-chart__name {
+  padding-inline: var(--flood-dumbbell-inset);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flood-root .flood-dumbbell-chart__track {
+  position: relative;
+  margin-inline: var(--flood-dumbbell-inset);
+}
+.flood-root .flood-dumbbell-chart__connector {
+  position: absolute;
+  block-size: var(--flood-chart-stroke-width);
+  translate: 0 -50%;
+  background: color-mix(in srgb, var(--flood-chart-accent) 55%, transparent);
+}
+.flood-root :is(.flood-dumbbell-chart__point, .flood-dumbbell-chart__key) {
+  box-sizing: border-box;
+  inline-size: .625rem;
+  block-size: .625rem;
+  border-radius: 50%;
+  border: var(--flood-chart-stroke-width) solid var(--flood-chart-accent);
+  background: var(--flood-chart-accent);
+}
+.flood-root .flood-dumbbell-chart__point { position: absolute; translate: -50% -50%; }
+.flood-root .flood-dumbbell-chart [data-point="before"] {
+  inline-size: .875rem;
+  block-size: .875rem;
+  border-color: var(--flood-sys-color-content-subtle);
+  background: var(--flood-sys-color-surface-raised);
+}
+.flood-root .flood-dumbbell-chart [data-point="after"] {
+  inline-size: .4375rem;
+  block-size: .4375rem;
+}
+.flood-root .flood-dumbbell-chart__axis {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--flood-sys-space-2);
+  margin-inline: calc(var(--flood-dumbbell-label-width) + var(--flood-dumbbell-inset)) var(--flood-dumbbell-inset);
+  margin-block-start: var(--flood-sys-space-2);
+  font-variant-numeric: tabular-nums;
+}
+.flood-root .flood-dumbbell-chart__axis > :only-child { margin-inline: auto; }
+.flood-root .flood-dumbbell-chart__axis > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flood-root .flood-dumbbell-chart__legend { margin-block-start: var(--flood-sys-space-3); }
+.flood-root .flood-dumbbell-chart__tooltip {
+  --flood-dumbbell-tip-width: min(9rem, 80%);
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  gap: var(--flood-sys-space-1);
+  inline-size: var(--flood-dumbbell-tip-width);
+  --flood-dumbbell-track-width: calc(100% - var(--flood-dumbbell-label-width) - 2 * var(--flood-dumbbell-inset));
+  left: clamp(0px, calc(var(--flood-dumbbell-label-width) + var(--flood-dumbbell-inset) + var(--flood-dumbbell-anchor) * var(--flood-dumbbell-track-width) - var(--flood-dumbbell-tip-width) / 2), calc(100% - var(--flood-dumbbell-tip-width)));
+}
+.flood-root .flood-dumbbell-chart__tooltip[data-side="below"] { inset-block-start: calc(100% + var(--flood-dumbbell-inset)); }
+.flood-root .flood-dumbbell-chart__tooltip[data-side="above"] { inset-block-end: calc(100% + var(--flood-dumbbell-inset)); }
+.flood-root .flood-dumbbell-chart__reading { justify-content: space-between; }
+@media (prefers-reduced-motion: no-preference) {
+  .flood-root:not([data-flood-motion="reduce"]) .flood-dumbbell-chart__row:not(:where([data-flood-motion="reduce"] *)) {
+    transition: background-color var(--flood-chart-motion);
+  }
+}
+@media (forced-colors: active) {
+  .flood-root .flood-dumbbell-chart__connector { forced-color-adjust: none; background: GrayText; }
+  .flood-root .flood-dumbbell-chart [data-point] { forced-color-adjust: none; border-color: CanvasText; background: Canvas; }
+  .flood-root .flood-dumbbell-chart [data-point="after"] { background: CanvasText; }
+  .flood-root .flood-dumbbell-chart__row[data-active] { outline: 1px solid Highlight; outline-offset: -1px; }
+}

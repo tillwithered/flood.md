@@ -1,4 +1,4 @@
-# Flood design system · 0.2.12
+# Flood design system · 0.2.13
 
 ListBox owns native required validation for accepted selection. Use its
 description/message/status props rather than duplicating feedback markup. Visual
@@ -156,12 +156,21 @@ supplementary APCA guidance. Do not apply text thresholds to decorative lines or
 claim full WCAG/APCA certification from a color-pair calculation. Small helper
 text is supporting content, not the sole presentation of required instructions.
 
+For a full-window application with changing content, use AppShell's content
+scroll mode. Choose `scrollContentInset="none"` when the workspace already has
+clearance for the overlay rail. Use page scrolling for documents.
+
 ## Verify
 
 Check keyboard, labels, focus/invalid combinations, required fields, native form
 submission, loading/disabled/readonly, root scaling, text-spacing overrides,
 narrow screens, long content, forced colors and reduced motion. Keep application
 data and side effects in the host project. Flood owns UI only.
+
+For a visible change, use `.agents/skills/flood-ui/references/flood-visual-review/SKILL.md`
+from the project root. Exercise the affected states in the running UI, inspect
+the screenshots and compare the same state after a fix. Record which state,
+viewport and browser the evidence covers.
 
 Read flood.json and use the matching CLI when running doctor. Doctor checks
 versions/instruction files, not CSS imports or completed UI behavior. Do not

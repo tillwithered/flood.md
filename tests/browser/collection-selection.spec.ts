@@ -62,8 +62,9 @@ test('floating selection bar leaves the table in place and keeps final controls 
   const scope = await open(page);
   const table = scope.getByRole('table', { name: 'Projects', exact: true });
   const before = (await table.boundingBox())!;
-  const scrollGeometry = () => page.evaluate(() => {
-    const { clientWidth, scrollHeight } = document.documentElement;
+  const viewport = page.locator(".site-page-scroll");
+  const scrollGeometry = () => viewport.evaluate(node => {
+    const { clientWidth, scrollHeight } = node;
     return { clientWidth, scrollHeight };
   });
   const geometryBefore = await scrollGeometry();
@@ -75,7 +76,7 @@ test('floating selection bar leaves the table in place and keeps final controls 
   const initial = (await bar.boundingBox())!;
   expect(initial.y + initial.height).toBeLessThanOrEqual(550);
   expect(550 - initial.y - initial.height).toBeLessThanOrEqual(24);
-  await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
+  await viewport.evaluate(node => node.scrollTo({ top: node.scrollHeight, behavior: 'instant' }));
   expect(Math.abs((await bar.boundingBox())!.y - initial.y)).toBeLessThan(1);
   const next = (await scope.getByRole('button', { name: 'Next page', exact: true }).boundingBox())!;
   expect(next.y + next.height).toBeLessThan(initial.y);
@@ -90,10 +91,11 @@ test('selection preserves a fitting collection and its rounded table outline', a
   const scope = await open(page);
   await expect(scope.getByRole('table', { name: 'Projects', exact: true })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
-  const height = await page.evaluate(() => document.documentElement.scrollHeight);
+  const viewport = page.locator(".site-page-scroll");
+  const height = await viewport.evaluate(node => node.scrollHeight);
   await page.setViewportSize({ width: 1280, height });
-  const overflow = () => page.evaluate(() => {
-    const { scrollHeight, clientHeight } = document.documentElement;
+  const overflow = () => viewport.evaluate(node => {
+    const { scrollHeight, clientHeight } = node;
     return scrollHeight - clientHeight;
   });
   expect(await overflow()).toBe(0);

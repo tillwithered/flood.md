@@ -9,7 +9,7 @@ the parent destination and children remain reachable.
 
 ## Dark foundations · 0.2.5
 
-This guide describes the **0.2.12** API. See the [base component inventory](base-components.md)
+This guide describes the **0.2.13** API. See the [base component inventory](base-components.md)
 for the complete set. New APIs extend earlier 0.2 releases; source changes do not
 modify published npm versions. Existing 0.1.1 installs follow their
 version-specific guides.
@@ -73,7 +73,7 @@ may render from server components; the React entry retains its client boundary.
 | Divider | Native hr props | Semantic separator; grouping must not rely on its faint line alone |
 | IconSlot | `size` (md); optional `label` | Host SVG adapter; decorative without label |
 | IconButton | Required `label`; Button props; optional `iconSize` independent of `size`; subtle by default | Names the action; child icon stays decorative; target size is preserved |
-| CodeSnippet | Required `code` string; optional `action`; native div props/ref | Selectable wrapping code; host owns copy behavior and feedback |
+| CodeSnippet | Required `code` string; optional `prompt`, `action`; native div props/ref | Selectable wrapping code; host owns copy behavior and feedback |
 
 Space keys are strings `"0"`, `"1"`, `"2"`, `"3"`, `"4"`, `"6"`, `"8"`, `"12"`:
 0/4/8/12/16/24/32/48px equivalents at a 16px reference root. Actual dimensions
@@ -685,6 +685,8 @@ Keep very long addon content concise. Hidden native choices hide their label too
 Dark foundations bundle both normal and italic Inter, including Cyrillic, with
 original OFL notices. Color alone never communicates validation or progress.
 
-CodeSnippet codeDirection defaults to ltr independently of RTL parent action layout; choose rtl/auto explicitly for content that needs it. Native dir still applies to the wrapper. Protected ScrollArea reveals focused descendants fully when needed, composes the host focus handler and avoids scrolling to nested top-layer controls.
+CodeSnippet `codeDirection` defaults to `ltr` independently of RTL parent action layout. Choose `rtl` or `auto` for content that needs it. Native `dir` applies to the wrapper. Use `prompt="$"` for a decorative shell prompt beside a command and pass the original code to the copy action. At narrow widths the action can move below the code and stays at the trailing edge.
+
+Protected ScrollArea reveals focused descendants fully when needed, composes the host focus handler and avoids scrolling to nested top-layer controls.
 
 Checkbox, Radio and Switch apply native hidden/dir/lang to their visible label wrapper as well as the input, so a component-local language/direction applies to its whole choice.

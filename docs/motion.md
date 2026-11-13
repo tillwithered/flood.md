@@ -54,6 +54,18 @@ behavior of their children. State updates and focus take effect immediately.
 | `CodeSnippet`, `Card`, `DataList`, `DataListItem`, `FileItem`, `FileList`, `AvatarGroup` | Embedded actions and avatars own motion. Reading order and record layout remain stable. |
 | `Badge`, `DescriptionList`, `Table`, `Image`, `List`, `Figure`, `Metric`, `Timeline`, `ColorSwatch`, `FileMeta` | Static content. Changes to data, labels and supporting media render immediately. |
 | `Sparkline` | Hover briefly strengthens the latest point and area. Data changes render immediately. |
+| `LineChart` | Crosshair, markers and local line emphasis track the pointer continuously. The readout shows the nearest recorded sample and lifts clear of the marker near the trailing edge. On exit the readout and marks fade in place from their last pointer position. |
+| `BarList` | Uses Meter's value transition and the same fast highlight as chart inspection. Labels and values update immediately. |
+| `BarChart` | Uses the fast motion role to emphasize the inspected group while its neighbors dim. The readout updates with the active category and column geometry stays fixed. |
+| `DonutChart` | Uses the fast motion role for the inspected segment's outline. Category colors, fills and geometry stay fixed, and the center readout updates immediately. |
+| `Heatmap` | Moves the value tooltip immediately to the inspected cell and keeps the matrix fixed. Visual gutters share the adjacent cells' hit areas. |
+| `ScatterChart` | Highlights the inspected observation and presents its coordinates. Points keep their positions. |
+| `RangeChart` | Highlights the inspected interval while its exact bounds update immediately. |
+| `BulletChart` | Uses the Meter transition for the actual value. Target marks and exact values update immediately. |
+| `WaterfallChart` | Highlights the inspected step and shows the change and running balance. |
+| `Histogram` | Shows exact bin bounds and count as inspection moves. Bin geometry stays fixed. |
+| `BoxPlot` | Highlights the inspected distribution and anchors its summary to the median. The tooltip prefers the right side and flips when space runs out. |
+| `DumbbellChart` | Highlights the inspected comparison without moving its marks. The readout updates immediately. |
 | `Avatar` | Loaded image eases in within a fixed frame. Fallback text is immediately available. |
 | `DataTable` | Selected row paint, chevron rotation and a short height transition for row details. Sorting, pagination and column resize update geometry immediately. |
 | `Tooltip`, `Popover`, `Menu`, `ContextMenu`, `HoverCard`, `CommandPalette`, `Dialog`, `AlertDialog`, `Drawer`, `Sheet`, `ImagePreview` | Anchored entrances follow placement. Modal and edge panels have their own timing. Sheet uses the bottom Drawer entrance. Controls, focus, close and positioning retain their native behavior. |

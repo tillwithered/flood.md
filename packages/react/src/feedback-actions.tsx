@@ -1,9 +1,19 @@
-import {forwardRef, useEffect, useImperativeHandle, useRef, useState} from "react";
+import {forwardRef, useEffect, useImperativeHandle, useRef, useState, type MouseEvent} from "react";
 import type {CopyButtonProps, ToastRegionProps, ToastItem} from "./index.js";
 import {Button, IconButton, IconSlot, Spinner, VisuallyHidden} from "./index.js";
 
+function ClipboardGlyph({ index, pending }: { index: number; pending: boolean }) {
+  if (pending) return <Spinner decorative />;
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    {index === 1 ? <path d="m5 12 4 4L19 6"/> : index === 2 ? <path d="m6 6 12 12M18 6 6 18"/> : <>
+      <rect x="8" y="8" width="12" height="12" rx="2"/>
+      <path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/>
+    </>}
+  </svg>;
+}
+
 export const ClipboardAction = /* @__PURE__ */ forwardRef<HTMLButtonElement, CopyButtonProps>(function ClipboardAction({
-  value, copyLabel = "Copy", copiedLabel = "Copied", errorLabel = "Failed",
+  value, iconOnly, copyLabel = "Copy", copiedLabel = "Copied", errorLabel = "Failed",
   resetDelay = 2000, onCopied, onCopyError, className, disabled, size = "md", variant = "subtle", "aria-label": accessibleLabel, ...props
 }, ref) {
   if (!Number.isFinite(resetDelay) || resetDelay < 0) throw new Error("Flood CopyButton resetDelay must be finite and nonnegative");
@@ -12,7 +22,9 @@ export const ClipboardAction = /* @__PURE__ */ forwardRef<HTMLButtonElement, Cop
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; clearTimeout(timer.current); }; }, []);
-  const label = phase === "copied" ? copiedLabel : phase === "error" ? errorLabel : copyLabel;
+  const phaseIndex = phase === "copied" ? 1 : phase === "error" ? 2 : 0;
+  const labels = [copyLabel, copiedLabel, errorLabel];
+  const label = labels[phaseIndex];
   const copy = async (node: HTMLButtonElement) => {
     if (pending || node.matches(":disabled")) return;
     clearTimeout(timer.current); setPending(true);
@@ -31,13 +43,25 @@ export const ClipboardAction = /* @__PURE__ */ forwardRef<HTMLButtonElement, Cop
     }
     onCopied?.();
   };
-  return <><Button {...props} ref={ref} type="button" size={size} variant={variant} disabled={disabled || pending} aria-label={accessibleLabel ? (phase === "idle" ? accessibleLabel : `${label}: ${accessibleLabel}`) : label}
-    className={["flood-copy-button", className].filter(Boolean).join(" ")} onClick={event => { void copy(event.currentTarget); }}>
-    <span className="flood-copy-button__labels" aria-hidden="true">{[copyLabel,copiedLabel,errorLabel].map((text,index) => <span key={index} data-visible={index === (phase === "copied" ? 1 : phase === "error" ? 2 : 0) || undefined}>
-      <IconSlot size={size}>{pending ? <Spinner decorative /> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{index === 1 ? <path d="m5 12 4 4L19 6"/> : index === 2 ? <path d="m6 6 12 12M18 6 6 18"/> : <><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/></>}</svg>}</IconSlot>
-      <span>{text}</span>
-    </span>)}</span>
-  </Button><VisuallyHidden role="status">{phase === "idle" ? "" : label}</VisuallyHidden></>;
+  const buttonLabel = accessibleLabel ? (phase === "idle" ? accessibleLabel : `${label}: ${accessibleLabel}`) : label;
+  const buttonProps = {
+    ...props, ref, type: "button" as const, size, variant, disabled: disabled || pending,
+    className: ["flood-copy-button", className].filter(Boolean).join(" "),
+    onClick: (event: MouseEvent<HTMLButtonElement>) => { void copy(event.currentTarget); },
+  };
+  return <>
+    {iconOnly
+      ? <IconButton {...buttonProps} label={buttonLabel} title={props.title ?? buttonLabel}>
+        <ClipboardGlyph index={phaseIndex} pending={pending} />
+      </IconButton>
+      : <Button {...buttonProps} aria-label={buttonLabel}>
+        <span className="flood-copy-button__labels" aria-hidden="true">{labels.map((text, index) => <span key={index} data-visible={index === phaseIndex || undefined}>
+          <IconSlot size={size}><ClipboardGlyph index={index} pending={pending} /></IconSlot>
+          <span>{text}</span>
+        </span>)}</span>
+      </Button>}
+    <VisuallyHidden role="status">{phase === "idle" ? "" : label}</VisuallyHidden>
+  </>;
 });
 
 function TimedToast({item, closeLabel, onDismiss}: {item: ToastItem; closeLabel: string; onDismiss: (id: string) => void}) {

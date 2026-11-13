@@ -41,21 +41,62 @@ test("Link button appearances share Button metrics while preserving anchor behav
   expect(await button.evaluate(node=>{const s=getComputedStyle(node);return [s.fontSize,s.lineHeight,s.minHeight,s.paddingInlineStart,s.borderRadius,s.backgroundColor,s.color]})).toEqual(metrics);
 });
 
-test("document scrolling uses Flood tokens without replacing the native page viewport",async({page})=>{
+test("page scroll uses a Flood overlay rail without shifting the catalog",async({page},info)=>{
   await page.goto("/components");
-  await expect(page.getByRole("heading",{level:1})).toHaveText("Components");
-  const state=await page.evaluate(()=>{
-    const root=document.documentElement,s=getComputedStyle(root);
-    const color=(value:string)=>{const probe=document.createElement("span");probe.style.color=value;root.append(probe);const resolved=getComputedStyle(probe).color;probe.remove();return resolved};
-    return {native:document.scrollingElement===root,width:s.scrollbarWidth,colors:s.scrollbarColor,
-      thumb:color(s.getPropertyValue("--flood-sys-color-scrollbar-thumb").trim()),canvas:color(s.getPropertyValue("--flood-sys-color-surface-canvas").trim())};
-  });
-  expect(state.native).toBe(true);expect(state.width).toBe("thin");
-  expect(state.colors).toBe(`${state.thumb} ${state.canvas}`);
+  const viewport=page.locator(".site-page-scroll");
+  const rail=viewport.locator("..").locator(":scope > .flood-scroll-area__track--vertical");
+  await expect(rail).toBeVisible();
+  await expect(viewport).toHaveCSS("scrollbar-width","none");
   await page.keyboard.press("Control+End");
-  await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(0);
+  await expect.poll(()=>viewport.evaluate(node=>node.scrollTop)).toBeGreaterThan(0);
+  expect(await page.evaluate(()=>scrollY)).toBe(0);
+  await page.keyboard.press("Home");
+  await expect.poll(()=>viewport.evaluate(node=>node.scrollTop)).toBe(0);
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link",{name:"Skip to content",exact:true})).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("main")).toBeFocused();
+  const search=page.getByRole("main").getByRole("searchbox",{name:"Search components"});
+  const geometry=()=>search.evaluate(node=>{
+    const {left,width}=node.closest(".catalog-search")!.getBoundingClientRect();
+    return {left,width,gutter:innerWidth-document.documentElement.clientWidth};
+  });
+  const initial=await geometry();
+  expect(initial.gutter).toBe(0);
+  await search.fill("not-a-component");
+  await expect(rail).toBeHidden();
+  expect(await geometry()).toEqual(initial);
+  await search.fill("");
+  await expect(rail).toBeVisible();
+  expect(await geometry()).toEqual(initial);
+  await page.screenshot({path:`.artifacts/site-scroll-catalog-${info.project.name}.png`});
   await page.emulateMedia({forcedColors:"active"});
-  expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollbarColor)).toBe("auto");
+  await expect(viewport).toHaveCSS("scrollbar-width","auto");
+  await expect(rail).toBeHidden();
+});
+
+test("deep links and Studio use the page and preview ScrollAreas independently",async({page},info)=>{
+  await page.goto("/docs/charts#latency-example");
+  const viewport=page.locator(".site-page-scroll");
+  await expect(page.getByRole("heading",{name:"Request latency (ms)"})).toBeInViewport();
+  await expect.poll(()=>viewport.evaluate(node=>node.scrollTop)).toBeGreaterThan(0);
+  expect(await page.evaluate(()=>scrollY)).toBe(0);
+  await page.goto("/components/aspect-ratio");
+  await expect(page.getByRole("heading",{name:"AspectRatio",exact:true})).toBeVisible();
+  const canvas=page.getByRole("region",{name:"Preview canvas",exact:true});
+  await expect(canvas).toHaveAttribute("data-scrollbars","overlay");
+  await expect(canvas.locator("..").locator(":scope > .flood-scroll-area__track")).toHaveCount(0);
+  if(info.project.name!=="mobile") return;
+  await page.goto("/components/data-table");
+  await expect(canvas.locator("..").locator(":scope > .flood-scroll-area__track--vertical")).toBeVisible();
+  await expect(canvas).toHaveCSS("scrollbar-width","none");
+  await page.getByRole("button",{name:"Reference Alt R"}).click();
+  const reference=page.getByRole("dialog",{name:"Component reference"});
+  await expect(reference).toBeVisible();
+  await expect(viewport).toHaveCSS("overflow-y","hidden");
+  await page.keyboard.press("Escape");
+  await expect(reference).toBeHidden();
+  await expect(page.getByRole("button",{name:"Reference Alt R"})).toBeFocused();
 });
 
 test("sidebar item text is brighter than category labels before hover",async({page},info)=>{
@@ -63,7 +104,7 @@ test("sidebar item text is brighter than category labels before hover",async({pa
   if(info.project.name==="mobile")await page.getByRole("button",{name:"Components",exact:true}).click();
   const nav=page.locator(info.project.name==="mobile" ? "#studio-catalog-sheet" : "#studio-catalog");
   const color=await nav.getByRole("link",{name:"Input",exact:true}).evaluate(node=>getComputedStyle(node).color);
-  const label=await nav.getByText("Forms",{exact:true}).evaluate(node=>getComputedStyle(node).color);
+  const label=await nav.getByRole("group",{name:"Forms",exact:true}).getByText("Forms",{exact:true}).evaluate(node=>getComputedStyle(node).color);
   expect(color).toBe("rgb(255, 255, 255)");expect(label).not.toBe(color);
 });
 

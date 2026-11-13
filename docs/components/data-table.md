@@ -119,6 +119,8 @@ Set `maxViewportHeight` to give the table its own vertical scroll area.
 Add `stickyHeader` to keep column names and header controls in view within
 that area. The toolbar and pagination sit outside the scrolling viewport.
 Leave enough height to show the header and several body rows together.
+The table keeps a stable clearance at the logical end for its overlay
+scrollbar as rows are added or removed.
 
 Keep column labels short. DataTable lays them out on one line and truncates
 the visible label when a column is resized below its text width. The full

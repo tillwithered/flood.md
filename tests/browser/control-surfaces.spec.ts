@@ -51,7 +51,7 @@ test("strong boundaries are an explicit semantic override and preserve the indep
   await page.goto("/components/input");
   const input = page.locator(".preview-stage").getByRole("textbox");
   await expect(input).toHaveCSS("border-color", "rgb(56, 56, 56)");
-  await page.locator(".preview-stage > .flood-root").evaluate(node => (node as HTMLElement).style.setProperty("--flood-sys-color-field-border", "var(--flood-sys-color-field-boundary)"));
+  await page.locator(".preview-stage > .flood-scroll-area__content > .flood-root").evaluate(node => (node as HTMLElement).style.setProperty("--flood-sys-color-field-border", "var(--flood-sys-color-field-boundary)"));
   await expect(input).toHaveCSS("border-color", "rgb(138, 138, 138)");
   const ratio = await input.evaluate(node => {
     const css = getComputedStyle(node);

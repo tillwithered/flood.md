@@ -1,7 +1,7 @@
-# flood.md — agent entry point · 0.2.12
+# flood.md — agent entry point · 0.2.13
 
 Flood is an independent React/TypeScript design system supporting React18.3/19
-and Next.js App Router. This document describes version 0.2.12;
+and Next.js App Router. This document describes version 0.2.13;
 verify registry availability before installation. Existing projects follow their
 installed flood.json, flood/DESIGN.md and declarations first. Keep exact Flood
 package versions aligned; never fabricate installation or publication success.
@@ -20,7 +20,7 @@ patterns and pages. Compose Flood atoms; do not duplicate their visual/behaviora
 contracts or use an external UI component implementation. Native semantics remain
 appropriate for forms, list items and table headers/cells. No new light profile.
 
-Human guides: /docs.md, /docs/foundations.md, /docs/layout.md, /docs/components.md.
+Human guides: /docs.md, /docs/foundations.md, /docs/layout.md, /docs/charts.md, /components.md.
 Agent sources: /agent/DESIGN.md and /agent/SKILL.md, with versioned
 /agent/manifest.json and /agent/rules.json. Read /agent/references/routing.md for
 focused composition, spacing, accessibility, customization and verification rules.

@@ -1,5 +1,38 @@
 # Changelog
 
+## Unreleased
+
+## 0.2.13 — Charts and discovery
+
+- Add optional focus recovery to Menu and Dialog-family overlays when their
+  opener disappears or can no longer receive focus.
+
+- Add LineChart for interactive trends, BarChart for grouped comparisons and BarList for compact rankings.
+  BarChart also supports signed stacked columns for additive series.
+  Its percent layout compares shares of each category total.
+  LineChart and BarChart show series names during inspection, with a persistent key available through `showLegend`.
+- Add DonutChart for part-to-whole comparisons with exact values in the center of the ring.
+- Add Heatmap for comparing intensity across two labelled axes.
+- Add ScatterChart, RangeChart, BulletChart, WaterfallChart, Histogram, BoxPlot and DumbbellChart with shared data-mark styling.
+- Keep LineChart inspection anchored at the last hovered position during exit.
+- Group charts in the component and agent catalogs. Add category filtering to
+  the component sidebar and a chart selection guide with a live latency example.
+- Put component discovery and an interactive chart on the homepage. Add a
+  compact category picker to the mobile catalog and a share card for the guide.
+- Use Flood's overlay scrollbars for the site and the component canvas to
+  preserve content width as overflow changes.
+- Give CodeSnippet an optional shell prompt and support icon-only CopyButton
+  actions with accessible copy feedback.
+
+- Add optional end alignment to CollectionToolbar for search and filters sharing
+  a row with a view or status selector.
+- Flag document scrolling in full-window record workspaces during agent review,
+  including when the operating system hides its scrollbar.
+- Export a workspace scroll assertion from `@flood-md/agent/inspect` for browser
+  tests that fail on document overflow, reserved gutter or missing Flood scroll.
+- Keep the scrollbar clearance in bounded tables stable when filtering changes
+  whether the table overflows.
+
 ## 0.2.12 — Data tables and Studio
 
 - Add DataTable column visibility and layout reset, pointer and keyboard resizing,

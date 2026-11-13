@@ -10,12 +10,14 @@ async function fixture(){
   await writeFile(entry,`import React,{StrictMode,useState,useRef} from ${file("node_modules/react/index.js")};import{createRoot}from ${file("node_modules/react-dom/client.js")};
 import{FloodRoot,Button,Input,Menu,Dialog}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};
 const h=React.createElement,trigger=label=>props=>h(Button,{...props,variant:'subtle'},label),items=[{id:'rename',label:'Rename…'},{id:'duplicate',label:'Duplicate'},{id:'disabled',label:'Download',disabled:true},{id:'separator',type:'separator'},{id:'delete',label:'Delete project',tone:'danger'}];
-function App(){const[checked,setChecked]=useState(true),[density,setDensity]=useState('compact'),[freezeChoice,setFreezeChoice]=useState(false),[result,setResult]=useState(''),[open,setOpen]=useState(false),[freeze,setFreeze]=useState(false),[long,setLong]=useState(false),[opens,setOpens]=useState(0),input=useRef();
+function App(){const[checked,setChecked]=useState(true),[density,setDensity]=useState('compact'),[freezeChoice,setFreezeChoice]=useState(false),[result,setResult]=useState(''),[open,setOpen]=useState(false),[freeze,setFreeze]=useState(false),[long,setLong]=useState(false),[opens,setOpens]=useState(0),[removed,setRemoved]=useState(false),input=useRef(),fallback=useRef();
 const request=value=>{setOpens(n=>n+1);if(value||!freeze)setOpen(value)};
 return h(FloodRoot,null,h(Button,{id:'before'},'Before'),
 h(Menu,{label:'Actions',trigger:trigger('Actions'),items,onAction:setResult}),h(Button,{id:'after'},'After'),
 h(Menu,{label:'Preferences',trigger:trigger('Preferences'),items:[{id:'notify',type:'checkbox',label:'Notifications',checked,onCheckedChange:v=>{if(!freezeChoice)setChecked(v)}},{id:'mixed',type:'checkbox',label:'Partial',checked:'mixed',onCheckedChange:v=>setResult(String(v)),closeOnSelect:true},{id:'disabled-choice',type:'checkbox',label:'Unavailable',checked:false,disabled:true,onCheckedChange:()=>setResult('bad')},{id:'sep',type:'separator'},...['compact','comfortable'].map(value=>({id:value,type:'radio',group:'Density',label:value,checked:density===value,onCheckedChange:()=>setDensity(value)}))],onAction:()=>setResult('unexpected-action')}),h('label',null,h('input',{type:'checkbox',checked:freezeChoice,onChange:e=>setFreezeChoice(e.target.checked)}),'Freeze choice'),
-h(Input,{ref:input,'aria-label':'Action destination'}),h(Menu,{label:'Move focus',trigger:trigger('Move focus'),items:[{id:'move',label:'Move to input'}],onAction:()=>input.current.focus()}),
+h(Input,{ref:input,'aria-label':'Action destination'}),h(Menu,{label:'Move focus',trigger:trigger('Move focus'),items:[{id:'move',label:'Move to input'}],onAction:()=>input.current.focus(),getFallbackFocus:()=>fallback.current}),
+!removed&&h(Menu,{label:'Record actions',trigger:trigger('Record actions'),items:[{id:'remove',label:'Remove record'}],onAction:()=>setRemoved(true),getFallbackFocus:()=>fallback.current}),
+h(Button,{ref:fallback},'Next record'),
 h('label',null,h('input',{type:'checkbox',checked:freeze,onChange:e=>setFreeze(e.target.checked)}),'Freeze close'),
 h(Menu,{label:'Owned actions',trigger:trigger('Owned actions'),items,open,onOpenChange:request,onAction:setResult}),h('output',{'aria-label':'Open requests'},String(opens)),
 h(Dialog,{title:'Edit project',trigger:trigger('Open dialog')},h(Menu,{label:'Nested actions',trigger:trigger('Nested actions'),items,onAction:setResult}),h(Button,null,'Dialog next')),
@@ -27,6 +29,20 @@ createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css}body{margin:16px}#app>.flood-root{display:flex;flex-direction:column;gap:16px;align-items:flex-start}</style></head><body><main id="app"></main><script>${js.replace(/<\/script/gi,"<\\/script")}</script></body></html>`;
 }
 async function openFixture(page:Page){bundle??=fixture();await page.route("**/__menu.html",async route=>route.fulfill({contentType:"text/html",body:await bundle}));await page.goto("/__menu.html");}
+
+test("Menu restores its opener or recovers to a host target after removal",async({page})=>{
+  await openFixture(page);
+  const opener=page.getByRole("button",{name:"Record actions",exact:true});
+  await opener.press("ArrowDown");
+  const remove=page.getByRole("menuitem",{name:"Remove record"});
+  await expect(remove).toBeFocused();
+  await remove.press("Escape");
+  await expect(opener).toBeFocused();
+  await opener.press("ArrowDown");
+  await remove.press("Enter");
+  await expect(opener).toHaveCount(0);
+  await expect(page.getByRole("button",{name:"Next record",exact:true})).toBeFocused();
+});
 
 test("Menu fades out while releasing focus and interaction immediately",async({page,browserName})=>{
   test.skip(browserName!=="chromium","Checks Chromium discrete top-layer transitions");

@@ -62,6 +62,9 @@ embedded shell an explicit block size. Choose `scroll="page"` for natural
 document scrolling. Place a persistent top bar and footer in the shell slots,
 and PageHeader inside main. The shell has a skip target and owns the scroll
 boundary; the host owns routes and persisted choices.
+For a full-window workspace with a padded content edge, use
+`scrollContentInset="none"` when that padding already clears the overlay rail.
+Verify that the document width stays fixed as its collection grows and shrinks.
 
 For a single Sidebar, opt into `navigationDrawer` with a width threshold in CSS
 pixels and a `renderContent(close)` function. AppShell observes its own width.

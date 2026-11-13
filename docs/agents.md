@@ -1,5 +1,9 @@
 # Using Flood with an agent
 
+Flood pairs a React design system with a workflow for agents building and
+reviewing interfaces. Each release connects component contracts, runnable
+recipes and focused skills through the same catalog.
+
 Start with the host's instructions, package.json, flood.json and installed
 flood/DESIGN.md. Use matching package/CLI versions and declarations. A newer
 website example does not add APIs to an older installation.
@@ -82,8 +86,37 @@ component pages. Before completion use verification. For a color-only change,
 load customization and the relevant token roles; unrelated guides stay unloaded.
 
 Clients supporting the skill-folder convention can discover it. Others can read
-it explicitly or link it from existing instructions. The installer preserves
-AGENTS.md; it does not configure clients or guarantee automatic discovery.
+it explicitly. For a client that reads project instructions such as `AGENTS.md`,
+add a short trigger to the existing instructions at the scope where Flood is used:
+
+```markdown
+For UI work in this project, read `.agents/skills/flood-ui/SKILL.md` first.
+Follow its routing for the screen or component you are changing. Check the
+installed component contract. For visible changes, use the visual review workflow
+to exercise the affected states and inspect screenshots from the running app.
+```
+
+Use the `installedEntry` path in `flood/manifest.json` if it differs. The
+installer preserves `AGENTS.md`; add this trigger yourself if it suits your client.
+
+## Review the running interface
+
+When composing a new flow, start from a nearby recipe, check the installed
+component contracts and apply the workflow for the task. For example, use the
+[record management recipe](recipes/record-management.md) to see how a collection
+preserves filters, scroll and focus around a detail Drawer and edit form.
+
+For a visual issue, exercise the actual state and inspect the captured evidence.
+If it repeats, check the smallest component or layout that can enforce the fix.
+Add a browser assertion when behavior can be measured. Use the relevant workflow
+or a runnable example for decisions that depend on the task, such as information
+hierarchy or which details should stay visible. Use clean runs to test whether
+agents discover and apply new guidance on another task.
+
+For a full-window AppShell route, use
+[`assertWorkspaceScroll`](../packages/agent/references/rendered-review.md#require-workspace-scroll-in-browser-tests)
+in the browser suite. Exercise both the populated and filtered states so
+document scrolling fails the test on either state.
 
 The rules index is data, not an executable policy engine. It cannot make an agent
 obey guidance or certify accessibility. Host checks and Flood's repository

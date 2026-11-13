@@ -29,12 +29,27 @@ for (const doc of docPages) test(`published guide loads directly: ${doc.path}`, 
   expect(errors).toEqual([]);
 });
 
+test("the chart guide opens a shared latency example and inspects values by keyboard", async ({ page }) => {
+  await page.goto("/docs/charts");
+  await page.getByRole("link", { name: "Try the three latency charts" }).click();
+  await expect(page).toHaveURL(/#latency-example$/);
+  const example = page.getByRole("region", { name: "Request latency example" });
+  await example.getByRole("radio", { name: "Search", exact: true }).check();
+  const plot = example.getByRole("slider", { name: "Daily median latency" });
+  await plot.focus();
+  await plot.press("Home");
+  await expect(plot).toHaveAttribute("aria-valuetext", "Mon, Median: 203 ms");
+  await expect(example.getByRole("group", { name: "Request latency distribution" })).toBeVisible();
+  await expect(example.getByRole("img", { name: /Latency spread by service.*Search/ })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
 for (const slug of catalogCohort(componentSlugs)) test(`published component loads directly: ${slug}`, async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
     expect((await page.goto(`/components/${slug}`))?.status()).toBe(200);
     await expect(page.locator(".component-workbench")).toBeVisible();
-    await expect(page.locator(".preview-stage > .flood-root > *").first()).toBeVisible();
+    await expect(page.locator(".preview-stage > .flood-scroll-area__content > .flood-root > *").first()).toBeVisible();
     await page.getByRole("button", { name: "Reference Alt R", exact: true }).click();
     await expect(page.getByRole("heading", { name: "API reference", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

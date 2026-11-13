@@ -7,10 +7,10 @@ Version 0.2.11 adds read-only JSON discovery. Use the CLI version matching
 flood.json; source availability does not mean the candidate is published.
 
 ```sh
-npx @flood-md/cli@0.2.12 info
-npx @flood-md/cli@0.2.12 catalog --kind workflow --group composition
-npx @flood-md/cli@0.2.12 read component:data-table
-npx @flood-md/cli@0.2.12 read recipe:table-bulk-actions
+npx @flood-md/cli@0.2.13 info
+npx @flood-md/cli@0.2.13 catalog --kind workflow --group composition
+npx @flood-md/cli@0.2.13 read component:data-table
+npx @flood-md/cli@0.2.13 read recipe:table-bulk-actions
 ```
 
 info distinguishes connected, bundle-only, version-mismatch and missing-packages

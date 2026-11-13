@@ -28,6 +28,12 @@ export async function buildAgentConsumer(root) {
   const records=read('workflow:records');
   assert.ok(records.links.includes('reference:record-decisions'));
   assert.equal(records.text,await readFile(join(root,records.installedTarget),'utf8'));
+  const reviewId='workflow:visual-review';
+  const reviewIndex=command(['catalog','--kind','workflow','--group','quality','--search','screenshot']);
+  assert.ok(reviewIndex.items.some(item=>item.id===reviewId));
+  const review=read(reviewId);
+  assert.ok(review.links.includes('reference:rendered-review'));
+  assert.equal(review.text,await readFile(join(root,review.installedTarget),'utf8'));
   const decisions=read('reference:record-decisions');
   assert.equal(decisions.text,await readFile(join(root,decisions.installedTarget),'utf8'));
   const grouped=read('recipe:grouped-form');
@@ -56,11 +62,20 @@ export async function buildAgentConsumer(root) {
   await writeFile(join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{jsx:'react-jsx',target:'ES2022',module:'ESNext',moduleResolution:'Bundler',strict:true,skipLibCheck:true}}));
   await writeFile(join(root,'agent-entry.mjs'),`import React from 'react';
 import {createRoot} from 'react-dom/client';
-import {FloodRoot,Container,Stack,Heading} from '@flood-md/react';
+import {AppShell, FloodRoot, Container, Stack, Heading} from '@flood-md/react';
 import {TableBulkActions} from './agent-recipe.tsx';
 import '@flood-md/react/styles.css';
 const h=React.createElement;
-createRoot(document.getElementById('app')).render(h(FloodRoot,null,h(Container,{size:'lg',gutter:'4'},h(Stack,{gap:'4'},h(Heading,{level:1,size:'page'},'Project review'),h(TableBulkActions)))));`);
+createRoot(document.getElementById('app')).render(
+  h(FloodRoot, null,
+    h(AppShell, {
+      id: 'workspace', scroll: 'content', scrollOrientation: 'vertical',
+      scrollContentInset: 'none', scrollLabel: 'Workspace content',
+    },
+      h(Container, {size: 'lg', gutter: '4'},
+        h(Stack, {gap: '4', className: 'consumer-content'},
+          h(Heading, {level: 1, size: 'page'}, 'Project review'), h(TableBulkActions))))));
+`);
   const before=process.env.NODE_ENV;let result;
   try{result=await build({root,configFile:false,logLevel:'silent',define:{'process.env.NODE_ENV':JSON.stringify('production')},build:{write:false,cssCodeSplit:false,lib:{entry:join(root,'agent-entry.mjs'),formats:['iife'],name:'FloodAgentConsumer'}}});}
   finally{if(before===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=before;await unlink(join(root,'tsconfig.json'));}
@@ -68,7 +83,7 @@ createRoot(document.getElementById('app')).render(h(FloodRoot,null,h(Container,{
   const css=output.filter(item=>item.type==='asset'&&item.fileName.endsWith('.css')).map(item=>item.source).join('\n');
   const js=output.filter(item=>item.type==='chunk').map(item=>item.code).join('\n');
   assert.ok(js.length&&css.length);
-  const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Flood agent consumer</title><style>${css.replaceAll('</style','<\\/style')}body{margin:0}#app>.flood-root{min-block-size:100dvh;padding-block:var(--flood-sys-space-4)}</style></head><body><main id="app"></main><script>${js.replaceAll('</script','<\\/script')}</script></body></html>`;
+  const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Flood agent consumer</title><style>${css.replaceAll('</style','<\\/style')}body{margin:0}.consumer-content{padding-block:var(--flood-sys-space-4)}</style></head><body><div id="app"></div><script>${js.replaceAll('</script','<\\/script')}</script></body></html>`;
   const directory=resolve('.artifacts/agent-consumer');await mkdir(directory,{recursive:true});
   await writeFile(join(directory,'index.html'),html);
   const report={schemaVersion:1,version:info.version,source:'clean-npm-tarballs',catalogFingerprint:info.knowledge.fingerprint,selectedMaterials:[...selected.keys()],recipeSha256:createHash('sha256').update(source).digest('hex'),cli:'passed',customization:'passed',unsupportedCapabilities:'explicit',browser:'not-run-in-build-job'};

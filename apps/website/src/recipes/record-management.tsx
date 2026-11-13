@@ -2,9 +2,10 @@
 
 import {useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent} from "react";
 import {
-  Alert, Button, DataList, DataListItem, DescriptionList, Drawer, EmptyState,
-  Field, Grid, Heading, Inline, Input, ScrollArea, SearchInput, Select,
-  Stack, StatusIndicator, Surface,
+  Button, DataTable, DescriptionList, Drawer, EmptyState,
+  Field, Grid, Heading, Inline, Input, SearchInput, Section, Select,
+  Stack, StatusIndicator, Surface, Table, ToastRegion,
+  type DataTableColumn, type ToastItem,
 } from "@flood-md/react";
 
 const statuses = {
@@ -21,6 +22,24 @@ type RequestRecord = {
   status: Status;
   summary: string;
 };
+
+const requestColumns: DataTableColumn[] = [
+  {id: "subject", label: "Subject", sortable: true},
+  {id: "status", label: "Status", sortable: true},
+];
+
+const activityByRequest: Record<string, readonly {date: string; activity: string}[]> = {
+  "REQ-105": [
+    {date: "2026-11-10", activity: "Access issue reported"},
+    {date: "2026-11-11", activity: "Identity verified"},
+    {date: "2026-11-12", activity: "Recovery link sent"},
+  ],
+  "REQ-117": [
+    {date: "2026-11-11", activity: "Permission review requested"},
+    {date: "2026-11-12", activity: "Regional roles exported"},
+  ],
+};
+const activityDate = new Intl.DateTimeFormat("en", {month: "short", day: "numeric", timeZone: "UTC"});
 
 const fixtures: RequestRecord[] = [
   {id: "REQ-104", title: "Update billing address", owner: "Mina Chen", status: "new", summary: "Use the new address on future invoices."},
@@ -54,25 +73,20 @@ export function RecordManagement() {
   const [status, setStatus] = useState<Status | "all">("all");
   const [recordId, setRecordId] = useState<string | null>(null);
   const [draft, setDraft] = useState<RequestRecord | null>(null);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<ToastItem | null>(null);
   const search = useRef<HTMLInputElement>(null);
-  const list = useRef<HTMLDivElement>(null);
+  const table = useRef<HTMLDivElement>(null);
   const subject = useRef<HTMLInputElement>(null);
   const edit = useRef<HTMLButtonElement>(null);
-  const opener = useRef<HTMLButtonElement>(null);
-  const restore = useRef(false);
   const returnToEdit = useRef(false);
   const selected = records.find(record => record.id === recordId);
+  const activity = selected ? activityByRequest[selected.id] : undefined;
   const results = records.filter(record => matchesRequest(record, query, status));
   const editing = draft !== null;
   const open = selected !== undefined;
 
   useBrowserLayoutEffect(() => {
-    if (!open && restore.current) {
-      restore.current = false;
-      const target = opener.current?.isConnected ? opener.current : search.current;
-      target?.focus({preventScroll: true});
-    } else if (editing) {
+    if (editing) {
       subject.current?.focus({preventScroll: true});
     } else if (open && returnToEdit.current) {
       returnToEdit.current = false;
@@ -83,12 +97,11 @@ export function RecordManagement() {
   function changeQuery(nextQuery: string, nextStatus: Status | "all") {
     setQuery(nextQuery);
     setStatus(nextStatus);
-    setNotice("");
-    if (list.current) list.current.scrollTop = 0;
+    setNotice(null);
+    table.current?.querySelector('[role="region"][aria-label="Requests"]')?.scrollTo({top: 0});
   }
 
   function closeRecord() {
-    restore.current = true;
     returnToEdit.current = false;
     setDraft(null);
     setRecordId(null);
@@ -105,9 +118,12 @@ export function RecordManagement() {
     }
     const updated = {...draft, title, owner: draft.owner.trim()};
     setRecords(current => current.map(record => record.id === updated.id ? updated : record));
-    setNotice(matchesRequest(updated, query, status)
-      ? `${updated.id} updated.`
-      : `${updated.id} updated and no longer matches the current search or filter.`);
+    setNotice({
+      id: updated.id,
+      title: `${updated.id} updated`,
+      description: matchesRequest(updated, query, status) ? undefined : "It no longer matches your search or filter.",
+      status: "success",
+    });
     closeRecord();
   }
 
@@ -142,35 +158,37 @@ export function RecordManagement() {
         open={open}
         onOpenChange={open => { if (!open) closeRecord(); }}
         initialFocusRef={edit}
-        trigger={({ref, onClick, "aria-expanded": expanded, ...trigger}) =>
-          <Surface elevation="raised" padding="4">
-            <ScrollArea ref={list} role="region" aria-label="Request results" style={{maxBlockSize: "22rem"}}>
-              {results.length > 0
-                ? <DataList aria-label="Requests" className="request-results">
-                  {results.map(record => <DataListItem
-                    key={record.id}
-                    title={record.title}
-                    description={record.id}
-                    metadata={<StatusIndicator {...statuses[record.status]} size="sm" />}
-                    actions={<Button {...trigger} aria-expanded={Boolean(expanded && record.id === recordId)}
-                      aria-label={`Open ${record.id} ${record.title}`}
-                      variant="subtle" size="sm" onClick={event => {
-                        opener.current = event.currentTarget;
-                        ref(event.currentTarget);
-                        setRecordId(record.id);
-                        onClick?.(event);
-                      }}>Open</Button>}
-                  />)}
-                </DataList>
-                : <EmptyState title="No matching requests" actions={<Button variant="subtle" onClick={() => {
-                  search.current?.focus({preventScroll: true});
-                  changeQuery("", "all");
-                }}>Clear filters</Button>} />}
-            </ScrollArea>
+        getFallbackFocus={() => search.current}
+        trigger={({ref, onClick, ...trigger}) =>
+          <Surface elevation="raised" padding="0" className="request-table-frame">
+            <DataTable ref={table} caption="Requests" hideCaption inset="roomy" minWidth="min-content"
+              maxViewportHeight="26rem" stickyHeader pageSize={fixtures.length}
+              columns={requestColumns} rows={results.map(record => ({
+                id: record.id,
+                cells: {status: <StatusIndicator {...statuses[record.status]} size="sm" />},
+                sortValues: {status: statuses[record.status].label},
+                primaryAction: {
+                  column: "subject", title: record.title, description: record.id,
+                  buttonProps: {
+                    ...trigger,
+                    "aria-expanded": open && record.id === recordId,
+                    "aria-label": `${record.title}, ${record.id}`,
+                    onClick: event => {
+                      ref(event.currentTarget);
+                      setRecordId(record.id);
+                      onClick?.(event);
+                    },
+                  },
+                },
+              }))}
+              emptyContent={<EmptyState title="No matching requests" actions={<Button variant="subtle" onClick={() => {
+                search.current?.focus({preventScroll: true});
+                changeQuery("", "all");
+              }}>Clear filters</Button>} />} />
           </Surface>}
         footer={draft
-          ? <Inline gap="2"><Button type="submit" form={formId}>Save changes</Button>
-            <Button variant="subtle" onClick={cancelEdit}>Cancel edit</Button></Inline>
+          ? <Inline gap="2"><Button variant="subtle" onClick={cancelEdit}>Cancel edit</Button>
+            <Button type="submit" form={formId}>Save changes</Button></Inline>
           : <Button ref={edit} onClick={() => { if (selected) setDraft({...selected}); }}>Edit request</Button>}
       >
         {draft
@@ -194,13 +212,23 @@ export function RecordManagement() {
               </Field>
             </Stack>
           </form>
-          : selected && <DescriptionList items={[
+          : selected && <Stack gap="8"><DescriptionList items={[
               {id: "request-id", term: "Request ID", description: selected.id},
               {id: "owner", term: "Owner", description: selected.owner || "Unassigned"},
               {id: "status", term: "Status", description: <StatusIndicator {...statuses[selected.status]} />},
-            ]} />}
+            ]} />
+            {activity && <Section title="Activity" headingLevel={3} headingSize="group">
+              <Table caption="Request activity" hideCaption density="compact">
+                <thead><tr><th scope="col">Date</th><th scope="col">Event</th></tr></thead>
+                <tbody>{activity.map(item => <tr key={item.date}>
+                  <td><time dateTime={item.date}>{activityDate.format(new Date(item.date))}</time></td>
+                  <td>{item.activity}</td>
+                </tr>)}</tbody>
+              </Table>
+            </Section>}
+          </Stack>}
       </Drawer>
-      {notice && <Alert tone="success" announcement="polite">{notice}</Alert>}
+      <ToastRegion items={notice ? [notice] : []} onDismiss={() => setNotice(null)} />
     </Stack>
   </section>;
 }

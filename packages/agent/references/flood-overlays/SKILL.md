@@ -31,6 +31,11 @@ Modal and nonmodal focus are different: do not add a trap to every floating
 surface or remove a modal's background inertness. Escape dismisses the active
 layer; a nested menu/select must not also close its parent dialog. Restore opener
 focus unless the host intentionally moved it elsewhere.
+When a Menu or Dialog-family action can remove or disable its opener, pass
+`getFallbackFocus` to resolve a reachable target after the close commits.
+Choose the next surviving record by its identity or return to the search
+field when the action leaves an empty result. Test focus with the opener
+still present, after its removal and after a deliberate focus change.
 
 Task Dialog titles and body insets use their own recipe; do not reuse compact
 popup caption typography for the modal task. The

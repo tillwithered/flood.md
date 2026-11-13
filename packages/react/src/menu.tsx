@@ -48,6 +48,7 @@ interface MenuLayerProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"
   rootAnchor: () => HTMLElement | null;
   rootPanel?: () => HTMLDivElement | null;
   onAction?: (id: string) => void;
+  getFallbackFocus?: MenuProps["getFallbackFocus"];
   edge?: () => Edge;
   nested?: boolean;
   position?: (panel: HTMLDivElement) => void;
@@ -58,7 +59,7 @@ interface MenuLayerProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"
 
 /** Internal native top-layer engine shared by Menu and ContextMenu. */
 export const MenuLayer = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuLayerProps>(function MenuLayerRender({
-  label, items, open, requestOpen, closeTree, anchor, rootAnchor, rootPanel, onAction,
+  label, items, open, requestOpen, closeTree, anchor, rootAnchor, rootPanel, onAction, getFallbackFocus,
   edge, nested = false, position, side = "bottom", align = "start", controlSize = "sm",
   id: explicitId, className, onKeyDown, ...props
 }, forwardedRef) {
@@ -71,8 +72,8 @@ export const MenuLayer = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuLayerPro
   const hoverIntent = useRef<{id:string;type:string;node:HTMLButtonElement} | undefined>(undefined);
   const latestItems = useRef(new Map<string, InternalItem>());
   const search = useRef({text:"", time:0}), pointerTarget = useRef<Node | null>(null);
-  const current = useRef({open, requestOpen, closeTree, anchor, rootAnchor, rootPanel, position, edge});
-  current.current = {open, requestOpen, closeTree, anchor, rootAnchor, rootPanel, position, edge};
+  const current = useRef({open, requestOpen, closeTree, anchor, rootAnchor, rootPanel, position, edge, getFallbackFocus});
+  current.current = {open, requestOpen, closeTree, anchor, rootAnchor, rootPanel, position, edge, getFallbackFocus};
   useImperativeHandle(forwardedRef, () => panel.current!, []);
   const clearHover = () => {clearTimeout(hover.current); hover.current = undefined; hoverIntent.current = undefined;};
   useEffect(() => () => clearHover(), []);
@@ -143,7 +144,7 @@ export const MenuLayer = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuLayerPro
     return () => {
       alive = false; clearHover(); view.cancelAnimationFrame(frame); unregister();
       document.removeEventListener("pointerdown", trackPointer, true); element.removeEventListener("toggle", toggle);
-      returnFocus(element, current.current.anchor());
+      returnFocus(element, current.current.anchor(), current.current.getFallbackFocus);
       if (element.matches(":popover-open")) element.hidePopover();
     };
   }, [open, side, align, nested]);
@@ -271,7 +272,7 @@ export const MenuLayer = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuLayerPro
 });
 
 export const ActionMenu = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuProps>(function ActionMenu({
-  label, trigger, items, onAction, open:controlled, defaultOpen, onOpenChange, disabled,
+  label, trigger, items, onAction, open:controlled, defaultOpen, onOpenChange, disabled, getFallbackFocus,
   side = "bottom", align = "start", controlSize = "sm", ...props
 }, forwardedRef) {
   if (!label.trim()) throw new Error("Flood Menu requires a nonempty label");
@@ -301,5 +302,5 @@ export const ActionMenu = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuProps>(
   triggerProps["aria-controls"] = id;
   return <>{trigger(triggerProps)}<MenuLayer {...props} id={id} ref={panel} label={label} items={items} open={open}
     requestOpen={request} closeTree={() => request(false)} anchor={() => anchor.current} rootAnchor={() => anchor.current}
-    onAction={onAction} edge={() => edge.current} side={side} align={align} controlSize={controlSize} /></>;
+    onAction={onAction} getFallbackFocus={getFallbackFocus} edge={() => edge.current} side={side} align={align} controlSize={controlSize} /></>;
 });

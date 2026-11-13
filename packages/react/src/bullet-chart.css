@@ -1,0 +1,70 @@
+.flood-root .flood-bullet-chart { min-inline-size: 0; }
+
+.flood-root .flood-bullet-chart__items {
+  display: grid;
+  gap: var(--flood-sys-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flood-root .flood-bullet-chart__caption {
+  justify-content: space-between;
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-bullet-chart__numbers {
+  justify-content: flex-end;
+  max-inline-size: 100%;
+  margin-inline-start: auto;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.flood-root .flood-bullet-chart__actual { font-weight: var(--flood-sys-type-label-weight); }
+
+.flood-root .flood-bullet-chart__plot {
+  --flood-bullet-fill-direction: to right;
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-block-size: 1.25rem;
+}
+
+.flood-root .flood-bullet-chart__plot:dir(rtl) { --flood-bullet-fill-direction: to left; }
+
+.flood-root .flood-bullet-chart .flood-indicator__track {
+  block-size: .75rem;
+  border-radius: var(--flood-sys-radius-action);
+  background: var(--flood-chart-grid), var(--flood-sys-color-surface-raised);
+}
+
+.flood-root .flood-bullet-chart .flood-indicator__fill {
+  background: linear-gradient(var(--flood-bullet-fill-direction),
+    color-mix(in srgb, var(--flood-chart-accent) 28%, transparent),
+    color-mix(in srgb, var(--flood-chart-accent) 58%, transparent));
+  box-shadow: inset 0 0 0 var(--flood-chart-stroke-width)
+    color-mix(in srgb, var(--flood-chart-accent) 65%, transparent);
+}
+
+.flood-root .flood-bullet-chart__plot[data-zero] .flood-indicator__fill { box-shadow: none; }
+
+.flood-root .flood-bullet-chart__target {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: clamp(0px, calc(var(--flood-bullet-target) - var(--flood-chart-stroke-width) / 2),
+    calc(100% - var(--flood-chart-stroke-width)));
+  inline-size: var(--flood-chart-stroke-width);
+  border-radius: var(--flood-sys-radius-action);
+  background: var(--flood-sys-color-content-default);
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .flood-root .flood-bullet-chart .flood-indicator__track { background: Canvas; }
+  .flood-root .flood-bullet-chart .flood-indicator__fill { background: Highlight; }
+  .flood-root .flood-bullet-chart__target {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+}

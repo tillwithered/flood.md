@@ -7,6 +7,8 @@ export const docPages = [
   { path: "/docs/foundations", label: "Foundations", file: "foundations.md", description: "Semantic tokens, typography and neutral dark surfaces." },
   { path: "/docs/motion", label: "Motion", file: "motion.md", description: "Motion roles, component behavior and reduced motion." },
   { path: "/docs/layout", label: "Layout", file: "layout.md", description: "Control widths, centered rows and readable grouping." },
+  { path: "/docs/charts", label: "Charts", file: "charts.md", description: "Choose a chart for trends, comparisons or distributions. Explore live latency charts and open the TypeScript examples.",
+    shareImage: { path: "/charts-share.png", alt: "Flood charts with a request latency line chart, histogram and box plot", width: 1200, height: 630 } },
   { path: "/docs/theming", label: "Customization", file: "theming.md", description: "Adapt semantic roles to your project." },
   { path: "/docs/agents", label: "Agent guide", file: "agents.md", description: "Give your agent the matching design instructions." },
   { path: "/docs/skills", label: "Skills", file: "skills.md", description: "Task-focused agent workflows for composing and verifying the dark base." },
@@ -33,7 +35,7 @@ export const pagePaths = new Set([
   "/", "/playground", "/playground/content", "/playground/collections", "/playground/surfaces", "/playground/navigation", "/playground/motion",
   "/playground/collections/format", "/playground/collections/active-format", "/playground/collections/filter-group",
   "/playground/collections/saved-views", "/components", ...docPages.map(page => page.path),
-  "/playground/records", "/playground/settings",
+  "/playground/records", "/playground/settings", "/playground/charts",
   ...componentSlugs.map(slug => `/components/${slug}`),
 ]);
 
@@ -54,15 +56,16 @@ export function pageMetadata(path) {
     "/playground/motion": "Motion playground",
     "/playground/records": "Record management",
     "/playground/settings": "Settings workspace",
+    "/playground/charts": "Request latency",
     "/playground/collections/format": "Format filter",
     "/playground/collections/active-format": "Active format filter",
     "/playground/collections/filter-group": "File filter group",
     "/playground/collections/saved-views": "Saved file views",
   };
-  const title = path === "/" ? "flood.md — Good interfaces start with a little Flood."
+  const title = path === "/" ? "Flood — Design system for developers and coding agents"
     : `${doc?.label ?? component?.name ?? playgroundLabels[path] ?? "Components"} — flood.md`;
   const description = doc?.description ?? component?.description ?? (path === "/components"
     ? "Explore Flood's original React components, live examples and TypeScript API references."
-    : "Good interfaces start with a little Flood. A calm React design system with native components, dark foundations and instructions for your agent.");
-  return { title, description, canonical: siteOrigin + path, indexable: indexablePaths.includes(path) };
+    : "Original components, design tokens and versioned skills for coding agents. Available for React and Next.js.");
+  return { title, description, canonical: siteOrigin + path, indexable: indexablePaths.includes(path), shareImage: doc?.shareImage };
 }

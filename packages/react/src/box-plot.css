@@ -1,0 +1,149 @@
+.flood-root .flood-box-plot {
+  --flood-box-label: clamp(3.75rem, 19%, 7rem);
+  --flood-box-row-height: 3rem;
+  --flood-box-gutter: var(--flood-sys-space-2);
+  min-inline-size: 0;
+}
+.flood-root .flood-box-plot__plot {
+  position: relative;
+  min-block-size: 11rem;
+  cursor: crosshair;
+}
+.flood-root .flood-box-plot__plot:focus-visible {
+  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
+  outline-offset: var(--flood-sys-focus-offset);
+  border-radius: var(--flood-sys-radius-indicator);
+}
+.flood-root .flood-box-plot__rows {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  box-sizing: border-box;
+  grid-auto-rows: minmax(var(--flood-box-row-height), 1fr);
+  min-block-size: var(--flood-chart-plot-height, 0px);
+  border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative);
+}
+.flood-root .flood-box-plot__rows::before {
+  content: "";
+  position: absolute;
+  inset: 0 var(--flood-box-gutter) 0 var(--flood-box-label);
+  background: var(--flood-chart-grid);
+  mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+  pointer-events: none;
+}
+.flood-root .flood-box-plot__row {
+  display: grid;
+  grid-template-columns: var(--flood-box-label) minmax(0, 1fr);
+  align-items: center;
+  min-block-size: var(--flood-box-row-height);
+  padding-inline-end: var(--flood-box-gutter);
+  border-radius: var(--flood-sys-radius-indicator);
+}
+.flood-root .flood-box-plot__row[data-active] {
+  background: color-mix(in srgb, var(--flood-chart-accent) 5%, transparent);
+}
+.flood-root .flood-box-plot__category {
+  padding-inline: var(--flood-box-gutter);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flood-root .flood-box-plot__track {
+  position: relative;
+  block-size: var(--flood-box-row-height);
+}
+.flood-root .flood-box-plot__track > :is(.flood-box-plot__box, .flood-box-plot__whisker, .flood-box-plot__median, .flood-box-plot__outlier, .flood-box-plot__missing) {
+  position: absolute;
+  inset-block-start: 50%;
+  translate: 0 -50%;
+}
+.flood-root .flood-box-plot__whisker {
+  block-size: var(--flood-sys-stroke-width);
+  background: color-mix(in srgb, var(--flood-chart-accent) 54%, transparent);
+}
+.flood-root .flood-box-plot__whisker::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 50%;
+  translate: -50% -50%;
+  inline-size: var(--flood-chart-stroke-width);
+  block-size: .75rem;
+  border-radius: var(--flood-sys-radius-action);
+  background: color-mix(in srgb, var(--flood-chart-accent) 64%, transparent);
+}
+.flood-root .flood-box-plot__whisker[data-side="start"]::before { left: 0; }
+.flood-root .flood-box-plot__whisker[data-side="end"]::before { left: 100%; }
+.flood-root .flood-box-plot__box {
+  block-size: 1.5rem;
+  min-inline-size: var(--flood-chart-stroke-width);
+  border-radius: var(--flood-sys-radius-indicator);
+  box-shadow: inset 0 0 0 var(--flood-chart-stroke-width) color-mix(in srgb, var(--flood-chart-accent) 68%, transparent);
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--flood-chart-accent) 17%, transparent),
+    color-mix(in srgb, var(--flood-chart-accent) 39%, transparent));
+}
+.flood-root .flood-box-plot__median {
+  inline-size: var(--flood-chart-stroke-width);
+  block-size: 1.25rem;
+  border-radius: var(--flood-sys-radius-action);
+  background: var(--flood-sys-color-content-default);
+}
+.flood-root .flood-box-plot__outlier {
+  box-sizing: border-box;
+  inline-size: .45rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: var(--flood-chart-stroke-width) solid color-mix(in srgb, var(--flood-chart-accent) 68%, transparent);
+}
+.flood-root .flood-box-plot__track > :is(.flood-box-plot__median, .flood-box-plot__outlier) { translate: -50% -50%; }
+.flood-root .flood-box-plot__missing {
+  inset-inline: 0;
+  border-block-start: var(--flood-sys-stroke-width) dashed var(--flood-sys-color-divider-decorative);
+}
+.flood-root .flood-box-plot__axis {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--flood-sys-space-2);
+  margin-inline: var(--flood-box-label) var(--flood-box-gutter);
+  padding-block-start: var(--flood-sys-space-2);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.flood-root .flood-box-plot__axis > :only-child { margin-inline: auto; }
+.flood-root .flood-box-plot__axis > * { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flood-root .flood-box-plot__tooltip {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  row-gap: var(--flood-sys-space-1);
+  column-gap: var(--flood-chart-tip-gap);
+  inline-size: min(12rem, calc(50% - 2 * var(--flood-chart-tip-gap)));
+  visibility: hidden;
+}
+.flood-root .flood-box-plot__tooltip[data-positioned] { visibility: visible; }
+.flood-root .flood-box-plot__reading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--flood-sys-space-1);
+}
+.flood-root .flood-box-plot__reading > :last-child { text-align: end; }
+.flood-root .flood-box-plot__reading > :first-child,
+.flood-root .flood-box-plot__reading > :last-child > span { white-space: nowrap; }
+.flood-root .flood-box-plot__empty {
+  display: grid;
+  place-items: center;
+  min-block-size: calc(var(--flood-box-row-height) * 3);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .flood-root:not([data-flood-motion="reduce"]) .flood-box-plot__row:not(:where([data-flood-motion="reduce"] *)) {
+    transition: background-color var(--flood-chart-motion);
+  }
+}
+@media (forced-colors: active) {
+  .flood-root .flood-box-plot__whisker,
+  .flood-root .flood-box-plot__whisker::before,
+  .flood-root .flood-box-plot__median { forced-color-adjust: none; background: CanvasText; }
+  .flood-root .flood-box-plot__box { outline: 1px solid CanvasText; outline-offset: -1px; }
+  .flood-root .flood-box-plot__row[data-active] { outline: 1px solid Highlight; outline-offset: -1px; }
+}

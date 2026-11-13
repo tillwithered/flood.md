@@ -19,6 +19,19 @@ test('editorial discovery routes to the full shipped skill, decision examples an
   assert.equal(examples.text,await readFile('packages/agent/references/interface-content-examples.md','utf8'));
   assert.ok((await reader.read('component:field',{length:1})).links.includes(material.id));
 });
+
+test('reading order discovery routes to the shipped screen composition workflow',async()=>{
+  const reader=createKnowledgeReader();
+  const page=await reader.list({kind:'workflow',group:'composition',search:'reading order'});
+  const id='workflow:screen-composition';
+  assert.ok(page.items.some(item=>item.id===id));
+  const material=await reader.read(id,{length:40000});
+  assert.equal(material.truncated,false);
+  assert.equal(material.text,await readFile('packages/agent/references/flood-screen-composition/SKILL.md','utf8'));
+  assert.ok(material.links.includes('workflow:hierarchy'));
+  assert.ok((await reader.read('component:app-shell',{length:1})).links.includes(id));
+});
+
 test('every routed skill and its internal links resolve identically in source and installed bundle',async()=>{
   const manifest=await json('packages/agent/manifest.json');
   const index=await readAgentWorkflows();

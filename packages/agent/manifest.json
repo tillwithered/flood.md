@@ -118,6 +118,11 @@
       "kind": "skill"
     },
     {
+      "source": "references/flood-visual-review/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-visual-review/SKILL.md",
+      "kind": "skill"
+    },
+    {
       "source": "references/knowledge.md",
       "target": ".agents/skills/flood-ui/references/knowledge.md",
       "kind": "reference"
@@ -143,6 +148,11 @@
       "kind": "skill"
     },
     {
+      "source": "references/flood-screen-composition/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-screen-composition/SKILL.md",
+      "kind": "skill"
+    },
+    {
       "source": "references/flood-records/SKILL.md",
       "target": ".agents/skills/flood-ui/references/flood-records/SKILL.md",
       "kind": "skill"
@@ -158,7 +168,7 @@
       "kind": "reference"
     }
   ],
-  "version": "0.2.12",
+  "version": "0.2.13",
   "installedEntry": ".agents/skills/flood-ui/SKILL.md",
   "pathBase": "source is package-relative; target is relative to the host project root"
 }

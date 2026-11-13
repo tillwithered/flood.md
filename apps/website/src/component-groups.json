@@ -35,6 +35,11 @@
     "description": "Present icons, code and supporting information."
   },
   {
+    "id": "charts",
+    "label": "Charts",
+    "description": "Show trends, comparisons, distributions and changes."
+  },
+  {
     "id": "overlays",
     "label": "Overlays",
     "description": "Provide contextual help, floating content and modal tasks."

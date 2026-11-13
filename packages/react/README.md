@@ -57,7 +57,7 @@ the interactive size. It defaults to size; shrinking a supporting glyph must
 not shrink its target or bypass IconSlot with a custom SVG width. Existing glyph
 roles at a 16px root are 2xs=14px, xs/sm=16px and md/lg=20px.
 
-This package documents the **0.2.12** source API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.13** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
 NavigationItem (0.2.11 candidate) is the shared small row for destinations,
