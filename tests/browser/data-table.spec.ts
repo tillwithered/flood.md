@@ -190,7 +190,8 @@ test("DataTable keeps headings on one line and exposes unit and resize cues", as
   await page.evaluate(() => document.fonts.ready);
   await expect(handle).toHaveAttribute("title", "Resize Project column");
   await expect(handle.locator("svg")).toBeVisible();
-  await handle.press("Home");
+  await handle.press("End");
+  await expect(handle).toHaveAttribute("aria-valuenow", "320");
   const header = table.getByRole("columnheader", { name: "Sort by Budget USD" });
   await expect(header.getByText("USD", { exact: true })).toBeVisible();
   const wrapping = await table.locator(".flood-data-table__header-label").evaluateAll(labels =>
