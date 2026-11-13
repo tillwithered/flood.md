@@ -58,6 +58,14 @@
   background: transparent;
   cursor: grab;
 }
+.component-workbench[data-studio] .workbench-stage[data-component="toast-region"] {
+  /* Keep viewport-positioned demo toasts inside the canvas. */
+  transform: translateZ(0);
+}
+.flood-root .workbench-stage[data-component="toast-region"] .flood-toast-region:not([data-inline]) {
+  max-inline-size: calc(100% - 2 * var(--flood-sys-space-4));
+  max-block-size: calc(100% - 2 * var(--flood-sys-space-4));
+}
 .component-workbench[data-studio] .workbench-canvas[data-feedback] .workbench-stage {
   padding-block-end: var(--flood-sys-space-3);
 }
@@ -124,6 +132,13 @@
   padding: var(--flood-sys-space-1) var(--flood-sys-space-1) var(--flood-sys-space-2);
   border: 0;
   background: transparent;
+}
+@media (width > 36rem) {
+  .component-workbench[data-studio] .workbench-controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
 }
 .component-workbench[data-studio] .workbench-controls > * { flex-shrink: 0; white-space: nowrap; }
 .component-workbench[data-studio] .workbench-controls > .workbench-control:not(.workbench-control--toggle, .workbench-control--select) {

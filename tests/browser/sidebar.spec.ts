@@ -13,6 +13,7 @@ async function sidebarProperty(page:Page, name:string, value:string|boolean){
 test('sidebar width eases in both directions and respects reduced motion',async({page})=>{
   await page.emulateMedia({reducedMotion:'no-preference'});
   const sidebar=await open(page);
+  await sidebar.evaluate(node=>{node.style.transitionDuration='5s';});
   for(const collapsed of [true,false]){
     const start=await sidebar.evaluate(node=>node.offsetWidth);
     await sidebar.getByRole('button',{name:collapsed?'Collapse sidebar':'Expand sidebar',exact:true}).evaluate(node=>(node as HTMLButtonElement).click());
@@ -30,6 +31,7 @@ test('sidebar width eases in both directions and respects reduced motion',async(
     expect(widths.middle).toBeGreaterThan(Math.min(start,widths.end));
     expect(widths.middle).toBeLessThan(Math.max(start,widths.end));
   }
+  await sidebar.evaluate(node=>node.style.removeProperty('transition-duration'));
   await page.emulateMedia({reducedMotion:'reduce'});
   await sidebar.getByRole('button',{name:'Collapse sidebar',exact:true}).click();
   await expect(sidebar).toHaveAttribute('data-collapsed','true');

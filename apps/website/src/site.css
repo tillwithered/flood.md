@@ -121,7 +121,7 @@ html:has(.docs-layout) { scroll-behavior: auto; }
 .site-shell:has(.docs-layout[data-preview-layout="workspace"]) > .site-footer { display: none; }
 .docs-layout[data-preview-layout="workspace"] {
   display: grid;
-  grid-template: minmax(0, 1fr) / 12.25rem minmax(0, 1fr);
+  grid-template: minmax(0, 1fr) / 12.75rem minmax(0, 1fr);
   gap: var(--flood-sys-space-3);
   position: relative;
   flex: 1 1 0;

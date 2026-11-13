@@ -1007,6 +1007,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, i
     if (!visible) queueMicrotask(() => stage.current?.ownerDocument.getElementById(`${id}-visible`)?.focus());
   }, copy, page:currentPage,setPage:page=>setPagination({slug:component.slug,page}) });
   const hasFeedback = recipe.children?.some(child => typeof child !== "string" && !isBinding(child) && child.previewFeedback);
+  const showFeedbackSlot = hasFeedback || component.slug === "code-snippet";
   const previewRecipe = hasFeedback ? {
     ...recipe,
     children: recipe.children?.filter(child => typeof child === "string" || isBinding(child) || !child.previewFeedback),
@@ -1182,7 +1183,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, i
   return <section className="component-workbench" data-studio={studio || undefined} aria-label={`${component.name} live playground`}>
     {!studio && <div className="workbench-title" data-flood-surface="filled"><Flood.Text size="compact" tone="subtle">Preview</Flood.Text>{previewActions}</div>}
     {studio && <header className="studio-header">{studioHeading}</header>}
-    <div className="workbench-canvas" data-feedback={hasFeedback || undefined}>
+    <div className="workbench-canvas" data-feedback={showFeedbackSlot || undefined}>
       <div className="workbench-stage preview-stage" data-component={component.slug} data-size={["heading", "timeline", "toast-region", "dropzone", "color-picker", "data-table", "file-list", "upload-list", "date-time-range-picker"].includes(component.slug) ? "display" : spacious ? "regular" : "compact"}
         data-wide-frame={studio && (frameWidth !== "auto" || component.previewLayout === "workspace") || undefined} ref={stage} key={component.slug + resetKey}
         role={studio ? "region" : undefined} aria-label={studio ? "Preview canvas" : undefined} tabIndex={studio ? 0 : undefined}
@@ -1212,7 +1213,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, i
           "--studio-pan-y": `${pan.y}px`,
         } as CSSProperties : undefined}
       ><Flood.FloodRoot ref={previewFrame}>{renderRecipe(previewRecipe)}</Flood.FloodRoot></div>
-      {hasFeedback && <Flood.Text as="p" size="compact" tone="subtle" role="status" className="workbench-feedback">{status}</Flood.Text>}
+      {showFeedbackSlot && <Flood.Text as="p" size="compact" tone="subtle" role="status" className="workbench-feedback">{status}</Flood.Text>}
     </div>
     {studio && <div ref={studioToolbar} className="studio-action-row">
       <Flood.Inline gap="2" className="studio-tools" data-flood-surface="filled">
