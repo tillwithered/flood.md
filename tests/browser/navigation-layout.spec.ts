@@ -116,7 +116,7 @@ test('studio zoom and direct canvas dragging preserve the live component', async
  await chooseView('Canvas zoom','150%');
  await canvas.scrollIntoViewIfNeeded();
  const bounds=(await canvas.boundingBox())!;
- const frame=canvas.locator(':scope > .flood-root');
+ const frame=canvas.locator(':scope > .flood-scroll-area__content > .flood-root');
  const frameStart=(await frame.boundingBox())!;
  await page.mouse.move(bounds.x+170,bounds.y+5);
  await page.mouse.down();
