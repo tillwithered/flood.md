@@ -17,8 +17,8 @@
 - Keep LineChart inspection anchored at the last hovered position during exit.
 - Group charts in the component and agent catalogs. Add category filtering to
   the component sidebar and a chart selection guide with a live latency example.
-- Put component discovery and an interactive chart on the homepage. Add a
-  compact category picker to the mobile catalog and a share card for the guide.
+- Simplify the homepage installation control. Add a compact category picker to
+  the mobile catalog and a share card for the chart guide.
 - Use Flood's overlay scrollbars for the site and the component canvas to
   preserve content width as overflow changes.
 - Give CodeSnippet an optional shell prompt and support icon-only CopyButton

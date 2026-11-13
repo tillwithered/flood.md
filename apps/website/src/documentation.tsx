@@ -206,7 +206,9 @@ export default function Documentation({ path }: { path: string }) {
     let cancelled = false;
     // A deep link can arrive before the lazy article exists. Resolve it after
     // the article and local font are ready, without a global navigation handler.
-    if (!workspacePreview && window.location.hash) {
+    const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    const restored = navigation?.type === "back_forward" && typeof history.state?.floodScrollTop === "number";
+    if (!workspacePreview && window.location.hash && !restored) {
       const hash = window.location.hash;
       void document.fonts.ready.then(() => {
         if (cancelled) return;

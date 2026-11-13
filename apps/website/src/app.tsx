@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from "react";
-import { ArrowRight } from "lucide-react";
-import { CopyButton, CodeSnippet, FloodRoot, Heading, IconSlot, Inline, LineChart, Link, ScrollArea, SkipLink, Stack, Surface, Text } from "@flood-md/react";
+import { CopyButton, CodeSnippet, FloodRoot, Heading, ScrollArea, SkipLink, Text } from "@flood-md/react";
 import "@flood-md/react/styles.css";
 import "./site.css";
 import release from "./release.json";
@@ -18,11 +17,6 @@ const RecordManagement = lazy(() => import("./recipes/record-management").then(m
 const SettingsWorkspace = lazy(() => import("./recipes/settings-workspace").then(module => ({ default: module.SettingsWorkspace })));
 const ChartsPlayground = lazy(() => import("./charts-playground"));
 const command = `npx @flood-md/cli@${release.version} init`;
-const previewCategories = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const previewSeries = [
-  { id: "this-week", label: "This week", values: [38, 55, 48, 62, 71, 65, 87] },
-  { id: "last-week", label: "Last week", values: [28, 39, 36, 52, 50, 53, 58] },
-];
 
 function Home() {
   const [status, setStatus] = useState("");
@@ -41,24 +35,9 @@ function Home() {
             aria-label="Copy installation command" onCopied={() => setStatus("Command copied.")}
             onCopyError={() => setStatus("Select the command and copy it manually.")} />} />
         <Text as="p" size="helper" tone="subtle" role="status" className="installation-status">
-          {release.published ? status : <Link href="/docs/installation">Installation options</Link>}
+          {release.published ? status : "Available after release"}
         </Text>
-        <Inline gap="2" className="hero-actions">
-          <Link href="/components" variant="solid" size="md">Explore components <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
-          <Link href="/docs/agents" variant="ghost" size="md">Set up your agent</Link>
-        </Inline>
       </div>
-    </section>
-    <section className="home-preview" aria-labelledby="home-preview-title">
-      <Surface padding="6" className="home-preview-surface">
-        <Stack gap="4">
-          <Inline gap="3" align="center" className="home-preview-header">
-            <Heading level={2} size="group" id="home-preview-title">Daily visits</Heading>
-            <Link href="/docs/charts" size="sm">Explore charts <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
-          </Inline>
-          <LineChart label="Daily visits" categories={previewCategories} series={previewSeries} />
-        </Stack>
-      </Surface>
     </section>
   </main>;
 }
@@ -71,6 +50,20 @@ export function App(props: AppProps) {
     const viewport = pageScroll.current;
     if (!viewport) return;
     const document = viewport.ownerDocument;
+    const view = document.defaultView;
+    if (!view) return;
+    const navigation = view.performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    if (navigation?.type === "back_forward" && typeof view.history.state?.floodScrollTop === "number") {
+      viewport.scrollTop = view.history.state.floodScrollTop;
+    }
+    let saveTimer: number | undefined;
+    const rememberScroll = () => {
+      view.clearTimeout(saveTimer);
+      saveTimer = undefined;
+      if (view.history.state?.floodScrollTop === viewport.scrollTop) return;
+      view.history.replaceState({ ...view.history.state, floodScrollTop: viewport.scrollTop }, "");
+    };
+    const queueSave = () => { saveTimer ??= view.setTimeout(rememberScroll, 250); };
     const scrollUnfocusedPage = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.altKey || event.metaKey || document.activeElement !== document.body ||
           document.querySelector("dialog:modal")) return;
@@ -88,7 +81,16 @@ export function App(props: AppProps) {
       viewport.scrollTop = positions[event.key as keyof typeof positions];
     };
     document.addEventListener("keydown", scrollUnfocusedPage);
-    return () => document.removeEventListener("keydown", scrollUnfocusedPage);
+    viewport.addEventListener("scroll", queueSave, { passive: true });
+    document.addEventListener("click", rememberScroll, { capture: true });
+    view.addEventListener("pagehide", rememberScroll);
+    return () => {
+      document.removeEventListener("keydown", scrollUnfocusedPage);
+      viewport.removeEventListener("scroll", queueSave);
+      document.removeEventListener("click", rememberScroll, { capture: true });
+      view.removeEventListener("pagehide", rememberScroll);
+      view.clearTimeout(saveTimer);
+    };
   }, []);
   return <ScrollArea ref={pageScroll} className="site-page-scroll" contentInset="none" tabIndex={-1}>
     <Page {...props} />

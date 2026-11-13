@@ -99,6 +99,19 @@ test("deep links and Studio use the page and preview ScrollAreas independently",
   await expect(page.getByRole("button",{name:"Reference Alt R"})).toBeFocused();
 });
 
+test("going back from a component restores the position in the catalog",async({page})=>{
+  await page.goto("/components");
+  const catalogLink=page.getByRole("main").locator(".catalog-card").nth(12);
+  await catalogLink.scrollIntoViewIfNeeded();
+  const viewport=page.locator(".site-page-scroll");
+  const before=await viewport.evaluate(node=>node.scrollTop);
+  expect(before).toBeGreaterThan(0);
+  await catalogLink.click();
+  await expect(page).toHaveURL(/\/components\/[^/]+$/);
+  await page.goBack();
+  await expect.poll(()=>viewport.evaluate(node=>node.scrollTop)).toBeCloseTo(before,0);
+});
+
 test("sidebar item text is brighter than category labels before hover",async({page},info)=>{
   await page.goto("/components/button");
   if(info.project.name==="mobile")await page.getByRole("button",{name:"Components",exact:true}).click();
