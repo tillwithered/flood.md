@@ -278,9 +278,8 @@ test("cell edits update the status badge and sort by the saved budget", async ({
   await input.fill("12,345,678,901,234.56");
   expect((await panel.boundingBox())!.width).toBeGreaterThan(shortWidth);
   expect((await column.boundingBox())!.width).toBeCloseTo(columnBox.width, 0);
-  expect(await input.evaluate((element) => element.scrollWidth)).toBeLessThanOrEqual(
-    await input.evaluate((element) => element.clientWidth),
-  );
+  // WebKit rounds the intrinsic input width and the caret's scroll extent differently.
+  expect(await input.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1);
   await input.fill("-1");
   await input.press("Enter");
   await expect(input).toHaveAttribute("aria-invalid", "true");
