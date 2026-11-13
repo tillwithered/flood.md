@@ -139,6 +139,10 @@
     overflow-x: auto;
     scrollbar-width: thin;
   }
+  .component-workbench[data-studio]:has(.workbench-stage[data-component="app-shell"]) .workbench-controls {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
 }
 .component-workbench[data-studio] .workbench-controls > * { flex-shrink: 0; white-space: nowrap; }
 .component-workbench[data-studio] .workbench-controls > .workbench-control:not(.workbench-control--toggle, .workbench-control--select) {
