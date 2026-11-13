@@ -34,6 +34,8 @@ async function fixture() {
         h("main", { style: { width: narrow ? "17rem" : "36rem" } },
           h(DataTable, {
             caption: "Column layout", hideCaption: true, columns, rows, selectable: true,
+            minWidth: flags.has("floor") || flags.has("pinning") ? "40rem" : "min-content",
+            maxViewportHeight: flags.has("bounded") ? "5rem" : undefined,
             showColumnVisibility: true, showResults: false, showSelection: false,
             defaultColumnWidths: { name: 136, cost: 112 },
             columnWidths: flags.has("locked") ? { name: 136, cost: 112 } : undefined,
@@ -97,9 +99,29 @@ test("resizing a column preserves adjacent widths and sort and resets with the c
   await expect.poll(() => name.evaluate(node => node.offsetWidth)).toBe(136);
 });
 
+test("fixed tracks retain the table minimum after columns are hidden", async ({ page }) => {
+  await open(page, "?floor");
+  await page.getByRole("button", { name: "Columns", exact: true }).click();
+  await page.getByRole("menuitemcheckbox", { name: "Notes" }).click();
+  await expect(page.getByRole("columnheader", { name: "Notes", exact: true })).toBeHidden();
+  await expect.poll(() => page.getByRole("table", { name: "Column layout" }).evaluate(node => node.offsetWidth))
+    .toBeGreaterThanOrEqual(640);
+});
+
+test("a pinned end column clears the overlay rail in a bounded table", async ({ page }) => {
+  await open(page, "?bounded");
+  const table = page.getByRole("table", { name: "Column layout" });
+  const end = table.getByRole("columnheader", { name: "Cost", exact: true });
+  await expect(end).toHaveAttribute("data-pin-edge", "end");
+  const rail = page.locator(".flood-scroll-area__track--vertical");
+  await expect(rail).toBeVisible();
+  const [headerBox, railBox] = await Promise.all([end.boundingBox(), rail.boundingBox()]);
+  expect(headerBox!.x + headerBox!.width).toBeLessThanOrEqual(railBox!.x);
+});
+
 for (const rtl of [false, true]) {
   test(`pinning uses logical edges and falls back in narrow ${rtl ? "RTL" : "LTR"} tables`, async ({ page }) => {
-    await open(page, rtl ? "?rtl" : "");
+    await open(page, rtl ? "?pinning&rtl" : "?pinning");
     const table = page.getByRole("table", { name: "Column layout" });
     await expect(table.getByRole("columnheader", { name: "Sort by Name", exact: true })).toHaveAttribute("data-pin-edge", "start");
     const names = await table.getByRole("row").first().locator(".flood-data-table__header-label").allInnerTexts();

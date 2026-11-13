@@ -37,6 +37,7 @@ export const TabularData = /* @__PURE__ */ forwardRef<HTMLTableElement, TablePro
 
   return <div className="flood-table-container" hidden={hidden} dir={dir} lang={lang}>
     <ScrollArea ref={viewport} orientation={scrollVertically ? "both" : "horizontal"}
+      contentInset={scrollVertically ? "scrollbar" : undefined}
       tabIndex={scrollVertically ? 0 : undefined} style={scrollVertically ? { maxBlockSize: maxViewportHeight } : undefined}
       aria-label={scrollLabel ?? caption}
       onFocus={pinHeader ? event => {

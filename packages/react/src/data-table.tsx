@@ -187,7 +187,7 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
     <Table ref={columnLayout.table} className="flood-data-table__table" caption={caption} hideCaption={hideCaption} density={density} striped={striped}
       maxViewportHeight={maxViewportHeight} stickyHeader={stickyHeader}
       data-inset={inset} data-fixed-columns={columnLayout.fixedWidth !== undefined || undefined}
-      style={columnLayout.fixedWidth === undefined ? {minWidth} : {inlineSize:columnLayout.fixedWidth,tableLayout:"fixed"}}>
+      style={columnLayout.fixedWidth === undefined ? {minWidth} : {minWidth,inlineSize:columnLayout.fixedWidth,tableLayout:"fixed"}}>
       <thead><tr>
         {expansion.enabled && <th {...columnLayout.utilityCell("expansion", true)} scope="col"
           data-data-table-utility="expansion" className="flood-data-table__expand">
