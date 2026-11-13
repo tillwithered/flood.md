@@ -35,7 +35,14 @@ APIs and read project-owned guidance. The MCP serves public website materials.
 
 ## Privacy
 
-The MCP endpoint processes public catalog queries and material IDs. Flood
-does not store MCP request bodies or count them as website visits. Requests
-do not require a Flood account. The hosting provider can maintain operational
-request logs. Send public search terms and IDs only.
+The endpoint uses public search terms, filters and material IDs to return
+Flood documentation. It requires no account and keeps no record of request
+bodies or MCP visits. Railway processes requests as the hosting provider and
+may retain operational metadata under its own policies. Disconnect Flood in
+your agent client to stop sending requests. Send public search terms and IDs only.
+
+## Terms
+
+The Flood plugin and its source are available under the [MIT license](https://github.com/tillwithered/flood.md/blob/main/LICENSE).
+The hosted endpoint provides public documentation as available. Use it for
+catalog access and respect the request limits.
