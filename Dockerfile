@@ -1,8 +1,16 @@
 FROM node:24-alpine AS build
 WORKDIR /app
-ARG RAILWAY_GIT_COMMIT_SHA
+COPY package.json package-lock.json ./
+COPY apps/website/package.json apps/website/
+COPY examples/next/package.json examples/next/
+COPY packages/agent/package.json packages/agent/
+COPY packages/cli/package.json packages/cli/
+COPY packages/react/package.json packages/react/
+COPY packages/tokens/package.json packages/tokens/
+RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY . .
-RUN npm ci --ignore-scripts && npm run build
+ARG RAILWAY_GIT_COMMIT_SHA
+RUN npm run build
 
 FROM node:24-alpine
 ENV NODE_ENV=production

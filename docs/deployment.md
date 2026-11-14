@@ -169,3 +169,13 @@ website bundle including live MCP requests, and exercises the guide, ZIP
 download and representative site pages in desktop and mobile Chromium.
 Changes to shared server code, routes, dependencies or the catalog compiler
 use the full scope.
+
+After a same-repository PR passes, the CI run records the checked source
+tree, base tree and browser coverage digest. A push to main reuses the
+browser result only when all three match the successful PR run that
+introduced that commit. Changes to the workflow or verification tools,
+unavailable evidence, forks and mismatches trigger browser jobs on main.
+Main still builds and verifies its own runtime artifact. Railway still
+uses GitHub autodeploy. Its Docker build can reuse the npm install layer
+when the package manifests and lockfile match. Live verification checks
+the deployed source commit and endpoints after rollout.

@@ -6,6 +6,8 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+env:
+  CI_NODE_VERSION: '24.16.0'
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -13,8 +15,14 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
     outputs:
       scope: ${{ steps.scope.outputs.scope }}
+      browser_reused: ${{ steps.browser.outputs.reused }}
+      coverage: ${{ steps.affected.outputs.coverage }}
       chromium_shards: ${{ steps.affected.outputs.chromium_shards }}
       chromium_total: ${{ steps.affected.outputs.chromium_total }}
       engine_shards: ${{ steps.affected.outputs.engine_shards }}
@@ -26,7 +34,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 24
+          node-version: ${{ env.CI_NODE_VERSION }}
           cache: npm
       - run: npm ci
       - name: Fail early on release-train drift
@@ -37,6 +45,13 @@ jobs:
       - name: Select affected component consumers
         id: affected
         run: node scripts/ci-affected.mjs
+      - name: Look up browser verification for the exact merge
+        id: browser
+        run: node scripts/ci-browser-reuse.mjs lookup
+        env:
+          FLOOD_CI_SCOPE: ${{ steps.scope.outputs.scope }}
+          FLOOD_CI_COVERAGE: ${{ steps.affected.outputs.coverage }}
+          GITHUB_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}
       - run: npm run verify
         if: steps.scope.outputs.scope == 'full'
       - name: Verify website build and contracts
@@ -44,7 +59,7 @@ jobs:
         run: npm run build && npm run check && npm test
       - run: npm run release:check
       - name: Pack immutable release candidate
-        if: github.event_name == 'push' && steps.scope.outputs.scope == 'full'
+        if: github.event_name == 'push' && steps.scope.outputs.scope == 'full' && steps.affected.outputs.full_coverage == 'true'
         run: npm run ci:candidate
       - name: Prepare verified website runtime
         id: website
@@ -57,6 +72,7 @@ jobs:
           retention-days: 14
           if-no-files-found: error
       - name: Bundle build outputs once for browser workers
+        if: steps.browser.outputs.reused != 'true' || (github.event_name == 'push' && steps.scope.outputs.scope == 'full' && steps.affected.outputs.full_coverage == 'true')
         shell: bash
         run: |
           paths=(packages/react/dist packages/tokens/dist apps/website/dist apps/website/dist-server .artifacts/ci-plan.json)
@@ -64,6 +80,7 @@ jobs:
           if [ -d examples/next/.next ]; then paths+=(examples/next/.next); fi
           tar --exclude='examples/next/.next/cache' -czf .artifacts/browser-build.tgz "${paths[@]}"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: steps.browser.outputs.reused != 'true' || (github.event_name == 'push' && steps.scope.outputs.scope == 'full' && steps.affected.outputs.full_coverage == 'true')
         with:
           name: browser-build-${{ github.sha }}
           path: .artifacts/browser-build.tgz
@@ -72,7 +89,7 @@ jobs:
           retention-days: 14
           if-no-files-found: error
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: github.event_name == 'push' && steps.scope.outputs.scope == 'full'
+        if: github.event_name == 'push' && steps.scope.outputs.scope == 'full' && steps.affected.outputs.full_coverage == 'true'
         with:
           name: candidate-bytes-${{ github.sha }}
           path: .artifacts/release-candidate
@@ -81,6 +98,7 @@ jobs:
           if-no-files-found: error
   chromium:
     needs: build
+    if: needs.build.outputs.browser_reused != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
@@ -96,7 +114,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 24
+          node-version: ${{ env.CI_NODE_VERSION }}
           cache: npm
       - run: npm ci
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -119,7 +137,7 @@ jobs:
           retention-days: 7
   browser-engines:
     needs: build
-    if: needs.build.outputs.scope == 'full'
+    if: needs.build.outputs.scope == 'full' && needs.build.outputs.browser_reused != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     container:
@@ -136,7 +154,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 24
+          node-version: ${{ env.CI_NODE_VERSION }}
           cache: npm
       - run: npm ci
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -168,11 +186,43 @@ jobs:
           CHROMIUM: ${{ needs.chromium.result }}
           ENGINES: ${{ needs.browser-engines.result }}
           SCOPE: ${{ needs.build.outputs.scope }}
+          REUSED: ${{ needs.build.outputs.browser_reused }}
         run: |
           test "$BUILD" = success
+          if [ "$REUSED" = true ]; then
+            test "$GITHUB_EVENT_NAME" = push
+            test "$GITHUB_REF" = refs/heads/main
+            case "$SCOPE" in full|publication|integration) ;; *) exit 1 ;; esac
+            test "$CHROMIUM" = skipped
+            test "$ENGINES" = skipped
+            exit 0
+          fi
+          test "$REUSED" = false
           test "$CHROMIUM" = success
           case "$SCOPE" in
             full) test "$ENGINES" = success ;;
             publication|integration) test "$ENGINES" = skipped ;;
             *) exit 1 ;;
           esac
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: github.event_name == 'pull_request'
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: github.event_name == 'pull_request'
+        with:
+          node-version: ${{ env.CI_NODE_VERSION }}
+      - name: Record the successful browser coverage
+        if: github.event_name == 'pull_request'
+        env:
+          FLOOD_CI_SCOPE: ${{ needs.build.outputs.scope }}
+          FLOOD_CI_COVERAGE: ${{ needs.build.outputs.coverage }}
+        run: node scripts/ci-browser-reuse.mjs record
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: github.event_name == 'pull_request'
+        with:
+          name: browser-verification-${{ github.run_attempt }}
+          path: .artifacts/browser-verification.json
+          if-no-files-found: error
+          retention-days: 14

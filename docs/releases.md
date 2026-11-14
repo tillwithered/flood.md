@@ -62,7 +62,14 @@ successful push run for that exact main commit.
 The generated CI plan is visible in logs and the build artifact. A local preview
 does not require a release or version bump.
 
-Protected-main CI runs the complete candidate. One build feeds Chromium and
+Release candidates on protected main require complete coverage. Component-only
+pushes with a narrower coverage plan do not create a publishable candidate.
+Merge the aligned version bump for a full release candidate. Main can reuse
+complete browser coverage from the PR for the exact same source tree, base
+tree and coverage plan. It always builds and tests the exact npm archives it
+offers for publication.
+
+One build feeds Chromium and
 Firefox/WebKit shards. At 120 components this is four Chromium shards and two
 shards for each other engine. Full-candidate runner counts grow with the catalog,
 bounded at twelve Chromium and four shards per other engine; scoped PRs retain
