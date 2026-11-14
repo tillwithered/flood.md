@@ -69,11 +69,11 @@ complete browser coverage from the PR for the exact same source tree, base
 tree and coverage plan. It always builds and tests the exact npm archives it
 offers for publication.
 
-One build feeds Chromium and
-Firefox/WebKit shards. At 120 components this is four Chromium shards and two
-shards for each other engine. Full-candidate runner counts grow with the catalog,
-bounded at twelve Chromium and four shards per other engine; scoped PRs retain
-a fixed runner budget. The pinned Playwright image provides
+One build feeds Chromium and Firefox/WebKit shards. Chromium separates the
+catalog variant audit from behavior tests so Playwright balances each group on
+its own. At 120 components this is four shards per Chromium group and two
+per other engine. Full-candidate runner counts grow with the catalog, bounded
+at twelve per Chromium group and four per other engine. The pinned Playwright image provides
 matching browsers and system dependencies. Updating Playwright also requires
 updating that image and digest. `verify` aggregates every applicable job and
 fails on a failed, cancelled or unexpectedly skipped dependency.

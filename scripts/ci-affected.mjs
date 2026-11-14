@@ -2,7 +2,7 @@ import { parse } from '@babel/parser';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { readFile, writeFile, mkdir, appendFile } from 'node:fs/promises';
-import { browserShards } from './ci-shards.mjs';
+import { browserShards, chromiumJobs } from './ci-shards.mjs';
 import { changedRecipes } from './ci-recipes.mjs';
 import { posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -109,7 +109,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const coverage=createHash('sha256').update(JSON.stringify({full:plan.full,components:plan.components,testFiles:plan.testFiles,shards})).digest('hex');
   if(process.env.GITHUB_OUTPUT) {
     const matrix=n=>JSON.stringify(Array.from({length:n},(_,i)=>i+1));
-    await appendFile(process.env.GITHUB_OUTPUT,`chromium_shards=${matrix(shards.chromium)}\nchromium_total=${shards.chromium}\nengine_shards=${matrix(shards.engines)}\nengine_total=${shards.engines}\ncoverage=${coverage}\nfull_coverage=${plan.full}\n`);
+    const jobs=chromiumJobs(process.env.FLOOD_CI_SCOPE ?? 'full',shards.chromium);
+    await appendFile(process.env.GITHUB_OUTPUT,`chromium_jobs=${JSON.stringify(jobs)}\nengine_shards=${matrix(shards.engines)}\nengine_total=${shards.engines}\ncoverage=${coverage}\nfull_coverage=${plan.full}\n`);
   }
   plan.shards=shards;
   await writeFile('.artifacts/ci-plan.json',JSON.stringify(plan,null,2)+'\n');

@@ -23,8 +23,7 @@ jobs:
       scope: ${{ steps.scope.outputs.scope }}
       browser_reused: ${{ steps.browser.outputs.reused }}
       coverage: ${{ steps.affected.outputs.coverage }}
-      chromium_shards: ${{ steps.affected.outputs.chromium_shards }}
-      chromium_total: ${{ steps.affected.outputs.chromium_total }}
+      chromium_jobs: ${{ steps.affected.outputs.chromium_jobs }}
       engine_shards: ${{ steps.affected.outputs.engine_shards }}
       engine_total: ${{ steps.affected.outputs.engine_total }}
     steps:
@@ -45,6 +44,8 @@ jobs:
       - name: Select affected component consumers
         id: affected
         run: node scripts/ci-affected.mjs
+        env:
+          FLOOD_CI_SCOPE: ${{ steps.scope.outputs.scope }}
       - name: Look up browser verification for the exact merge
         id: browser
         run: node scripts/ci-browser-reuse.mjs lookup
@@ -107,7 +108,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ${{ fromJSON(needs.build.outputs.scope == 'integration' && '[1]' || needs.build.outputs.chromium_shards) }}
+        include: ${{ fromJSON(needs.build.outputs.chromium_jobs) }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -123,13 +124,14 @@ jobs:
           path: .artifacts
       - run: tar -xzf .artifacts/browser-build.tgz
       - name: Browser behavior and styles
-        run: node scripts/ci-browser.mjs chromium ${{ matrix.shard }}/${{ needs.build.outputs.scope == 'integration' && '1' || needs.build.outputs.chromium_total }}
+        run: node scripts/ci-browser.mjs chromium ${{ matrix.shard }}/${{ matrix.total }}
         env:
           FLOOD_CI_SCOPE: ${{ needs.build.outputs.scope }}
+          FLOOD_CHROMIUM_LANE: ${{ matrix.lane }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: failure()
         with:
-          name: chromium-${{ matrix.shard }}-results
+          name: chromium-${{ matrix.lane }}-${{ matrix.shard }}-results
           path: |
             playwright-report
             test-results
