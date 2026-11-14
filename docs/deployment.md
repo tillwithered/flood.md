@@ -34,7 +34,15 @@ does not depend on a live GitHub connection.
 The same origin serves the stateless Streamable HTTP endpoint at `/mcp` and
 the plugin archive at `/flood-plugin.zip`. The deployment check initializes MCP,
 verifies the public tools, reads a versioned component contract and checks the
-download. Hosting both uses the existing website service.
+download against the archive digest in `/site-release.json`. The ZIP uses
+`no-store` so updates can take effect as soon as the site deploys. Keep CDN
+cache overrides off this path. Hosting both uses the existing website service.
+
+Production sends HSTS, a referrer policy, and HTML
+content security rules that restrict scripts to the site and block framing.
+Component previews use inline styles and syntax highlighting uses WebAssembly.
+The deployment probe checks the
+security headers and reads the agent documents in batches of up to eight.
 
 The build also emits canonical Markdown counterparts for the documentation and
 component pages. For example `/docs/installation.md` and `/components/button.md`
@@ -129,8 +137,11 @@ Railway continues to deploy protected `main` through its GitHub integration. Kee
 Wait for CI enabled in the service settings; the setting is account-specific and
 must be inspected on the service rather than inferred from a green PR. See the
 [Railway documentation](https://docs.railway.com/deployments/github-autodeploys#wait-for-ci).
-The read-only `Verify website deployment` workflow runs on a successful hosting
-`deployment_status` event, requires successful main-push CI for that source commit
+The read-only `Verify website deployment` workflow runs on a successful Railway
+`deployment_status` event. Set the repository variable
+`WEBSITE_DEPLOYMENT_ENVIRONMENT` to the hosting deployment environment name
+when the repository has multiple Railway deployment targets. The workflow
+requires successful main-push CI for that source commit
 and probes the actual public agent/doc endpoints. It does not run while Railway
 is waiting for GitHub CI, avoiding a circular wait between CI and rollout.
 A mismatched or missing commit marker fails this check; a green build alone is

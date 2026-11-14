@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, rm, readdir } from 'node:fs/promises';
+import { readFile, writeFile, rm, readdir } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
 import { prepareSiteBundle, checkLocalSite, verifySite, waitForSite } from '../scripts/site-contract.mjs';
@@ -19,6 +19,11 @@ test('isolated deploy artifact includes only runtime files and serves the comple
  assert.match(await readFile(bundle+'/Dockerfile','utf8'),/USER node/);
  const metadata = await checkLocalSite(bundle);
  assert.equal(metadata.version,version);
+ const archivePath = bundle+'/apps/website/dist/flood-plugin.zip';
+ const archive = await readFile(archivePath);
+ await writeFile(archivePath,Buffer.concat([archive,Buffer.from('stale archive')]));
+ await assert.rejects(checkLocalSite(bundle), /Plugin archive differs/);
+ await writeFile(archivePath,archive);
  // The built runtime must fail the gate if a shipped reference is missing.
  const manifest = JSON.parse(await readFile(bundle+'/apps/website/dist/agent/manifest.json','utf8'));
  const reference = manifest.files.find(file=>file.kind==='reference').source;
