@@ -2,11 +2,13 @@ import { readFile, writeFile, mkdir, mkdtemp, cp, readdir, lstat } from 'node:fs
 import { spawn, spawnSync } from 'node:child_process';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const workspace = fileURLToPath(new URL('../', import.meta.url));
 const website = join(workspace, 'apps/website');
 const json = async path => JSON.parse(await readFile(path, 'utf8'));
 const hashPattern = /^[a-f0-9]{40}$/;
+const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function writeSiteMetadata() {
@@ -14,7 +16,8 @@ export async function writeSiteMetadata() {
   const sha = git.status === 0 ? git.stdout.trim() : process.env.RAILWAY_GIT_COMMIT_SHA;
   const status = spawnSync('git', ['status', '--porcelain'], { cwd: workspace, encoding: 'utf8' });
   const release = await json(join(website, 'src/release.json'));
-  const metadata = { schemaVersion: 1, version: release.version, sourceCommit: hashPattern.test(sha ?? '') ? sha : null, sourceDirty: status.status === 0 ? Boolean(status.stdout.trim()) : false };
+  const pluginSha256 = sha256(await readFile(join(website, 'dist/flood-plugin.zip')));
+  const metadata = { schemaVersion: 1, version: release.version, sourceCommit: hashPattern.test(sha ?? '') ? sha : null, sourceDirty: status.status === 0 ? Boolean(status.stdout.trim()) : false, pluginSha256 };
   await writeFile(join(website, 'dist/site-release.json'), JSON.stringify(metadata, null, 2) + '\n');
   return metadata;
 }
@@ -56,12 +59,20 @@ export async function verifySite(base, { expectedCommit, expectedVersion, expect
   if (expectedCommit && (!hashPattern.test(expectedCommit) || metadata.sourceCommit !== expectedCommit || metadata.sourceDirty)) throw new Error('Website does not serve the expected clean source commit');
   if (expectedVersion && metadata.version !== expectedVersion) throw new Error('Website release version differs');
   if ((await read('/health', 'text/plain')).body !== 'ok') throw new Error('Website health probe failed');
-  await read('/', 'text/html');
+  const { response: document } = await read('/', 'text/html');
   const skill = (await read('/agent/SKILL.md', 'text/markdown')).body;
   if (!skill.includes('Flood') && !skill.includes('flood')) throw new Error('Agent skill is empty or unrelated');
   const manifest = JSON.parse((await read('/agent/manifest.json', 'application/json')).body);
   if (manifest.schemaVersion !== 1 || !Array.isArray(manifest.files) || !manifest.files.length) throw new Error('Missing agent bundle inventory');
   if (manifest.version !== metadata.version) throw new Error('Agent bundle version differs from the website release');
+  const directives = document.headers.get('content-security-policy')?.split(';').map(value => value.trim());
+  if (!["script-src 'self' 'wasm-unsafe-eval'", "object-src 'none'", "frame-ancestors 'none'"].every(value => directives?.includes(value)) ||
+      document.headers.get('x-frame-options') !== 'DENY' ||
+      document.headers.get('x-content-type-options') !== 'nosniff' ||
+      document.headers.get('referrer-policy') !== 'strict-origin-when-cross-origin' ||
+      !/^max-age=[1-9]\d*/i.test(document.headers.get('strict-transport-security') ?? '')) {
+    throw new Error('Website document is missing its security policy');
+  }
   // Verify actual deployed HTML, not just the source marker or a browser title.
   for (const [path, title] of [['/', 'Good interfaces'], ['/docs/installation', 'Installation'], ['/components/button', 'Button']]) {
     const { body } = await read(path, 'text/html');
@@ -76,10 +87,13 @@ export async function verifySite(base, { expectedCommit, expectedVersion, expect
     const path = '/agent/' + file.source;
     paths.set(path, path.endsWith('.json') ? 'application/json' : 'text/markdown');
   }
-  for (const [path, type] of paths) {
-    const { body } = await read(path, type);
-    if (!body.trim()) throw new Error(path + ': empty document');
-    if (expectedFiles?.has(path) && body !== expectedFiles.get(path)) throw new Error(path + ': built artifact content differs');
+  const documents = [...paths];
+  for (let start = 0; start < documents.length; start += 8) {
+    await Promise.all(documents.slice(start, start + 8).map(async ([path, type]) => {
+      const { body } = await read(path, type);
+      if (!body.trim()) throw new Error(path + ': empty document');
+      if (expectedFiles?.has(path) && body !== expectedFiles.get(path)) throw new Error(path + ': built artifact content differs');
+    }));
   }
   const head = await read('/agent/SKILL.md', 'text/markdown', 'HEAD');
   if (head.body !== '') throw new Error('HEAD returned a response body');
@@ -87,11 +101,11 @@ export async function verifySite(base, { expectedCommit, expectedVersion, expect
   if (missing.status !== 404) throw new Error('Missing documentation must return 404');
   const rejected = await fetch(new URL('/', origin), { method: 'POST', redirect: 'error' });
   if (rejected.status !== 405) throw new Error('Static runtime accepted an unsupported method');
-  await verifyIntegrations(origin, metadata.version);
+  await verifyIntegrations(origin, metadata);
   return metadata;
 }
 
-async function verifyIntegrations(origin, version) {
+async function verifyIntegrations(origin, { version, pluginSha256 }) {
   const endpoint = new URL('/mcp', origin);
   const rpc = async (method, params = {}, protocolVersion) => {
     const response = await fetch(endpoint, {
@@ -124,7 +138,12 @@ async function verifyIntegrations(origin, version) {
   if (denied.status !== 403) throw new Error('MCP accepted an untrusted origin');
   const archive = await fetch(new URL('/flood-plugin.zip', origin), { redirect: 'error', signal: AbortSignal.timeout(10000) });
   if (!archive.ok || !archive.headers.get('content-type')?.includes('application/zip') ||
-      Buffer.from(await archive.arrayBuffer()).readUInt32LE(0) !== 0x04034b50) throw new Error('Plugin archive is missing or invalid');
+      !archive.headers.get('content-disposition')?.startsWith('attachment;') ||
+      !archive.headers.get('cache-control')?.includes('no-store')) throw new Error('Plugin archive response is missing or cacheable');
+  const bytes = Buffer.from(await archive.arrayBuffer());
+  if (bytes.length < 4 || bytes.readUInt32LE(0) !== 0x04034b50 || sha256(bytes) !== pluginSha256) {
+    throw new Error('Plugin archive differs from the deployed build');
+  }
 }
 
 export async function checkLocalSite(directory, { expectedCommit } = {}) {

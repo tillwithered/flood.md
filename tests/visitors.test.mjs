@@ -66,12 +66,15 @@ test('public proxy enforces origin/body, sanitizes response and fails without bl
     assert.equal((await send(JSON.stringify({id:randomUUID()}),'https://flood.md','crawler')).status,200);
     assert.equal(forwarded,1);
     assert.deepEqual(methods,['GET']);
+    await Promise.all(Array.from({length:8},()=>fetch(base).then(res=>res.json())));
+    assert.equal(forwarded,1);
     const response=await send(JSON.stringify({id:randomUUID()}));
     assert.deepEqual(await response.json(),{total:17,since:'2026-10-28T00:00:00Z'});
     assert.equal(response.headers.get('cache-control'),'no-store');assert.equal(authorization,`Bearer ${process.env.VISITOR_TOKEN}`);
     assert.equal((await fetch(base)).status,200);
+    assert.equal(forwarded,3);
     backend.closeAllConnections();await new Promise(resolve=>backend.close(resolve));
-    assert.deepEqual(await (await fetch(base)).json(),{available:false});
+    assert.deepEqual(await (await send(JSON.stringify({id:randomUUID()}))).json(),{available:false});
   }finally{
     for(const server of [front,backend]){server.closeAllConnections();if(server.listening)await new Promise(resolve=>server.close(resolve));}
     keys.forEach((k,i)=>{if(saved[i]===undefined)delete process.env[k];else process.env[k]=saved[i];});

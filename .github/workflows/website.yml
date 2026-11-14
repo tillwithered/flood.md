@@ -5,14 +5,17 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: website-verification
+  group: website-verification-${{ github.event.deployment.creator.login }}-${{ github.event.deployment_status.creator.login }}-${{ github.event.deployment.environment }}
   cancel-in-progress: true
 jobs:
   deployed-source:
     if: >-
       github.repository == 'tillwithered/flood.md' &&
       github.event.deployment_status.state == 'success' &&
-      github.event.deployment.environment != 'npm-release'
+      github.event.deployment.creator.login == 'railway-app[bot]' &&
+      github.event.deployment_status.creator.login == 'railway-app[bot]' &&
+      (vars.WEBSITE_DEPLOYMENT_ENVIRONMENT == '' ||
+       github.event.deployment.environment == vars.WEBSITE_DEPLOYMENT_ENVIRONMENT)
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
