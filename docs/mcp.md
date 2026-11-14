@@ -9,6 +9,8 @@ skills. The server uses the same versioned catalog as this website.
 codex mcp add flood --url https://flood.md/mcp
 ```
 
+Run `codex mcp list` to confirm that `flood` is configured.
+
 Open a new chat and ask, “Use Flood to find the right components for a table
 with filters and bulk actions. Link the relevant docs.”
 
