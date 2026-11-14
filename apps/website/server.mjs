@@ -8,6 +8,16 @@ import { createFloodMcpHandler } from "./dist-server/mcp.mjs";
 
 const root = fileURLToPath(new URL("./dist", import.meta.url));
 const floodMcp = createFloodMcpHandler({ root: join(root, "agent"), siteOrigin });
+const documentPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+].join("; ");
 const types = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -22,6 +32,11 @@ const types = {
   ".zip": "application/zip",
 };
 const server = createServer(async (request, response) => {
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  if (process.env.NODE_ENV === "production") {
+    response.setHeader("Strict-Transport-Security", "max-age=31536000");
+  }
   try {
     const pathname = decodeURIComponent(
       new URL(request.url, "http://localhost").pathname,
@@ -54,10 +69,18 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (!(await stat(file)).isFile()) throw new Error("missing");
+    const extension = extname(file);
+    const pluginDownload = pathname === "/flood-plugin.zip";
     response.writeHead(200, {
-      "Content-Type": types[extname(file)] ?? "application/octet-stream",
-      "X-Content-Type-Options": "nosniff",
-      ...(pathname === "/flood-plugin.zip" ? { "Content-Disposition": 'attachment; filename="flood-plugin.zip"' } : {}),
+      "Content-Type": types[extension] ?? "application/octet-stream",
+      ...(extension === ".html" ? {
+        "Content-Security-Policy": documentPolicy,
+        "X-Frame-Options": "DENY",
+      } : {}),
+      ...(pluginDownload ? {
+        "Content-Disposition": 'attachment; filename="flood-plugin.zip"',
+        "CDN-Cache-Control": "no-store",
+      } : {}),
       ...(pathname.startsWith("/playground") ? { "X-Robots-Tag": "noindex, follow" } : {}),
       ...(pathname.endsWith(".md") && pagePaths.has(pathname.slice(0, -3)) ? {
         "X-Robots-Tag": "noindex, follow",
@@ -65,7 +88,7 @@ const server = createServer(async (request, response) => {
       } : {}),
       "Cache-Control": pathname.startsWith("/assets/")
         ? "public, max-age=31536000, immutable"
-        : "no-cache",
+        : pluginDownload ? "private, no-store" : "no-cache",
     });
     response.end(request.method === "HEAD" ? undefined : await readFile(file));
   } catch {
