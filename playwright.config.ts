@@ -6,7 +6,11 @@ export default defineConfig({
   fullyParallel: true,
   workers: process.env.CI ? 4 : undefined,
   retries: process.env.CI ? 1 : 0,
-  reporter: [["list"], ["html", { open: "never" }]],
+  reporter: [
+    ["list"],
+    ["html", { open: "never" }],
+    ...(process.env.FLOOD_BROWSER_TIMINGS ? [["json", { outputFile: process.env.FLOOD_BROWSER_TIMINGS }] as const] : []),
+  ],
   use: { baseURL: websiteURL, trace: "retain-on-failure" },
   webServer: [
     {

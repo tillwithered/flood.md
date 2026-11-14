@@ -15,13 +15,17 @@ concurrency:
   cancel-in-progress: false
 jobs:
   publish:
-    if: startsWith(github.event.release.tag_name || inputs.tag, 'v')
+    if: >-
+      github.repository == 'tillwithered/flood.md' &&
+      ((github.event_name == 'release' && startsWith(github.ref, 'refs/tags/v')) ||
+       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && startsWith(inputs.tag, 'v')))
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    container:
-      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
-      options: --ipc=host
+    timeout-minutes: 10
     environment: npm-release
+    outputs:
+      commit: ${{ steps.candidate.outputs.commit }}
+      run_id: ${{ steps.candidate.outputs.run_id }}
+      candidate_id: ${{ steps.candidate.outputs.candidate_id }}
     permissions:
       contents: read
       actions: read
@@ -52,14 +56,11 @@ jobs:
           ref: ${{ steps.release.outputs.tag }}
           persist-credentials: false
           fetch-depth: 0
-      - name: Trust only the mounted release checkout
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
-          cache: npm
           registry-url: https://registry.npmjs.org
-      - run: npm ci
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Find the successful main candidate for this exact tag
         id: candidate
         run: node scripts/ci-candidate-run.mjs
@@ -86,6 +87,35 @@ jobs:
         env:
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
           FLOOD_PREPARED_CANDIDATE: true
+  verify-registry:
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea
+      options: --ipc=host
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ needs.publish.outputs.commit }}
+          persist-credentials: false
+      - name: Trust only the mounted release checkout
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: ${{ needs.publish.outputs.candidate_id }}
+          merge-multiple: true
+          path: .artifacts/release-candidate
+          run-id: ${{ needs.publish.outputs.run_id }}
+          github-token: ${{ github.token }}
       - run: npm run release:verify-registry
         env:
           FLOOD_PREPARED_CANDIDATE: true

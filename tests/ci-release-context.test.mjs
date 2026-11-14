@@ -9,6 +9,20 @@ const workflow = await readFile(new URL('../.github/workflows/release.yml', impo
 const releaseScript = workflow.match(/node --input-type=module <<'NODE'\r?\n([\s\S]*?)\r?\n\s+NODE/)?.[1];
 assert.ok(releaseScript, 'Exercise the actual release preflight');
 
+test('registry checks run separately from npm publishing credentials', () => {
+  const [publisher, verifier] = workflow.split(/^  verify-registry:\s*$/m);
+  assert.ok(verifier);
+  assert.match(publisher, /id-token: write/);
+  assert.match(publisher, /github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/);
+  assert.match(publisher, /npm ci --ignore-scripts/);
+  assert.doesNotMatch(publisher, /release:verify-registry/);
+  assert.match(verifier, /needs: publish/);
+  assert.match(verifier, /ref: \$\{\{ needs\.publish\.outputs\.commit \}\}/);
+  assert.match(verifier, /artifact-ids: \$\{\{ needs\.publish\.outputs\.candidate_id \}\}/);
+  assert.match(verifier, /release:verify-registry/);
+  assert.doesNotMatch(verifier, /id-token|environment: npm-release/);
+});
+
 test('release recovery accepts only an existing stable published tag', async () => {
   const root = await mkdtemp(join(tmpdir(), 'flood-release-context-'));
   try {

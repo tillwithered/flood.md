@@ -14,8 +14,10 @@ export function validShard(value) {
 export function chromiumJobs(scope, shards) {
   if (scope === 'integration') return [{ lane: 'all', shard: 1, total: 1 }];
   if (scope !== 'full' && scope !== 'publication') throw Error('Unknown Chromium scope');
-  // Playwright balances test counts. The catalog audit has much more work per
-  // test than the rest of Chromium, so give it an independent shard group.
-  const lanes = scope === 'full' ? ['behavior', 'catalog'] : ['all'];
-  return lanes.flatMap(lane => Array.from({ length: shards }, (_, index) => ({ lane, shard: index + 1, total: shards })));
+  const jobs = (lane, total) => Array.from({ length: total }, (_, index) => ({ lane, shard: index + 1, total }));
+  if (scope === 'publication') return jobs('all', shards);
+  // The latest full run spent more time in behavior than in the variant audit.
+  const behavior = Math.min(12, Math.ceil(shards * 1.4));
+  const catalog = Math.max(2, Math.ceil(shards * 0.8));
+  return [...jobs('behavior', behavior), ...jobs('catalog', catalog)];
 }
