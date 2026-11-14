@@ -8,6 +8,7 @@ import { createFloodMcpHandler } from "./dist-server/mcp.mjs";
 
 const root = fileURLToPath(new URL("./dist", import.meta.url));
 const floodMcp = createFloodMcpHandler({ root: join(root, "agent"), siteOrigin });
+const openAiChallenge = process.env.OPENAI_APPS_CHALLENGE;
 const documentPolicy = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval'",
@@ -51,6 +52,14 @@ const server = createServer(async (request, response) => {
     if (!["GET", "HEAD"].includes(request.method)) {
       response.writeHead(405, { Allow: "GET, HEAD" });
       response.end();
+      return;
+    }
+    if (pathname === "/.well-known/openai-apps-challenge" && openAiChallenge) {
+      response.writeHead(200, {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-store",
+      });
+      response.end(request.method === "GET" ? openAiChallenge : undefined);
       return;
     }
     const normalized = pathname === "/index.html" ? "/" : pathname.replace(/\/index\.html$|\/$/, "") || "/";

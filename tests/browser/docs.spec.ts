@@ -25,7 +25,7 @@ for (const doc of docPages) test(`published guide loads directly: ${doc.path}`, 
   page.on("pageerror", error => errors.push(error.message));
     expect((await page.goto(doc.path))?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(doc.label);
-    await expect(page.locator(".markdown-content")).not.toBeEmpty();
+    await expect(page.locator(".markdown-content:visible").first()).not.toBeEmpty();
   expect(errors).toEqual([]);
 });
 

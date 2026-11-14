@@ -14,10 +14,11 @@ const integrationFiles = new Set([
   "apps/website/server.mjs",
   "apps/website/visitors.mjs",
   "apps/website/mcp.mjs",
+  "apps/website/mcp-search.mjs",
   "docs/mcp.md",
   "plugins/flood/plugin.json",
   "plugins/flood/mcp.json",
-  "plugins/flood/skills/flood-catalog/SKILL.md",
+  "skills/flood-catalog/SKILL.md",
 ]);
 
 export function isIntegrationChange(files) {
