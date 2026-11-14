@@ -10,3 +10,12 @@ export function validShard(value) {
   const match = /^([1-9]\d?)\/([1-9]\d?)$/.exec(value);
   return Boolean(match && Number(match[1]) <= Number(match[2]) && Number(match[2]) <= 12);
 }
+
+export function chromiumJobs(scope, shards) {
+  if (scope === 'integration') return [{ lane: 'all', shard: 1, total: 1 }];
+  if (scope !== 'full' && scope !== 'publication') throw Error('Unknown Chromium scope');
+  // Playwright balances test counts. The catalog audit has much more work per
+  // test than the rest of Chromium, so give it an independent shard group.
+  const lanes = scope === 'full' ? ['behavior', 'catalog'] : ['all'];
+  return lanes.flatMap(lane => Array.from({ length: shards }, (_, index) => ({ lane, shard: index + 1, total: shards })));
+}

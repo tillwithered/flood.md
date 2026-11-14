@@ -13,6 +13,12 @@ const config=scope==='integration'?'playwright.integration.config.ts'
   :scope==='publication'?'playwright.site.config.ts'
   :engine==='chromium'?'playwright.config.ts':'playwright.engines.config.ts';
 const args=['node_modules/@playwright/test/cli.js','test','--config='+config];
+const lane=process.env.FLOOD_CHROMIUM_LANE ?? 'all';
+if (!['all','catalog','behavior'].includes(lane) || (lane !== 'all' && (scope !== 'full' || engine !== 'chromium'))) {
+  throw Error('Invalid Chromium test group');
+}
+if(lane === 'catalog') args.push('tests/browser/catalog-variants-audit.spec.ts');
+if(lane === 'behavior') args.push('--grep-invert=all public playground control states:');
 if(engine !== 'chromium')args.push('--project='+engine);
 if(process.argv[3]) {
   if(!validShard(process.argv[3]))throw Error('Invalid shard');
@@ -20,13 +26,13 @@ if(process.argv[3]) {
 }
 if(scope === 'full' && !plan.full) {
   if(!plan.components.length || !plan.testFiles.length || plan.testFiles.some(p=>!/^tests\/browser\/[a-z0-9-]+\.spec\.ts$/.test(p)))throw Error('Invalid affected coverage plan');
-  args.push(...plan.testFiles);
+  if(lane !== 'catalog') args.push(...plan.testFiles);
   // A small affected cohort may have no tests in the engine-specific subset.
   // Full candidates never permit an empty suite.
   if(engine !== 'chromium') args.push('--pass-with-no-tests');
   process.env.FLOOD_AFFECTED_COMPONENTS=plan.components.join(',');
 }
-console.log(`${engine}: ${scope === 'full' && !plan.full ? plan.components.join(', ') : scope}`);
+console.log(`${engine} (${lane}): ${scope === 'full' && !plan.full ? plan.components.join(', ') : scope}`);
 // Detect a broken browser installation/container once, before per-test retries.
 const browser = await ({chromium,firefox,webkit})[engine].launch();
 await browser.close();

@@ -2,7 +2,7 @@ import { parse } from '@babel/parser';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { readFile, writeFile, mkdir, appendFile } from 'node:fs/promises';
-import { browserShards } from './ci-shards.mjs';
+import { browserShards, chromiumJobs } from './ci-shards.mjs';
 import { changedRecipes } from './ci-recipes.mjs';
 import { posix, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -76,13 +76,14 @@ export function selectBrowserFiles(files) {
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const git = args=>{const r=spawnSync('git',args,{encoding:'utf8',maxBuffer:32*1024*1024});if(r.status!==0)throw Error('Git diff unavailable');return r.stdout;};
-  let plan={full:true,reason:'Main and unknown changes retain full verification',components:[],testFiles:[]};
+  let plan={full:true,reason:'Unknown changes retain full verification',components:[],testFiles:[]};
   try {
     const event=JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH,'utf8'));
-    if(event.pull_request) {
-      const base=event.pull_request.base.sha;if(!/^[a-f0-9]{40}$/.test(base))throw Error('Invalid base');
-      const ancestor=git(['merge-base',base,'HEAD']).trim();
-      const changed=git(['diff','--name-only','--no-renames',ancestor,'HEAD']).trim().split('\n').filter(Boolean);
+    const base = process.env.GITHUB_EVENT_NAME === 'pull_request' ? event.pull_request?.base.sha
+      : process.env.GITHUB_EVENT_NAME === 'push' ? event.before : undefined;
+    if(base) {
+      if(!/^[a-f0-9]{40}$/.test(base))throw Error('Invalid base');
+      const changed=git(['diff','--name-only','--no-renames','-z',base,'HEAD']).split('\0').filter(Boolean);
       const catalog=JSON.parse(await readFile('apps/website/src/component-catalog.json','utf8'));
       const recipePath='apps/website/src/component-workbench.tsx';
       // Only explicit per-slug recipe branches can be scoped. Shared renderer,
@@ -90,10 +91,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       if(!changed.length || changed.some(p=>p!==recipePath&&!/^packages\/react\/src\/.+\.tsx?$/.test(p)))throw Error('Shared or unclassified change');
       const paths=git(['ls-tree','-r','--name-only','HEAD','packages/react/src']).trim().split('\n').filter(p=>/\.tsx?$/.test(p));
       const before=new Map(),after=new Map();
-      for(const path of paths){after.set(path,await readFile(path,'utf8'));before.set(path,git(['show',`${ancestor}:${path}`]));}
+      for(const path of paths){after.set(path,await readFile(path,'utf8'));before.set(path,git(['show',`${base}:${path}`]));}
       const names=catalog.map(c=>c.name), old=componentFingerprints(before,names), next=componentFingerprints(after,names);
       const affected=new Set(catalog.filter(c=>old.get(c.name)!==next.get(c.name)).map(c=>c.slug));
-      if(changed.includes(recipePath)) for(const slug of changedRecipes(git(['show',`${ancestor}:${recipePath}`]),await readFile(recipePath,'utf8'),catalog.map(c=>c.slug)))affected.add(slug);
+      if(changed.includes(recipePath)) for(const slug of changedRecipes(git(['show',`${base}:${recipePath}`]),await readFile(recipePath,'utf8'),catalog.map(c=>c.slug)))affected.add(slug);
       const components=catalog.filter(c=>affected.has(c.slug)).map(c=>c.slug);
       if(!components.length)throw Error('No public consumer identified');
       const tests=git(['ls-files','tests/browser/*.spec.ts']).trim().split('\n');
@@ -105,9 +106,11 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   await mkdir('.artifacts',{recursive:true});
   const inventory=JSON.parse(await readFile('apps/website/src/component-catalog.json','utf8'));
   const shards=browserShards(inventory.length,plan.full);
+  const coverage=createHash('sha256').update(JSON.stringify({full:plan.full,components:plan.components,testFiles:plan.testFiles,shards})).digest('hex');
   if(process.env.GITHUB_OUTPUT) {
     const matrix=n=>JSON.stringify(Array.from({length:n},(_,i)=>i+1));
-    await appendFile(process.env.GITHUB_OUTPUT,`chromium_shards=${matrix(shards.chromium)}\nchromium_total=${shards.chromium}\nengine_shards=${matrix(shards.engines)}\nengine_total=${shards.engines}\n`);
+    const jobs=chromiumJobs(process.env.FLOOD_CI_SCOPE ?? 'full',shards.chromium);
+    await appendFile(process.env.GITHUB_OUTPUT,`chromium_jobs=${JSON.stringify(jobs)}\nengine_shards=${matrix(shards.engines)}\nengine_total=${shards.engines}\ncoverage=${coverage}\nfull_coverage=${plan.full}\n`);
   }
   plan.shards=shards;
   await writeFile('.artifacts/ci-plan.json',JSON.stringify(plan,null,2)+'\n');
