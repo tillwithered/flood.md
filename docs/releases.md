@@ -67,6 +67,13 @@ successful push run for that exact main commit.
 The generated CI plan is visible in logs and the build artifact. A local preview
 does not require a release or version bump.
 
+Changes limited to the allowlisted website HTTP runtime, MCP integration or
+plugin inputs use the integration scope. CI still builds the site, runs type
+and unit checks, verifies the isolated runtime, and checks indexing, downloads
+and interactive component previews in desktop and mobile Chromium. Shared
+routes, frontend code, dependencies and verification infrastructure retain
+their regular coverage.
+
 Release candidates on protected main require complete coverage. Component-only
 pushes with a narrower coverage plan do not create a publishable candidate.
 Merge the aligned version bump for a full release candidate. Main can reuse

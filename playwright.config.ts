@@ -4,6 +4,7 @@ const nextURL = process.env.FLOOD_NEXT_TEST_URL ?? "http://127.0.0.1:3001";
 export default defineConfig({
   testDir: "./tests/browser",
   fullyParallel: true,
+  forbidOnly: Boolean(process.env.CI),
   workers: process.env.CI ? 4 : undefined,
   retries: process.env.CI ? 1 : 0,
   reporter: [

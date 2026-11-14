@@ -59,6 +59,15 @@ export async function verifySite(base, { expectedCommit, expectedVersion, expect
   if (expectedCommit && (!hashPattern.test(expectedCommit) || metadata.sourceCommit !== expectedCommit || metadata.sourceDirty)) throw new Error('Website does not serve the expected clean source commit');
   if (expectedVersion && metadata.version !== expectedVersion) throw new Error('Website release version differs');
   if ((await read('/health', 'text/plain')).body !== 'ok') throw new Error('Website health probe failed');
+  const visitors = await read('/api/visitors', 'application/json');
+  const counter = JSON.parse(visitors.body);
+  const counterKeys = counter && Object.keys(counter).sort().join(',');
+  const validCounter = counterKeys === 'available' && counter.available === false ||
+    counterKeys === 'since,total' && Number.isSafeInteger(counter.total) &&
+      counter.total >= 0 && typeof counter.since === 'string' && Number.isFinite(Date.parse(counter.since));
+  if (!validCounter || visitors.response.headers.get('cache-control') !== 'no-store') {
+    throw new Error('Visitor route returned an unexpected payload or cache policy');
+  }
   const { response: document } = await read('/', 'text/html');
   const skill = (await read('/agent/SKILL.md', 'text/markdown')).body;
   if (!skill.includes('Flood') && !skill.includes('flood')) throw new Error('Agent skill is empty or unrelated');

@@ -54,6 +54,7 @@ test('deployment probe catches a stale agent bundle even when the source marker 
   let body, type='application/json';
   if(request.url==='/site-release.json') body=JSON.stringify({schemaVersion:1,version:'0.2.2',sourceCommit:sha,sourceDirty:false});
   else if(request.url==='/health'){body='ok';type='text/plain';}
+  else if(request.url==='/api/visitors') { response.setHeader('cache-control','no-store');body='{"available":false}'; }
   else if(request.url==='/'){body='<html></html>';type='text/html';}
   else if(request.url==='/agent/SKILL.md'){body='# Flood';type='text/markdown';}
   else body=JSON.stringify({schemaVersion:1,version:'0.0.0',files:[{source:'DESIGN.md'}]});
