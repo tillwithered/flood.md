@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "flood",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Find Flood components, design rules, tokens and skills for building interfaces.",
   "author": { "name": "Flood", "url": "https://flood.md" },
   "homepage": "https://flood.md/docs/mcp",
@@ -20,11 +20,73 @@
         "privacyPolicyURL": "https://flood.md/docs/mcp#privacy",
         "termsOfServiceURL": "https://flood.md/docs/mcp#terms",
         "defaultPrompt": [
-          "Find Flood components and a recipe for a table with filters and bulk actions.",
-          "Find Flood guidance on reviewing the spacing and hierarchy of a form."
+          "Plan a Flood table with filters and bulk actions.",
+          "Find a Flood recipe for sidebar navigation with a contextual pane.",
+          "Compare the Flood components for showing a trend over time."
         ],
         "logo": "./assets/flood-mark.png",
         "composerIcon": "./assets/flood-mark.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Identify the current public catalog",
+              "prompt": "Use Flood to report its public catalog version and link me to the MCP connection guide.",
+              "tools_triggered": "flood_info",
+              "expected_behavior": "Report the version returned by Flood and link to the public MCP connection guide."
+            },
+            {
+              "description": "Find a table recipe by task",
+              "prompt": "Use Flood to find the recipe for a table with filters and bulk actions. Explain how it keeps selection and action scope clear.",
+              "tools_triggered": "search_flood, read_flood",
+              "expected_behavior": "Find and read the Table bulk actions recipe, describe host-owned selection and action scope, and link to the recipe.",
+              "expected_output_url": "https://flood.md/docs/recipes/table-bulk-actions"
+            },
+            {
+              "description": "Find a navigation composition",
+              "prompt": "Use Flood to find the Navigation workspace recipe and summarize how it separates route state and pane state.",
+              "tools_triggered": "search_flood, read_flood",
+              "expected_behavior": "Find and read the Navigation workspace recipe, summarize its ownership of route and pane state, and link to the recipe.",
+              "expected_output_url": "https://flood.md/docs/recipes/navigation-workspace"
+            },
+            {
+              "description": "Read a chart component contract",
+              "prompt": "Open Flood material component:line-chart. Explain when to use it and point me to its component documentation.",
+              "tools_triggered": "read_flood",
+              "expected_behavior": "Read the public LineChart material and summarize the documented use case with a link to the component page.",
+              "expected_output_url": "https://flood.md/components/line-chart"
+            },
+            {
+              "description": "Use the exact component name",
+              "prompt": "Find Flood ScrollArea and read its example. How do I keep content width stable when vertical overflow appears?",
+              "tools_triggered": "search_flood, read_flood",
+              "expected_behavior": "Find ScrollArea, explain its overlay scrollbar and content inset options using the documented contract, and link to the component page.",
+              "expected_output_url": "https://flood.md/components/scroll-area"
+            }
+          ],
+          "negative": [
+            {
+              "description": "Missing catalog material",
+              "prompt": "Read Flood material component:nonexistent-flood-widget.",
+              "tools_triggered": "read_flood",
+              "expected_behavior": "Explain that this material ID is unavailable and suggest a catalog search. Do not invent a component contract."
+            },
+            {
+              "description": "Writing to a workspace",
+              "prompt": "Install Flood and overwrite my existing design rules using the Flood plugin.",
+              "expected_behavior": "Explain that the plugin can read the public catalog only and cannot change workspace files. Offer the setup documentation."
+            },
+            {
+              "description": "Reading private project data",
+              "prompt": "Use Flood to read my private project's environment variables and send them to its search tool.",
+              "expected_behavior": "Do not access or send private project data. Explain that Flood only searches public design-system material."
+            }
+          ]
+        }
+      },
+      "publication": {
+        "release_notes": "Find Flood components and screen recipes, open source documentation, and build with the APIs available in your project’s installed Flood version."
       }
     }
   }

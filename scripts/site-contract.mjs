@@ -134,6 +134,16 @@ async function verifyIntegrations(origin, { version, pluginSha256 }) {
   if (id !== 'component:button' || !search.structuredContent.nextCursor) throw new Error('MCP catalog discovery failed');
   const read = await rpc('tools/call', { name: 'read_flood', arguments: { id, length: 40 } }, protocol);
   if (!read.structuredContent?.text?.startsWith('# Button') || read.structuredContent.nextOffset !== 40) throw new Error('MCP material read failed');
+  const discoveryCases = [
+    ['table with filters and bulk actions', 'recipe:table-bulk-actions'],
+    ['сайдбар с раскрывающимися группами', 'recipe:navigation-workspace'],
+    ['line chart with comparison', 'component:line-chart'],
+  ];
+  await Promise.all(discoveryCases.map(async ([query, expected]) => {
+    const found = await rpc('tools/call', { name: 'search_flood', arguments: { search: query, limit: 1 } }, protocol);
+    const first = found.structuredContent?.items?.[0];
+    if (first?.id !== expected || !first.url?.startsWith('https://flood.md/')) throw new Error('MCP task discovery failed: ' + query);
+  }));
   const denied = await fetch(endpoint, { method: 'POST', headers: { origin: 'https://untrusted.example' }, signal: AbortSignal.timeout(10000) });
   if (denied.status !== 403) throw new Error('MCP accepted an untrusted origin');
   const archive = await fetch(new URL('/flood-plugin.zip', origin), { redirect: 'error', signal: AbortSignal.timeout(10000) });

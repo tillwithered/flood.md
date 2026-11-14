@@ -2,11 +2,12 @@ import { isValidElement, useEffect, useRef, useState, type ReactNode, type RefOb
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowRight, ArrowUpRight, List } from "lucide-react";
-import { Breadcrumb, Button, Collapsible, Drawer, Grid, Heading, IconButton, IconSlot, Inline, Kbd, Link, PageHeader, ScrollArea, SearchInput, Select, SegmentedControl, Sheet, Stack, Surface, Text } from "@flood-md/react";
+import { Breadcrumb, Button, CodeSnippet, Collapsible, Drawer, Grid, Heading, IconButton, IconSlot, Inline, Kbd, Link, PageHeader, ScrollArea, SearchInput, Select, SegmentedControl, Sheet, Stack, Surface, Text } from "@flood-md/react";
 import { docPages, siteOrigin } from "../routes.mjs";
 import { componentPages, componentGroups, matchesComponent } from "./component-catalog";
 import { ComponentWorkbench } from "./component-workbench";
 import { CodeBlock, CopyButton } from "./code-block";
+import { AgentConnection, connectionSections } from "./agent-connection";
 import { DocsNavigation, GuideOutline, MobileDocsNavigation } from "./docs-navigation";
 import { compactNavigation, phoneViewport, useStudioMedia } from "./studio-media";
 import { usageCode, componentMarkdown } from "../component-docs.mjs";
@@ -184,6 +185,7 @@ export default function Documentation({ path }: { path: string }) {
   const description = doc?.description ?? component?.description;
   const raw = doc ? sources[doc.file] : "";
   const markdown = raw?.replace(/^# .*\r?\n/, "") ?? "";
+  const connection = doc?.file === "mcp.md" ? connectionSections(markdown) : null;
   const [importMode, setImportMode] = useState<"package" | "project">("package");
   const [exampleImports, setExampleImports] = useState(() => component ? ["FloodRoot", ...component.imports.filter(name => componentPages.some(page => page.name === name))] : []);
   const [exampleCode, setExampleCode] = useState(() => component ? usageCode(component) : "");
@@ -199,7 +201,7 @@ export default function Documentation({ path }: { path: string }) {
   const [localPreview, setLocalPreview] = useState(false);
   useEffect(() => { setLocalPreview(["localhost", "127.0.0.1"].includes(location.hostname)); }, []);
   const agentContext = `Documentation version: ${content.version}${localPreview ? " (local source preview; source-only additions are not published)" : ""}.\n\nUse Flood for this task. Read the matching installed package declarations before making API changes.\n\n` +
-    `Page: ${resourceOrigin}${path}\nAgent skill: ${resourceOrigin}/agent/SKILL.md\nDesign contract: ${resourceOrigin}/agent/DESIGN.md\nCanonical Markdown: ${resourceOrigin}${path}.md\n\n` +
+    `Page: ${resourceOrigin}${path}\nAgent skill: ${resourceOrigin}/agent/SKILL.md\nDesign contract: ${resourceOrigin}/agent/DESIGN.md\nCanonical Markdown: ${resourceOrigin}${path}.md\nConnect to Flood MCP: ${siteOrigin}/docs/mcp\n\n` +
     `The example below reflects the current playground settings. Keep native semantics and accessibility, import Flood styles once, and use semantic tokens before overrides. Do not invent unavailable components or claim that source-only APIs are already published.\n\n${pageMarkdown}`;
   useEffect(() => {
     document.title = `${title} — flood.md`;
@@ -218,6 +220,26 @@ export default function Documentation({ path }: { path: string }) {
     }
     return () => { cancelled = true; };
   }, [title, workspacePreview]);
+  const renderMarkdown = (source: string) => <div className="markdown-content"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
+    a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>,
+    pre: ({ children }) => {
+      if (connection && isValidElement<{ className?: string }>(children) && children.props.className === "language-sh") {
+        const command = textOf(children).trim();
+        return <CodeSnippet className="agent-install-command" code={command} prompt="$" action={
+          <CopyButton value={command} label="Copy installation command" text="Copy" errorText="Select the command to copy it manually." />
+        } />;
+      }
+      return <MarkdownCodeBlock>{children}</MarkdownCodeBlock>;
+    },
+    h2: ({ children, node }) => <h2 id={(source === markdown ? toc.find(section => "line" in section && section.line === node?.position?.start.line)?.id : undefined) ?? slug(textOf(children))}>{children}</h2>,
+    table: ({ children, node }) => {
+      const line = node?.position?.start.line ?? 0;
+      const section = [...(source === markdown ? toc : sections(source))].reverse().find(section => "line" in section && section.line < line);
+      const preceding = source.slice(0, node?.position?.start.offset ?? 0);
+      const ordinal = (preceding.match(/^\s*\|?\s*:?-{3,}[^\n]*\|[^\n]*$/gm) ?? []).length + 1;
+      return <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label={`${section?.label ?? title} table ${ordinal}`}><table>{children}</table></ScrollArea>;
+    },
+  }}>{source}</Markdown></div>;
   const referenceContent = component && (
           <div className="studio-reference-content">
           <section id="usage" className="doc-section" tabIndex={-1} ref={!referenceAnchor || referenceAnchor === "usage" ? referenceTarget : undefined}><Heading level={2} size="section">Use {component.name}</Heading>
@@ -241,7 +263,7 @@ export default function Documentation({ path }: { path: string }) {
             {component.api.length > 0 && <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label={`${component.name} props`}><table><thead><tr><th scope="col">Prop</th><th scope="col">Values</th><th scope="col">Default</th></tr></thead><tbody>{component.api.map(([prop, values, fallback]) => <tr key={prop}><td><code>{prop}</code></td><td>{values}</td><td>{fallback}</td></tr>)}</tbody></table></ScrollArea>}
             <Link href={`${repository}/blob/v${release.version}/packages/react/src/index.tsx`}>View TypeScript source <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link>
           </section>
-          <Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link><Link href="/agent/SKILL.md">Agent skill</Link></Inline>
+          <Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link><Link href="/agent/SKILL.md">Agent skill</Link><Link href="/docs/mcp">Connect your agent</Link></Inline>
           </div>
   );
   return <div className="docs-layout" data-preview-layout={workspacePreview ? "workspace" : undefined} data-catalog={catalog || undefined}>
@@ -261,18 +283,9 @@ export default function Documentation({ path }: { path: string }) {
         {!workspacePreview && <PageHeader className="doc-heading" title={title} description={description} />}
         {doc && <GuideOutline items={toc} mobile />}
         <div className="doc-body">
-        {doc && <div className="markdown-content"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
-          a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>,
-          pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock>,
-          h2: ({ children, node }) => <h2 id={toc.find(section => "line" in section && section.line === node?.position?.start.line)?.id ?? slug(textOf(children))}>{children}</h2>,
-          table: ({ children, node }) => {
-            const line=node?.position?.start.line ?? 0;
-            const section=[...toc].reverse().find(section=>'line' in section && section.line<line);
-            const preceding=markdown.slice(0,node?.position?.start.offset ?? 0);
-            const ordinal=(preceding.match(/^\s*\|?\s*:?-{3,}[^\n]*\|[^\n]*$/gm)??[]).length+1;
-            return <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label={`${section?.label??title} table ${ordinal}`}><table>{children}</table></ScrollArea>;
-          },
-        }}>{markdown}</Markdown></div>}
+        {doc && (connection
+          ? <AgentConnection {...connection} markdown={markdown} renderMarkdown={renderMarkdown} />
+          : renderMarkdown(markdown))}
         {doc?.file === "charts.md" && <section id="latency-example" className="chart-guide-example" aria-label="Request latency example">
           <ChartsPlayground headingLevel={2} />
         </section>}

@@ -6,7 +6,8 @@ guidance. The current implementation supports **React 18.3 and 19** and
 **Next.js App Router**, with TypeScript declarations.
 
 [Component catalog](https://flood.md/components) · [Charts](https://flood.md/docs/charts) ·
-[Documentation](docs/README.md) · [Releases](https://github.com/tillwithered/flood.md/releases)
+[Documentation](docs/README.md) · [Connect your agent](https://flood.md/docs/mcp) ·
+[Releases](https://github.com/tillwithered/flood.md/releases)
 
 ## Quick start
 
@@ -54,7 +55,9 @@ with an agent. In a connected project, the installed `flood/DESIGN.md` and
 `.agents/skills/flood-ui/SKILL.md` guide component selection, composition and
 verification. The [agent knowledge guide](docs/agent-knowledge.md) explains how
 to look up a component or workflow with the CLI version recorded in `flood.json`.
-See [agent setup](docs/agents.md) for the full workflow and [Flood MCP](https://flood.md/docs/mcp) to connect to the public catalog.
+Open [Connect your agent](https://flood.md/docs/mcp) for client setup and prompts
+that lead to working Flood examples. See [agent setup](docs/agents.md) for the
+versioned project workflow.
 
 ## Develop
 
