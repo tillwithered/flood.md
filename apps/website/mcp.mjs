@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createKnowledgeReader } from "../../packages/agent/lib/index.mjs";
 import { version } from "./src/release.json" with { type: "json" };
 import { pagePaths } from "./routes.mjs";
+import { createMcpSearch } from "./mcp-search.mjs";
 
 const annotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 const bodyLimit = 32 * 1024;
@@ -27,7 +28,7 @@ function toolResult(run) {
   };
 }
 
-function configureServer(reader, siteOrigin) {
+function configureServer(reader, searchCatalog, siteOrigin) {
   const server = new McpServer({ name: "flood", version, websiteUrl: siteOrigin }, {
     instructions: "Browse public Flood components, design rules and skills. For existing projects, use their installed Flood version and host instructions as the authority for APIs and local customizations.",
   });
@@ -38,7 +39,7 @@ function configureServer(reader, siteOrigin) {
   }, toolResult(async () => ({ ...await reader.info(), docs: siteOrigin + "/docs/mcp" })));
   server.registerTool("search_flood", {
     title: "Search Flood",
-    description: "Find public Flood components, recipes, tokens and agent guidance by name or topic. Results include material IDs for read_flood.",
+    description: "Find public Flood components, ready-to-use compositions, tokens and agent guidance by name or by describing the UI task in English or Russian. Pass a result ID to read_flood for the full contract.",
     annotations,
     inputSchema: {
       search: z.string().max(160).optional(),
@@ -48,17 +49,17 @@ function configureServer(reader, siteOrigin) {
       cursor: z.string().max(1024).optional().describe("Pass nextCursor with the same search and filters."),
     },
   }, toolResult(async input => {
-    const result = await reader.list(input);
+    const result = await searchCatalog(input);
     return { ...result, items: result.items.map(item => publicMaterial(item, siteOrigin)) };
   }));
   server.registerTool("read_flood", {
     title: "Read Flood material",
-    description: "Read one public material by ID. Continue with nextOffset if the result is truncated. Required prerequisites are listed separately from related materials.",
+    description: "Read one public material by ID. Omit length for up to 10,000 characters. Continue with nextOffset when present. Required prerequisites are listed separately from related materials.",
     annotations,
     inputSchema: {
       id: z.string().max(160).regex(/^[a-z][a-z0-9-]*:[a-z0-9][a-z0-9.-]*$/),
       offset: z.number().int().nonnegative().optional(),
-      length: z.number().int().min(1).max(12000).optional(),
+      length: z.number().int().min(1).max(12000).optional().describe("Optional page size; maximum 12,000 characters."),
       linksOffset: z.number().int().nonnegative().optional(),
     },
   }, toolResult(async ({ id, ...options }) => publicMaterial(await reader.read(id, options), siteOrigin)));
@@ -84,6 +85,7 @@ async function readBody(request) {
 
 export function createFloodMcpHandler({ root, siteOrigin }) {
   const reader = createKnowledgeReader({ root });
+  const searchCatalog = createMcpSearch(reader);
   const allowedOrigins = new Set([siteOrigin, "https://chatgpt.com", "https://platform.openai.com"]);
   return async (request, response) => {
     response.setHeader("Cache-Control", "no-store");
@@ -114,7 +116,7 @@ export function createFloodMcpHandler({ root, siteOrigin }) {
       return httpError(response, 400, -32600, "Send a single JSON-RPC message.");
     }
 
-    const server = configureServer(reader, siteOrigin);
+    const server = configureServer(reader, searchCatalog, siteOrigin);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     try {
       await server.connect(transport);

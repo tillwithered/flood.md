@@ -1,0 +1,59 @@
+.agent-connection > .flood-stack > section {
+  scroll-margin-block-start: var(--flood-sys-space-8);
+}
+
+.agent-connection .agent-client-panel,
+.agent-connection .agent-scenario {
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  min-inline-size: 0;
+}
+
+.agent-client-panel > .flood-inline + .markdown-content {
+  margin-block-start: var(--flood-sys-space-3);
+}
+
+.agent-client-panel .markdown-content {
+  font-size: var(--flood-sys-type-compact-size);
+}
+
+.agent-client-panel .markdown-content > :last-child {
+  margin-block-end: 0;
+}
+
+.agent-client-panel .agent-install-command code {
+  background: transparent;
+  font-size: inherit;
+  padding: 0;
+}
+
+.agent-client-copy,
+.agent-scenario-actions {
+  margin-block-start: var(--flood-sys-space-1);
+}
+
+.agent-scenario-actions .flood-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--flood-sys-space-1);
+  font-size: var(--flood-sys-type-compact-size);
+}
+
+.agent-client-name {
+  display: none;
+}
+
+@media (scripting: none) {
+  .agent-connection .flood-tabs__scroll,
+  .agent-connection .site-copy-control {
+    display: none;
+  }
+
+  .docs-layout .agent-connection .flood-tabs__panel[hidden] {
+    display: block !important;
+  }
+
+  .agent-client-name {
+    display: block;
+    margin-block-end: var(--flood-sys-space-3);
+  }
+}

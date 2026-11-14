@@ -20,7 +20,7 @@ await build({
 const files = {
   "plugin.json": "../../plugins/flood/plugin.json",
   "mcp.json": "../../plugins/flood/mcp.json",
-  "skills/flood-catalog/SKILL.md": "../../plugins/flood/skills/flood-catalog/SKILL.md",
+  "skills/flood-catalog/SKILL.md": "../../skills/flood-catalog/SKILL.md",
   "assets/flood-mark.png": "./public/flood-mark.png",
   LICENSE: "../../LICENSE",
 };

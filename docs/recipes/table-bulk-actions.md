@@ -4,6 +4,14 @@ Compose DataTable, Toolbar, Button and AlertDialog with host-owned selection and
 operation state. There is no separate BulkActions import. The runnable example
 uses the same typed source as this page and only changes an in-memory collection.
 
+For a screen with search and filters, put those controls in one
+[CollectionToolbar](https://flood.md/components/collection-toolbar) and use
+[BulkActionBar](https://flood.md/components/bulk-action-bar) for transient
+selection actions. [Open the collection workspace](/playground/collections) to
+try this layout. When the action bar shows the selection count, suppress the
+duplicate count in the table footer. Verify that selecting the first row leaves
+the toolbar and table in place.
+
 ## Choose the operation scope
 
 DataTable receives the complete local collection. Its select-all checkbox selects

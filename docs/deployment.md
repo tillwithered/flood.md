@@ -38,6 +38,11 @@ download against the archive digest in `/site-release.json`. The ZIP uses
 `no-store` so updates can take effect as soon as the site deploys. Keep CDN
 cache overrides off this path. Hosting both uses the existing website service.
 
+For OpenAI plugin domain verification, set `OPENAI_APPS_CHALLENGE` on the
+website service to the exact token provided by the submission portal. The
+well-known challenge URL then returns that value as plain text. Keep the
+challenge value in the service configuration.
+
 Production sends HSTS, a referrer policy, and HTML
 content security rules that restrict scripts to the site and block framing.
 Component previews use inline styles and syntax highlighting uses WebAssembly.

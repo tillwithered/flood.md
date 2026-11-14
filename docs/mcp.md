@@ -1,28 +1,60 @@
-# Flood MCP
+# Connect your agent
 
 Connect an agent to Flood’s public component APIs, recipes, tokens and design
 skills. The server uses the same versioned catalog as this website.
 
-## Connect in Codex
+## Set up your client
+
+### Codex
 
 ```sh
 codex mcp add flood --url https://flood.md/mcp
 ```
 
-Run `codex mcp list` to confirm that `flood` is configured.
+Run `codex mcp list` to check the connection.
 
-Open a new chat and ask, “Use Flood to find the right components for a table
-with filters and bulk actions. Link the relevant docs.”
+### Cursor
 
-## Connect in ChatGPT
+To add the server manually, put this in your project's `.cursor/mcp.json`.
 
-In a workspace that allows custom plugins, create one using
-`https://flood.md/mcp` as the server URL and select **No authentication**.
-The server uses Streamable HTTP.
+```json
+{
+  "mcpServers": {
+    "flood": { "url": "https://flood.md/mcp" }
+  }
+}
+```
 
-[Download the Flood plugin ZIP](/flood-plugin.zip) for OpenAI's plugin upload
-flow. It includes the connection settings and a skill that teaches the agent
-when to search, what to read and how to handle installed versions.
+### VS Code
+
+To add the server manually, run **MCP: Add Server**, choose **HTTP**, enter
+`https://flood.md/mcp`, and use `flood` as the server ID.
+
+### Claude Code
+
+```sh
+claude mcp add --transport http flood https://flood.md/mcp
+```
+
+Run `claude mcp list` to check the connection for the current project.
+
+### ChatGPT
+
+In a workspace that allows custom plugins, choose **Add custom MCP server**,
+enter `https://flood.md/mcp`, and select **No authentication**.
+
+[Download the Flood plugin ZIP](https://flood.md/flood-plugin.zip) for OpenAI's
+plugin upload.
+
+### Other clients
+
+Use `https://flood.md/mcp` with Streamable HTTP. The public catalog requires no
+Flood account or API key.
+
+## Try Flood
+
+Open a new chat and ask your agent to find the recipe for a table with filters
+and bulk actions. It should link to the [table bulk actions recipe](https://flood.md/docs/recipes/table-bulk-actions).
 
 ## Tools
 
@@ -34,6 +66,19 @@ when to search, what to read and how to handle installed versions.
 
 For existing projects, use the installed package and CLI to check available
 APIs and read project-owned guidance. The MCP serves public website materials.
+
+## Install the catalog skill
+
+Install the public catalog skill with the Skills CLI to give your coding agent
+instructions for finding Flood components, reading their contracts, and checking
+them against the installed version.
+
+```sh
+npx skills add tillwithered/flood.md --skill flood-catalog
+```
+
+Connect Flood MCP in your client to use hosted search. For an existing Flood
+project, start with the versioned guidance installed by the Flood CLI.
 
 ## Privacy
 

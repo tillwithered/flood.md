@@ -1,0 +1,24 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.tillwithered/flood",
+  "title": "Flood Design System",
+  "description": "Find Flood UI components, recipes, tokens, and design skills for coding agents.",
+  "websiteUrl": "https://flood.md/docs/mcp",
+  "repository": {
+    "url": "https://github.com/tillwithered/flood.md",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "icons": [
+    {
+      "src": "https://flood.md/flood-mark.png",
+      "mimeType": "image/png"
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://flood.md/mcp"
+    }
+  ]
+}

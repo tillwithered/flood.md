@@ -7,7 +7,7 @@ import "./docs-navigation.css";
 const guideGroups = [
   { label: "Getting started", includes: (page: GuidePage) => ["README.md", "installation.md", "project-ui.md"].includes(page.file) },
   { label: "Design system", includes: (page: GuidePage) => ["foundations.md", "motion.md", "layout.md", "charts.md", "theming.md"].includes(page.file) },
-  { label: "For agents", includes: (page: GuidePage) => ["agents.md", "skills.md", "interface-content.md", "agent-knowledge.md"].includes(page.file) },
+  { label: "For agents", includes: (page: GuidePage) => ["agents.md", "mcp.md", "skills.md", "interface-content.md", "agent-knowledge.md"].includes(page.file) },
 ] as const;
 
 type GuidePage = (typeof docPages)[number];
