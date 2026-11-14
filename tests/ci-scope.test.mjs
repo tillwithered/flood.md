@@ -1,6 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { isPublicationGateChange } from "../scripts/ci-scope.mjs";
+import { isIntegrationChange, isPublicationGateChange } from "../scripts/ci-scope.mjs";
+
+test("integration scope covers only known MCP, guide and plugin inputs", () => {
+  const files = ["apps/website/mcp.mjs", "docs/mcp.md", "plugins/flood/plugin.json"];
+  assert.equal(isIntegrationChange(files), true);
+  assert.equal(isIntegrationChange(["docs/mcp.md"]), true);
+  assert.equal(isIntegrationChange([]), false);
+  for (const shared of ["package-lock.json", "apps/website/server.mjs", "apps/website/routes.mjs",
+    "packages/react/src/styles.css", "docs/agents.md", "plugins/flood/unknown.mjs", ".github/workflows/ci.yml"]) {
+    assert.equal(isIntegrationChange([...files, shared]), false, shared);
+  }
+});
 
 test("only a publication switch at the same version can use website CI", () => {
   const path = "apps/website/src/release.json";

@@ -161,3 +161,11 @@ Chromium. Mixed, unknown, version, dependency and component changes retain full
 React consumer, Next and browser-engine verification. Release publication always
 uses the full pipeline. The required verify status and checked runtime artifact
 remain unchanged.
+
+Changes confined to the MCP handler, its website-only guide or the Flood
+plugin manifest and skill use the integration scope on pull requests and
+main pushes. It runs the build, type and unit checks, verifies the isolated
+website bundle including live MCP requests, and exercises the guide, ZIP
+download and representative site pages in desktop and mobile Chromium.
+Changes to shared server code, routes, dependencies or the catalog compiler
+use the full scope.
