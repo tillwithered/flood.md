@@ -4,9 +4,12 @@ import {browserShards,chromiumJobs,validShard} from '../scripts/ci-shards.mjs';
 
 test('Chromium distributes the expensive catalog separately without removing test groups', () => {
   const jobs = chromiumJobs('full', 5);
-  for (const lane of ['behavior', 'catalog']) {
-    assert.deepEqual(jobs.filter(job => job.lane === lane).map(job => job.shard), [1, 2, 3, 4, 5]);
+  for (const [lane, count] of [['behavior', 7], ['catalog', 4]]) {
+    const laneJobs = jobs.filter(job => job.lane === lane);
+    assert.deepEqual(laneJobs.map(job => job.shard), Array.from({ length: count }, (_, index) => index + 1));
+    assert.ok(laneJobs.every(job => job.total === count && validShard(`${job.shard}/${job.total}`)));
   }
+  assert.ok(chromiumJobs('full', 12).every(job => validShard(`${job.shard}/${job.total}`)));
   assert.equal(chromiumJobs('publication', 5).length, 5);
   assert.deepEqual(chromiumJobs('integration', 5), [{ lane: 'all', shard: 1, total: 1 }]);
 });

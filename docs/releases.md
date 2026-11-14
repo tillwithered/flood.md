@@ -19,12 +19,17 @@ internal versions remain aligned for every release.
    run, validates its commit, tree, lockfile, version and archive hashes, then
    publishes tokens → React → agent → CLI. It does not rebuild or repeat the
    candidate's browser suite. Missing, expired or mismatched artifacts fail closed.
-6. Configure required reviewers for GitHub environment `npm-release` if desired.
+6. Configure `npm-release` to allow releases from protected version tags and
+   recovery dispatches from `main`. Pair any tag pattern with a tag ruleset
+   that limits who can create, move or delete matching tags. Configure required
+   environment reviewers if desired.
 7. Verify the actual registry versions, install into a clean React project, and
    check the deployed landing page and its command.
 
-After publishing, the release workflow runs `release:verify-registry` against the
-actual npm versions. It creates a consumer outside the checkout, uses the installed
+After publishing, a separate job runs `release:verify-registry` against the
+actual npm versions without the publishing environment or OIDC permission.
+It checks out the exact candidate commit and downloads the same archive inventory.
+It creates a consumer outside the checkout, uses the installed
 CLI for init/doctor, compares registry integrity and every installed agent file,
 then builds Next.js and runs desktop/mobile hydration, form and foundation tests.
 The consumer receives no publisher credentials. Its report is retained as a CI
@@ -36,7 +41,7 @@ published versions only after comparing package integrity with the local tarball
 Different existing bytes fail the release instead of silently accepting a collision.
 
 To recover a workflow failure before or during publication, dispatch Publish
-packages with the existing stable release tag. It validates that the GitHub
+packages from `main` with the existing stable release tag. It validates that the GitHub
 Release is published, checks out that tag and promotes only its successful exact
 main candidate. It never moves the tag or rebuilds archives. The container trusts
 only its mounted checkout for Git ownership checks; neighboring directories are
@@ -71,8 +76,9 @@ offers for publication.
 
 One build feeds Chromium and Firefox/WebKit shards. Chromium separates the
 catalog variant audit from behavior tests so Playwright balances each group on
-its own. At 120 components this is four shards per Chromium group and two
-per other engine. Full-candidate runner counts grow with the catalog, bounded
+its own. The behavior group gets more shards based on measured run times.
+Chromium saves per-test timings and retries for tuning subsequent runs.
+Full-candidate runner counts grow with the catalog, bounded
 at twelve per Chromium group and four per other engine. The pinned Playwright image provides
 matching browsers and system dependencies. Updating Playwright also requires
 updating that image and digest. `verify` aggregates every applicable job and
