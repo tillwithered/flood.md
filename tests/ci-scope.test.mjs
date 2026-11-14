@@ -2,13 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { isIntegrationChange, isPublicationGateChange } from "../scripts/ci-scope.mjs";
 
-test("integration scope covers only known MCP, guide and plugin inputs", () => {
+test("integration scope covers known website runtime, MCP, guide and plugin inputs", () => {
   const files = ["apps/website/mcp.mjs", "docs/mcp.md", "plugins/flood/plugin.json"];
   assert.equal(isIntegrationChange(files), true);
   assert.equal(isIntegrationChange(["docs/mcp.md"]), true);
+  assert.equal(isIntegrationChange(["apps/website/server.mjs", "apps/website/visitors.mjs"]), true);
   assert.equal(isIntegrationChange([]), false);
-  for (const shared of ["package-lock.json", "apps/website/server.mjs", "apps/website/routes.mjs",
-    "packages/react/src/styles.css", "docs/agents.md", "plugins/flood/unknown.mjs", ".github/workflows/ci.yml"]) {
+  for (const shared of ["package-lock.json", "apps/website/routes.mjs", "apps/website/src/main.tsx",
+    "packages/react/src/styles.css", "docs/agents.md", "plugins/flood/unknown.mjs", ".github/workflows/ci.yml",
+    "playwright.integration.config.ts", "tests/browser/indexing.spec.ts"]) {
     assert.equal(isIntegrationChange([...files, shared]), false, shared);
   }
 });

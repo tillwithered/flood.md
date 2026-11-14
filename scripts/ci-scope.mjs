@@ -11,6 +11,8 @@ export function isPublicationGateChange(files, before, after) {
 }
 
 const integrationFiles = new Set([
+  "apps/website/server.mjs",
+  "apps/website/visitors.mjs",
   "apps/website/mcp.mjs",
   "docs/mcp.md",
   "plugins/flood/plugin.json",
