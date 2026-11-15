@@ -1,6 +1,23 @@
 # Changelog
 
-## Unreleased
+## 0.2.14 — Component families and agent guidance
+
+- Expand the component catalog from 149 to 213 entries, including application
+  controls, content primitives and composed workflows.
+- Add SettingGroup, SettingRow, SwitchGroup, FormActions and SaveStatus for
+  settings and forms. Add NumberRangeField, AvatarPicker, FileTrigger and
+  PasswordStrength for recurring field patterns.
+- Add MessageComposer, Comment, CommentThread and reaction controls for
+  conversations. Add NotificationInbox and ActivityTimeline for notifications
+  and history, plus UploadQueue for file intake and transfer.
+- Add TableSkeleton, ListSkeleton, CardSkeleton, LoadingState, ErrorState and
+  NoResults. Extend DataTable and collection controls with stable loading,
+  selection and filter layouts.
+- Add KeyboardShortcut, SearchTrigger, CountBadge and TagGroup. Refine
+  navigation, compact controls, disclosure, overlay focus and chart labels.
+- Add versioned skills for application structure, layout composition, decision
+  design and typography. Expand observable design rules, component family
+  guidance, visual review and the recipes available to agents.
 
 - Place ExpandableText disclosure inline after the ellipsis and preserve reading
   focus when a resize removes the toggle.
