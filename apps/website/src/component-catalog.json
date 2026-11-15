@@ -1668,7 +1668,7 @@
     "code": "<CommentThread aria-label=\"Review comments\" items={[{id:\"one\",author:{name:\"Maya Chen\"},body:\"Please include the original attachment.\"},{id:\"two\",author:{name:\"Sam Rivera\"},body:\"I found the source file.\"}]} />",
     "imports": ["CommentThread"],
     "notes": [
-      "Provide stable unique IDs and items in the order readers should see them. Give the list a name using aria-label or a visible heading referenced by aria-labelledby.",
+      "Provide stable nonempty IDs that are unique within each sibling list. Pass items in reading order, and name the list using aria-label or aria-labelledby.",
       "Each item uses Comment for the author, message and independent actions. Pass nested replies under their parent. Depth stays semantic while visual indentation is capped to preserve narrow text widths.",
       "Spacing separates top-level messages by default. Use dividers only when peers are hard to distinguish, and repliesDisclosure for long branches. Pair with CommentComposer for drafting. The host owns reply targeting, permissions and loading."
     ]

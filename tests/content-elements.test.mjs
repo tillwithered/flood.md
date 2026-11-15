@@ -2,7 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createElement as h} from 'react';
 import {renderToStaticMarkup as render} from 'react-dom/server';
-import {AvatarGroup,StatusIndicator,Figure,Blockquote,InlineCode,Metric,Timeline,Timestamp} from '../packages/react/dist/index.js';
+import {AvatarGroup,CommentThread,StatusIndicator,Figure,Blockquote,InlineCode,Metric,Timeline,Timestamp} from '../packages/react/dist/index.js';
+
+test('CommentThread validates IDs independently for each sibling list', () => {
+  const comment = {id:'review',author:{name:'Maya Chen'},body:'Review'};
+  const reply = {...comment,body:'Nested reply'};
+  assert.match(render(h(CommentThread,{items:[{...comment,replies:[reply]}]})), /Nested reply/);
+  assert.throws(() => render(h(CommentThread,{items:[comment,comment]})), /unique nonempty IDs/);
+  assert.throws(() => render(h(CommentThread,{items:[{...comment,replies:[reply,reply]}]})), /unique nonempty IDs/);
+  assert.throws(() => render(h(CommentThread,{items:[{...comment,id:' '}]})), /unique nonempty IDs/);
+});
 
 test('Timestamp distinguishes civil dates, offset instants and caller-provided labels', () => {
   const options = {lang: 'en-GB', timeZone: 'America/New_York'};

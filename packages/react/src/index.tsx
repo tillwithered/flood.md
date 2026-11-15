@@ -2352,6 +2352,9 @@ function renderCommentThreadItems(
   actionVisibility: CommentThreadProps["actionVisibility"],
   depth: number,
 ): ReactNode {
+  if (items.some(item => !item.id.trim()) || new Set(items.map(item => item.id)).size !== items.length) {
+    throw new Error("Flood CommentThread requires unique nonempty IDs within each sibling list");
+  }
   return items.map(item => {
     const replies = item.replies?.length ? <ol className="flood-comment-thread__replies" role="list" data-indent={depth < 2}>
       {renderCommentThreadItems(item.replies, size, actionVisibility, depth + 1)}
