@@ -363,7 +363,7 @@ const knobs: Record<string, Knob[]> = {
   "button-group": [select("content", ["text", "icons", "mixed"], "text"), select("orientation", ["horizontal", "vertical"], "horizontal"), select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled")],
   "split-button": [select("variant", ["solid", "subtle", "outline"], "solid"), select("size", sizes, "md"), toggle("disabled"), toggle("primaryDisabled")],
   "input-group": [select("start", ["https://", "+7", "@", "$", "icon", "action", "none"], "https://"), select("end", ["action", "icon-action", "kg", "USD", "%", "@company.com", "none"], "action"), select("controlSize", ["sm", "md", "lg", "xl"], "md"), statusKnob(), toggle("disabled"), toggle("readOnly")],
-  button: [select("tone", ["default", "danger"], "default"), select("variant", variants, "solid"), select("size", sizes, "md"), toggle("disabled"), toggle("loading"), {...toggle("retainFocus"),label:"Keep focus while loading"}],
+  button: [select("tone", ["default", "danger"], "default"), select("variant", variants, "solid"), select("size", sizes, "md"), toggle("disabled"), {...select("loadingMode",["idle","loading","retain-focus"],"idle"),label:"Loading"}],
   "icon-button": [select("variant", variants, "subtle"), select("size", sizes, "md"), toggle("disabled"), toggle("loading")],
   "icon-link": [select("variant", variants, "subtle"), select("size", sizes, "md")],
   input: [select("controlSize", ["sm", "md", "lg", "xl"], "md"), statusKnob(), toggle("invalid"), toggle("disabled"), toggle("readOnly")],
@@ -1378,7 +1378,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
             {id:"export-created",title:"Export created",timeLabel:v.times ? "15:42" : undefined,dateTime:"2026-11-13T15:42:00"},
             {id:"maya-assigned",title:"Assigned to Maya Chen",timeLabel:v.times ? "16:03" : undefined,dateTime:"2026-11-13T16:03:00"},
           ];
-          return element("ActivityTimeline",{label:"Export activity",density:v.density,style:width,groups:binding(
+          return element("ActivityTimeline",{label:"Export activity",headingLevel:2,density:v.density,style:width,groups:binding(
             `[${JSON.stringify({...first,items:priorItems})}, {...${JSON.stringify(second)}, items: ${source}}]`,
             [{...first,items:priorItems},{...second,items}],
           )});
@@ -2121,7 +2121,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
         controlSize: v.controlSize, disabled: v.disabled, readOnly: v.readOnly, name: "website", defaultValue: value,
       }) }, status);
     }
-    case "button": return element("Stack", { gap: "4" }, element("Inline", {}, element("Button", { variant: v.variant, tone: v.tone, size: v.size, disabled: v.disabled, loading: v.loading && (v.retainFocus ? "retain-focus" : true), onClick: action }, "Save changes")), status);
+    case "button": return element("Stack", { gap: "4" }, element("Inline", {}, element("Button", { variant: v.variant, tone: v.tone, size: v.size, disabled: v.disabled, loading: v.loadingMode === "retain-focus" ? "retain-focus" : v.loadingMode === "loading", onClick: action }, "Save changes")), status);
     case "icon-button": return element("Stack", { gap: "4" }, element("Inline", {}, element("IconButton", { label: "Add idea", variant: v.variant, size: v.size, disabled: v.disabled, loading: v.loading, onClick: action }, element("Plus"))), status);
     case "input": case "textarea": return { tag: "Field", props: { label: slug === "input" ? "Project name" : "Project note", hideLabel: v.hideLabel, status: fieldStatus, message }, field: element(slug === "input" ? "Input" : "Textarea", { controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, readOnly: v.readOnly, defaultValue: slug === "input" ? "My project" : "Homepage and checkout" }) };
     case "select": return { tag: "Field", props: { label: "Project visibility", hideLabel: v.hideLabel, status: fieldStatus, message }, field: element("Select", { name: "visibility", controlSize: v.controlSize, invalid: v.invalid, disabled: v.disabled, defaultValue: "private" }, element("option", { value: "private" }, "Private"), element("option", { value: "team" }, "Team"), element("option", { value: "public" }, "Public")) };

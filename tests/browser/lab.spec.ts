@@ -38,7 +38,7 @@ test("component props, preview, highlighted code and Markdown stay aligned", asy
   const colors = await source.locator(".site-code-block__token").evaluateAll(nodes => [...new Set(nodes.map(node => getComputedStyle(node).color))]);
   expect(colors.length).toBeGreaterThan(2);
   await page.keyboard.press("Escape");
-  await page.getByRole("checkbox", { name: "Button prop loading" }).check();
+  await chooseSelectOption(page.getByRole("combobox", { name: "Button prop loadingMode" }), "loading");
   await expect(button).toBeDisabled();
   await expect(button).toHaveAttribute("aria-busy", "true");
   await expect(source.locator("code")).toContainText("loading={true}");

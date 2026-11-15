@@ -2905,14 +2905,13 @@ export interface ReactionButtonProps extends Omit<ToggleProps, "children" | "ico
 
 /** A reaction with a host-owned count and pressed state. */
 export const ReactionButton = /* @__PURE__ */ forwardRef<HTMLButtonElement, ReactionButtonProps>(function ReactionButton(
-  {label, icon, count, pressed, variant = "subtle", className, "aria-describedby":describedBy, ...props}, ref,
+  {label, icon, count, pressed, variant = "subtle", className, ...props}, ref,
 ) {
-  const countId = useId();
   if (!label.trim() || !Number.isSafeInteger(count) || count < 0) throw new Error("Flood ReactionButton requires a label and a nonnegative count");
   return <Toggle {...props} ref={ref} size="xs" variant={variant} pressed={pressed}
-    className={classes("flood-reaction-button", className)} aria-label={label} aria-describedby={mergeDescriptions(describedBy, countId)}>
+    className={classes("flood-reaction-button", className)} aria-label={`${label}, ${count}`}>
     <IconSlot size="2xs">{icon}</IconSlot>
-    <span id={countId} className="flood-reaction-button__count">{count}</span>
+    <span className="flood-reaction-button__count">{count}</span>
   </Toggle>;
 });
 

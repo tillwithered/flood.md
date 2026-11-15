@@ -1696,7 +1696,7 @@
     "imports": ["ReactionButton"],
     "notes": [
       "The label names the reaction, pressed identifies the current user's choice and count is the aggregate number of reactions.",
-      "Update pressed and count together after a host decision. The count is available to assistive technology without changing the toggle's name.",
+      "Update pressed and count together after a host decision. The accessible name starts with the reaction label and includes the visible count.",
       "Use reactions in Comment to keep them visible beside secondary commands. The ghost variant suits a mixed row of small icon actions."
     ]
   },

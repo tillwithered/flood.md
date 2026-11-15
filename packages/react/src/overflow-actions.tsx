@@ -77,11 +77,18 @@ export const AdaptiveActions = /* @__PURE__ */ forwardRef<HTMLDivElement, Overfl
         ? previous : {ids:next,more:presentation});
     };
     update();
-    const observer=view.ResizeObserver?new view.ResizeObserver(update):undefined;
+    let frame=0;
+    const observer=view.ResizeObserver?new view.ResizeObserver(()=>{
+      if(frame)return;
+      frame=view.requestAnimationFrame(()=>{
+        frame=0;
+        update();
+      });
+    }):undefined;
     observer?.observe(node);observer?.observe(measured);
     if(before.current)observer?.observe(before.current);if(after.current)observer?.observe(after.current);
     let alive=true;void node.ownerDocument.fonts?.ready.then(()=>{if(alive)update();});
-    return()=>{alive=false;observer?.disconnect();};
+    return()=>{alive=false;observer?.disconnect();view.cancelAnimationFrame(frame);};
   },[items,size,variant,moreLabel,morePresentation,disabled,leading,trailing,maxVisibleActions]);
   useBrowserLayoutEffect(()=>{
     if(!hidden.length&&open){setOpen(false);focusAfter.current=true;}

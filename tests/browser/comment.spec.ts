@@ -53,7 +53,7 @@ test("comment reactions retain their surface and picker when secondary actions a
   const copy = article.locator(".flood-comment__actions");
   await expect(copy).toHaveCSS("opacity", "0");
   await expect(add).toHaveCSS("opacity", "1");
-  await expect(article.getByRole("button", {name:"Helpful",exact:true})).not.toHaveCSS("background-color","rgba(0, 0, 0, 0)");
+  await expect(article.getByRole("button", {name:/^Helpful, /})).not.toHaveCSS("background-color","rgba(0, 0, 0, 0)");
   await add.click();
   const picker = page.getByRole("dialog", {name:"Add reaction"});
   await expect(picker).toBeVisible();
@@ -63,8 +63,7 @@ test("comment reactions retain their surface and picker when secondary actions a
   await page.keyboard.press("Enter");
   await expect(picker).toBeHidden();
   await expect(add).toBeFocused();
-  await expect(article.getByRole("button", {name:"Celebrate",exact:true})).toHaveAccessibleDescription("2");
-  await expect(article.getByRole("button", {name:"Celebrate",exact:true})).toHaveAttribute("aria-pressed","true");
+  await expect(article.getByRole("button", {name:"Celebrate, 2",exact:true})).toHaveAttribute("aria-pressed","true");
   await article.screenshot({path:info.outputPath("comment-reactions.png"), animations:"disabled"});
   await add.click();
   const appliedOption = picker.getByRole("button", {name:"Celebrate",exact:true});
@@ -75,8 +74,7 @@ test("comment reactions retain their surface and picker when secondary actions a
   expect(selectedColor).not.toEqual(priorColor);
   await picker.screenshot({path:info.outputPath("reaction-picker-selected.png"), animations:"disabled"});
   await appliedOption.click();
-  await expect(article.getByRole("button", {name:"Celebrate",exact:true})).toHaveAccessibleDescription("1");
-  await expect(article.getByRole("button", {name:"Celebrate",exact:true})).toHaveAttribute("aria-pressed","false");
+  await expect(article.getByRole("button", {name:"Celebrate, 1",exact:true})).toHaveAttribute("aria-pressed","false");
 
   await page.getByRole("button",{name:"Reset",exact:true}).click();
   await page.getByRole("checkbox",{name:"Comment prop showReaction"}).uncheck();
@@ -126,15 +124,15 @@ test("activity timeline composes a file, interactive comment thread and a schedu
   const comments = activity.getByRole("list", {name:"Export review comments"});
   await expect(comments).toHaveAttribute("data-dividers", "false");
   const toggle = activity.getByRole("button", {name:"2 comments"});
-  const reaction = comments.getByRole("button", {name:"Helpful",exact:true});
-  await expect(reaction).toHaveAccessibleDescription("2");
+  const reaction = comments.getByRole("button", {name:/^Helpful, /});
+  await expect(reaction).toHaveAccessibleName("Helpful, 2");
   await reaction.click();
   await expect(reaction).toHaveAttribute("aria-pressed", "true");
-  await expect(reaction).toHaveAccessibleDescription("3");
+  await expect(reaction).toHaveAccessibleName("Helpful, 3");
   await toggle.click();
   await expect(comments).toBeHidden();
   await toggle.press("Space");
-  await expect(reaction).toHaveAccessibleDescription("3");
+  await expect(reaction).toHaveAccessibleName("Helpful, 3");
   await page.mouse.move(0, 0);
   await activity.screenshot({path:info.outputPath("activity-feed.png"), animations:"disabled"});
   await chooseSelectOption(page.getByRole("combobox", {name:"Timeline prop layout"}),"schedule");

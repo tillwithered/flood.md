@@ -59,10 +59,10 @@ test('installed composition remains reachable with enlarged narrow RTL content',
 });
 
 test.use({
-  launchOptions: {
+  launchOptions: async ({browserName}, use) => use(browserName === 'chromium' ? {
     ignoreDefaultArgs: ['--hide-scrollbars'],
     args: ['--disable-features=OverlayScrollbar'],
-  },
+  } : {}),
 });
 
 test('installed workspace keeps scroll ownership as the table shrinks', async ({page}, info) => {
