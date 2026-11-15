@@ -1,6 +1,6 @@
 # Base component architecture
 
-The 0.2.13 source uses original React18.3/19 components and TypeScript
+The 0.2.14 source uses original React18.3/19 components and TypeScript
 declarations. The website catalog and individual component pages are generated
 from the [source catalog](../apps/website/src/component-catalog.json) and declarations.
 Use the catalog for inventory and the [component guide](components.md) for composition.
@@ -13,11 +13,11 @@ Source availability does not establish npm publication. Match installed versions
 | Scope and tokens | FloodRoot selects semantic roles from the single token source |
 | Geometry and type | Container, Grid, Stack, Inline, Surface, Divider, AspectRatio, Text, Heading |
 | Accessible/media atoms | VisuallyHidden, IconSlot, Image, List with native li children |
-| Actions | Button → IconButton/Toggle; Link retains real anchor semantics |
+| Actions | Button → IconButton/Toggle; Link → IconLink for icon-only destinations and downloads |
 | Structured forms | Label/Fieldset/Field → native controls, date/time segments and groups; date pickers compose entry, calendar and layer contracts |
 | Collections and commands | Tree selects application objects; ListBox/Combobox/MultiSelect select defined options; CommandList invokes host commands |
-| Disclosure/navigation | Collapsible/Accordion/Tabs/Pagination and NavigationTree own distinct disclosure, anchor and keyboard semantics |
-| Feedback/content | Spinner, Progress/Meter, Alert, Badge, Skeleton, Avatar, Card, EmptyState compose shared type, surface and icon geometry |
+| Disclosure/navigation | Collapsible, Accordion, Tabs, Pagination, CursorPagination and NavigationTree own distinct disclosure, anchor and keyboard semantics |
+| Feedback/content | Spinner, Progress, ProgressRing, Meter, Alert, Badge, Skeleton, ListSkeleton, Avatar, Card, EmptyState, ErrorState and LoadingState compose shared type, surface and icon geometry |
 | Layers and scrolling | ScrollArea supplies protected scrolling; Menu/Popover/Tooltip/Dialog share layer mechanics with distinct contracts |
 
 A native form is still the host's form. Card is structured Surface containment,
@@ -53,6 +53,9 @@ Uncontrolled form reset restores the initial value. Controlled state belongs to
 the host. readOnly preserves selection and prevents step actions. Translate
 increaseLabel/decreaseLabel for localized applications. This API does not format
 currency, parse locale group separators or intercept mouse-wheel scrolling.
+Use `appearance="plain"` to omit the step buttons in a dense layout.
+`NumberRangeField` uses this appearance for its two named inputs. Report
+cross-field validation through the group's shared error.
 
 Slider uses one value or an ordered pair in value/defaultValue and returns a new
 array through onValueChange. Each native range input remains a separate keyboard
@@ -205,10 +208,15 @@ Metric is a labeled value expressed as a native definition list. Formatting,
 calculation and trend wording belong to the host. Direction and tone are separate:
 a lower error rate can be good. Include that meaning in the trend label.
 
-Timeline preserves supplied event order in a named ordered list, with at most one
-current event. Markers are decorative; localized state labels keep states readable
-to assistive technology. dateTime and the visible timeLabel are host-owned; no
-sorting, timezone conversion or live announcement is implied.
+ActivityTimeline composes separate event tracks for named periods. Use a
+heading level that fits the surrounding document, and supply the dates and
+order from the host. Timeline preserves supplied order in a named ordered list. Its default
+`mode="progress"` adds localized step labels and supports at most one current
+step. Use `mode="activity"` for recorded events such as ticket updates and audit
+history. Activity markers are decorative and the rows expose event titles,
+descriptions and times without step states. Activity ignores `state` and
+`stateLabels`, so shared data can keep its progress fields. The host owns
+`dateTime`, the visible `timeLabel`, event sorting and timezone formatting.
 
 
 ### Navigation and composition
@@ -247,6 +255,10 @@ or mutate an editor. Keep its meaning explicit near the corresponding input.
 
 ### Clipboard and notifications
 
+Use NotificationInbox for a persistent list of updates with an unread view.
+Use NotificationList when the surrounding page already owns filtering.
+The host decides what changes unread state and when to accept those changes.
+
 CopyButton writes its value through the browser Clipboard API on activation. A
 secure context and clipboard permission are required. onCopied/onCopyError let the
 host react; manual fallback belongs to the host. Localize all result labels. Labels
@@ -254,7 +266,14 @@ reserve their shared width as centered icon–label pairs; the icon–text gap s
 constant in each state. Defaults are Copy / Copied / Failed. A polite status
 announces success/failure. An explicit aria-label can name the action in context
 without changing its short visible labels; result states include the visible result
-in that name. This refinement is part of 0.2.5.
+in that name. While writing, the action keeps focus and blocks duplicate writes.
+Feedback belongs to the value that was written. When the value changes, the
+button exposes the new copy action.
+
+CopyableValue pairs a URL or identifier with its copy action. Values wrap by
+default. Use `overflow="truncate"` in dense rows that leave a recognizable prefix.
+Clipped values disclose the full text on pointer hover or keyboard focus. The
+clipboard gets the full string in both layouts.
 
 ToastRegion takes a host-owned items array and onDismiss. IDs are unique/nonempty;
 limit controls the visible queue. Ordinary messages default to five seconds;

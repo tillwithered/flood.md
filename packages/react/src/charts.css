@@ -1,10 +1,16 @@
-.flood-root :is(.flood-line-chart, .flood-bar-chart, .flood-donut-chart, .flood-heatmap, .flood-sparkline, .flood-bar-list, .flood-scatter-chart, .flood-range-chart, .flood-bullet-chart, .flood-waterfall-chart, .flood-histogram, .flood-box-plot, .flood-dumbbell-chart) {
+.flood-root :is(.flood-line-chart, .flood-bar-chart, .flood-donut-chart, .flood-composition-bar, .flood-heatmap, .flood-sparkline, .flood-bar-list, .flood-scatter-chart, .flood-range-chart, .flood-bullet-chart, .flood-waterfall-chart, .flood-histogram, .flood-box-plot, .flood-dumbbell-chart) {
   --flood-chart-stroke-width: calc(2 * var(--flood-sys-stroke-width));
   --flood-chart-tip-gap: var(--flood-sys-space-4);
   --flood-chart-accent: var(--flood-sys-color-accent-content);
   --flood-chart-motion: var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing);
   --flood-chart-fill-strength: .3;
+  --flood-chart-focus-color: var(--flood-sys-color-content-subtle);
   --flood-chart-grid: radial-gradient(circle, var(--flood-sys-color-divider-decorative) .045rem, transparent .06rem) 0 0 / var(--flood-sys-space-3) var(--flood-sys-space-3);
+}
+@media (forced-colors: active) {
+  .flood-root :is(.flood-line-chart, .flood-bar-chart, .flood-donut-chart, .flood-heatmap, .flood-scatter-chart, .flood-range-chart, .flood-waterfall-chart, .flood-histogram, .flood-box-plot, .flood-dumbbell-chart) {
+    --flood-chart-focus-color: Highlight;
+  }
 }
 .flood-root .flood-line-chart { --flood-chart-height: 15rem; min-inline-size: 0; container-type: inline-size; }
 .flood-root .flood-line-chart__body {
@@ -38,10 +44,26 @@
   padding-block: var(--flood-sys-space-2);
   cursor: crosshair;
 }
-.flood-root :is(.flood-line-chart__plot, .flood-bar-chart__plot, .flood-donut-chart__plot, .flood-dumbbell-chart__plot):focus-visible {
-  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
-  outline-offset: var(--flood-sys-focus-offset);
-  border-radius: var(--flood-sys-radius-indicator);
+.flood-root :is(
+  .flood-line-chart__plot, .flood-bar-chart__plot, .flood-donut-chart__plot,
+  .flood-dumbbell-chart__plot, .flood-box-plot__plot, .flood-histogram__plot,
+  .flood-range-chart__plot, .flood-scatter-chart__plot, .flood-waterfall-chart__plot
+):focus-visible {
+  outline: none;
+}
+.flood-root :is(
+  .flood-line-chart__plot, .flood-bar-chart__plot, .flood-donut-chart__plot,
+  .flood-dumbbell-chart__plot, .flood-box-plot__plot, .flood-histogram__plot,
+  .flood-range-chart__plot, .flood-scatter-chart__plot, .flood-waterfall-chart__plot
+):focus-visible::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  margin-inline: auto;
+  inline-size: var(--flood-sys-space-4);
+  border-block-start: var(--flood-sys-focus-width) solid var(--flood-chart-focus-color);
+  pointer-events: none;
 }
 .flood-root .flood-line-chart__plot > svg {
   position: relative;
@@ -313,7 +335,6 @@
   margin-inline: auto;
   border-radius: 50%;
 }
-.flood-root .flood-donut-chart__plot:focus-visible { border-radius: 50%; }
 .flood-root .flood-donut-chart__plot::before {
   content: "";
   position: absolute;
@@ -338,22 +359,69 @@
 .flood-root .flood-donut-chart__segment[data-active] {
   stroke: currentColor;
 }
-.flood-root .flood-donut-chart :is([data-slice="0"], [data-series="0"]) { color: var(--flood-chart-accent); }
-.flood-root .flood-donut-chart :is([data-slice="1"], [data-series="1"]) { color: var(--flood-sys-color-content-subtle); }
-.flood-root .flood-donut-chart :is([data-slice="2"], [data-series="2"]) {
-  color: color-mix(in srgb, var(--flood-chart-accent) 30%, var(--flood-sys-color-content-subtle));
+.flood-root :is(.flood-donut-chart, .flood-composition-bar) :is([data-slice="0"], [data-series="0"]) { color: var(--flood-chart-accent); }
+.flood-root :is(.flood-donut-chart, .flood-composition-bar) :is([data-slice="1"], [data-series="1"]) { color: var(--flood-sys-color-content-subtle); }
+.flood-root :is(.flood-donut-chart, .flood-composition-bar) :is([data-slice="2"], [data-series="2"]) {
+  color: color-mix(in srgb, var(--flood-chart-accent) 40%, var(--flood-sys-color-content-subtle));
 }
-.flood-root .flood-donut-chart :is([data-slice="3"], [data-series="3"]) {
-  color: color-mix(in srgb, var(--flood-sys-color-feedback-info) 25%, var(--flood-sys-color-content-subtle));
+.flood-root :is(.flood-donut-chart, .flood-composition-bar) :is([data-slice="3"], [data-series="3"]) {
+  color: color-mix(in srgb, var(--flood-sys-color-feedback-info) 65%, var(--flood-sys-color-content-subtle));
 }
-.flood-root .flood-donut-chart :is([data-slice="4"], [data-series="4"]) { color: var(--flood-sys-color-content-subtle); }
-.flood-root .flood-donut-chart :is([data-slice="5"], [data-series="5"]) { color: var(--flood-sys-color-content-default); }
-.flood-root .flood-donut-chart__key {
+.flood-root :is(.flood-donut-chart, .flood-composition-bar) :is([data-slice="4"], [data-series="4"]) {
+  color: color-mix(in srgb, var(--flood-sys-color-feedback-success) 55%, var(--flood-sys-color-content-subtle));
+}
+.flood-root :is(.flood-donut-chart, .flood-composition-bar) :is([data-slice="5"], [data-series="5"]) { color: var(--flood-sys-color-content-default); }
+.flood-root :is(.flood-donut-chart__key, .flood-composition-bar__key) {
   inline-size: var(--flood-sys-space-2);
   block-size: var(--flood-sys-space-2);
   border-radius: 50%;
   background: currentColor;
   flex: none;
+}
+.flood-root .flood-composition-bar { min-inline-size: 0; }
+.flood-root .flood-composition-bar__track {
+  display: flex;
+  overflow: hidden;
+  block-size: var(--flood-sys-space-3);
+  border-radius: var(--flood-sys-radius-action);
+  background: var(--flood-sys-color-indicator-track);
+}
+.flood-root .flood-composition-bar__segment {
+  position: relative;
+  flex: none;
+  background: color-mix(in srgb, currentColor 70%, var(--flood-sys-color-surface-current));
+}
+.flood-root .flood-composition-bar__segment + .flood-composition-bar__segment::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: min(100%, var(--flood-sys-stroke-width));
+  background: var(--flood-sys-color-surface-current);
+}
+.flood-root .flood-composition-bar__legend > li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--flood-sys-space-2);
+  overflow-wrap: anywhere;
+}
+.flood-root .flood-composition-bar[data-layout="inline"] > .flood-composition-bar__legend {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--flood-sys-space-4);
+}
+.flood-root .flood-composition-bar__numbers {
+  min-inline-size: 0;
+  justify-content: end;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+@media (forced-colors: active) {
+  .flood-root .flood-composition-bar__track { outline: var(--flood-sys-stroke-width) solid CanvasText; }
+  .flood-root .flood-composition-bar__segment { forced-color-adjust: none; background: Highlight; }
+  .flood-root .flood-composition-bar__segment + .flood-composition-bar__segment::before { background: Canvas; }
+  .flood-root .flood-composition-bar__key { forced-color-adjust: none; background: Highlight; }
 }
 .flood-root .flood-donut-chart__readout {
   position: absolute;
@@ -430,7 +498,7 @@
 }
 .flood-root .flood-heatmap__cell:focus-visible { outline: none; }
 .flood-root .flood-heatmap__cell:focus-visible::before {
-  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
+  outline: var(--flood-sys-focus-width) solid var(--flood-chart-focus-color);
   outline-offset: -2px;
 }
 .flood-root .flood-bar-list__items {

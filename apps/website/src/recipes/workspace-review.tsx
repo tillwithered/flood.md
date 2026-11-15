@@ -50,7 +50,7 @@ export function WorkspaceReview() {
               onChange={event => setDraft({...draft, updates: event.currentTarget.checked})} />
             <Inline gap="3">
               <Button type="submit">Apply changes</Button><Button type="reset" variant="subtle">Reset settings</Button>
-              {saved && <StatusIndicator size="sm" tone={!dirty ? "success" : "neutral"}
+              {saved && <StatusIndicator size="sm" presentation="wrap" tone={!dirty ? "success" : "neutral"}
                 label={dirty ? "Unapplied changes" : "Applied"} />}
             </Inline>
           </Stack>
@@ -66,12 +66,12 @@ export function WorkspaceReview() {
           open={filesOpen} onOpenChange={setFilesOpen} closeLabel="Close project files"
           trigger={props => <Button {...props} variant="subtle">Review files</Button>}
           footer={<Button onClick={() => setFilesOpen(false)}>Done reviewing</Button>}>
-          <Stack gap="4"><FileList label="Sample project files">
-            <FileItem lang="en" name="Research findings — international expansion and onboarding.pdf" format="PDF" size={2457600}
-              description={<StatusIndicator label="Ready for review" tone="info" size="sm" />} />
-            <FileItem lang="en" name="Brand guidelines.pdf" format="PDF" size={1048576}
-              description={<StatusIndicator label="Reviewed" tone="success" size="sm" />} />
-          </FileList></Stack>
+          <FileList label="Sample project files" appearance="plain" dividers={false}>
+            <FileItem lang="en" name="Research findings — international expansion and onboarding.pdf" format={null} size={2457600} metadataVariant="plain"
+              description={<StatusIndicator label="Ready for review" tone="info" size="sm" presentation="wrap" />} />
+            <FileItem lang="en" name="Brand guidelines.pdf" format={null} size={1048576} metadataVariant="plain"
+              description={<StatusIndicator label="Reviewed" tone="success" size="sm" presentation="wrap" />} />
+          </FileList>
         </Drawer>
         <Text as="p" size="helper" tone="subtle"><Link href="/docs/recipes/workspace-review">Read the composition and its checks</Link></Text>
       </Stack>

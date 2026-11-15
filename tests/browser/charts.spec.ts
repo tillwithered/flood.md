@@ -14,6 +14,14 @@ test("LineChart exposes gaps and exact values by keyboard and pointer", async ({
   await expect(plot).toHaveAttribute("aria-valuetext", /Tue, This week: 55/);
   await expect(plot.locator(".flood-line-chart__tooltip")).toContainText("55");
   await expect(plot.locator(".flood-line-chart__tooltip")).toContainText("Last week");
+  await plot.press("Escape");
+  await expect(plot).not.toHaveAttribute("data-inspecting");
+  await expect(plot).toBeFocused();
+  await expect(plot).toHaveCSS("outline-style", "none");
+  expect(await plot.evaluate(node => getComputedStyle(node, "::after").borderBlockStartWidth)).toBe("2px");
+  await plot.press("ArrowRight");
+  await expect(plot).toHaveAttribute("data-inspecting", "true");
+  await plot.press("ArrowLeft");
   const bounds = await plot.boundingBox();
   const tooltip = await plot.locator(".flood-line-chart__tooltip").boundingBox();
   expect(tooltip!.x).toBeGreaterThanOrEqual(bounds!.x - 1);
@@ -88,6 +96,11 @@ test("BarChart compares groups, preserves missing slots, and shares a signed zer
   await plot.focus();
   await plot.press("End");
   await expect(plot).toHaveAttribute("aria-valuetext", "Platform, Actual: 54, Plan: 48");
+  await plot.press("Escape");
+  await expect(plot.locator(".flood-bar-chart__tooltip")).toHaveCount(0);
+  await expect(plot).toBeFocused();
+  await plot.press("ArrowLeft");
+  await expect(plot.locator(".flood-bar-chart__tooltip")).toContainText("Support");
   const data = page.getByRole("combobox", { name: "BarChart prop data", exact: true });
   await chooseSelectOption(data, "missing");
   const missing = groups.nth(2).locator('[data-series="0"]');
@@ -305,10 +318,42 @@ test("BulletChart uses one scale for actual and target", async ({ page }) => {
   const plot = page.getByRole("group", { name: "Resolved requests by channel" });
   const web = plot.getByRole("meter", { name: "Web" });
   await expect(web).toHaveAttribute("aria-valuemax", "100");
-  await expect(web).toHaveAttribute("aria-valuetext", "Actual: 74, Target: 80");
-  await expect(plot.locator(".flood-bullet-chart__target")).toHaveCount(3);
+  await expect(web).toHaveAttribute("aria-valuetext", "Actual: 74");
+  await expect(web).toHaveAccessibleDescription("Target: 80");
+  await expect(plot.locator(".flood-indicator__reference")).toHaveCount(3);
   await chooseSelectOption(page.getByRole("combobox", { name: "BulletChart prop data" }), "zero");
-  await expect(web).toHaveAttribute("aria-valuetext", "Actual: 0, Target: 80");
+  await expect(web).toHaveAttribute("aria-valuetext", "Actual: 0");
+  await expect(web).toHaveAccessibleDescription("Target: 80");
+});
+
+test("CompositionBar keeps its shares proportional and its exact values visible", async ({page}) => {
+  await page.goto("/components/composition-bar");
+  const bar = page.getByRole("group", {name:"Storage by file type"});
+  const track = bar.locator(".flood-composition-bar__track");
+  const segments = track.locator(".flood-composition-bar__segment");
+  const data = page.getByRole("combobox", {name:"CompositionBar prop data"});
+  await expect(bar.getByRole("listitem")).toHaveCount(4);
+  await expect(bar.getByText("54 GB")).toBeVisible();
+  expect((await segments.first().boundingBox())!.width / (await track.boundingBox())!.width).toBeCloseTo(.54, 2);
+  await chooseSelectOption(page.getByRole("combobox", {name:"CompositionBar prop readout"}), "both");
+  await expect(bar.getByText("54%")).toBeVisible();
+  await chooseSelectOption(data, "small share");
+  const smallest = (await segments.last().boundingBox())!.width / (await track.boundingBox())!.width;
+  expect(smallest).toBeGreaterThan(0);
+  expect(smallest).toBeCloseTo(.04 / 92.04, 4);
+  await expect(bar.getByText("<0.1%", {exact:true})).toBeVisible();
+  await page.getByRole("checkbox", {name:"CompositionBar prop narrow"}).check();
+  await chooseSelectOption(page.getByRole("combobox", {name:"CompositionBar prop layout"}), "rows");
+  await chooseSelectOption(data, "long labels");
+  await expect(bar.getByText("Archived workspace backups")).toBeVisible();
+  expect(await bar.evaluate(node=>node.scrollWidth)).toBeLessThanOrEqual((await bar.boundingBox())!.width + 1);
+  await chooseSelectOption(data, "zero");
+  await expect(segments).toHaveCount(0);
+  await expect(bar.getByText("0 GB", {exact:true})).toHaveCount(4);
+  await expect(bar.getByText("0%", {exact:true})).toHaveCount(0);
+  await chooseSelectOption(data, "empty");
+  await expect(track).toHaveCount(0);
+  await expect(bar).toHaveText("No data");
 });
 
 test("BarList compares values on one scale and distinguishes zero from empty", async ({ page }) => {

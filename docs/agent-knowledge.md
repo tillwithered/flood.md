@@ -7,11 +7,11 @@ The same package sources build the website, CLI results and agent instructions.
 ## Discover, then read
 
 ```sh
-npx @flood-md/cli@0.2.13 info --json
-npx @flood-md/cli@0.2.13 catalog --kind workflow --group foundations
-npx @flood-md/cli@0.2.13 catalog --kind component --search table
-npx @flood-md/cli@0.2.13 read recipe:table-bulk-actions
-npx @flood-md/cli@0.2.13 read component:data-table
+npx @flood-md/cli@0.2.14 info --json
+npx @flood-md/cli@0.2.14 catalog --kind workflow --group foundations
+npx @flood-md/cli@0.2.14 catalog --kind component --search table
+npx @flood-md/cli@0.2.14 read recipe:table-bulk-actions
+npx @flood-md/cli@0.2.14 read component:data-table
 ```
 
 These commands return JSON and do not install dependencies, edit files, execute
@@ -25,6 +25,13 @@ If the screen switches between independent panels, read `component:tabs`.
 Before delivery, open the list and a selected record together, then use
 `workflow:interface-content` and `reference:interface-content-examples` to
 decide which labels, counts and status messages the user needs in each view.
+
+Each component material includes Design notes alongside its example and API
+reference. Read the notes before choosing a size, variant or composition. For
+example, `component:badge` covers priority and category labels, and
+`component:drawer` explains how to group controls and preserve focus when a
+record leaves its collection. For the public catalog, pass the same ID to
+`read_flood`; for an existing project, use its installed Flood version.
 
 info reports actual installed package versions, the configured guide version,
 framework detection, catalog identity and capability declarations. A version

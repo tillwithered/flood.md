@@ -54,6 +54,8 @@ scrolling with the longest title and a real footer action before selecting a siz
 Use the group heading size inside a detail Drawer to keep the record name prominent.
 Keep the request facts in one DescriptionList and use a compact, captioned Table
 for related records that have comparable columns, such as activity dates and events.
+Use Timestamp with its compact size in the date column. Keep the full civil
+date in `dateTime` when the visible label omits the year.
 Give that table its own heading when it identifies a distinct section. The Drawer
 body owns vertical scrolling and the footer keeps the next action within reach.
 

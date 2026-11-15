@@ -1,8 +1,15 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { SearchInputProps, PasswordInputProps, InputGroup, IconButton, IconSlot } from "./index.js";
+import { SearchGlyph } from "./search-glyph.js";
 
 type Parts = { group: typeof InputGroup; action: typeof IconButton; icon: typeof IconSlot };
-const glyph = (kind: "search" | "clear" | "eye", visible = false) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{kind === "search" ? <><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></> : kind === "clear" ? <path d="m6 6 12 12M18 6 6 18"/> : <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>{visible && <path d="m3 3 18 18"/>}</>}</svg>;
+const clearGlyph = <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>;
+export function VisibilityGlyph({visible}: {visible:boolean}) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>
+    {visible && <path d="m3 3 18 18"/>}
+  </svg>;
+}
 
 export const SearchField = /* @__PURE__ */ forwardRef<HTMLInputElement, SearchInputProps & Parts>(function SearchField({group: Group, action: Action, icon: Icon, clearable = true, clearLabel = "Clear search", controlSize = "md", className, value, defaultValue, onChange, disabled, readOnly, ...props}, ref) {
   const input = useRef<HTMLInputElement>(null);
@@ -26,8 +33,8 @@ export const SearchField = /* @__PURE__ */ forwardRef<HTMLInputElement, SearchIn
   };
   return <Group {...props} ref={input} type="search" controlSize={controlSize} className={["flood-search-input", className].filter(Boolean).join(" ")} value={value} defaultValue={defaultValue} disabled={disabled} readOnly={readOnly}
     onChange={event => { setText(event.currentTarget.value); onChange?.(event); }}
-    start={<Icon size={controlSize}>{glyph("search")}</Icon>}
-    end={clearable && current.length > 0 && !readOnly ? <Action label={clearLabel} variant="ghost" size={controlSize} disabled={disabled} onPointerDown={event => event.preventDefault()} onClick={clear}>{glyph("clear")}</Action> : undefined}/>;
+    start={<Icon size={controlSize}><SearchGlyph /></Icon>}
+    end={clearable && current.length > 0 && !readOnly ? <Action label={clearLabel} variant="ghost" size={controlSize} disabled={disabled} onPointerDown={event => event.preventDefault()} onClick={clear}>{clearGlyph}</Action> : undefined}/>;
 });
 
 export const PasswordField = /* @__PURE__ */ forwardRef<HTMLInputElement, PasswordInputProps & Parts>(function PasswordField({group: Group, action: Action, icon: _Icon, visible, defaultVisible = false, onVisibleChange, showPasswordLabel = "Show password", hidePasswordLabel = "Hide password", controlSize = "md", className, disabled, ...props}, ref) {
@@ -43,5 +50,5 @@ export const PasswordField = /* @__PURE__ */ forwardRef<HTMLInputElement, Passwo
       if (visible === undefined) setLocal(!shown);
       onVisibleChange?.(!shown);
       requestAnimationFrame(() => { if (start !== null && end !== null && node.isConnected) node.setSelectionRange(start, end, direction ?? undefined); });
-    }}>{glyph("eye", shown)}</Action>}/>;
+    }}><VisibilityGlyph visible={shown}/></Action>}/>;
 });

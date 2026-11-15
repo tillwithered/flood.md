@@ -2,6 +2,30 @@ import {test,expect} from '@playwright/test';
 import {build} from 'vite';
 import {resolve} from 'node:path';
 import {mkdir,writeFile} from 'node:fs/promises';
+import {chooseSelectOption} from './select-helpers';
+
+test('PasswordStrength displays host-provided results and keeps requirements independently readable', async ({page}) => {
+  await page.goto('/components/password-strength');
+  const stage = page.locator('.preview-stage');
+  const assessment = stage.getByRole('meter',{name:'Password strength',exact:true});
+  const requirements = stage.getByRole('list',{name:'Password requirements'});
+  const scenario = page.getByRole('combobox',{name:'Scenario',exact:true});
+  await expect(assessment).toHaveAttribute('aria-valuetext','Fair');
+  await expect(requirements.getByRole('listitem').nth(1)).toHaveText(/Allowed by your organization, Not met/);
+  await chooseSelectOption(scenario,'pending');
+  await expect(assessment).toHaveCount(0);
+  await expect(requirements.getByRole('listitem').first()).toHaveText(/Not checked/);
+  await chooseSelectOption(scenario,'strong');
+  await expect(assessment).toHaveAttribute('aria-valuenow','4');
+  await expect(requirements.getByRole('listitem').nth(1)).toHaveText(/Allowed by your organization, Met/);
+  await page.getByRole('checkbox',{name:'PasswordStrength prop constrainWidth'}).check();
+  await expect(requirements).toBeVisible();
+  expect(await requirements.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+  await page.getByRole('checkbox',{name:'PasswordStrength prop showRequirements'}).uncheck();
+  await expect(requirements).toHaveCount(0);
+  await expect(assessment).toBeVisible();
+});
+
 let bundle:Promise<string>;
 async function fixture(){
  const file=(p:string)=>JSON.stringify(resolve(p).replaceAll('\\','/'));const directory=resolve(`.artifacts/text-inputs-${process.pid}`);await mkdir(directory,{recursive:true});const entry=resolve(directory,'entry.mjs');

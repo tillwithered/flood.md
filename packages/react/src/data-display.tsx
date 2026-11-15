@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useRef } from "react";
 import type { DescriptionListProps, TableProps } from "./index.js";
-import { ScrollArea } from "./index.js";
+import { ScrollArea, TruncatedText } from "./index.js";
+import { hasFieldContent } from "./field-state.js";
 
 export const DescribedData = /* @__PURE__ */ forwardRef<HTMLDListElement, DescriptionListProps>(function DescribedData(
   { items, layout, density, dividers, className, ...props }, ref,
@@ -9,9 +10,19 @@ export const DescribedData = /* @__PURE__ */ forwardRef<HTMLDListElement, Descri
     throw new Error("Flood description items require unique nonempty IDs");
   return <dl {...props} ref={ref} className={["flood-description-list", className].filter(Boolean).join(" ")}
     data-layout={layout} data-density={density} data-dividers={dividers}>
-    {items.map(item => <div key={item.id} className="flood-description-list__item">
-      <dt>{item.term}</dt><dd>{item.description}</dd>
-    </div>)}
+    {items.map(({id, term, description, valueOverflow, action}) => {
+      const hasAction = hasFieldContent(action);
+      const truncate = valueOverflow === "truncate" && typeof description === "string";
+      const value = truncate ? <TruncatedText dir="auto">{description}</TruncatedText> : description;
+      return <div key={id} className="flood-description-list__item" data-has-action={hasAction || undefined}
+        data-value-overflow={truncate ? "truncate" : undefined}>
+        <dt>{term}</dt>
+        {hasAction ? <dd className="flood-description-list__value-with-action">
+          <div className="flood-description-list__value">{value}</div>
+          <div className="flood-description-list__action">{action}</div>
+        </dd> : <dd>{value}</dd>}
+      </div>;
+    })}
   </dl>;
 });
 

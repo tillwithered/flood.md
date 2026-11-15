@@ -20,6 +20,10 @@ The default scale is local to the series. Pass the same `domain` to charts
 in a column when readers need to compare magnitudes. The caller owns the
 units, time span, values and interpretation.
 
+Compose it in MetricCard for a measure and its history on one surface. Use
+the inline layout for a compact side plot and stacked when the plot needs
+the card's width.
+
 ## Chart appearance
 
 `variant="area"` is the default. The stroke carries the data and a gradient

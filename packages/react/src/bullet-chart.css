@@ -35,6 +35,7 @@
 
 .flood-root .flood-bullet-chart .flood-indicator__track {
   block-size: .75rem;
+  overflow: visible;
   border-radius: var(--flood-sys-radius-action);
   background: var(--flood-chart-grid), var(--flood-sys-color-surface-raised);
 }
@@ -49,22 +50,13 @@
 
 .flood-root .flood-bullet-chart__plot[data-zero] .flood-indicator__fill { box-shadow: none; }
 
-.flood-root .flood-bullet-chart__target {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: clamp(0px, calc(var(--flood-bullet-target) - var(--flood-chart-stroke-width) / 2),
-    calc(100% - var(--flood-chart-stroke-width)));
-  inline-size: var(--flood-chart-stroke-width);
-  border-radius: var(--flood-sys-radius-action);
-  background: var(--flood-sys-color-content-default);
-  pointer-events: none;
+.flood-root .flood-bullet-chart .flood-indicator__reference {
+  --flood-indicator-reference-width: var(--flood-chart-stroke-width);
+  inset-block: calc(-1 * var(--flood-sys-space-1));
+  box-shadow: none;
 }
 
 @media (forced-colors: active) {
   .flood-root .flood-bullet-chart .flood-indicator__track { background: Canvas; }
   .flood-root .flood-bullet-chart .flood-indicator__fill { background: Highlight; }
-  .flood-root .flood-bullet-chart__target {
-    forced-color-adjust: none;
-    background: CanvasText;
-  }
 }

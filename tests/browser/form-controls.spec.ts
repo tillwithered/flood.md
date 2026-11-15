@@ -3,6 +3,105 @@ import {build} from 'vite';
 import {resolve} from 'node:path';
 import {mkdir,writeFile} from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
+import { chooseSelectOption } from "./select-helpers";
+
+test("RatingSummary derives the score, total and aligned bars from the rating counts", async ({page}, info) => {
+  await page.setViewportSize({width:1440,height:940});
+  await page.goto("/components/rating-summary");
+  const summary = page.getByRole("group",{name:"Rating breakdown"});
+  const panel = page.locator(".preview-stage .flood-surface").filter({has:summary});
+  const distribution = summary.getByRole("list");
+  const tracks = distribution.getByRole("meter");
+  await expect(summary.getByRole("img",{name:"4.7 out of 5"})).toBeVisible();
+  await expect(summary.locator(".flood-rating-summary__count")).toHaveText("128 ratings");
+  await expect(tracks).toHaveCount(5);
+  await expect(tracks.first()).toHaveAccessibleName("5 stars");
+  await expect(tracks.first()).toHaveAttribute("aria-valuemax","128");
+  await expect(tracks.first()).toHaveAttribute("aria-valuenow","102");
+  await expect(distribution.getByRole("meter",{name:"2 stars"})).toHaveAttribute("aria-valuenow","0");
+  await page.evaluate(()=>document.fonts.ready);
+  const overview = summary.locator(".flood-rating-summary__overview");
+  expect((await distribution.boundingBox())!.x).toBeGreaterThan((await overview.boundingBox())!.x);
+  await panel.screenshot({path:info.outputPath("rating-summary-wide.png")});
+  const edges = await tracks.evaluateAll(nodes=>nodes.map(node=>{
+    const {left,right}=node.getBoundingClientRect();
+    return [left,right];
+  }));
+  expect(edges.every(edge=>edge[0]===edges[0][0]&&edge[1]===edges[0][1])).toBe(true);
+
+  await page.getByRole("checkbox",{name:"RatingSummary prop narrow"}).check();
+  expect((await distribution.boundingBox())!.y).toBeGreaterThan((await overview.boundingBox())!.y);
+  await panel.screenshot({path:info.outputPath("rating-summary-narrow.png")});
+  const scenario = page.getByRole("combobox",{name:"Scenario",exact:true});
+  await chooseSelectOption(scenario,"single");
+  await expect(summary.getByRole("img",{name:"4 out of 5"})).toBeVisible();
+  await expect(summary.locator(".flood-rating-summary__count")).toHaveText("1 rating");
+  await chooseSelectOption(scenario,"ten-star");
+  await expect(tracks).toHaveCount(10);
+  await expect(tracks.first()).toHaveAccessibleName("10 stars");
+  await summary.evaluate(node=>{node.dir="rtl";});
+  expect(await summary.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+  await summary.evaluate(node=>{node.removeAttribute("dir");});
+  await chooseSelectOption(scenario,"empty");
+  await expect(summary.getByRole("img",{name:"No ratings"})).toBeVisible();
+  await expect(tracks).toHaveCount(0);
+  await panel.screenshot({path:info.outputPath("rating-summary-empty.png")});
+});
+
+test("rating readouts distinguish fractional, zero and absent values", async ({ page }) => {
+  await page.goto("/components/rating-value");
+  const stage = page.locator(".preview-stage");
+  const rating = stage.getByRole("img");
+  await expect(rating).toHaveAccessibleName("4.7 out of 5 from 128 ratings");
+  await expect(rating.locator("svg[data-full]")).toHaveCount(4);
+  const edges = await rating.locator("svg").evaluateAll(marks => marks.map(mark => mark.getBoundingClientRect().top));
+  expect(new Set(edges).size).toBe(1);
+  const partial = rating.locator("svg:not([data-full]) .flood-rating-value__fill");
+  await expect(partial).toHaveCount(1);
+  const ltr = await partial.evaluate(node => getComputedStyle(node).clipPath);
+  await rating.evaluate(node => { node.dir = "rtl"; });
+  expect(await partial.evaluate(node => getComputedStyle(node).clipPath)).not.toEqual(ltr);
+  await expect(rating).not.toHaveAttribute("tabindex");
+
+  await chooseSelectOption(page.getByRole("combobox", {name:"RatingValue prop appearance"}), "compact");
+  await expect(rating.locator("svg")).toHaveCount(1);
+  await expect(rating.getByText("4.7/5")).toBeVisible();
+  await chooseSelectOption(page.getByRole("combobox", {name:"RatingValue prop value"}), "0");
+  await expect(rating).toHaveAccessibleName("0 out of 5 from 128 ratings");
+  await expect(rating.getByText("0/5")).toBeVisible();
+  await chooseSelectOption(page.getByRole("combobox", {name:"RatingValue prop value"}), "unrated");
+  await expect(rating).toHaveAccessibleName("No ratings");
+  await expect(rating.locator("svg")).toHaveCount(0);
+});
+
+test("keyboard rating updates supersede the mouse preview", async ({ page }) => {
+  await page.goto("/components/rating");
+  const group = page.getByRole("radiogroup", {name:"Your experience"});
+  const filled = group.locator(".flood-rating__choice[data-filled]");
+  await group.getByRole("radio", {name:"5 of 5 stars"}).hover();
+  await expect(filled).toHaveCount(5);
+  await group.getByRole("radio", {name:"3 of 5 stars"}).press("ArrowLeft");
+  await expect(group.getByRole("radio", {name:"2 of 5 stars"})).toBeChecked();
+  await expect(filled).toHaveCount(2);
+});
+
+test("compact rating marks keep full-size touch targets", async ({ browser, baseURL }) => {
+  const context = await browser.newContext({baseURL, hasTouch:true, viewport:{width:390,height:844}});
+  try {
+    const page = await context.newPage();
+    await page.goto("/components/rating");
+    await page.getByRole("button", {name:"Size: md", exact:true}).tap();
+    await page.getByRole("dialog", {name:"Size", exact:true}).getByRole("option", {name:"sm", exact:true}).tap();
+    const star = page.getByRole("radio", {name:"4 of 5 stars"});
+    const target = (await star.boundingBox())!;
+    expect(target.width).toBeGreaterThanOrEqual(44);
+    expect(target.height).toBeGreaterThanOrEqual(44);
+    await star.tap();
+    await expect(star).toBeChecked();
+  } finally {
+    await context.close();
+  }
+});
 let bundle:Promise<string>;
 async function fixture(){
  const file=(p:string)=>JSON.stringify(resolve(p).replaceAll('\\','/'));const directory=resolve(`.artifacts/form-batch-${process.pid}`);await mkdir(directory,{recursive:true});const entry=resolve(directory,'entry.mjs');

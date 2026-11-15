@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Container, Grid, AspectRatio, Image, List, EmptyState, Card, Switch, Alert, Avatar, Badge, Button, DescriptionList, FloodRoot, Heading, IconButton, Inline, Link, Menu, Meter, Progress, Skeleton, Spinner, Stack, Surface, Table, Text, Toolbar, Kbd, Toggle, Divider, type MenuItem } from "@flood-md/react";
+import { Container, Grid, AspectRatio, Image, List, EmptyState, CapacityMeter, Card, CompositionBar, Switch, Alert, AuthorMeta, Avatar, AvatarGroup, Badge, Button, DescriptionList, FloodRoot, Heading, IconButton, Inline, Link, Menu, Meter, Progress, ProgressRing, Skeleton, Spinner, Stack, Surface, Table, Text, Toolbar, Kbd, Toggle, Divider, type MenuItem } from "@flood-md/react";
 import { Archive, Copy, Ellipsis, Pencil, Trash2, Bold, Italic, Undo2 } from "lucide-react";
 import { SiteHeader } from "./site-header";
 import release from "./release.json";
@@ -18,6 +18,8 @@ export default function ContentBoard() {
   const [unknown, setUnknown] = useState(false);
   const [storage, setStorage] = useState(75);
   const [menuStatus, setMenuStatus] = useState("");
+  const originals = Math.floor(storage * .64);
+  const exportedFiles = Math.floor(storage * .24);
   return <FloodRoot className="site-root"><div className="site-shell">
     <SiteHeader path="/playground/content" />
     <main id="main-content" className="content-board">
@@ -50,7 +52,8 @@ export default function ContentBoard() {
         <Surface padding="6"><Stack gap="6">
           <Inline gap="4"><Heading level={2} size="section">Avatar</Heading><Link href="/components/avatar">Explore</Link></Inline>
           <Inline gap="3"><Avatar name="Alex Morgan" src={image ? "/avatar-demo.svg" : undefined} size="sm" /><Avatar name="Alex Morgan" src={image ? "/avatar-demo.svg" : undefined} /><Avatar name="Alex Morgan" src={image ? "/avatar-demo.svg" : undefined} size="lg" /><Avatar name="Sam Lee" /><Avatar name="Flood" shape="rounded" fallback="F" /></Inline>
-          <Inline gap="3"><Avatar name="Alex Morgan" src={image ? "/avatar-demo.svg" : undefined} decorative /><Stack gap="1"><Text size="compact">Alex Morgan</Text><Text size="helper" tone="subtle">Design engineer</Text></Stack><Badge tone="success" size="sm">Online</Badge></Inline>
+          <AvatarGroup label="Project collaborators" size="sm" max={2} overflowPresentation="popover" items={[{id:"alex",name:"Alex Morgan"},{id:"sam",name:"Sam Lee"},{id:"june",name:"June Park"},{id:"mika",name:"Mika Chen"}]} />
+          <AuthorMeta name="Alex Morgan" src={image ? "/avatar-demo.svg" : undefined} presence={{state:"online",label:"Online"}} metadata="Design engineer" />
           <Button variant="subtle" size="sm" onClick={() => setImage(value => !value)}>{image ? "Show initials" : "Show image"}</Button>
         </Stack></Surface>
       </div>
@@ -101,14 +104,21 @@ export default function ContentBoard() {
           <Surface padding="6"><Stack gap="6">
             <Inline gap="4"><Heading level={3} size="section">Progress</Heading><Link href="/components/progress">Explore</Link></Inline>
             <Progress label="Uploading files" value={unknown ? undefined : progress} valueText={unknown ? "Estimating…" : `${progress}%`} />
-            <Progress label="Preparing workspace" value={35} tone="neutral" size="sm" />
+            <ProgressRing label="Preparing workspace" value={35} valueText="35%" tone="neutral" size="sm" />
             <Inline gap="2"><Button variant="subtle" size="sm" onClick={() => setProgress(value => value >= 100 ? 0 : Math.min(100, value + 20))}>Advance</Button><Button variant="subtle" size="sm" aria-pressed={unknown} onClick={() => setUnknown(value => !value)}>Indeterminate</Button></Inline>
           </Stack></Surface>
           <Surface padding="6"><Stack gap="6">
             <Inline gap="4"><Heading level={3} size="section">Meter</Heading><Link href="/components/meter">Explore</Link></Inline>
-            <Meter label="Storage used" value={storage} valueText={`${storage} of 100 GB`} tone={storage >= 90 ? "warning" : "neutral"} />
+            <Stack gap="4">
+              <CapacityMeter layout="inline" label="Storage used" used={storage} capacity={100} warningAt={90} unit="GB" />
+              <CompositionBar label="Storage by file type" items={[
+                {id:"originals", label:"Originals", value:originals},
+                {id:"exports", label:"Exports", value:exportedFiles},
+                {id:"backups", label:"Backups", value:storage - originals - exportedFiles},
+              ]} formatValue={value=>`${value} GB`} />
+            </Stack>
             <Meter label="Battery" value={82} valueText="82% remaining" tone="success" size="sm" />
-            <Button variant="subtle" size="sm" onClick={() => setStorage(value => value >= 100 ? 25 : Math.min(100, value + 25))}>Use more storage</Button>
+            <Button variant="subtle" size="sm" onClick={() => setStorage(value => value > 100 ? 25 : value + 25)}>Use more storage</Button>
           </Stack></Surface>
         </div>
         <Surface padding="6"><Stack gap="4">

@@ -7,6 +7,29 @@ async function open(page:Page){
   await expect(bar).toBeVisible();await page.evaluate(()=>document.fonts.ready);return bar;
 }
 
+test('accepted filter disclosure leaves the query and Filters control in place',async({page})=>{
+  const bar=await open(page);
+  await chooseSelectOption(page.getByRole('combobox',{name:'CollectionToolbar prop visibleFilters',exact:true}),'1');
+  const filters=bar.getByRole('button',{name:'Filters',exact:true});
+  const owner=bar.getByRole('button',{name:'Remove Owner: Maya',exact:true});
+  const toggle=bar.getByRole('button',{name:'Show 1 more',exact:true});
+  const search=bar.getByRole('searchbox');
+  await search.fill('Checkout');
+  const anchor=(await filters.boundingBox())!;
+  const rowOffset=anchor.y-(await bar.boundingBox())!.y;
+  await expect(owner).toHaveCount(0);
+  await toggle.press('Enter');
+  await expect(bar.getByRole('button',{name:'Show fewer',exact:true})).toBeFocused();
+  await expect(owner).toBeVisible();
+  const revealedAnchor=(await filters.boundingBox())!;
+  expect(revealedAnchor.x).toBeCloseTo(anchor.x,0);
+  expect(revealedAnchor.y-(await bar.boundingBox())!.y).toBeCloseTo(rowOffset,0);
+  await expect(search).toHaveValue('Checkout');
+  await owner.click();
+  await expect(filters).toBeFocused();
+  await expect(bar.getByRole('button',{name:'Remove Status: Active',exact:true})).toBeVisible();
+});
+
 test('search, accepted summaries and reserved reset retain a persistent focus/anchor',async({page})=>{
   const bar=await open(page),filters=bar.getByRole('button',{name:'Filters',exact:true});
   const x=(await filters.boundingBox())!.x;
@@ -92,4 +115,40 @@ test('end alignment keeps search and the final filter together at the logical ed
   const searchBox=(await search.boundingBox())!,filterBox=(await filter.boundingBox())!;
   expect(filterBox.y).toBeGreaterThanOrEqual(searchBox.y+searchBox.height);
   expect(await bar.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+});
+
+test('split alignment anchors search and trailing controls across direction and reflow',async({page})=>{
+  await page.setViewportSize({width:1440,height:1000});
+  const bar=await open(page);
+  await chooseSelectOption(page.getByRole('combobox',{name:'CollectionToolbar prop align',exact:true}),'split');
+  const row=bar.locator('.flood-collection-toolbar__row');
+  const search=bar.locator('.flood-search-input');
+  const filters=bar.getByRole('button',{name:'Filters',exact:true});
+  const reset=bar.getByRole('button',{name:'Clear filters',exact:true});
+  const lastChip=bar.getByRole('button',{name:'Remove Owner: Maya',exact:true}).locator('..');
+  for(const direction of ['ltr','rtl']){
+    await page.evaluate(dir=>{document.documentElement.dir=dir;},direction);
+    const bounds=(await row.boundingBox())!;
+    const searchBounds=(await search.boundingBox())!, filterBounds=(await filters.boundingBox())!;
+    expect(direction==='ltr'?searchBounds.x-bounds.x:bounds.x+bounds.width-searchBounds.x-searchBounds.width).toBeCloseTo(0,0);
+    expect(direction==='ltr'?bounds.x+bounds.width-filterBounds.x-filterBounds.width:filterBounds.x-bounds.x).toBeCloseTo(0,0);
+    expect(Math.abs(searchBounds.y-filterBounds.y)).toBeLessThan(1);
+  }
+  await page.evaluate(()=>{document.documentElement.dir='ltr';});
+  const filterX=(await filters.boundingBox())!.x;
+  await reset.click();
+  await expect(filters).toBeFocused();
+  expect((await filters.boundingBox())!.x).toBeCloseTo(filterX,0);
+  await page.getByRole('button',{name:'Reset',exact:true}).click();
+  await chooseSelectOption(page.getByRole('combobox',{name:'CollectionToolbar prop align',exact:true}),'split');
+  await page.getByRole('checkbox',{name:'CollectionToolbar prop showFilters',exact:true}).uncheck();
+  const chipEnd=(await lastChip.evaluate(node=>node.getBoundingClientRect().right));
+  expect(await row.evaluate(node=>node.getBoundingClientRect().right)).toBeCloseTo(chipEnd,0);
+  await bar.getByRole('searchbox').fill('Checkout');
+  expect(await lastChip.evaluate(node=>node.getBoundingClientRect().right)).toBeCloseTo(chipEnd,0);
+  await page.getByRole('checkbox',{name:'CollectionToolbar prop showClear',exact:true}).uncheck();
+  expect(await row.evaluate(node=>node.getBoundingClientRect().right)).toBeCloseTo((await lastChip.evaluate(node=>node.getBoundingClientRect().right)),0);
+  await chooseSelectOption(page.getByRole('combobox',{name:'CollectionToolbar prop width',exact:true}),'24rem');
+  expect((await lastChip.boundingBox())!.y).toBeGreaterThanOrEqual((await search.boundingBox())!.y+(await search.boundingBox())!.height);
+  expect(await row.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
 });

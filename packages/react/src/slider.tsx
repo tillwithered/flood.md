@@ -7,7 +7,7 @@ interface Props extends SliderProps { fieldsetComponent: typeof Fieldset; }
 /** Native range inputs keep keyboard/AT interaction; the shared rail handles pointer selection. */
 export const RangeControl = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Props>(function RangeControl({
   fieldsetComponent: Group, label, value, defaultValue = [50], onValueChange,
-  min = 0, max = 100, step = 1, thumbLabels, showValue = true, readOnly = false,
+  min = 0, max = 100, step = 1, thumbLabels, showValue = true, valuePlacement = "below-label", readOnly = false,
   controlSize = "md", disabled, className, name, onKeyDown, ...props
 }, ref) {
   if (![min, max, step, max - min, (max - min) / step].every(Number.isFinite) || min >= max || step <= 0) throw new Error("Flood Slider requires finite increasing bounds and a positive representable step");
@@ -53,7 +53,10 @@ export const RangeControl = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Prop
   const inert = (node: HTMLElement) => disabled || readOnly || Boolean(node.closest("fieldset:disabled"));
   const start = values.length === 1 ? 0 : percent(values[0]);
   const end = percent(values[values.length - 1]);
-  return <Group {...props} id={id} ref={ref} legend={label} name={name} disabled={disabled}
+  const inlineValue = showValue && valuePlacement === "inline" && !props.hideLabel;
+  const readout = showValue && <span className="flood-slider__value" aria-hidden="true"><bdi dir="ltr">{values.join(" – ")}</bdi></span>;
+  const legend = inlineValue ? <span className="flood-slider__label-line"><span>{label}</span>{readout}</span> : label;
+  return <Group {...props} id={id} ref={ref} legend={legend} name={name} disabled={disabled}
     className={["flood-slider", `flood-control--${controlSize}`, className].filter(Boolean).join(" ")}
     data-readonly={readOnly || undefined}
     onKeyDown={event => {
@@ -67,7 +70,7 @@ export const RangeControl = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Prop
       event.preventDefault();
       update(index, values[index] + step * (event.key === (rtl ? "ArrowLeft" : "ArrowRight") ? 1 : -1));
     }}>
-    {showValue && <div className="flood-slider__value" aria-hidden="true"><bdi dir="ltr">{values.join(" – ")}</bdi></div>}
+    {!inlineValue && readout}
     <div className="flood-slider__rail" style={{"--flood-slider-start": `${start}%`, "--flood-slider-end": `${100 - end}%`} as CSSProperties}
       onPointerDown={event => {
         if (inputs.current.includes(event.target as HTMLInputElement) || inert(event.currentTarget) || event.button !== 0) return;

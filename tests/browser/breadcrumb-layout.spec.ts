@@ -10,8 +10,14 @@ test(`Breadcrumb keeps ${destination.label} labels whole and wraps items before 
   const breadcrumb = page.getByRole("navigation", { name: "Page breadcrumb" });
   await page.evaluate(() => document.fonts.ready);
   const lineCounts = () => breadcrumb.locator("li > a, li > span:not([aria-hidden])").evaluateAll(nodes => nodes.map(node => {
-    const range = document.createRange(); range.selectNodeContents(node);
-    return new Set(Array.from(range.getClientRects()).map(rect => Math.round(rect.y))).size;
+    const lines = new Set<number>();
+    const text = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+    while (text.nextNode()) {
+      const range = document.createRange();
+      range.selectNodeContents(text.currentNode);
+      for (const rect of range.getClientRects()) if (rect.width > 0) lines.add(Math.round(rect.y));
+    }
+    return lines.size;
   }));
   await expect.poll(lineCounts).toEqual([1, 1, 1]);
   for (const zoom of [0.8, 1.1, 1.25, 1.5, 1.75, 2]) {
@@ -28,9 +34,10 @@ test(`Breadcrumb keeps ${destination.label} labels whole and wraps items before 
     await breadcrumb.evaluate(node => { node.style.width = "100%"; });
     await expect.poll(lineCounts).toEqual([1, 1, 1]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await breadcrumb.locator('li:last-child > span[aria-current]').evaluate(node => { node.textContent = "LongUnbrokenDestinationName".repeat(8); });
+    const current = breadcrumb.locator('li:last-child > span[aria-current] .flood-truncated-text');
+    await current.evaluate(node => { node.textContent = "LongUnbrokenDestinationName".repeat(8); });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await breadcrumb.locator('li:last-child > span[aria-current]').evaluate((node, label) => { node.textContent = label; }, destination.label);
+    await current.evaluate((node, label) => { node.textContent = label; }, destination.label);
   }
   await page.setViewportSize({ width: 1600, height: 1000 });
   await page.evaluate(() => { document.documentElement.style.fontSize = ""; document.documentElement.dir = "ltr"; });

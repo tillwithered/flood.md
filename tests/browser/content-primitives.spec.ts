@@ -1,6 +1,6 @@
 import { test, expect, type Locator } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { chooseSelectOption } from "./select-helpers";
+import { chooseSelectOption, chooseStudioSheetOption } from "./select-helpers";
 
 async function documentBox(locator: Locator) {
   return locator.evaluate(el => {
@@ -36,6 +36,25 @@ test("content board composes named and decorative primitives without overflow", 
   await expect(avatar.locator("img")).toHaveCSS("opacity", "1");
   await board.getByRole("button", { name: "Animation off" }).click();
   await page.screenshot({ path: `.artifacts/content-primitives-${info.project.name}.png`, fullPage: true });
+});
+
+test("shortcut keycaps keep their order in RTL and expose one spoken combination", async ({page}, info) => {
+  await page.goto("/components/keyboard-shortcut");
+  const shortcut = page.locator(".preview-stage .flood-keyboard-shortcut");
+  const keycaps = shortcut.locator("kbd");
+  await expect(keycaps).toHaveText(["Ctrl","Shift","K"]);
+  await page.getByRole("checkbox",{name:"KeyboardShortcut prop rtl"}).check();
+  const starts = await keycaps.evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().left));
+  expect(starts[0]).toBeLessThan(starts[1]);
+  expect(starts[1]).toBeLessThan(starts[2]);
+  await page.evaluate(()=>document.fonts.ready);
+  await shortcut.screenshot({path:info.outputPath("shortcut-keycaps.png")});
+  await chooseSelectOption(page.getByRole("combobox",{name:"KeyboardShortcut prop presentation"}),"compact");
+  await chooseSelectOption(page.getByRole("combobox",{name:"KeyboardShortcut prop example",exact:true}),"macOS glyphs");
+  await expect(keycaps).toHaveText(["⌘ ⇧ K"]);
+  await expect(keycaps).toHaveAttribute("aria-hidden","true");
+  await expect(shortcut.locator(".flood-visually-hidden")).toHaveText("Command plus Shift plus K");
+  await shortcut.screenshot({path:info.outputPath("shortcut-compact.png")});
 });
 
 test("Avatar preserves geometry across pending load, error, removal and source retry", async ({ page }, info) => {
@@ -90,6 +109,20 @@ test("loading primitives respect reduced motion, forced colors and hidden attrib
   await expect(page.locator(".flood-avatar").first()).toHaveCSS("border-top-width", "1px");
   await page.locator(".flood-badge").first().evaluate(el => el.setAttribute("hidden", ""));
   await expect(page.locator(".flood-badge").first()).toBeHidden();
+});
+
+test("Timestamp preview switches to a localized relative date", async ({page}) => {
+  await page.goto("/components/timestamp");
+  const value = page.locator(".preview-stage time.flood-timestamp");
+  await expect(value).toHaveAttribute("datetime", "2026-11-14T09:30:00Z");
+  await page.getByRole("checkbox", {name:"Timestamp prop relativeTo"}).check();
+  if (await page.getByRole("button", {name:"Locale: en", exact:true}).isVisible()) {
+    await chooseStudioSheetOption(page, "Locale", "ru-RU");
+  } else {
+    await chooseSelectOption(page.getByRole("combobox", {name:"Timestamp prop locale"}), "ru-RU");
+  }
+  await expect(value).toHaveAttribute("lang", "ru-RU");
+  await expect(value).toHaveText(/^2\s+ч\s+назад$/);
 });
 
 test("new catalog previews and generated Markdown expose the same contracts", async ({ page, request }) => {

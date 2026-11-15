@@ -3,6 +3,7 @@ import { build } from "vite";
 import { resolve } from "node:path";
 import { mkdir, writeFile } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
+import { chooseSelectOption } from "./select-helpers";
 let bundle: Promise<string>;
 async function fixture() {
  const file=(path:string)=>JSON.stringify(resolve(path).replaceAll("\\","/"));
@@ -15,6 +16,50 @@ async function fixture() {
  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Numeric controls</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css}body{margin:16px;background:#181818;color:white}#app{max-width:26rem}fieldset{min-width:0}form>fieldset{display:grid;gap:1rem}</style></head><body><header><h1>Numeric controls</h1></header><main id="app"></main><script>${js.replace(/<\/script/gi,"<\\/script")}</script></body></html>`;
 }
 async function open(page:Page){bundle??=fixture();await page.route("**/__numeric.html",async route=>route.fulfill({contentType:"text/html",body:await bundle}));await page.goto('/__numeric.html');}
+
+test("NumberRangeField supports independent exact values, responsive tracks and shared feedback", async ({ page }) => {
+  await page.goto("/components/number-range-field");
+  const group = page.getByRole("group", { name: "Budget (USD)", exact: true });
+  const minimum = group.getByRole("spinbutton", { name: "Minimum" });
+  const maximum = group.getByRole("spinbutton", { name: "Maximum" });
+  await expect(minimum).toHaveValue("1200");
+  await expect(maximum).toHaveValue("5000");
+  await expect(group.getByRole("button")).toHaveCount(0);
+  await minimum.fill("6100");
+  await minimum.press("ArrowUp");
+  await expect(minimum).toHaveValue("6101");
+  await expect(maximum).toHaveValue("5000");
+  const values = await group.evaluate(node => {
+    const form = document.createElement("form");
+    form.id = "numeric-range-test";
+    node.before(form);
+    const inputs = [...node.querySelectorAll("input")];
+    for (const input of inputs) input.setAttribute("form", form.id);
+    const entries = [...new FormData(form)];
+    for (const input of inputs) input.removeAttribute("form");
+    form.remove();
+    return entries;
+  });
+  expect(values).toEqual([["budgetMin", "6101"], ["budgetMax", "5000"]]);
+
+  await group.evaluate(node => { node.style.inlineSize = "13rem"; });
+  await expect.poll(async () => (await maximum.boundingBox())!.y - (await minimum.boundingBox())!.y).toBeGreaterThan(0);
+  expect((await minimum.boundingBox())!.width).toBeCloseTo((await maximum.boundingBox())!.width, 0);
+
+  await chooseSelectOption(page.getByRole("combobox", { name: "NumberRangeField prop example" }), "reversed");
+  for (const input of [minimum, maximum]) {
+    await expect(input).toHaveAttribute("aria-invalid", "true");
+    await expect(input).toHaveAccessibleDescription("Maximum must be at least the minimum.");
+  }
+  await maximum.fill("6500");
+  await expect(minimum).not.toHaveAttribute("aria-invalid", "true");
+  await expect(group.getByRole("alert")).toHaveCount(0);
+  await chooseSelectOption(page.getByRole("combobox", { name: "NumberRangeField prop example" }), "empty");
+  await page.getByRole("checkbox", { name: "NumberRangeField prop required" }).check();
+  await expect(minimum).toHaveValue("");
+  await expect(minimum).toHaveJSProperty("required", true);
+  await expect(maximum).toHaveJSProperty("required", true);
+});
 
 test('NumberInput stays a single control in dense enlarged table-width tracks',async({page})=>{
  await open(page);await page.evaluate(()=>{document.documentElement.style.fontSize='24px';const group=document.querySelector<HTMLElement>('.flood-number-input')!;group.style.width='7.75rem';});

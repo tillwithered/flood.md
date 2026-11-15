@@ -14,8 +14,20 @@ test.beforeEach(async ({page}) => {
 test('installed recipe preserves cross-page selection, cancellation and protected rows',async ({page})=>{
   const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
   const archive=page.getByRole('button',{name:'Archive projects',exact:true});
-  await expect(archive).toBeDisabled();
+  await expect(archive).toHaveCount(0);
+  const toolbar = page.getByRole('group', {name:'Project filters'});
+  const search = toolbar.getByRole('searchbox');
+  const clear = toolbar.getByRole('button', {name:'Clear filters'});
+  const table = page.getByRole('table', {name:'Project list'});
+  const baseline = await table.boundingBox();
+  await search.fill('Website');
+  await expect(clear).toBeVisible();
+  await expect(table.getByText('Website', {exact:true})).toBeVisible();
+  await expect(table.getByText('Design system', {exact:true})).toHaveCount(0);
+  await clear.click();
+  await expect(search).toHaveValue('');
   await page.getByRole('checkbox',{name:'Select Design system',exact:true}).check();
+  expect(await table.boundingBox()).toEqual(baseline);
   await page.getByRole('button',{name:'Next page',exact:true}).click();
   await expect(page.getByRole('checkbox',{name:'Select Protected project',exact:true})).toBeDisabled();
   await page.getByRole('checkbox',{name:'Select Research',exact:true}).check();
@@ -29,8 +41,8 @@ test('installed recipe preserves cross-page selection, cancellation and protecte
   await archive.click();
   await dialog.getByRole('button',{name:'Archive selected',exact:true}).click();
   await expect(page.getByText('2 projects archived.',{exact:true})).toBeVisible();
-  await expect(page.getByText('0 selected',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Reset',exact:true}).click();
+  await expect(archive).toHaveCount(0);
+  await page.getByRole('button',{name:'Reset collection',exact:true}).click();
   await expect(page.getByRole('checkbox',{name:'Select Design system',exact:true})).toBeVisible();
   expect(errors).toEqual([]);
   expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);
@@ -46,14 +58,21 @@ test('installed composition remains reachable with enlarged narrow RTL content',
   await page.screenshot({path:info.outputPath('agent-consumer-narrow.png'),fullPage:true});
 });
 
-test('installed workspace keeps scroll ownership as the table shrinks', async ({page}) => {
+test.use({
+  launchOptions: async ({browserName}, use) => use(browserName === 'chromium' ? {
+    ignoreDefaultArgs: ['--hide-scrollbars'],
+    args: ['--disable-features=OverlayScrollbar'],
+  } : {}),
+});
+
+test('installed workspace keeps scroll ownership as the table shrinks', async ({page}, info) => {
   await page.setViewportSize({width: 1440, height: 1000});
   const viewport = page.getByRole('region', {name: 'Workspace content'});
   await expect(viewport).toHaveAttribute('data-scrollbars', 'overlay');
-  const contentHeight = await viewport.locator('.consumer-content').evaluate(node => node.offsetHeight);
+  const contentHeight = await viewport.getByRole('heading', {name:'Project review'}).evaluate(node => node.parentElement!.offsetHeight);
   await page.setViewportSize({width: 1440, height: contentHeight - 40});
   const checkScroll = (expectOverflow: boolean) =>
-    page.evaluate(assertWorkspaceScroll, {rootSelector: '#workspace', expectOverflow});
+    page.evaluate(assertWorkspaceScroll, {rootSelector: '#project-review', expectOverflow});
   await expect(async () => { await checkScroll(true); }).toPass({timeout: 3000});
   const results = page.getByRole('table', {name: 'Project list'});
   const edges = () => results.evaluate(node => {
@@ -61,6 +80,20 @@ test('installed workspace keeps scroll ownership as the table shrinks', async ({
     return {left, right};
   });
   const before = await edges();
+  const toolbar = page.getByRole('group', {name:'Project filters'});
+  const toolbarBefore = await toolbar.boundingBox();
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({path:info.outputPath('workspace-populated.png')});
+  await toolbar.getByRole('searchbox').fill('No matching project');
+  await expect(results.getByRole('row', {name:/Design system/})).toHaveCount(0);
+  await expect(results.getByText('No results found.', {exact:true})).toBeVisible();
+  await expect(page.getByText('0–0 of 0', {exact:true})).toHaveCount(0);
+  await expect(async () => { await checkScroll(false); }).toPass({timeout:3000});
+  expect(await edges()).toEqual(before);
+  expect(await toolbar.boundingBox()).toEqual(toolbarBefore);
+  await page.screenshot({path:info.outputPath('workspace-empty.png')});
+  await toolbar.getByRole('button', {name:'Clear filters'}).click();
+  await expect(async () => { await checkScroll(true); }).toPass({timeout:3000});
 
   for (const project of ['Design system', 'Website', 'Documentation']) {
     await page.getByRole('checkbox', {name: 'Select ' + project, exact: true}).check();

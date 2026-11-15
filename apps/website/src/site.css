@@ -196,7 +196,7 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
   .docs-layout[data-preview-layout="workspace"] .doc-article {
     --studio-reference-width: 6rem;
   }
-  .flood-root .studio-reference-trigger .flood-kbd { display: none; }
+  .flood-root .studio-reference-trigger .flood-keyboard-shortcut { display: none; }
 }
 @media (max-width: 36rem) {
   .site-shell:has(.docs-layout[data-preview-layout="workspace"]) { block-size: auto; overflow: visible; }
@@ -223,15 +223,13 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 .side-group { display: grid; gap: .125rem; margin-block-end: 1.5rem; }
 .side-label { display: block; padding: .5rem .75rem; }
 .side-nav .side-link { inline-size: 100%; justify-content: flex-start; white-space: normal; text-align: start; }
-.side-nav .side-link:has(.catalog-item-name) { padding-inline: var(--flood-sys-space-2); }
-.catalog-item-name { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flood-root .side-nav .catalog-component-row { --flood-navigation-item-inset: var(--catalog-label-inset, var(--flood-sys-space-2)); }
 .side-nav .side-link[aria-current="page"] { font-weight: 600; }
 .studio-catalog-sheet .catalog-nav-tools { background: var(--flood-sys-color-surface-overlay); }
 .studio-catalog-sheet { --catalog-label-inset: var(--flood-sys-space-2); }
 .studio-catalog-sheet .flood-overlay-title,
 .studio-catalog-sheet .side-label { padding-inline-start: calc(var(--catalog-label-inset) + var(--flood-sys-stroke-width)); }
-.studio-catalog-sheet .side-nav .catalog-link,
-.studio-catalog-sheet .side-nav .side-link:has(.catalog-item-name) { padding-inline: var(--catalog-label-inset); }
+.studio-catalog-sheet .side-nav .catalog-link { padding-inline: var(--catalog-label-inset); }
 .studio-catalog-sheet .side-group { margin-block-end: var(--flood-sys-space-4); }
 .studio-catalog-sheet .catalog-nav-tools { padding-block-end: var(--flood-sys-space-2); }
 .side-nav .catalog-link { justify-content: space-between; }

@@ -35,6 +35,8 @@ Import the Flood stylesheet once. Keep the trigger inside the existing FloodRoot
 Translate the dialog title, search label, placeholder, close label and state
 messages. The title and search label remain available to assistive technology.
 Use comfortable density by default and compact density for denser workspaces.
+Use the same destination glyphs as the sidebar when they help identify results.
+An item can also show a short hint for a shortcut already registered by the host.
 
 Opening focuses the search input. Arrow keys move through available results.
 Enter or click calls the host action and requests closure. Escape, the close

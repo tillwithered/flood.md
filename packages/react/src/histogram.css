@@ -4,11 +4,6 @@
   container-type: inline-size;
 }
 .flood-root .flood-histogram__plot { position: relative; cursor: crosshair; }
-.flood-root .flood-histogram__plot:focus-visible {
-  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
-  outline-offset: var(--flood-sys-focus-offset);
-  border-radius: var(--flood-sys-radius-indicator);
-}
 .flood-root .flood-histogram__columns {
   position: relative;
   display: flex;

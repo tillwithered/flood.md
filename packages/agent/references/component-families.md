@@ -15,7 +15,7 @@ chosen siblings and intentional differences in development notes, outside the UI
 | --- | --- |
 | Action and icon action | Button/IconButton height, text, icon scale, insets and focus treatment |
 | Text/selection/number field | Field label relationship, control height and field-state semantics |
-| Command collection | Toolbar/Menu owners, action sizes and keyboard ownership |
+| Command collection | Toolbar/Menu owners, SplitButton default actions, action sizes and keyboard ownership |
 | Floating surface | Existing overlay material, layer placement, inset and focus restoration |
 | Named content or record | Typography, hierarchy and metadata owners, not a new title scale |
 | Data visualization | LineChart data-mark stroke weight, quiet plot grid, exact-value inspection and stable geometry |
@@ -45,6 +45,48 @@ not establish that capability for other consumers.
   still needs a visible focus indicator and selection/copy. It blocks edits and
   its chooser; disabled has a different native contract. Do not erase focus to
   make a state look quieter or add helper copy merely to explain that contract.
+
+## Review the anatomy and its states
+
+Start with the parts that carry meaning or change what the user can do. Include
+the supporting geometry around those parts. For a new component, walk the
+whole table below. For a change, inspect the affected parts and their neighbors.
+Identify each part's owner, what it does in context and how to verify it.
+Use the dedicated workflows for measurements and state-specific checks.
+
+| Dimension | Decide | Inspect in context |
+| --- | --- | --- |
+| Anatomy and content | Give each slot a purpose. Define which slots are optional, who supplies them and how their omission affects the layout. | Compare absent, short and long content. Reserve space for a missing slot when it preserves a meaningful track or prevents a shift during use. |
+| Space and alignment | Assign inner insets to the component and relationships between siblings to their parent. Choose the visible axes for text, icons and actions. | Measure visible insets, glyph centres and edges. Check whether an optional line, thicker stroke or scrollbar can move a neighbor. Compare spacing within groups and between groups. |
+| Type, color and icons | Give each label, value, heading and glyph a role. Choose the mark's visual size independently from its hit area. Decide what semantic color communicates. | Compare baselines, visual weight and optical centres. Check enlarged text, wrapping and truncation. Keep essential text reachable and pair meaningful color with an appropriate label, shape or state. |
+| Shape and edges | Let the outer surface own its silhouette. Decide whether a border shows a group, a control boundary or a state. | Trace the entire perimeter after inner backgrounds, sticky areas and overflow paint. Check clearance at curved corners and compare nested curves at their actual inset. |
+| Material and depth | Choose the backdrop first. Assign fill, border and shadow by what must read as a group or a separate layer. | Compare on actual parent surfaces with short and overflowing content. Check edge separation, readability over the backing content and clipping by nearby surfaces. |
+| States and targets | Define the supported inputs and who owns the accepted state, focus, hit area and feedback. | Exercise applicable resting, hover, pressed, focus, selected, disabled, read-only and feedback states. Include meaningful combinations such as selected plus focus. Observe the task outcome and neighboring geometry. |
+| Motion | Name the event, the part that moves and the geometry that stays anchored. Choose a bounded transition and a reduced-motion behavior. | Check reversal, rapid repeated input and reduced motion. Observe focus, reachability and accepted state through the transition. |
+| Constraints | Identify which parts can grow, wrap, scroll or overflow. Decide which relationships remain stable. | Compare real content at ordinary size and the relevant limit. Check the first case where a label wraps, a slot disappears or scrolling begins. |
+
+Compare different contexts when they change the decision:
+
+- A table footer shares the outer panel's perimeter. A flat table inside a
+  Drawer may distinguish totals through spacing, alignment and type weight.
+  Inspect the footer's outer corners as well as the alignment of the totals.
+- A menu layered over a similar-colored panel needs a perceptible edge. Compare
+  fill, border and shadow on that backing surface before changing family tokens.
+- A secondary action nested inside a rounded header needs room for its hover
+  fill and keyboard outline. Inspect the curved corner and the seam with the
+  next surface, and retain the touch target when using a compact pointer size.
+- A help action keeps its glyph and hover paint compact beside the label.
+  Check the wider touch target independently from the painted circle.
+- A chart hover label needs room for the actual values and a stable anchor
+  during pointer exit. Observe the label and indicator together while the plot
+  and surrounding layout hold their geometry.
+- A navigation rail and its expanded sidebar can use different visible
+  spacing. Check the centre of the compact targets and the shared text and
+  trailing-action axes of the expanded rows, including optional badges.
+
+Record deliberate exceptions and their context. Use geometry and interaction
+assertions for measurable outcomes. For visual judgments, compare the complete
+region and a detail at its intended size.
 
 ## Compare the family in one scene
 
@@ -90,6 +132,11 @@ override leaves fields and composed controls inconsistent. Keep absolute
 material colors separate from contextual control roles and verify the nearest
 nested owner resets those roles. Preserve accent focus and destructive meaning.
 
+Use SplitButton when a task has an established default and related alternatives.
+Its text action executes directly, and the adjacent named chevron opens Menu.
+Keep the two keyboard targets and the shared edge in all states. Use a single
+Menu trigger when the choice must come first.
+
 Vertical pill Toolbar keeps one column on a shared center axis. Use named
 icon-only actions and a consistent control size for a compact rail. Use a
 rounded vertical Toolbar with consistently labeled controls when text is needed.
@@ -103,10 +150,17 @@ BulkActionBar counter can be label, number or none. Visible counters reserve
 their width across count changes; choose counterWidth for the expected localized
 summary rather than sizing it from each current count. Hiding it removes its slot.
 
+In tables, mixed StatusIndicator presentations share a leading marker track
+when they use the same size. The icon's subdued semantic backplate and the dot
+center on that track. Compare their centers in the rendered column and check
+the leading edge in both writing directions.
+
 CollectionToolbar composes the search, Tag, Button and Popover families without
 adding a surface. Use normal Tab navigation for this mixed input/action group.
 Compare SearchInput and existing collection controls at the same controlSize;
 preserve the end anchor, reserved reset space and contextual action colors.
+CollectionToolbar sizes its own controls. Choose the corresponding size for
+host-owned quick filters and peer actions in its slots.
 Keep saved views and query execution in the host; filterContent supplies its draft.
 
 CollectionViewSwitcher composes Select and existing action owners on a separate

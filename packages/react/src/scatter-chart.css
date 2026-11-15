@@ -18,11 +18,6 @@
   cursor: crosshair;
 }
 
-.flood-root .flood-scatter-chart__plot:focus-visible {
-  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
-  outline-offset: var(--flood-sys-focus-offset);
-  border-radius: var(--flood-sys-radius-indicator);
-}
 
 .flood-root .flood-scatter-chart__area {
   position: absolute;

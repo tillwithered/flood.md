@@ -33,10 +33,21 @@ what the user arrives with, the next meaningful action, what changes when it
 succeeds, and how the user recovers if it fails. Name which inputs, filters,
 selection and focus should survive each transition. Use the trace to select
 the relevant workflows and exercise the rendered screen before delivery.
+For a multi-route app, a new section in an existing workspace or a task that
+moves between page and overlay, read the
+[application structure skill](references/flood-application-structure/SKILL.md)
+before composing screens. Establish shared visual roles and what survives the
+transition, then select the workflow for each surface.
+For a new screen, choose its [page and scroll owner](references/flood-screen-composition/SKILL.md#choose-the-page-and-scroll-owner)
+before assembling the main content. Base the choice on how people navigate
+and return to work. Read the matching recipe and follow the live task through
+the same shell used by the actual route.
 
 For a reusable component or visual API change, the composition skill routes to
 [component families](references/component-families.md). Flood's own authors use
 that same contract; it is not limited to downstream screen generation.
+Use the [anatomy and states review](references/component-families.md#review-the-anatomy-and-its-states)
+for changes to spacing, type, surfaces, shape, feedback or motion.
 
 For a new screen, read the composition and interface-content workflows below
 before the first JSX. Discover owners in the installed catalog before choosing
@@ -54,6 +65,9 @@ form, read the hierarchy workflow to choose visual
 roles, shared tracks and relationship spacing. For a composed form, also read the forms workflow's grouping section; independent
 per-row grids do not establish a coherent hierarchy. For icon-bearing controls,
 use the foundations workflow.
+When actions compete, read [action hierarchy](references/flood-hierarchy/SKILL.md#scale-and-emphasis-of-actions)
+before choosing sizes and variants. Identify which region each action affects
+and which next action should lead in each affected state.
 For record lists or details, read the records workflow before assigning metadata
 to slots. Record each field's recognition/comparison/action purpose and list/detail
 placement outside the interface; an available slot is not a reason to fill it.
@@ -61,6 +75,9 @@ For full-window workspaces, use AppShell content scrolling. Add the
 [workspace scroll assertion](references/rendered-review.md#require-workspace-scroll-in-browser-tests)
 to the host's browser tests and run it with overflowing and filtered content
 before reporting completion.
+For changed UI, connect each material completion claim to an exercised state,
+an executed check or an inspected screenshot. Record any state you could not
+exercise. See [visual review](references/flood-visual-review/SKILL.md).
 For save, upload or other fallible operations, read the feedback workflow too:
 message lifetime belongs to the operation/record, not merely the page's Alert.
 
@@ -69,6 +86,10 @@ message lifetime belongs to the operation/record, not merely the page's Alert.
 | Introducing or editing interface copy, labels, hierarchy or adapting a reference | [Interface content skill](references/flood-interface-content/SKILL.md) | Necessary, accurate content with a clear job; no invented capabilities or redundant narration |
 | Component, composite, website or playground UI | [Composition skill](references/flood-composition/SKILL.md) | Reused primitives; missing small capabilities implemented before composites |
 | New screen, hard-to-scan page or unclear next action | [Screen composition skill](references/flood-screen-composition/SKILL.md) | Task-led layout, meaningful reading order and reachable actions |
+| Whole workspace, new app section or a task moving between surfaces | [Application structure skill](references/flood-application-structure/SKILL.md) | Recognizable shell and hierarchy, meaningful page/overlay choices, stable context across navigation |
+| Deciding how groups occupy width, share edges or separate in a region | [Layout composition skill](references/flood-layout-composition/SKILL.md) | Deliberate grouping and visual balance at normal and constrained widths |
+| Choosing type roles, wrapping, truncation or numeric alignment | [Typography skill](references/flood-typography/SKILL.md) | Readable hierarchy, distinct compact labels and comparable values |
+| Approval, consequential change, batch outcomes or monitoring summary | [Decision design skill](references/flood-decision-design/SKILL.md) | Evidence at the point of action, accurate outcomes and a recovery path |
 | Implementing a screen layout or form | [Composition](references/composition.md) | Existing primitives, correct host width and form ownership |
 | Task/group/field hierarchy, flat forms or inconsistent row tracks | [Hierarchy skill](references/flood-hierarchy/SKILL.md) | Distinct roles, shared control edges and deliberate vertical rhythm |
 | Spacing, density, nested geometry or shifting previews | [Spacing skill](references/flood-spacing/SKILL.md) | Measured visual relationships and nonoverlapping interactive areas |

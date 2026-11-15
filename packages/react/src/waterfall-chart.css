@@ -8,11 +8,6 @@
   position: relative;
   cursor: crosshair;
 }
-.flood-root .flood-waterfall-chart__plot:focus-visible {
-  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
-  outline-offset: var(--flood-sys-focus-offset);
-  border-radius: var(--flood-sys-radius-indicator);
-}
 .flood-root .flood-waterfall-chart__columns {
   position: relative;
   display: grid;

@@ -1,12 +1,14 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
-import { Input, InputGroup, IconButton, ScrollArea, Tag, Button, type ComboboxProps, type InputProps, type ComboboxOption } from "./index.js";
+import { Avatar, Input, InputGroup, IconButton, IconSlot, ScrollArea, Tag, Button, type ComboboxProps, type InputProps, type ComboboxOption } from "./index.js";
 import { mergeDescriptions, resolveFieldStatus } from "./field-state.js";
 import { positionLayer, registerLayer } from "./overlay-runtime.js";
+import { useSelectionTags, type SelectionTagDisplay } from "./selection-tags.js";
+import { SearchGlyph } from "./search-glyph.js";
 
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 const searchable = (text: string) => text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase();
 
-interface SearchSelectionProps extends Omit<ComboboxProps, "value" | "defaultValue" | "onValueChange"> {
+interface SearchSelectionProps extends Omit<ComboboxProps, "value" | "defaultValue" | "onValueChange">, SelectionTagDisplay {
   selectedValues?: readonly string[];
   initialValues: readonly string[];
   onSelectionChange?: (value: string[]) => void;
@@ -28,6 +30,7 @@ export const SearchSelection = /* @__PURE__ */ forwardRef<HTMLInputElement, Sear
   emptyMessage = "No results found.", listLabel = "Options", toggleLabel = "Show options",
   clearLabel = "Clear selection", invalidSelectionMessage = "Select an option.",
   controlSize = "md", readOnly, disabled, required, name, id: explicitId,
+  maxVisibleTags, moreTagsLabel, fewerTagsLabel,
   className, onKeyDown, onBlur, onClick, onInvalid, autoComplete = "off", ...props
 }, forwardedRef) {
   if (new Set(options.map(option => option.value)).size !== options.length || options.some(option => !option.value || !option.label.trim())) throw new Error("Flood Combobox options need unique nonempty values and labels");
@@ -51,6 +54,9 @@ export const SearchSelection = /* @__PURE__ */ forwardRef<HTMLInputElement, Sear
   const [validation, setValidation] = useState("");
   const selections = (value ?? local).map(id => selectedOptions.find(option => option.value === id) ?? options.find(option => option.value === id)).filter((option): option is ComboboxOption => Boolean(option));
   const selected = selections[0], selectedIds = selections.map(option => option.value);
+  const hasOptionAvatars = options.some(option => option.avatar) || selectedOptions.some(option => option.avatar);
+  const display = useSelectionTags(selections,{maxVisibleTags,moreTagsLabel,fewerTagsLabel},disabled,() => setOpen(false));
+  const {setExpanded: setTagsExpanded} = display;
   const displayed = freeText ? text : query ?? (multiple ? "" : selected?.label ?? "");
   const resultQuery = freeText ? text : controlledQuery ?? draftQuery ?? "";
   const pending = loadState === "loading" || (filtering === "manual" && optionsQuery !== resultQuery);
@@ -115,13 +121,13 @@ export const SearchSelection = /* @__PURE__ */ forwardRef<HTMLInputElement, Sear
         if (event.defaultPrevented || !input.current) return;
         if (current.current.value === undefined) setLocal(initial.current);
         if (current.current.textValue === undefined) setLocalText(initialFreeText.current);
-        setQuery(null); setOpen(false); setValidation("");
+        setQuery(null); setOpen(false); setValidation(""); setTagsExpanded(false);
       }, 0);
       timers.add(timer);
     };
     form.addEventListener("reset", reset);
     return () => { form.removeEventListener("reset", reset); timers.forEach(clearTimeout); };
-  }, [props.form]);
+  }, [props.form,setTagsExpanded]);
   useEffect(() => {
     const control = input.current, Observer = control?.ownerDocument.defaultView?.MutationObserver;
     if (!control || !Observer) return;
@@ -204,8 +210,9 @@ export const SearchSelection = /* @__PURE__ */ forwardRef<HTMLInputElement, Sear
         if (inert()) return;
         const rtl = event.currentTarget.ownerDocument.defaultView?.getComputedStyle(event.currentTarget).direction === "rtl";
         if (multiple && event.key === "Backspace" && displayed === "") {
-          const last = [...selections].reverse().find(option => !option.disabled);
-          if (last) { event.preventDefault(); remove(last.value); }
+          const last = [...display.visible].reverse().find(option => !option.disabled);
+          if (last || display.overflow) event.preventDefault();
+          if (last) remove(last.value);
         } else if (multiple && event.key === (rtl ? "ArrowRight" : "ArrowLeft") && event.currentTarget.selectionStart === 0 && event.currentTarget.selectionEnd === 0) {
           const buttons = root.current?.querySelectorAll<HTMLButtonElement>(".flood-tag__remove:not(:disabled)");
           if (buttons?.length) { event.preventDefault(); buttons[buttons.length - 1].focus(); }
@@ -219,18 +226,31 @@ export const SearchSelection = /* @__PURE__ */ forwardRef<HTMLInputElement, Sear
       },
   };
   const removable = selections.some(option => !option.disabled);
+  const identity = !multiple && !freeText && hasOptionAvatars ? (
+    <span className="flood-combobox__identity" aria-hidden="true">
+      {query === null && selected?.avatar
+        ? <Avatar {...selected.avatar} name={selected.label} size="xs" decorative data-selection-avatar="" />
+        : <IconSlot size="sm"><SearchGlyph /></IconSlot>}
+    </span>
+  ) : undefined;
   const actions = <span className="flood-combobox__actions">
         {clearable && <IconButton label={clearLabel} variant="ghost" size={controlSize} className={!(freeText ? text : selected) ? "flood-combobox__clear-empty" : undefined} disabled={disabled || readOnly || !(freeText ? text : selected) || (multiple && !removable)} aria-hidden={!(freeText ? text : selected) || undefined} tabIndex={-1}
           onPointerDown={event => event.preventDefault()} onClick={() => select("")}>{glyph(true)}</IconButton>}
         <IconButton label={toggleLabel} variant="ghost" size={controlSize} disabled={disabled || readOnly} tabIndex={-1} aria-expanded={open} aria-controls={open ? menuId : undefined}
           onPointerDown={event => event.preventDefault()} onClick={() => { if (open) close(); else show(); input.current?.focus({ preventScroll: true }); }}>{glyph(false)}</IconButton>
       </span>;
-  return <div className={multiple ? "flood-combobox flood-multi-select" : "flood-combobox"} ref={root} hidden={props.hidden} dir={props.dir} lang={props.lang}>
+  return <div className={multiple ? "flood-combobox flood-multi-select" : "flood-combobox"} ref={root} hidden={props.hidden} dir={props.dir} lang={props.lang}
+    onClick={event => {
+      if (multiple || !(event.target as Element).closest(".flood-input-group__addon--start") || inert()) return;
+      input.current?.focus({preventScroll: true});
+      show();
+    }}>
     {multiple ? <div className={["flood-input-group", "flood-multi-select__control", `flood-control--${controlSize}`, className].filter(Boolean).join(" ")} style={props.style}
       data-disabled={disabled || undefined} data-readonly={readOnly || undefined} data-status={resolveFieldStatus(props.status, props.invalid || Boolean(validation), props["aria-invalid"])}
       data-has-selection={Boolean(selections.length) || undefined} data-query={Boolean(displayed) || undefined} data-clearable={clearable || undefined}
       onClick={event => { if (event.target === event.currentTarget && !inert()) { input.current?.focus(); show(); } }}>
-      {selections.map(option => <Tag key={option.value} size={controlSize === "sm" ? "sm" : controlSize === "md" ? "md" : "lg"} disabled={disabled || option.disabled}
+      {display.visible.map(option => <Tag key={option.value} size={controlSize === "sm" ? "sm" : controlSize === "md" ? "md" : "lg"} disabled={disabled || option.disabled}
+        avatar={option.avatar && {...option.avatar, name: option.label}}
         onRemove={readOnly ? undefined : () => remove(option.value)} removeLabel={`${removeItemLabel} ${option.label}`}
         removeButtonProps={{tabIndex:-1,onKeyDown:event => {
           if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || inert()) return;
@@ -242,11 +262,12 @@ export const SearchSelection = /* @__PURE__ */ forwardRef<HTMLInputElement, Sear
           else if (event.key === (rtl ? "ArrowLeft" : "ArrowRight")) { event.preventDefault(); (buttons[index + 1] ?? input.current)?.focus(); }
           else if (event.key === (rtl ? "ArrowRight" : "ArrowLeft")) { event.preventDefault(); (buttons[Math.max(0,index - 1)])?.focus(); }
         }}}>{option.label}</Tag>)}
+      {display.overflow}
       <div className="flood-multi-select__editor">
         <Input {...inputProps} ref={input} style={undefined} />
         {actions}
       </div>
-    </div> : <InputGroup {...inputProps} ref={input} className={["flood-combobox__control", className].filter(Boolean).join(" ")} end={actions} />}
+    </div> : <InputGroup {...inputProps} ref={input} className={["flood-combobox__control", className].filter(Boolean).join(" ")} start={identity} end={actions} />}
     {!freeText && (multiple ? selections : [selected]).map((option, index) => <input key={option?.value ?? index} type="hidden" name={name} value={option?.value ?? ""} disabled={disabled} form={props.form} />)}
     {multiple && Boolean(selections.length) && <span id={`${id}-selection`} className="flood-visually-hidden">{selections.map(option => option.label).join(", ")}</span>}
     {open && <div ref={panel} popover="manual" className="flood-select__menu flood-combobox__menu"
@@ -263,6 +284,9 @@ export const SearchSelection = /* @__PURE__ */ forwardRef<HTMLInputElement, Sear
             if (event.pointerType === "mouse") event.preventDefault();
           }}
           onMouseDown={event => event.preventDefault()} onClick={() => select(option.value)}>
+          {hasOptionAvatars && <span className="flood-selection-option__avatar" aria-hidden="true">
+            {option.avatar && <Avatar {...option.avatar} name={option.label} size="xs" decorative />}
+          </span>}
           <span className="flood-combobox__option-text"><span>{option.label}</span>{option.description && <span className="flood-combobox__description">{option.description}</span>}</span>
           <span className="flood-select__selected" aria-hidden="true">{selectedIds.includes(option.value) ? "✓" : ""}</span>
         </div>)}</div>)}

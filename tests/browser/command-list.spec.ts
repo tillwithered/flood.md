@@ -50,6 +50,27 @@ test("CommandList retains active scrolling, hidden naming and reflow under enlar
  await open(page);await page.getByRole("checkbox",{name:"Many commands",exact:true}).check();await page.getByRole("checkbox",{name:"Hide label",exact:true}).check();await page.setViewportSize({width:390,height:1100});await page.evaluate(()=>{document.documentElement.dir="rtl";document.documentElement.style.fontSize="24px"});const editor=input(page);await editor.press("End");const id=await editor.getAttribute("aria-activedescendant");await expect(page.locator(`[id="${id}"]`)).toBeInViewport();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);await page.screenshot({path:".artifacts/command-list-rtl.png",fullPage:true});
 });
 
+test("CommandList keeps one text axis through filtering mixed rows", async ({page}) => {
+  await page.goto("/components/command-list");
+  await page.getByRole("checkbox",{name:"CommandList prop showDetails"}).check();
+  await page.getByRole("checkbox",{name:"CommandList prop constrainWidth"}).check();
+  const list = page.locator(".preview-stage .flood-command-list");
+  const editor = list.getByRole("combobox");
+  const newProject = list.getByRole("option",{name:"New project Start without a template"});
+  const recent = list.getByRole("option",{name:"Recent projects"});
+  await expect(newProject).toHaveAccessibleDescription("Alt+1");
+  const x = async (option:typeof recent) => (await option.locator(".flood-command-list__label").boundingBox())!.x;
+  const start = await x(newProject);
+  expect(await x(recent)).toBeCloseTo(start,0);
+  await editor.fill("recent");
+  await expect(newProject).toHaveCount(0);
+  expect(await x(recent)).toBeCloseTo(start,0);
+  expect(await list.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+  await editor.press("Alt+Digit1");
+  await expect(page.locator(".workbench-feedback")).toHaveText("Command: create");
+  await expect(editor).toBeFocused();
+});
+
 test("CommandList native touch invokes once and preserves input focus",async({browser,baseURL})=>{
  const context=await browser.newContext({baseURL,hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
  try{const page=await context.newPage();await open(page);await input(page).fill("config");const option=action(page,"Settings"),box=(await option.boundingBox())!;expect(box.height).toBeGreaterThanOrEqual(44);await option.tap();await expect(page.getByRole("status",{name:"Invoked commands"})).toHaveText('["settings"]');await expect(input(page)).toBeFocused();}

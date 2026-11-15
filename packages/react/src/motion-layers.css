@@ -66,13 +66,13 @@
   /* Reserve room within the scrolling region for the card's entry. */
   .flood-root .flood-toast-region[data-placement^="bottom"]:has(.flood-toast):not([data-inline]):not([data-flood-motion="reduce"] *) {
     --flood-toast-entry-offset: var(--flood-toast-travel);
-    padding-block-end: var(--flood-toast-travel);
+    --flood-toast-entry-after: var(--flood-toast-travel);
     margin-block-end: calc(-1 * var(--flood-toast-travel));
   }
 
   .flood-root .flood-toast-region[data-placement^="top"]:has(.flood-toast):not([data-inline]):not([data-flood-motion="reduce"] *) {
     --flood-toast-entry-offset: calc(-1 * var(--flood-toast-travel));
-    padding-block-start: var(--flood-toast-travel);
+    --flood-toast-entry-before: var(--flood-toast-travel);
     margin-block-start: calc(-1 * var(--flood-toast-travel));
   }
 

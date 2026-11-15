@@ -7,7 +7,7 @@ const branch = (item: NavigationTreeItem) => item.children !== undefined || item
 
 /** Ordinary website navigation uses disclosure lists, not application tree selection semantics. */
 export const HierarchicalNavigation = /* @__PURE__ */ forwardRef<HTMLElement, NavigationTreeProps>(function HierarchicalNavigation({
-  label, items, currentValue, currentKind = "page", expandedValues, defaultExpandedValues = [], onExpandedValuesChange,
+  label, labelOverflow, items, currentValue, currentKind = "page", expandedValues, defaultExpandedValues = [], onExpandedValuesChange,
   expandLabel = (item, expanded) => `${expanded ? "Collapse" : "Expand"} ${item.label}`,
   size = "md", variant = "quiet", compact = false, flyoutSide = "right", branchGuides = false, id: explicitId, className, tabIndex = -1, ...props
 }, forwardedRef) {
@@ -92,7 +92,7 @@ export const HierarchicalNavigation = /* @__PURE__ */ forwardRef<HTMLElement, Na
     if (expandable && !disclosureLabel.trim()) throw new Error("Flood NavigationTree disclosure labels must be nonempty");
     const ancestorCurrent = currentAncestors.has(item.value) && (compact ? flyout?.value !== item.value : !open);
     const linkProps={...item.linkProps,className:["flood-navigation-tree__link",item.linkProps?.className].filter(Boolean).join(" ")};
-    const shared={label:item.label,icon:item.icon,reserveIcon:entries.some(entry=>entry.icon!=null),size,variant,current,currentKind,ancestorCurrent,disabled:item.disabled,className:"flood-navigation-tree__row"};
+    const shared={label:item.label,labelOverflow,tooltipSide:flyoutSide,icon:item.icon,compactBadge:item.compactBadge,reserveIcon:entries.some(entry=>entry.icon!=null),size,variant,current,currentKind,ancestorCurrent,disabled:item.disabled,className:"flood-navigation-tree__row"};
     if(compact){
       const shown=flyout?.value===item.value;
       const preview=shown&&flyout.preview;
@@ -112,12 +112,12 @@ export const HierarchicalNavigation = /* @__PURE__ */ forwardRef<HTMLElement, Na
           }:undefined,
           onPointerLeave:hover?()=>leaveFlyout(item.value):undefined,
           onClick:preview?()=>{clearHover();setFlyout({value:item.value,preview:false});}:trigger.onClick,
-        }} controlRef={bindRail(item.value,anchor)} tooltip={!hover&&!shown} tooltipSide={flyoutSide}/> }>
-        {(item.href||item.children?.length) ? <NavigationTree label={item.label} size={size} variant={variant} currentValue={currentValue} currentKind={currentKind} branchGuides={branchGuides}
+        }} controlRef={bindRail(item.value,anchor)} tooltip={!hover&&!shown}/> }>
+        {(item.href||item.children?.length) ? <NavigationTree label={item.label} labelOverflow={labelOverflow} flyoutSide={flyoutSide} size={size} variant={variant} currentValue={currentValue} currentKind={currentKind} branchGuides={branchGuides}
           items={[...(item.href?[{...item,children:undefined,content:undefined}]:[]),...(item.children??[])]}
           expandedValues={expandedValues??local} onExpandedValuesChange={values=>{if(expandedValues===undefined)setLocal(values);onExpandedValuesChange?.(values);}} expandLabel={expandLabel}/> : null}
         {item.content}
-      </Popover>:<NavigationItem {...shared} compact href={item.href} linkProps={linkProps} controlRef={bind(`link:${item.value}`,[])} tooltipSide={flyoutSide}/>}</li>;
+      </Popover>:<NavigationItem {...shared} compact href={item.href} linkProps={linkProps} controlRef={bind(`link:${item.value}`,[])}/>}</li>;
     }
     return <li key={item.value}>
       <NavigationItem {...shared} href={item.href} linkProps={linkProps} trailing={item.trailing} trailingAction={item.trailingAction}

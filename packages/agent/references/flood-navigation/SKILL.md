@@ -11,6 +11,33 @@ object selection; Tabs for associated panels; Accordion/Collapsible for disclosu
 SegmentedControl selects one value and is not a tab panel controller. Do not use
 Menu just because links appear vertically.
 
+Use SearchTrigger when an action opens a search surface. Use SearchInput for
+queries typed in place. Keep the launcher named when it becomes icon-only.
+Show a keyboard hint only for a shortcut the host actually handles.
+Use Breadcrumb layout=compact when a deep path shares a narrow header with
+actions. Preserve the root and current page, use the earlier-pages control
+for intermediate destinations, and check clipped titles on keyboard focus.
+Use a Tabs item count when the total helps people choose a panel. Keep the
+tab name stable, expose the exact value and localize it with formatCountLabel.
+Use KeyboardShortcut for multiple keys. Provide a spoken label for platform
+symbols and use the compact keycap in dense action rows.
+
+Use numbered Pagination when jumping directly to a page matters. In narrow
+panels or table footers, use compact Pagination when sequential navigation
+and the current position suffice. Localize the position and keep the arrows
+named and available on the same row.
+Use arrows presentation when a nearby visible result range anchors the user.
+Keep compact when the current page needs its own visible label. Localize
+numbered page digits with formatPage when needed.
+Use CursorPagination when the data source supplies cursors without a total.
+Pass real previous and next destinations or request callbacks. Show a range
+only when its values are known. Keep the initiating action mounted while a
+request is pending and pass the pending direction.
+
+For a new shell, use the [destination and width decision](../flood-screen-composition/SKILL.md#choose-navigation-from-real-destinations)
+before allocating space to a Sidebar. Count destinations across the real host
+application and preserve its navigation when adding a new route.
+
 For the 0.2.11 source candidate, NavigationItem is the shared small row owner and
 NavigationGroup owns an optional section heading/action, separator and independent
 group disclosure. NavigationTree composes rows into a hierarchy; Sidebar owns
@@ -35,6 +62,10 @@ it does not require a new export for every wrapper or spacing token.
   Do not nest the toggle inside the link or make a normal link click also toggle
   expansion. Command rows retain Button semantics; vertical navigation is not
   automatically an application Menu.
+- Use NavigationItem or NavigationTree labelOverflow=truncate for dense rows
+  with recognizable label prefixes. Sidebar defaults to that layout. The
+  existing link or disclosure button reveals the name, with no extra Tab stop.
+  Prefer wrapping when entries would otherwise become indistinguishable.
 
 ## Shared rows and configurable groups
 
@@ -59,6 +90,10 @@ anatomy once rather than adding another empty inset or column in the shell.
 Align disclosure and badge centers on the trailing track. The disclosure target
 already contributes half its width as clearance, so use the compact edge inset
 there and preserve the full target.
+Use CountBadge for a passive numeric count beside a destination. In a compact
+rail, pass compactBadge with the count and a localized accessible description.
+The dot adds no target and must leave the icon on the rail axis. Inspect a
+nonzero count and the transition to zero in both rail and expanded navigation.
 Use trailing for noninteractive metadata and trailingAction for an independent
 named action. Keep both visible on the trailing track at rest and during
 interaction. On an already filled row, use a glyph-level hover response for a
@@ -228,3 +263,15 @@ Keep a common top reading anchor across short/long workspace pages. Use logical
 inline centering for content width: margin:auto on a grid child can also center
 a short page vertically. Name each pane's scroll owner. Check short/long lists,
 detail and editor at the same viewport; a Drawer/table cannot fix its parent.
+
+## Disclosure inside an inspector
+
+Use Accordion or Collapsible `variant="flush"` when sections share an existing
+Drawer or inspector surface. The parent owns horizontal padding; section titles
+and expanded content share its start edge, with separators between Accordion
+items. Keep the default `framed` variant for a separately bounded group. Choose
+`controlSize="sm"` for compact headers without reducing their keyboard behavior.
+Use Section with `headingSize="group"` when the group does not collapse.
+Check expanded and closed sections, long headings, focus and another framed
+consumer. Preserve the Drawer body as the scroll owner and align fields through
+a shared layout, rather than adding a separate card around each setting.

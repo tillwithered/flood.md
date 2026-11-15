@@ -5,9 +5,9 @@ export function usageCode(component) {
   const iconNames = ["Plus", "ArrowRight", "Copy"];
   const flood = names.filter(name => !iconNames.includes(name));
   const icons = names.filter(name => iconNames.includes(name));
-  const imports = `import { ${flood.join(", ")} } from "@flood-md/react";\n` + (icons.length ? `import { ${icons.join(", ")} } from "lucide-react";\n` : "");
+  const imports = (component.exampleState ? 'import { useState } from "react";\n' : "") + `import { ${flood.join(", ")} } from "@flood-md/react";\n` + (icons.length ? `import { ${icons.join(", ")} } from "lucide-react";\n` : "");
   const body = component.slug === "flood-root" ? component.code : `<FloodRoot>\n${component.code.split("\n").map(line => `  ${line}`).join("\n")}\n</FloodRoot>`;
-  return `"use client";\n\n${imports}import "@flood-md/react/styles.css";\n\nexport function Example() {\n  return (\n${body.split("\n").map(line => `    ${line}`).join("\n")}\n  );\n}\n`;
+  return `"use client";\n\n${imports}import "@flood-md/react/styles.css";\n\nexport function Example() {\n${component.exampleState ?? ""}  return (\n${body.split("\n").map(line => `    ${line}`).join("\n")}\n  );\n}\n`;
 }
 export function componentMarkdown(component, exampleCode = usageCode(component)) {
   const escapeCell = value => String(value).replaceAll("|", "\\|").replaceAll("\n", " ");

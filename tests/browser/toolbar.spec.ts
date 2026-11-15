@@ -75,7 +75,7 @@ test("Toolbar catalog recipes render and retain a stable preview",async({page})=
  await expect(page.locator('.workbench-feedback')).toHaveText('Shared locally.');
  expect((await stage.boundingBox())!.height).toBe(before);
  await page.goto('/components/kbd');
- await expect(page.locator('.workbench-stage kbd')).toHaveCount(2);
+ await expect(page.locator('.workbench-stage kbd')).toHaveText(['Esc']);
 });
 
 test("Toolbar keeps owned focus recoverable when an action becomes unavailable",async({page})=>{

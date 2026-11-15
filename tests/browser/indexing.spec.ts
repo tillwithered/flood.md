@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { chooseSelectOption } from "./select-helpers";
 
 test.describe("readable without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
@@ -30,7 +31,7 @@ test("hydration retains document semantics, interactions and anchors", async ({ 
   page.on("console", message => { if (message.type() === "error") errors.push(message.text()); });
   await page.goto("/components/button");
   await expect(page.locator("#usage .site-code-block")).toHaveAttribute("data-highlighted", "true");
-  await page.getByRole("checkbox", { name: "Button prop loading", exact: true }).check();
+  await chooseSelectOption(page.getByRole("combobox", { name: "Button prop loadingMode", exact: true }), "loading");
   await expect(page.locator(".preview-stage").getByRole("button", { name: "Save changes" })).toBeDisabled();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await page.locator(".preview-stage").getByRole("button", { name: "Save changes" }).click();

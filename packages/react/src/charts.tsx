@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
-import { Inline, Meter, Metric, Surface, Table, Text, VisuallyHidden, type BarChartProps, type BarListProps, type ChartSeries, type DonutChartProps, type HeatmapProps, type LineChartProps } from "./index.js";
+import { Inline, List, Meter, Metric, Stack, Surface, Table, Text, VisuallyHidden, type BarChartProps, type BarListProps, type ChartSeries, type CompositionBarProps, type DonutChartItem, type DonutChartProps, type HeatmapProps, type LineChartProps } from "./index.js";
 import { placeOverlay } from "./overlay-runtime.js";
 
 type PlotProps = LineChartProps & Required<Pick<LineChartProps, "variant" | "curve" | "emptyLabel" | "missingLabel" | "navigationLabel">>;
@@ -170,11 +170,18 @@ export const SeriesPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, PlotProps>(
       case "ArrowLeft": case "ArrowDown": next = active - 1; break;
       case "Home": next = 0; break;
       case "End": next = last; break;
+      case "Escape":
+        if (showPoint) event.preventDefault();
+        if (hover?.inside) setHover({...hover, inside: false});
+        setTouchPoint(null);
+        setFocused(false);
+        return;
       default: return;
     }
     event.preventDefault();
     clearPointer(event.currentTarget);
     setTouchPoint(null);
+    setFocused(true);
     setCursor(Math.min(last, Math.max(0, next)));
   };
   return <div {...props} ref={ref} className={["flood-line-chart", className].filter(Boolean).join(" ")}
@@ -342,6 +349,12 @@ export const GroupedBars = /* @__PURE__ */ forwardRef<HTMLDivElement, GroupedBar
       case "ArrowLeft": case "ArrowDown": next = active - 1; break;
       case "Home": next = 0; break;
       case "End": next = last; break;
+      case "Escape":
+        if (inspecting) event.preventDefault();
+        setHover(undefined);
+        setTouch(undefined);
+        setFocused(false);
+        return;
       default: return;
     }
     event.preventDefault();
@@ -401,8 +414,58 @@ export const GroupedBars = /* @__PURE__ */ forwardRef<HTMLDivElement, GroupedBar
 
 type ShareRingProps = DonutChartProps & Required<Pick<DonutChartProps, "totalLabel" | "emptyLabel" | "navigationLabel">>;
 const defaultPercent = new Intl.NumberFormat("en", {style:"percent", maximumFractionDigits:1});
-const formatPercent = (share: number) => defaultPercent.format(share);
+function formatPercent(share: number) {
+  if (share > 0 && share < .0005) return `<${defaultPercent.format(.001)}`;
+  if (share < 1 && share >= .9995) return `>${defaultPercent.format(.999)}`;
+  return defaultPercent.format(share);
+}
 const paletteSize = 6;
+
+function shareTotals(items: readonly DonutChartItem[], component: "DonutChart" | "CompositionBar") {
+  if (items.length > paletteSize) throw new RangeError(`Flood ${component} supports up to six categories`);
+  const ids = new Set<string>();
+  const ends: number[] = [];
+  let total = 0;
+  for (const item of items) {
+    if (!item.id.trim() || ids.has(item.id) || !item.label.trim() || !Number.isFinite(item.value) || item.value < 0) {
+      throw new Error(`Flood ${component} needs unique IDs, nonempty labels and finite nonnegative values`);
+    }
+    ids.add(item.id);
+    total += item.value;
+    ends.push(total);
+  }
+  if (!Number.isFinite(total)) throw new RangeError(`Flood ${component} needs a finite total`);
+  return {total, ends};
+}
+
+type ShareBarProps = CompositionBarProps & Required<Pick<CompositionBarProps, "layout" | "readout" | "emptyLabel">>;
+export const ShareBar = /* @__PURE__ */ forwardRef<HTMLDivElement, ShareBarProps>(function ShareBar({
+  label, items, layout, readout, emptyLabel, formatValue = formatNumber, formatShare = formatPercent, className, ...props
+}, ref) {
+  if (!label.trim()) throw new Error("Flood CompositionBar requires a label");
+  const {total} = shareTotals(items, "CompositionBar");
+  return <Stack {...props} ref={ref} gap="3" className={["flood-composition-bar", className].filter(Boolean).join(" ")}
+    data-layout={layout} role="group" aria-label={label}>
+    {items.length ? <>
+      <div className="flood-composition-bar__track" aria-hidden="true">
+        {total > 0 && items.map((item, index) => item.value > 0 && <span key={item.id}
+          className="flood-composition-bar__segment" data-slice={index} style={{inlineSize:`${(item.value / total) * 100}%`}} />)}
+      </div>
+      <List marker={false} gap="2" className="flood-composition-bar__legend">
+        {items.map((item, index) => <li key={item.id}>
+          <span className="flood-composition-bar__key" data-series={index} aria-hidden="true" />
+          <Text size="compact" tone="subtle">{item.label}</Text>
+          <Inline gap="2" align="baseline" className="flood-composition-bar__numbers">
+            {(readout !== "share" || total === 0) && <Text size="compact">{formatValue(item.value)}</Text>}
+            {readout !== "value" && total > 0 && <Text size="compact" tone={readout === "both" ? "subtle" : "default"}>
+              {formatShare(item.value / total)}
+            </Text>}
+          </Inline>
+        </li>)}
+      </List>
+    </> : <Text size="compact" tone="subtle">{emptyLabel}</Text>}
+  </Stack>;
+});
 
 function ringSector(start: number, end: number) {
   const point = (turn: number, radius: number) => {
@@ -439,19 +502,7 @@ export const ShareRing = /* @__PURE__ */ forwardRef<HTMLDivElement, ShareRingPro
   const [hovered, setHovered] = useState<number>();
   const [tapped, setTapped] = useState<number>();
   const [focused, setFocused] = useState(false);
-  if (items.length > paletteSize) throw new RangeError("Flood DonutChart supports up to six categories");
-  const ids = new Set<string>();
-  const ends: number[] = [];
-  let total = 0;
-  for (const item of items) {
-    if (!item.id.trim() || ids.has(item.id) || !item.label.trim() || !Number.isFinite(item.value) || item.value < 0) {
-      throw new Error("Flood DonutChart needs unique IDs, nonempty labels and finite nonnegative values");
-    }
-    ids.add(item.id);
-    total += item.value;
-    ends.push(total);
-  }
-  if (!Number.isFinite(total)) throw new RangeError("Flood DonutChart needs a finite total");
+  const {total, ends} = shareTotals(items, "DonutChart");
 
   const last = items.length - 1;
   const active = Math.min(last, hovered ?? tapped ?? cursor);
@@ -480,7 +531,12 @@ export const ShareRing = /* @__PURE__ */ forwardRef<HTMLDivElement, ShareRingPro
       case "ArrowLeft": case "ArrowDown": next = active - 1; break;
       case "Home": next = 0; break;
       case "End": next = last; break;
-      case "Escape": setHovered(undefined); setTapped(undefined); setFocused(false); return;
+      case "Escape":
+        if (inspecting) event.preventDefault();
+        setHovered(undefined);
+        setTapped(undefined);
+        setFocused(false);
+        return;
       default: return;
     }
     event.preventDefault();

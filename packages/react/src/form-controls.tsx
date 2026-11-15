@@ -1,6 +1,7 @@
-import {forwardRef, useEffect, useLayoutEffect, useId, useImperativeHandle, useRef, useState, type RefObject} from "react";
-import type {ListBoxProps, PinInputProps, RatingProps, DropzoneProps, CharacterCountProps} from "./index.js";
-import {FileInput,Label,Text} from "./index.js";
+import {forwardRef, useEffect, useLayoutEffect, useId, useImperativeHandle, useRef, useState, type CSSProperties, type RefObject} from "react";
+import type {ListBoxProps, PinInputProps, RatingProps, DropzoneProps, FileDropTargetProps, CharacterCountProps} from "./index.js";
+import {Avatar,Button,FileInput,FileTrigger,Inline,Label,ScrollArea,Text} from "./index.js";
+import type {DragEvent} from "react";
 import {resolveFieldStatus, mergeDescriptions} from "./field-state.js";
 
 const cx = (...values: Array<string | false | undefined>) => values.filter(Boolean).join(" ");
@@ -75,9 +76,12 @@ export const CollectionListBox = /* @__PURE__ */ forwardRef<HTMLDivElement, List
     const target = root.current?.ownerDocument.getElementById(`${id}-option-${index}`);
     target?.scrollIntoView({block:"nearest"});
   };
+  const viewportProps = appearance === "surface" ? {contentInset:"none" as const} : {};
+  const Viewport = appearance === "surface" ? ScrollArea : "div";
+  const hasAvatars = options.some(option => option.avatar);
   return <div className="flood-list-box-field" hidden={props.hidden} dir={props.dir} lang={props.lang}>
     <Label htmlFor={`${id}-validation`} id={`${id}-label`} required={required} className={cx("flood-form-control__label", hideLabel && "flood-form-control__sr-only")}>{label}</Label>
-    <div {...props} ref={root} id={id} role="listbox" tabIndex={effectiveDisabled ? -1 : props.tabIndex ?? 0}
+    <Viewport {...props} {...viewportProps} ref={root} id={id} role="listbox" tabIndex={effectiveDisabled ? -1 : props.tabIndex ?? 0}
       aria-label={props["aria-label"]} aria-labelledby={props["aria-label"] ? undefined : props["aria-labelledby"] ?? `${id}-label`}
       aria-multiselectable={multiple || undefined} aria-disabled={effectiveDisabled || undefined} aria-readonly={readOnly || undefined}
       aria-required={required||undefined} aria-invalid={resolvedStatus==="error"||undefined} aria-describedby={describedBy}
@@ -113,11 +117,14 @@ export const CollectionListBox = /* @__PURE__ */ forwardRef<HTMLDivElement, List
         aria-selected={selected.includes(option.value)} aria-disabled={option.disabled || undefined}
         data-active={index === active || undefined} className="flood-list-box__option"
         onClick={() => { if (blocked()) return; root.current?.focus(); setActive(index); commit(index); }}>
+        {hasAvatars && <span className="flood-selection-option__avatar" aria-hidden="true">
+          {option.avatar && <Avatar {...option.avatar} name={option.label} size="xs" decorative />}
+        </span>}
         <span className="flood-list-box__copy"><span>{option.label}</span>{option.description && <span className="flood-list-box__description">{option.description}</span>}</span>
         <span className="flood-list-box__check" aria-hidden="true">{selected.includes(option.value) ? "✓" : ""}</span>
       </div>)}
       {!options.length && <div role="option" aria-disabled="true" className="flood-list-box__option">No options</div>}
-    </div>
+    </Viewport>
     {description&&<Text as="div" id={`${id}-description`} size="helper" tone="subtle" className="flood-list-box__feedback">{description}</Text>}
     {(error||message)&&<Text as="div" id={`${id}-message`} size="helper" tone={error?"error":resolvedStatus??"subtle"} role={error?"alert":undefined} className="flood-list-box__feedback">{error||message}</Text>}
     {name && selected.map(entry => <input key={entry} type="hidden" name={name} value={entry} form={form} disabled={disabled} />)}
@@ -179,6 +186,18 @@ export const SegmentedPinInput = /* @__PURE__ */ forwardRef<HTMLInputElement, Pi
   </div>;
 });
 
+const ratingStarPath = "m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.4-5.7-3-5.7 3 1.1-6.4-4.6-4.5 6.4-.9L12 3Z";
+
+export function RatingStar({ fill }: { fill?: number }) {
+  // Measure the fraction along the path's horizontal bounds, rather than the padded view box.
+  const fillInset = fill === undefined || fill === 1 ? "0%" : `${(21.2 - fill * 18.4) / 24 * 100}%`;
+  return <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" data-full={fill === 1 || undefined}>
+    <path d={ratingStarPath} />
+    {fill !== undefined && fill > 0 && <path d={ratingStarPath} fill="currentColor" stroke="none" className="flood-rating-value__fill"
+      style={{"--flood-rating-remainder": fillInset} as CSSProperties} />}
+  </svg>;
+}
+
 export const StarRating = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, RatingProps>(function StarRating({
   label, hideLabel = false, value, defaultValue = 0, max = 5, onValueChange, getValueLabel,
   readOnly = false, required, name, form, size = "md", disabled, className, onKeyDown, ...props
@@ -193,10 +212,10 @@ export const StarRating = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Rating
     if (value === undefined) setLocal(initial.current);
     else root.current?.querySelectorAll<HTMLInputElement>('input[type="radio"]').forEach(input => { input.checked = Number(input.value) === value; });
   });
-  const change = (next: number) => { if (readOnly || disabled || first.current?.matches(":disabled")) return; if (value === undefined) setLocal(next); onValueChange?.(next); };
-  const display = hover ?? current;
+  const change = (next: number) => { if (readOnly || disabled || first.current?.matches(":disabled")) return; setHover(null); if (value === undefined) setLocal(next); onValueChange?.(next); };
+  const display = readOnly || disabled ? current : hover ?? current;
   return <fieldset {...props} ref={root} disabled={disabled} form={form} role="radiogroup" aria-readonly={readOnly || undefined}
-    className={cx("flood-rating", `flood-rating--${size}`, className)} onPointerLeave={() => setHover(null)}
+    className={cx("flood-rating", `flood-rating--${size}`, className)}
     onKeyDown={event => {
       onKeyDown?.(event); if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || disabled) return;
       const inputs = Array.from(event.currentTarget.querySelectorAll<HTMLInputElement>('input[type="radio"]:not(:disabled)'));
@@ -210,50 +229,104 @@ export const StarRating = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Rating
       else if (readOnly && event.key === " ") event.preventDefault();
     }}>
     <legend className={cx("flood-form-control__label", hideLabel && "flood-form-control__sr-only")}>{label}</legend>
-    <div className="flood-rating__choices">{Array.from({length:max}, (_, index) => {
+    <div className="flood-rating__choices" onPointerLeave={() => setHover(null)}>{Array.from({length:max}, (_, index) => {
       const number = index + 1;
       return <label key={number} className="flood-rating__choice" data-filled={number <= display || undefined}
-        onPointerEnter={() => { if (!readOnly && !disabled && !first.current?.matches(":disabled")) setHover(number); }}>
+        onPointerEnter={event => { if (event.pointerType === "mouse" && !readOnly && !disabled && !first.current?.matches(":disabled")) setHover(number); }}>
         <input ref={index === 0 ? first : undefined} type="radio" name={name} form={form} value={number} required={required}
           disabled={disabled} checked={current === number} tabIndex={current === number || current === 0 && number === 1 ? 0 : -1}
           aria-label={getValueLabel?.(number, max) ?? `${number} of ${max} stars`}
           onClick={event => { if (readOnly) event.preventDefault(); }} onChange={() => change(number)} />
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"><path d="m12 3 2.8 5.8 6.4.9-4.6 4.5 1.1 6.4-5.7-3-5.7 3 1.1-6.4-4.6-4.5 6.4-.9L12 3Z"/></svg>
+        <RatingStar />
       </label>;
     })}</div>
   </fieldset>;
 });
 
+function useFileDrop(input: RefObject<HTMLInputElement | null>, inactive: boolean, multiple: boolean, onFilesSelect: (files:File[])=>void) {
+  const [dragging, setDragging] = useState(false);
+  const depth = useRef(0);
+  const blocked = () => inactive || !input.current || input.current.matches(":disabled");
+  const isFiles = (event: DragEvent<HTMLDivElement>) => Array.from(event.dataTransfer.types).includes("Files");
+  const reset = () => {depth.current = 0; setDragging(false);};
+  useEffect(() => {
+    if (inactive) {depth.current = 0; setDragging(false);}
+  }, [inactive]);
+  return {
+    "data-dragging": dragging && !inactive || undefined,
+    onDragEnter(event:DragEvent<HTMLDivElement>) {
+      if (!isFiles(event)) return;
+      event.preventDefault();
+      if (blocked()) return;
+      depth.current++;
+      setDragging(true);
+    },
+    onDragLeave() {
+      depth.current = Math.max(0, depth.current - 1);
+      if (!depth.current) setDragging(false);
+    },
+    onDragOver(event:DragEvent<HTMLDivElement>) {
+      if (!isFiles(event)) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = blocked() ? "none" : "copy";
+    },
+    onDrop(event:DragEvent<HTMLDivElement>) {
+      if (!isFiles(event)) return;
+      event.preventDefault();
+      reset();
+      if (blocked()) return;
+      const files = Array.from(event.dataTransfer.files);
+      if (files.length) onFilesSelect(multiple ? files : files.slice(0, 1));
+    },
+  };
+}
+
 export const FileDropzone = /* @__PURE__ */ forwardRef<HTMLInputElement, DropzoneProps>(function FileDropzone({
-  label, description = "Drop files here or choose from your device.", multiple = true, disabled,
+  label, description, density = "comfortable", controlSize = density === "compact" ? "sm" : "md", multiple = true, disabled,
   className, style, id: explicitId, status, invalid, ...props
 }, forwardedRef) {
   const input = useRef<HTMLInputElement>(null), generated = useId(), id = explicitId ?? `flood-dropzone-${generated}`;
   useImperativeHandle(forwardedRef, () => input.current!, []);
-  const [dragging, setDragging] = useState(false), depth = useRef(0);
-  const isFiles = (types: readonly string[]) => Array.from(types).includes("Files");
-  return <div hidden={props.hidden} dir={props.dir} lang={props.lang} style={style}
-    className={cx("flood-dropzone", className)} data-dragging={dragging || undefined} data-disabled={disabled || undefined}
-    data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])}
-    onDragEnter={event => { if (!isFiles(event.dataTransfer.types)) return; event.preventDefault(); depth.current++; if (!disabled && !input.current?.matches(":disabled")) setDragging(true); }}
-    onDragLeave={event => { if (!isFiles(event.dataTransfer.types)) return; depth.current = Math.max(0, depth.current - 1); if (!depth.current) setDragging(false); }}
-    onDragOver={event => { if (!isFiles(event.dataTransfer.types)) return; event.preventDefault(); event.dataTransfer.dropEffect = disabled || input.current?.matches(":disabled") ? "none" : "copy"; }}
-    onDrop={event => {
-      if (!isFiles(event.dataTransfer.types)) return;
-      event.preventDefault(); depth.current = 0; setDragging(false);
-      const node = input.current;
-      if (!node || disabled || node.matches(":disabled")) return;
-      const picked = Array.from(event.dataTransfer.files); if (!picked.length) return;
-      const transfer = new node.ownerDocument.defaultView!.DataTransfer();
-      (multiple ? picked : picked.slice(0, 1)).forEach(file => transfer.items.add(file));
-      node.files = transfer.files; node.dispatchEvent(new node.ownerDocument.defaultView!.Event("change", {bubbles:true}));
-    }}>
+  const drag = useFileDrop(input, Boolean(disabled || props.hidden), multiple, files => {
+    const node = input.current!;
+    const view = node.ownerDocument.defaultView!;
+    const transfer = new view.DataTransfer();
+    files.forEach(file => transfer.items.add(file));
+    node.files = transfer.files;
+    node.dispatchEvent(new view.Event("change", {bubbles:true}));
+  });
+  return <div {...drag} hidden={props.hidden} dir={props.dir} lang={props.lang} style={style}
+    className={cx("flood-dropzone", className)} data-density={density} data-disabled={disabled || undefined}
+    data-status={resolveFieldStatus(status, invalid, props["aria-invalid"])}>
     <div className="flood-dropzone__intro">
-      <label htmlFor={id} className="flood-dropzone__label"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V3m-4 4 4-4 4 4M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></svg><span>{label}</span></label>
-      {description && <p id={`${id}-description`} className="flood-dropzone__description">{description}</p>}
+      <Label htmlFor={id} required={props.required} className="flood-dropzone__label">{label}</Label>
+      {description && <Text as="p" id={`${id}-description`} size="helper" tone="subtle" className="flood-dropzone__description">{description}</Text>}
     </div>
-    <FileInput {...props} ref={input} id={id} multiple={multiple} disabled={disabled} status={status} invalid={invalid}
+    <FileInput {...props} ref={input} id={id} controlSize={controlSize} multiple={multiple} disabled={disabled} status={status} invalid={invalid}
       aria-describedby={mergeDescriptions(props["aria-describedby"], Boolean(description) && `${id}-description`)} />
+  </div>;
+});
+
+export const OwnedFileDropTarget = /* @__PURE__ */ forwardRef<HTMLDivElement, FileDropTargetProps>(function OwnedFileDropTarget({
+  label, description = "Drag files here", chooseLabel, multiple = true, accept, capture, disabled = false,
+  onFilesSelect, className, ...props
+}, ref) {
+  if (!label.trim()) throw new Error("Flood FileDropTarget requires a label");
+  const input = useRef<HTMLInputElement>(null), id = useId();
+  const drag = useFileDrop(input, Boolean(disabled || props.hidden), multiple, onFilesSelect);
+  const action = chooseLabel ?? (multiple ? "Choose files" : "Choose a file");
+  return <div {...props} {...drag} ref={ref} role={props.role ?? "group"}
+    aria-labelledby={props["aria-labelledby"] ?? (props["aria-label"] ? undefined : `${id}-label`)}
+    className={cx("flood-file-drop-target", className)} data-disabled={disabled || undefined}>
+    <Inline gap="3" className="flood-file-drop-target__row">
+      <div className="flood-file-drop-target__copy">
+        <Text as="div" size="label" id={`${id}-label`}>{label}</Text>
+        {description && <Text as="p" size="helper" tone="subtle" id={`${id}-description`} className="flood-dropzone__description">{description}</Text>}
+      </div>
+      <FileTrigger ref={input} accept={accept} capture={capture} multiple={multiple} disabled={disabled} label={action}
+        onFilesSelect={onFilesSelect} trigger={trigger => <Button {...trigger} variant="subtle" size="sm"
+          aria-describedby={description ? `${id}-description` : undefined}>{action}</Button>}/>
+    </Inline>
   </div>;
 });
 

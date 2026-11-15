@@ -9,13 +9,13 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../apps/website/dist/agent/", import.meta.url));
 const siteOrigin = "https://flood.md";
 
-test("public MCP search finds recipes and components from tasks in English and Russian", async t => {
+async function startMcp(t) {
   const server = createServer(createFloodMcpHandler({ root, siteOrigin }));
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
   t.after(() => new Promise(resolve => server.close(resolve)));
 
-  async function search(args) {
+  return async function call(name, args) {
     const response = await fetch(`http://127.0.0.1:${server.address().port}/mcp`, {
       method: "POST",
       headers: {
@@ -23,11 +23,16 @@ test("public MCP search finds recipes and components from tasks in English and R
         Accept: "application/json, text/event-stream",
         "MCP-Protocol-Version": "2025-11-25",
       },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "search_flood", arguments: args } }),
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } }),
     });
     assert.equal(response.status, 200);
     return (await response.json()).result;
-  }
+  };
+}
+
+test("public MCP search finds recipes and components from tasks in English and Russian", async t => {
+  const call = await startMcp(t);
+  const search = args => call("search_flood", args);
 
   const tasks = [
     ["table with filters and bulk actions", "таблица с фильтрами и массовыми действиями", "recipe:table-bulk-actions", ["component:data-table", "component:collection-toolbar", "component:bulk-action-bar"]],
@@ -68,4 +73,19 @@ test("public MCP search finds recipes and components from tasks in English and R
   assert.equal((await search({ ...query, search: "sidebar", cursor: first.nextCursor })).isError, true);
   assert.equal((await search({ ...query, cursor: "dm9pZA" })).isError, true);
   assert.equal((await search({ ...query, group: "unknown" })).isError, true);
+});
+
+test("public MCP and the installed catalog serve the same component notes", async t => {
+  const call = await startMcp(t);
+  const installed = createKnowledgeReader();
+  for (const slug of ["badge", "drawer"]) {
+    const id = `component:${slug}`;
+    const response = await call("read_flood", { id });
+    const result = response.structuredContent;
+    const local = await installed.read(id);
+    assert.equal(result.version, local.version);
+    assert.equal(result.url, `${siteOrigin}/components/${slug}`);
+    assert.equal(result.text, local.text);
+    assert.match(result.text, /## Design notes\n\n- /);
+  }
 });

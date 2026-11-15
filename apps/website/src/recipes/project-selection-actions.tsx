@@ -14,7 +14,7 @@ export function ProjectSelectionActions({ projects, pending, onUpdate, onClear }
   const [archive, setArchive] = useState<SelectedProject[] | null>(null);
 
   return <>
-    <BulkActionBar label="Selected projects" selectionCount={projects.length} pending={pending}
+    <BulkActionBar label="Selected projects" selectionCount={projects.length} pending={pending} morePresentation="auto"
       items={[
         { id: 'archive', label: 'Archive', priority: 10 },
         { id: 'paused', label: 'Pause', priority: 5 },

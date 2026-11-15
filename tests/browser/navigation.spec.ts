@@ -4,20 +4,45 @@ import {resolve} from "node:path";
 import {mkdir,writeFile} from "node:fs/promises";
 import {chooseSelectOption,chooseStudioSheetOption} from "./select-helpers";
 let bundle:Promise<string>;
+
+test("Tabs keeps the exact count accessible and reveals the focused tab in a narrow rail", async ({page}, info) => {
+  await page.goto("/components/tabs");
+  const list = page.getByRole("tablist",{name:"Project sections"});
+  await page.getByRole("checkbox",{name:"Tabs prop showCounts"}).check();
+  const activity = list.getByRole("tab",{name:"Activity",exact:true});
+  const settings = list.getByRole("tab",{name:"Settings",exact:true});
+  await expect(activity).toHaveAccessibleDescription("137");
+  await expect(activity.locator("bdi")).toHaveText("99+");
+  await expect(settings.locator("bdi")).toHaveText("0");
+  await activity.press("ArrowRight");
+  await expect(settings).toBeFocused();
+  await page.getByRole("checkbox",{name:"Tabs prop narrow"}).check();
+  await expect(settings).toHaveAttribute("aria-selected","true");
+  const rail = page.locator(".preview-stage .flood-tabs__scroll");
+  await expect.poll(async ()=>{
+    const [outer,tab] = await Promise.all([rail.boundingBox(),settings.boundingBox()]);
+    return outer!.x <= tab!.x + 1 && outer!.x + outer!.width >= tab!.x + tab!.width - 1;
+  }).toBe(true);
+  await page.locator(".preview-stage .flood-tabs").screenshot({path:info.outputPath("tab-counts.png")});
+});
+
 async function fixture(){
   const file=(path:string)=>JSON.stringify(resolve(path).replaceAll("\\","/"));
   const directory=resolve(`.artifacts/navigation-${process.pid}`),entry=resolve(directory,"entry.mjs");await mkdir(directory,{recursive:true});
   await writeFile(entry,`import React,{useState,useEffect,createRef}from ${file("node_modules/react/index.js")};
 import{createRoot}from ${file("node_modules/react-dom/client.js")};
-import{FloodRoot,Tabs,Breadcrumb,Pagination}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};
+import{FloodRoot,Tabs,Breadcrumb,Pagination,CursorPagination}from ${file("packages/react/dist/index.js")};import ${file("packages/react/dist/styles.css")};
 const h=React.createElement,ref=createRef(),items=[{value:'alpha',label:'Alpha',content:h('input',{'aria-label':'Alpha input',defaultValue:'retained'})},{value:'beta',label:'Beta',content:'Beta',disabled:true},{value:'gamma',label:'Gamma',content:'Gamma content'}];
-function App(){const[value,setValue]=useState('alpha'),[page,setPage]=useState(5),[requests,setRequests]=useState(0);
+function App(){const[value,setValue]=useState('alpha'),[page,setPage]=useState(5),[requests,setRequests]=useState(0),[cursor,setCursor]=useState('idle');
 useEffect(()=>{window.switchFloodTab=()=>setValue('gamma')},[]);
+useEffect(()=>{window.completeCursor=()=>setCursor('ready')},[]);
 return h(FloodRoot,null,h(Tabs,{label:'Automatic',items}),h(Tabs,{label:'Manual',items,activationMode:'manual'}),
 h(Tabs,{ref,label:'Controlled',items,value,onValueChange:setValue}),h(Tabs,{label:'Frozen',items,value:'alpha',onValueChange:()=>setRequests(n=>n+1)}),
 h(Breadcrumb,{items:[{label:'Workspace',href:'/workspace'},{label:'Current'}]}),
 h(Pagination,{label:'Local pages',page,pageCount:20,onPageChange:setPage}),h('output',{'aria-label':'Page state'},String(page)),
 h(Pagination,{label:'Route pages',page:5,pageCount:20,getHref:p=>'?page='+p,onPageChange:()=>setRequests(n=>n+1)}),
+h(CursorPagination,{label:'Cursor pages',position:cursor==='ready'?'26–50':'1–25',previous:{href:'#earlier'},
+  next:{onSelect:()=>{setRequests(n=>n+1);setCursor('pending')}},pending:cursor==='pending'?'next':undefined}),
 h('button',{onClick:()=>ref.current.querySelector('[role=tab]').focus()},'Focus tabs ref'),h('output',{'aria-label':'Requests'},String(requests)))}
 createRoot(document.getElementById('app')).render(h(App));`);
   const result=await build({configFile:false,logLevel:"silent",define:{"process.env.NODE_ENV":JSON.stringify("production")},build:{write:false,minify:true,cssCodeSplit:false,lib:{entry,formats:["iife"],name:"NavigationFixture"}}});
@@ -61,6 +86,94 @@ test("Breadcrumb and Pagination retain link/current/disabled semantics and host 
   await expect(page.getByLabel("Requests")).toHaveText("0");await expect(links.locator('[aria-current="page"]')).toHaveText("5");
 });
 
+test("compact Breadcrumb keeps the current page on one line and earlier links operable", async ({page}, info) => {
+  await page.goto("/components/breadcrumb");
+  const crumbs = page.locator(".preview-stage").getByRole("navigation",{name:"Breadcrumb",exact:true});
+  const knob = (name:string) => page.getByRole("checkbox",{name:`Breadcrumb prop ${name}`,exact:true});
+  await knob("deepPath").check();
+  await knob("longTitle").check();
+  await knob("narrow").check();
+  await crumbs.screenshot({path:info.outputPath("breadcrumb-wrap.png")});
+  await chooseSelectOption(page.getByRole("combobox",{name:"Breadcrumb prop layout"}),"compact");
+  const path = crumbs.locator(":scope > ol");
+  const overflow = path.getByRole("button",{name:"Earlier pages",exact:true});
+  const current = path.locator('[aria-current="page"]');
+  await expect(current.locator(".flood-truncated-text")).toHaveText("November accessibility and interaction release notes");
+  const root = path.getByRole("link",{name:"Workspace",exact:true});
+  await expect(root).toBeVisible();
+  expect(await root.locator(".flood-breadcrumb__clip").evaluate(node=>node.scrollWidth <= node.clientWidth)).toBe(true);
+  await expect(path.getByRole("link",{name:"Projects",exact:true})).toHaveCount(0);
+  await expect(path).toHaveCSS("flex-wrap","nowrap");
+  expect(await path.evaluate(node=>node.scrollWidth)).toBeLessThanOrEqual(await path.evaluate(node=>node.clientWidth));
+  await crumbs.screenshot({path:info.outputPath("breadcrumb-compact.png")});
+  await overflow.press("Enter");
+  const panel = page.getByRole("dialog",{name:"Earlier pages",exact:true});
+  const earlier = panel.getByRole("link");
+  await expect(earlier).toHaveText(["Projects","Design system","Releases"]);
+  await expect(earlier.first()).toBeFocused();
+  await expect(earlier.last()).toHaveAttribute("href","#releases");
+  await panel.screenshot({path:info.outputPath("breadcrumb-earlier-pages.png")});
+  await page.keyboard.press("Escape");
+  await expect(overflow).toBeFocused();
+  await overflow.press("Enter");
+  await earlier.last().press("Enter");
+  await expect(panel).toBeHidden();
+  await knob("currentLink").check();
+  const currentLink = path.getByRole("link",{name:"November accessibility and interaction release notes",exact:true});
+  await currentLink.focus();
+  await expect(page.getByRole("tooltip")).toHaveText("November accessibility and interaction release notes");
+  await expect(currentLink).toHaveAttribute("href","#flood");
+  await page.keyboard.press("Escape");
+  await chooseSelectOption(page.getByRole("combobox",{name:"Breadcrumb prop maxVisibleItems"}),"3");
+  await expect(path.getByRole("link",{name:"Releases",exact:true})).toBeVisible();
+  await overflow.press("Enter");
+  await expect(earlier).toHaveText(["Projects","Design system"]);
+});
+
+test("cursor pagination keeps the request button focused and retains native link behavior", async ({page}, info) => {
+  await open(page);
+  const nav = page.getByRole("navigation", {name:"Cursor pages"});
+  const next = nav.getByRole("button", {name:"Next page"});
+  const previous = nav.getByRole("link", {name:"Previous page"});
+  await expect(previous).toHaveAttribute("href", "#earlier");
+  const width = (await next.boundingBox())!.width;
+  await next.press("Enter");
+  await expect(next).toBeFocused();
+  await expect(next).toHaveAttribute("aria-busy", "true");
+  await expect(nav.getByRole("button", {name:"Previous page"})).toBeDisabled();
+  expect((await next.boundingBox())!.width).toBeCloseTo(width);
+  await next.press("Enter");
+  await expect(page.getByLabel("Requests")).toHaveText("1");
+  await page.evaluate(() => (window as unknown as {completeCursor:() => void}).completeCursor());
+  await expect(nav).toContainText("26–50");
+  await expect(next).toBeFocused();
+  await expect(previous).toHaveAttribute("href", "#earlier");
+
+  await page.goto("/components/cursor-pagination");
+  const example = page.locator(".preview-stage").getByRole("navigation", {name:"Pagination"});
+  const forward = example.getByRole("button", {name:"Next page"});
+  await expect(example.getByRole("button", {name:"Previous page"})).toBeDisabled();
+  await forward.click();
+  await expect(example).toContainText("26–50");
+  await page.getByRole("checkbox", {name:"CursorPagination prop rtl"}).check();
+  await expect(example).toHaveAttribute("dir", "rtl");
+  const back = example.getByRole("button", {name:"Previous page"});
+  expect((await back.boundingBox())!.x).toBeGreaterThan((await forward.boundingBox())!.x);
+  await forward.click();
+  await expect(example).toContainText("51–64");
+  await expect(forward).toBeDisabled();
+  const positions = await example.getByText("51–64",{exact:true}).evaluate(node => {
+    const range = document.createRange();
+    return [0, 3].map(offset => {
+      range.setStart(node.firstChild!, offset);
+      range.setEnd(node.firstChild!, offset + 2);
+      return range.getBoundingClientRect().left;
+    });
+  });
+  expect(positions[0]).toBeLessThan(positions[1]);
+  await example.screenshot({path:info.outputPath("cursor-end-rtl.png")});
+});
+
 test("Navigation playgrounds reflow, expose valid recipes and preserve panel behavior",async({page},info)=>{
   for(const slug of ["tabs","breadcrumb","pagination"]){
     await page.setViewportSize(info.project.name==="mobile"?{width:390,height:844}:{width:1440,height:1000});await page.goto(`/components/${slug}`);
@@ -100,4 +213,65 @@ test("Navigation keeps touch targets and forced-color selection cues",async({bro
     await page.goto("/components/pagination");await chooseStudioSheetOption(page,"Sibling count","0");
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   }finally{await context.close()}
+});
+
+test("compact pagination keeps one row and preserves button and link semantics", async ({page}) => {
+  await page.setViewportSize({width:1440,height:940});
+  await page.goto("/components/pagination");
+  const property = (name:string) => page.getByRole("combobox",{name:`Pagination prop ${name}`,exact:true});
+  await chooseSelectOption(property("presentation"),"compact");
+  await chooseSelectOption(property("pageCount"),"100");
+  await page.getByRole("checkbox",{name:"Pagination prop narrow",exact:true}).check();
+  const nav = page.locator(".preview-stage").getByRole("navigation",{name:"Pagination"});
+  const current = nav.locator("[aria-current='page']");
+  const previous = nav.getByRole("button",{name:"Previous page"});
+  const next = nav.getByRole("button",{name:"Next page"});
+  await expect(previous).toBeDisabled();
+  await next.press("Enter");
+  await expect(next).toBeFocused();
+  await expect(current).toHaveText("Page 2 of 100");
+  await expect(nav.getByRole("button")).toHaveCount(2);
+  const boxes = await Promise.all([previous.boundingBox(),current.boundingBox(),next.boundingBox()]);
+  const centers = boxes.map(box=>box!.y + box!.height / 2);
+  expect(Math.max(...centers)-Math.min(...centers)).toBeLessThan(1);
+  expect(await nav.evaluate(node=>node.scrollWidth <= node.clientWidth)).toBe(true);
+  await page.getByRole("checkbox",{name:"Pagination prop links",exact:true}).check();
+  await expect(nav.getByRole("link",{name:"Next page"})).toHaveAttribute("href","#page-3");
+  await nav.getByRole("link",{name:"Next page"}).click();
+  await expect(current).toHaveText("Page 3 of 100");
+});
+
+test("DataTable uses compact pagination in its existing footer", async ({page}) => {
+  await page.goto("/components/data-table");
+  await chooseSelectOption(page.getByRole("combobox",{name:"DataTable prop paginationPresentation",exact:true}),"compact");
+  const footer = page.locator(".preview-stage .flood-data-table__footer");
+  const nav = footer.getByRole("navigation",{name:"Pagination"});
+  await expect(nav.locator("[aria-current='page']")).toHaveText("Page 1 of 2");
+  await nav.getByRole("button",{name:"Next page"}).click();
+  await expect(nav.locator("[aria-current='page']")).toHaveText("Page 2 of 2");
+  await expect(nav.getByRole("button",{name:"Next page"})).toBeDisabled();
+});
+
+test("arrows pagination keeps position available and retains localized digits", async ({page}) => {
+  await page.goto("/components/pagination");
+  const property = (name:string) => page.getByRole("combobox",{name:`Pagination prop ${name}`,exact:true});
+  const nav = page.locator(".preview-stage").getByRole("navigation",{name:"Pagination"});
+  await page.getByRole("checkbox",{name:"Pagination prop localizedNumbers"}).check();
+  await expect(nav.getByRole("button",{name:"Page ١",exact:true})).toHaveText("١");
+  await chooseSelectOption(property("presentation"),"arrows");
+  const position = nav.locator("[aria-current='page']");
+  const next = nav.getByRole("button",{name:"Next page"});
+  await expect(nav.getByRole("button")).toHaveCount(2);
+  await expect(position.locator("..")).toHaveClass("flood-visually-hidden");
+  await next.press("Enter");
+  await expect(next).toBeFocused();
+  await expect(position).toHaveText("Page ٢ of ٢٠");
+
+  await page.goto("/components/data-table");
+  await chooseSelectOption(page.getByRole("combobox",{name:"DataTable prop paginationPresentation"}),"arrows");
+  const footer = page.locator(".preview-stage .flood-data-table__footer");
+  const tableNav = footer.getByRole("navigation",{name:"Pagination"});
+  await expect(tableNav.getByRole("button")).toHaveCount(2);
+  await tableNav.getByRole("button",{name:"Next page"}).click();
+  await expect(tableNav.locator("[aria-current='page']")).toHaveText("Page 2 of 2");
 });

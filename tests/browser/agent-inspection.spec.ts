@@ -9,11 +9,18 @@ async function fixture(){
   const directory=resolve(`.artifacts/inspection-${process.pid}`);await mkdir(directory,{recursive:true});
   const entry=resolve(directory,'entry.mjs');
   await writeFile(entry,`import React from ${file('node_modules/react/index.js')};import{createRoot}from ${file('node_modules/react-dom/client.js')};
-import{FloodRoot,Table,Input,Button,IconSlot,Stack,Text,Grid,Field,Surface,DatePicker,Alert,StatusIndicator}from ${file('packages/react/dist/index.js')};import ${file('packages/react/dist/styles.css')};const h=React.createElement;
+import{FloodRoot,Table,DataTable,Input,Button,IconSlot,Stack,Text,Grid,Field,Surface,DatePicker,Alert,StatusIndicator,CollectionToolbar,Select}from ${file('packages/react/dist/index.js')};import ${file('packages/react/dist/styles.css')};const h=React.createElement;
 const row=h('tbody',null,h('tr',null,h('td',null,h(Input,{'aria-label':'Quantity',defaultValue:'2',controlSize:'lg'})),h('td',{'data-numeric':true},'20.00')));
 const records=h('tbody',null,h('tr',null,h('th',{scope:'row'},h(Stack,{gap:'1'},h(Text,{size:'compact'},'Project alpha'),h(Text,{size:'helper'},'30 October'))),h('td',null,'Client'),h('td',{'data-numeric':true},'12.00'),h('td',null,h(Button,{variant:'subtle'},'Open'))));
 const field=label=>h(Field,{label},props=>h(Input,props));const pair=gap=>h(Grid,{columns:2,gap},field('Left'),field('Right'));
 const words=h('tbody',null,h('tr',null,h('th',{scope:'row'},'Invoice 001'),h('td',null,'International product engineering and delivery '.repeat(8)),h('td',null,h(StatusIndicator,{label:'Оплачен'})),h('td',{'data-numeric':true},'100.00'),h('td',null,h(Button,null,'Open'))));
+const queueFilter=(width,size)=>h(CollectionToolbar,{label:'Requests',searchLabel:'Search requests',searchPlaceholder:'Search requests…',searchValue:'',onSearchValueChange:()=>{},controlSize:'sm',quickFilters:h('div',{style:{width}},h(Select,{'aria-label':'Department',controlSize:size},h('option',null,'All departments'))),actions:h(Button,{size,variant:'subtle'},'Columns')});
+const approvalIcon=h('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:2},h('path',{d:'m5 12 4 4L19 6'}));
+const constrained=h(DataTable,{caption:'Purchase requests',hideCaption:true,minWidth:'21rem',columns:[{id:'name',label:'Request',width:'12rem',cellOverflow:'truncate'},{id:'status',label:'Status',width:'9rem'}],rows:[
+  {id:'long',cells:{name:'Annual infrastructure subscription, enterprise terms',status:h(StatusIndicator,{label:'Awaiting security approval',size:'sm',tone:'warning',style:{maxInlineSize:'7rem'}})}},
+  {id:'short',cells:{name:'Office supplies',status:h(StatusIndicator,{label:'Approved',size:'sm',tone:'success',presentation:'icon',icon:approvalIcon})}},
+  {id:'ready',cells:{name:'Demo licenses',status:h(StatusIndicator,{label:'Ready',size:'sm',tone:'info'})}},
+]});
 createRoot(document.getElementById('app')).render(h(FloodRoot,null,
 h('section',{id:'bad'},h(Button,null,'＋ Create'),h(Table,{caption:'Top',cellVerticalAlign:'top'},row)),
 h('section',{id:'good'},h(Button,null,h(IconSlot,null,h('svg',{viewBox:'0 0 24 24',fill:'none',stroke:'currentColor'},h('path',{d:'M12 5v14M5 12h14'}))),'Create'),h(Table,{caption:'Middle'},row)),
@@ -27,12 +34,73 @@ h('form',{id:'nested-drift'},h(Stack,{gap:'6'},h(Surface,{padding:'6'},h(Grid,{c
 h('form',{id:'nested-aligned'},h(Surface,{padding:'6'},h(Stack,{gap:'6'},pair('4'),pair('4')))),
 h('section',{id:'words-bad',style:{width:'420px'}},h(Table,{caption:'Legacy words',className:'legacy-words'},words)),h('section',{id:'words-good',style:{width:'420px'}},h(Table,{caption:'Readable words'},words)),
 h('section',{id:'technical',style:{width:'6rem'}},h(Table,{caption:'Technical identifier',style:{tableLayout:'fixed',width:'6rem'}},h('tbody',null,h('tr',null,h('td',{'data-wrap':'anywhere'},'RepositoryIdentifierWithoutNaturalWordBoundaries0123456789'))))),
+h('section',{id:'status-overflow',style:{width:'22rem',maxWidth:'100%'}},constrained),
+h('section',{id:'queue',style:{maxWidth:'55rem'}},queueFilter('5rem','md'),queueFilter('12rem','sm')),
 h(Button,null,'+7 phone'),h('button',{className:'flood-button',hidden:true},'＋ Hidden')));`);
   const result=await build({configFile:false,logLevel:'silent',define:{'process.env.NODE_ENV':JSON.stringify('production')},build:{write:false,cssCodeSplit:false,lib:{entry,formats:['iife'],name:'Inspection'}}});
   const output=(Array.isArray(result)?result:[result]).flatMap(x=>'output'in x?x.output:[]);
   return '<!doctype html><html><head><meta charset="utf-8"><style>'+output.filter(x=>x.type==='asset'&&x.fileName.endsWith('.css')).map(x=>(x as any).source).join('')+'.flood-root .legacy-words :is(th,td),.legacy-words .flood-status-indicator{overflow-wrap:anywhere}</style></head><body><div id="app"></div><script>'+output.filter(x=>x.type==='chunk').map(x=>(x as any).code).join('')+'</script></body></html>';
 }
 async function open(page:Page){bundled??=fixture();await page.route('**/__inspection.html',async route=>route.fulfill({contentType:'text/html',body:await bundled}));await page.goto('/__inspection.html');await page.locator('#good table').waitFor();await page.evaluate(()=>document.fonts.ready);}
+
+test('table status and opted-in text keep one line and reveal full values',async({page},testInfo)=>{
+  await open(page);
+  const table=page.getByRole('table',{name:'Purchase requests'});
+  const pending=table.locator('.flood-status-indicator').first();
+  const longName=table.locator('.flood-data-table__cell-text').first();
+  const shortStatus=table.locator('.flood-status-indicator').last();
+  await expect(shortStatus).not.toHaveAttribute('tabindex', '0');
+  await expect(pending.locator('.flood-status-indicator__label')).toHaveCSS('white-space','nowrap');
+  await expect(pending).toHaveAttribute('tabindex','0');
+  await expect(longName).toHaveAttribute('tabindex','0');
+  await pending.hover();
+  const tooltip=page.getByRole('tooltip',{name:'Awaiting security approval',exact:true});
+  await expect(tooltip).toBeVisible();
+  await table.screenshot({path:testInfo.outputPath('status-tooltip.png')});
+  await page.mouse.move(0,0);
+  await expect(tooltip).toBeHidden();
+  await longName.focus();
+  await expect(page.getByRole('tooltip',{name:'Annual infrastructure subscription, enterprise terms'})).toBeVisible();
+  const icon=table.locator('[data-presentation="icon"]');
+  const markerGeometry=()=>table.locator('.flood-status-indicator__mark').evaluateAll(marks=>marks.map(mark=>{
+    const slot=mark.getBoundingClientRect(), glyph=mark.firstElementChild!.getBoundingClientRect();
+    return {left:slot.left,width:slot.width,center:glyph.left+glyph.width/2};
+  }));
+  for(const direction of ['ltr','rtl']){
+    await table.evaluate((node,dir)=>node.dir=dir,direction);
+    const markers=await markerGeometry();
+    for(const marker of markers.slice(1)){
+      expect(marker.left).toBeCloseTo(markers[0].left,0);
+      expect(marker.width).toBe(markers[0].width);
+      expect(marker.center).toBeCloseTo(markers[0].center,0);
+    }
+  }
+  await table.evaluate(node=>node.dir='ltr');
+  await expect(icon.locator('.flood-status-indicator__mark')).not.toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  await icon.focus();
+  await expect(page.getByRole('tooltip',{name:'Approved',exact:true})).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('tooltip',{name:'Approved',exact:true})).toBeHidden();
+  await expect(icon).toBeFocused();
+  await icon.blur();
+  await shortStatus.scrollIntoViewIfNeeded();
+  await table.screenshot({path:testInfo.outputPath('single-line-statuses.png')});
+});
+
+test('observer reports clipped collection filters and uneven peer heights',async({page}, testInfo)=>{
+  await open(page);
+  const report=await page.evaluate(inspectRenderedUI,{rootSelector:'#queue'});
+  const issues=report.issues.filter(issue=>issue.id==='layout.collection-filter-truncated');
+  expect(issues.map(issue=>issue.target.label)).toEqual(['All departments']);
+  expect(issues[0].offset).toBeGreaterThan(0);
+  const heights=report.issues.filter(issue=>issue.id==='layout.collection-control-height');
+  expect(heights.map(issue=>issue.target.label)).toEqual(['Department','Columns']);
+  expect(heights.map(issue=>issue.offset)).toEqual([8,8]);
+  const compact=page.locator('#queue .flood-collection-toolbar').last();
+  const compactHeights=await compact.locator('.flood-search-input, .flood-select__control, .flood-collection-toolbar__commands button').evaluateAll(controls=>controls.map(control=>control.getBoundingClientRect().height));
+  expect(compactHeights).toEqual([32,32,32]);
+  await compact.screenshot({path:testInfo.outputPath('compact-collection-toolbar.png')});
+});
 
 test('observer flags real glyph and mixed-row defects, not slot icons, phone prefixes or hidden actions',async({page})=>{
   await open(page);
@@ -96,7 +164,9 @@ test('form observer measures track drift between peer grids while accepting shar
 test('table words keep readable intrinsic widths while legacy anywhere wrapping is observed',async({page})=>{
   await open(page);
   const bad=await page.evaluate(inspectRenderedUI,{rootSelector:'#words-bad'});
-  expect(bad.issues.filter(issue=>issue.id==='table.word-fragment').map(issue=>issue.word)).toContain('Оплачен');
+  const fragments=bad.issues.filter(issue=>issue.id==='table.word-fragment').map(issue=>issue.word);
+  expect(fragments).toContain('Invoice');
+  expect(fragments).not.toContain('Оплачен');
   const good=await page.evaluate(inspectRenderedUI,{rootSelector:'#words-good'});
   expect(good.issues.filter(issue=>issue.id==='table.word-fragment')).toEqual([]);
   await expect(page.locator('#words-good .flood-status-indicator')).toHaveCSS('overflow-wrap','break-word');
@@ -161,5 +231,29 @@ test('record scroll owner is checked even without a visible document gutter',asy
   await shell.evaluate(node=>node.setAttribute('data-scroll','content'));
   expect(await inspect()).toEqual([]);
   await shell.evaluate(node=>{node.setAttribute('data-scroll','page');node.style.width='50%';});
+  expect(await inspect()).toEqual([]);
+});
+
+test('record width observation compares table overflow with the visible navigation dock',async({page})=>{
+  await page.setContent(`<!doctype html><style>
+    .flood-app-shell { display:flex; width:700px }
+    .flood-app-shell__navigation { flex:0 0 160px }
+    .flood-app-shell__workspace { flex:1; min-width:0 }
+    .flood-scroll-area__viewport { overflow:auto }
+    table { width:650px }
+  </style><div class="flood-app-shell" data-scroll="content">
+    <nav class="flood-app-shell__navigation">Requests</nav>
+    <main class="flood-app-shell__workspace"><div class="flood-data-table" aria-label="Queue">
+      <div class="flood-table-container"><div class="flood-scroll-area"><div class="flood-scroll-area__viewport">
+        <table><tbody><tr><td>Pending</td></tr></tbody></table>
+      </div></div></div>
+    </div></main>
+  </div>`);
+  const inspect=async()=> (await page.evaluate(inspectRenderedUI,{})).issues.filter(issue=>issue.id==='layout.record-navigation-width');
+  expect(await inspect()).toEqual([expect.objectContaining({offset:110,target:expect.objectContaining({label:'Queue'}),related:expect.objectContaining({label:'Requests'})})]);
+  await page.locator('table').evaluate(node=>node.style.width='900px');
+  expect(await inspect()).toEqual([]);
+  await page.locator('table').evaluate(node=>node.style.removeProperty('width'));
+  await page.locator('nav').evaluate(node=>node.hidden=true);
   expect(await inspect()).toEqual([]);
 });

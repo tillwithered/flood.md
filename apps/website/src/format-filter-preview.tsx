@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { EmptyState, FileItem, FileList, Heading, Inline, Label, Select, Stack } from "@flood-md/react";
+import { FileItem, FileList, Heading, Inline, Label, NoResults, Select, Stack } from "@flood-md/react";
 import { FileSavedViews } from "./file-saved-views";
 import { AppliedFilterControl } from "./recipes/collection-views";
 import "./format-filter-preview.css";
@@ -60,10 +60,10 @@ export default function FormatFilterPreview({ mode = "select" }: { mode?: "selec
         {visibleFiles.length ? (
           <FileList label="Files">
             {visibleFiles.map(({ name, format, size, team }) => (
-              <FileItem key={name} name={name} format={format} size={size} description={showTeam ? team : undefined} />
+              <FileItem key={name} name={name} nameOverflow="truncate" format={format} size={size} description={showTeam ? team : undefined} />
             ))}
           </FileList>
-        ) : <EmptyState title="No matching files" density="compact" />}
+        ) : <NoResults title="No matching files" />}
       </Stack>
     </main>
   );

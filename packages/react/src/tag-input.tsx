@@ -1,6 +1,7 @@
 import {forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState} from "react";
 import {Input, Label, Tag, type TagInputProps} from "./index.js";
 import {mergeDescriptions, resolveFieldStatus} from "./field-state.js";
+import {useSelectionTags} from "./selection-tags.js";
 
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 const normalize = (values: readonly string[]) => [...new Set(values.map(value => value.trim()).filter(Boolean))];
@@ -10,6 +11,7 @@ const same = (a: readonly string[], b: readonly string[]) => a.length === b.leng
 export const FreeTagEntry = /* @__PURE__ */ forwardRef<HTMLInputElement, TagInputProps>(function FreeTagEntry({
   label, hideLabel = false, value, defaultValue = [], onValueChange, delimiters = [","], removeLabel = "Remove",
   requiredMessage = "Add at least one tag.", controlSize = "md", disabled, readOnly, required, name, form,
+  maxVisibleTags, moreTagsLabel, fewerTagsLabel,
   id: explicitId, className, style, onKeyDown, onPaste, onInvalid, onCompositionStart, onCompositionEnd, ...props
 }, forwardedRef) {
   if (!label.trim() || !removeLabel.trim() || !requiredMessage.trim()) throw new Error("Flood TagInput requires nonempty accessible labels and validation message");
@@ -21,6 +23,8 @@ export const FreeTagEntry = /* @__PURE__ */ forwardRef<HTMLInputElement, TagInpu
   const initial = useRef(normalize(defaultValue));
   const [local, setLocal] = useState(initial.current), [draft, setDraft] = useState(""), [validation, setValidation] = useState("");
   const tags = value === undefined ? local : normalize(value);
+  const display = useSelectionTags(tags, {maxVisibleTags, moreTagsLabel, fewerTagsLabel}, disabled);
+  const {setExpanded: setTagsExpanded} = display;
   const controlled = useRef(value !== undefined);
   controlled.current = value !== undefined;
   const pending = useRef<{tags:string[]; draft:string; remaining:string} | undefined>(undefined);
@@ -58,13 +62,13 @@ export const FreeTagEntry = /* @__PURE__ */ forwardRef<HTMLInputElement, TagInpu
         timers.delete(timer);
         if (event.defaultPrevented || !input.current) return;
         if (!controlled.current) setLocal([...initial.current]);
-        pending.current = undefined; setDraft(""); setValidation("");
+        pending.current = undefined; setDraft(""); setValidation(""); setTagsExpanded(false);
       },0);
       timers.add(timer);
     };
     owner.addEventListener("reset",reset);
     return () => { owner.removeEventListener("reset",reset); timers.forEach(clearTimeout); };
-  },[form]);
+  },[form,setTagsExpanded]);
   const remove = (tag: string) => {
     if (blocked()) return;
     // Removal is a separate edit, not acceptance of a pending addition.
@@ -88,7 +92,7 @@ export const FreeTagEntry = /* @__PURE__ */ forwardRef<HTMLInputElement, TagInpu
     <div className={["flood-input-group", "flood-tag-input__control", `flood-control--${controlSize}`,className].filter(Boolean).join(" ")} style={style}
       data-disabled={disabled || undefined} data-readonly={readOnly || undefined} data-status={resolveFieldStatus(props.status,props.invalid || Boolean(validation),props["aria-invalid"])}
       onClick={event => { if (!blocked() && !(event.target as HTMLElement).closest("button,input")) input.current?.focus(); }}>
-      {tags.map(tag => <Tag key={tag} size={controlSize === "sm" ? "sm" : controlSize === "md" ? "md" : "lg"}
+      {display.visible.map(tag => <Tag key={tag} size={controlSize === "sm" ? "sm" : controlSize === "md" ? "md" : "lg"}
         disabled={disabled} onRemove={readOnly ? undefined : () => remove(tag)} removeLabel={`${removeLabel} ${tag}`}
         removeButtonProps={{tabIndex:-1,onKeyDown:event => {
           if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || blocked()) return;
@@ -98,6 +102,7 @@ export const FreeTagEntry = /* @__PURE__ */ forwardRef<HTMLInputElement, TagInpu
           else if (event.key === (rtl() ? "ArrowLeft" : "ArrowRight")) { event.preventDefault(); (buttons[index+1] ?? input.current)?.focus(); }
           else if (event.key === (rtl() ? "ArrowRight" : "ArrowLeft")) { event.preventDefault(); buttons[Math.max(0,index-1)]?.focus(); }
         }}}>{tag}</Tag>)}
+      {display.overflow}
       <Input {...props} ref={input} id={id} type="text" form={form} value={draft} controlSize={controlSize} disabled={disabled} readOnly={readOnly}
         required={required && tags.length === 0} aria-required={required || undefined}
         aria-describedby={mergeDescriptions(props["aria-describedby"],tags.length > 0 && `${id}-selection`,Boolean(validation) && `${id}-validation`)}
@@ -121,7 +126,11 @@ export const FreeTagEntry = /* @__PURE__ */ forwardRef<HTMLInputElement, TagInpu
           if (blocked()) return;
           if (event.key === "Enter" && draft.trim()) { event.preventDefault(); add([draft]); }
           else if (delimiters.includes(event.key)) { event.preventDefault(); add([draft]); }
-          else if (event.key === "Backspace" && !draft && tags.length && !event.shiftKey) { event.preventDefault(); remove(tags.at(-1)!); }
+          else if (event.key === "Backspace" && !draft && tags.length && !event.shiftKey) {
+            event.preventDefault();
+            const last = display.visible.at(-1);
+            if (last !== undefined) remove(last);
+          }
           else if (event.key === (rtl() ? "ArrowRight" : "ArrowLeft") && !event.shiftKey && event.currentTarget.selectionStart === 0 && event.currentTarget.selectionEnd === 0) {
             const last = removeButtons().at(-1); if (last) { event.preventDefault(); last.focus(); }
           }

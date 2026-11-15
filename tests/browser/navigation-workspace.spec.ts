@@ -30,6 +30,32 @@ test('page search finds available destinations and reveals the selected branch',
   await expect(page.getByRole('table',{name:'Projects'}).getByText(name,{exact:true})).toBeVisible();
 });
 
+test('SearchTrigger opens the search field and restores the named launcher in both layouts',async({page},info)=>{
+  await page.goto('/components/search-trigger');
+  const stage = page.locator('.preview-stage');
+  const trigger = stage.getByRole('button',{name:'Search workspace',exact:true});
+  await expect(trigger).toHaveAttribute('aria-haspopup','dialog');
+  await expect(trigger).toHaveAttribute('aria-keyshortcuts','Alt+K');
+  await expect(trigger.locator('kbd')).toHaveText(['Alt','K']);
+  await page.getByRole('checkbox',{name:'SearchTrigger prop fullWidth'}).check();
+  const [button, wrapper] = await Promise.all([trigger.boundingBox(),trigger.locator('..').boundingBox()]);
+  expect(button!.width).toBeCloseTo(wrapper!.width);
+  await page.evaluate(()=>document.fonts.ready);
+  await trigger.screenshot({path:info.outputPath('search-trigger-full.png')});
+  await trigger.press('Alt+k');
+  const search = page.getByRole('combobox',{name:'Search workspace pages'});
+  await expect(search).toBeFocused();
+  await search.press('Escape');
+  await expect(trigger).toBeFocused();
+  await page.getByRole('checkbox',{name:'SearchTrigger prop iconOnly'}).check();
+  await expect(trigger.locator('kbd')).toHaveCount(0);
+  await trigger.press('Enter');
+  await expect(search).toBeFocused();
+  await search.press('Escape');
+  await expect(trigger).toBeFocused();
+  await trigger.screenshot({path:info.outputPath('search-trigger-icon.png')});
+});
+
 test('command palette exposes loading, empty and disabled results',async({page})=>{
   await page.goto('/components/command-palette');
   const trigger=page.getByRole('button',{name:'Go to page',exact:true});
@@ -264,6 +290,26 @@ test('project filters stay scoped across modules and archived is a reachable All
   await expect(page.getByRole('button',{name:'Remove Status: Paused',exact:true})).toBeVisible();
   await filter('archived');
   await expect(page.getByRole('table',{name:'Projects',exact:true}).getByText('Checkout',{exact:true})).toBeVisible();
+});
+
+test('the rail unread marker clears without moving the Inbox glyph',async({page}, info)=>{
+  await open(page, '#inbox/unread');
+  const rail = page.getByRole('complementary',{name:'Global navigation',exact:true});
+  const inbox = rail.getByRole('link',{name:'Inbox',exact:true});
+  const dot = inbox.locator('.flood-count-badge');
+  await expect(dot).toBeVisible();
+  await expect(inbox).toHaveAccessibleDescription('2 unread messages');
+  const unread = page.getByRole('link',{name:'Unread 2',exact:true});
+  await expect(unread.locator('.flood-count-badge')).toHaveText('2');
+  const glyph = inbox.locator('.flood-icon');
+  const before = await glyph.boundingBox();
+  await rail.screenshot({path:info.outputPath('rail-unread.png')});
+  await unread.screenshot({path:info.outputPath('context-unread.png')});
+  await page.getByRole('button',{name:'Mark all as read',exact:true}).click();
+  await expect(dot).toHaveCount(0);
+  await expect(inbox).toHaveAccessibleDescription('');
+  await expect(page.getByRole('link',{name:'Unread',exact:true})).toBeVisible();
+  expect(await glyph.boundingBox()).toEqual(before);
 });
 
 test('disappearing actions and dialog triggers restore a stable heading without stealing surviving focus',async({page})=>{

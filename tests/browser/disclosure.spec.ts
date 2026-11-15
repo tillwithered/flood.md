@@ -18,6 +18,7 @@ return h(FloodRoot,null,h(Collapsible,{title:'Local',ref,onOpenChange:()=>setCou
 h(Collapsible,{title:'Controlled',open,onOpenChange:setOpen},h('input',{'aria-label':'Controlled input',defaultValue:'saved'})),
 h(Collapsible,{title:'Frozen',open:false},'Frozen'),h(Collapsible,{title:'Disabled',disabled:true},'Disabled'),
 h(Accordion,{label:'Single',items,defaultValue:['first'],headingLevel:2}),
+h('section',{'aria-label':'Inspector',style:{width:'20rem',maxWidth:'100%',padding:'1rem'}},h(Accordion,{label:'Flush sections',variant:'flush',controlSize:'sm',items,defaultValue:['second']}),h(Collapsible,{title:'Flush independent',variant:'flush',defaultOpen:true},'Independent details')),
 h(Accordion,{label:'Multiple',items,expansionMode:'multiple',value:values,onValueChange:setValues,headingLevel:2}),
 h('button',{onClick:()=>ref.current.querySelector('button').focus()},'Focus ref'),h('output',{'aria-label':'Changes'},String(count)))}
 createRoot(document.getElementById('app')).render(h(App));`);
@@ -109,4 +110,50 @@ test("Accordion hover corners follow the outer shell rather than rounding every 
   const triggerBox = (await trigger.boundingBox())!;
   const contentBox = (await page.locator(".preview-stage .flood-disclosure__panel label").boundingBox())!;
   expect(contentBox.y - triggerBox.y - triggerBox.height).toBeGreaterThanOrEqual(8);
+});
+
+
+test("flush disclosure shares its parent edge and preserves expansion",async({page},info)=>{
+  await open(page);
+  const group=page.getByRole("group",{name:"Flush sections",exact:true});
+  await expect(group).toHaveCSS("border-top-width","0px");
+  await expect(group).toHaveCSS("background-color","rgba(0, 0, 0, 0)");
+  const second=group.getByRole("button",{name:"Second",exact:true});
+  const panel=group.locator(":scope > .flood-disclosure").nth(1).locator(":scope > .flood-disclosure__panel");
+  const edges=await second.evaluate(button=>{
+    const title=button.querySelector(".flood-disclosure__title")!;
+    const panel=button.closest(".flood-disclosure")!.querySelector(".flood-disclosure__panel")!;
+    return {title:title.getBoundingClientRect().left,panel:panel.getBoundingClientRect().left,padding:getComputedStyle(panel).paddingLeft};
+  });
+  expect(Math.abs(edges.title-edges.panel)).toBeLessThanOrEqual(1);
+  expect(edges.padding).toBe("0px");
+  await second.focus();await page.keyboard.press("Space");await expect(panel).toBeHidden();
+  await page.keyboard.press("Enter");await expect(panel).toBeVisible();
+  await expect(group.locator(":scope > .flood-disclosure").nth(1)).toHaveCSS("border-top-width","1px");
+  await expect(page.getByRole("group",{name:"Single",exact:true})).toHaveCSS("border-top-width","1px");
+  const independent=page.getByRole("button",{name:"Flush independent",exact:true});
+  await expect(independent).toHaveCSS("padding-left","0px");
+  await independent.click();await expect(independent).toHaveAttribute("aria-expanded","false");
+  await page.getByRole("region",{name:"Inspector"}).screenshot({path:`.artifacts/disclosure-flush-${info.project.name}.png`});
+});
+
+test("a closing disclosure immediately makes its panel inert while height settles", async ({page}) => {
+  await page.goto("/components/timeline");
+  const trigger = page.getByRole("button", {name:"2 comments"});
+  const disclosure = trigger.locator("../..");
+  const panel = disclosure.locator(".flood-disclosure__panel");
+  await trigger.hover();
+  await expect(trigger).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(await panel.evaluate(element=>element.inert)).toBe(true);
+  await trigger.press("Enter");
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await expect(panel).toBeVisible();
+  await expect(panel).not.toHaveAttribute("data-moving", "");
+  expect(await panel.evaluate(element=>element.inert)).toBe(false);
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await trigger.press("Enter");
+  await expect(panel).toBeHidden();
+  await expect(panel).not.toHaveAttribute("data-moving", "");
 });

@@ -101,13 +101,17 @@ export function lockScroll(document: Document) {
 export function positionLayer(anchor:HTMLElement,panel:HTMLElement,side:Side,align:Align,overlap=false){
   const view=panel.ownerDocument.defaultView!;const visual=view.visualViewport;
   const viewport={left:visual?.offsetLeft??0,top:visual?.offsetTop??0,width:visual?.width??view.innerWidth,height:visual?.height??view.innerHeight};
-  const gap=parseFloat(getComputedStyle(panel).columnGap)||8;
-  panel.style.setProperty("--flood-overlay-available-width",`${Math.max(0,viewport.width-2*gap)}px`);panel.style.setProperty("--flood-overlay-available-height",`${Math.max(0,viewport.height-2*gap)}px`);
-  const bounds=anchor.getBoundingClientRect(),anchorWidth=`${bounds.width}px`,anchorHeight=`${bounds.height}px`;
+  // Top-layer coordinates are viewport-relative, but CSS lengths still inherit zoom.
+  const zoom=panel.currentCSSZoom??1;
+  const gap=(parseFloat(view.getComputedStyle(panel).columnGap)||8)*zoom;
+  const panelLength=(viewportLength:number)=>`${viewportLength/zoom}px`;
+  panel.style.setProperty("--flood-overlay-available-width",panelLength(Math.max(0,viewport.width-2*gap)));
+  panel.style.setProperty("--flood-overlay-available-height",panelLength(Math.max(0,viewport.height-2*gap)));
+  const bounds=anchor.getBoundingClientRect(),anchorWidth=panelLength(bounds.width),anchorHeight=panelLength(bounds.height);
   if(panel.style.getPropertyValue("--flood-overlay-anchor-width")!==anchorWidth)panel.style.setProperty("--flood-overlay-anchor-width",anchorWidth);
   if(panel.style.getPropertyValue("--flood-overlay-anchor-height")!==anchorHeight)panel.style.setProperty("--flood-overlay-anchor-height",anchorHeight);
   const position=placeOverlay(bounds,panel.getBoundingClientRect(),viewport,side,align,gap,getComputedStyle(anchor).direction==="rtl",overlap);
-  const left=`${position.left}px`,top=`${position.top}px`;
+  const left=panelLength(position.left),top=panelLength(position.top);
   if(panel.style.left!==left)panel.style.left=left;if(panel.style.top!==top)panel.style.top=top;
   panel.dataset.side=position.side;panel.style.visibility="visible";
 }

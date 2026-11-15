@@ -1,7 +1,8 @@
 "use client";
 import {useCallback,useEffect,useRef,useState,type Dispatch,type FormEvent,type RefCallback,type SetStateAction} from 'react';
-import {Archive,ArrowLeft,Bell,Check,ChevronDown,Ellipsis,FileText,Folder,FolderKanban,Inbox,PanelLeftClose,PanelLeftOpen,LifeBuoy,Plus,Search,Settings,UserRound} from 'lucide-react';
-import {AppShell,AppTopBar,Avatar,Badge,Breadcrumb,Button,CollectionToolbar,CommandPalette,DataList,DataListItem,DataTable,Dialog,EmptyState,Field,FileItem,FileList,FloodRoot,Heading,IconButton,IconSlot,Inline,Input,Link,Menu,NavigationGroup,NavigationTree,ScrollArea,SegmentedControl,Select,Sidebar,Stack,StatusIndicator,Text,Tooltip,type NavigationTreeItem,type SidebarGroup} from '@flood-md/react';
+import {Archive,ArrowLeft,Bell,Check,ChevronDown,Ellipsis,FileText,Folder,FolderKanban,Inbox,PanelLeftClose,PanelLeftOpen,LifeBuoy,Plus,Settings,UserRound} from 'lucide-react';
+import {AppShell,AppTopBar,Avatar,Badge,Breadcrumb,Button,CollectionToolbar,CommandPalette,CountBadge,DataList,DataListItem,DataTable,Dialog,EmptyState,Field,FileItem,FileList,FloodRoot,Heading,IconButton,IconSlot,Inline,Input,Link,Menu,NavigationGroup,NavigationTree,ScrollArea,SearchTrigger,SegmentedControl,Select,Sidebar,Stack,StatusIndicator,Text,Tooltip,type NavigationTreeItem,type SidebarGroup} from '@flood-md/react';
+import {phoneViewport,useStudioMedia} from './studio-media';
 import './navigation-playground.css';
 
 type WorkspaceId='studio'|'labs';
@@ -88,6 +89,7 @@ export default function NavigationPlayground(){
   const rail=useRef<HTMLElement>(null);
   const pendingNavigationFocus=useRef<string|null>(null);
   const [layout,setLayout]=useState('composed'),[contextVisible,setContextVisible]=useState(true),[compact,setCompact]=useState(false);
+  const phone = useStudioMedia(phoneViewport);
   const [{workspace:workspaceId,route},setLocation]=useState(readLocation);
   const lastRoutes=useRef<Partial<Record<WorkspaceId,string>>>({});
   const [projects,setProjects]=useWorkspaceState(workspaceId,{studio:initialProjects,labs:labsProjects});
@@ -104,6 +106,7 @@ export default function NavigationPlayground(){
   const projectPage=workspaceId==='labs'&&module==='projects'?labsProjects.find(project=>project.id===view):undefined;
   const title=projectPage?.name??routeTitles[route];
   const query=queries[module],unread=messages.filter(message=>!message.read).length;
+  const unreadLabel=unread===1?'1 unread message':`${unread} unread messages`;
   const href=(path:string)=>workspaceHref(workspaceId,path);
 
   useEffect(()=>{
@@ -138,10 +141,10 @@ export default function NavigationPlayground(){
   function saveProject(event:FormEvent){event.preventDefault();const value=name.trim();if(!value){setInvalid('Enter a project name.');return;}setProjects(current=>[{id:crypto.randomUUID(),name:value,owner:'Maya Chen',status:'active',updated:'Just now'},...current]);setCreating(false);setName('');setInvalid(undefined);setQueries(current=>({...current,projects:''}));setStatus('all');window.location.hash=href('projects/all');}
   const contextItems:Record<Module,NavigationTreeItem[]>={
     projects:[{value:'projects/all',label:'All projects',href:href('projects/all'),icon:glyph(FolderKanban)},{value:'projects/active',label:'Active',href:href('projects/active'),icon:glyph(Check)},{value:'projects/mine',label:'Assigned to me',href:href('projects/mine'),icon:glyph(UserRound)},{value:'projects/archived',label:'Archived',href:href('projects/archived'),icon:glyph(Archive)}],
-    inbox:[{value:'inbox/all',label:'All messages',href:href('inbox/all'),icon:glyph(Inbox)},{value:'inbox/unread',label:'Unread',href:href('inbox/unread'),icon:glyph(Bell),trailing:unread?<Badge size="sm">{unread}</Badge>:undefined}],
+    inbox:[{value:'inbox/all',label:'All messages',href:href('inbox/all'),icon:glyph(Inbox)},{value:'inbox/unread',label:'Unread',href:href('inbox/unread'),icon:glyph(Bell),trailing:unread?<CountBadge count={unread}/>:undefined}],
     files:[{value:'files/all',label:'All files',href:href('files/all'),icon:glyph(Folder)},{value:'files/documents',label:'Documents',href:href('files/documents'),icon:glyph(FileText)}],
   };
-  const globalItems:NavigationTreeItem[]=[{value:'projects',label:'Projects',href:href('projects/all'),icon:glyph(FolderKanban)},{value:'inbox',label:'Inbox',href:href('inbox/all'),icon:glyph(Inbox)},{value:'files',label:'Files',href:href('files/all'),icon:glyph(Folder)}];
+  const globalItems:NavigationTreeItem[]=[{value:'projects',label:'Projects',href:href('projects/all'),icon:glyph(FolderKanban)},{value:'inbox',label:'Inbox',href:href('inbox/all'),icon:glyph(Inbox),compactBadge:{count:unread,label:unreadLabel}},{value:'files',label:'Files',href:href('files/all'),icon:glyph(Folder)}];
   if(workspaceId==='labs')contextItems.projects=contextItems.projects.filter(item=>item.value!=='projects/archived');
   const projectCollections:NavigationTreeItem[]=workspaceId==='labs'?[
     {value:'lab-research',label:'Research and operations',icon:glyph(Folder),trailing:<Badge size="sm">8</Badge>,children:labsProjects.slice(0,8).map(projectLink)},
@@ -153,10 +156,10 @@ export default function NavigationPlayground(){
   }
   const navigationDestinations=[
     ...Object.entries(contextItems).flatMap(([section,items])=>items.map(item=>({
-      id:item.value,label:item.label,group:moduleNames[section as Module],
+      id:item.value,label:item.label,group:moduleNames[section as Module],icon:item.icon,
     }))),
     ...(workspaceId==='labs'?labsProjects.map(project=>({
-      id:`projects/${project.id}`,label:project.name,group:'Project pages',
+      id:`projects/${project.id}`,label:project.name,group:'Project pages',icon:glyph(FolderKanban),
     })):[]),
   ];
 
@@ -240,9 +243,7 @@ export default function NavigationPlayground(){
           {navigationTrigger}
           <CommandPalette title="Go to page" searchLabel="Search pages" placeholder="Search pages…"
             emptyMessage="No matching pages" items={navigationDestinations} onAction={goToDestination}
-            trigger={props=><Button {...props} variant="subtle" size="sm">
-              <IconSlot size="sm"><Search/></IconSlot><span className="navigation-lab__toolbar-label">Go to page</span>
-            </Button>}/>
+            trigger={props=><SearchTrigger {...props} label="Go to page" iconOnly={phone} />}/>
           <Link href="https://flood.md/docs" target="_blank" rel="noreferrer" variant="ghost" size="sm" className="navigation-lab__help"><IconSlot size="sm"><LifeBuoy/></IconSlot><span className="navigation-lab__toolbar-label">Help</span></Link></>} />}
     >
           <Stack gap="6" className="navigation-lab__content-inner">

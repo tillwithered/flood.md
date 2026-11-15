@@ -50,3 +50,47 @@ test('ToastRegion pauses visible timers and starts queued timers only on display
 test('ToastRegion F8 skips empty regions and manual dismiss does not later expire twice',async({page})=>{
  await freezeClock(page);await open(page);await timersReady(page,'first');await page.getByRole('checkbox',{name:'Keep notices'}).check();await page.keyboard.press('F8');const close=page.getByRole('button',{name:'Dismiss notification: First notice'});await expect(close).toBeFocused();await page.clock.runFor(600);await expect(close).toBeVisible();await close.click();await page.getByRole('button',{name:'After region'}).focus();await page.mouse.move(1,1);await page.clock.runFor(600);await expect(page.getByRole('status',{name:'Dismiss requests'})).toHaveText('1');
 });
+
+test('overflowing toasts keep their width and scroll keyboard focus into view', async ({page}) => {
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.goto('/components/toast-region');
+  await page.getByRole('checkbox',{name:'ToastRegion prop inline'}).check();
+  await page.getByRole('checkbox',{name:'ToastRegion prop longText'}).check();
+  const region = page.getByRole('region',{name:'Notifications',exact:true});
+  await region.evaluate(node=>{
+    node.style.inlineSize = '16rem';
+    node.style.maxBlockSize = '11rem';
+  });
+  const viewport = region.locator('.flood-toast-region__viewport');
+  const cards = region.getByRole('listitem');
+  const initial = (await cards.first().boundingBox())!.width;
+  const add = page.getByRole('button',{name:'Show notification',exact:true});
+  await add.click();
+  await add.click();
+  await expect(cards).toHaveCount(3);
+  await expect(viewport).toHaveAttribute('data-scrollbars','overlay');
+  await expect(region.locator('.flood-scroll-area__track--vertical')).toBeVisible();
+  expect((await cards.first().boundingBox())!.width).toBeCloseTo(initial,0);
+  const close = cards.last().getByRole('button');
+  await close.evaluate(node=>node.focus({preventScroll:true}));
+  await expect(close).toBeFocused();
+  await expect.poll(() => viewport.evaluate(node=>node.scrollTop)).toBeGreaterThan(0);
+  const [bounds,target] = await Promise.all([viewport.boundingBox(),close.boundingBox()]);
+  expect(target!.y + target!.height).toBeLessThanOrEqual(bounds!.y + bounds!.height + 1);
+});
+
+test('floating retry preview clears the studio controls and updates the notice on retry', async ({page}) => {
+  await page.goto('/components/toast-region');
+  await page.getByRole('checkbox',{name:'ToastRegion prop showAction'}).check();
+  const region = page.getByRole('region',{name:'Notifications',exact:true});
+  const card = region.getByRole('listitem');
+  const reference = page.getByRole('button',{name:/^Reference/});
+  await expect(region.getByRole('alert')).toContainText('Could not save project preferences');
+  await expect.poll(async () => {
+    const [notice, control] = await Promise.all([card.boundingBox(),reference.boundingBox()]);
+    return control!.y - notice!.y - notice!.height;
+  }).toBeGreaterThanOrEqual(8);
+  await region.getByRole('button',{name:'Retry save'}).click();
+  await expect(region.getByRole('status')).toHaveText('Preferences saved');
+  await expect(region.getByRole('button',{name:'Retry save'})).toHaveCount(0);
+});

@@ -59,7 +59,8 @@ test("served Switch keeps its thumb inside both writing directions independent o
 
 test("served controls preserve feedback and focus under forced colors and reduced motion",async({page},info)=>{
   await page.emulateMedia({forcedColors:"active",reducedMotion:"reduce"});
-  await page.goto("/components/button");await page.getByRole("checkbox",{name:"Button prop loading",exact:true}).check();
+  await page.goto("/components/button");
+  await chooseSelectOption(page.getByRole("combobox",{name:"Button prop loadingMode",exact:true}),"loading");
   const stage=page.locator(".workbench-stage"),button=stage.getByRole("button",{name:"Save changes",exact:true});
   await expect(button).toBeDisabled();await expect(button).toHaveAttribute("aria-busy","true");await expect(stage.locator(".flood-spinner")).toHaveCSS("animation-name","none");
   await stage.screenshot({animations:"disabled",path:`.artifacts/foundations-milestone/forced-loading-${info.project.name}.png`});

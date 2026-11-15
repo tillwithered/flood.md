@@ -14,7 +14,7 @@ import{createRoot}from ${file("node_modules/react-dom/client.js")};
 import{FloodRoot,TagInput,Button,Checkbox}from ${file("packages/react/dist/index.js")};
 import ${file("packages/react/dist/styles.css")};const h=React.createElement;
 function App(){const[disabled,D]=useState(false),[readOnly,R]=useState(false),[hidden,H]=useState(false),[cancel,C]=useState(false),[accept,A]=useState(false),[fixed,F]=useState(['Fixed']),[requested,Q]=useState(''),[submitted,S]=useState('');return h(FloodRoot,null,h('h1',null,'Tag input checks'),
-h('form',{id:'tags-form',onSubmit:e=>{e.preventDefault();S(JSON.stringify([...new FormData(e.currentTarget)]))},onReset:e=>{if(cancel)e.preventDefault()}},h('fieldset',{disabled},h('legend',null,'Tag settings'),h(TagInput,{label:'Topics',name:'topics',defaultValue:['Design'],delimiters:[',',';'],readOnly,hideLabel:hidden,placeholder:'Add topic'}),h(TagInput,{label:'Fixed topics',value:fixed,readOnly,onValueChange:next=>{Q(JSON.stringify(next));if(accept)F(next)}}),h(Button,{type:'submit'},'Submit tags')),h(Button,{type:'reset'},'Reset tags')),
+h('form',{id:'tags-form',onSubmit:e=>{e.preventDefault();S(JSON.stringify([...new FormData(e.currentTarget)]))},onReset:e=>{if(cancel)e.preventDefault()}},h('fieldset',{disabled},h('legend',null,'Tag settings'),h(TagInput,{label:'Topics',name:'topics',maxVisibleTags:location.hash==='#compact'?1:undefined,defaultValue:['Design'],delimiters:[',',';'],readOnly,hideLabel:hidden,placeholder:'Add topic'}),h(TagInput,{label:'Fixed topics',value:fixed,readOnly,onValueChange:next=>{Q(JSON.stringify(next));if(accept)F(next)}}),h(Button,{type:'submit'},'Submit tags')),h(Button,{type:'reset'},'Reset tags')),
 h('form',{id:'required-tags',onSubmit:e=>e.preventDefault()},h(TagInput,{label:'Required topics',name:'required-topics',required:true}),h(Button,{type:'submit'},'Validate tags')),
 h(Checkbox,{label:'Read only',checked:readOnly,onChange:e=>R(e.currentTarget.checked)}),h(Checkbox,{label:'Disable fieldset',checked:disabled,onChange:e=>D(e.currentTarget.checked)}),h(Checkbox,{label:'Hide label',checked:hidden,onChange:e=>H(e.currentTarget.checked)}),h(Checkbox,{label:'Cancel reset',checked:cancel,onChange:e=>C(e.currentTarget.checked)}),h(Checkbox,{label:'Accept changes',checked:accept,onChange:e=>A(e.currentTarget.checked)}),h('output',{'aria-label':'Requested tags'},requested),h('output',{'aria-label':'Submitted tags'},submitted));}createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
   const result = await build({configFile:false,logLevel:"silent",define:{"process.env.NODE_ENV":JSON.stringify("development")},build:{write:false,cssCodeSplit:false,lib:{entry,formats:["iife"],name:"TagInputFixture"}}});
@@ -23,10 +23,10 @@ h(Checkbox,{label:'Read only',checked:readOnly,onChange:e=>R(e.currentTarget.che
   const js = outputs.filter(item => item.type === "chunk").map(item => item.type === "chunk" ? item.code : "").join("\n");
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tag input</title><style>${css}body{margin:16px;background:#181818;color:white}main{max-width:30rem}fieldset{min-width:0}</style></head><body><main id="app"></main><script>${js.replace(/<\/script/gi,"<\\/script")}</script></body></html>`;
 }
-async function open(page: Page) {
+async function open(page: Page, compact = false) {
   bundle ??= fixture();
   await page.route("**/__tag-input.html",async route => route.fulfill({contentType:"text/html",body:await bundle}));
-  await page.goto("/__tag-input.html");
+  await page.goto(compact ? "/__tag-input.html#compact" : "/__tag-input.html");
 }
 const topic = (page:Page) => page.getByRole("textbox",{name:"Topics",exact:true});
 const field = (page:Page) => page.locator(".flood-tag-input").filter({has:topic(page)});
@@ -37,6 +37,32 @@ async function paste(page:Page,text:string) {
     Object.defineProperty(event,"clipboardData",{value:clipboard}); node.dispatchEvent(event);
   },text);
 }
+
+test("overflow keeps committed values and lets the keyboard target a revealed tag",async({page})=>{
+  await open(page,true);
+  const input=topic(page);
+  for(const label of ["Typography","Navigation"]){
+    await input.fill(label);
+    await input.press("Enter");
+  }
+  await expect(field(page).locator(".flood-tag")).toHaveCount(1);
+  await expect(input).toHaveAccessibleDescription("Design, Typography, Navigation");
+  await page.getByRole("button",{name:"Submit tags"}).click();
+  await expect(page.getByRole("status",{name:"Submitted tags"})).toHaveText('[["topics","Design"],["topics","Typography"],["topics","Navigation"]]');
+  const more=field(page).getByRole("button",{name:"Show 2 more",exact:true});
+  await more.focus();
+  await more.press("Enter");
+  await expect(field(page).getByRole("button",{name:"Show fewer"})).toBeFocused();
+  await input.press("ArrowLeft");
+  await expect(field(page).getByRole("button",{name:"Remove Navigation"})).toBeFocused();
+  await page.keyboard.press("Delete");
+  await expect(input).toBeFocused();
+  await expect(input).toHaveAccessibleDescription("Design, Typography");
+  await field(page).getByRole("button",{name:"Show fewer"}).click();
+  await input.press("Backspace");
+  await expect(input).toHaveAccessibleDescription("Typography");
+  await expect(field(page).locator(".flood-tag")).toHaveText("Typography");
+});
 
 test("TagInput trims, deduplicates, handles delimiters/paste and submits only committed values",async({page}) => {
   await open(page);const input=topic(page);

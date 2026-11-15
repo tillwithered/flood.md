@@ -2,7 +2,7 @@ import { isValidElement, useEffect, useRef, useState, type ReactNode, type RefOb
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowRight, ArrowUpRight, List } from "lucide-react";
-import { Breadcrumb, Button, CodeSnippet, Collapsible, Drawer, Grid, Heading, IconButton, IconSlot, Inline, Kbd, Link, PageHeader, ScrollArea, SearchInput, Select, SegmentedControl, Sheet, Stack, Surface, Text } from "@flood-md/react";
+import { Breadcrumb, Button, CodeSnippet, Collapsible, Drawer, Grid, Heading, IconButton, IconSlot, Inline, KeyboardShortcut, Link, NavigationItem, PageHeader, ScrollArea, SearchInput, Select, SegmentedControl, Sheet, Stack, Surface, Text } from "@flood-md/react";
 import { docPages, siteOrigin } from "../routes.mjs";
 import { componentPages, componentGroups, matchesComponent } from "./component-catalog";
 import { ComponentWorkbench } from "./component-workbench";
@@ -103,9 +103,8 @@ function ComponentNavigation({ path, query, onQueryChange, initialFocusRef }: { 
         const entries = results.filter(page => page.group === group.id);
         return entries.length > 0 && <div className="side-group" key={group.id} role="group" aria-label={group.label}>
           <Text size="helper" tone="subtle" className="side-label">{group.label}</Text>
-          {entries.map(page => <Link key={page.slug} variant="ghost" size="sm" className="side-link" href={`/components/${page.slug}`} aria-current={path === `/components/${page.slug}` ? "page" : undefined}>
-            <span className="catalog-item-name" title={page.name}>{page.name}</span>
-          </Link>)}
+          {entries.map(page => <NavigationItem key={page.slug} variant="standard" size="sm" className="catalog-component-row"
+            label={page.name} labelOverflow="truncate" href={`/components/${page.slug}`} current={path === `/components/${page.slug}`} />)}
         </div>;
       })}
   </nav>;
@@ -275,7 +274,7 @@ export default function Documentation({ path }: { path: string }) {
     <div className="doc-center">
       {doc && <MobileDocsNavigation path={path} />}
       <main tabIndex={-1} id="main-content" className="doc-article">
-        {component && <div className="doc-breadcrumb"><Breadcrumb label="Page breadcrumb" items={[
+        {component && <div className="doc-breadcrumb"><Breadcrumb label="Page breadcrumb" layout="compact" maxVisibleItems={3} items={[
           { label: "Components", href: "/components" },
           { label: componentGroups.find(group => group.id === component.group)?.label ?? component.group, href: `/components#${component.group}` },
           { label: title },
@@ -351,7 +350,7 @@ export default function Documentation({ path }: { path: string }) {
             onOpenChange={open => setWorkspacePanel(open ? "reference" : null)}
             trigger={props => <Button {...props} id="studio-reference-trigger" className="studio-reference-trigger"
               size="sm" variant="subtle" aria-label="Reference Alt R" aria-keyshortcuts="Alt+R">
-              Reference <Kbd size="sm" aria-hidden="true">Alt R</Kbd>
+              Reference <KeyboardShortcut keys={["Alt", "R"]} presentation="compact" aria-hidden="true" />
             </Button>}>
             {referenceContent}
           </ReferenceOverlay>} />

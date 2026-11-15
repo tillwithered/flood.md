@@ -9,10 +9,23 @@
 .flood-root .flood-color-picker__hex .flood-input { inline-size:100%; font-family:var(--flood-sys-font-mono); }
 .flood-root .flood-color-picker__empty { display:block; inline-size:3rem; block-size:3rem; flex:none; box-sizing:border-box; border:var(--flood-sys-stroke-width) dashed var(--flood-sys-color-border-decorative); border-radius:var(--flood-sys-radius-field); }
 .flood-root .flood-color-picker__channels { display:grid; gap:var(--flood-sys-space-2); }
-.flood-root .flood-color-picker__presets { display:flex; flex-wrap:wrap; gap:var(--flood-sys-space-1); }
-.flood-root .flood-color-picker__preset { display:grid; place-items:center; padding:var(--flood-sys-space-1); min-inline-size:2rem; min-block-size:2rem; background:transparent; border:var(--flood-sys-stroke-width) solid transparent; border-radius:var(--flood-sys-radius-action); cursor:pointer; }
-.flood-root .flood-color-picker__preset[aria-pressed="true"] { border-color:var(--flood-sys-color-content-default); }
-.flood-root .flood-color-picker__preset:focus-visible { outline:var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset:0; }
-.flood-root .flood-color-picker__preset:disabled { opacity:.5; cursor:not-allowed; }
-.flood-root .flood-color-picker[data-readonly] .flood-color-picker__preset { cursor:default; }
-@media (pointer:coarse) { .flood-root .flood-color-picker__preset { min-inline-size:var(--flood-sys-size-touch); min-block-size:var(--flood-sys-size-touch); } }
+.flood-root .flood-color-palette__choice { overflow-wrap:anywhere; }
+.flood-root .flood-color-palette[data-appearance="swatches"] .flood-color-palette__choice {
+  padding:calc(var(--flood-sys-space-1) - var(--flood-sys-stroke-width));
+  min-inline-size:var(--flood-sys-control-sm-height);
+}
+.flood-root .flood-color-palette .flood-color-palette__choice[aria-pressed="true"]:not(:disabled) {
+  border-color:var(--flood-sys-color-content-subtle);
+}
+.flood-root .flood-color-palette[data-appearance="swatches"] .flood-color-palette__choice[aria-pressed="true"]:not(:disabled, :hover) {
+  background:transparent;
+}
+.flood-root .flood-color-palette[data-readonly] .flood-color-palette__choice { cursor:default; }
+.flood-root .flood-color-palette[data-readonly] .flood-color-palette__choice[aria-pressed="false"]:hover { background:transparent; }
+.flood-root .flood-color-palette__choice:disabled .flood-color-swatch { opacity:.5; }
+@media (pointer:coarse) {
+  .flood-root .flood-color-palette[data-appearance="swatches"] .flood-color-palette__choice { min-inline-size:var(--flood-sys-size-touch); }
+}
+@media (forced-colors:active) {
+  .flood-root .flood-color-swatch { forced-color-adjust:none; border-color:CanvasText; }
+}

@@ -90,8 +90,8 @@ export function inspectRenderedUI(options = {}) {
   const target = element => ({tag:element.tagName.toLowerCase(), id:element.id || null, className:element.getAttribute('class') || '', label:label(element)});
   let truncated = false;
   const addIssue = finding => { if (issues.length < limit) issues.push(finding); else truncated = true; };
-  const select = selector => {
-    const matches = [...root.querySelectorAll(selector)].filter(visible);
+  const select = (selector, scope = root) => {
+    const matches = [...scope.querySelectorAll(selector)].filter(visible);
     if(matches.length > limit) truncated = true;
     return matches.slice(0, limit);
   };
@@ -99,6 +99,19 @@ export function inspectRenderedUI(options = {}) {
   const documentGutter = innerWidth - document.documentElement.clientWidth;
   const scrollOwner = document.scrollingElement;
   const recordTables = select('.flood-data-table');
+  for (const recordTable of recordTables) {
+    const shell = recordTable.closest('.flood-app-shell');
+    const navigation = shell?.querySelector(':scope > .flood-app-shell__navigation');
+    const viewport = recordTable.querySelector(':scope > .flood-table-container > .flood-scroll-area > .flood-scroll-area__viewport');
+    if (!navigation || !viewport || !visible(navigation) || !visible(viewport)) continue;
+    const offset = viewport.scrollWidth - viewport.clientWidth;
+    const navigationWidth = navigation.getBoundingClientRect().width;
+    if (offset > 1 && offset <= navigationWidth + 1) addIssue({
+      id: 'layout.record-navigation-width',
+      target: target(recordTable), related: target(navigation), offset,
+      message: `The table overflows by ${offset}px beside a ${Math.round(navigationWidth)}px navigation dock. Compare the required columns and actual destinations at this width.`,
+    });
+  }
   const table = recordTables.find(element => {
     const main = element.closest('main.flood-app-shell__main');
     const shell = main?.closest('.flood-app-shell[data-scroll="page"]');
@@ -116,6 +129,28 @@ export function inspectRenderedUI(options = {}) {
       ? 'A full-window record workspace uses AppShell page mode. Use content mode so Flood owns vertical scrolling even when the OS currently hides its scrollbar.'
       : 'A document scrollbar consumes width on this record view. Compare full and filtered views with classic scrollbars and check whether a Flood ScrollArea should own vertical overflow.',
   });
+  for (const value of select('.flood-collection-toolbar .flood-select__value')) {
+    const offset = value.scrollWidth - value.clientWidth;
+    if (offset > 0) addIssue({
+      id: 'layout.collection-filter-truncated',
+      target: target(value),
+      offset,
+      message: 'The current filter value is truncated. Allocate enough width in the quick-filter slot, or move the filter into the Filters panel at this width.',
+    });
+  }
+  for (const row of select('.flood-collection-toolbar__row')) {
+    const search = row.querySelector(':scope > .flood-collection-toolbar__search .flood-search-input');
+    if (!search || !visible(search)) continue;
+    const height = search.getBoundingClientRect().height;
+    const peers = select(':scope > .flood-collection-toolbar__summaries .flood-select__control, :scope > .flood-collection-toolbar__commands :is(.flood-button,.flood-icon-button)', row);
+    for (const peer of peers) {
+      const offset = Math.abs(peer.getBoundingClientRect().height - height);
+      if (offset > 1) addIssue({
+        id: 'layout.collection-control-height', target: target(peer), related: target(search), offset,
+        message: 'A toolbar control differs in height from search. Review whether it shares the query row scale or needs a distinct target.',
+      });
+    }
+  }
   for (const button of select('button.flood-button, button.flood-icon-button')) {
     // Text is inspected outside real icon slots, SVGs and visually hidden names.
     const walker = document.createTreeWalker(button, NodeFilter.SHOW_TEXT);

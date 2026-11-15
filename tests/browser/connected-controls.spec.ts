@@ -166,3 +166,41 @@ test("InputGroup independently composes subdued labels and named actions at both
   await chooseSelectOption(start, "none"); await chooseSelectOption(end, "none");
   await expect(shell.locator(".flood-input-group__addon")).toHaveCount(0); await expect(input).toBeEditable();
 });
+test("SplitButton keeps its default action separate from its alternatives", async ({ page }, info) => {
+  await page.goto("/components/split-button");
+  const group = page.getByRole("group", { name: "Export report", exact: true });
+  const primary = group.getByRole("button", { name: "Export PDF" });
+  const trigger = group.getByRole("button", { name: "Export formats" });
+  const menu = page.getByRole("menu", { name: "Export formats" });
+
+  await expect(primary).toBeVisible();
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  const bounds = await group.boundingBox();
+  await primary.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".workbench-feedback")).toHaveText("PDF export selected.");
+  await expect(menu).toBeHidden();
+  await page.keyboard.press("Tab");
+  await expect(trigger).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(menu.getByRole("menuitem", { name: "Export CSV" })).toBeFocused();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(await group.boundingBox()).toEqual(bounds);
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(trigger).toBeFocused();
+
+  await page.getByRole("checkbox", { name: "SplitButton prop primaryDisabled" }).check();
+  await expect(primary).toBeDisabled();
+  await trigger.click();
+  await expect(menu).toBeVisible();
+  await page.screenshot({ path: info.outputPath("split-button-open.png"), animations: "disabled" });
+  await menu.getByRole("menuitem", { name: "Export JSON" }).click();
+  await expect(page.locator(".workbench-feedback")).toHaveText("JSON export selected.");
+  await expect(menu).toBeHidden();
+  await expect(trigger).toBeFocused();
+
+  await page.getByRole("checkbox", { name: "SplitButton prop disabled", exact: true }).check();
+  await expect(primary).toBeDisabled();
+  await expect(trigger).toBeDisabled();
+});

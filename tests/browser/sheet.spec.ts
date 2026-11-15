@@ -76,7 +76,7 @@ test("narrow catalog and reference sheets align their headings and content", asy
     return {
       title: textStart(title),
       all: textStart(panel.querySelector(".catalog-link")!),
-      row: textStart(panel.querySelector('[aria-current="page"] .catalog-item-name')!),
+      row: textStart(panel.querySelector('[aria-current="page"] .flood-navigation-item__label')!),
       centers: center(title) - center(panel.querySelector(".flood-overlay-close")!),
     };
   });

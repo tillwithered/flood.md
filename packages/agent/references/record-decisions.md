@@ -23,3 +23,17 @@ one state at the trailing edge. A comparison table may need several such attribu
 visible together. Decide from the task before choosing presentation. Do not fix
 crowding by hiding a required field, replacing Flood components or modifying user
 record content. Record these choices in development notes, not as extra UI captions.
+
+## Filters and display
+
+In an issue queue, a Team filter changes which issues match. Hiding the Team
+column changes how much detail each matching issue shows. If an operator hides
+the column, the active Team filter still needs to be visible in the toolbar.
+If they clear that filter, the Team column stays hidden. A saved view can
+explicitly capture both choices when its contract says so.
+
+Linear exposes filters and display options independently on its issue views.
+This is a reference for the effect of each control. Use Flood's existing
+CollectionToolbar and DataTable controls for the same distinction in a table.
+[Linear filters](https://linear.app/docs/filters) ·
+[Linear display options](https://linear.app/docs/display-options)

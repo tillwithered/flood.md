@@ -3,7 +3,7 @@ import {IconButton,NavigationTree,NavigationGroup,ScrollArea,Stack,type SidebarP
 const useBrowserLayoutEffect=typeof window==='undefined'?useEffect:useLayoutEffect;
 
 export const WorkspaceSidebar=/* @__PURE__ */ forwardRef<HTMLElement,SidebarProps>(function WorkspaceSidebar({
-  label,groups,currentValue,currentKind="page",collapsed:controlled,defaultCollapsed=false,onCollapsedChange,collapsible=true,
+  label,labelOverflow="truncate",groups,currentValue,currentKind="page",collapsed:controlled,defaultCollapsed=false,onCollapsedChange,collapsible=true,
   collapseLabel='Collapse sidebar',expandLabel='Expand sidebar',expandedValues,defaultExpandedValues=[],onExpandedValuesChange,expandItemLabel,
   size='md',variant='quiet',side='start',width='16rem',header,headerLayout='stacked',footer,footerSeparator=false,headerSeparator=false,className,style,...props
 },ref){
@@ -50,7 +50,7 @@ export const WorkspaceSidebar=/* @__PURE__ */ forwardRef<HTMLElement,SidebarProp
       if((event.target as HTMLElement).matches('nav.flood-navigation-tree'))event.preventDefault();
     }}><Stack gap="4" className="flood-sidebar__navigation">
       {groups.map(group=><NavigationGroup key={group.id} label={group.label} hideLabel={group.hideLabel} headingAction={group.headingAction} separator={group.separator} collapsible={group.collapsible} expanded={group.expanded} defaultExpanded={group.defaultExpanded} onExpandedChange={group.onExpandedChange} compact={collapsed} size={size} className="flood-sidebar__group" data-icon-column={group.items.some(item=>item.icon!=null)||undefined}>
-        <NavigationTree label={group.label} items={group.items} currentValue={currentValue} currentKind={currentKind} size={size} variant={variant} compact={collapsed} branchGuides={group.branchGuides}
+        <NavigationTree label={group.label} labelOverflow={labelOverflow} items={group.items} currentValue={currentValue} currentKind={currentKind} size={size} variant={variant} compact={collapsed} branchGuides={group.branchGuides}
           flyoutSide={panelOnLeft?'right':'left'} expandedValues={expandedValues??expanded}
           onExpandedValuesChange={values=>{if(expandedValues===undefined)setExpanded(values);onExpandedValuesChange?.(values);}} expandLabel={expandItemLabel}/>
       </NavigationGroup>)}

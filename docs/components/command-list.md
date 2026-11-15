@@ -21,7 +21,9 @@ export function Commands() {
 ## Item and query contracts
 
 Items need unique nonempty `id` and `label`. Optional `description`, `keywords`,
-`disabled` and `group` enrich the action. Matching ignores case/diacritics and
+`disabled` and `group` enrich the action. `icon` is a decorative glyph.
+`shortcut` is a visible hint for a shortcut the host already registered.
+Matching ignores case/diacritics and
 requires every whitespace-separated query term to occur in the combined label,
 description, keywords or group. There is no fuzzy ranking, network fetch or
 command execution engine. The input query is never a form value.
@@ -43,7 +45,8 @@ and `loadingMessage`; state messages must be nonempty.
 
 The editor is an ARIA combobox controlling a visibly present listbox; an
 `aria-activedescendant` points only to an available rendered action. Each option name contains its full visible label and description; named groups
-provide additional context. The input remains the single Tab stop;
+provide additional context. A shortcut is an accessible description of the
+option. The input remains the single Tab stop;
 options use pointer activation instead of becoming independent tab stops.
 
 - Arrow Down/Up moves through enabled actions and wraps. Home/End selects the
@@ -63,9 +66,10 @@ container; the generated input/list IDs are derived from that root identity.
 
 ## Styling and scope
 
-CommandList composes Flood Label, Input, Surface, ScrollArea, Text and VisuallyHidden,
+CommandList composes Flood Label, Input, Surface, ScrollArea, Text, IconSlot,
+Kbd and VisuallyHidden,
 using existing field, selection, typography, spacing and radius tokens. Touch rows
 retain the shared minimum target size; bounded results scroll independently.
-`controlSize` sizes the editor and rows. No new palette, theme, animation, icon pack
-or dependency is introduced. Nested menus, command shortcuts, rich custom item
-renderers, modal layout and result ranking are deliberately separate follow-up work.
+`controlSize` sizes the editor and rows. Mixed rows share a label axis, including
+after filtering removes every icon. Keep displayed shortcuts short and register
+their actual behavior in the host.

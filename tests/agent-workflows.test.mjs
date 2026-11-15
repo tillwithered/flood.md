@@ -32,6 +32,22 @@ test('reading order discovery routes to the shipped screen composition workflow'
   assert.ok((await reader.read('component:app-shell',{length:1})).links.includes(id));
 });
 
+test('application structure guidance is discoverable from pages and adaptive surfaces', async () => {
+  const reader = createKnowledgeReader();
+  const id = 'workflow:application-structure';
+  const page = await reader.list({kind: 'workflow', group: 'composition', search: 'multi-route'});
+  assert.ok(page.items.some(item => item.id === id));
+  const workflow = await reader.read(id, {length: 40000});
+  assert.equal(workflow.truncated, false);
+  assert.equal(workflow.text, await readFile('packages/agent/references/flood-application-structure/SKILL.md', 'utf8'));
+  assert.ok(workflow.links.includes('workflow:overlays'));
+  for (const component of ['app-shell', 'page-header', 'dialog', 'drawer', 'sheet']) {
+    assert.ok((await reader.read('component:' + component, {length: 1})).links.includes(id));
+  }
+  const index = await readAgentWorkflows();
+  assert.ok(index.workflows.find(item => item.id === 'application-structure').ruleIds.includes('layout.application-continuity'));
+});
+
 test('every routed skill and its internal links resolve identically in source and installed bundle',async()=>{
   const manifest=await json('packages/agent/manifest.json');
   const index=await readAgentWorkflows();

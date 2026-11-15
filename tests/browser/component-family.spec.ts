@@ -13,6 +13,33 @@ test('read-only Autocomplete retains selection and visible focus without editing
  expect(focused.focus).toBe(true);expect(focused.stroke).toBe('solid');
 });
 
+test('adaptive More keeps the primary command and preserves focus when its label fits again',async({page}, info)=>{
+ await page.setViewportSize({width:1440,height:1000});
+ await page.goto('/components/overflow-actions');
+ const bar=page.getByRole('toolbar',{name:'Document actions',exact:true});
+ const root=bar.locator('..');
+ const more=bar.getByRole('button',{name:'More actions',exact:true});
+ await chooseSelectOption(page.getByRole('combobox',{name:'OverflowActions prop morePresentation'}),'auto');
+ await chooseSelectOption(page.getByRole('combobox',{name:'OverflowActions prop maxVisibleActions'}),'1');
+ await page.evaluate(()=>document.fonts.ready);
+ await root.evaluate(node=>{node.style.inlineSize='14rem';});
+ await expect(bar.getByRole('button',{name:'Save',exact:true})).toBeVisible();
+ await expect(more).toHaveClass(/flood-icon-button/);
+ await bar.screenshot({path:info.outputPath('adaptive-more-compact.png')});
+ const original=await more.elementHandle();
+ await more.focus();
+ await root.evaluate(node=>{node.style.inlineSize='24rem';});
+ await expect(more).toHaveText('More actions');
+ await expect(more).toBeFocused();
+ expect(await more.evaluate((node,previous)=>node===previous,original)).toBe(true);
+ await more.blur();
+ await bar.screenshot({path:info.outputPath('adaptive-more-labelled.png')});
+ await more.press('ArrowDown');
+ await expect(page.getByRole('menuitem',{name:'Duplicate',exact:true})).toBeFocused();
+ await page.keyboard.press('Escape');
+ await expect(more).toBeFocused();
+});
+
 test('OverflowActions exposes shared shell geometry at each control size',async({page})=>{
  await page.setViewportSize({width:1440,height:1000});await page.goto('/components/overflow-actions');
  const rail=page.locator('.preview-stage').getByRole('toolbar',{name:'Document actions',exact:true});

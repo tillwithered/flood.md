@@ -1,5 +1,5 @@
-import { forwardRef, useEffect, useLayoutEffect, useImperativeHandle, useRef, useState } from "react";
-import type { Checkbox, Fieldset, FieldsetProps, ChoiceOption } from "./index.js";
+import { Fragment, forwardRef, useEffect, useLayoutEffect, useImperativeHandle, useRef, useState, type ChangeEvent, type ReactNode, type RefCallback } from "react";
+import { Grid, type Checkbox, type Fieldset, type FieldsetProps, type ChoiceOption, type GridProps } from "./index.js";
 
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
@@ -14,12 +14,24 @@ interface Props extends Omit<FieldsetProps, "children" | "defaultValue"> {
   orientation: "vertical" | "horizontal";
   fieldsetComponent: typeof Fieldset;
   choiceComponent: typeof Checkbox;
+  cards?: { minItemWidth: GridProps["minItemWidth"]; render: (index: number, input: GroupInputProps) => ReactNode };
 }
+
+type GroupInputProps = {
+  ref: RefCallback<HTMLInputElement>;
+  name: string;
+  value: string;
+  form?: string;
+  disabled?: boolean;
+  required?: boolean;
+  checked: boolean;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+};
 
 /** Private selection model; native inputs own keyboard, focus, forms and validity. */
 export const ChoiceGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Props>(function ChoiceGroup({
   kind, name, options, selected, initial, onSelectionChange, required, orientation,
-  fieldsetComponent: Group, choiceComponent: Choice, legend, ...props
+  fieldsetComponent: Group, choiceComponent: Choice, cards, legend, ...props
 }, forwardedRef) {
   if (new Set(options.map(option => option.value)).size !== options.length) throw new Error("Flood choice group option values must be unique");
   const root = useRef<HTMLFieldSetElement>(null);
@@ -54,18 +66,24 @@ export const ChoiceGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Props
     return () => { eventRoot.removeEventListener("reset", reset, true); timers.forEach(clearTimeout); };
   }, []);
 
-  return <Group {...props} ref={root} legend={required ? <>{legend}<span aria-hidden="true"> *</span></> : legend} role={kind === "radio" ? "radiogroup" : "group"}
-    aria-required={kind === "radio" ? required || undefined : undefined}
-    aria-orientation={kind === "radio" ? orientation : undefined}>
-    <div className="flood-choice-group" data-orientation={orientation}>
-      {options.length === 0 && <span className="flood-hint">No options available.</span>}
-      {options.map(option => <Choice key={option.value} ref={input => { if (input) inputs.current.set(option.value, input); else inputs.current.delete(option.value); }} name={name} value={option.value} label={option.label}
-        form={props.form} disabled={option.disabled} required={kind === "radio" ? required : undefined}
-        checked={values.includes(option.value)} onChange={event => {
+  const choices = options.map((option,index) => {
+    const input: GroupInputProps = {
+      ref: node => { if (node) inputs.current.set(option.value, node); else inputs.current.delete(option.value); },
+      name, value:option.value, form:props.form, disabled:option.disabled, required:kind === "radio" ? required : undefined,
+      checked:values.includes(option.value), onChange:event => {
           const next = kind === "radio" ? [option.value] : [...new Set(event.currentTarget.checked ? [...values, option.value] : values.filter(value => value !== option.value))];
           if (!controlled) setLocal(next);
           onSelectionChange?.([...next]);
-        }} />)}
-    </div>
+      },
+    };
+    return cards ? <Fragment key={option.value}>{cards.render(index,input)}</Fragment> :
+      <Choice key={option.value} {...input} label={option.label} />;
+  });
+  const content=options.length ? choices : <span className="flood-hint">No options available.</span>;
+  return <Group {...props} ref={root} legend={required ? <>{legend}<span aria-hidden="true"> *</span></> : legend} role={kind === "radio" ? "radiogroup" : "group"}
+    aria-required={kind === "radio" ? required || undefined : undefined}
+    aria-orientation={kind === "radio" && !cards ? orientation : undefined}>
+    {cards ? <Grid gap="2" minItemWidth={cards.minItemWidth} className="flood-choice-cards">{content}</Grid> :
+      <div className="flood-choice-group" data-orientation={orientation}>{content}</div>}
   </Group>;
 });

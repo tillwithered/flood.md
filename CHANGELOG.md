@@ -1,6 +1,49 @@
 # Changelog
 
-## Unreleased
+## 0.2.14 — Component families and agent guidance
+
+- Expand the component catalog from 149 to 213 entries, including application
+  controls, content primitives and composed workflows.
+- Add SettingGroup, SettingRow, SwitchGroup, FormActions and SaveStatus for
+  settings and forms. Add NumberRangeField, AvatarPicker, FileTrigger and
+  PasswordStrength for recurring field patterns.
+- Add MessageComposer, Comment, CommentThread and reaction controls for
+  conversations. Add NotificationInbox and ActivityTimeline for notifications
+  and history, plus UploadQueue for file intake and transfer.
+- Add TableSkeleton, ListSkeleton, CardSkeleton, LoadingState, ErrorState and
+  NoResults. Extend DataTable and collection controls with stable loading,
+  selection and filter layouts.
+- Add KeyboardShortcut, SearchTrigger, CountBadge and TagGroup. Refine
+  navigation, compact controls, disclosure, overlay focus and chart labels.
+- Add versioned skills for application structure, layout composition, decision
+  design and typography. Expand observable design rules, component family
+  guidance, visual review and the recipes available to agents.
+
+- Place ExpandableText disclosure inline after the ellipsis and preserve reading
+  focus when a resize removes the toggle.
+
+- Add RatingSummary with a weighted score, total and responsive distribution.
+
+- Add ImageComparison for pointer and keyboard comparison of two aligned images
+  inside one frame.
+
+- Let FileCard place its preview action on the thumbnail and keep footer commands
+  together when metadata moves to its own line.
+
+- Keep Card selection at the trailing edge when wide header actions reflow.
+
+- Add ImageGallery for image inspection inside one dialog, with arrows or a
+  scrollable thumbnail rail.
+
+- Use Flood overlay scrollbars in ListBox and show avatars for people options.
+
+- Add a width-aware AvatarGroup layout for single-line lists of people.
+
+- Add ComparisonTable for evaluating the same criteria across options, with
+  pinned row labels, numeric alignment and localized missing values.
+
+- Add a responsive row layout to MetricGroup for compact summaries with an
+  aligned value edge and stable loading placeholders.
 
 ## 0.2.13 — Charts and discovery
 

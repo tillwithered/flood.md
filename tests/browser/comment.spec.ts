@@ -1,0 +1,227 @@
+import {expect, test} from "@playwright/test";
+import {chooseSelectOption} from "./select-helpers";
+
+test("comment actions reveal without moving the author, message or copy target", async ({page, context}, info) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/components/comment");
+  const comment = page.getByRole("article");
+  const footer = comment.locator(".flood-comment__actions");
+  const action = comment.getByRole("button", {name:"Copy message"});
+  await expect(footer).toHaveCSS("opacity", "0");
+  await page.evaluate(()=>document.fonts.ready);
+  const box = await comment.boundingBox();
+  const actionBox = await action.boundingBox();
+  await comment.hover();
+  await expect(footer).toHaveCSS("opacity", "1");
+  const reaction = comment.getByRole("button", {name:"Helpful"});
+  const reactionBox = await reaction.boundingBox();
+  const hoveredActionBox = await action.boundingBox();
+  expect(reactionBox!.y + reactionBox!.height / 2).toBeCloseTo(hoveredActionBox!.y + hoveredActionBox!.height / 2, 0);
+  expect(hoveredActionBox).toEqual(actionBox);
+  await action.click();
+  await expect(comment.getByRole("button", {name:"Copied",exact:true})).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("original attachment");
+  expect(await comment.boundingBox()).toEqual(box);
+  const copyAction = footer.getByRole("button", {name:/^(Copy message|Copied)$/});
+  expect(await copyAction.boundingBox()).toEqual(actionBox);
+  await page.mouse.move(0, 0);
+  await copyAction.blur();
+  await expect(footer).toHaveCSS("opacity", "0");
+  await copyAction.focus();
+  await expect(footer).toHaveCSS("opacity", "1");
+  await comment.screenshot({path:info.outputPath("comment-actions.png")});
+});
+
+test("touch keeps the thread's action visible", async ({browser, baseURL}, info) => {
+  const touch = await browser.newContext({baseURL, viewport:{width:390,height:844}, hasTouch:true, isMobile:true});
+  try {
+    const page = await touch.newPage();
+    await page.goto("/components/comment-thread");
+    const thread = page.getByRole("list", {name:"Review comments"});
+    await expect(thread.getByRole("article")).toHaveCount(2);
+    await expect(thread.getByRole("article").first().locator(".flood-comment__actions")).toHaveCSS("opacity", "1");
+    await thread.screenshot({path:info.outputPath("thread-touch.png")});
+  } finally {
+    await touch.close();
+  }
+});
+
+test("comment reactions retain their surface and picker when secondary actions are quiet", async ({page}, info) => {
+  await page.goto("/components/comment");
+  const article = page.getByRole("article");
+  const add = article.getByRole("button", {name:"Add reaction",exact:true});
+  const copy = article.locator(".flood-comment__actions");
+  await expect(copy).toHaveCSS("opacity", "0");
+  await expect(add).toHaveCSS("opacity", "1");
+  await expect(article.getByRole("button", {name:/^Helpful, /})).not.toHaveCSS("background-color","rgba(0, 0, 0, 0)");
+  await add.click();
+  const picker = page.getByRole("dialog", {name:"Add reaction"});
+  await expect(picker).toBeVisible();
+  await expect(picker.getByRole("button",{name:"Helpful"})).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(picker.getByRole("button",{name:"Celebrate"})).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(picker).toBeHidden();
+  await expect(add).toBeFocused();
+  await expect(article.getByRole("button", {name:"Celebrate, 2",exact:true})).toHaveAttribute("aria-pressed","true");
+  await article.screenshot({path:info.outputPath("comment-reactions.png"), animations:"disabled"});
+  await add.click();
+  const appliedOption = picker.getByRole("button", {name:"Celebrate",exact:true});
+  await expect(appliedOption).toHaveAttribute("aria-pressed", "true");
+  await expect(appliedOption).toBeEnabled();
+  const selectedColor = await appliedOption.evaluate(node=>getComputedStyle(node).backgroundColor);
+  const priorColor = await picker.getByRole("button", {name:"Love",exact:true}).evaluate(node=>getComputedStyle(node).backgroundColor);
+  expect(selectedColor).not.toEqual(priorColor);
+  await picker.screenshot({path:info.outputPath("reaction-picker-selected.png"), animations:"disabled"});
+  await appliedOption.click();
+  await expect(article.getByRole("button", {name:"Celebrate, 1",exact:true})).toHaveAttribute("aria-pressed","false");
+
+  await page.getByRole("button",{name:"Reset",exact:true}).click();
+  await page.getByRole("checkbox",{name:"Comment prop showReaction"}).uncheck();
+  await page.mouse.move(0,0);
+  await expect(add).toHaveCSS("opacity","0");
+  await add.focus();
+  await expect(add).toHaveCSS("opacity","1");
+  await add.press("Enter");
+  await picker.getByRole("button",{name:"Love"}).click();
+  await expect(add).toBeFocused();
+  await expect(article.getByRole("button",{name:"Love, 1",exact:true})).toBeVisible();
+});
+
+test("grouped activity separates periods and keeps their headings on the event axis", async ({page}, info) => {
+  await page.goto("/components/activity-timeline");
+  const feed = page.getByRole("region", {name:"Export activity"});
+  const first = feed.getByRole("list", {name:"13 November"});
+  const last = feed.getByRole("list", {name:"14 November"});
+  await expect(first.getByRole("listitem")).toHaveCount(2);
+  await expect(last.getByText("Source export.pdf")).toBeVisible();
+  await expect(feed.getByRole("heading",{name:"14 November"}).locator("time")).toHaveAttribute("datetime","2026-11-14");
+  const alignments = await feed.evaluate(root => Array.from(root.querySelectorAll(":scope > .flood-stack"), group => {
+    const heading = group.querySelector(".flood-activity-timeline__heading")!;
+    const title = group.querySelector(".flood-timeline__title")!;
+    return heading.getBoundingClientRect().left + parseFloat(getComputedStyle(heading).paddingLeft) - title.getBoundingClientRect().left;
+  }));
+  expect(alignments.every(offset => Math.abs(offset) < 1)).toBe(true);
+  const density = page.getByRole("combobox",{name:"ActivityTimeline prop density"});
+  await chooseSelectOption(density, "compact");
+  await expect(first).toHaveAttribute("data-density", "compact");
+  const compactHeight = (await first.boundingBox())!.height;
+  await feed.screenshot({path:info.outputPath("activity-timeline-compact.png")});
+  await chooseSelectOption(density, "comfortable");
+  expect((await first.boundingBox())!.height).toBeGreaterThan(compactHeight);
+  await last.getByRole("button", {name:"2 comments"}).click();
+  await expect(last.getByRole("list", {name:"Export review comments"})).toBeHidden();
+  await feed.screenshot({path:info.outputPath("activity-timeline-comfortable.png")});
+  await page.getByRole("checkbox",{name:"ActivityTimeline prop empty"}).check();
+  await expect(feed.getByText("No activity yet")).toBeVisible();
+  await expect(feed.getByRole("list")).toHaveCount(0);
+});
+
+test("activity timeline composes a file, interactive comment thread and a schedule", async ({page}, info) => {
+  await page.goto("/components/timeline");
+  const activity = page.getByRole("list", {name:"Export activity"});
+  await expect(activity.getByRole("list", {name:"Attached files"})).toHaveAttribute("data-appearance", "embedded");
+  const comments = activity.getByRole("list", {name:"Export review comments"});
+  await expect(comments).toHaveAttribute("data-dividers", "false");
+  const toggle = activity.getByRole("button", {name:"2 comments"});
+  const reaction = comments.getByRole("button", {name:/^Helpful, /});
+  await expect(reaction).toHaveAccessibleName("Helpful, 2");
+  await reaction.click();
+  await expect(reaction).toHaveAttribute("aria-pressed", "true");
+  await expect(reaction).toHaveAccessibleName("Helpful, 3");
+  await toggle.click();
+  await expect(comments).toBeHidden();
+  await toggle.press("Space");
+  await expect(reaction).toHaveAccessibleName("Helpful, 3");
+  await page.mouse.move(0, 0);
+  await activity.screenshot({path:info.outputPath("activity-feed.png"), animations:"disabled"});
+  await chooseSelectOption(page.getByRole("combobox", {name:"Timeline prop layout"}),"schedule");
+  const schedule = page.getByRole("list", {name:"Export schedule"});
+  const timeEdges = await schedule.locator("time").evaluateAll(items => items.map(item=>item.getBoundingClientRect().right));
+  expect(timeEdges).toHaveLength(4);
+  expect(Math.max(...timeEdges) - Math.min(...timeEdges)).toBeLessThan(1);
+  await expect(schedule.locator('[data-connector="dashed"]')).toContainText("Export ready");
+  await expect(schedule.locator(".flood-alert")).toHaveAttribute("data-appearance", "inline");
+  await schedule.screenshot({path:info.outputPath("activity-schedule.png"), animations:"disabled"});
+  const firstMarker = schedule.locator(".flood-timeline__marker").first();
+  const withTimes = await firstMarker.boundingBox();
+  await page.getByRole("checkbox", {name:"Timeline prop times"}).uncheck();
+  await expect(schedule.locator("time")).toHaveCount(0);
+  const withoutTimes = await firstMarker.boundingBox();
+  expect(withTimes!.x - withoutTimes!.x).toBeGreaterThan(20);
+});
+
+test("a reply is added inside its parent branch and leaves the editor ready", async ({page}, info) => {
+  await page.goto("/components/comment-thread");
+  const thread = page.getByRole("list", {name:"Review comments"});
+  const branch = thread.locator(".flood-comment-thread__replies");
+  const editor = page.getByRole("textbox", {name:"Reply",exact:true});
+  await expect(branch.getByRole("article")).toHaveCount(1);
+  await editor.fill("The corrected export is ready.");
+  await editor.press("Enter");
+  await expect(branch.getByRole("article")).toHaveCount(2);
+  await expect(branch.getByText("The corrected export is ready.")).toBeVisible();
+  await expect(editor).toHaveValue("");
+  await expect(editor).toBeFocused();
+  await editor.blur();
+  await thread.locator("..").screenshot({path:info.outputPath("thread-reply.png")});
+});
+
+test("comment composer shows reply context above the shared editor and posts the draft", async ({page}) => {
+  await page.goto("/components/comment-composer");
+  const composer = page.locator(".flood-comment-composer");
+  const surface = composer.locator(".flood-message-composer__surface");
+  const header = composer.locator(".flood-message-composer__context");
+  const replyContext = composer.getByText("Replying to Maya Chen");
+  const editor = surface.getByRole("textbox", {name:"Reply",exact:true});
+  const send = surface.getByRole("button", {name:"Reply",exact:true});
+  await expect(replyContext).toBeVisible();
+  const [headerBox, surfaceBox] = await Promise.all([header.boundingBox(), surface.boundingBox()]);
+  expect(headerBox!.y + headerBox!.height).toBeCloseTo(surfaceBox!.y, 0);
+  const startInset = headerBox!.x - surfaceBox!.x;
+  const endInset = surfaceBox!.x + surfaceBox!.width - headerBox!.x - headerBox!.width;
+  expect(startInset).toBeGreaterThan(0);
+  expect(endInset).toBeCloseTo(startInset, 0);
+  expect(headerBox!.width).toBeGreaterThan(surfaceBox!.width * 0.85);
+  const cancel = composer.getByRole("button", {name:"Cancel reply"});
+  await cancel.hover();
+  const cancelBox = (await cancel.boundingBox())!;
+  expect(cancelBox.y - headerBox!.y).toBeGreaterThanOrEqual(8);
+  expect(surfaceBox!.y - cancelBox.y - cancelBox.height).toBeGreaterThanOrEqual(8);
+  expect(headerBox!.x + headerBox!.width - cancelBox.x - cancelBox.width).toBeGreaterThanOrEqual(12);
+  await expect(editor).toHaveAccessibleDescription("Replying to Maya Chen");
+  await expect(send).toBeDisabled();
+  await editor.fill("The export matches the source file.");
+  await expect(send).toBeEnabled();
+  await send.click();
+  await expect(page.getByRole("list",{name:"Posted comments"})).toContainText("The export matches the source file.");
+  await expect(editor).toHaveValue("");
+  await expect(editor).toBeFocused();
+  await editor.fill("Keep this draft");
+  await cancel.click();
+  await expect(replyContext).toHaveCount(0);
+  await expect(surface.getByRole("textbox",{name:"Comment",exact:true})).toHaveValue("Keep this draft");
+  await expect(surface.getByRole("textbox",{name:"Comment",exact:true})).not.toHaveAttribute("aria-describedby");
+  await expect(surface.getByRole("button",{name:"Post",exact:true})).toBeEnabled();
+});
+
+test("reply action opens and focuses the composer, with focus return on cancel", async ({page}, info) => {
+  await page.goto("/components/comment");
+  const reply = page.getByRole("article").getByRole("button", {name:"Reply",exact:true});
+  await reply.focus();
+  await reply.press("Enter");
+  const editor = page.getByRole("textbox", {name:"Reply",exact:true});
+  await expect(editor).toBeFocused();
+  await expect(editor).toHaveAccessibleDescription("Replying to Maya Chen");
+  await editor.fill("The source file is attached.");
+  const composer = page.locator(".flood-comment-composer");
+  await composer.getByRole("button", {name:"Cancel reply"}).hover();
+  await composer.locator("..").screenshot({path:info.outputPath("comment-reply.png")});
+  await composer.getByRole("button", {name:"Cancel reply"}).click();
+  await expect(editor).toHaveCount(0);
+  await expect(reply).toBeFocused();
+  await reply.press("Enter");
+  await expect(editor).toHaveValue("The source file is attached.");
+  await editor.press("Enter");
+  await expect(page.getByRole("list", {name:"Posted replies"})).toContainText("The source file is attached.");
+});

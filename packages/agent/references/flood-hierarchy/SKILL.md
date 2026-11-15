@@ -16,6 +16,8 @@ values and actions before choosing their size or color. A short form may need
 only its task title and labels. Do not add a legend, subtitle, card or divider
 merely to create visual levels. Meaning comes from the interface-content workflow;
 this workflow makes that meaning visible.
+Use [typography](../flood-typography/SKILL.md) when a choice depends on type
+roles, wrapping, reading measure or numeric comparison.
 
 ## Assign each relationship to its owner
 
@@ -76,11 +78,48 @@ pair can finish a short desktop dialog clearly. This is not a universal order:
 respect host conventions, direction, destructive confirmation and keyboard flow.
 Do not add a footer surface or separator unless it resolves a real boundary.
 
-Choose the strongest action within the current task region. Check the page,
-each repeated row and any open overlay separately. In a settings form, Save
-can lead and Discard can stay secondary. In a filtered empty list, clearing
-filters may become the most useful action. A read-only detail can have no
-primary action. Keep the intended next action recognizable across states.
+## Scale and emphasis of actions
+
+Identify the action's scope from what it changes. Match size to the working
+region, prominence to the decision, and activation area to the supported
+input. Consider the painted surface, glyph, target and reserved track
+separately.
+
+| Region | Starting point | Check in the rendered UI |
+| --- | --- | --- |
+| Page header | A named creation or submission action can lead. A larger size can fit a spacious header with one clear next step. | Compare the action with the heading and neighboring controls at the supported widths. |
+| Collection toolbar | Give peer tools a shared scale and alignment. Use closer gaps inside a related group and a distinct interval from neighboring tasks. | Search, filters and column settings stay legible and aligned with real labels. Check that the layout holds after selection or filtering. |
+| Repeated row | Keep secondary commands compact with a predictable trailing edge. Use visible text when an icon alone is ambiguous. | Compare rows with long names and missing values. Verify the action remains findable and operable. |
+| Modal or drawer | Put the decision beside the actions that resolve it. A recognizable close glyph can remain quiet on a steady surface. | Check the close control at rest and with keyboard focus. Check its target and the backing surface independently of the glyph. |
+
+### Choose control sizes by working region
+
+Choose a scale before composing each group. Start at `sm` for dense desktop
+table tools, in-row actions and compact navigation controls. Start at `md` for
+ordinary form fields and actions, where a reader needs more room to enter a value.
+Use `lg` or `xl` for supported controls that lead a standalone task, such as
+a primary search entry or a prominent action with space around it. Check each
+family's supported size props and preserve its touch target on coarse pointers.
+
+In a collection toolbar, choose one size for peer search, filters and commands.
+Set `controlSize` on a standalone SearchInput or Select, and `size` on its peer
+Button. With CollectionToolbar, set its `controlSize` for built-in tools and pass
+the corresponding size to the controls supplied in slots. Give the search the
+width its query needs. Size filter triggers around their longest visible value
+and icon. Check height, baseline, label clipping and fit at the actual width.
+
+Choose the strongest action within the current task region. Save can lead in
+settings; clearing a filter can lead in an empty result; a read-only detail
+may need no primary action. When the governing scope changes, update emphasis
+with it. For example, a selection count belongs alongside selection actions,
+and a persistent read-only or impersonation notice identifies the scope of
+the whole workspace.
+
+Inspect the entire region before increasing sizes or adding a filled surface.
+Use the existing foundations roles for glyph size, focus and interaction
+geometry. At crowded widths preserve the task and choose which related
+controls should move together. For example, a short toolbar can expose one
+frequent filter while moving secondary criteria into its filter surface.
 
 Record lists and details need an information budget as well as type hierarchy.
 Use the [records workflow](../flood-records/SKILL.md) for metadata placement,

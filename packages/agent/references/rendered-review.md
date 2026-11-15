@@ -41,6 +41,19 @@ does not open controls or wait for layout on your behalf. It traverses the curre
 document, not iframes or shadow roots. It performs no network requests or writes.
 Keep reports local: labels and copy inventories may contain the host's user data.
 
+`layout.record-navigation-width` flags cases where a docked AppShell region
+occupies enough width to account for a DataTable's horizontal overflow.
+Review the actual destinations and essential columns. The finding uses settled
+geometry. Confirm the result with the real compact or alternate shell state.
+
+For a collection, exercise default and selected filter values at normal and
+constrained toolbar widths. `layout.collection-filter-truncated` identifies a
+current Select value wider than its visible label in CollectionToolbar. Use the
+finding and the screenshot to choose the filter width or move it into Filters.
+`layout.collection-control-height` compares the rendered search height with
+inline Select triggers and command buttons. Review differences in context and
+check the intended scale even when every control is the same height.
+
 For a visual layout change, compare screenshots of the same content, viewport
 and settled state. Name what should stand out and which elements should read
 together. Use measured boxes to explain the difference. The observer cannot

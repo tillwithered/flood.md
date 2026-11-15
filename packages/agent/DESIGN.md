@@ -1,4 +1,4 @@
-# Flood design system · 0.2.13
+# Flood design system · 0.2.14
 
 ListBox owns native required validation for accepted selection. Use its
 description/message/status props rather than duplicating feedback markup. Visual
@@ -20,6 +20,11 @@ ships the composition skill from `references/flood-composition/SKILL.md` to
 project-root `.agents/skills/flood-ui/references/flood-composition/SKILL.md`.
 Apply that skill. Native semantic markup and neutral structural wrappers remain
 valid inside their proper owners.
+
+Treat each component as a set of related parts. Keep spacing, type, icon scale,
+radius, material and motion consistent with the role and family of each part.
+Check the same parts in context through state changes and constrained layouts.
+Use the component-family contract from the installed skill for review.
 
 
 Readonly date/time entry bypasses native validity constraints while retaining
@@ -81,6 +86,10 @@ child. Keep server data fetching in server components.
 - Use solid for the main action and subtle for standalone secondary actions.
   Ghost requires a clear parent context such as a toolbar. Button sizes are
   2xs/xs/sm/md/lg/xl/2xl; md is default. Small sizes need contextual touch checks.
+- Choose control size for the working region and its peers. Choose visual
+  emphasis for the action's role. An icon's visible scale, its activation area
+  and the space reserved for it are separate parts of the control contract.
+  Use the installed hierarchy workflow for examples by region.
 - Use Link for navigation and Button for actions. Button defaults to type=button;
   set type=submit deliberately. Loading disables activation and sets aria-busy;
   retain meaningful visible text and let the host announce completion.
@@ -127,6 +136,17 @@ child. Keep server data fetching in server components.
 - Build hierarchy with Heading, body/compact text, Field labels and supporting
   helper text. Use gap4 within groups, gap6 between related groups, and wrap
   action rows. Add surfaces for meaningful grouping, not around every control.
+- Align controls and their results within the same working frame. Split a row
+  between logical edges when the groups have distinct jobs and room to stay
+  readable. Keep a single query group together.
+- Choose type treatment by role. Let prose wrap, preserve distinct compact
+  labels, and align comparable values with an explicit unit where needed.
+- Put evidence and consequences within reach before commitment. Show a summary
+  when it changes a decision and label its scope.
+- Across application routes, keep equivalent title, navigation and action roles
+  on predictable axes. Carry that hierarchy into dialogs, drawers and sheets
+  using their own anatomy. Choose draft, route, focus and scroll ownership
+  before changing a task's presentation.
 - Keep geometry in rem, line-height unitless and tracking em; preserve the host
   root size. Check320px widths, enlarged text and user text-spacing overrides
   instead of shrinking type or clipping labels to make the layout fit.

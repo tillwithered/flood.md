@@ -21,6 +21,7 @@
     "description": "Role-based interface text, from introductory copy to small supporting details.",
     "code": "<Stack gap=\"3\">\n  <Text as=\"p\" size=\"lead\">Quarterly revenue</Text>\n  <Text as=\"p\" size=\"compact\">Revenue increased by 8% this quarter.</Text>\n</Stack>",
     "notes": [
+      "Use Text for readable copy and DescriptionList for labeled facts about one record. In a set of peer labels and values, keep each role consistent. Use weight to separate roles without turning every value into a heading.",
       "Use as=\"p\" for paragraphs. The label size does not create a form association.",
       "Subtle is a supplementary tone; evaluate small required instructions against the actual background and font size."
     ],
@@ -30,12 +31,55 @@
     ]
   },
   {
+    "slug": "timestamp",
+    "name": "Timestamp",
+    "group": "typography",
+    "description": "A semantic date or time with consistent metadata typography.",
+    "code": "<Timestamp dateTime=\"2026-11-14T09:30:00Z\" format=\"date-time\" lang=\"en-GB\" />",
+    "imports": ["Timestamp"],
+    "notes": [
+      "Provide YYYY-MM-DD for a civil date, or an ISO timestamp with an explicit offset for a moment in time. Civil dates retain their day. Instants display in timeZone, which defaults to UTC. lang defaults to English for generated text.",
+      "Pass relativeTo for elapsed time against an explicit zoned instant. After four elapsed weeks, the component uses the requested absolute format. Update the reference in the host if the readout needs to change while the page is open.",
+      "Pass explicit text as children for a host-owned presentation, such as a short schedule time. The component preserves the native dateTime and keeps dates out of the tab order."
+    ]
+  },
+  {
+    "slug": "truncated-text",
+    "name": "TruncatedText",
+    "group": "typography",
+    "description": "One line of text that discloses the full value only when clipped.",
+    "imports": ["TruncatedText"],
+    "code": "<div style={{maxInlineSize:\"14rem\"}}><TruncatedText>Workspace activity export for October 2026.csv</TruncatedText></div>",
+    "notes": [
+      "Give it plain text and a bounded parent width. It inherits the typography of the row or field around it.",
+      "The full value remains in the DOM. Hover or focus reveals the same value in a Tooltip only when it is clipped. Text that fits does not add a Tab stop.",
+      "Use tooltipSide to place the full value away from nearby metadata or controls. The tooltip centers along that edge. The default is bottom, and viewport edges can shift or flip the overlay.",
+      "Keep enough of the label visible to distinguish it from nearby values. Use wrapping or ExpandableText for passages and values which need their full text in the normal reading flow."
+    ]
+  },
+  {
+    "slug": "expandable-text",
+    "name": "ExpandableText",
+    "group": "typography",
+    "description": "A plain-text excerpt that expands in place when it exceeds a line limit.",
+    "code": "<ExpandableText lines={3}>The export covers the full billing period. The original file contains the individual entries and payment reference for each invoice.</ExpandableText>",
+    "imports": ["ExpandableText"],
+    "notes": [
+      "Use in card previews, comments, and activity feeds where a longer plain-text passage is optional to scan. Keep required instructions and decision-making details visible.",
+      "The button appears only when text exceeds the line limit at the actual rendered width. The default is three lines. Localize moreLabel and lessLabel.",
+      "Use expanded and onExpandedChange for host-owned state, or defaultExpanded for an initially open excerpt. The same paragraph stays mounted throughout.",
+      "The disclosure action follows the ellipsis in the last visible line. If a wider layout fits the full text and the focused action disappears, focus moves to the passage.",
+      "Links, lists and rich content belong in a disclosure such as Collapsible. The browser retains the full plain text for assistive technologies."
+    ]
+  },
+  {
     "slug": "heading",
     "name": "Heading",
     "group": "typography",
     "description": "Semantic heading levels with an independent visual scale.",
     "code": "<Stack gap=\"4\">\n  <Heading level={2} size=\"page\">Workspace settings</Heading>\n  <Heading level={3} size=\"section\">Notifications</Heading>\n</Stack>",
     "notes": [
+      "Use the surface title for the task and a consistent section heading size for peer groups. Use Section to compose a named group with body content.",
       "Choose level for document structure and size for appearance.",
       "Display is a large marketing role. Keep page and section sizes for ordinary product interfaces."
     ],
@@ -115,7 +159,7 @@
     "code": "<Inline gap=\"2\">\n  <Button>Save changes</Button>\n  <Button variant=\"subtle\">Cancel</Button>\n  <Button loading>Saving</Button>\n</Inline>",
     "notes": [
       "Button defaults to type=\"button\". Set submit or reset deliberately inside forms.",
-      "Loading disables activation and sets aria-busy. The host owns completion announcements.",
+      "Loading blocks activation and sets aria-busy. Use loading=\"retain-focus\" for an in-place operation that should keep keyboard focus and button dimensions. The host owns completion announcements.",
       "Prefer subtle for standalone secondary actions; ghost belongs in a clear parent context.",
       "Buttons use content width, including inside Stack. Opt into a full-width action with style={{ inlineSize: \"100%\" }} only when the composition calls for it."
     ],
@@ -141,6 +185,18 @@
     ]
   },
   {
+    "slug": "icon-link",
+    "name": "IconLink",
+    "group": "navigation",
+    "description": "An icon-only link for navigation and downloads.",
+    "code": "<IconLink href=\"/docs/installation\" label=\"Read the installation guide\">\n  <ArrowRight />\n</IconLink>",
+    "notes": [
+      "Provide a destination or outcome in label and use a recognizable decorative icon. Use a text Link when the glyph alone would be ambiguous.",
+      "IconLink keeps native anchor behavior and shares target and glyph sizing with IconButton. Use IconButton for commands and IconLink for navigation or downloads."
+    ],
+    "imports": ["IconLink", "ArrowRight"]
+  },
+  {
     "slug": "link",
     "name": "Link",
     "group": "navigation",
@@ -155,14 +211,43 @@
     ]
   },
   {
+    "slug": "form-actions",
+    "name": "FormActions",
+    "group": "forms",
+    "description": "A form footer with grouped actions and space for operation feedback.",
+    "code": "<FormActions primary={<Button type=\"submit\">Save</Button>} secondary={<Button type=\"reset\" variant=\"subtle\">Discard changes</Button>} />",
+    "imports": ["FormActions", "Button"],
+    "notes": [
+      "Use at the end of a native form. Pass existing Button components with explicit submit, reset or button types. The host owns validation, submission and reset.",
+      "Keep the primary action at the end of its action group. Feedback can sit alongside it on wide layouts and move to a separate line when space runs out.",
+      "Use layout=status-below to keep action and feedback alignment while reserving one line for the status slot. Use layout=stacked for full-width buttons in a narrow form. The action order stays the same.",
+      "Use the status slot for brief operation feedback such as SaveStatus. Keep field errors attached to their fields and put longer errors above the action row."
+    ]
+  },
+  {
+    "slug": "save-status",
+    "name": "SaveStatus",
+    "group": "feedback",
+    "description": "Compact feedback for unsaved, saving, saved and failed changes.",
+    "code": "<SaveStatus state=\"saving\" />",
+    "imports": ["SaveStatus"],
+    "notes": [
+      "Set state from the actual draft or save operation. Show saved only after the host accepts the change. Idle has no default message.",
+      "Place near the form actions or in a document header when work saves automatically. Supply label to localize the message or describe the specific outcome.",
+      "Disable announce when another owner already announces the same state. Keep recovery instructions or field errors in their existing feedback components."
+    ]
+  },
+  {
     "slug": "field",
     "name": "Field",
     "group": "forms",
     "description": "The association between a visible label, its input and supporting messages.",
     "code": "<Field label=\"Project name\" required hint=\"Visible to your team.\">\n  {(control) => <Input {...control} name=\"project\" />}\n</Field>",
     "notes": [
-      "Spread the supplied control props onto one Input or Textarea.",
+      "Spread the supplied control props onto one Input, Textarea, Select or compatible control.",
       "Field merges describedBy with hint/error IDs and forwards native required through its function child.",
+      "Use labelAside for an optional action beside the label, such as HelpTip. Required instructions and errors belong in the field's visible descriptions.",
+      "Use layout=adaptive for an editable preference in an inspector or SettingGroup. The label and hint share one column, the control and feedback another. The same control stacks below the label when space is limited.",
       "The host owns validation rules. Compose Field in a client component in Next.js.",
       "Field is not a generic native div wrapper and does not forward a ref."
     ],
@@ -220,6 +305,23 @@
     ]
   },
   {
+    "slug": "message-composer",
+    "name": "MessageComposer",
+    "group": "forms",
+    "description": "A chat draft with send, file attachments and a stop action in the same control.",
+    "code": "<MessageComposer label=\"Message\" placeholder=\"Write a message…\" value={draft} onValueChange={setDraft} onSend={() => setDraft(\"\")} />",
+    "exampleState": "  const [draft, setDraft] = useState(\"\");\n",
+    "imports": ["MessageComposer"],
+    "notes": [
+      "Enter sends and Shift+Enter adds a line. IME confirmation stays in the editor. A blank draft can send when it has attachments.",
+      "Supply onFilesSelect to enable a multiple-file picker. Validate and store the files in the host, and pass accepted names with stable IDs to attachments.",
+      "Use maxVisibleAttachments to collapse longer lists in a constrained composer. The count reveals the remaining files, which stay attached when collapsed. Localize the list and disclosure with attachmentsLabel, moreAttachmentsLabel and fewerAttachmentsLabel.",
+      "Keep the draft controlled. While streaming, provide onStop to replace Send with Stop in the same slot. After a failed send, keep the draft and files available for retry.",
+      "Use layout=compact when the send action should sit beside the editor. Pass replyContext for a compact context header above the same input surface. CommentComposer uses this composer with compact comment defaults.",
+      "Mount MessageComposer outside other forms. The composer renders its own form."
+    ]
+  },
+  {
     "slug": "checkbox",
     "name": "Checkbox",
     "group": "forms",
@@ -227,7 +329,7 @@
     "code": "<Checkbox label=\"Send project updates\" name=\"updates\" defaultChecked />",
     "notes": [
       "Use checked/onChange for controlled state or defaultChecked for native state.",
-      "Labels stay visible. Disabled does not mean read-only; explain unavailable choices outside the disabled control when needed.",
+      "Keep labels visible in forms. Use hideLabel when the record or column supplies the context, and pass a specific accessible label. Disabled does not mean read-only; explain unavailable choices outside the disabled control when needed.",
       "The control and visible label form one content-width unit with an 8px-at-16px-root internal gap. Use an explicit parent gap=\"4\" (16px at that root) between units; the glyph keeps its token-defined size.",
       "indeterminate sets the native mixed state after hydration; checked still controls form submission. The host owns select-all aggregation and updates. Radio and Switch do not expose this prop."
     ],
@@ -259,10 +361,52 @@
     "notes": [
       "Switch uses a native checkbox with role=\"switch\".",
       "checked/defaultChecked, name/value, reset and disabled remain native. The component does not persist settings.",
+      "Use readOnly for a locked value that should remain focusable and submit with the form. Space and pointer activation cannot change it.",
+      "Use layout=row for a settings list with a shared trailing switch axis. An optional description is announced separately from the switch name. The native label remains clickable.",
       "The control and visible label form one content-width unit with an 8px-at-16px-root internal gap. Use an explicit parent gap=\"4\" (16px at that root) between units; the glyph keeps its token-defined size."
     ],
     "imports": [
       "Switch"
+    ]
+  },
+  {
+    "slug": "switch-group",
+    "name": "SwitchGroup",
+    "group": "forms",
+    "description": "A native form group for related on/off preferences.",
+    "imports": ["SwitchGroup", "Switch"],
+    "code": "<SwitchGroup legend=\"Notifications\">\n  <Switch layout=\"row\" label=\"New assignments\" name=\"assignmentAlerts\" defaultChecked />\n  <Switch layout=\"row\" label=\"Weekly summary\" name=\"weeklyDigest\" />\n</SwitchGroup>",
+    "notes": [
+      "Compose row switches inside one native fieldset. Each switch has its own state, name and optional description. The host owns persistence and when changes are saved.",
+      "Set disabled on the whole group when it is unavailable. A child Switch can be readOnly when only its value is locked and the rest of the group remains editable.",
+      "Choose compact or comfortable density. Dividers default to off. Use SettingGroup for a mix of switches, values and independent actions."
+    ]
+  },
+  {
+    "slug": "setting-group",
+    "name": "SettingGroup",
+    "group": "forms",
+    "description": "A named section of settings with shared row spacing.",
+    "code": "<SettingGroup title=\"Notifications\"><Switch layout=\"row\" label=\"Weekly summary\" /><SettingRow label=\"Delivery history\" action={<Link href=\"/notifications\">View history</Link>} /></SettingGroup>",
+    "imports": ["SettingGroup", "Switch", "SettingRow", "Link"],
+    "notes": [
+      "Compose SettingRow for actions, row-layout Switch for on/off values, and Field layout=adaptive for editable scalar settings. Use Fieldset when controls share a form legend or validation boundary.",
+      "Choose headingLevel for the surrounding page. Use spacing to separate rows by default. Enable dividers when dense adjacent items are hard to distinguish."
+    ]
+  },
+  {
+    "slug": "setting-row",
+    "name": "SettingRow",
+    "group": "forms",
+    "description": "A setting label and optional explanation with an independent trailing action.",
+    "code": "<SettingRow label=\"Account access\" description=\"Control who can sign in.\" action={<Link href=\"/settings/access\" variant=\"subtle\" size=\"sm\">Manage access</Link>} />",
+    "imports": ["SettingRow", "Link"],
+    "notes": [
+      "Use SettingRow for one setting that opens a detail view, runs an independently named action, or shows a current value. Name the action for what it does.",
+      "The adaptive layout puts value and action together beneath the description when there is too little room. Long values wrap within their share of the row. Use inline only where the label and action still fit. Use stacked for a consistently narrow surface.",
+      "Opt into valueOverflow=truncate for a plain secondary value whose visible prefix is meaningful. It reveals the full text when clipped. Rich values keep their original layout.",
+      "Use Switch layout=row for an on/off preference and Field for a labeled editable value. Use the same trailing axis across related settings.",
+      "Give the row a description only if it explains a consequence, scope or constraint. The action owns focus and activation."
     ]
   },
   {
@@ -346,7 +490,8 @@
       "The browser exempts controls in the first legend from inherited disabling. Avoid interactive legend contents unless this is intentional.",
       "hint, message, error and external aria-describedby IDs are merged without duplicates. Error takes precedence over an advisory status.",
       "Group status describes the group; it does not mark every child invalid, manage selected values or implement a RadioGroup/CheckboxGroup.",
-      "legendSize=\"section\" gives an independent form section a 1rem semibold title and a 1rem body inset. The default \"label\" remains a compact choice caption; neither option changes native group semantics."
+      "legendSize=\"section\" gives an independent form section a 1rem semibold title and a 1rem body inset. The default \"label\" remains a compact choice caption; neither option changes native group semantics.",
+      "Use layout=aligned for direct Field children with short controls and a shared label and value axis. Groups narrower than 21rem place labels above the fields."
     ]
   },
   {
@@ -395,6 +540,19 @@
       "Use direct Button/IconButton children with compatible sizes. The group owns connected radii and single separators; actions keep their props and handlers.",
       "label names the group. Tab follows normal button order; this is not a toolbar, menu or selection group.",
       "Horizontal is default; vertical stacks actions. Content can wrap within a button. Conditional/hidden actions preserve the visible end corners. No clipping masks focus."
+    ]
+  },
+  {
+    "slug": "split-button",
+    "name": "SplitButton",
+    "group": "actions",
+    "description": "A connected default action and menu of related alternatives.",
+    "code": "<SplitButton label=\"Export report\" menuLabel=\"Export formats\" items={[{id: \"csv\", label: \"Export CSV\"}, {id: \"json\", label: \"Export JSON\"}]} primaryButtonProps={{ onClick: exportPdf }} onAction={exportFormat}>\n  Export PDF\n</SplitButton>",
+    "imports": ["SplitButton"],
+    "notes": [
+      "Use when one command is an established default and the adjacent menu offers alternatives for the same task. Use Menu alone when the user needs to choose before any command runs.",
+      "Give the group and the chevron localized names. Tab reaches both controls independently, arrow keys enter the menu, and Escape returns focus to the chevron.",
+      "primaryButtonProps applies only to the main action, including type, disabled and loading. Use disabled on SplitButton to disable both controls. An empty items array disables the menu trigger."
     ]
   },
   {
@@ -466,7 +624,8 @@
     "code": "<Collapsible title=\"Advanced settings\">Additional project settings.</Collapsible>",
     "notes": [
       "Use open/onOpenChange or defaultOpen. The panel stays mounted and hidden when closed; hidden form controls keep native form semantics.",
-      "Title is plain text for a stable button name. Content may be interactive. Disabled prevents trigger activation, not interaction inside an open panel."
+      "Title is plain text for a stable button name. Content may be interactive. Disabled prevents trigger activation, not interaction inside an open panel.",
+      "Use variant=flush for a disclosure nested in a Drawer or activity feed. Hover emphasizes the title without introducing a filled rectangle. The panel expands and collapses in place."
     ],
     "imports": [
       "Collapsible"
@@ -480,7 +639,8 @@
     "code": "<Accordion label=\"Questions\" items={[{value:\"install\",title:\"How do I install Flood?\",content:\"Install the packages and import the stylesheet.\"}]} />",
     "notes": [
       "Headings contain native disclosure buttons. Set headingLevel for the surrounding document.",
-      "Enter/Space toggle. Tab visits available triggers and open panel contents. ArrowUp/Down and Home/End move among enabled top-level triggers without opening panels."
+      "Enter/Space toggle. Tab visits available triggers and open panel contents. ArrowUp/Down and Home/End move among enabled top-level triggers without opening panels.",
+      "Use variant=flush for collapsible inspector sections on a shared surface. The section separators stay visible. Use Section with headingSize=group for content that should stay visible."
     ],
     "imports": [
       "Accordion"
@@ -495,6 +655,7 @@
     "notes": [
       "Requires native Popover API.",
       "Forward trigger props and ref to one actual button. Tooltip is text-only; interactive content belongs in Popover.",
+      "Use positionReference to place the tooltip beside a containing row while the original target still owns hover and focus.",
       "Escape dismisses. Hover can move onto the tooltip; focus stays on the trigger. Do not use it as the only accessible name or essential instruction."
     ],
     "imports": [
@@ -516,6 +677,19 @@
     "imports": [
       "Popover",
       "Button"
+    ]
+  },
+  {
+    "slug": "help-tip",
+    "name": "HelpTip",
+    "group": "overlays",
+    "description": "An inline help action that reveals brief, optional context on demand.",
+    "code": "<Field label=\"Project prefix\" labelAside={<HelpTip label=\"About project prefixes\" content=\"The prefix appears at the start of issue IDs, like SN-42.\" />}>\n  {control => <Input {...control} name=\"prefix\" />}\n</Field>",
+    "imports": ["Field", "HelpTip", "Input"],
+    "notes": [
+      "Use for optional definitions and examples. Keep instructions needed to fill a field in its visible hint, and keep validation visible beside the field.",
+      "Choose a label that names the subject of the help. The icon opens on click, touch and keyboard activation. Escape returns focus to the opener.",
+      "Place it beside a native label through Field labelAside. A label click still focuses its input. Use the full Popover component for content with actions."
     ]
   },
   {
@@ -544,6 +718,7 @@
     "notes": [
       "Use variant=\"line\" for page-level sections with an active marker beside the panel. The default contained variant joins tabs and content in one surface.",
       "Arrow keys navigate enabled tabs; automatic activation is default, manual needs Enter/Space. Tab leaves the tablist. Horizontal direction follows RTL.",
+      "Supply count for a passive panel total. The badge caps the display and assistive technology receives the exact value. Localize that description with formatCountLabel. Icon-only tabs use a dot when the count is positive.",
       "Inactive panels remain mounted but hidden. Keep form validation and persistent selection under host control. Invalid, missing or disabled selected values fall back to the first available item."
     ],
     "imports": [
@@ -554,10 +729,12 @@
     "slug": "breadcrumb",
     "name": "Breadcrumb",
     "group": "navigation",
-    "description": "A wrapping hierarchy of native links with an explicit current page.",
+    "description": "A path of native links and an explicit current page, with an optional compact layout.",
     "code": "<Breadcrumb items={[{label:\"Workspace\",href:\"/\"},{label:\"Projects\",href:\"/projects\"},{label:\"Flood\"}]} />",
     "notes": [
       "The last item is current, with or without an href. Separators are decorative and not focusable.",
+      "Use layout=compact in a narrow header. It keeps the root and current page visible, and lets people open earlier pages through a named popover. maxVisibleItems counts path labels, with two by default.",
+      "Compact labels fit a single line and reveal the full text when clipped. The earlier pages keep native links and original order. Localize overflowLabel.",
       "Links keep browser navigation semantics. The host owns actual routes and client routing."
     ],
     "imports": [
@@ -572,10 +749,23 @@
     "code": "<Pagination page={1} pageCount={20} getHref={page => `?page=${page}`} />",
     "notes": [
       "Use getHref for native route links, onPageChange for local controlled data, or both for a navigation notification. Modifier clicks retain browser behavior.",
-      "Page and pageCount must be positive safe integers within range. Empty datasets can omit Pagination. siblingCount 0/1/2 controls compactness; endpoints are noninteractive when unavailable."
+      "Page and pageCount must be positive safe integers within range. Empty datasets can omit Pagination. siblingCount 0/1/2 controls the numbered window; endpoints are noninteractive when unavailable.",
+      "Use presentation=compact to show position between arrows. Use presentation=arrows when a nearby range already provides visible context. Localize digits with formatPage and position text with positionLabel."
     ],
     "imports": [
       "Pagination"
+    ]
+  },
+  {
+    "slug": "cursor-pagination",
+    "name": "CursorPagination",
+    "group": "navigation",
+    "description": "Previous and next controls for collections with an unknown total.",
+    "code": "<CursorPagination label=\"Activity pages\" position=\"26–50\" previous={{href:\"?before=event-26\"}} next={{href:\"?after=event-50\"}} />",
+    "imports": ["CursorPagination"],
+    "notes": [
+      "Provide a previous or next target only when the corresponding cursor is available. Pass href for route navigation or onSelect for a host-owned request.",
+      "Use position for the actual loaded range, when known. The host owns cursors, requests and errors. Pass pending while a callback request runs and keep the active target present so its button keeps focus."
     ]
   },
   {
@@ -588,9 +778,25 @@
       "Badge"
     ],
     "notes": [
+      "Use Badge for a category, qualifier or priority. Keep the size and variant consistent for every value in the same priority column, including the ordinary value. Use StatusIndicator for lifecycle state and Tag for removable values.",
+      "Place a badge beside the name it qualifies. Use a quiet tone unless color conveys meaning, and check the longest label next to its neighbors at the intended width.",
       "Use text to communicate status; color is supplementary.",
       "Tone, size and visual variant are independent. This is not a selectable or removable chip.",
       "Available in 0.2.4. Use FloodRoot for the neutral dark recipe."
+    ]
+  },
+  {
+    "slug": "count-badge",
+    "name": "CountBadge",
+    "group": "content",
+    "description": "A compact count with an optional cap or unread dot.",
+    "code": "<Inline gap=\"2\"><Text size=\"compact\">Inbox</Text><CountBadge count={137} formatLabel={count => `${count} unread messages`} /></Inline>",
+    "imports": ["CountBadge", "Inline", "Text"],
+    "notes": [
+      "Use CountBadge for a passive count beside the destination or label it qualifies. It adds no focus stop. Use formatLabel for a localized accessible description.",
+      "The default visual cap is 99. Counts above max display the cap with a plus sign while assistive technology receives the exact count. Use locale to format the digits.",
+      "Zero is hidden by default. Set showZero when an explicit zero is useful. Dot presentation signals a nonzero count in tight spaces and always hides zero.",
+      "Use NavigationItem compactBadge to put an unread dot on a compact navigation control without moving its icon."
     ]
   },
   {
@@ -606,6 +812,59 @@
       "Standalone indicators expose a status with a localizable label. Decorative indicators are hidden from assistive technology.",
       "Button loading uses this indicator decoratively and keeps the button name. Do not announce every spinner in a busy area.",
       "Use Progress when completion is measurable. Reduced motion stops rotation. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "loading-state",
+    "name": "LoadingState",
+    "group": "feedback",
+    "description": "A visible loading message that shares spacing and layouts with empty and error states.",
+    "imports": ["LoadingState"],
+    "code": "<LoadingState label=\"Loading project activity…\" layout=\"row\" density=\"compact\" />",
+    "notes": [
+      "Use when a region has no accepted content to display and a visible label explains what is being loaded. Use Skeleton when the future content structure is known and a matching placeholder preserves its layout.",
+      "Match the layout and density to the adjacent empty or failed states. Use actions for an actual available choice, such as cancelling an interruptible operation. The host owns cancellation and accepted data.",
+      "The spinner is decorative. Keep announce off inside a region that already announces loading. Set announce when the visible message is the sole status region. The host marks the content region busy and owns focus throughout the request."
+    ]
+  },
+  {
+    "slug": "card-skeleton",
+    "name": "CardSkeleton",
+    "group": "feedback",
+    "description": "A loading placeholder with the same layout and density as Card.",
+    "code": "<CardSkeleton description headerAction footerAction />",
+    "imports": ["CardSkeleton"],
+    "notes": [
+      "Match density, elevation, description, header action, footer action and the expected number of short body lines to the real Card. Use bodyLines={0} for a card without a body.",
+      "Pass mediaRatio when the loaded card has a top media slot. Use the same ratio in the real card to preserve the image frame.",
+      "The placeholder is decorative. Announce loading once for the surrounding region, including when loading multiple cards. Keep populated cards visible during a background refresh."
+    ]
+  },
+  {
+    "slug": "list-skeleton",
+    "name": "ListSkeleton",
+    "group": "feedback",
+    "description": "Loading rows that share the spacing and tracks of a data list.",
+    "code": "<ListSkeleton label=\"Loading activity…\" rows={3} media description metadata dividers={false} />",
+    "imports": ["ListSkeleton"],
+    "notes": [
+      "Use during the initial load of a DataList. Match the number of expected rows, density, media, descriptions, metadata and dividers to the destination list.",
+      "Set reserveSelectionSpace when the loaded DataList has a checkbox track. The skeleton keeps the title aligned without exposing an interactive checkbox.",
+      "The placeholder list is decorative. Localize the loading announcement through label. Keep that message outside any ancestor marked aria-busy.",
+      "Leave the current results in place during a background refresh. For a DataTable body, use loadingAppearance=skeleton on DataTable."
+    ]
+  },
+  {
+    "slug": "table-skeleton",
+    "name": "TableSkeleton",
+    "group": "feedback",
+    "description": "Loading rows with real table headings and matching column widths.",
+    "code": "<TableSkeleton caption=\"Workspace projects\" rows={4} columns={[\n  {id:\"project\",label:\"Project\",width:\"70%\",placeholderLines:2},\n  {id:\"members\",label:\"Members\",width:\"30%\",align:\"end\"}\n]} />",
+    "imports": ["TableSkeleton"],
+    "notes": [
+      "Use during initial loading of a plain Table. Keep the expected column widths, caption, density and row count. Use placeholderLines=2 where the eventual cell has a title and secondary line.",
+      "Body placeholders are decorative. TableSkeleton marks its table busy and announces loading once by default. Use announce=false when the host already owns that message.",
+      "For DataTable, use its skeleton loading appearance and column placeholderLines so selection, resize and other column tracks keep their geometry."
     ]
   },
   {
@@ -634,9 +893,12 @@
       "Avatar"
     ],
     "notes": [
+      "In an authored row, keep the visible author, timestamp and message together. Use decorative when the author name is already visible. Place any per-message action in that item.",
       "Name supplies the accessible image name; decorative suppresses duplicate naming next to an equivalent visible name.",
       "Fallback remains visible until the image loads and after a load error. Changing src starts a fresh load lifecycle.",
-      "Native span props and ref target the root. Size and shape do not change during loading. Available in 0.2.4."
+      "Pass presence with an online, away, busy or offline state and a localized label. Omit it for unknown availability. A decorative Avatar needs the label supplied by its surrounding composition. Use visible status text when availability affects an action.",
+      "Native span props and ref target the root. Size and shape do not change during loading. Available in 0.2.4.",
+      "Use xs in dense choice rows and 2xs inside tags."
     ]
   },
   {
@@ -652,7 +914,22 @@
       "Omit value for indeterminate progress. The accessible progressbar omits aria-valuenow in that state.",
       "Max defaults to 100; values must be finite and inside 0..max. Invalid ranges throw instead of silently inventing a percentage.",
       "hideLabel removes the caption visually while keeping the accessible name. valueText supplies human-readable units.",
+      "Use layout=inline in compact panels and rows. The track moves below the caption when it cannot retain a readable length. The default layout is stacked.",
       "This is not a live region or a task manager. Native div props, className/style and ref target the wrapper. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "progress-ring",
+    "name": "ProgressRing",
+    "group": "feedback",
+    "description": "Circular task progress for compact rows, cards and panels.",
+    "code": "<ProgressRing label=\"Exporting files\" value={60} valueText=\"6 of 10 files\" />",
+    "imports": ["ProgressRing"],
+    "notes": [
+      "Use ProgressRing for a single task with a compact circular track. Use Progress when a horizontal track can use the available width, and DonutChart for categories as parts of a whole.",
+      "The ring shares Progress range semantics. Max defaults to 100. Omit value for indeterminate progress; 0 and max represent empty and complete tracks.",
+      "Supply localized valueText for a visible amount or an indeterminate state. hideLabel hides the caption and keeps its accessible name and value text. Size accepts sm, md and lg.",
+      "Progress is host-owned. The ring has no tab stop or live announcement. Reduced motion keeps an indeterminate arc visible without rotation."
     ]
   },
   {
@@ -668,7 +945,23 @@
       "Use Meter for storage, battery or other bounded measurements; use Progress for task completion.",
       "Value is required. Min defaults to 0 and max to 100; require min < max and min <= value <= max. Invalid values throw.",
       "Use valueText for meaningful units; hideLabel keeps the accessible name. Tone is host-owned and does not calculate warning thresholds.",
+      "Use reference for one named point on the same scale. The mark does not change the measured value or threshold behavior. Its label describes the point and is associated with the meter.",
+      "Use layout=inline to place the caption next to the track in compact panels. The track moves below when space is limited. The default layout is stacked.",
       "Native div props, className/style and ref target the wrapper. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "capacity-meter",
+    "name": "CapacityMeter",
+    "group": "feedback",
+    "description": "Usage against a fixed quota, with an exact readout when usage exceeds the limit.",
+    "code": "<CapacityMeter label=\"Storage used\" used={112} capacity={100} warningAt={85} unit=\"GB\" />",
+    "imports": ["CapacityMeter"],
+    "notes": [
+      "Use for a fixed service, memory or storage quota. Supply usage, capacity and warningAt in the same units. Omit warningAt when the product has no policy for a warning.",
+      "The fill and accessible numeric range end at capacity. The visible and accessible value text reports the actual amount, including overages.",
+      "Supply locale for number formatting and unit for a localized unit. Supply valueText when the amount needs different precision or phrasing. Include both amounts so exceeding the limit stays explicit.",
+      "Use the same units and a comparable scope across peer rows. Use Meter for a bounded measurement and Progress for an operation."
     ]
   },
   {
@@ -684,7 +977,37 @@
       "announcement defaults off: a static message does not automatically interrupt a screen reader. Polite uses role=status; assertive uses role=alert.",
       "Use assertive for newly inserted urgent messages, and verify with actual assistive technology. No focus movement, timeout or automatic dismissal is implemented.",
       "Title is optional. Icons are original decorative glyphs; pass icon={null} to omit or supply noninteractive artwork. Meaning must remain in the text.",
+      "Use action for a named recovery or next step. The slot sits beside the message when there is room, then moves below it. Announcements apply to the message.",
+      "Use appearance=inline for a short contextual caution inside a timeline entry or another constrained surface. Use the banner for longer messages, titles and primary recovery actions.",
       "Native div props and ref target the message root. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "value-change",
+    "name": "ValueChange",
+    "group": "content",
+    "description": "Previous and current values for a recorded change.",
+    "code": "<ValueChange before=\"Draft\" after=\"In review\" />",
+    "imports": ["ValueChange"],
+    "notes": [
+      "Use beside a named field or event. Pass both values for a replacement or supply only the applicable side for an addition or removal.",
+      "Use the inline arrow for short values, including existing status chips. Use layout=stacked to compare longer values with visible Before and After labels. Localize the labels where needed.",
+      "Use layout=adaptive when the same content appears at different widths. It uses the arrow above 18rem and the labeled rows in a narrower container.",
+      "Values may contain Flood controls or rich content. The host owns data comparison and formatting. Zero remains a value."
+    ]
+  },
+  {
+    "slug": "change-list",
+    "name": "ChangeList",
+    "group": "content",
+    "description": "A definition list of fields changed in a single event.",
+    "code": "<ChangeList aria-label=\"Project changes\" items={[{id:\"owner\",label:\"Owner\",before:\"Maya Chen\",after:\"Sam Rivera\"},{id:\"due\",label:\"Due date\",after:\"21 Nov\"}]} />",
+    "imports": ["ChangeList"],
+    "notes": [
+      "Use for multiple changes from the same recorded event. Give each field a stable ID and name the list when its context needs a label.",
+      "Inherits DescriptionList alignment and density. Keep values inline for short changes, or use valueLayout=stacked when each side needs a clear label and room to wrap.",
+      "Use valueLayout=adaptive if the history appears in both a page and a narrow drawer. The comparison responds to the value column, whether the term is above or beside it.",
+      "Use Timeline for the chronology. Put ChangeList inside the event's content when the field-level detail helps the reader."
     ]
   },
   {
@@ -697,9 +1020,15 @@
       "DescriptionList"
     ],
     "notes": [
+      "Use DescriptionList for labeled facts about one object. Keep the same term and value alignment across peer groups. A status is valid as a value for a named field. Put editing commands in a separate action area.",
+      "At the actual panel width, check the longest term and value and make sure the stacked layout preserves the pairing.",
       "Renders native dl/dt/dd groups. IDs are stable React keys, not generated DOM anchors; require unique nonempty IDs.",
       "Inline layout becomes stacked when the component container is narrow. Stacked layout is always one column.",
+      "Use layout=columns to retain two shared tracks for compact facts such as owner, status and date in a narrow inspector. Prefer the adaptive inline or stacked layouts when translated terms or values need more width.",
+      "Use layout=grid for independent overview facts. Each value stays beneath its term and the grid fits as many groups as the available width supports.",
       "Density and dividers affect presentation. Values may contain React content; the host owns formatting and missing-value text.",
+      "Set item.valueOverflow=truncate for a recognizable plain value, such as an identifier or URL. The full text stays available on hover and keyboard focus. Leave values that require reading in full able to wrap.",
+      "Set item.action for a compact utility tied to the value, such as a named CopyButton. Actions align at the trailing edge and can move below the value in narrow panels.",
       "Native dl props, className/style and HTMLDListElement ref target the list. Available in 0.2.4."
     ]
   },
@@ -718,6 +1047,21 @@
       "Flood ScrollArea owns horizontal scrolling and keyboard access. Set maxViewportHeight for bounded vertical scrolling with stable clearance for the overlay rail. scrollLabel names the viewport independently.",
       "Use data-numeric on headers/cells for end alignment and tabular figures; data-align=start/center/end gives logical alignment. No automatic sorting, selection, pagination or data access.",
       "Striped and compact/comfortable density are opt-in presentation. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "comparison-table",
+    "name": "ComparisonTable",
+    "group": "content",
+    "description": "Compare the same criteria across options, with the criterion column pinned on scroll.",
+    "imports": ["ComparisonTable"],
+    "code": "<ComparisonTable caption=\"Backup plans\" criterionLabel=\"Criterion\"\n  columns={[{id:\"current\",label:\"Current plan\"},{id:\"proposed\",label:\"Proposed plan\"}]}\n  rows={[{id:\"retention\",label:\"Retention (days)\",numeric:true,cells:{current:7,proposed:30}}]} />",
+    "notes": [
+      "Use for a decision based on the same criteria across several actual options. Use ChangeList for a record of edits and DataTable for working with a collection.",
+      "Each option and criterion needs a stable unique ID. Use the same unit across the numeric cells in a criterion and put the unit in its label.",
+      "A missing cell shows unavailableLabel. Real zeroes remain visible. Give values such as Not included explicitly when they are known.",
+      "Use featuredColumnId to draw attention to an option whose column heading explains its role. Emphasis does not select an option or decide the outcome.",
+      "The table uses Flood ScrollArea. At narrow widths the criterion stays pinned while the option columns scroll."
     ]
   },
   {
@@ -768,13 +1112,26 @@
     "name": "Kbd",
     "group": "typography",
     "description": "A quiet native keyboard-input label for keys and shortcut hints.",
-    "code": "<Kbd>Ctrl</Kbd> + <Kbd>K</Kbd>",
+    "code": "<Kbd>Esc</Kbd>",
     "imports": [
       "Kbd"
     ],
     "notes": [
       "Native kbd markup, not a button or a shortcut handler. The application implements and documents actual bindings.",
+      "Use KeyboardShortcut for a combination of keys or a platform-specific spoken label.",
       "Sizes sm/md/lg use relative keycap tokens. Native props/ref target the kbd element. Available in 0.2.4."
+    ]
+  },
+  {
+    "slug": "keyboard-shortcut",
+    "name": "KeyboardShortcut",
+    "group": "typography",
+    "description": "A group of keycaps for a keyboard shortcut.",
+    "code": "<KeyboardShortcut keys={[\"Ctrl\", \"Shift\", \"K\"]} />",
+    "imports": ["KeyboardShortcut"],
+    "notes": [
+      "Pass keys in the intended reading order. Use presentation=compact to fit the combination in one keycap, or pass a preformatted string.",
+      "Use label to supply a localized spoken form for glyphs such as Command and Shift. The surrounding action owns the actual binding and aria-keyshortcuts."
     ]
   },
   {
@@ -790,9 +1147,13 @@
     ],
     "notes": [
       "Card composes Surface with optional title, description, header actions, children and footer. Missing slots add no empty wrapper or reserved space.",
+      "Use media for top-aligned artwork in a gallery. Give peers the same AspectRatio. Place imagery that follows the heading in the body.",
       "Use Surface for unstructured containment; use Card when its header/body/footer structure is useful. Card is a noninteractive div, not a button or link. Put named actions inside.",
-      "Title uses Heading at headingLevel (2 by default); choose the level according to the page. Supply phrasing content for the title. Description accepts supporting React content.",
+      "Title uses Heading at headingLevel (2 by default). Choose the level according to the page and headingSize according to the visual hierarchy. Use group for a compact repeated card title. Supply phrasing content for the title.",
       "Density compact/comfortable controls padding and section rhythm using existing semantic spacing. Header actions wrap naturally; content is never clipped to the radius.",
+      "Pass selection with a named checkbox when the card is a record that can participate in a bulk action. The checkbox sits in the header and the host owns selection. Keep links and commands independent. Use CheckCard for a form choice whose primary action is checking the option.",
+      "In a narrow card, wide header actions can move below the title and description. The independent selection checkbox stays at the top trailing edge.",
+      "Use footerDivider={false} when spacing is enough to separate the footer. Match that setting in CardSkeleton when loading this card.",
       "Root HTMLDivElement ref and native div props/style/className target the surface. The title prop is content, not the native HTML tooltip attribute. Available in 0.2.4."
     ]
   },
@@ -900,7 +1261,7 @@
     "name": "EmptyState",
     "group": "feedback",
     "description": "A quiet explanation and optional next action when content is absent.",
-    "code": "<EmptyState title=\"No projects yet\" description=\"Create a project to get started.\" actions={<Button>Create project</Button>} />",
+    "code": "<EmptyState title=\"No projects yet\" actions={<Button>Create project</Button>} />",
     "imports": [
       "EmptyState",
       "Button"
@@ -908,15 +1269,42 @@
     "notes": [
       "Composes Stack, Heading, Text, IconSlot and Inline. Optional icon is decorative; title and description explain the missing content.",
       "Static by default, without status/alert announcements or automatic focus. Host owns whether a result change should be announced.",
-      "Choose headingLevel for the page hierarchy. Density controls relative padding. Host actions remain ordinary named controls; no loading, fetching or error recovery engine is supplied.",
+      "Choose headingLevel for the page hierarchy. Use centered when the state occupies the destination, inline for a narrow section, and row when the message and a recovery action can share a line. The row moves actions below the message on narrow widths. Density controls padding.",
       "Available in 0.2.4; use matching installed declarations."
+    ]
+  },
+  {
+    "slug": "no-results",
+    "name": "NoResults",
+    "group": "feedback",
+    "description": "A compact empty result after search or filtering, with optional reset.",
+    "code": "<NoResults title=\"No matching projects\" />",
+    "imports": ["NoResults"],
+    "notes": [
+      "Use after search or filtering excludes every item. Keep the search and filters in place. Use EmptyState for a new collection with no records.",
+      "Pass onReset only when this region owns the reset action. Name its scope with resetLabel. A clear command in the toolbar can own the whole reset.",
+      "Pass resetFocusRef to return focus to a persistent input or filter before the results change. Keep announcements in the collection's existing status region.",
+      "The default compact row puts reset at the trailing edge when it fits. At narrow widths it falls below the message."
+    ]
+  },
+  {
+    "slug": "error-state",
+    "name": "ErrorState",
+    "group": "feedback",
+    "description": "A failed content region with an optional retry and supporting actions.",
+    "code": "<ErrorState title=\"Could not load project activity\" layout=\"inline\" />",
+    "imports": ["ErrorState"],
+    "notes": [
+      "Use when content is unavailable because a request failed. Leave still-usable content in place for errors that affect a single action.",
+      "Share EmptyState layout and density in related regions. The row layout keeps recovery at the trailing edge until it needs to wrap below the message.",
+      "Provide onRetry only when the host can retry the request. Use retrying to hold the focused button and its dimensions while the request runs. Restore focus to a persistent destination when the result replaces the error. Announce operation changes through the host's one status region."
     ]
   },
   {
     "slug": "number-input",
     "name": "NumberInput",
     "group": "forms",
-    "description": "A native numeric field with integrated decrement and increment actions.",
+    "description": "A native numeric field with optional decrement and increment actions.",
     "code": "<Field label=\"Seats\">\n  {(control) => <NumberInput {...control} name=\"seats\" defaultValue={5} min={0} max={20} />}\n</Field>",
     "imports": [
       "Field",
@@ -925,7 +1313,20 @@
     "notes": [
       "Values are finite numbers or null for an empty field. onValueChange reports edits and button/arrow steps; native min/max/step validity remains available. Out-of-bound typed values clamp on blur; a step mismatch remains native validation.",
       "Ref and native form attributes target the input. Controlled value stays host-owned; uncontrolled form reset restores the initial value. Buttons use explicit accessible names, which can be translated.",
-      "Use Field for labels and feedback. Read-only remains selectable and prevents stepping. No currency/locale formatting or wheel interception is supplied. Available in 0.2.5."
+      "Use Field for labels and feedback. appearance=\"plain\" keeps keyboard stepping and gives the value the full field width. Read-only remains selectable and prevents stepping. No currency/locale formatting or wheel interception is supplied."
+    ]
+  },
+  {
+    "slug": "number-range-field",
+    "name": "NumberRangeField",
+    "group": "forms",
+    "description": "Two numeric fields for entering exact lower and upper bounds.",
+    "code": "<NumberRangeField label=\"Budget (USD)\" min={0} start={{ label: \"Minimum\", name: \"budgetMin\", defaultValue: 1200 }} end={{ label: \"Maximum\", name: \"budgetMax\", defaultValue: 5000 }} />",
+    "imports": ["NumberRangeField"],
+    "notes": [
+      "Use for exact typed values with a shared unit. Name both endpoints. Two equal tracks stack when the fields no longer fit their container.",
+      "Each endpoint submits separately with its own name and supports controlled value/onValueChange or an uncontrolled defaultValue. Empty endpoints default to null. required applies to both inputs; disabled follows native fieldset behavior.",
+      "The host owns cross-field validation and may show one shared error. Values remain editable in either order so a correction never silently changes the other endpoint."
     ]
   },
   {
@@ -940,7 +1341,8 @@
     "notes": [
       "value/defaultValue contain one number or an ordered pair. onValueChange returns a new array. Values snap to min-based steps and thumbs cannot cross; Tab order stays stable. Supply thumbLabels to translate or explain each handle.",
       "Horizontal only. Direction follows the host, including RTL. Native range inputs retain keyboard behavior; pointer selection chooses the nearest handle. Names submit one or two entries; uncontrolled reset restores defaults.",
-      "hideLabel preserves the accessible legend; showValue only controls the visible numeric readout. Read-only prevents edits while keeping focus. Use hint/message/error for meaning beyond color. Touch assistive technology needs device testing. Available in 0.2.5."
+      "hideLabel preserves the accessible legend; showValue only controls the visible numeric readout. Read-only prevents edits while keeping focus. Use hint/message/error for meaning beyond color. Touch assistive technology needs device testing. Available in 0.2.5.",
+      "Use valuePlacement=\"inline\" to show the readout by the visible label. Use the same placement across related sliders."
     ]
   },
   {
@@ -956,6 +1358,7 @@
     "notes": [
       "Typing filters labels and optional keywords; labels remain presentation and only the selected option value is submitted. Enter commits the active option. Escape/Tab/outside interaction discard an uncommitted query. Emptying the input clears selection.",
       "Native input ref, Field associations, required validity, controlled/uncontrolled value, forms/reset, read-only/disabled and IME editing are preserved. Options need unique nonempty values and labels. Disabled options remain discoverable and cannot be chosen.",
+      "For people or team options, supply avatar data on the option. The committed value shows its avatar. While typing a query, the same space holds a search glyph. Keep the name in the option label.",
       "Use clearable for the visible clear action; translate clearLabel/toggleLabel/listLabel/emptyMessage/invalidSelectionMessage. The popup reuses Flood ScrollArea and layer positioning. No arbitrary text, multiple selection, async fetching or virtualization engine is supplied. Available in 0.2.5.",
       "Only the disclosure chevron is shown by default. Set clearable to opt into the extra clear-selection action; individual MultiSelect tags retain their removal buttons."
     ]
@@ -964,15 +1367,46 @@
     "slug": "tag",
     "name": "Tag",
     "group": "content",
-    "description": "A compact label with an optional icon and a named removal action.",
+    "description": "A compact label with an optional icon or avatar and a named removal action.",
     "code": "<Tag onRemove={() => { /* Update the host collection. */ }}>Design</Tag>",
     "imports": [
       "Tag"
     ],
     "notes": [
+      "For an applied-filter summary, retain the property name when the value alone is ambiguous. Update the applied values on removal and keep each chip near the controls that own it.",
       "Tag is a label, not a status Badge or a selection toggle. The host owns removal; onRemove never hides the element automatically. Use ordinary noninteractive label content.",
       "Plain text gets a default Remove label. Rich content needs explicit removeLabel. disabled prevents removal; size and decorative icon are independent. removeButtonProps customizes the nested native action while Tag owns type, name, disabled and removal.",
+      "Use avatar for a named person or team. It takes the leading slot and stays decorative beside the visible name.",
       "Standalone removal is an ordinary Tab stop. MultiSelect supplies its composite keyboard model. Geometry uses relative Flood sizing; long labels wrap and touch targets remain distinct. Available in 0.2.5."
+    ]
+  },
+  {
+    "slug": "tag-group",
+    "name": "TagGroup",
+    "group": "content",
+    "description": "A wrapping group of labels or removable tags with optional count disclosure.",
+    "imports": ["TagGroup"],
+    "code": "<TagGroup label=\"Project filters\" items={[{id:\"status\",label:\"Status: Active\"},{id:\"owner\",label:\"Owner: Maya\"},{id:\"team\",label:\"Team: Design\"}]} maxVisibleTags={2} />",
+    "notes": [
+      "Use for accepted labels or filter summaries. Use TagInput to create values and MultiSelect to choose values.",
+      "Provide a group label and stable unique item IDs. Pass onRemove to request removal by ID. Update items after acceptance. Supply removeLabel for localized removal and disabled on individual protected tags.",
+      "maxVisibleTags keeps a short preview with an expandable count. Localize moreTagsLabel and fewerTagsLabel. A disabled group displays every label and blocks removal.",
+      "Choose the same size as nearby tags. The group wraps between tags and keeps long labels readable at narrow widths.",
+      "For identity groups, provide each item's avatar data and keep the name as its visible label."
+    ]
+  },
+  {
+    "slug": "metadata-list",
+    "name": "MetadataList",
+    "group": "content",
+    "description": "A compact list of supporting facts with optional decorative icons.",
+    "imports": ["MetadataList"],
+    "code": "<MetadataList label=\"Project details\" items={[{id:\"team\",value:\"Design team\"},{id:\"updated\",value:<time dateTime=\"2026-11-14\">Updated Nov 14</time>}]} />",
+    "notes": [
+      "Use for short facts such as team, timestamp or counts. In DataListItem, put them in details to keep them with the title and description.",
+      "Use value for text or inline content such as time. Icons are decorative, so write the fact with enough context to read without the icon.",
+      "Each item has a stable unique ID. Empty values are omitted. Facts wrap with their icons intact; long localized words may wrap within one item.",
+      "Keep state and triage signals in StatusIndicator or Badge where their meaning calls for emphasis. Use DescriptionList for explicit term and value pairs."
     ]
   },
   {
@@ -987,7 +1421,9 @@
     ],
     "notes": [
       "value/defaultValue are arrays of unique nonempty option IDs; onValueChange returns a new array. Native forms submit repeated entries with the same name, never typed query text. Uncontrolled reset restores initial values.",
-      "The shared Combobox search/layer model keeps focus in the input. Enter toggles the active option and the list stays open. Backspace in an empty input removes the last editable tag; a logical backward arrow at the start enters tag actions. Tag arrows, Delete/Backspace, Enter and Escape support keyboard editing.",
+      "The shared Combobox search/layer model keeps focus in the input. Enter toggles the active option and the list stays open. Backspace in an empty input removes the last visible editable tag; a logical backward arrow at the start enters tag actions. Tag arrows, Delete/Backspace, Enter and Escape support keyboard editing.",
+      "Use maxVisibleTags to limit display in dense filters. A keyboard-accessible count opens the rest. The complete selection remains in FormData and in the field's accessible description. Localize moreTagsLabel and fewerTagsLabel where needed.",
+      "Option avatar data appears in the list and the corresponding selected tag. When results are remote, retain avatar data in selectedOptions along with the selected names.",
       "Disabled selected options cannot be individually removed or cleared globally. Read-only permits copying but blocks selection and removal. Required means at least one valid selected ID. Translate removeItemLabel and the shared action/empty/validation messages.",
       "No freeform values, remote fetching, virtualization or arbitrary tag selection engine is supplied. Available in 0.2.5.",
       "Only the disclosure chevron is shown by default. Set clearable to opt into the extra clear-selection action; individual MultiSelect tags retain their removal buttons."
@@ -1021,6 +1457,58 @@
     "notes": [
       "Use visible/onVisibleChange for controlled visibility or defaultVisible for an initial reveal. Translate showPasswordLabel/hidePasswordLabel. Read-only still permits inspection; disabled blocks actions. Native value/onChange, autocomplete, form and ref are preserved. Visibility does not change the value.",
       "Composes Flood InputGroup, IconSlot and IconButton using existing semantic geometry and feedback states. Available in 0.2.5."
+    ]
+  },
+  {
+    "slug": "field-checklist",
+    "name": "FieldChecklist",
+    "group": "forms",
+    "description": "A compact list of requirements with pending, met and unmet states.",
+    "code": "<FieldChecklist label=\"Upload requirements\" items={[{id:\"format\",label:\"PDF file\",status:\"met\"},{id:\"size\",label:\"Under 10 MB\",status:\"pending\"}]} />",
+    "imports": ["FieldChecklist"],
+    "notes": [
+      "Use for independent requirements the host can evaluate. Supply a list name and stable, unique item IDs. Omitted status is pending.",
+      "The list gives each state a distinct mark and readable status text for assistive technologies. Localize statusLabels where needed.",
+      "Keep the actual input, its validity and the announcement policy in the host form."
+    ]
+  },
+  {
+    "slug": "password-strength",
+    "name": "PasswordStrength",
+    "group": "forms",
+    "description": "A compact password assessment with a named meter and optional requirements.",
+    "code": "<PasswordStrength assessment={{value:2,max:4,valueText:\"Fair\",tone:\"warning\"}} />",
+    "imports": ["PasswordStrength"],
+    "notes": [
+      "Place near a new-password field. Pass a host-owned assessment and an honest localized valueText. The component receives the assessment rather than the password.",
+      "Omit assessment until a result is available; requirements can still show independently. Provide requirements only for constraints that apply to the form.",
+      "Composes Meter and FieldChecklist. Assessment, validation and any deliberate announcements belong to the host."
+    ]
+  },
+  {
+    "slug": "file-trigger",
+    "name": "FileTrigger",
+    "group": "forms",
+    "description": "A button or icon action that hands newly picked files to the application.",
+    "code": "<FileTrigger label=\"Attach files\" multiple onFilesSelect={(files) => appendAttachments(files)} />",
+    "imports": ["FileTrigger"],
+    "notes": [
+      "Use for a host-owned attachment queue, import action or image picker. FileInput is the corresponding field for native FormData submission.",
+      "Each nonempty pick sends a fresh File array. Cancel is quiet and repeated picks of the same file work. The hidden native input is cleared after each pick.",
+      "Use trigger to compose a named Button or IconButton with the supplied props. accept and capture configure the browser chooser. The host checks the selected content and owns processing."
+    ]
+  },
+  {
+    "slug": "avatar-picker",
+    "name": "AvatarPicker",
+    "group": "forms",
+    "description": "A profile image with connected choose, replace and remove actions.",
+    "code": "<AvatarPicker name=\"Alex Morgan\" src={storedPhotoUrl} file={photo} onFileSelect={setPhoto} onRemove={removePhoto} />",
+    "imports": ["AvatarPicker"],
+    "notes": [
+      "Pass the current stored image as src and an accepted local replacement as file. The component manages the local preview URL for that File.",
+      "The application owns validation, draft state, upload and persistence. Pass error for visible rejection and busy while processing a change. A filename extension or accept hint alone cannot validate image contents.",
+      "Localize the group and choose/replace/remove labels. Remove appears when an image and onRemove are available. If a focused Remove action disappears, focus returns to the chooser."
     ]
   },
   {
@@ -1069,6 +1557,8 @@
       "Input"
     ],
     "notes": [
+      "Use Drawer for a bounded task alongside a collection. Use a page for a long-running task or when the record needs a shareable route. Check that the opener, or a surviving fallback, receives focus after a save removes the original row.",
+      "In a settings Drawer, give peer sections consistent heading size, body inset and spacing. Align repeated labels and controls on shared tracks, then test with a narrow viewport and dense content so the footer stays reachable.",
       "Uses Flood native Dialog focus containment, scroll lock, background inertness, nested layers and return focus. Escape and the named close IconButton dismiss it; closeOnOutsideClick defaults to true. Controlled open/onOpenChange and initialFocusRef match Dialog.",
       "Drawer inherits getFallbackFocus from Dialog. Use it when saving or deleting can remove the opening row from a collection.",
       "side is logical start/end or physical top/bottom. size sets 20/26/34rem for sm/md/lg, capped to the viewport. Vertical drawers occupy the viewport height; horizontal drawers occupy its width. Entry motion respects reduced motion; closing is immediate.",
@@ -1084,6 +1574,7 @@
     "code": "<Sheet title=\"Project settings\" trigger={props => <Button {...props}>Open settings</Button>}>\n  <Field label=\"Project name\">{control => <Input {...control} defaultValue=\"Flood\" />}</Field>\n</Sheet>",
     "imports": ["Sheet", "Button", "Field", "Input"],
     "notes": [
+      "When switching the same short task between Drawer and Sheet, share the draft, wording and actions. Keep the state in the host and verify both dismissal and focus restoration at each supported width.",
       "Sheet shares Drawer's modal semantics, dismissal, focus restoration, scrollable body and optional footer. Its scrollbar fits in the panel padding. Placement is always bottom.",
       "The panel grows with content up to its size limit. Keep actions that must remain visible in the footer and use ListBox for selectable options.",
       "Use a sheet for touch navigation or short choices that benefit from a wider target. Anchored popovers and selects remain useful on desktop. Available in 0.2.12."
@@ -1116,6 +1607,7 @@
     "notes": [
       "The host owns items and removes them onDismiss. IDs must be unique/nonempty. limit controls visible items; queued timers start only when visible. Ordinary messages default to five seconds; error/action messages persist unless duration is explicit. duration=0 persists.",
       "Timers pause on hover, focus and hidden documents. F8 focuses the first visible region without interrupting initial task focus; hotkey=false disables it. Use a single main region per document. Localize label/closeLabel and message/action text. Error messages announce as alerts; others use polite status.",
+      "The stack uses an overlay scrollbar when displayed messages exceed its height. Focusing a dismissal or recovery action reveals it within the stack.",
       "placement is logical start/end. inline embeds the region in a host container; fixed mode uses ordinary document stacking, so place a contextual region inside a modal if needed. Action callbacks do not dismiss automatically. No global notification store or promise API. Available in 0.2.5."
     ]
   },
@@ -1123,28 +1615,119 @@
     "slug": "avatar-group",
     "name": "AvatarGroup",
     "group": "content",
-    "description": "A compact collection of avatars with an accessible overflow count.",
+    "description": "A compact collection of avatars with a count or an optional list of additional people.",
     "code": "<AvatarGroup label=\"Project collaborators\" items={[{id:\"alex\",name:\"Alex Morgan\"},{id:\"sam\",name:\"Sam Lee\"},{id:\"june\",name:\"June Park\"}]} max={2} />",
     "imports": [
       "AvatarGroup"
     ],
     "notes": [
       "The native list composes Flood Avatar. IDs and names must be nonempty and unique IDs remain stable. max is a positive integer; the default shows four people.",
-      "Overflow is a static count, not a hidden interactive menu. Translate overflowLabel when needed; visible avatars retain their individual accessible names. Size follows Avatar. Intentional overlap never applies to interactive targets.",
+      "The default overflow is a static count. Use overflowPresentation=\"popover\" when readers need the remaining names. Translate overflowLabel and overflowTitle as needed.",
+      "Visible avatars retain their accessible names. The popover shows only the additional people and uses ScrollArea when the list grows. The button has clearance from the overlapping avatar row.",
+      "Supply presence on individual items when known. Visible avatars separate to give each presence mark clearance. Additional names in the popover retain their presence.",
+      "Use spacing=\"separated\" to give each face its own space even without presence. The default auto layout overlaps avatars unless a visible presence mark needs clearance.",
+      "Use layout=\"fit\" in a bounded toolbar, table cell or summary where the group should use one line. It shows as many faces as fit up to max, and the same overflow disclosure accounts for hidden faces. The default wrap layout shows up to max faces across lines.",
       "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
+    ]
+  },
+  {
+    "slug": "author-meta",
+    "name": "AuthorMeta",
+    "group": "content",
+    "description": "An avatar, a person’s name and optional secondary information on one shared axis.",
+    "code": "<AuthorMeta name=\"Maya Chen\" metadata={<Timestamp dateTime=\"2026-11-14\">14 Nov</Timestamp>} />",
+    "imports": ["AuthorMeta", "Timestamp"],
+    "notes": [
+      "Use AuthorMeta for attribution in comments, activity entries and compact contributor rows. Use Avatar alone for an image-only person reference.",
+      "The avatar is decorative because the adjacent name identifies the person. Supply Timestamp for a date or concise text for a role. Optional presence adds an availability mark and its accessible label.",
+      "Use metadataPlacement=\"inline\" for a short timestamp beside the name. Metadata can wrap onto the next line as space runs out. The default stacks metadata below the name.",
+      "Use nameOverflow=\"truncate\" in a constrained row when the visible prefix still identifies the person. The full name is available on hover and keyboard focus when clipped. Choose one size for peer rows and keep lifecycle states and row actions in their own slots."
+    ]
+  },
+  {
+    "slug": "comment",
+    "name": "Comment",
+    "group": "content",
+    "description": "An attributed message with an avatar, optional timestamp and message actions.",
+    "code": "<Comment author={{name:\"Maya Chen\", metadata:<Timestamp dateTime=\"2026-11-14\">14 Nov</Timestamp>}}>The export is ready for review.</Comment>",
+    "imports": ["Comment", "Timestamp"],
+    "notes": [
+      "Use Comment for an attributed message in a review or conversation. AuthorMeta owns the avatar, name and date. The body and actions share the author text axis.",
+      "Pass the message as children. Use named ghost IconButton or icon-only CopyButton for secondary message actions. They appear on hover or focus without shifting the message and stay visible on touch. Use actionVisibility=always when an action must be discoverable at rest.",
+      "Pass onReply to show the standard reply action, and replyLabel to localize it. The host chooses where to open and focus the editor, and restores focus when cancelling. CommentThread items support the same callback.",
+      "Use CommentThread for related messages and Timeline in activity mode for chronological system events. Keep permissions, reply state and data in the host.",
+      "Use attachments for FileList and reactions for ReactionButton. Reactions share the command row, remain visible when secondary actions are quiet, and belong to this message.",
+      "Pass a ReactionPicker to reactionPicker. Its trigger stays visible next to existing reactions. An empty comment reveals it with the secondary actions."
+    ]
+  },
+  {
+    "slug": "comment-thread",
+    "name": "CommentThread",
+    "group": "content",
+    "description": "A chronological list of related comments with shared spacing and optional dividers.",
+    "code": "<CommentThread aria-label=\"Review comments\" items={[{id:\"one\",author:{name:\"Maya Chen\"},body:\"Please include the original attachment.\"},{id:\"two\",author:{name:\"Sam Rivera\"},body:\"I found the source file.\"}]} />",
+    "imports": ["CommentThread"],
+    "notes": [
+      "Provide stable nonempty IDs that are unique within each sibling list. Pass items in reading order, and name the list using aria-label or aria-labelledby.",
+      "Each item uses Comment for the author, message and independent actions. Pass nested replies under their parent. Depth stays semantic while visual indentation is capped to preserve narrow text widths.",
+      "Spacing separates top-level messages by default. Use dividers only when peers are hard to distinguish, and repliesDisclosure for long branches. Pair with CommentComposer for drafting. The host owns reply targeting, permissions and loading."
+    ]
+  },
+  {
+    "slug": "comment-composer",
+    "name": "CommentComposer",
+    "group": "forms",
+    "description": "A compact comment editor with optional reply context and a cancel command.",
+    "code": "<CommentComposer label=\"Reply\" placeholder=\"Write a reply…\" sendLabel=\"Post reply\" replyContext=\"Replying to Maya Chen\" value=\"\" onValueChange={() => {}} onSend={() => {}} />",
+    "imports": ["CommentComposer"],
+    "notes": [
+      "Use next to a CommentThread for a comment or reply. Supply localized context only when the reply target should be explicit.",
+      "The reply context sits above the input surface in a compact header and describes the editor for assistive technology. The input surface is shared with MessageComposer. The send action defaults to Reply with context and Post otherwise. Localize it with sendLabel. Enter submits and Shift+Enter inserts a line break.",
+      "If replies accept files in a narrow panel, set maxVisibleAttachments to keep the draft close to the visible file tags.",
+      "When cancellation removes the editor, the host should return focus to the initiating action. Preserve the draft on submission failure."
+    ]
+  },
+  {
+    "slug": "reaction-button",
+    "name": "ReactionButton",
+    "group": "actions",
+    "description": "A compact reaction toggle with a count and host-controlled selection.",
+    "code": "<ReactionButton label=\"Helpful\" icon=\"👍\" count={6} pressed={false} />",
+    "imports": ["ReactionButton"],
+    "notes": [
+      "The label names the reaction, pressed identifies the current user's choice and count is the aggregate number of reactions.",
+      "Update pressed and count together after a host decision. The accessible name starts with the reaction label and includes the visible count.",
+      "Use reactions in Comment to keep them visible beside secondary commands. The ghost variant suits a mixed row of small icon actions."
+    ]
+  },
+  {
+    "slug": "reaction-picker",
+    "name": "ReactionPicker",
+    "group": "overlays",
+    "description": "An anchored chooser for adding a reaction from a small set of options.",
+    "code": "<ReactionPicker options={[{id:\"helpful\",label:\"Helpful\",icon:\"👍\"},{id:\"celebrate\",label:\"Celebrate\",icon:\"🙌\"}]} onSelect={id => console.log(id)} />",
+    "imports": ["ReactionPicker"],
+    "notes": [
+      "Supply a small set of distinct, named options. Icons are decorative. Each option needs an accessible label that names the reaction.",
+      "The chooser closes after selection and returns focus to its trigger. Arrow keys move through the option toolbar. Escape dismisses it.",
+      "Pass selected on options already applied by the current user. They remain interactive and use the same accent as a pressed ReactionButton. onSelect receives the ID and requested next selection state.",
+      "Use Comment reactionPicker next to its ReactionButton elements. The host controls reaction data, counts and which options are already applied."
     ]
   },
   {
     "slug": "status-indicator",
     "name": "StatusIndicator",
     "group": "feedback",
-    "description": "A named state with a small decorative indicator, without a badge container.",
+    "description": "A named state with a decorative dot, tinted chip or compact icon.",
     "code": "<StatusIndicator tone=\"success\" label=\"All systems operational\" />",
     "imports": [
       "StatusIndicator"
     ],
     "notes": [
-      "The visible label carries meaning; the dot is decorative and color is never the only signal. Use announce to opt into a polite status live region for changing messages.",
+      "Place the lifecycle state beside the record name or in its own named field or column. Keep it separate from record actions. Use the same presentation and size for peer statuses.",
+      "The label stays on one line and reveals its full text on hover or focus if clipped. Choose a short, meaningful state name for dense rows. Use presentation=\"icon\" with a recognizable state glyph and keep the full label for the tooltip and assistive technology.",
+      "Use presentation=\"wrap\" for a prose-like message that should grow with its content. The dot is decorative. Use announce to opt into a polite live region for changing messages.",
+      "Use presentation=\"chip\" when lifecycle states need a consistent tinted silhouette, such as in a status column or a record header. Choose the same size as peer Badge metadata. Long labels retain single-line truncation and the full-label tooltip.",
       "Static labels do not announce by default. Tone is independent of wording and size. Use Badge for categorical labels and Alert for a message requiring more explanation.",
       "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
     ]
@@ -1181,6 +1764,32 @@
     ]
   },
   {
+    "slug": "reveal-value",
+    "name": "RevealValue",
+    "group": "content",
+    "description": "A masked read-only value with explicit reveal and optional copy actions.",
+    "code": "<RevealValue value=\"flood_demo_3f089bf2\" showLabel=\"Show token\" hideLabel=\"Hide token\" hiddenValueLabel=\"Token hidden\" copyLabel=\"Copy token\" copyable />",
+    "imports": ["RevealValue"],
+    "notes": [
+      "Use for read-only tokens or identifiers that should start visually concealed. The mask has a fixed length and the value enters the rendered text only after reveal.",
+      "Name the show, hide and optional copy actions for their value. Enable copyable only when copying is a supported operation. Copy becomes available when revealed and writes the exact value.",
+      "Use visible and onVisibleChange when the host controls disclosure. Keep authorization and secret retrieval in the host. Use PasswordInput for editable passwords."
+    ]
+  },
+  {
+    "slug": "copyable-value",
+    "name": "CopyableValue",
+    "group": "content",
+    "description": "A visible value with a compact copy action.",
+    "code": "<CopyableValue value=\"https://flood.md/mcp\" copyLabel=\"Copy server URL\" />",
+    "imports": ["CopyableValue"],
+    "notes": [
+      "Use for a visible URL, exact identifier or short value that people need to copy. Name the action for that value and localize copiedLabel and errorLabel when needed.",
+      "Long values wrap by default. Set overflow=\"truncate\" when a recognizable prefix is enough in a dense row. Only clipped values get a tooltip and keyboard stop. The copy action writes the full value in either mode.",
+      "Choose the code appearance for identifiers and short code values. Use CodeSnippet for commands that need a larger reading surface."
+    ]
+  },
+  {
     "slug": "inline-code",
     "name": "InlineCode",
     "group": "typography",
@@ -1207,8 +1816,55 @@
     ],
     "notes": [
       "Native definition-list semantics associate the label with its value, trend and hint. Values may be rich content; the host owns currency, number and locale formatting.",
+      "Keep the metric name short and recognizable at a glance. The label takes one line and reveals its full text on hover or keyboard focus when clipped. Use the unit, trend context or hint for supporting detail.",
+      "Pass unit for a quieter trailing unit on the same baseline, such as ms or GB. Keep prefixes and placement-sensitive symbols in the formatted value.",
+      "Use state=loading for a pending value and state=unavailable for a missing value. Pass value={null} when the application has no accepted value. The label stays visible and a localized loadingLabel or unavailableLabel is available to assistive technology.",
+      "Pass trend.context for the baseline or comparison period that belongs beside the change. It keeps the supporting text neutral even when the change has a semantic tone.",
       "Trend direction and semantic tone are independent: a decreasing failure rate can be good. Its label must communicate the change without relying on the decorative arrow or color. No automatic percentage calculation is performed.",
       "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
+    ]
+  },
+  {
+    "slug": "metric-delta",
+    "name": "MetricDelta",
+    "group": "content",
+    "description": "A compact directional comparison with an optional period or baseline.",
+    "imports": ["MetricDelta"],
+    "code": "<MetricDelta label=\"8% lower\" direction=\"down\" tone=\"success\" context=\"vs last week\" variant=\"chip\" />",
+    "notes": [
+      "Use for a change displayed on its own in a row or table cell. Inside Metric, MetricCard and MetricGroup use the trend object, which renders the same comparison.",
+      "Pass a localized label that says what changed. Direction describes the movement; tone describes its meaning for this measure. A drop in errors can be success.",
+      "Use plain when the value above already owns the emphasis. Use chip when the change needs a tint to stand out among adjacent values. Keep the period outside the tint."
+    ]
+  },
+  {
+    "slug": "metric-card",
+    "name": "MetricCard",
+    "group": "content",
+    "description": "A compact surface for a labeled measure, its comparison and optional history.",
+    "imports": ["MetricCard", "Sparkline"],
+    "code": "<MetricCard metric={{label:\"Monthly revenue\", value:\"$24,580\", trend:{direction:\"up\", label:\"12.8% higher\", context:\"vs last month\", tone:\"success\"}}} chart={<Sparkline label=\"Revenue dipped twice before reaching a six-month high\" values={[19940, 22650, 21180, 23140, 21800, 24580]} />} />",
+    "notes": [
+      "Use for a prominent metric in an overview or dashboard. Metric owns the label, value, unit and comparison. The card uses the existing Surface padding and elevation.",
+      "The label stays visible while the value, comparison and supplied chart render skeletons. Leave chartLoading unset for a shared request. Use chartLoading=true for pending history, including before a chart node exists, or false to keep valid history visible during an independent value request. An unavailable current value can still show available history.",
+      "The default md value is the focal point. Use size sm in dense grids. The comparison period stays secondary and the chart reads after the value.",
+      "The inline layout moves the sparkline below the metric as available width decreases. Use stacked for a wide plot below the value. Omit the chart when there is no meaningful historical series.",
+      "Use a named Sparkline for the same measure. The displayed value, trend baseline and chart interval should agree with the data."
+    ]
+  },
+  {
+    "slug": "metric-group",
+    "name": "MetricGroup",
+    "group": "content",
+    "description": "Related measures with aligned values and an optional shared surface.",
+    "imports": ["MetricGroup"],
+    "code": "<MetricGroup label=\"API performance\" appearance=\"panel\" items={[{id:\"requests\",label:\"Requests\",value:\"1.2M\"},{id:\"latency\",label:\"Response time\",value:186,unit:\"ms\"},{id:\"availability\",label:\"Availability\",value:\"99.98%\"}]} />",
+    "notes": [
+      "Use for related measures users read together. The items use Metric for labels, values, units and comparisons. Labels stay on one line. Use a short name with a recognizable start, and put the scope or period in supporting content. Clipped labels reveal the full name on hover and keyboard focus.",
+      "Use layout=rows in a drawer, sidebar or summary column. Labels share the start edge and values share the end edge. In very narrow containers, each value moves under its own label. Choose the layout independently of appearance.",
+      "Each item can independently be ready, loading or unavailable. Keep real zero values visible and localize state labels when needed.",
+      "Use plain inside an existing section and panel for a shared standalone surface. Set minItemWidth when the localized values or units need more room. Tracks reflow based on available space.",
+      "Choose MetricCard for a measure that needs its own chart and surface. Supply stable item IDs and the group's accessible name."
     ]
   },
   {
@@ -1266,6 +1922,20 @@
       "Pass up to six mutually exclusive categories in display order. Values must be finite and nonnegative. The ring uses their sum as the whole.",
       "Hover, tap or use arrow keys, Home and End to inspect a category. Its name, exact value and share appear inside the ring. Enable showLegend when readers need the category names before interacting.",
       "An empty list displays the empty label. All-zero data displays a total of zero and omits percentages. Supply formatValue and formatShare for localized output."
+    ]
+  },
+  {
+    "slug": "composition-bar",
+    "name": "CompositionBar",
+    "group": "charts",
+    "description": "One proportional bar with visible category amounts, shares or both.",
+    "code": "<CompositionBar label=\"Storage by file type\" items={[\n  {id:\"originals\", label:\"Originals\", value:54},\n  {id:\"exports\", label:\"Exports\", value:24},\n  {id:\"backups\", label:\"Backups\", value:14}\n]} readout=\"both\" formatValue={value => `${value} GB`} />",
+    "imports": ["CompositionBar"],
+    "notes": [
+      "Use in a card or narrow panel to show a few mutually exclusive parts of one whole. Pass up to six finite nonnegative values with stable unique IDs and a meaningful label.",
+      "The bar preserves category order and proportional segment widths. Keep that order consistent across views of the same categories. Use BarChart with layout=\"percent\" to compare several totals.",
+      "Choose inline readouts for short labels or rows for shared numeric alignment. Use value, share or both depending on what readers need. Exact readouts remain visible without pointer or keyboard interaction.",
+      "Zero-valued categories stay in the list without taking bar width. All-zero data shows values and omits shares. An empty list uses emptyLabel."
     ]
   },
   {
@@ -1329,7 +1999,7 @@
     "notes": [
       "Supply a five-number summary for each group. The box spans Q1 to Q3 and the white line marks the median. Supply whiskers and outliers using the same statistical convention across groups.",
       "Use null for a missing summary. Use the same domain across related charts and include all observations, including outliers.",
-      "Hover, tap or use the arrow keys to inspect the summary and outlier count. Use formatAxisValue for shorter ticks when units are already visible. Set --flood-chart-plot-height on a shared parent to align plot heights with Histogram."
+      "Hover, tap or focus the plot to inspect the summary and outlier count, even with one group. Use arrow keys to move between groups and Escape to close the readout. Use formatAxisValue for shorter ticks when units are already visible. Set --flood-chart-plot-height on a shared parent to align plot heights with Histogram."
     ]
   },
   {
@@ -1386,16 +2056,32 @@
     "slug": "timeline",
     "name": "Timeline",
     "group": "content",
-    "description": "An ordered sequence of events with state, context and optional time labels.",
-    "code": "<Timeline label=\"Project activity\" items={[{id:\"created\",title:\"Project created\",state:\"complete\"},{id:\"review\",title:\"Design review\",state:\"current\"},{id:\"release\",title:\"Release\",state:\"upcoming\"}]} />",
+    "description": "An ordered display of recorded activity or progress steps with optional descriptions and times.",
+    "code": "<Timeline label=\"Ticket activity\" mode=\"activity\" items={[{id:\"opened\",title:\"Ticket opened\",description:\"Maya Chen reported an export issue.\",dateTime:\"2026-10-26T09:00:00Z\",timeLabel:\"09:00\"},{id:\"reproduced\",title:\"Issue reproduced\",description:\"Sam Rivera reproduced the failure.\",dateTime:\"2026-10-26T10:30:00Z\",timeLabel:\"10:30\"}]} />",
     "imports": [
       "Timeline"
     ],
     "notes": [
-      "The native ordered list is read in the supplied order; the component does not sort or group events. IDs/titles are nonempty, IDs are unique and at most one event may be current.",
-      "Each state has a visually hidden text equivalent; localize stateLabels. timeLabel is user-facing text and dateTime, when supplied, is the machine-readable time. Both are host-owned.",
-      "Markers and optional artwork are decorative. This is an event display, not a wizard or navigation control. Long descriptions and times wrap without changing marker alignment.",
+      "Use activity mode for chronological records or schedules. Decorative markers retain the shared track, and progress state and stateLabels are ignored.",
+      "Use layout=feed for short summaries with inline times and optional rich content, including FileList and CommentThread. Use layout=schedule when comparing times in a shared leading column. Without times, the schedule drops that column. Connector styles mark the span to the next event.",
+      "Default progress mode gives each step a visually hidden localized state label. At most one step may be current; use Steps when users navigate between stages.",
+      "Supply unique nonempty IDs, nonempty titles and the intended order. timeLabel is user-facing text and dateTime, when supplied, is the machine-readable time. Both are host-owned.",
+      "Markers and optional artwork are decorative. Long descriptions and times wrap without changing marker alignment.",
+      "Use density=compact for short events in a narrow history panel. Use ActivityTimeline when date groups help people scan longer histories.",
       "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
+    ]
+  },
+  {
+    "slug": "activity-timeline",
+    "name": "ActivityTimeline",
+    "group": "content",
+    "description": "A chronological activity feed with labeled periods and rich event details.",
+    "code": "<ActivityTimeline label=\"Export activity\" density=\"compact\" groups={[{id:\"nov-14\",label:\"14 November\",dateTime:\"2026-11-14\",items:[{id:\"created\",title:\"Export created\",timeLabel:\"09:10\",dateTime:\"2026-11-14T09:10:00Z\"}]}]} />",
+    "imports": ["ActivityTimeline"],
+    "notes": [
+      "Use separate date groups for a long history. Supply the display label and optional machine-readable date. The host owns time zones, chronological direction and stable IDs.",
+      "Each group starts its own event track. Empty groups are omitted. Supply emptyContent when the absence of activity needs an explanation.",
+      "Use headingLevel to fit the page outline and density=compact in a constrained panel. Place FileList appearance=embedded or CommentThread in an event's content only when it clarifies that event."
     ]
   },
   {
@@ -1424,8 +2110,20 @@
     ],
     "notes": [
       "Steps renders an ordered list, not tabs. currentValue identifies aria-current=step; preceding steps default to complete and later steps to upcoming. Item status may explicitly mark complete/upcoming/error. Omitted currentValue starts at the first step.",
-      "Without onStepChange, steps are informative content. Providing it renders native step buttons; the host owns navigation and currentValue updates. Disabled items only affect those actions. Every state has text through customizable statusLabels; color and icons are additional cues. Horizontal presentation stacks in narrow viewports.",
+      "Without onStepChange, steps are informative content. Providing it renders native step buttons; the host owns navigation and currentValue updates. Disabled items only affect those actions. Every state has text through customizable statusLabels; color and icons are additional cues. Horizontal steps reflow based on their available width.",
       "Original compatible addition in the unpublished 0.2.5 source candidate."
+    ]
+  },
+  {
+    "slug": "step-progress",
+    "name": "StepProgress",
+    "group": "navigation",
+    "description": "A compact summary of the current stage in a multi-step form.",
+    "code": "<StepProgress title=\"Team access\" step={2} totalSteps={3} />",
+    "imports": ["StepProgress"],
+    "notes": [
+      "Use in a narrow flow that only needs the current step title and position. Use Steps when people need to see or revisit other stages.",
+      "Supply a 1-based step and a positive integer totalSteps. Use formatPosition to localize the visible count. The decorative track shows position in the sequence. The host owns validation and progression."
     ]
   },
   {
@@ -1479,9 +2177,10 @@
       "Text"
     ],
     "notes": [
+      "Use Section for a named content or settings group. Keep peer sections on the same heading scale and body inset, and set the spacing between groups in their parent. Use Fieldset when related controls need an accessible group legend.",
+      "Add a description when it tells the user a condition, consequence or other detail they need. At a narrow width, verify that actions wrap without shrinking the title into unreadable fragments.",
       "Section renders a native section and heading. A generated heading ID labels the region; explicit id creates a deterministic heading ID. headingLevel follows the host document hierarchy.",
       "The title and description share a close text column; actions align separately and wrap when necessary. It adds no surface or border. Compose Surface or another container inside when content needs its own background.",
-      "Original compatible addition in the unpublished 0.2.5 source candidate.",
       "headingLevel chooses h2–h6 for the document outline; it does not set the visual scale. headingSize independently selects the existing Heading typography role (section by default)."
     ]
   },
@@ -1546,6 +2245,8 @@
       "The list owns one Tab stop and aria-activedescendant. Arrows/Home/End move through enabled options; single selection follows navigation. Space/Enter selects or toggles. Typing searches option-label prefixes. Disabled options cannot be selected; readOnly retains navigation and copying without changing the value.",
       "Provide a clear label or use hideLabel with the accessible label preserved. Use disabled on the composite to remove its Tab stop. The list is not virtualized and does not fetch options. Available in 0.2.5.",
       "required validates accepted selection; readonly bypasses validation and disabled excludes form values.",
+      "Use option avatar for people. Mixed rows reserve a shared avatar slot so names and descriptions start on the same axis.",
+      "The surface appearance uses Flood ScrollArea for bounded lists. Use plain when a parent surface already owns scrolling.",
       "description/message and status share the field feedback contract. validationMessage is a host-owned blocking constraint."
     ]
   },
@@ -1562,6 +2263,33 @@
       "One real native input preserves mobile one-time-code autofill, clipboard, selection, forms and required validity; decorative slots are hidden from assistive technology. Use its native ref for focus. The host owns verification and authentication.",
       "length is an integer from 1 to 12. mode numeric permits ASCII digits; alphanumeric also permits ASCII letters. Paste strips separators and invalid characters, then respects the selection and length. Backspace and arrow editing remain native. Use mask to visually conceal the code.",
       "Use value/onValueChange or defaultValue. Native form reset restores the initial uncontrolled value. Pattern validity requires a complete code when nonempty; required also rejects an empty code. Translate label and preserve its accessible name with hideLabel. Available in 0.2.5."
+    ]
+  },
+  {
+    "slug": "rating-value",
+    "name": "RatingValue",
+    "group": "content",
+    "description": "A fractional star rating or compact score for cards, lists and tables.",
+    "code": "<RatingValue value={4.7} count={128} />",
+    "imports": ["RatingValue"],
+    "notes": [
+      "Use RatingValue for an observed score. Use Rating when people can enter their own rating.",
+      "Use stars in spacious cards and compact for dense rows where one star and the numeric scale fit. The optional count is announced together with the score.",
+      "Pass null when no rating exists and use unratedLabel to localize the empty state. Zero is a valid rating. lang formats the visible numbers, and a localized aria-label can describe the score, scale and count."
+    ]
+  },
+  {
+    "slug": "rating-summary",
+    "name": "RatingSummary",
+    "group": "content",
+    "description": "An aggregate star rating and distribution across scores.",
+    "code": "<RatingSummary label=\"Customer ratings\" counts={[2, 0, 4, 20, 102]} />",
+    "imports": ["RatingSummary"],
+    "notes": [
+      "Pass counts for one star through the highest score, in ascending order. A zero preserves the bucket. The weighted average, total and bars derive from those same counts.",
+      "Use for an aggregate in a review panel or drawer. The default auto layout places the overview beside the bars where it fits and stacks them in a narrow column. Use stacked when the host needs one column.",
+      "The distribution reads highest to lowest, with each bar measured against all ratings. All-zero counts show the localized empty state.",
+      "Set lang to format numbers. Use labels to localize the empty text, count, spoken score and bucket names. Use RatingValue for a score alone and Rating to collect feedback."
     ]
   },
   {
@@ -1591,7 +2319,22 @@
     "notes": [
       "The existing FileInput remains the real chooser and successful native form control. Dropping files dispatches the same selection flow: multiple appends and deduplicates; single selection keeps the first dropped file. Native form reset and per-file removal remain intact.",
       "The zone responds only to file drags and prevents navigation on file drop. Disabled fields reject drops. Translate label/description and FileInput action labels. The chooser remains keyboard accessible; dropping is an additional pointer workflow.",
-      "accept guides the native chooser; the host must validate dropped file types, size and contents. Directories, remote transfer, progress, server upload and image processing are outside this control. No file contents are read. Available in 0.2.5."
+      "Use compact density when the field shares a drawer or a small form. Use FileDropTarget when the files belong to an application-owned queue.",
+      "accept guides the native chooser; validate file types, size and contents in the host. No file contents are read. Available in 0.2.5."
+    ]
+  },
+  {
+    "slug": "file-drop-target",
+    "name": "FileDropTarget",
+    "group": "forms",
+    "description": "A keyboard-accessible file picker and drop target for an upload or import queue.",
+    "code": "<FileDropTarget label=\"Import files\" accept=\".csv\" onFilesSelect={addToQueue} />",
+    "imports": ["FileDropTarget"],
+    "notes": [
+      "Choose when the application owns the upload or import queue. Both drop and native pick call onFilesSelect with the newly chosen files. The same file can be chosen again.",
+      "Set multiple=false for a single file. Disabled targets prevent browser navigation on drop and ignore the files. Localize chooseLabel, label and description.",
+      "Use UploadList for actual transfer status and Dropzone when files belong in native FormData. The host owns validation, ordering, duplicate policy and upload.",
+      "accept guides the native chooser and does not validate dropped files."
     ]
   },
   {
@@ -1638,7 +2381,8 @@
       "Use TagInput for values the user may create. Use MultiSelect for a fixed option collection.",
       "Enter and configured delimiters commit trimmed, unique tags. Pasting separated text adds multiple tags. IME composition is preserved.",
       "Each committed tag submits one entry under name. required applies to committed tags; a draft is not a submitted token. Form reset preserves controlled ownership.",
-      "Backspace on an empty draft removes the last token. Read only preserves copying and form values; disabled omits submission and removal. Introduced in 0.2.7."
+      "Use maxVisibleTags to keep a dense field compact. The count reveals the hidden tags for inspection or removal, and the form always submits all committed values.",
+      "Backspace on an empty draft removes the last visible token. Read only preserves inspection and form values; disabled omits submission and removal. Introduced in 0.2.7."
     ]
   },
   {
@@ -1653,8 +2397,36 @@
     "notes": [
       "CommandList invokes actions; Combobox and MultiSelect edit form values. A command list has no submitted name or persistent selected value.",
       "Typing filters labels, descriptions, group names and keywords. Arrow keys, Home/End and Enter navigate and invoke enabled commands. Escape remains available to a host Dialog.",
+      "Use icon for a decorative command glyph and shortcut for a display hint describing a host-registered binding. Mixed rows share their label axis as results are filtered.",
       "Use query/onQueryChange for host ownership or defaultQuery for local filtering. Loading blocks stale invocation and exposes an announcement; the host owns asynchronous work and cancellation.",
       "The ref targets the native search input. Native div props target the wrapper. Translate labels, placeholder, emptyMessage and loadingMessage; hideLabel preserves the search name. No modal, global shortcut or router integration is implied. Introduced in 0.2.7."
+    ]
+  },
+  {
+    "slug": "notification-trigger",
+    "name": "NotificationTrigger",
+    "group": "actions",
+    "description": "An inbox button with a quiet unread marker and an accessible exact count.",
+    "code": "<Popover title=\"Notifications\" chrome=\"title-only\" style={{padding:\"var(--flood-sys-space-3)\"}} trigger={props => <NotificationTrigger {...props} label=\"Notifications\" unreadCount={1} />}><NotificationInbox appearance=\"overlay\" label=\"Recent notifications\" items={[{id:\"mention\",title:\"Maya mentioned you\",href:\"/reviews/48\",unread:true}]} /></Popover>",
+    "imports": ["NotificationTrigger", "NotificationInbox", "Popover"],
+    "notes": [
+      "Place NotificationTrigger among global header actions. Compose it with an overlay trigger or a host-owned onClick. The overlay owns expanded state and focus restoration.",
+      "Supply the host's accepted unread count. A dot appears only above zero and takes no layout space. Use formatUnread to localize the exact count added to the button's name.",
+      "Use NotificationInbox appearance=overlay inside the floating surface for tighter rows and an unread marker beside the title.",
+      "Use a link to navigate to a full-page inbox. Use a separate CountBadge beside a visible label when people need to compare exact counts while scanning."
+    ]
+  },
+  {
+    "slug": "search-trigger",
+    "name": "SearchTrigger",
+    "group": "actions",
+    "description": "A button for opening search, with a compact icon-only option and an optional keyboard hint.",
+    "code": "<CommandPalette title=\"Find a page\" searchLabel=\"Search pages\" items={[{id:\"projects\",label:\"Projects\"}]} onAction={id => {}} trigger={props => <SearchTrigger {...props} label=\"Find a page\" />} />",
+    "imports": ["CommandPalette", "SearchTrigger"],
+    "notes": [
+      "Use SearchTrigger to open search in another surface. Use SearchInput when people can enter a query in place.",
+      "Use iconOnly in a compact toolbar and fullWidth in a wider sidebar. Keep the label meaningful in either layout.",
+      "Supply shortcut and aria-keyshortcuts only when the host has implemented that binding. The keycap is hidden for coarse pointers and icon-only triggers."
     ]
   },
   {
@@ -1665,7 +2437,7 @@
     "code": "<CommandPalette title=\"Go to page\" searchLabel=\"Search pages\" trigger={props => <Button {...props}>Go to page</Button>} items={[{id:\"projects\",label:\"All projects\"}]} onAction={id => console.log(id)} />",
     "imports": ["CommandPalette", "Button"],
     "notes": [
-      "Choose comfortable or compact density. Items can be grouped, described or disabled.",
+      "Choose comfortable or compact density. Items can be grouped, described or disabled and share CommandList's optional icons and shortcut hints.",
       "Opening focuses search. Enter or click runs an enabled action and requests closure. Escape and the close button return focus to the trigger.",
       "Use controlled query and loading for asynchronous search. The application owns requests, navigation and any global shortcut."
     ]
@@ -1745,9 +2517,10 @@
     "description": "A linked validation summary that focuses host-owned invalid fields.",
     "code": "<ErrorSummary title=\"Review the form\" errors={[{id:\"project\",fieldId:\"project\",message:\"Enter a project name.\"}]} />",
     "notes": [
-      "The host supplies errors; ErrorSummary does not infer validation or submit a form. Each entry links to an exact field ID.",
+      "The host supplies validation messages. Keep each field error visible next to its field and link to its exact control ID from errors. Use formErrors for messages with no individual correction target.",
+      "Use appearance=inline inside a panel when the form already has a surface. The compact appearance preserves the same links and announcement behavior.",
       "Normal activation focuses the target while modifier navigation remains native. onSelect can cancel the action before focus moves.",
-      "announcement defaults to off. autoFocus opts into focus on appearance, not on every error update, and suppresses duplicate live announcements. Empty errors render nothing. Introduced in 0.2.7."
+      "announcement defaults to off. autoFocus brings a newly shown summary into view and suppresses duplicate live announcements. Updating messages in an existing summary leaves focus where it is. With no field or form errors, the summary renders nothing. Introduced in 0.2.7."
     ],
     "imports": [
       "ErrorSummary"
@@ -1863,6 +2636,8 @@
       "Uses Flood Link or Button; navigation links remain native anchors with host handlers. Commands and destination clicks do not silently toggle a branch.",
       "disclosure without a destination makes the complete row a disclosure button. href plus disclosure creates separate link and disclosure targets in one shared surface; expanded is controlled by the host.",
       "compact leaf rows retain names through Tooltip. Use NavigationTree for compact branches and link-plus-branch items so the full navigation remains reachable in a Popover.",
+      "Pass compactBadge with count and a localized label to show a passive unread dot on the compact control. Supply an expanded count through trailing where useful.",
+      "Set labelOverflow=truncate for dense rows with recognizable prefixes. The full label opens from the existing link or button only when clipped. The disclosure and sibling actions keep their own targets.",
       "IconSlot owns leading artwork; IconButton keeps the disclosure target with smaller supporting artwork. trailing is noninteractive metadata, not a place to nest another button inside a link.",
       "trailingAction is an independent sibling control in expanded rows. It is visible alongside any trailing metadata. Use a named IconButton and apply its own disabled state.",
       "Original compatible addition in the unpublished 0.2.11 source candidate."
@@ -1902,7 +2677,8 @@
       "Item values must be globally unique and children acyclic. Disabled destinations have no active href; parent disability does not propagate to children. Introduced in 0.2.7.",
       "compact creates an icon rail with real leaf links and full Popover navigation for branches. flyoutSide controls placement; current descendant styling is separate from aria-current. trailing accepts metadata in expanded rows. Compact labels remain accessible and have native title hints.",
       "currentKind defaults to page. Use location when the active value identifies a broader global navigation context rather than the exact current page.",
-      "Enable branchGuides for dense nested lists. Item trailingAction uses the shared NavigationItem slot in expanded rows and on destinations inside branch flyouts."
+      "Enable branchGuides for dense nested lists. Item trailingAction uses the shared NavigationItem slot in expanded rows and on destinations inside branch flyouts.",
+      "labelOverflow is forwarded to destination and disclosure rows, including the expanded navigation inside branch flyouts."
     ]
   },
   {
@@ -1916,6 +2692,19 @@
     ],
     "imports": [
       "ColorSwatch"
+    ]
+  },
+  {
+    "slug": "color-palette",
+    "name": "ColorPalette",
+    "group": "forms",
+    "description": "A compact set of named color choices for one application-owned value.",
+    "code": "<ColorPalette label=\"Accent colors\" options={[{value: \"#ff47a8\", label: \"Pink\"}, {value: \"#78b8ff\", label: \"Blue\"}]} value={accent} onValueChange={setAccent} />",
+    "imports": ["ColorPalette"],
+    "notes": [
+      "Use a palette when the available colors are predetermined. Use labeled appearance when names distinguish colors or clarify their purpose. Every swatch has a name even in the compact appearance.",
+      "The host owns the accepted color. The active option has a perimeter and a pressed state. A color outside the options leaves the group without a pressed choice.",
+      "Inputs are opaque hex colors; callbacks receive normalized six-digit hex. Use ColorPicker for typed or RGB edits and native form submission."
     ]
   },
   {
@@ -1984,7 +2773,9 @@
     "description": "A native list of structured rows with independent links and actions.",
     "code": "<DataList>\n  <DataListItem title=\"Design system\" description=\"Foundations and components\" metadata=\"Updated today\" />\n  <DataListItem title=\"Website\" description=\"Documentation and examples\" metadata=\"Updated yesterday\" />\n</DataList>",
     "notes": [
+      "For authored items, keep the visible author and message together. Keep a row action associated with its record and test long content beside the action. Choose Timeline if sequence is the organizing idea.",
       "This is a ul/li list, not a listbox or data grid.",
+      "A selectable DataListItem reserves a leading checkbox track across its peers. Set reserveSelectionSpace when filtering may temporarily hide them all.",
       "Keep navigation in the title link and actions in their own buttons."
     ],
     "imports": [
@@ -2000,11 +2791,57 @@
     "code": "<DataList>\n  <DataListItem title=\"Design system\" description=\"Foundations and components\" metadata=\"Updated today\" />\n</DataList>",
     "notes": [
       "Render inside DataList or another native list.",
-      "The row is not clickable; supply a Link as title when navigation is needed."
+      "The row is not clickable; supply a Link as title when navigation is needed.",
+      "Pass selection with label, checked, onCheckedChange and optional disabled for host-owned bulk selection. The checkbox is independent from the title link and row actions.",
+      "Place a MetadataList in details for facts that belong with the title. Keep values compared across siblings in trailing metadata.",
+      "In a narrow DataList, default rows with both metadata and actions move that pair beneath the copy, keeping the actions on the trailing edge.",
+      "Use layout=content for comments and feedback with a multiline body. Place the Avatar in media, author in title, and message in description. DataList moves trailing metadata and actions beneath the copy when the list container is narrow."
     ],
     "imports": [
       "DataList",
       "DataListItem"
+    ]
+  },
+  {
+    "slug": "notification-item",
+    "name": "NotificationItem",
+    "group": "content",
+    "description": "A persistent inbox row with independent navigation and read controls.",
+    "code": "<NotificationList label=\"Inbox\"><NotificationItem title=\"Maya mentioned you\" href=\"/reviews/48\" unread timeLabel=\"09:24\" /></NotificationList>",
+    "imports": ["NotificationList", "NotificationItem"],
+    "notes": [
+      "Use for persistent updates that people need to revisit. Supply a concise title, optional secondary context and a host-formatted time.",
+      "In a narrow NotificationList, time and actions move below the copy. The timestamp starts on the title edge and the action stays at the trailing edge.",
+      "At wider widths, time and the read action share the trailing row.",
+      "The title is a native link when href is present. The independent read control appears with onUnreadChange. Host code owns unread state and may update it when the user opens a destination.",
+      "Unread status is also exposed as text for assistive technology. Translate unreadLabel, markReadLabel and markUnreadLabel when needed."
+    ]
+  },
+  {
+    "slug": "notification-inbox",
+    "name": "NotificationInbox",
+    "group": "content",
+    "description": "A persistent inbox with an unread filter and independent read actions.",
+    "code": "<NotificationInbox label=\"Project notifications\" items={[{id:\"mention\",title:\"Maya mentioned you\",href:\"/reviews/48\",unread:true,timeLabel:\"09:24\"}]} />",
+    "imports": ["NotificationInbox"],
+    "notes": [
+      "Use for updates people can revisit. The All and Unread controls filter the supplied items. Use filter and onFilterChange when the host needs to control the choice.",
+      "Read actions request changes via onUnreadChange or onMarkAllRead. The host accepts changes through items. Use markingAllRead while the bulk request runs.",
+      "Use state=loading for the initial load. Match loadingPlaceholder to the row content. Use state=error with onRetry and retrying for a failed load. Keep state=ready during a refresh if previously loaded updates remain usable.",
+      "The list distinguishes an empty inbox from an inbox whose updates have been read. Focus returns to the active filter if a focused row leaves the list."
+    ]
+  },
+  {
+    "slug": "notification-list",
+    "name": "NotificationList",
+    "group": "content",
+    "description": "A named list of persistent notifications with shared media, copy and action tracks.",
+    "code": "<NotificationList label=\"Inbox\"><NotificationItem title=\"Export ready for review\" unread timeLabel=\"09:24\" /><NotificationItem title=\"Settings updated\" timeLabel=\"Yesterday\" /></NotificationList>",
+    "imports": ["NotificationList", "NotificationItem"],
+    "notes": [
+      "Use stable host IDs as keys and a visible or accessible list name. Use a shared density for peer rows. Start with spacing alone and enable dividers if dense rows are hard to distinguish.",
+      "Read and unread rows retain their geometry when mixed, and rows share a text axis even when some omit media. Provide media only when it identifies a person or event.",
+      "Use ToastRegion for transient action feedback and Timeline for chronological history. The inbox holds items a person can revisit."
     ]
   },
   {
@@ -2015,10 +2852,36 @@
     "code": "<CheckCard label=\"Product updates\" description=\"A monthly summary of new features.\" name=\"updates\" value=\"product\" />",
     "notes": [
       "Uses native checkbox semantics, including mixed state, required and form reset.",
+      "Use indicatorPlacement=end when the label or an icon should lead the card. Keep placement consistent inside a group.",
+      "In a narrow card, metadata moves beneath the main copy so labels and descriptions have more room.",
       "Content is noninteractive: do not nest links or actions inside a card label."
     ],
     "imports": [
       "CheckCard"
+    ]
+  },
+  {
+    "slug": "check-card-group",
+    "name": "CheckCardGroup",
+    "group": "forms",
+    "description": "A responsive group of independently selectable cards.",
+    "code": "<CheckCardGroup legend=\"Email subscriptions\" name=\"subscriptions\" defaultValue={[\"security\"]} options={[{value:\"product\",label:\"Product updates\",metadata:\"Monthly\"},{value:\"security\",label:\"Security advisories\",metadata:\"As needed\"}]} />",
+    "imports": ["CheckCardGroup"],
+    "notes": [
+      "Use when selecting several options with details that inform the choice. The host can control the selected values. Native forms submit one value per checked enabled option with the shared name.",
+      "Set minItemWidth for the longest localized card content. The group wraps based on its own width, keeps input order, and inherits Fieldset feedback and disabling. Use indicatorPlacement to place every checkbox at the same logical edge."
+    ]
+  },
+  {
+    "slug": "radio-card-group",
+    "name": "RadioCardGroup",
+    "group": "forms",
+    "description": "A responsive set of cards for choosing exactly one option.",
+    "code": "<RadioCardGroup legend=\"Plan\" name=\"plan\" required defaultValue=\"starter\" options={[{value:\"starter\",label:\"Starter\",description:\"1 project\",metadata:\"Free\"},{value:\"team\",label:\"Team\",description:\"Unlimited projects\",metadata:\"$12 / month\"}]} />",
+    "imports": ["RadioCardGroup"],
+    "notes": [
+      "Use for exclusive choices that need a description, icon or comparison fact. Keyboard navigation, required validation and form reset use native radio semantics.",
+      "Set minItemWidth for the longest localized card content. The grid reflows without changing order or selection. Use Fieldset error for group validation and indicatorPlacement to align all the radio marks."
     ]
   },
   {
@@ -2029,6 +2892,8 @@
     "code": "<Fieldset legend=\"Plan\">\n  <Stack gap=\"2\">\n    <RadioCard name=\"plan\" value=\"starter\" label=\"Starter\" description=\"1 project, up to 3 members\" metadata=\"Free\" defaultChecked />\n    <RadioCard name=\"plan\" value=\"team\" label=\"Team\" description=\"Unlimited projects, up to 25 members\" metadata=\"$12 / month\" />\n  </Stack>\n</Fieldset>",
     "notes": [
       "Group choices in a Fieldset and give them the same name.",
+      "Use the metadata slot for a short fact that helps compare choices. It moves beneath the description on narrow cards.",
+      "Use indicatorPlacement=end to let copy or an icon lead the card. The radio mark follows the logical end in both writing directions.",
       "Native arrow-key behavior, forms and reset remain available. Apply readOnly consistently to the whole group."
     ],
     "imports": [
@@ -2045,6 +2910,9 @@
     "code": "<DataTable caption=\"Projects\" selectable pageSize={5}\n  columns={[{id:\"name\",label:\"Project\",sortable:true},{id:\"status\",label:\"Status\"},{id:\"members\",label:\"Members\",numeric:true}]}\n  rows={[{id:\"design\",label:\"Design system\",cells:{name:\"Design system\",status:\"Active\",members:12}}]} />",
     "notes": [
       "Supply the complete collection in client mode. Server mode accepts one page with controlled page and totalRows, and controlled sort when enabled.",
+      "Use paginationMode=cursor for supplied rows without a known total. Pass previous and next targets, pending and an optional known position through cursorPagination. DataTable renders the controls in its existing footer.",
+      "Use state=loading and loadingAppearance=skeleton for initial placeholder rows. Match loadingRowCount to the expected page and use explicit column sizing when tracks must stay fixed across loading.",
+      "Use refreshing with state=ready while the current records remain usable during a background request. A quiet progress cue appears without moving the table or resetting selection. Keep the request and its outcome in the host.",
       "Offer Columns when users need different subsets of fields. Pass its toolbar control into CollectionToolbar.actions alongside search and filters. Reset restores initial visibility and widths.",
       "Opt in to resizable columns and logical start/end pinning for wider tables. Persist width and visibility preferences by column ID.",
       "Keep headers short and use the optional column unit badge for values such as USD or kg. A constrained header remains on one line with its full accessible name.",
@@ -2053,13 +2921,57 @@
       "Use sortValues for rich React cells; missing values sort last in both directions.",
       "Use showResults={false} to omit a redundant result range. Selection feedback and pagination remain, and the footer disappears when it has no other content.",
       "Use showSelection={false} when a floating BulkActionBar displays the selected count. The table retains its accessible selection status.",
+      "Without an external selection counter, use showSelection=\"replace-results\" to swap the visible result range for the selection count in the existing footer slot.",
       "Set column.numeric for comparable amounts and quantities. Header and cells align to the logical end with tabular figures, while explicit align takes precedence. Keep numeric identifiers as text and provide raw sortValues for localized amounts.",
       "For in-place record details, supply row.primaryAction with the identity column, title, optional description and native button props. Pointer activation extends across the row, while keyboard focus lands on the title button. Secondary controls retain their own behavior.",
       "Use toolbar for the heading and filters that share the table surface. Set inset to roomy for a shared outer inset on toolbar, table cells and footer.",
-      "emptyContent renders a host-composed EmptyState/actions only for ready with no visible rows, preserving headers. Loading/error retain their Spinner and Alert/retry owners. Omit it to keep labels.empty. Distinguish an empty collection from no matching results and restore focus when an empty-state action disappears."
+      "emptyContent renders a host-composed EmptyState only for ready with no visible rows. errorContent can supply a host-composed ErrorState for a failed read. Use labels.error for the status announcement and keep the text consistent with the visible title. Spanning states stay visible during horizontal scroll. Restore focus when a state action disappears."
     ],
     "imports": [
       "DataTable"
+    ]
+  },
+  {
+    "slug": "file-name",
+    "name": "FileName",
+    "group": "content",
+    "description": "A readable file name that can keep its extension visible in a narrow row.",
+    "code": "<FileName name=\"Workspace-settings-export-2026-11-15.pdf\" overflow=\"truncate\" />",
+    "imports": ["FileName"],
+    "notes": [
+      "Wrap by default. Use truncate when the prefix and extension identify the file at the available width. The full name is available on hover and keyboard focus when clipped.",
+      "An optional href renders a real link. Use download to pass the original file name to the browser. The wrapper ref always targets a span.",
+      "Use the full names when files share a prefix and differ only in the clipped part. Identical extensions are not a substitute for a distinguishing label."
+    ]
+  },
+  {
+    "slug": "file-thumbnail",
+    "name": "FileThumbnail",
+    "group": "content",
+    "description": "Decorative file artwork in an inline or tile frame with a stable fallback.",
+    "code": "<Inline gap=\"2\"><FileThumbnail src=\"/flood-mark.png\" fit=\"contain\" /><FileName name=\"Flood mark.png\" /></Inline>",
+    "imports": ["FileThumbnail", "FileName", "Inline"],
+    "notes": [
+      "Use inline presentation beside a filename and tile in a gallery or asset card. Keep a common tile ratio for comparable assets.",
+      "A generic file glyph remains visible when the image is missing, pending or unavailable. The reserved frame keeps its dimensions.",
+      "The frame is decorative and adds no focus stop. Render the file identity next to it. FileItem, UploadItem and FileCard use the same underlying component when given a thumbnail URL."
+    ]
+  },
+  {
+    "slug": "file-card",
+    "name": "FileCard",
+    "group": "content",
+    "description": "A visual file gallery card with a stable thumbnail frame, file details and independent actions.",
+    "code": "<Grid minItemWidth=\"14rem\" gap=\"4\"><FileCard name=\"Flood mark.png\" thumbnailSrc=\"/flood-mark.png\" thumbnailFit=\"contain\" href=\"/flood-mark.png\" size={1454337} /><FileCard name=\"Asset usage notes.pdf\" size={27400} /></Grid>",
+    "imports": ["FileCard", "Grid"],
+    "notes": [
+      "Use FileCard in a gallery when a visual thumbnail helps people recognize an asset. Use the same thumbnailRatio across peers and contain when the whole artwork must remain visible.",
+      "Thumbnails are top-aligned by default so wrapping titles and descriptions do not move the artwork. Use thumbnailPlacement=body when the file name should come first.",
+      "Missing, pending and unavailable images keep the same dimensions with a decorative file glyph. The host supplies thumbnail URLs and can use ImagePreview for a full inspection surface.",
+      "Supply onPreview for an inspection action. Set previewPlacement=thumbnail to place the same action in the artwork's top trailing corner. The default places it beside the footer commands. Keep the filename link, download and selection independent.",
+      "FileName preserves the extension when truncating. FileMeta owns the displayed format and size. Supply href for opening the file and downloadHref only for a separate download.",
+      "Pass the page locale through lang or provide formatSize when prerendering, so file sizes use the same formatting in the browser and on the server.",
+      "Pass selection for host-owned multi-selection. The checkbox, filename link and commands stay independent. Card owns the surface and heading level."
     ]
   },
   {
@@ -2070,6 +2982,10 @@
     "code": "<FileList label=\"Attachments\">\n  <FileItem name=\"Brand guidelines.pdf\" size={2400000} mimeType=\"PDF\" />\n</FileList>",
     "notes": [
       "Render inside FileList or another native list.",
+      "Pass thumbnailSrc for decorative artwork with a stable fallback. A caller-supplied thumbnail takes precedence.",
+      "Use nameOverflow=\"truncate\" for dense rows with identifiable file names. FileName preserves the extension and reveals the full name when clipped.",
+      "Set metadataVariant=plain when the containing row already provides a surface. Pass format=null to omit the format when the filename already identifies it.",
+      "Set downloadHref for a separate download action when the filename or preview opens the record. Avoid exposing the same download twice.",
       "No file reading, object URL creation or uploading is performed."
     ],
     "imports": [
@@ -2084,8 +3000,9 @@
     "description": "A named native list of file rows.",
     "code": "<FileList label=\"Attachments\">\n  <FileItem name=\"Brand guidelines.pdf\" size={2400000} mimeType=\"PDF\" />\n  <FileItem name=\"Logo.svg\" size={18400} mimeType=\"SVG\" />\n</FileList>",
     "notes": [
-      "List contents and file identities are host owned. Narrow list containers adapt media, copy and actions without hiding primitive anatomy, including on a wide screen.",
-      "Use stable host IDs for React keys; a name is not a unique file identity."
+      "List contents and file identities are host owned. Narrow lists keep the thumbnail beside the filename and move actions to the row's trailing edge below the content.",
+      "Use stable host IDs for React keys; a name is not a unique file identity.",
+      "Use appearance=embedded in a message or activity entry for compact individual attachments. Use plain inside an existing surface and panel for a standalone group. All appearances preserve the same row behavior."
     ],
     "imports": [
       "FileList",
@@ -2099,8 +3016,12 @@
     "description": "A host-controlled upload row with explicit progress and applicable actions.",
     "code": "<UploadList label=\"Uploads\">\n  <UploadItem name=\"Brand guidelines.pdf\" size={2400000} state=\"uploading\" progress={45} />\n</UploadList>",
     "notes": [
-      "Queued/uploading can expose cancel; error/cancelled can expose retry; settled rows can expose remove.",
-      "Unknown progress is indeterminate. StatusIndicator and Progress remain distinct reused primitives; their row can wrap when the list container is constrained. No network or upload queue is built in."
+      "Queued, uploading, paused and processing can expose cancel. Failed or cancelled rows can expose retry. Settled rows can expose remove. Cancel and retry share a focusable action slot when both callbacks are present.",
+      "Supply onPause and onResume only when the transfer can pause and resume. The shared button keeps focus while changing its action. Known paused progress stays still. Unknown paused progress shows the status alone.",
+      "Use processing after the transfer finishes when scanning or processing is still pending. It has indeterminate progress and does not expose file preview or download.",
+      "A separate downloadHref becomes available when state is success.",
+      "The same nameOverflow option as FileItem controls the file name. The status and progress keep their own row.",
+      "Unknown progress is indeterminate. StatusIndicator and Progress share a line when the track has enough room. The track moves below a long status when space runs out. No network or upload queue is built in."
     ],
     "imports": [
       "UploadList",
@@ -2115,6 +3036,7 @@
     "code": "<UploadList label=\"Uploads\">\n  <UploadItem name=\"Brand guidelines.pdf\" state=\"uploading\" progress={45} />\n  <UploadItem name=\"Logo.svg\" state=\"success\" />\n  <UploadItem name=\"Cover.png\" state=\"error\" error=\"Connection interrupted\" />\n</UploadList>",
     "notes": [
       "Each row has its own state and stable host identity.",
+      "Use appearance=plain inside a drawer or panel that already has its own surface.",
       "Cancellation, retry and removal callbacks are intents for the application."
     ],
     "imports": [
@@ -2123,13 +3045,28 @@
     ]
   },
   {
+    "slug": "upload-queue",
+    "name": "UploadQueue",
+    "group": "feedback",
+    "description": "File intake, transfer states and actions in one scrollable queue.",
+    "code": "<UploadQueue title=\"Uploads\" listLabel=\"Files in queue\" entries={uploads} picker={{label:\"Add files\", onFilesSelect:addFiles}} />",
+    "imports": ["UploadQueue"],
+    "notes": [
+      "Use for a visible queue with a heading and optional file intake. Entries use UploadItem and require a stable host ID even when two files have the same name.",
+      "Keep upload execution, validation, order and status in the host. Row callbacks request changes; the UI reflects the entries the host accepts.",
+      "Only the rows scroll when the list reaches maxListHeight. The heading and picker stay available. Removing a focused command moves focus to the nearest available row action or the picker.",
+      "When the picker is the next useful step, leave the empty list out. Pass emptyContent when users need a distinct empty-state message."
+    ]
+  },
+  {
     "slug": "image-preview",
     "name": "ImagePreview",
     "group": "overlays",
     "description": "A single-image preview in Flood Dialog with loading and failure feedback.",
-    "code": "<ImagePreview title=\"Flood mark\" src=\"/flood-mark.png\" alt=\"Pink Flood mark\"\n  trigger={props => <Button {...props} variant=\"subtle\">Preview image</Button>} />",
+    "code": "<ImagePreview title=\"Flood mark\" src=\"/flood-mark.png\" alt=\"Pink Flood mark\" zoomable\n  trigger={props => <Button {...props} variant=\"subtle\">Preview image</Button>} />",
     "notes": [
       "Loads the image only while its dialog content is mounted.",
+      "The image fits without cropping by default. Enable zoomable when users need to inspect detail at the intrinsic size. The viewport scrolls independently. Localize actualSizeLabel and viewportLabel.",
       "The host owns trusted URLs, object URL lifetime and download permissions."
     ],
     "imports": [
@@ -2138,14 +3075,44 @@
     ]
   },
   {
+    "slug": "image-comparison",
+    "name": "ImageComparison",
+    "group": "content",
+    "description": "Compare two versions of an image in one frame using a draggable divider.",
+    "imports": ["ImageComparison"],
+    "code": "<ImageComparison label=\"Line version, visible percentage\" ratio={2} before={{src:\"/comparison-line.png\",alt:\"Weekly visits with straight line segments\",label:\"Line\"}} after={{src:\"/comparison-area.png\",alt:\"Weekly visits with a smooth area plot\",label:\"Area\"}} />",
+    "notes": [
+      "Use for the same subject rendered in two versions, such as an original screenshot and a proposed revision. Use crops with the same framing and aspect ratio.",
+      "Both versions retain their alternative text. Put brief visible version names in before.label and after.label. Give the slider an accessible label describing the percentage of the before image.",
+      "Drag anywhere in the frame or use the keyboard. Home and End show each version in full. The divider follows the reading direction and the frame retains its dimensions.",
+      "The initial split is 50 percent. Set defaultValue for another starting point, or use value and onValueChange when the host owns the split. fit=contain preserves the whole frame."
+    ]
+  },
+  {
+    "slug": "image-gallery",
+    "name": "ImageGallery",
+    "group": "overlays",
+    "description": "Inspect a set of images in one dialog with a stable preview frame.",
+    "imports": ["Button", "ImageGallery"],
+    "code": "<ImageGallery title=\"Flood assets\" items={[{id:\"mark\",src:\"/flood-mark.png\",alt:\"Pink Flood mark\"},{id:\"charts\",src:\"/charts-share.png\",alt:\"Flood chart examples\"}]} trigger={props => <Button {...props}>View images</Button>} />",
+    "notes": [
+      "Use for related images that someone needs to inspect in sequence. Supply stable IDs, a trusted source and explicit alt text for each item.",
+      "Previous and next cycle through the set. Arrow keys work from gallery navigation and follow reading direction. Focus remains on the navigation control while the active image changes.",
+      "Use navigation=thumbnails when the artwork helps people jump to an image. Pass small thumbnailSrc files separately. Use thumbnailLabel if the image alt text is too long for a short control name. Arrow keys move thumbnail focus; Enter or Space opens it.",
+      "Only the active image is mounted. Loading, failure, fitted and intrinsic-size views reuse ImagePreview anatomy. Switching images resets zoom.",
+      "Use currentId and onCurrentIdChange for a host-controlled image. Default selection falls back to the first available item.",
+      "Localize the navigation labels and getPositionLabel when needed. Position receives a one-based index and the total image count."
+    ]
+  },
+  {
     "slug": "file-meta",
     "name": "FileMeta",
     "group": "content",
-    "description": "A compact combined file-format and byte-size chip.",
+    "description": "Compact file format and size, as a chip or plain secondary text.",
     "code": "<FileMeta format=\"PDF\" size={2400000} />",
     "notes": [
       "The format label is display metadata, not validated MIME detection.",
-      "Size uses SI units; formatSize customizes the text. Missing values do not create empty chip slots. Long metadata may wrap inside its single Badge at enlarged or constrained widths."
+      "Size uses SI units; formatSize customizes the text. Use plain when the surrounding attachment surface already provides separation. Missing values leave no empty slots."
     ],
     "imports": [
       "FileMeta"
@@ -2193,7 +3160,8 @@
     ],
     "notes": [
       "The submitted value is text, not an option ID. Use Combobox for fixed choices.",
-      "Manual suggestions use controlled value and optionsQuery; stale results cannot be chosen. Network ownership remains with the host."
+      "Manual suggestions use controlled value and optionsQuery; stale results cannot be chosen. Network ownership remains with the host.",
+      "Optional avatar data identifies a suggestion while its text label remains the value and accessible name source."
     ]
   },
   {
@@ -2209,6 +3177,7 @@
       "Compose commands rather than links. Higher priority remains visible longer; source order is preserved.",
       "Uses existing Toolbar, Button, IconSlot and Menu; hidden measurements are inert and excluded from the accessibility tree.",
       "shape defaults to pill; rounded restores the field-radius Toolbar shell. Available width excludes Toolbar padding.",
+      "Use morePresentation=auto when shortening the More trigger can keep additional commands directly visible. The label remains when it fits the same commands. Use icon for a consistently icon-led rail. The trigger keeps its accessible moreLabel and keyboard behavior.",
       "containerVariant=\"plain\" delegates a surface-free rail to Toolbar, keeping peer control heights aligned; contained is the default. variant still styles the actions themselves."
     ]
   },
@@ -2221,6 +3190,7 @@
     "notes": [
       "The default is a pill-shaped single row with at most two visible commands. maxVisibleActions accepts 1, 2 or 3; available space can reduce that number further.",
       "Lower-priority commands move to More. selectionLabel, clearLabel and moreLabel support localized content; selectionCount=0 renders nothing.",
+      "The pill hugs the visible controls. Use morePresentation=auto to preserve visible commands under width pressure, or icon for an icon-led rail. The clear action uses a named ghost icon.",
       "pending disables commands and clearing. The host owns selected IDs, accepted updates, confirmation and focus after removal.",
       "The component is inline by default. A floating host supplies bounded viewport positioning, safe-area spacing and scroll clearance. Use a stable width so adaptive measurement does not depend on the currently visible commands.",
       "counter accepts label (default), number or none. Visible counters reserve a stable width across digit changes; counterWidth adapts that reservation to a localized label. Numeric mode retains the complete accessible selectionLabel. Hidden mode removes the slot."
@@ -2290,14 +3260,16 @@
     ],
     "code": "<CollectionToolbar label=\"Project collection\" searchValue=\"\" onSearchValueChange={(search) => console.log(search)}\n  searchLabel=\"Search projects\" appliedFilters={[{id:\"status\",label:\"Status: Active\"}]}\n  onRemoveFilter={(id) => console.log(id)} onClear={() => console.log(\"clear\")} />",
     "notes": [
-      "Composes Fieldset, Field, SearchInput, Inline, Tag, Popover, Button and IconSlot. Uses normal Tab order rather than the action-only Toolbar roving model. No additional material, title or result count is invented.",
+      "Composes Fieldset, Field, SearchInput, Inline, TagGroup, Popover, Button and IconSlot. Uses normal Tab order rather than the action-only Toolbar roving model. No additional material, title or result count is invented.",
+      "Use appliedFilterDisplay.maxVisibleTags when many accepted conditions compete for the query row. Localize moreTagsLabel and fewerTagsLabel in the same object. Expanding the count leaves the accepted query intact.",
       "searchValue and accepted appliedFilters are host-owned. onSearchValueChange, onRemoveFilter and onClear request changes; callbacks do not imply acceptance. Summaries need meaningful labels and unique IDs.",
       "filterContent supplies the existing filter editor, including FilterGroup or a project-specific form. The host retains draft validation, Apply/Cancel, query evaluation, persistence and saved views. filtersOpen/onFiltersOpenChange optionally control the existing Popover; filterPanelRef and filterPanelClassName support real panel focus and sizing.",
       "Clear keeps its space immediately before the right-anchored Filters trigger while inactive. Removing a summary or clearing returns focus to Filters, or Search when no panel exists. Filter disclosure is omitted when no filterContent is supplied.",
       "quickFilters is an optional slot for at most two task-important properties; larger property sets belong inside filterContent. The host owns the threshold and slot behavior. Supply canClear when active state is not represented by searchValue/appliedFilters, such as controls in that slot.",
       "Search, accepted summaries and commands share a responsive row. The actions slot places table commands, such as Columns, next to Filters. Saved-view selectors and save/rename actions stay outside this query row.",
       "Use align=\"end\" when a sibling such as a view selector or status switcher occupies the start of the row. Search, quick filters, summaries and commands form an end-aligned group and wrap in their original order as space runs out.",
-      "controlSize defaults to sm; action/field sizes and chip typography follow the shared family. disabled applies to the complete fieldset, including native quick-filter controls and panel descendants. Labels and summaries remain host-localizable."
+      "Use align=\"split\" when search leads a wide collection and secondary filters and commands form the trailing group. On narrow widths the search takes its own row and the other controls follow in reading order.",
+      "controlSize defaults to sm and sizes the built-in controls. For a compact desktop query row, match host Select controlSize and Button size to that scale explicitly. Choose a larger size when the task and input need it. disabled applies to the complete fieldset, including native quick-filter controls and panel descendants. Labels and summaries remain host-localizable."
     ]
   },
   {
@@ -2333,6 +3305,7 @@
       "Composes NavigationTree, ScrollArea, IconButton, Stack and Text. Host controls height; header/footer remain fixed while the navigation body scrolls with reserved scrollbar clearance.",
       "collapsed/defaultCollapsed/onCollapsedChange control the full-width versus compact rail. Controlled refusals preserve accepted geometry. side supports logical start/end; width affects expanded mode only. collapsible=false omits the toggle.",
       "groups need unique IDs and globally unique item values. Destinations retain real links; expansion and currentValue are independent. Disabled items cannot navigate or open a branch.",
+      "Expanded destinations default to labelOverflow=truncate and reveal clipped names from the existing links or buttons. Set labelOverflow=wrap where labels need to remain fully visible.",
       "expandedValues/defaultExpandedValues/onExpandedValuesChange retain branch disclosure across width changes. In compact mode a top-level branch opens a Popover with full navigation; choosing a destination closes that flyout. No route is inferred or persisted.",
       "header/footer accept content or a ({collapsed}) render function. Adapt meaningful content using that state, rather than hiding arbitrary descendants with CSS. The host owns workspace/account menus and their actions.",
       "The inline headerLayout puts the expanded identity and toggle on one row. The stacked default keeps the toggle in its original place across states. Enable branchGuides per group for dense nesting.",

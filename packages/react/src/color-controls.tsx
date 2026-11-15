@@ -1,5 +1,5 @@
 import {forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState} from "react";
-import {Input, Label, Slider, type ColorPickerProps, type ColorSwatchProps} from "./index.js";
+import {Button, ColorPalette, ColorSwatch, Inline, Input, Label, Slider, type ColorPaletteProps, type ColorPickerProps, type ColorSwatchProps} from "./index.js";
 
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 /** The first color contract deliberately accepts only opaque RGB hex values. */
@@ -24,6 +24,28 @@ export const ColorPreview = /* @__PURE__ */ forwardRef<HTMLSpanElement, ColorSwa
   return <span {...props} ref={ref} role="img" aria-label={label}
     className={cx("flood-color-swatch", `flood-color-swatch--${size}`, className)}
     style={{...style, backgroundColor:color}} />;
+});
+
+export const PaletteChoices = /* @__PURE__ */ forwardRef<HTMLDivElement, ColorPaletteProps>(function PaletteChoices({
+  label, options, value, onValueChange, appearance, disabled, readOnly, className, ...props
+}, ref) {
+  const selected = value ? checkedColor(value) : "";
+  const entries = options.map(option => ({...option, value: checkedColor(option.value)}));
+  if (!label.trim() || entries.some(option => !option.label.trim()) ||
+      new Set(entries.map(option => option.value)).size !== entries.length) {
+    throw new Error("Flood ColorPalette requires a name and uniquely colored, named options");
+  }
+  return <Inline {...props} ref={ref} role="group" aria-label={label} gap="1"
+    className={cx("flood-color-palette", className)} data-appearance={appearance} data-readonly={readOnly || undefined}>
+    {entries.map(option => <Button key={option.value} size="sm" variant="ghost" className="flood-color-palette__choice"
+      aria-label={option.label} aria-pressed={selected === option.value} aria-disabled={readOnly || undefined}
+      disabled={disabled || option.disabled} onClick={() => {
+        if (!readOnly) onValueChange(option.value);
+      }}>
+      <ColorSwatch value={option.value} label={option.label} size="sm" aria-hidden="true" />
+      {appearance === "labeled" && option.label}
+    </Button>)}
+  </Inline>;
 });
 
 export const ColorEditor = /* @__PURE__ */ forwardRef<HTMLInputElement, ColorPickerProps>(function ColorEditor({
@@ -90,7 +112,7 @@ export const ColorEditor = /* @__PURE__ */ forwardRef<HTMLInputElement, ColorPic
     <Label id={`${id}-label`} htmlFor={`${id}-hex`} required={required} className={hideLabel ? "flood-visually-hidden" : undefined}>{label}</Label>
     <div className="flood-color-picker__panel">
       <div className="flood-color-picker__value">
-        {current ? <ColorPreview value={current} label={current} size="lg" /> : <span className="flood-color-picker__empty" aria-hidden="true" />}
+        {current ? <ColorSwatch value={current} label={current} size="lg" /> : <span className="flood-color-picker__empty" aria-hidden="true" />}
         <div className="flood-color-picker__hex">
           <Label htmlFor={`${id}-hex`}>{hexLabel}</Label>
           <Input ref={input} id={`${id}-hex`} form={form} value={draft} data-accepted-value={current}
@@ -110,17 +132,14 @@ export const ColorEditor = /* @__PURE__ */ forwardRef<HTMLInputElement, ColorPic
       </div>
       <div className="flood-color-picker__channels">
         {channelLabels.map((channel, index) => <Slider key={index} label={channel}
-          min={0} max={255} step={1} value={[channels[index]]} controlSize="sm" disabled={disabled} readOnly={readOnly}
+          min={0} max={255} step={1} value={[channels[index]]} controlSize="sm" valuePlacement="inline" disabled={disabled} readOnly={readOnly}
           form={form} onValueChange={next => {
             const numbers = channels.map((number, position) => position === index ? next[0] : number);
             commit(`#${numbers.map(number => number.toString(16).padStart(2, "0")).join("")}`);
           }} />)}
       </div>
-      {choices.length > 0 && <div className="flood-color-picker__presets" role="group" aria-label={presetsLabel}>
-        {choices.map(color => <button key={color} type="button" className="flood-color-picker__preset"
-          aria-label={color} aria-pressed={current === color} aria-disabled={readOnly || undefined} disabled={disabled}
-          onClick={() => commit(color)}><ColorPreview value={color} label={color} size="sm" aria-hidden="true" /></button>)}
-      </div>}
+      {choices.length > 0 && <ColorPalette label={presetsLabel} options={choices.map(color => ({value:color, label:color}))}
+        value={current} disabled={disabled} readOnly={readOnly} onValueChange={commit} />}
     </div>
     {name && <input type="hidden" name={name} form={form} value={invalidDraft && !readOnly ? "" : current} disabled={disabled} />}
     {showError && message && <span id={`${id}-error`} className="flood-error" role="alert">{message}</span>}

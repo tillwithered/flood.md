@@ -6,14 +6,286 @@ HTML semantics and refs, no third-party component library or Tailwind dependency
 Named imports support tree shaking in optimizing ES-module bundlers. Import the
 shared stylesheet explicitly; styles are not split by component.
 
+Use `RatingSummary` to present a weighted score and its distribution together.
+Pass counts in ascending order from one star through the highest score. The
+summary stacks in a narrow surface. The host supplies the review data.
+
+Use `ImageComparison` to inspect two aligned images in the same frame. Supply
+matching crops, alternative text and short version labels. The divider can
+move with a pointer or keyboard. Use `value` and `onValueChange` when the host
+owns the visible percentage of the original image.
+
+Use `ImageGallery` for a set of images inspected in one dialog. It shares the
+fitted and intrinsic-size views of `ImagePreview`, loads the active source on
+demand and cycles through items by stable ID.
+Set `navigation="thumbnails"` and provide a small `thumbnailSrc` per item for
+direct selection in a horizontal rail.
+
+Use `RevealValue` for a read-only value that starts visually concealed. Name
+the reveal action and enable the optional clipboard action when needed. Keep
+authorization and retrieval in the host.
+
+Use `AuthorMeta metadataPlacement="inline"` for a short date beside a name.
+Use `nameOverflow="truncate"` in a narrow row with a recognizable name prefix.
+Clipped names are available on hover and keyboard focus. Use
+`AvatarGroup spacing="separated"` to keep each face distinct in a group.
+Use `layout="fit"` in a width-constrained row to keep the avatars and overflow
+on a single line. Pair it with `overflowPresentation="popover"` when readers
+need to see the remaining people.
+
+In a person `Combobox`, pass `avatar` on the options. The input keeps one
+leading slot for the committed avatar or the search glyph during editing.
+For a visible selection list, `ListBox` accepts the same option avatars.
+Its surface appearance uses Flood overlay scrolling without a layout gutter.
+
+Use `SearchTrigger` to open a CommandPalette from a toolbar or sidebar.
+`iconOnly` preserves the accessible action name in tight layouts. Supply
+`shortcut` and `aria-keyshortcuts` after wiring the shortcut in the host.
+Use `KeyboardShortcut` for combinations of keys. Choose `presentation="compact"`
+when the combination shares space with a label or icon. Use `label` to spell
+out platform glyphs for assistive technology.
+Use `Breadcrumb layout="compact"` in a constrained header. It retains the
+first and current pages while a popover keeps earlier destinations reachable.
+
+Use `CountBadge` for passive counts. Its visual cap preserves the exact
+accessible value. Compact navigation can show a dot with a localized count
+through `NavigationItem compactBadge`.
+Use `NotificationTrigger` as the header action for an inbox overlay. Pass the
+accepted unread count from the host and use `formatUnread` for localized speech.
+
+Use `DataListItem selection` when a list supports a bulk action. The host owns
+the checked IDs, and peers share a leading checkbox track. Set
+`DataList reserveSelectionSpace` when the track should survive filtering.
+Use `Card selection` for a record in a selectable gallery. The Card uses the
+same named checkbox behavior as DataListItem. The checkbox stays at the top
+trailing edge while wide header actions can reflow below the introduction. Match `footerDivider` in a
+CardSkeleton when using a footer separated by spacing alone.
+
+Use `TableSkeleton` for a plain table's first load. Match the real headers,
+column widths and density. For `DataTable`, use `loadingAppearance="skeleton"`
+and set `placeholderLines: 2` on columns that show secondary text.
+
+Use `FileName` for a file name in a cell or link. Choose `nameOverflow="truncate"`
+on `FileItem` or `UploadItem` when the visible prefix and extension can identify
+the file. The full name remains available on hover and keyboard focus.
+Use `UploadItem` with host-owned transfer and processing states. Add
+`onPause` and `onResume` for resumable transfers, and preserve the last known
+percentage while paused. Use `processing` when the file has arrived and
+still needs server-side work before it is available.
+Use `FileItem downloadHref` for a separate download beside a preview or
+filename link. `UploadItem` offers it after a successful upload. The action
+uses `IconLink`, a named native anchor with `IconButton` geometry.
+Use `ImagePreview zoomable` when people need to inspect an image at its
+intrinsic size. It opens fitted and scrolls the image independently in actual
+size mode.
+Use `FileCard` in a file gallery when a thumbnail helps identify the asset.
+Give peer cards the same `thumbnailRatio`. File details and selection use the
+same contracts as FileName, FileMeta and Card.
+FileCard uses the top `Card media` slot by default. Set
+`thumbnailPlacement="body"` for filename-first layouts. When a Card has a
+top image, set the same `mediaRatio` on its CardSkeleton.
+Set `previewPlacement="thumbnail"` to place `onPreview` over the artwork.
+Use a host-controlled ImagePreview or ImageGallery for inspection.
+Use `FileThumbnail` for a decorative image beside a filename or in a gallery
+tile. FileItem, UploadItem and FileCard accept `thumbnailSrc` and share its
+stable fallback.
+Use `FileList appearance="plain"` inside a Drawer or another surface that
+already groups its files. Inside a compact attachment, `metadataVariant="plain"`
+keeps the file size readable without a second fill. Pass `format={null}` when
+the filename itself gives sufficient format information.
+
+Use `NoResults` when search or filters exclude every record. Keep the controls
+available and pass a reset focus ref when reset replaces the empty view.
+Use `EmptyState` when the collection itself has no records.
+
+Use `CapacityMeter` for usage against a fixed quota. It keeps the actual amount
+visible after the fill reaches capacity. Use `Meter reference` to mark a named
+point on the same scale as a bounded measurement.
+
+Use `CompositionBar` to show parts of one total in a compact horizontal track
+with visible category values or shares.
+Use `MetricGroup` for related metrics that share a value axis. Its responsive
+grid aligns values and keeps labels on one line. Clipped labels disclose
+the full text on hover or keyboard focus. Set `layout="rows"` in a narrow summary column to align labels
+and values to opposite edges. In a very narrow container, each value stacks
+under its own label. Both layouts support the shared panel surface.
+
+Use `Timestamp` for date and time metadata in lists, comments and records.
+Pass a civil date or a zoned ISO instant for formatting, or provide your own
+text as children. Specify `relativeTo` when displaying elapsed time.
+
+Use `Avatar` with `presence` to show availability beside a person’s photo or
+initials. Supply a localized label and keep the same presence when the person
+appears in an `AuthorMeta` row or `AvatarGroup`. Use visible status text when
+people need the state to decide what to do.
+
+Use `ColorPalette` for predefined choices and `ColorPicker` to edit an
+arbitrary opaque RGB color or submit it with a form. The picker uses the
+shared palette and inline Slider readouts for RGB values.
+
+Use `RatingValue` for a stored rating, with fractional stars in cards or
+`appearance="compact"` in dense rows. Pass `null` when the rating is absent.
+Use `Rating` to collect a new whole-star response.
+
+Use `HelpTip` in `Field labelAside` for brief definitions or examples people
+can open with a tap, click or keyboard. Keep instructions needed to complete
+the field in its visible hint.
+
+Use `FileTrigger` to hand new browser picks to an attachment queue or import
+action. Use `FileInput` when the selected files belong in native FormData.
+Add drag and drop with `FileDropTarget` for a host-owned queue, or `Dropzone`
+when the files belong to the form. Queue entries and transfer states can use
+`UploadList`. Validate files received from either input path in the host.
+Use `UploadQueue` when the heading, file intake and scrolling transfer list
+belong to one region. Supply stable entry IDs and host-owned states. Use
+`maxListHeight` to limit the rows to the available space below the picker.
+`AvatarPicker` shows a stored photo or a local File preview and gives the host
+choose, replace and remove callbacks. The host validates and saves the image.
+
+Give Combobox or MultiSelect options an `avatar` for people and teams. Their
+selected value or Tag carries that same artwork. Keep the full name in the
+option's `label`. Use a Tag's `avatar` prop for the same compact treatment
+outside a selection control.
+
+Use `SplitButton` for a default action with related alternatives, such as
+exporting a PDF with CSV and JSON available in a connected menu. Pass native
+props for the default action through `primaryButtonProps` and handle menu
+commands with `onAction`. Name both the group and the menu with localized text.
+
+Place `FormActions` at the end of a native form. Supply buttons with
+their own submit or reset types. Use `SaveStatus` for compact feedback
+from the host save state, and keep field errors next to their controls.
+Use `NumberRangeField` for exact lower and upper bounds. It submits two
+independently named `NumberInput` values. The host validates their relationship
+and can pass one shared `error`. Use `NumberInput appearance="plain"` when a
+single numeric value needs more room and visible step buttons add little.
+Use `Steps` to show the sequence, and `StepProgress` to show the current
+stage and position in a narrow form. The host owns validation and navigation.
+Use `SettingGroup` for rows with independent actions or row-layout switches.
+Use `Field layout="adaptive"` for a labeled editable value in the same group.
+The hint stays with its label and validation feedback stays with the control.
+Use `RadioCard` and `CheckCard` for choices with supporting details. Their
+metadata moves beneath the description in a narrow card.
+`SettingRow` can show the current value beside its action, with adaptive
+wrapping that gives the label room on narrow panels.
+Use `valueOverflow="truncate"` for a short-identifiable plain value in a dense
+row. `TruncatedText` keeps one line and discloses the full text on hover or
+focus only when it clips.
+Use `CopyableValue` for a visible URL or identifier with a compact, named copy
+action. Long values wrap and the copy action remains adjacent.
+Use `ExpandableText` for optional plain-text excerpts in cards and comments.
+It shows a toggle when the passage exceeds its line limit at the rendered
+width. Set `lines` to a positive integer, or use the three-line default.
+Localize `moreLabel` and `lessLabel`. Use `expanded` and `onExpandedChange`
+for host-owned state. The full text stays in the same paragraph throughout;
+use Collapsible for mixed content that includes links or controls.
+Use `maxVisibleTags` on MultiSelect and TagInput when a control needs a
+compact summary. The count expands the remaining tags. All accepted values
+stay in the field's description and form data.
+
+Use `ListSkeleton` for the initial load of a DataList. Match the list's
+density, media, descriptions, metadata and dividers, and supply a localized
+loading label. DataTable can use `loadingAppearance="skeleton"` to place
+decorative rows inside the existing table.
+Use `CardSkeleton` for the initial load of a Card with a short text body. Match
+the card's density, elevation, optional slots and expected body line count.
+Give a group of loading cards one localized status message.
+DataTable defaults to a spinner. Use
+`refreshing` during a background request while the current rows stay usable.
+Use `EmptyState` for missing content and `ErrorState` when a request failed.
+Both support inline layouts for panels. Pass `onRetry` and `retrying` to
+`ErrorState` when the host can recover the content.
+
 Sheet is a bottom-aligned Drawer for short tasks, navigation and touch-friendly
 choices. It fits short content, caps long content to the viewport, and keeps
 Drawer dismissal, focus restoration, body scrolling and the optional footer.
+
+Use `ActivityTimeline` to group a longer history into named periods. Give
+each group a stable ID, display label and optional machine-readable date.
+Choose `headingLevel` for the surrounding document and `density="compact"`
+in a narrow panel. Pass `emptyContent` when an empty history needs a message.
+
+Timeline supports `mode="activity"` for recorded events without progress
+markers or step announcements. Its default `mode="progress"` still supplies
+complete, current and upcoming states. The host supplies ordered events and
+formatted times.
+Use `ValueChange` for a previous and current value. Omit the absent side
+for an addition or removal. Use `ChangeList` for named changes from one
+event and compose it in the Timeline content slot or a detail panel.
+Use `layout="adaptive"` to show the arrow on wide rows and label each side
+when the comparison is narrow. The same treatment is available through
+`ChangeList valueLayout="adaptive"`.
+In activity mode, `layout="feed"` puts time beside the event heading, while
+`layout="schedule"` gives times a shared leading track when supplied. Optional item content
+can compose file rows, threads or contextual messages on the same timeline.
+Use `FileList appearance="embedded"` for small attachments in a message or
+event. `Alert appearance="inline"` presents a short caution within its context.
+The default presentations support standalone lists and banners.
 
 SegmentedControl options can display a `count` alongside the label, for example
 `{value: "pending", label: "Pending", count: 2}`. Use this for a small, mutually
 exclusive choice that updates one collection. The count is read with the visible
 label and does not change the submitted value.
+
+StatusIndicator labels stay on one line and show a tooltip when clipped. Use
+`presentation="icon"` with a recognizable `icon` in a compact status column.
+Use `presentation="chip"` for a tinted state at the same scale as nearby badges.
+Use `presentation="wrap"` for longer messages. DataTable columns can opt plain
+text cells into the same single-line behavior with `cellOverflow: "truncate"`.
+
+`AuthorMeta` combines a person's avatar, name and optional role or timestamp.
+`MetadataList` groups short supporting facts such as dates, teams and counts.
+Use it in the `details` slot of DataListItem when the facts belong with its
+title and description. Use `metadata` for a trailing value compared across rows.
+`Comment` composes that attribution with a message and optional actions. Pass
+machine-readable dates with a native `time` element. Thread state and actions
+belong to the host.
+Use `CommentThread` for an ordered group of related messages with optional
+dividers and nested replies. Give long reply branches a localized
+`repliesDisclosure.label`. Use `CommentComposer` for a compact controlled
+draft next to the thread. It uses `MessageComposer` with compact comment
+defaults. Both accept `replyContext` for a specific recipient. It sits in a
+small header above the input surface and is read as its description. The comment send action
+defaults to Reply with context and Post otherwise. Localize it with `sendLabel`.
+In a constrained composer, set `maxVisibleAttachments` to collapse a long file
+list behind a count. Collapsed files remain attached. Localize the accessible
+list and disclosure with `attachmentsLabel`, `moreAttachmentsLabel` and
+`fewerAttachmentsLabel`.
+Comments reveal secondary action slots on hover and focus with a
+fine pointer and keep them visible on touch. Use `actionVisibility="always"`
+for actions that should be visible at rest.
+Pass `onReply` to a Comment or CommentThread item for the shared reply
+action. The host opens the editor and manages focus when it closes.
+CommentThread and NotificationList use spacing between items by default.
+Enable `dividers` when dense adjacent items need a clearer boundary.
+Put attachments and reactions in their respective Comment slots. Reactions
+stay visible beside copy and other commands in one row. `ReactionButton`
+uses Toggle semantics and takes its count and pressed state from the host.
+`ReactionPicker` presents a short list of named choices and restores focus
+after selection. Pass it to Comment's `reactionPicker` slot so it stays
+visible with existing reactions and appears with the actions on an empty row.
+Pass `selected` for a reaction already applied by the current user.
+`onSelect(id, selected)` supplies the requested next state.
+
+`NotificationList` groups persistent inbox updates. Narrow lists give the title
+and description their own row, then align time and actions below.
+`NotificationItem` aligns
+unread markers and optional media across rows. The title can be a native
+destination link, while the optional read control uses a separate host callback.
+Use `NotificationInbox` for All and Unread views of a supplied collection.
+The host accepts read changes by updating `items`. Use `markingAllRead` to keep
+the bulk action focused during a request. A focused row that disappears
+returns focus to the current filter.
+During the first request, use `state="loading"` and match
+`loadingPlaceholder` to expected row anatomy. An error can expose `onRetry`;
+set `retrying` to keep that action focused until the request finishes.
+
+Settings can use `Fieldset layout="aligned"` for direct Field children and
+`Switch layout="row"` for a trailing switch. `Switch description` is read
+separately from its name. Use `SettingRow` when the setting has an independent
+command or a link into details. `SwitchGroup` aligns row switches inside a
+native fieldset with shared disabled state. A read-only Switch stays focusable
+and retains its checked value in form data.
 
 Version 0.2.12 adds opt-in DataTable column visibility. Set
 `showColumnVisibility` for the Columns menu, and supply `hiddenColumnIds` and
@@ -57,7 +329,7 @@ the interactive size. It defaults to size; shrinking a supporting glyph must
 not shrink its target or bypass IconSlot with a custom SVG width. Existing glyph
 roles at a 16px root are 2xs=14px, xs/sm=16px and md/lg=20px.
 
-This package documents the **0.2.13** source API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.14** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
 NavigationItem (0.2.11 candidate) is the shared small row for destinations,
@@ -75,6 +347,10 @@ Raw compact NavigationItem cannot combine a separate primary destination/action
 and disclosure: use the NavigationTree branch composition, which retains the
 parent destination alongside children in its flyout. trailing is noninteractive
 metadata; independent controls belong in their own sibling action anatomy.
+Set `labelOverflow="truncate"` on NavigationItem or NavigationTree for
+single-line labels that reveal the full name from the existing link or button.
+Sidebar uses that presentation by default. Set `labelOverflow="wrap"` where
+labels need to stay fully readable at rest.
 
 NavigationGroup (0.2.11 candidate) composes related children with optional label,
 hideLabel, headingAction and separator. collapsible uses the existing Collapsible;
@@ -732,6 +1008,18 @@ siblingCount 0/1/2 gives at most 5/7/9 numeric/ellipsis slots plus Previous/Next
 independent of pageCount magnitude. Ellipses are decorative. controlSize matches
 field sizes; wrapping prevents narrow-width overflow and touch controls retain
 44px targets. label, previousLabel, nextLabel and pageLabel localize naming.
+Use presentation="compact" to display the page position between the two arrows
+in a narrow panel. Localize it via positionLabel. DataTable exposes the same
+presentation through paginationPresentation and labels.pagePosition.
+Use `presentation="arrows"` in a narrow footer that already shows a visible
+result range. It keeps the current position available to assistive technology.
+
+Use `CursorPagination` when the service provides previous and next cursors
+without a total. Supply native `href` targets or `onSelect` callbacks. A missing
+target leaves the arrow disabled. The optional `position` is host-owned and
+can show the loaded range. Keep a callback target present while `pending`
+is set so the initiating button retains focus and blocks repeat requests.
+Use `formatPage` for localized digits, or `labels.pageNumber` on DataTable.
 The native nav ref is HTMLElement. This component does not fetch data or own URLs.
 
 ```tsx
@@ -780,6 +1068,12 @@ The image overlays the fallback only after successful load; an error retains the
 fallback. A new src remounts the image load state, including returning to an earlier
 source. The root stays the same size. This API does not upload or crop images.
 
+AvatarGroup shows up to `max` avatars followed by a count. Set
+`overflowPresentation="popover"` to reveal the remaining people in place.
+Use `overflowLabel` for the count's accessible name and `overflowTitle` for
+the list's heading. The popover keeps long names readable and scrolls
+independently when the number of people grows.
+
 ```tsx
 <Badge tone="success">Active</Badge>
 <Spinner label="Loading workspace" />
@@ -808,6 +1102,16 @@ threshold calculation, fetching, timers or task cancellation is built in.
 Reduced motion stops indeterminate movement and value transitions. Forced colors
 preserves the track boundary and fill. Use a host loading message when needed.
 
+Use `layout="inline"` in compact panels and rows. The caption sits beside
+the track while space allows. When the caption would leave too little room
+for the bar, the track moves below it. The default layout is `stacked`.
+
+ProgressRing shares the Progress range and tone contract on a circular track.
+Use it for a single operation in a compact row or card. Label and optional
+localized valueText sit beside the ring and can wrap. With hideLabel, the
+ring retains its accessible name and value text. An indeterminate ring
+shows an arc at rest when motion is reduced.
+
 Alert is an inline message, with optional plain-text title and React children.
 Tones are neutral/info/success/warning/error; info is the default. Meaning must
 remain in the text. Original decorative status glyphs are included; icon accepts
@@ -819,13 +1123,15 @@ announcement defaults to off for static messages. polite uses role=status;
 assertive uses role=alert. Choose urgency deliberately for dynamically inserted
 content. Announcements depend on actual assistive technology; initial static
 markup is not guaranteed to be read aloud. No focus movement, auto-dismiss,
-timeout or built-in close/action button is supplied. Compose named host actions
-inside children when needed. A titleless Alert centers its glyph alongside a
-single Inline row. Subtle and ghost actions inherit the feedback tint on
+timeout or automatic action is supplied. Pass a named host control to `action`
+to keep it separate from message announcements. It sits beside the text when
+there is room and moves below in a narrow alert. Subtle and ghost actions inherit the feedback tint on
 interactive states. Use a floating ToastRegion for brief operation results.
 ToastRegion defaults to `placement="bottom-end"`. Choose `bottom-start`,
 `top-end` or `top-start` for a different logical corner, or `inline` to
 embed it in a layout. New floating cards enter from their placement edge.
+Overflow scrolls within the notification stack using Flood ScrollArea. A focused
+action scrolls into view within the stack.
 
 See the [WAI Meter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/meter/),
 [Alert pattern](https://www.w3.org/WAI/ARIA/apg/patterns/alert/) and
@@ -834,6 +1140,7 @@ See the [WAI Meter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/meter/),
 ```tsx
 <Progress label="Uploading files" value={60} valueText="60%" />
 <Progress label="Preparing workspace" />
+<ProgressRing label="Exporting files" max={10} value={6} valueText="6 of 10 files" />
 <Meter label="Storage used" min={0} max={100} value={75} valueText="75 of 100 GB" />
 <Alert tone="warning" title="Storage is almost full">
   Free some space before your next upload.
@@ -844,19 +1151,38 @@ See the [WAI Meter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/meter/),
 ## DescriptionList and Table · 0.2.4
 
 DescriptionList renders native dl groups, each with dt and dd. items is a readonly
-array of {id, term, description}; IDs must be unique and nonempty, and are React
+array of {id, term, description, action?}; IDs must be unique and nonempty, and are React
 keys rather than DOM anchors. term is text and description is ReactNode, so a
 value can include a Badge, Link or other meaningful content. The host formats
 values and supplies fallback text for missing data. An empty items array stays
 an empty list, without invented placeholder content. Native dl props,
 className/style and HTMLDListElement ref target the list.
 
-layout defaults inline: term and value share a row. It becomes stacked below a
+layout defaults inline: term and value share a row. Use `layout="columns"` to
+retain shared term and value tracks for concise facts in a narrow inspector.
+The default becomes stacked below a
 22rem component container width, independently of viewport width. layout=stacked
 always puts the value below its term. Density defaults compact; comfortable adds
 space between pairs, without inflating the term/value relationship. dividers is
 false by default and adds quiet separators when enabled. This is not an editable
 form and its terms do not label controls; use Field/Fieldset for form inputs.
+Use an item's `action` for a compact utility tied to that value, such as an
+icon-only CopyButton with a specific accessible label. Actions align to the
+trailing edge and can move below their value as space runs out.
+Use an item's `valueOverflow="truncate"` for a plain identifier with a
+recognizable prefix. The entire string remains available via the tooltip
+and to any independent copy action.
+
+Use `layout="grid"` for independent overview facts. It fits columns to the
+container and keeps each value below its own term. Enable dividers to add
+a top rule to each fact. For a prominent measure, Metric accepts `unit` for
+a trailing abbreviation such as `ms` or `GB`. Format prefixes within `value`.
+
+Use `ComparisonTable` for options that share a list of criteria. Pass stable
+option IDs and key each row's cells by those IDs. Numeric criteria use tabular
+figures and end alignment. The first column remains pinned while options scroll.
+Use `unavailableLabel` for localized missing values and pass literal zero for
+a measured zero. `featuredColumnId` adds a visual cue to a named option.
 
 Table wraps an actual HTML table in Flood's horizontal ScrollArea. caption is
 required and must be meaningful; hideCaption visually hides it without removing
@@ -965,6 +1291,8 @@ command ID. A zero count renders nothing. selectionLabel is the complete
 localized count. The pill rail stays in one row, with two visible commands by
 default; maxVisibleActions accepts 1, 2 or 3 and available width can reduce it
 further. Remaining commands use More. pending disables all commands and clearing.
+The visible pill hugs its contents within the space available to the rail.
+Use `morePresentation="icon"` for dense rails and keep `moreLabel` descriptive.
 counter="label" (default) shows the summary, "number" shows only the number with
 the full accessible label, and "none" removes the counter slot. Label/number
 slots reserve 7rem/3rem respectively, bounded on narrow rails, and use tabular
@@ -977,8 +1305,11 @@ floating rail, plus viewport safe-area spacing and measured scroll clearance.
 For table selection, place the rail at the viewport's bottom center. Set
 `showSelection={false}` on DataTable to keep its count available to assistive
 technology while BulkActionBar displays the visible count.
+For tables with their own visible count, `showSelection="replace-results"`
+uses the result range's footer slot while rows are selected.
 
-OverflowActions also accepts leading/trailing slots and maxVisibleActions. Slot
+OverflowActions also accepts leading/trailing slots, maxVisibleActions and the
+same morePresentation option. Slot
 width is reserved before measuring commands; use action owners in those slots
 and retain a stable containing width. Do not add form inputs to the Toolbar.
 
@@ -1066,6 +1397,11 @@ optional description, decorative icon and actions explain absent content; choose
 headingLevel for the host hierarchy. It is static, with no automatic focus or
 announcement. compact/comfortable density controls padding. The host implements
 real actions and decides whether asynchronously changed results need announcing.
+EmptyState and ErrorState share a row layout with trailing actions that wrap
+under the message. DataTable accepts an ErrorState via `errorContent` when a
+failed read needs a custom message or recovery.
+Use LoadingState for a visible initial-loading message that shares those
+layouts. DataTable exposes it through `loadingAppearance="message"`.
 
 Checkbox adds indeterminate for a host-controlled mixed presentation after
 hydration. checked independently determines form submission; mixed does not mean
@@ -1111,6 +1447,14 @@ visible/onVisibleChange or defaultVisible, and localize showPasswordLabel and
 hidePasswordLabel. Revealing retains the value and caret; read-only permits reveal.
 Use autocomplete appropriate to the host form. Both accept accessible names via
 Field, aria-label or aria-labelledby. These controls add no authentication logic.
+
+Use FieldChecklist for conditions evaluated by the host form. It supports
+pending, met and unmet states, with a distinct mark and readable status for
+each requirement. Use PasswordStrength beside a new-password field to show a
+host-provided assessment and optional FieldChecklist. The assessment uses
+Meter with an explicit localized valueText. Omit assessment until a result
+is available. Pass results and requirements to the component while the form
+owns the password, validation and announcements.
 
 
 FileInput (0.2.5) composes a native file input with Flood field geometry,
@@ -1179,11 +1523,16 @@ Keep document hierarchy meaningful when changing visual emphasis.
 
 ## Editable and TagInput · 0.2.7
 
+Use `TagGroup` to show accepted labels or removable tags. The host owns the
+items and applies removal requests by ID. Set `maxVisibleTags` to disclose
+extra tags behind a count. CollectionToolbar exposes the same option through
+`appliedFilterDisplay` for accepted filters.
+
 Editable provides inline single-line editing with a separate draft, save/cancel actions and committed named form values. See [Editable](../../docs/components/editable.md) for controlled ownership and blur behavior. TagInput creates free-form text tokens and submits repeated named values; it is distinct from fixed-option MultiSelect. See [TagInput](../../docs/components/tag-input.md) for delimiters, paste and validation.
 
 Menu adds `MenuCheckboxItem` and `MenuRadioItem`. Both take controlled `checked` and `onCheckedChange`; radio items also require a `group` label and the host enforces one selected value per group. Checkbox `checked` also accepts `"mixed"`. Keep radio groups contiguous. Preferences stay open by default; set `closeOnSelect` to close after activation. Preference changes do not invoke `onAction`. Existing action items retain their behavior.
 
-CommandList (0.2.7) provides grouped command filtering and invocation without a modal or form value. See [CommandList](../../docs/components/command-list.md) for query ownership, keyboard navigation and loading/empty states.
+CommandList (0.2.7) provides grouped command filtering and invocation without a modal or form value. CommandList and CommandPalette share optional item icons and hints for host-registered shortcuts. See [CommandList](../../docs/components/command-list.md) for query ownership, keyboard navigation and loading/empty states.
 
 DateField (0.2.7) edits a Gregorian civil date through native text segments, with ISO canonical values, bounds, explicit segment order and native invalid-draft form handling. It has no operating-system date popup. See [DateField](../../docs/components/date-field.md).
 
@@ -1221,14 +1570,34 @@ when a query changes; ready rows must match pageSize/totalRows. Selection defaul
 to the supplied page in server mode and the full collection in client mode.
 Server selectionScope="dataset" requires controlled selectedIds/onSelectionChange;
 the host validates IDs outside the page. Checkboxes only select the current page.
+DataTable `paginationMode="cursor"` also renders the supplied batch in host
+order. Set `cursorPagination` to put Previous and Next in the same footer.
+An optional `position` shows a known range without requiring a total.
 The host owns request execution and cancellation, remote query selection and
 virtualization. DataTable supports optional column visibility, width preferences,
 logical edge pinning and expandable record details. Use Sparkline for a compact
 trend cell. See [DataTable](../../docs/components/data-table.md) and
 [Sparkline](../../docs/components/sparkline.md).
 
+MetricCard composes a medium-sized Metric and optional Sparkline on one Surface.
+Set `metric.size="sm"` when a dashboard grid needs a quieter value.
+The inline layout reflows the chart beneath the value at narrow widths.
+Use `trend.context` for the comparison period next to the change label.
+Use `MetricDelta` for that same comparison on its own in a row or table cell.
+Its `chip` variant tints the change and keeps the comparison period outside.
+Inside `Metric`, set `trend.variant` to choose the same treatment.
+While the metric loads, the label stays visible and a supplied chart uses a
+compact Skeleton. Use `chartLoading={true}` to reserve the plot before history
+arrives, or `chartLoading={false}` to keep valid history during a value refresh.
+
 DatePicker and DateRangePicker pass viewLabels to their calendars. Calendar panels
 use minimal Popover chrome, with Escape/selection/trigger dismissal; there is no
 separate hidden close-button API. DateTimePicker datePickerLabels/timePickerLabels
 forward popup labels plus segmentLabels and validation messages. DateTimeRangePicker
 exposes corresponding start/end label objects; outer field labels remain distinct.
+
+Accordion and Collapsible accept `variant="flush"` for sections sharing a Drawer
+or inspector surface. The default `framed` appearance is unchanged. Flush removes
+the outer frame and horizontal inset; the parent owns that inset, while Accordion
+keeps separators between items. Expansion, focus and mounted panel state are
+unchanged. Combine with `controlSize="sm"` for compact inspector headings.

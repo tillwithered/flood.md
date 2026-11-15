@@ -1,14 +1,89 @@
 import {test,expect,type Page} from '@playwright/test';
+import { chooseSelectOption } from "./select-helpers";
 import {build} from 'vite';import {resolve}from'node:path';import {mkdir,writeFile}from'node:fs/promises';import AxeBuilder from '@axe-core/playwright';
 let bundle:Promise<string>;
 async function fixture(){
  const file=(p:string)=>JSON.stringify(resolve(p).replaceAll('\\','/'));const directory=resolve(`.artifacts/multiple-${process.pid}`),entry=resolve(directory,'entry.mjs');await mkdir(directory,{recursive:true});
  await writeFile(entry,`import React,{StrictMode,useState}from ${file('node_modules/react/index.js')};import{createRoot}from ${file('node_modules/react-dom/client.js')};import{FloodRoot,Field,MultiSelect,Tag,Button,Checkbox,Dialog}from ${file('packages/react/dist/index.js')};import ${file('packages/react/dist/styles.css')};const h=React.createElement;
- function App(){const[visible,V]=useState(true),[locked,L]=useState(false),[disabled,D]=useState(false),[long,G]=useState(false),[result,R]=useState(''),[requests,Q]=useState('');const options=[{value:'react',label:long?'ReactForThoughtfullyComposedInternationalProductInterfaces':'React',keywords:['next']},{value:'vue',label:'Vue',keywords:['nuxt']},{value:'locked',label:'Locked',disabled:true},{value:'svelte',label:'Svelte'}];return h(FloodRoot,null,h('section',{'aria-label':'Tag example'},visible?h(Tag,{id:'standalone-tag',disabled,onRemove:()=>V(false)},'Design'):h(Button,{autoFocus:true,onClick:()=>V(true)},'Restore tag')),h('form',{onSubmit:e=>{e.preventDefault();R(JSON.stringify([...new FormData(e.currentTarget)]))}},h('fieldset',{disabled},h('legend',null,'Multiple selection'),h(Field,{id:'frameworks',label:'Frameworks'},p=>h(MultiSelect,{...p,options,name:'frameworks',clearable:true,defaultValue:['react','locked'],readOnly:locked,placeholder:'Search frameworks'})),h(Field,{label:'Fixed choices'},p=>h(MultiSelect,{...p,options,value:['vue'],onValueChange:next=>Q(JSON.stringify(next))})),h(Button,{type:'submit'},'Submit')),h(Button,{type:'reset'},'Reset form')),h(Checkbox,{label:'Read only',checked:locked,onChange:e=>L(e.currentTarget.checked)}),h(Checkbox,{label:'Disable settings',checked:disabled,onChange:e=>D(e.currentTarget.checked)}),h(Checkbox,{label:'Long labels',checked:long,onChange:e=>G(e.currentTarget.checked)}),h('form',{onSubmit:e=>e.preventDefault()},h(Field,{label:'Required choices'},p=>h(MultiSelect,{...p,options,required:true,name:'required-choices'})),h(Button,{type:'submit'},'Validate')),h(Dialog,{title:'Choose tags',trigger:p=>h(Button,p,'Open dialog')},h(Field,{label:'Dialog choices'},p=>h(MultiSelect,{...p,options,defaultValue:['react']}))),h('output',{'aria-label':'Submitted values'},result),h('output',{'aria-label':'Requested choices'},requests));}createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
+ function App(){const[visible,V]=useState(true),[locked,L]=useState(false),[disabled,D]=useState(false),[long,G]=useState(false),[result,R]=useState(''),[requests,Q]=useState('');const options=[{value:'react',label:long?'ReactForThoughtfullyComposedInternationalProductInterfaces':'React',keywords:['next']},{value:'vue',label:'Vue',keywords:['nuxt']},{value:'locked',label:'Locked',disabled:true},{value:'svelte',label:'Svelte'}];return h(FloodRoot,null,h('section',{'aria-label':'Tag example'},visible?h(Tag,{id:'standalone-tag',disabled,onRemove:()=>V(false)},'Design'):h(Button,{autoFocus:true,onClick:()=>V(true)},'Restore tag')),h('form',{onSubmit:e=>{e.preventDefault();R(JSON.stringify([...new FormData(e.currentTarget)]))}},h('fieldset',{disabled},h('legend',null,'Multiple selection'),h(Field,{id:'frameworks',label:'Frameworks'},p=>h(MultiSelect,{...p,options,name:'frameworks',maxVisibleTags:location.hash==='#compact'?1:undefined,clearable:true,defaultValue:['react','locked'],readOnly:locked,placeholder:'Search frameworks'})),h(Field,{label:'Fixed choices'},p=>h(MultiSelect,{...p,options,value:['vue'],onValueChange:next=>Q(JSON.stringify(next))})),h(Button,{type:'submit'},'Submit')),h(Button,{type:'reset'},'Reset form')),h(Checkbox,{label:'Read only',checked:locked,onChange:e=>L(e.currentTarget.checked)}),h(Checkbox,{label:'Disable settings',checked:disabled,onChange:e=>D(e.currentTarget.checked)}),h(Checkbox,{label:'Long labels',checked:long,onChange:e=>G(e.currentTarget.checked)}),h('form',{onSubmit:e=>e.preventDefault()},h(Field,{label:'Required choices'},p=>h(MultiSelect,{...p,options,required:true,name:'required-choices'})),h(Button,{type:'submit'},'Validate')),h(Dialog,{title:'Choose tags',trigger:p=>h(Button,p,'Open dialog')},h(Field,{label:'Dialog choices'},p=>h(MultiSelect,{...p,options,defaultValue:['react']}))),h('output',{'aria-label':'Submitted values'},result),h('output',{'aria-label':'Requested choices'},requests));}createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
  const result=await build({configFile:false,logLevel:'silent',define:{'process.env.NODE_ENV':JSON.stringify('development')},build:{write:false,minify:true,cssCodeSplit:false,lib:{entry,formats:['iife'],name:'MultipleFixture'}}});const outputs=(Array.isArray(result)?result:[result]).flatMap(v=>'output'in v?v.output:[]),js=outputs.filter(v=>v.type==='chunk').map(v=>v.type==='chunk'?v.code:'').join('\n'),css=outputs.filter(v=>v.type==='asset'&&v.fileName.endsWith('.css')).map(v=>v.type==='asset'?String(v.source):'').join('\n');return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Multiple selection</title><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css}body{margin:16px;background:#181818;color:white}#app{max-width:26rem}fieldset{min-width:0}form>fieldset{display:grid;gap:1rem}</style></head><body><header><h1>Multiple selection</h1></header><main id="app"></main><script>${js.replace(/<\/script/gi,'<\\/script')}</script></body></html>`;
 }
-async function open(page:Page){bundle??=fixture();await page.route('**/__multiple.html',async route=>route.fulfill({contentType:'text/html',body:await bundle}));await page.goto('/__multiple.html');}
+async function open(page:Page,compact=false){bundle??=fixture();await page.route('**/__multiple.html',async route=>route.fulfill({contentType:'text/html',body:await bundle}));await page.goto(compact?'/__multiple.html#compact':'/__multiple.html');}
+
+test("assignee and reviewer options preserve identity through selection", async ({page}, info) => {
+  await page.goto("/components/combobox");
+  await chooseSelectOption(page.getByRole("combobox", {name:"Combobox prop options"}), "people");
+  const stage = page.locator(".preview-stage");
+  const assignee = stage.getByRole("combobox", {name:"Assignee"});
+  const selectedAvatar = stage.locator("[data-selection-avatar]");
+  await expect(assignee).toHaveValue("Maya Chen");
+  await expect(selectedAvatar).toHaveAttribute("aria-hidden", "true");
+  await selectedAvatar.click();
+  await expect(assignee).toBeFocused();
+  const options = page.getByRole("listbox", {name:"Options"});
+  const sam = options.getByRole("option", {name:/Sam Rivera/});
+  const unassigned = options.getByRole("option", {name:"Unassigned"});
+  const label = ".flood-combobox__option-text";
+  expect((await sam.locator(label).boundingBox())!.x).toBeCloseTo((await unassigned.locator(label).boundingBox())!.x, 0);
+  await assignee.press("ArrowDown");
+  await assignee.press("Enter");
+  await expect(assignee).toHaveValue("Sam Rivera");
+  await expect(selectedAvatar).toHaveText("SR");
+  const position = (await assignee.boundingBox())!;
+  await assignee.fill("maya");
+  await expect(selectedAvatar).toHaveCount(0);
+  await expect(stage.locator(".flood-combobox__identity .flood-icon")).toBeVisible();
+  expect((await assignee.boundingBox())!.x).toBeCloseTo(position.x,1);
+  await page.evaluate(()=>document.fonts.ready);
+  await stage.screenshot({path:info.outputPath("assignee-searching.png")});
+  await assignee.press("Escape");
+  await expect(assignee).toHaveValue("Sam Rivera");
+  await expect(selectedAvatar).toHaveText("SR");
+  await assignee.fill("unassigned");
+  await assignee.press("Enter");
+  await expect(assignee).toHaveValue("Unassigned");
+  await expect(selectedAvatar).toHaveCount(0);
+  expect((await assignee.boundingBox())!.x).toBeCloseTo(position.x,1);
+
+  await page.goto("/components/multi-select");
+  await chooseSelectOption(page.getByRole("combobox", {name:"MultiSelect prop options"}), "people");
+  const reviewer = stage.getByRole("combobox", {name:"Reviewers"});
+  const tags = stage.locator(".flood-tag");
+  const mayaTag = tags.filter({has:page.getByRole("button", {name:"Remove Maya Chen"})});
+  await expect(mayaTag.locator(".flood-avatar")).toHaveAttribute("aria-hidden", "true");
+  await expect(reviewer).toHaveAccessibleDescription("Maya Chen, Sam Rivera");
+  await mayaTag.getByRole("button", {name:"Remove Maya Chen"}).click();
+  await expect(reviewer).toBeFocused();
+  await expect(reviewer).toHaveAccessibleDescription("Sam Rivera");
+  await expect(tags.locator(".flood-avatar")).toHaveCount(1);
+});
 const main=(page:Page)=>page.locator('.flood-multi-select').filter({has:page.getByRole('combobox',{name:'Frameworks',exact:true})});
+
+test('collapsed selection submits every ID and can reveal locked values by keyboard',async({page})=>{
+ await open(page,true);
+ const control=main(page);
+ const input=page.getByRole('combobox',{name:'Frameworks',exact:true});
+ const overflow=control.getByRole('button',{name:'Show 1 more',exact:true});
+ await expect(control.locator('.flood-tag')).toHaveCount(1);
+ await expect(input).toHaveAccessibleDescription('React, Locked');
+ await page.getByRole('button',{name:'Submit',exact:true}).click();
+ await expect(page.getByRole('status',{name:'Submitted values'})).toHaveText('[["frameworks","react"],["frameworks","locked"]]');
+ await overflow.focus();
+ await overflow.press('Enter');
+ const fewer=control.getByRole('button',{name:'Show fewer',exact:true});
+ await expect(fewer).toBeFocused();
+ await expect(fewer).toHaveAttribute('aria-expanded','true');
+ await expect(control.getByRole('button',{name:'Remove Locked'})).toBeDisabled();
+ await fewer.press('Space');
+ await expect(overflow).toBeFocused();
+ await expect(control.getByRole('button',{name:'Remove Locked'})).toHaveCount(0);
+ await page.getByRole('checkbox',{name:'Read only',exact:true}).check();
+ await overflow.click();
+ await expect(control.locator('.flood-tag')).toHaveCount(2);
+ await expect(control.locator('.flood-tag__remove')).toHaveCount(0);
+ await page.getByRole('button',{name:'Reset form',exact:true}).click();
+ await expect(overflow).toBeVisible();
+});
 
 test('Tag removal is a native keyboard action and disabled removal stays inert',async({page})=>{
  await open(page);const remove=page.getByRole('button',{name:'Remove Design',exact:true});await remove.focus();await remove.press('Enter');await expect(page.locator('#standalone-tag')).toHaveCount(0);await expect(page.getByRole('button',{name:'Restore tag'})).toBeFocused();await page.getByRole('button',{name:'Restore tag'}).click();await page.getByRole('checkbox',{name:'Disable settings',exact:true}).check();await expect(page.getByRole('button',{name:'Remove Design',exact:true})).toBeDisabled();

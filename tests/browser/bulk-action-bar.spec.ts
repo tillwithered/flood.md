@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { build } from 'vite';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { chooseSelectOption } from './select-helpers';
 
 let fixtureHTML: Promise<string>;
 async function fixture() {
@@ -56,6 +57,31 @@ test('bulk rail limits visible commands and retains every command in More', asyn
   await expect(bar.getByRole('button',{name:'More',exact:true})).toBeFocused();
   await bar.getByRole('button',{name:'Clear selection',exact:true}).click();
   await expect(bar).toHaveCount(0);
+});
+
+test('the visible capsule hugs the controls and icon overflow keeps the narrow rail stable', async ({page}) => {
+  await page.setViewportSize({width:1440,height:940});
+  await page.goto('/components/bulk-action-bar');
+  const bar = page.getByRole('toolbar',{name:'Selected projects'});
+  const more = bar.getByRole('button',{name:'More',exact:true});
+  const clear = bar.getByRole('button',{name:'Clear selection',exact:true});
+  await expect(more).toBeVisible();
+  expect((await clear.boundingBox())!.x - ((await more.boundingBox())!.x + (await more.boundingBox())!.width)).toBeLessThan(12);
+  await chooseSelectOption(page.getByRole('combobox',{name:'BulkActionBar prop width',exact:true}),'16rem');
+  await chooseSelectOption(page.getByRole('combobox',{name:'BulkActionBar prop morePresentation',exact:true}),'icon');
+  await expect(more).toHaveAttribute('title','More');
+  const frame = (await bar.boundingBox())!;
+  await expect.poll(() => bar.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+  const rail = bar.locator('..');
+  expect(await rail.evaluate(node => node.scrollWidth <= node.clientWidth + 1)).toBe(true);
+  await more.press('Enter');
+  await expect(page.getByRole('menuitem',{name:'Set active',exact:true})).toBeVisible();
+  await expect(page.getByRole('menuitem').first()).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(more).toBeFocused();
+  expect((await bar.boundingBox())!.width).toBeCloseTo(frame.width,0);
+  await chooseSelectOption(page.getByRole('combobox',{name:'BulkActionBar prop width',exact:true}),'32rem');
+  await expect(bar.getByRole('button',{name:'Pause',exact:true})).toBeVisible();
 });
 
 test('resizing moves focused commands into overflow without wrapping or losing focus', async ({page}) => {

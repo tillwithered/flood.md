@@ -88,6 +88,9 @@ test("workspace composition remains reachable at enlarged narrow RTL sizes", asy
   await page.getByRole("button", {name:"Review files", exact:true}).click();
   const dialog = page.getByRole("dialog", {name:"Files", exact:true});
   const files = dialog.getByRole("list", {name:"Sample project files"});
+  const size = files.locator(".flood-file-meta bdi").first();
+  await expect(size).toHaveText("2.5 MB");
+  await expect(size).toHaveCSS("direction","ltr");
   expect(await files.evaluate(root => {
     const box=root.getBoundingClientRect(), walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let node:Node|null;
