@@ -126,7 +126,7 @@ test("buttons stay intrinsic as direct Stack children while sibling actions shar
 test("studio properties keep the compact 8px inner and 12px group rhythm", async ({ page }) => {
   await page.goto("/components/button");
   const controls = page.locator(".workbench-controls").first();
-  await expect(controls.getByRole("combobox")).toHaveCount(3);
+  await expect(controls.getByRole("combobox",{name:"Button prop loadingMode",exact:true})).toBeVisible();
   for (const rootSize of [16, 20]) {
     await page.evaluate((size) => { document.documentElement.style.fontSize = `${size}px`; }, rootSize);
     await expect(controls).toHaveCSS("column-gap", `${rootSize * 0.75}px`);

@@ -97,7 +97,7 @@ test("grouped activity separates periods and keeps their headings on the event a
   await expect(last.getByText("Source export.pdf")).toBeVisible();
   await expect(feed.getByRole("heading",{name:"14 November"}).locator("time")).toHaveAttribute("datetime","2026-11-14");
   const alignments = await feed.evaluate(root => Array.from(root.querySelectorAll(":scope > .flood-stack"), group => {
-    const heading = group.querySelector("h3")!;
+    const heading = group.querySelector(".flood-activity-timeline__heading")!;
     const title = group.querySelector(".flood-timeline__title")!;
     return heading.getBoundingClientRect().left + parseFloat(getComputedStyle(heading).paddingLeft) - title.getBoundingClientRect().left;
   }));
