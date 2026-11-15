@@ -85,7 +85,7 @@ test("comment reactions retain their surface and picker when secondary actions a
   await add.press("Enter");
   await picker.getByRole("button",{name:"Love"}).click();
   await expect(add).toBeFocused();
-  await expect(article.getByRole("button",{name:"Love"})).toHaveAccessibleDescription("1");
+  await expect(article.getByRole("button",{name:"Love, 1",exact:true})).toBeVisible();
 });
 
 test("grouped activity separates periods and keeps their headings on the event axis", async ({page}, info) => {

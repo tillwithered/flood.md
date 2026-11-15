@@ -34,7 +34,7 @@ test(`Breadcrumb keeps ${destination.label} labels whole and wraps items before 
     await breadcrumb.evaluate(node => { node.style.width = "100%"; });
     await expect.poll(lineCounts).toEqual([1, 1, 1]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    const current = breadcrumb.locator('li:last-child > span[aria-current] .flood-breadcrumb__clip');
+    const current = breadcrumb.locator('li:last-child > span[aria-current] .flood-truncated-text');
     await current.evaluate(node => { node.textContent = "LongUnbrokenDestinationName".repeat(8); });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await current.evaluate((node, label) => { node.textContent = label; }, destination.label);
