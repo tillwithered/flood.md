@@ -77,7 +77,7 @@ test("a long catalog name fits before the sidebar scrollbar", async ({ page }, i
   await page.evaluate(() => document.fonts.ready);
   const track = sidebar.locator(".flood-scroll-area__track--vertical");
   await expect(track).toBeVisible();
-  const text = await current.locator(".catalog-item-name").evaluate(element => ({
+  const text = await current.locator(".flood-navigation-item__label").evaluate(element => ({
     fits: element.scrollWidth <= element.clientWidth,
     height: element.getBoundingClientRect().height,
     lineHeight: parseFloat(getComputedStyle(element).lineHeight),

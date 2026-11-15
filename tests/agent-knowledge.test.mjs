@@ -116,7 +116,15 @@ test('the actual compiled catalog covers every component and serves the website 
   const reader=createKnowledgeReader();const expected=JSON.parse(await readFile('apps/website/src/component-catalog.json','utf8'));let cursor;const entries=[];
   do{const page=await reader.list({kind:'component',limit:50,cursor});entries.push(...page.items);cursor=page.nextCursor??undefined;}while(cursor);
   assert.deepEqual(entries.map(i=>i.id).sort(),expected.map(i=>'component:'+i.slug).sort());
-  for(const component of expected){const body=await readFile(`apps/website/public/components/${component.slug}.md`,'utf8');const result=await reader.read('component:'+component.slug,{length:40000});assert.equal(result.text,body);assert.equal(result.truncated,false);}
+  for (const component of expected) {
+    const body = await readFile(`apps/website/public/components/${component.slug}.md`, 'utf8');
+    const result = await reader.read('component:' + component.slug, { length: 40000 });
+    const notes = component.notes.map(note => `- ${note}`).join('\n');
+    assert.ok(notes.length > 0, component.slug);
+    assert.ok(body.includes(`\n## Design notes\n\n${notes}\n\n## API reference\n`), component.slug);
+    assert.equal(result.text, body);
+    assert.equal(result.truncated, false);
+  }
   const info=await reader.info();assert.equal(info.capabilities.find(i=>i.id==='page-transitions').status,'not-provided');
   assert.ok((await reader.list({kind:'workflow',group:'motion'})).items.some(item=>item.id==='workflow:motion'));
   const motionTokens=(await reader.list({kind:'token',group:'motion',limit:50})).items;
@@ -133,7 +141,8 @@ test('installed knowledge routes collection controls to the record and content w
     const material = await reader.read(id);
     assert.ok(material.links.includes('workflow:records'), `${id} must link the record workflow`);
   }
-  const records = await reader.read('workflow:records');
+  const records = await reader.read('workflow:records', {length: 40000});
+  assert.equal(records.truncated, false);
   assert.match(records.text, /One selected value filters the same table \| SegmentedControl/);
   assert.ok(records.links.includes('workflow:interface-content'));
 

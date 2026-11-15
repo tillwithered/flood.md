@@ -1,6 +1,6 @@
 import {Fragment, forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode} from "react";
 import type {MenuItem, MenuProps, MenuSubmenuItem, OverlayTriggerProps} from "./index.js";
-import {Button, Kbd, ScrollArea} from "./index.js";
+import {Button, KeyboardShortcut, ScrollArea} from "./index.js";
 import {positionLayer, registerLayer, returnFocus, tabbables, useLayerExitContent} from "./overlay-runtime.js";
 
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -204,7 +204,7 @@ export const MenuLayer = /* @__PURE__ */ forwardRef<HTMLDivElement, MenuLayerPro
         }}>
         {hasIcons && <span className="flood-menu__icon" aria-hidden="true">{item.icon}</span>}
         <span className="flood-menu__label">{item.label}</span>
-        {"shortcut" in item && item.shortcut && <span className="flood-menu__shortcut" aria-hidden="true"><Kbd>{item.shortcut}</Kbd></span>}
+        {"shortcut" in item && item.shortcut && <KeyboardShortcut keys={item.shortcut} presentation="compact" className="flood-menu__shortcut" aria-hidden="true" />}
         {(item.type === "checkbox" || item.type === "radio") && <span className="flood-menu__icon flood-menu__indicator" aria-hidden="true">{item.checked &&
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             {item.type === "radio" ? <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" /> : item.checked === "mixed" ? <path d="M6 12h12" /> : <path d="m5 12 4 4L19 6" />}

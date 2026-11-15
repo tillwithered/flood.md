@@ -1,7 +1,7 @@
 import {forwardRef, useId} from "react";
 import type {CSSProperties} from "react";
 import type {NavigationListProps, NavigationListItem, StepsProps, SectionProps, PageHeaderProps, SplitProps, CenterProps, SkipLinkProps} from "./index.js";
-import {Heading,NavigationGroup,NavigationItem} from "./index.js";
+import {Button,Heading,NavigationGroup,NavigationItem} from "./index.js";
 
 const classes = (...names: Array<string | undefined | false>) => names.filter(Boolean).join(" ");
 function uniqueValues(items: readonly {value:string}[], component:string) {
@@ -49,7 +49,7 @@ export const StepSequence = /* @__PURE__ */ forwardRef<HTMLOListElement, StepsPr
       const content = <><span className="flood-steps__indicator" aria-hidden="true">{state === "complete" ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12 4 4 10-10"/></svg> : state === "error" ? "!" : index + 1}</span>
         <span className="flood-steps__text"><span className="flood-steps__title">{item.title}</span><span className="flood-visually-hidden">{statusLabels[state]}</span>{item.description && <span className="flood-steps__description">{item.description}</span>}</span></>;
       return <li key={item.value} data-state={state} aria-current={current ? "step" : undefined}>
-        {onStepChange ? <button type="button" className="flood-steps__content flood-steps__action" disabled={item.disabled} onClick={() => onStepChange(item.value)}>{content}</button> : <div className="flood-steps__content">{content}</div>}
+        {onStepChange ? <Button variant="ghost" className="flood-steps__content flood-steps__action" disabled={item.disabled} onClick={() => onStepChange(item.value)}>{content}</Button> : <div className="flood-steps__content">{content}</div>}
       </li>;
     })}
   </ol>;

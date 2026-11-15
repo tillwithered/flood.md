@@ -22,11 +22,18 @@ opacity and transform on bounded visual parts. Keep an anchored overlay's
 positioning root stable while a child moves. Animate color only where the old and
 new colors keep required information legible. Keep focus outlines and error
 messages immediate. Apply hover treatment only to devices that can hover.
+Name the start and end anchors and inspect what happens between them.
+For chart inspection, the indicator and tooltip should leave from their last
+valid anchor. Check pointer exit near each plot edge and immediate re-entry.
+For a layout disclosure, inspect neighboring geometry throughout the reveal and
+after rapid reversal, including content whose height changes while open.
 For ToastRegion, animate each arriving card as a unit from its placement edge.
 Keep the region anchored and its announcement available as soon as it appears.
 Inline toasts can fade without moving surrounding content.
 Keep compression off disabled controls, text editors and joined control
 surfaces. Verify release and cancellation without a layout shift.
+On touch, keep the button's own pressed paint. Check that a browser tap
+highlight does not flash a second shape outside its curved edges.
 Treat disclosure headers as part of their enclosing surface. Keep their
 background flush during press and rotate the centered glyph around its own center.
 

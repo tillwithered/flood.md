@@ -14,6 +14,9 @@ const same = (left, right) => JSON.stringify([...left].sort()) === JSON.stringif
 if (!same(contract.map(item => item.name), catalog.map(item => item.name))) throw new Error("Every public component needs catalog content; stale or undocumented exports block the build");
 if (!same(componentSlugs, catalog.map(page => page.slug)) || !same(recipes, componentSlugs)) throw new Error("Component routes, catalog and live recipes differ");
 const pages = catalog.map(page => {
+  if (!Array.isArray(page.notes) || !page.notes.length || page.notes.some(note => typeof note !== "string" || !note.trim())) {
+    throw new Error(`${page.slug}: add usable design notes to the component catalog`);
+  }
   const api = contract.find(item => item.name === page.name);
   const rows = api.props.filter(prop => prop.name !== "className" && prop.name !== "style").map(prop => [
     prop.name + (prop.since ? ` · ${prop.since}` : ""), prop.type,

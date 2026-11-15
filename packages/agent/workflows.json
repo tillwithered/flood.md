@@ -23,6 +23,28 @@
       "components": ["AppShell", "PageHeader", "Section", "DataTable"]
     },
     {
+      "id": "application-structure",
+      "guide": "references/flood-application-structure/SKILL.md",
+      "components": ["AppShell", "AppTopBar", "PageHeader", "Sidebar", "Dialog", "AlertDialog", "Drawer", "Sheet"]
+    },
+    {
+      "id": "layout-composition",
+      "guide": "references/flood-layout-composition/SKILL.md",
+      "groups": ["layout"],
+      "components": ["CollectionToolbar", "DataTable", "Toolbar", "Drawer"]
+    },
+    {
+      "id": "typography",
+      "guide": "references/flood-typography/SKILL.md",
+      "groups": ["typography"],
+      "components": ["Badge", "DataTable", "Drawer", "Field", "PageHeader", "Section"]
+    },
+    {
+      "id": "decision-design",
+      "guide": "references/flood-decision-design/SKILL.md",
+      "components": ["AlertDialog", "BulkActionBar", "DataTable", "Drawer"]
+    },
+    {
       "id": "hierarchy",
       "guide": "references/flood-hierarchy/SKILL.md",
       "groups": [
@@ -32,9 +54,15 @@
         "typography"
       ],
       "components": [
+        "BulkActionBar",
+        "Button",
         "Card",
+        "CollectionToolbar",
+        "IconButton",
+        "OverflowActions",
         "PageHeader",
         "Section",
+        "Toolbar",
         "EmptyState"
       ]
     },
@@ -177,6 +205,7 @@
         "Fieldset",
         "Input",
         "Textarea",
+        "MessageComposer",
         "Select",
         "ListBox",
         "CopyButton",

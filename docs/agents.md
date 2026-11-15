@@ -67,6 +67,16 @@ knowledge catalog; existing customized guides are not silently overwritten.
 | flood/manifest.json | Installer / reviewer | Matching package | Explicit source → project-path mapping | Complete files; existing files preserved |
 | workflows.json in the skill folder | Agent / reviewer, task selection | Same installed bundle | Workflow applicability | Read relevant skills; applicability is not behavioral proof |
 
+For visual composition, look up `workflow:layout-composition` for shared
+edges and grouping and `workflow:typography` for text roles and fit. Use
+`workflow:decision-design` when a screen needs to support a consequential
+choice, batch outcome or operational summary.
+
+For an application with multiple destinations, start with
+`workflow:application-structure`. It covers the shared page frame and visual
+hierarchy, when work belongs in a page or an overlay, and the context that
+should survive transitions between them.
+
 Manifest `entry` and rule `guide` paths are package-source paths. Resolve them
 through `manifest.files`: each source maps to a target relative to the host
 project root. `installedEntry` names the installed skill directly. Manifest
@@ -90,10 +100,11 @@ it explicitly. For a client that reads project instructions such as `AGENTS.md`,
 add a short trigger to the existing instructions at the scope where Flood is used:
 
 ```markdown
-For UI work in this project, read `.agents/skills/flood-ui/SKILL.md` first.
-Follow its routing for the screen or component you are changing. Check the
-installed component contract. For visible changes, use the visual review workflow
-to exercise the affected states and inspect screenshots from the running app.
+For UI work in this project, start at `.agents/skills/flood-ui/SKILL.md`.
+Use the installed version to select the relevant rule, recipe and component.
+For a new screen, identify the next useful action and what must survive it.
+For a visible change, exercise the affected state in the running app and
+include the observed outcome and evidence in your handoff.
 ```
 
 Use the `installedEntry` path in `flood/manifest.json` if it differs. The
@@ -113,10 +124,29 @@ or a runnable example for decisions that depend on the task, such as information
 hierarchy or which details should stay visible. Use clean runs to test whether
 agents discover and apply new guidance on another task.
 
+When comparing Flood with another UI stack, give both agents the same user
+task, fixture data and browser states. Keep model settings and time limits
+comparable. Evaluate task success, recovery and rendered hierarchy with shared
+criteria. Record use of Flood components and installed APIs separately from
+the shared product criteria. Have a reviewer inspect the running results
+without relying on the implementing agent's completion summary.
+
 For a full-window AppShell route, use
 [`assertWorkspaceScroll`](../packages/agent/references/rendered-review.md#require-workspace-scroll-in-browser-tests)
 in the browser suite. Exercise both the populated and filtered states so
 document scrolling fails the test on either state.
+
+If the project requires that behavior before merge, run this test in a required
+host CI check. Configure the check for the relevant routes and fixtures so a
+missing route, missing test or failed browser launch cannot count as a pass.
+Keep the workflow and changes to its coverage under host review. Use the same
+test locally to give an agent a reproducible failure to fix.
+
+For visual hierarchy, give the agent a specific decision to review: for example,
+the page's primary action, the alignment of peer collection tools and the
+findability of a quiet close control. Ask for the rendered state and observed
+outcome in the handoff. An assertion about target bounds can settle geometry;
+review the screenshot of the whole region to judge relative emphasis.
 
 The rules index is data, not an executable policy engine. It cannot make an agent
 obey guidance or certify accessibility. Host checks and Flood's repository

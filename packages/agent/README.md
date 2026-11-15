@@ -40,7 +40,8 @@ See [Agent knowledge](../../docs/agent-knowledge.md) for groups, capabilities,
 prerequisites, read budgets, compatibility and customization behavior.
 
 The source bundle includes routed workflows for the existing dark base, including
-screen composition, component composition, hierarchy, spacing, motion,
+application structure, screen composition, layout composition, component composition, hierarchy,
+typography, decision design, spacing, motion,
 foundations, accessibility, forms, overlays, navigation, data display, records,
 feedback, interface content, visual review and verification. The lightweight
 flood-ui entry selects relevant skills; nested folders do not imply independent

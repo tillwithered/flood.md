@@ -67,6 +67,14 @@
   max-inline-size: calc(100% - 2 * var(--flood-sys-space-4));
   max-block-size: calc(100% - 2 * var(--flood-sys-space-4));
 }
+@media (min-width: 36.0625rem) {
+  .flood-root .component-workbench[data-studio] .workbench-stage[data-component="toast-region"] .flood-toast-region:not([data-inline]) {
+    max-block-size: calc(100% - var(--studio-panel-bottom) - var(--flood-sys-space-4));
+  }
+  .flood-root .component-workbench[data-studio] .workbench-stage[data-component="toast-region"] .flood-toast-region[data-placement^="bottom"]:not([data-inline]) {
+    inset-block-end: var(--studio-panel-bottom);
+  }
+}
 .component-workbench[data-studio] .workbench-canvas[data-feedback] .workbench-stage {
   padding-block-end: var(--flood-sys-space-3);
 }
@@ -95,6 +103,9 @@
 .component-workbench[data-studio] .workbench-stage[data-component="sidebar"] > .flood-scroll-area__content > .flood-root {
   display: grid;
   justify-items: center;
+}
+.component-workbench .workbench-stage[data-component="message-composer"]:not([data-wide-frame]) > .flood-scroll-area__content > .flood-root {
+  inline-size: min(36rem, 100%);
 }
 .component-workbench[data-studio] .workbench-stage[data-dragging] { cursor: grabbing; user-select: none; }
 .component-workbench[data-studio] .workbench-stage:focus-visible {
@@ -257,7 +268,7 @@
 .component-workbench .workbench-stage[data-component="filter-group"] > .flood-scroll-area__content { align-items:start; }
 .flood-root .workbench-filter-panel { inline-size:min(42rem,calc(100vw - 2rem)); }
 .workbench-stage[data-component="table"] > .flood-scroll-area__content > .flood-root { inline-size: 100%; max-inline-size: 42rem; }
-.workbench-stage:is([data-component="progress"], [data-component="meter"]) .flood-indicator { display: grid; grid-template-rows: minmax(1.25rem, auto) .5rem; gap: var(--flood-sys-space-2); }
+.workbench-stage:is([data-component="progress"], [data-component="meter"]) .flood-indicator[data-layout="stacked"] { display: grid; grid-template-rows: minmax(1.25rem, auto) .5rem; gap: var(--flood-sys-space-2); }
 .workbench-stage:is([data-component="progress"], [data-component="meter"]) .flood-indicator__caption { grid-row: 1; margin-block-end: 0; }
 .workbench-stage:is([data-component="progress"], [data-component="meter"]) .flood-indicator__track { grid-row: 2; align-self: center; }
 .component-workbench .workbench-stage[data-component="segmented-control"] > .flood-scroll-area__content > .flood-root { inline-size: fit-content; max-inline-size: 100%; }

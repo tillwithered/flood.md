@@ -2,9 +2,9 @@
 
 import {useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent} from "react";
 import {
-  Button, DataTable, DescriptionList, Drawer, EmptyState,
-  Field, Grid, Heading, Inline, Input, SearchInput, Section, Select,
-  Stack, StatusIndicator, Surface, Table, ToastRegion,
+  Button, CopyableValue, DataTable, DescriptionList, Drawer, NoResults,
+  Field, FormActions, Grid, Heading, Input, SearchInput, Section, Select,
+  Stack, StatusIndicator, Surface, Table, Timestamp, ToastRegion,
   type DataTableColumn, type ToastItem,
 } from "@flood-md/react";
 
@@ -181,14 +181,12 @@ export function RecordManagement() {
                   },
                 },
               }))}
-              emptyContent={<EmptyState title="No matching requests" actions={<Button variant="subtle" onClick={() => {
-                search.current?.focus({preventScroll: true});
-                changeQuery("", "all");
-              }}>Clear filters</Button>} />} />
+              emptyContent={<NoResults title="No matching requests" headingLevel={3} resetFocusRef={search}
+                onReset={status === "all" ? undefined : () => changeQuery("", "all")} />} />
           </Surface>}
         footer={draft
-          ? <Inline gap="2"><Button variant="subtle" onClick={cancelEdit}>Cancel edit</Button>
-            <Button type="submit" form={formId}>Save changes</Button></Inline>
+          ? <FormActions secondary={<Button variant="subtle" onClick={cancelEdit}>Cancel edit</Button>}
+            primary={<Button type="submit" form={formId}>Save changes</Button>} />
           : <Button ref={edit} onClick={() => { if (selected) setDraft({...selected}); }}>Edit request</Button>}
       >
         {draft
@@ -213,7 +211,8 @@ export function RecordManagement() {
             </Stack>
           </form>
           : selected && <Stack gap="8"><DescriptionList items={[
-              {id: "request-id", term: "Request ID", description: selected.id},
+              {id: "request-id", term: "Request ID",
+                description: <CopyableValue value={selected.id} copyLabel="Copy request ID" overflow="truncate" />},
               {id: "owner", term: "Owner", description: selected.owner || "Unassigned"},
               {id: "status", term: "Status", description: <StatusIndicator {...statuses[selected.status]} />},
             ]} />
@@ -221,7 +220,7 @@ export function RecordManagement() {
               <Table caption="Request activity" hideCaption density="compact">
                 <thead><tr><th scope="col">Date</th><th scope="col">Event</th></tr></thead>
                 <tbody>{activity.map(item => <tr key={item.date}>
-                  <td><time dateTime={item.date}>{activityDate.format(new Date(item.date))}</time></td>
+                  <td><Timestamp dateTime={item.date} size="compact">{activityDate.format(new Date(item.date))}</Timestamp></td>
                   <td>{item.activity}</td>
                 </tr>)}</tbody>
               </Table>

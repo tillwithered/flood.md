@@ -29,6 +29,21 @@ test("bounded request rows keep their end clearance as the scrollbar comes and g
   }
 });
 
+test("clearing an empty request result returns focus to the original search", async ({page}) => {
+  await page.goto("/playground/records");
+  const search = page.getByRole("searchbox", {name:"Search requests"});
+  await search.fill("NO-SUCH-REQUEST");
+  const state = page.locator(".flood-no-results");
+  await expect(state.getByRole("heading", {name:"No matching requests"})).toBeVisible();
+  await expect(state.getByRole("button", {name:"Clear filters"})).toHaveCount(0);
+  await chooseSelectOption(page.getByRole("combobox", {name:"Status"}), "active");
+  await state.getByRole("button", {name:"Clear filters"}).press("Enter");
+  await expect(state).toHaveCount(0);
+  await expect(search).toHaveValue("");
+  await expect(search).toBeFocused();
+  await expect(page.getByRole("button", {name:/REQ-105/})).toBeVisible();
+});
+
 test("request edit returns to the same query, filter, scroll position and row", async ({page}) => {
   await page.goto("/playground/records");
   const workspace = page.getByRole("region", {name: "Request workspace"});

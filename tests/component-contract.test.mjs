@@ -20,6 +20,7 @@ test("real component contracts resolve aliases, native inheritance and explicit 
   assert.deepEqual(contract.map(entry => entry.name).sort(), catalog.map(entry => entry.name).sort());
   assert.match(prop(contract, "Button", "size").type, /"2xs".*"2xl"/);
   assert.equal(prop(contract, "Button", "loading").defaultValue, "false");
+  assert.match(prop(contract, "Button", "loading").type, /"retain-focus"/);
   assert.equal(prop(contract, "Button", "type").defaultValue, '"button"');
   assert.equal(prop(contract, "IconButton", "variant").defaultValue, '"subtle"');
   assert.equal(prop(contract, "IconButton", "label").required, true);
@@ -34,7 +35,8 @@ test("real component contracts resolve aliases, native inheritance and explicit 
 });
 
 test("new optional props and new runtime component exports are discovered without a catalog edit", () => {
-  const expanded = source.replace(/(export interface ButtonProps[\s\S]*?)(loading\?: boolean;)/, '$1$2\n  emphasis?: "quiet" | "loud";') + `
+  const expanded = source.replace('export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {',
+    'export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {\n  emphasis?: "quiet" | "loud";') + `
 /** @since 0.2.3 */
 export interface NoticeProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   message: string;

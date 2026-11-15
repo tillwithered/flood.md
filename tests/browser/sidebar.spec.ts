@@ -204,6 +204,31 @@ test('navigation row keeps its sibling action and metadata visible without shift
   await expect(page.getByRole('dialog',{name:'About this row'})).toBeVisible();
 });
 
+test('a clipped navigation label reveals its full name from the link without a second Tab stop',async({page},info)=>{
+  await page.goto('/components/navigation-item');
+  await page.getByRole('checkbox',{name:'NavigationItem prop longLabel',exact:true}).check();
+  await chooseSelectOption(page.getByRole('combobox',{name:'NavigationItem prop labelOverflow',exact:true}),'truncate');
+  const row=page.locator('.preview-stage .flood-navigation-item').first();
+  const text='Projects and shared workspace resources';
+  const link=row.getByRole('link',{name:text,exact:true});
+  await expect(link).toHaveAttribute('href','#projects');
+  const label=link.locator('.flood-navigation-item__label');
+  await expect.poll(()=>label.evaluate(node=>node.scrollWidth>node.clientWidth)).toBe(true);
+  const before=await row.boundingBox();
+  await link.focus();
+  const tooltip=page.getByRole('tooltip');
+  await expect(tooltip).toHaveText(text);
+  const hint=await tooltip.boundingBox();
+  expect(hint!.y>=before!.y+before!.height || hint!.y+hint!.height<=before!.y).toBe(true);
+  expect(await row.boundingBox()).toEqual(before);
+  await row.screenshot({path:info.outputPath('navigation-item-truncated.png')});
+  await page.keyboard.press('Escape');
+  await expect(tooltip).toBeHidden();
+  await expect(link).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(row.getByRole('button',{name:/^(Expand|Collapse) projects$/})).toBeFocused();
+});
+
 test('pane glyph and branch placement follow the same logical side in LTR and RTL',async({page})=>{
   // Leave room on both sides to test preferred placement independently of collision fallback.
   await page.setViewportSize({width:1280,height:900});

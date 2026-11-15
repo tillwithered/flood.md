@@ -153,6 +153,26 @@
       "kind": "skill"
     },
     {
+      "source": "references/flood-application-structure/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-application-structure/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-layout-composition/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-layout-composition/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-typography/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-typography/SKILL.md",
+      "kind": "skill"
+    },
+    {
+      "source": "references/flood-decision-design/SKILL.md",
+      "target": ".agents/skills/flood-ui/references/flood-decision-design/SKILL.md",
+      "kind": "skill"
+    },
+    {
       "source": "references/flood-records/SKILL.md",
       "target": ".agents/skills/flood-ui/references/flood-records/SKILL.md",
       "kind": "skill"

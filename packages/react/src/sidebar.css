@@ -34,7 +34,7 @@
 .flood-root .flood-sidebar > .flood-scroll-area { flex:1; min-block-size:0; min-inline-size:0; }
 .flood-root .flood-sidebar__body { block-size:100%; min-block-size:0; min-inline-size:0; }
 .flood-root .flood-sidebar__navigation { padding-inline:var(--flood-sidebar-edge); }
-.flood-root .flood-sidebar__navigation :is(.flood-navigation-group__label,.flood-navigation-item__label,.flood-navigation-item__description) {
+.flood-root .flood-sidebar__navigation :is(.flood-navigation-group__label,.flood-navigation-item__description) {
   min-inline-size:0;
   overflow:hidden;
   text-overflow:ellipsis;

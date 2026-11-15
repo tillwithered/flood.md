@@ -2,6 +2,7 @@ import {test,expect,type Page} from "@playwright/test";
 import {build} from "vite";
 import {mkdir,writeFile} from "node:fs/promises";
 import {resolve} from "node:path";
+import {chooseSelectOption} from "./select-helpers";
 let bundled:Promise<string>;
 async function fixture(){
   const file=(path:string)=>JSON.stringify(resolve(path).replaceAll("\\","/"));
@@ -28,7 +29,15 @@ function VisibilityTable(){
     hiddenColumnIds:['name','score','status','removed-column'],
   }));
 }
-const Screen = location.search === '?visibility' ? VisibilityTable : location.search ? ActionTable : App;
+function CursorTable(){
+  const [sort, setSort] = useState(null), [selected, setSelected] = useState(['elsewhere']);
+  return h(FloodRoot,null,h(DataTable,{
+    caption:'Cursor results',columns,rows:[source[1],source[0]],pageSize:1,minWidth:'20rem',
+    paginationMode:'cursor',cursorPagination:{next:{href:'#later'}},sort,onSortChange:setSort,
+    selectable:true,selectionScope:'dataset',selectedIds:selected,onSelectionChange:setSelected,
+  }),h('output',{'aria-label':'Cursor selection'},JSON.stringify(selected)));
+}
+const Screen = location.search === '?visibility' ? VisibilityTable : location.search === '?cursor' ? CursorTable : location.search ? ActionTable : App;
 createRoot(document.getElementById('app')).render(h(Screen));`);
   const result=await build({configFile:false,logLevel:"silent",define:{"process.env.NODE_ENV":JSON.stringify("production")},build:{write:false,cssCodeSplit:false,lib:{entry,formats:["iife"],name:"DataTableFixture"}}});
   const output=(Array.isArray(result)?result:[result]).flatMap(x=>"output"in x?x.output:[]);
@@ -36,6 +45,134 @@ createRoot(document.getElementById('app')).render(h(Screen));`);
 }
 async function open(page:Page,action=false){bundled??=fixture();await page.route(/\/__data-table\.html(?:\?.*)?$/,async route=>route.fulfill({contentType:"text/html",body:await bundled}));await page.goto(action ? "/__data-table.html?action" : "/__data-table.html");}
 const names=(page:Page)=>page.locator("tbody tr td:nth-child(2)").allTextContents();
+
+test("cursor pagination uses the table footer and replaces the loaded rows", async ({page}, info) => {
+  await page.goto("/components/data-table");
+  await page.getByRole("checkbox",{name:"DataTable prop cursorPages"}).check();
+  const preview = page.locator(".preview-stage");
+  const table = preview.getByRole("table", {name:"Projects"});
+  const footer = preview.locator(".flood-data-table__footer");
+  const pagination = footer.getByRole("navigation", {name:"Pagination"});
+  await expect(preview.getByRole("navigation", {name:"Pagination"})).toHaveCount(1);
+  await expect(footer.getByText("1–5",{exact:true})).toBeVisible();
+  await expect(pagination.getByRole("button",{name:"Previous page"})).toBeDisabled();
+  await expect(table.getByRole("row")).toHaveCount(6);
+  await pagination.getByRole("button",{name:"Next page"}).click();
+  await expect(footer.getByText("6–7",{exact:true})).toBeVisible();
+  await expect(table.getByRole("row")).toHaveCount(3);
+  await expect(pagination.getByRole("button",{name:"Next page"})).toBeDisabled();
+  await footer.screenshot({path:info.outputPath("cursor-table-footer.png")});
+  await chooseSelectOption(page.getByRole("combobox",{name:"DataTable prop state"}),"loading");
+  await expect(pagination.getByRole("button",{name:"Previous page"})).toBeDisabled();
+  await chooseSelectOption(page.getByRole("combobox",{name:"DataTable prop state"}),"ready");
+  await pagination.getByRole("button",{name:"Previous page"}).click();
+  await expect(footer.getByText("1–5",{exact:true})).toBeVisible();
+});
+
+test("a cursor batch keeps host order and selection without a dataset total", async ({page}) => {
+  await open(page);
+  await page.goto("/__data-table.html?cursor");
+  const table = page.getByRole("table", {name:"Cursor results"});
+  const footer = page.locator(".flood-data-table__footer");
+  await expect(table.locator("tbody th, tbody td:nth-child(2)").filter({hasText:/Alpha|Bravo/})).toHaveText(["Bravo","Alpha"]);
+  await table.getByRole("button",{name:"Sort by Name"}).click();
+  await expect(table.getByRole("columnheader",{name:/Name/})).toHaveAttribute("aria-sort","ascending");
+  await expect(table.locator("tbody tr").first()).toContainText("Bravo");
+  await expect(footer.getByRole("status")).toHaveText("1 selected");
+  await table.getByRole("checkbox",{name:"Select rows on this page"}).check();
+  await expect(page.getByLabel("Cursor selection")).toHaveText('["elsewhere","b","a"]');
+  await expect(footer.getByRole("status")).toHaveText("3 selected");
+  await expect(footer.getByRole("link",{name:"Next page"})).toHaveAttribute("href","#later");
+});
+
+test("loading skeletons keep sized header tracks and row density", async ({page}) => {
+  await page.goto("/components/data-table");
+  await chooseSelectOption(page.getByRole("combobox",{name:"DataTable prop loadingAppearance"}),"skeleton");
+  const table = page.getByRole("table",{name:"Projects"});
+  await expect(table).toHaveAttribute("data-fixed-columns", "true");
+  await page.evaluate(() => document.fonts.ready);
+  const widths = () => table.locator("thead th").evaluateAll(cells => cells.map(cell => cell.getBoundingClientRect().width));
+  const readyWidths = await widths();
+  const readyHeight = (await table.locator("tbody tr").first().boundingBox())!.height;
+  await chooseSelectOption(page.getByRole("combobox",{name:"DataTable prop state"}),"loading");
+  const rows = table.locator("tbody tr");
+  await expect(rows).toHaveCount(5);
+  await expect(table).toHaveAttribute("aria-busy","true");
+  await expect(table.getByRole("row")).toHaveCount(1);
+  await expect(page.getByRole("status").filter({hasText:"Loading rows…"})).toHaveCount(1);
+  await expect(table.getByRole("checkbox",{name:"Select rows on this page"})).toBeDisabled();
+  expect((await rows.first().boundingBox())!.height).toBeCloseTo(readyHeight,0);
+  expect(await widths()).toEqual(readyWidths);
+  await chooseSelectOption(page.getByRole("combobox",{name:"DataTable prop state"}),"ready");
+  await expect(table.getByRole("row")).toHaveCount(6);
+  expect(await widths()).toEqual(readyWidths);
+});
+
+test("TableSkeleton matches its loaded table at both densities", async ({page}) => {
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.goto("/components/table-skeleton");
+  const table = page.getByRole("table", {name:"Workspace projects",exact:true});
+  const density = page.getByRole("combobox", {name:"TableSkeleton prop density"});
+  const loaded = page.getByRole("checkbox", {name:"TableSkeleton prop loaded"});
+  const geometry = () => table.evaluate(node => ({
+    widths: Array.from(node.querySelectorAll("thead th"), cell => cell.getBoundingClientRect().width),
+    row: node.querySelector("tbody tr")!.getBoundingClientRect().height,
+  }));
+  for (const value of ["compact", "comfortable"]) {
+    await chooseSelectOption(density, value);
+    await expect(table).toHaveAttribute("aria-busy", "true");
+    await expect(table.getByRole("row")).toHaveCount(1);
+    await expect(table.locator("tbody tr")).toHaveCount(4);
+    await expect(page.getByRole("status").filter({hasText:"Loading rows…"})).toHaveCount(1);
+    const skeleton = await geometry();
+    await loaded.check();
+    await expect(table.getByRole("row")).toHaveCount(5);
+    expect(await geometry()).toEqual(skeleton);
+    await loaded.uncheck();
+  }
+});
+
+test("list skeleton shows decorative rows on DataList tracks with one loading announcement", async ({page}) => {
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.goto("/components/list-skeleton");
+  const skeleton = page.locator(".flood-list-skeleton");
+  await expect(skeleton.getByRole("status")).toHaveText("Loading activity…");
+  await expect(skeleton.getByRole("list")).toHaveCount(0);
+  await expect(skeleton.locator("li")).toHaveCount(3);
+  const avatar = skeleton.locator(".flood-list-skeleton__media").first();
+  await expect(avatar).toHaveCSS("animation-name","none");
+  const diameter = (await avatar.boundingBox())!.width;
+  await page.goto("/components/data-list");
+  const actualAvatar = page.locator(".flood-data-list .flood-avatar").first();
+  await expect(actualAvatar).toBeVisible();
+  expect((await actualAvatar.boundingBox())!.width).toBeCloseTo(diameter,0);
+});
+
+test("background refresh leaves accepted rows and selection usable without moving the table", async ({page}, info) => {
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.goto("/components/data-table");
+  const table = page.getByRole("table",{name:"Projects"});
+  const selection = table.getByRole("checkbox",{name:"Select Design system",exact:true});
+  await selection.check();
+  await page.evaluate(() => document.fonts.ready);
+  const geometry = () => table.evaluate(node => {
+    const outer = node.closest(".flood-data-table")!.getBoundingClientRect();
+    const inner = node.getBoundingClientRect();
+    return {x:inner.x - outer.x,y:inner.y - outer.y,width:inner.width,height:inner.height,outerHeight:outer.height};
+  });
+  const before = await geometry();
+  const refresh = page.getByRole("checkbox",{name:"DataTable prop refreshing"});
+  await refresh.check();
+  await expect(page.getByRole("status").filter({hasText:"Refreshing rows…"})).toHaveCount(1);
+  await expect(table.getByRole("button",{name:"Sort by Project"})).toBeEnabled();
+  await expect(selection).toBeChecked();
+  expect(await geometry()).toEqual(before);
+  await table.locator("..").screenshot({path:info.outputPath("table-refresh.png")});
+  await selection.uncheck();
+  await refresh.uncheck();
+  await expect(page.getByRole("status").filter({hasText:"Refreshing rows…"})).toHaveCount(0);
+  await expect(selection).not.toBeChecked();
+});
 
 test("record action opens from row or keyboard and leaves other controls independent",async({page})=>{
   await open(page,true);
@@ -156,6 +293,32 @@ test("hiding the result range preserves page navigation and selection feedback",
   await expect(footer.getByRole("status")).toHaveCount(0);
   await expect(preview.locator(".flood-data-table > .flood-visually-hidden[role=status]")).toHaveText("1 of 6 selected");
   await expect(footer.getByRole("button", { name: "Previous page", exact: true })).toBeVisible();
+});
+
+test("result and selection summaries use the same footer space", async ({page}) => {
+  await page.goto("/components/data-table");
+  await page.getByRole("checkbox",{name:"DataTable prop replaceResults"}).check();
+  const preview = page.locator(".preview-stage");
+  const footer = preview.locator(".flood-data-table__footer");
+  const results = footer.getByText("1–5 of 7",{exact:true});
+  const summary = footer.getByText("1 of 6 selected",{exact:true});
+  const checkbox = preview.getByRole("checkbox",{name:"Select Design system",exact:true});
+  const geometry = () => footer.evaluate(node => {
+    const table = node.closest(".flood-data-table")!.getBoundingClientRect();
+    const bounds = node.getBoundingClientRect();
+    const navigation = node.querySelector("nav")!.getBoundingClientRect();
+    return {top:bounds.top-table.top,height:bounds.height,paginationX:navigation.left-bounds.left,paginationY:navigation.top-bounds.top};
+  });
+  await expect(results).toBeVisible();
+  const before = await geometry();
+  await checkbox.check();
+  await expect(results).toBeHidden();
+  await expect(summary).toBeVisible();
+  await expect(preview.locator(".flood-data-table > [role=status]")).toHaveText("1 of 6 selected");
+  expect(await geometry()).toEqual(before);
+  await checkbox.uncheck();
+  await expect(results).toBeVisible();
+  expect(await geometry()).toEqual(before);
 });
 
 test("Columns changes the layout without changing the active sort or selected rows", async ({ page }) => {
@@ -328,8 +491,9 @@ test("DataTable loading, retry and empty states retain native table structure",a
   await open(page);await page.getByRole("button",{name:"Load",exact:true}).click();
   await expect(page.locator(".flood-data-table")).toHaveAttribute("aria-busy","true");await expect(page.getByRole("button",{name:"Sort by Name"})).toBeDisabled();
   await expect(page.locator(".flood-data-table__state").getByRole("status")).toBeVisible();
-  await page.getByRole("button",{name:"Fail",exact:true}).click();await expect(page.getByText("Could not load the rows.",{exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"Fail",exact:true}).click();await expect(page.getByRole("heading",{name:"Could not load the rows.",exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Try again",exact:true}).click();expect(await names(page)).toEqual(["Alpha","Bravo"]);
   await page.getByRole("button",{name:"Empty",exact:true}).click();await expect(page.getByText("No results found.",{exact:true})).toBeVisible();
+  await expect(page.getByText("0–0 of 0",{exact:true})).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

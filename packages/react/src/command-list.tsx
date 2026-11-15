@@ -1,5 +1,6 @@
 import {forwardRef, useEffect, useId, useImperativeHandle, useRef, useState} from "react";
-import {Input, Label, ScrollArea, Surface, Text, VisuallyHidden, type CommandListProps, type CommandListItem} from "./index.js";
+import {IconSlot, Input, KeyboardShortcut, Label, ScrollArea, Surface, Text, VisuallyHidden, type CommandListProps, type CommandListItem} from "./index.js";
+import {hasFieldContent} from "./field-state.js";
 
 const searchable = (value: string) => value.normalize("NFKD").replace(/\p{M}/gu,"").toLowerCase();
 
@@ -35,6 +36,7 @@ export const SearchCommandList = /* @__PURE__ */ forwardRef<HTMLInputElement, Se
   const active = enabled.find(item => item.id === activeId) ?? enabled[0];
   const positions = new Map(items.map((item,index) => [item.id,index]));
   const optionId = (item: CommandListItem) => `${listId}-option-${positions.get(item.id)}`;
+  const hasIcons = items.some(item => hasFieldContent(item.icon));
   const blocked = () => Boolean(disabled || loading || input.current?.matches(":disabled"));
   const invoke = (item: CommandListItem) => {
     if (blocked() || item.disabled) return;
@@ -78,14 +80,21 @@ export const SearchCommandList = /* @__PURE__ */ forwardRef<HTMLInputElement, Se
       onCompositionStart={() => { composing.current = true; }} onCompositionEnd={() => { composing.current = false; }}
       onChange={event => { const next = event.currentTarget.value; if (disabled || event.currentTarget.matches(":disabled")) return; if (query === undefined) setLocalQuery(next); onQueryChange?.(next); }} />
     <Surface elevation={integrated ? "overlay" : "default"} padding={integrated ? "2" : "1"}
-      style={integrated ? {background:"transparent"} : undefined} className="flood-command-list__surface">
+      style={integrated ? {background:"transparent"} : undefined} className="flood-command-list__surface" data-has-icons={hasIcons || undefined}>
       <ScrollArea ref={viewport} id={listId} role="listbox" aria-label={label} aria-busy={loading || undefined} aria-disabled={effectiveDisabled || undefined} tabIndex={-1} className="flood-command-list__viewport">
         {status ? <div role="option" aria-disabled="true" aria-selected="false" className="flood-command-list__empty"><Text size="compact" tone="subtle">{status}</Text></div> : [...groups].map(([group,entries],groupIndex) => {
           const content = entries.map(item => <div key={item.id} id={optionId(item)} role="option"
             aria-disabled={item.disabled || effectiveDisabled || undefined} aria-selected={item.id === active?.id} data-active={item.id === active?.id || undefined} className="flood-command-list__option"
+            aria-label={item.shortcut ? [item.label,item.description].filter(Boolean).join(" ") : undefined}
+            aria-describedby={item.shortcut ? `${optionId(item)}-shortcut` : undefined}
             onPointerMove={event => { if (event.pointerType === "mouse" && !blocked() && !item.disabled) setActiveId(item.id); }}
             onPointerDown={event => { if (event.pointerType === "mouse") event.preventDefault(); }} onMouseDown={event => event.preventDefault()} onClick={() => invoke(item)}>
-            <span className="flood-command-list__label">{item.label}</span>{item.description && <span className="flood-command-list__description">{item.description}</span>}
+            {hasFieldContent(item.icon) && <IconSlot size="xs" className="flood-command-list__icon">{item.icon}</IconSlot>}
+            <span className="flood-command-list__copy">
+              <span className="flood-command-list__label">{item.label}</span>
+              {item.description && <span className="flood-command-list__description">{item.description}</span>}
+            </span>
+            {item.shortcut && <KeyboardShortcut id={`${optionId(item)}-shortcut`} keys={item.shortcut} presentation="compact" className="flood-command-list__shortcut" />}
           </div>);
           return group ? <div key={`group:${group}`} role="group" aria-labelledby={`${listId}-group-${groupIndex}`} className="flood-command-list__group">
             <Text as="div" size="helper" tone="subtle" id={`${listId}-group-${groupIndex}`} className="flood-command-list__group-label">{group}</Text>{content}

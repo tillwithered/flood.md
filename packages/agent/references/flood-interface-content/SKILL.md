@@ -132,6 +132,14 @@ decorative warnings on every screen.
 
 ## Review the composed surface
 
+Review the text after the surrounding UI is visible. For each optional string,
+temporarily remove it and name the specific fact or action that becomes harder
+to discover. Recheck with the pane opened on its own, with an active filter,
+or after a failed action when those states change the context. Restore a string
+where its absence matters. For example, a document preview needs a name in its
+own pane but no permanent caption about the PDF font. A failed save needs
+recovery beside the affected action even when routine saves are quiet.
+
 Default optional subtitles and descriptions to absent. A page title plus its
 primary action normally needs no sentence narrating that action. An empty-state
 title identifies the missing content; it is not a slogan. Add explanation only

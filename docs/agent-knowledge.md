@@ -26,6 +26,13 @@ Before delivery, open the list and a selected record together, then use
 `workflow:interface-content` and `reference:interface-content-examples` to
 decide which labels, counts and status messages the user needs in each view.
 
+Each component material includes Design notes alongside its example and API
+reference. Read the notes before choosing a size, variant or composition. For
+example, `component:badge` covers priority and category labels, and
+`component:drawer` explains how to group controls and preserve focus when a
+record leaves its collection. For the public catalog, pass the same ID to
+`read_flood`; for an existing project, use its installed Flood version.
+
 info reports actual installed package versions, the configured guide version,
 framework detection, catalog identity and capability declarations. A version
 mismatch prevents catalog/read from serving an ambiguous guide train. A

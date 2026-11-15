@@ -8,6 +8,8 @@ description: Build or review Flood UI from existing library primitives before ad
 When adding a reusable component or changing its visual contract, read
 [component families](../component-families.md) before choosing anatomy, sizing,
 shape or states. It governs Flood's own components as well as host composites.
+Use its [anatomy and states review](../component-families.md#review-the-anatomy-and-its-states)
+to choose what to inspect for the change.
 
 Existing Flood components are the building blocks, including inside other Flood
 components. Preserve their anatomy and behavior when improving a composition.
@@ -25,6 +27,8 @@ Before changing JSX, identify the visible roles and their existing owners:
 StatusIndicator for a named state, Progress for progress, Badge/FileMeta for
 metadata, IconButton for an icon action, Dialog for modal behavior, Text/Heading
 for typography, and the appropriate form, list or table primitive for semantics.
+Use IconLink for an icon-only destination or download. Use a text Link when
+the glyph needs a visible label to explain its destination.
 Check the actual installed exports and props; do not invent APIs from newer docs.
 
 Search the installed catalog by the role before settling on a low-level building

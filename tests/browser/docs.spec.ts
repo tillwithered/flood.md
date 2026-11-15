@@ -34,13 +34,33 @@ test("the chart guide opens a shared latency example and inspects values by keyb
   await page.getByRole("link", { name: "Try the three latency charts" }).click();
   await expect(page).toHaveURL(/#latency-example$/);
   const example = page.getByRole("region", { name: "Request latency example" });
+  const axes = example.locator(".flood-histogram__axis, .flood-box-plot__axis");
+  const axisLabels = () => axes.evaluateAll(elements =>
+    elements.map(element => Array.from(element.children, tick => tick.textContent)));
+  const allServicesAxisLabels = await axisLabels();
+  expect(allServicesAxisLabels).toEqual([["0", "175", "350"], ["0", "175", "350"]]);
   await example.getByRole("radio", { name: "Search", exact: true }).check();
   const plot = example.getByRole("slider", { name: "Daily median latency" });
   await plot.focus();
   await plot.press("Home");
   await expect(plot).toHaveAttribute("aria-valuetext", "Mon, Median: 203 ms");
   await expect(example.getByRole("group", { name: "Request latency distribution" })).toBeVisible();
-  await expect(example.getByRole("img", { name: /Latency spread by service.*Search/ })).toBeVisible();
+  const distribution = example.getByRole("slider", { name: "Request latency distribution" });
+  await distribution.press("End");
+  await distribution.press("Tab");
+  const spread = example.getByRole("img", { name: /Latency spread by service.*Search/ });
+  await expect(spread).toBeFocused();
+  const readout = spread.locator(".flood-box-plot__tooltip");
+  await expect(readout).toContainText("Search");
+  const range = readout.getByText("165 ms–226 ms", { exact: true });
+  const [lower, upper] = await range.locator("span").evaluateAll(ends =>
+    ends.map(end => end.getBoundingClientRect().top));
+  expect(lower).toBeDefined();
+  expect(upper).toBe(lower);
+  await spread.press("Escape");
+  await expect(spread.locator(".flood-box-plot__tooltip")).toHaveCount(0);
+  await expect(spread).toBeFocused();
+  expect(await axisLabels()).toEqual(allServicesAxisLabels);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 

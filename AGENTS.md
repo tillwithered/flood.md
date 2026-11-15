@@ -13,10 +13,21 @@ the public product, website, documentation, examples and verification tooling.
 - For new components or visual API changes, apply the same
   [component-family contract](packages/agent/references/component-families.md)
   shipped to consumers; compare the closest rendered siblings before adding a recipe.
+- Use the contract's anatomy review for a new component and for affected parts
+  of existing components. Inspect both the detail and its surrounding scene.
 - Route the actual task through [the agent entry](packages/agent/SKILL.md) and
   read the relevant workflow, not every skill. Stabilize behavior and update its
   matching guidance together. The workflow/rules indexes identify applicable
   checks; they do not prove those checks passed.
+- Size skills by the decisions they teach. Keep the starting point, conditions
+  that change it, a representative example for ambiguous choices and the way
+  to verify the result in the main guide. Link specialized detail from the step
+  that needs it. Review ambiguous guidance on realistic clean-agent cases with
+  the expected outcomes withheld from the agent.
+- For a recurring UI failure, identify the component or composition that owns
+  the decision. Record what a reviewer can observe in the affected state and
+  where the recommendation changes with context. Use a browser assertion when
+  the failure has a stable measurable condition.
 - For visible UI changes and visual bug reports, use the [visual review skill](packages/agent/references/flood-visual-review/SKILL.md).
   Reproduce the relevant states in the browser, inspect the captured images and
   link the evidence. Check the same state after a fix and another consumer for a

@@ -1,7 +1,9 @@
-import {forwardRef,useEffect,useMemo,useRef,useState,type MouseEvent} from "react";
-import {Table,Checkbox,Button,Badge,IconSlot,VisuallyHidden,Pagination,Text,Spinner,Alert,Stack,Inline,Menu,Tooltip,type DataTableColumn,type DataTableProps,type DataTableSort,type DataTableRow,type MenuItem} from "./index.js";
+import {forwardRef,useMemo,useState,type CSSProperties,type MouseEvent} from "react";
+import {Table,Checkbox,Button,Badge,IconSlot,VisuallyHidden,Pagination,CursorPagination,Text,Spinner,Progress,ErrorState,LoadingState,Stack,Inline,Menu,Tooltip,TruncatedText,type DataTableColumn,type DataTableProps,type DataTableSort,type DataTableRow,type MenuItem} from "./index.js";
+import {CellPlaceholder} from "./table-skeleton.js";
 import { useDataTableColumnLayout } from "./data-table-columns.js";
 import { DataTableExpandableRow, useDataTableExpansion } from "./data-table-expansion.js";
+import { useInlineOverflow } from "./use-inline-overflow.js";
 
 const columnName = (column: DataTableColumn) => column.unit ? `${column.label} ${column.unit}` : column.label;
 
@@ -12,23 +14,7 @@ function DataTableHeading({ column, sortLabel, disabled, descending, onSort }: {
   descending: boolean;
   onSort: () => void;
 }) {
-  const label = useRef<HTMLSpanElement>(null);
-  const [truncated, setTruncated] = useState(false);
-  useEffect(() => {
-    const node = label.current;
-    if (!node) return;
-    const measure = () => setTruncated(node.scrollWidth > node.clientWidth);
-    measure();
-    const Observer = node.ownerDocument.defaultView?.ResizeObserver;
-    const observer = Observer && new Observer(measure);
-    observer?.observe(node);
-    const fonts = node.ownerDocument.fonts;
-    fonts?.addEventListener("loadingdone", measure);
-    return () => {
-      observer?.disconnect();
-      fonts?.removeEventListener("loadingdone", measure);
-    };
-  }, [column.label, column.unit]);
+  const {ref: label, overflow: truncated} = useInlineOverflow(columnName(column));
 
   const content = <>
     <span ref={label} className="flood-data-table__header-label">{column.label}</span>{" "}
@@ -68,8 +54,8 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
   expandedIds,defaultExpandedIds,onExpandedChange,
   sort:controlledSort,defaultSort=null,onSortChange,locale="en",selectable=false,
   selectedIds,defaultSelectedIds=[],onSelectionChange,page:controlledPage,defaultPage=1,pageSize=10,onPageChange,showResults=true,showSelection=true,
-  paginationMode="client",totalRows,selectionScope,
-  state="ready",onRetry,emptyContent,labels={},className,...props
+  paginationMode="client",paginationPresentation="numbered",cursorPagination,totalRows,selectionScope,
+  state="ready",loadingAppearance="spinner",loadingRowCount=Math.min(5,pageSize),refreshing=false,onRetry,emptyContent,errorContent,labels={},className,...props
 },ref){
   if(!caption.trim()||columns.length===0||columns.some(column=>!column.id.trim()||!column.label.trim())||new Set(columns.map(column=>column.id)).size!==columns.length)throw new Error("Flood DataTable requires a caption and unique named columns");
   if(rows.some(row=>!row.id.trim()||(row.label!==undefined&&!row.label.trim()))||new Set(rows.map(row=>row.id)).size!==rows.length)throw new Error("Flood DataTable rows require unique nonempty IDs and labels");
@@ -78,10 +64,11 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
     !columns.some(column => column.id === primaryAction.column)
   ))) throw new Error("Flood DataTable primary actions require a nonempty title and an existing column");
   if(!Number.isSafeInteger(pageSize)||pageSize<1||!Number.isSafeInteger(defaultPage)||defaultPage<1||(controlledPage!==undefined&&(!Number.isSafeInteger(controlledPage)||controlledPage<1)))throw new Error("Flood DataTable page and pageSize must be positive safe integers");
-  const server=paginationMode==="server",scope=selectionScope??(server?"page":"dataset");
+  if (!Number.isSafeInteger(loadingRowCount) || loadingRowCount < 1) throw new Error("Flood DataTable loadingRowCount must be a positive safe integer");
+  const server=paginationMode==="server",cursor=paginationMode==="cursor",remote=server||cursor,scope=selectionScope??(remote?"page":"dataset");
   if(server&&(controlledPage===undefined||!onPageChange||!Number.isSafeInteger(totalRows)||(totalRows??-1)<0))throw new Error("Flood server DataTable requires page, onPageChange and a nonnegative totalRows");
-  if(server&&columns.some(column=>column.sortable)&&(controlledSort===undefined||!onSortChange))throw new Error("Flood server sorting requires sort (or null) and onSortChange");
-  if(server&&selectable&&scope==="dataset"&&(selectedIds===undefined||!onSelectionChange))throw new Error("Flood server dataset selection must be controlled");
+  if(remote&&columns.some(column=>column.sortable)&&(controlledSort===undefined||!onSortChange))throw new Error("Flood remote sorting requires sort (or null) and onSortChange");
+  if(remote&&selectable&&scope==="dataset"&&(selectedIds===undefined||!onSelectionChange))throw new Error("Flood remote dataset selection must be controlled");
   const [localSort,setSort]=useState(defaultSort),[localSelected,setSelected]=useState<readonly string[]>(defaultSelectedIds),[localPage,setPage]=useState(defaultPage);
   const requestedSort=controlledSort===undefined?localSort:controlledSort;
   const sorting=requestedSort&&columns.some(column=>column.id===requestedSort.column&&column.sortable)?requestedSort:null;
@@ -98,7 +85,8 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
   ];
   const expansion = useDataTableExpansion(rows, expandedIds, defaultExpandedIds, onExpandedChange);
   const columnLayout = useDataTableColumnLayout(columns, visibleColumns, {
-    columnWidths, defaultColumnWidths, onColumnWidthsChange, measureViewport: expansion.enabled,
+    columnWidths, defaultColumnWidths, onColumnWidthsChange,
+    measureViewport: expansion.enabled || state !== "ready" || rows.length === 0,
   });
   const columnCount = visibleColumns.length + Number(selectable) + Number(expansion.enabled);
   const visibleIds = new Set(visibleColumns.map(column => column.id));
@@ -132,7 +120,7 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
       disabled: visibilityAtDefaults && columnLayout.atDefaults },
   ] : [];
   const sorted=useMemo(()=>{
-    if(server||!sorting)return [...rows];
+    if(remote||!sorting)return [...rows];
     const collator=new Intl.Collator(locale,{numeric:true,sensitivity:"base"});
     const value=(row:DataTableRow)=>{
       const explicit=row.sortValues?.[sorting.column];
@@ -147,11 +135,13 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
       const comparison=typeof left==="number"&&typeof right==="number"?left-right:collator.compare(String(left),String(right));
       return comparison===0?a.index-b.index:comparison*(sorting.direction==="ascending"?1:-1);
     }).map(entry=>entry.row);
-  },[rows,sorting?.column,sorting?.direction,locale,server]);
-  const total=server?totalRows!:rows.length,pageCount=Math.max(1,Math.ceil(total/pageSize)),page=server?controlledPage!:Math.min(controlledPage??localPage,pageCount);
+  },[rows,sorting?.column,sorting?.direction,locale,remote]);
+  const total=server?totalRows!:rows.length;
+  const pageCount=cursor?1:Math.max(1,Math.ceil(total/pageSize));
+  const page=cursor?1:server?controlledPage!:Math.min(controlledPage??localPage,pageCount);
   if(server&&state==="ready"&&(page>pageCount||rows.length>pageSize||(page-1)*pageSize+rows.length>total))throw new Error("Flood server rows and page must match totalRows/pageSize; reconcile the page after a query change");
-  const visible=server?sorted:sorted.slice((page-1)*pageSize,page*pageSize),eligible=new Set((scope==="page"?visible:rows).filter(row=>!row.selectionDisabled).map(row=>row.id));
-  const accepts=(id:string)=>server&&scope==="dataset"?!rows.some(row=>row.id===id&&row.selectionDisabled):eligible.has(id);
+  const visible=remote?sorted:sorted.slice((page-1)*pageSize,page*pageSize),eligible=new Set((scope==="page"?visible:rows).filter(row=>!row.selectionDisabled).map(row=>row.id));
+  const accepts=(id:string)=>remote&&scope==="dataset"?!rows.some(row=>row.id===id&&row.selectionDisabled):eligible.has(id);
   const selection=[...new Set(selectedIds??localSelected)].filter(accepts),chosen=new Set(selection);
   const pageChoices=visible.filter(row=>!row.selectionDisabled),all=pageChoices.length>0&&pageChoices.every(row=>chosen.has(row.id)),some=pageChoices.some(row=>chosen.has(row.id));
   const blocked=state!=="ready";
@@ -164,9 +154,20 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
     if(page!==1)changePage(1);
   };
   const resultLabel=labels.results??((from:number,to:number,total:number)=>`${from}–${to} of ${total}`);
+  const showResultSummary = showResults && (cursor
+    ? Boolean(cursorPagination?.position)
+    : state !== "ready" || visible.length > 0 || labels.results !== undefined);
   const selectionLabel = selectable
-    ? (labels.selection ?? ((count, total) => `${count} of ${total} selected`))(selection.length, server && scope === "dataset" ? total : eligible.size)
+    ? cursor && scope === "dataset"
+      ? (labels.cursorSelection ?? (count => `${count} selected`))(selection.length)
+      : (labels.selection ?? ((count, total) => `${count} of ${total} selected`))(selection.length, server && scope === "dataset" ? total : eligible.size)
     : null;
+  const separateSelection = selectable && showSelection === true;
+  const sharedSummary = selectable && showSelection === "replace-results" && showResultSummary;
+  const showSummarySelection = sharedSummary && selection.length > 0;
+  const resultText = showResultSummary && state === "ready"
+    ? cursor ? cursorPagination?.position : resultLabel(visible.length ? (page - 1) * pageSize + 1 : 0, visible.length ? (page - 1) * pageSize + visible.length : 0, total)
+    : "";
   const renderToolbar = typeof toolbar === "function" ? toolbar : null;
   const columnsControl = showColumnVisibility ? (
     <Menu label={labels.columns ?? "Columns"} items={columnItems} align="end"
@@ -179,12 +180,25 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
   ) : null;
   const toolbarContent = typeof toolbar === "function" ? toolbar({ columns: columnsControl }) : toolbar;
   const sortLabel = labels.sort ?? ((label: string) => `Sort by ${label}`);
-  return <div {...props} ref={ref} className={["flood-data-table",className].filter(Boolean).join(" ")} data-inset={inset} aria-busy={state==="loading"||undefined}>
+  const showSkeleton = state === "loading" && loadingAppearance === "skeleton";
+  const showLoadingMessage = state === "loading" && loadingAppearance === "message";
+  const tableBusy = showSkeleton || showLoadingMessage;
+  const showRefresh = state === "ready" && refreshing && visible.length > 0;
+  const loadingLabel = labels.loading?.trim() ? labels.loading : "Loading rows…";
+  const refreshingLabel = labels.refreshing ?? "Refreshing rows…";
+  const errorLabel = labels.error?.trim() ? labels.error : "Could not load the rows.";
+  const activityLabel = tableBusy ? loadingLabel : state === "error" ? errorLabel : showRefresh ? refreshingLabel : "";
+  return <div {...props} ref={ref} className={["flood-data-table",className].filter(Boolean).join(" ")} data-inset={inset} aria-busy={state==="loading"&&!tableBusy||undefined}>
     {columnsControl && !renderToolbar ? <Inline gap="3" className="flood-data-table__toolbar">
       {toolbarContent != null && <div className="flood-data-table__toolbar-content">{toolbarContent}</div>}
       {columnsControl}
     </Inline> : toolbarContent != null && <div className="flood-data-table__toolbar">{toolbarContent}</div>}
+    <div className="flood-data-table__activity">
+      <VisuallyHidden role="status" aria-atomic="true">{activityLabel}</VisuallyHidden>
+      {showRefresh && <Progress aria-hidden="true" size="sm" tone="neutral" hideLabel label={refreshingLabel} />}
+    </div>
     <Table ref={columnLayout.table} className="flood-data-table__table" caption={caption} hideCaption={hideCaption} density={density} striped={striped}
+      aria-busy={tableBusy || undefined}
       maxViewportHeight={maxViewportHeight} stickyHeader={stickyHeader}
       data-inset={inset} data-fixed-columns={columnLayout.fixedWidth !== undefined || undefined}
       style={columnLayout.fixedWidth === undefined ? {minWidth} : {minWidth,inlineSize:columnLayout.fixedWidth,tableLayout:"fixed"}}>
@@ -210,7 +224,21 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
         </th>;
         })}
       </tr></thead>
-      <tbody>{state==="ready"&&visible.length>0?visible.map(row=><DataTableExpandableRow key={row.id} row={row}
+      <tbody>{showSkeleton ? Array.from({length: Math.min(loadingRowCount,pageSize)}, (_, index) => (
+        <tr key={index} className="flood-data-table__placeholder-row" aria-hidden="true">
+          {expansion.enabled && <td {...columnLayout.utilityCell("expansion")} className="flood-data-table__expand">
+            <span className="flood-data-table__placeholder-disclosure" />
+          </td>}
+          {selectable && <td {...columnLayout.utilityCell("selection")} className="flood-data-table__choice">
+            <span className="flood-data-table__placeholder-choice" />
+          </td>}
+          {visibleColumns.map((column, columnIndex) => <td {...columnLayout.columnCell(column)} key={column.id}
+            data-numeric={column.numeric || undefined} data-align={column.align}>
+            <CellPlaceholder align={column.align ?? (column.numeric ? "end" : undefined)}
+              wide={(index + columnIndex) % 3 === 0} lines={column.placeholderLines} />
+          </td>)}
+        </tr>
+      )) : state==="ready"&&visible.length>0?visible.map(row=><DataTableExpandableRow key={row.id} row={row}
         showDisclosure={expansion.enabled} expanded={expansion.expanded.has(row.id)} colSpan={columnCount}
         labels={labels} onToggle={() => expansion.toggle(row.id)} disclosureCellProps={columnLayout.utilityCell("expansion")}
         viewportWidth={columnLayout.viewportWidth} disclosureWidth={columnLayout.disclosureWidth}>
@@ -228,17 +256,31 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
             </Button>
             {row.primaryAction.description != null && <Text as="div" size="helper" tone="subtle">{row.primaryAction.description}</Text>}
           </Stack>
-          : row.cells[column.id]??null}</td>)}
+          : column.cellOverflow === "truncate" && typeof row.cells[column.id] === "string"
+            ? <TruncatedText className="flood-data-table__cell-text">{row.cells[column.id] as string}</TruncatedText>
+            : row.cells[column.id]??null}</td>)}
       </tr>}
       </DataTableExpandableRow>):<tr><td colSpan={columnCount} className="flood-data-table__state">
-        {state==="loading"?<Spinner label={labels.loading??"Loading rows…"}/>:state==="error"?<Stack gap="3"><Alert tone="error" announcement="polite">{labels.error??"Could not load the rows."}</Alert>{onRetry&&<Button variant="subtle" size="sm" onClick={onRetry}>{labels.retry??"Try again"}</Button>}</Stack>:emptyContent??<Text as="p" size="compact" tone="subtle" role="status">{labels.empty??"No results found."}</Text>}
+        <div className="flood-data-table__state-content" data-plain={(state === "loading" && !showLoadingMessage) || (state === "ready" && emptyContent == null) || undefined}
+          style={columnLayout.viewportWidth ? {"--flood-data-table-state-width": `${columnLayout.viewportWidth}px`} as CSSProperties : undefined}>
+          {state === "loading" ? (showLoadingMessage ? <LoadingState label={loadingLabel} layout="row" density="compact" /> : <Spinner label={loadingLabel} />)
+            : state === "error" ? errorContent ?? <ErrorState title={errorLabel} headingLevel={3} density="compact" onRetry={onRetry} retryLabel={labels.retry} />
+            : emptyContent ?? <Text as="p" size="compact" tone="subtle" role="status">{labels.empty ?? "No results found."}</Text>}
+        </div>
       </td></tr>}</tbody>
     </Table>
-    {selectable && !showSelection && <VisuallyHidden role="status">{selectionLabel}</VisuallyHidden>}
-    {(showResults||(selectable&&showSelection)||pageCount>1)&&<div className="flood-data-table__footer">
-      {showResults&&<Text as="p" size="helper" tone="subtle">{state==="ready"?resultLabel(visible.length?(page-1)*pageSize+1:0,visible.length?(page-1)*pageSize+visible.length:0,total):""}</Text>}
-      {selectable&&showSelection&&<Text as="p" size="helper" tone="subtle" role="status">{selectionLabel}</Text>}
-      {pageCount>1&&<Pagination page={Math.min(page,pageCount)} pageCount={pageCount} onPageChange={changePage} disabled={blocked} label={labels.pagination} previousLabel={labels.previousPage} nextLabel={labels.nextPage} pageLabel={labels.page}/>}
+    {selectable && !separateSelection && <VisuallyHidden role="status">{selectionLabel}</VisuallyHidden>}
+    {(showResultSummary || separateSelection || pageCount > 1 || (cursor && cursorPagination)) && <div className="flood-data-table__footer">
+      {sharedSummary ? <div className="flood-data-table__summary">
+        <Text as="p" size="helper" tone="subtle" data-inactive={showSummarySelection || undefined}>{resultText}</Text>
+        <Text as="p" size="helper" tone="subtle" data-inactive={!showSummarySelection || undefined} aria-hidden="true">{selectionLabel}</Text>
+      </div> : showResultSummary && <Text as="p" size="helper" tone="subtle">{resultText}</Text>}
+      {separateSelection && <Text as="p" size="helper" tone="subtle" role="status">{selectionLabel}</Text>}
+      {pageCount>1&&<Pagination page={Math.min(page,pageCount)} pageCount={pageCount} presentation={paginationPresentation} positionLabel={labels.pagePosition} formatPage={labels.pageNumber} onPageChange={changePage} disabled={blocked} label={labels.pagination} previousLabel={labels.previousPage} nextLabel={labels.nextPage} pageLabel={labels.page}/>}
+      {cursor && cursorPagination && <CursorPagination
+        previous={blocked ? undefined : cursorPagination.previous} next={blocked ? undefined : cursorPagination.next}
+        pending={blocked ? undefined : cursorPagination.pending} variant={paginationPresentation === "arrows" ? "ghost" : "subtle"}
+        label={labels.pagination} previousLabel={labels.previousPage} nextLabel={labels.nextPage} />}
     </div>}
   </div>;
 });

@@ -1,10 +1,10 @@
 import { forwardRef, useId, useImperativeHandle, useRef } from 'react';
-import { Button, Field, Fieldset, IconSlot, Inline, Popover, SearchInput, Tag, Text, type CollectionToolbarProps } from './index.js';
+import { Button, Field, Fieldset, IconSlot, Inline, Popover, SearchInput, TagGroup, Text, type CollectionToolbarProps } from './index.js';
 
 /** Query chrome only: the host supplies filter drafts, accepted query and saved views. */
 export const CollectionQueryBar = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, CollectionToolbarProps>(function CollectionQueryBar({
   label, searchValue, onSearchValueChange, searchLabel = 'Search', searchPlaceholder = 'Search…', clearSearchLabel = 'Clear search',
-  appliedFilters = [], onRemoveFilter, appliedFiltersLabel = 'Applied filters', summaryPrefix, align = 'stretch', quickFilters, actions,
+  appliedFilters = [], onRemoveFilter, appliedFiltersLabel = 'Applied filters', appliedFilterDisplay, summaryPrefix, align = 'stretch', quickFilters, actions,
   filterContent, filtersLabel = 'Filters', filterTitle = filtersLabel, filtersOpen, onFiltersOpenChange,
   filterPanelRef, filterPanelClassName, onClear, canClear = Boolean(searchValue || appliedFilters.length), clearLabel = 'Clear filters',
   controlSize = 'sm', disabled = false, hideLabel = true, className, ...props
@@ -16,30 +16,32 @@ export const CollectionQueryBar = /* @__PURE__ */ forwardRef<HTMLFieldSetElement
       new Set(appliedFilters.map(filter => filter.id)).size !== appliedFilters.length || appliedFilters.some(filter => !filter.id.trim() || !filter.label.trim()))
     throw new Error('Flood CollectionToolbar requires named controls and unique applied filter IDs');
   const hasPanel = filterContent !== undefined && filterContent !== null && filterContent !== false;
-  const hasSummary = Boolean(quickFilters) || appliedFilters.length > 0;
+  const split = align === 'split';
+  const hasSummary = Boolean(quickFilters) || appliedFilters.length > 0 || (split && Boolean(onClear));
   function focusPersistent() {
     const document = root.current?.ownerDocument;
     document?.getElementById(hasPanel ? triggerId : searchId)?.focus({ preventScroll: true });
   }
+  const reset = onClear && <Button size={controlSize} variant="outline" className="flood-collection-toolbar__clear" data-visible={canClear}
+    disabled={disabled || !canClear} aria-hidden={!canClear || undefined}
+    onClick={() => { if (!disabled && canClear) { focusPersistent(); onClear(); } }}>{clearLabel}</Button>;
   return <Fieldset {...props} ref={root} legend={label} hideLabel={hideLabel} disabled={disabled}
     className={['flood-collection-toolbar', className].filter(Boolean).join(' ')} data-align={align}>
-    <Inline gap="3" align="center" className="flood-collection-toolbar__row">
+    <Inline gap="3" align={appliedFilterDisplay?.maxVisibleTags === undefined ? "center" : "start"} className="flood-collection-toolbar__row">
       <div className="flood-collection-toolbar__search"><Field id={searchId} label={searchLabel} hideLabel>{field => <SearchInput {...field}
         controlSize={controlSize} value={searchValue} placeholder={searchPlaceholder} clearLabel={clearSearchLabel} disabled={disabled}
         onChange={event => { if (!disabled) onSearchValueChange(event.currentTarget.value); }} />}</Field></div>
       {hasSummary && <Inline gap="2" align="center" role="group" aria-label={appliedFiltersLabel} className="flood-collection-toolbar__summaries">
+        {split && reset}
         {quickFilters}
         {summaryPrefix && <Text size="compact" tone="subtle">{summaryPrefix}</Text>}
-        {appliedFilters.map(filter => <Tag key={filter.id} size={controlSize === 'xl' ? 'lg' : 'md'} disabled={disabled || filter.disabled}
-          removeLabel={filter.removeLabel ?? `Remove ${filter.label}`} onRemove={onRemoveFilter ? () => {
-            if (disabled || filter.disabled) return;
-            focusPersistent(); onRemoveFilter(filter.id);
-          } : undefined}>{filter.label}</Tag>)}
+        {appliedFilters.length > 0 && <TagGroup {...appliedFilterDisplay} label={appliedFiltersLabel}
+          className="flood-collection-toolbar__tags" items={appliedFilters}
+          size={controlSize === 'xl' ? 'lg' : 'md'} disabled={disabled}
+          onRemove={onRemoveFilter && (id => { focusPersistent(); onRemoveFilter(id); })} />}
       </Inline>}
-      {(onClear || hasPanel || actions) && <Inline gap="2" align="center" className="flood-collection-toolbar__commands">
-        {onClear && <Button size={controlSize} variant="outline" className="flood-collection-toolbar__clear" data-visible={canClear}
-          disabled={disabled || !canClear} aria-hidden={!canClear || undefined}
-          onClick={() => { if (disabled || !canClear) return; focusPersistent(); onClear(); }}>{clearLabel}</Button>}
+      {((!split && onClear) || hasPanel || actions) && <Inline gap="2" align="center" className="flood-collection-toolbar__commands">
+        {!split && reset}
         {hasPanel && <Popover title={filterTitle} ref={filterPanelRef} className={filterPanelClassName} open={filtersOpen}
           onOpenChange={onFiltersOpenChange} disabled={disabled} align="end"
           trigger={trigger => <Button {...trigger} id={triggerId} variant="outline" size={controlSize}>

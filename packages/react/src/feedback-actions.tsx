@@ -1,6 +1,6 @@
 import {forwardRef, useEffect, useImperativeHandle, useRef, useState, type MouseEvent} from "react";
 import type {CopyButtonProps, ToastRegionProps, ToastItem} from "./index.js";
-import {Button, IconButton, IconSlot, Spinner, VisuallyHidden} from "./index.js";
+import {Button, IconButton, IconSlot, ScrollArea, Spinner, VisuallyHidden} from "./index.js";
 
 function ClipboardGlyph({ index, pending }: { index: number; pending: boolean }) {
   if (pending) return <Spinner decorative />;
@@ -17,35 +17,45 @@ export const ClipboardAction = /* @__PURE__ */ forwardRef<HTMLButtonElement, Cop
   resetDelay = 2000, onCopied, onCopyError, className, disabled, size = "md", variant = "subtle", "aria-label": accessibleLabel, ...props
 }, ref) {
   if (!Number.isFinite(resetDelay) || resetDelay < 0) throw new Error("Flood CopyButton resetDelay must be finite and nonnegative");
-  const [phase, setPhase] = useState<"idle" | "copied" | "error">("idle");
+  const [result, setResult] = useState<{value: string; phase: "copied" | "error"}>();
   const [pending, setPending] = useState(false);
+  const writing = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; clearTimeout(timer.current); }; }, []);
+  const phase = result?.value === value ? result.phase : "idle";
   const phaseIndex = phase === "copied" ? 1 : phase === "error" ? 2 : 0;
   const labels = [copyLabel, copiedLabel, errorLabel];
   const label = labels[phaseIndex];
   const copy = async (node: HTMLButtonElement) => {
-    if (pending || node.matches(":disabled")) return;
-    clearTimeout(timer.current); setPending(true);
+    if (writing.current || node.matches(":disabled, [aria-disabled='true']")) return;
+    writing.current = true;
+    clearTimeout(timer.current);
+    setResult(undefined);
+    setPending(true);
     const view = node.ownerDocument.defaultView;
     try {
       if (!view?.navigator.clipboard?.writeText) throw new Error("Clipboard writing is unavailable in this context");
       await view.navigator.clipboard.writeText(value);
     } catch (error) {
-      if (alive.current) { setPending(false); setPhase("error"); }
+      if (alive.current) setResult({value, phase:"error"});
       onCopyError?.(error);
       return;
+    } finally {
+      writing.current = false;
+      if (alive.current) setPending(false);
     }
     if (alive.current) {
-      setPending(false); setPhase("copied"); clearTimeout(timer.current);
-      timer.current = setTimeout(() => { if (alive.current) setPhase("idle"); }, resetDelay);
+      setResult({value, phase:"copied"});
+      timer.current = setTimeout(() => { if (alive.current) setResult(undefined); }, resetDelay);
     }
     onCopied?.();
   };
   const buttonLabel = accessibleLabel ? (phase === "idle" ? accessibleLabel : `${label}: ${accessibleLabel}`) : label;
   const buttonProps = {
-    ...props, ref, type: "button" as const, size, variant, disabled: disabled || pending,
+    ...props, ref, type: "button" as const, size, variant, disabled,
+    "aria-disabled": pending || props["aria-disabled"],
+    "aria-busy": pending || props["aria-busy"],
     className: ["flood-copy-button", className].filter(Boolean).join(" "),
     onClick: (event: MouseEvent<HTMLButtonElement>) => { void copy(event.currentTarget); },
   };
@@ -126,6 +136,8 @@ export const NotificationRegion = /* @__PURE__ */ forwardRef<HTMLDivElement, Toa
   }, [hotkey]);
   return <div {...props} ref={node}
     role="region" aria-label={label} tabIndex={-1} className={["flood-toast-region",className].filter(Boolean).join(" ")} data-placement={placement} data-inline={inline || undefined}>
-    <ol className="flood-toast-region__list">{items.slice(0,limit).map(item => <TimedToast key={item.id} item={item} closeLabel={closeLabel} onDismiss={onDismiss}/>)}</ol>
+    <ScrollArea contentInset="none" tabIndex={-1} className="flood-toast-region__viewport">
+      <ol role="list" className="flood-toast-region__list">{items.slice(0,limit).map(item => <TimedToast key={item.id} item={item} closeLabel={closeLabel} onDismiss={onDismiss}/>)}</ol>
+    </ScrollArea>
   </div>;
 });

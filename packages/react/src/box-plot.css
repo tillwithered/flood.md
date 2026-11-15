@@ -9,11 +9,6 @@
   min-block-size: 11rem;
   cursor: crosshair;
 }
-.flood-root .flood-box-plot__plot:focus-visible {
-  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
-  outline-offset: var(--flood-sys-focus-offset);
-  border-radius: var(--flood-sys-radius-indicator);
-}
 .flood-root .flood-box-plot__rows {
   position: relative;
   isolation: isolate;
@@ -117,7 +112,8 @@
   display: grid;
   row-gap: var(--flood-sys-space-1);
   column-gap: var(--flood-chart-tip-gap);
-  inline-size: min(12rem, calc(50% - 2 * var(--flood-chart-tip-gap)));
+  inline-size: max-content;
+  max-inline-size: calc(100% - 2 * var(--flood-chart-tip-gap));
   visibility: hidden;
 }
 .flood-root .flood-box-plot__tooltip[data-positioned] { visibility: visible; }
@@ -125,11 +121,10 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--flood-sys-space-1);
+  gap: var(--flood-sys-space-3);
 }
-.flood-root .flood-box-plot__reading > :last-child { text-align: end; }
-.flood-root .flood-box-plot__reading > :first-child,
-.flood-root .flood-box-plot__reading > :last-child > span { white-space: nowrap; }
+.flood-root .flood-box-plot__reading > :last-child { min-inline-size: 0; text-align: end; }
+.flood-root .flood-box-plot__reading > :last-child > span { display: inline-block; max-inline-size: 100%; }
 .flood-root .flood-box-plot__empty {
   display: grid;
   place-items: center;

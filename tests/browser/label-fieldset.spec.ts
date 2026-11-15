@@ -1,6 +1,37 @@
 import { test, expect } from "@playwright/test";
 import { chooseSelectOption } from "./select-helpers";
 
+test("HelpTip leaves native label activation and aligned field tracks intact", async ({ page }) => {
+  await page.goto("/components/help-tip");
+  const stage = page.locator(".preview-stage");
+  const button = stage.getByRole("button", {name:"About project prefixes"});
+  const input = stage.getByRole("textbox", {name:"Project prefix"});
+  const panel = page.getByRole("dialog", {name:"About project prefixes"});
+  await button.hover();
+  await expect(panel).toBeHidden();
+  await button.press("Enter");
+  await expect(panel).toBeFocused();
+  await expect(panel).toHaveAccessibleDescription("The prefix appears at the start of issue IDs, like SN-42.");
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await expect(button).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(input).toBeFocused();
+  await stage.locator("label").click();
+  await expect(input).toBeFocused();
+
+  await page.goto("/components/fieldset");
+  await chooseSelectOption(page.getByRole("combobox", {name:"Fieldset prop layout"}), "aligned");
+  await page.getByRole("checkbox", {name:"Fieldset prop showHelp"}).check();
+  await page.setViewportSize({width:1440,height:1000});
+  const workspace = stage.getByRole("textbox", {name:"Workspace name"});
+  const prefix = stage.getByRole("textbox", {name:"Project prefix"});
+  expect((await prefix.boundingBox())!.x).toBeCloseTo((await workspace.boundingBox())!.x, 0);
+  await page.getByRole("checkbox", {name:"Fieldset prop constrainWidth"}).check();
+  const prefixLabel = stage.getByText("Project prefix", {exact:true});
+  expect((await prefix.boundingBox())!.y).toBeGreaterThan((await prefixLabel.boundingBox())!.y);
+});
+
 test("standalone Label focuses its control and its marker preserves native required", async ({ page }) => {
   await page.goto("/components/label");
   const stage = page.locator(".preview-stage"), input = stage.getByRole("textbox", { name: "Project name" });

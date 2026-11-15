@@ -48,7 +48,7 @@
   .flood-root:not([data-flood-motion="reduce"]) .flood-disclosure__indicator:not(:where([data-flood-motion="reduce"] *)) {
     transition-duration: var(--flood-sys-motion-duration-normal);
   }
-  .flood-root:not([data-flood-motion="reduce"]) :is(.flood-disclosure__panel, .flood-tabs__panel):not(:where([data-flood-motion="reduce"] *)):not([hidden]) {
+  .flood-root:not([data-flood-motion="reduce"]) .flood-tabs__panel:not(:where([data-flood-motion="reduce"] *)):not([hidden]) {
     animation: flood-reveal-content var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing-enter) both;
   }
   .flood-root:not([data-flood-motion="reduce"]) .flood-navigation-tree__branch:not(:where([data-flood-motion="reduce"] *)) {
@@ -105,7 +105,7 @@
 
 @media (hover: hover) and (forced-colors: none) {
   .flood-root :is(
-    .flood-input:not(.flood-input-group > .flood-input, .flood-command-palette .flood-input),
+    .flood-input:not(.flood-input-group > .flood-input, .flood-command-palette .flood-input, .flood-message-composer__editor),
     .flood-input-group:not(:has(input:disabled)),
     .flood-date-field__control,
     .flood-time-field__control

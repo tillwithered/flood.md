@@ -2,6 +2,7 @@ import {test,expect,type Page} from '@playwright/test';
 import {build} from 'vite';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {chooseSelectOption} from "./select-helpers";
 let bundle:Promise<string>;
 async function fixture(){
  const file=(path:string)=>JSON.stringify(resolve(path).replaceAll('\\','/'));const folder=resolve(`.artifacts/listbox-forms-${process.pid}`);await mkdir(folder,{recursive:true});const entry=resolve(folder,'entry.mjs');
@@ -40,4 +41,29 @@ test('multiple reset cancellation and external form ownership keep exact accepte
  await page.getByRole('checkbox',{name:'Cancel reset',exact:true}).uncheck();await page.getByRole('button',{name:'Reset choices now',exact:true}).click();await expect.poll(()=>values(page,'reset')).toEqual([['reset','alpha']]);
  const remote=page.getByRole('listbox',{name:'Remote choices',exact:true});await expect(remote).toHaveAccessibleDescription('Review this choice.');await expect(remote).toHaveAttribute('data-status','warning');expect(await values(page,'remote')).toEqual([['remote','beta']]);
  await remote.getByRole('option',{name:'Alpha',exact:true}).click();expect(await values(page,'remote')).toEqual([['remote','alpha']]);
+});
+test("ListBox preserves the avatar axis and option width across overflow", async ({page}, info) => {
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto("/components/list-box");
+  await chooseSelectOption(page.getByRole("combobox",{name:"ListBox prop options"}),"people");
+  const list = page.locator(".preview-stage").getByRole("listbox",{name:"Assignee",exact:true});
+  const maya = list.getByRole("option",{name:/Maya Chen/});
+  const unassigned = list.getByRole("option",{name:"Unassigned",exact:true});
+  const copy = ".flood-list-box__copy";
+  await expect(maya.locator(".flood-avatar")).toHaveAttribute("aria-hidden","true");
+  await expect(unassigned.locator(".flood-avatar")).toHaveCount(0);
+  expect((await maya.locator(copy).boundingBox())!.x).toBeCloseTo((await unassigned.locator(copy).boundingBox())!.x,1);
+  const width = (await maya.boundingBox())!.width;
+  await page.getByRole("checkbox",{name:"ListBox prop manyOptions"}).check();
+  await expect(list).toHaveAttribute("data-scrollbars","overlay");
+  await expect.poll(()=>list.evaluate(node=>node.scrollHeight-node.clientHeight)).toBeGreaterThan(0);
+  expect((await maya.boundingBox())!.width).toBeCloseTo(width,1);
+  await page.evaluate(()=>document.fonts.ready);
+  await list.locator("..").screenshot({path:info.outputPath("list-box-people.png")});
+  await list.press("End");
+  await expect(list.getByRole("option",{name:"Mina Patel"})).toHaveAttribute("aria-selected","true");
+  await expect.poll(()=>list.evaluate(node=>node.scrollTop)).toBeGreaterThan(0);
+  await chooseSelectOption(page.getByRole("combobox",{name:"ListBox prop appearance"}),"plain");
+  await expect(list).not.toHaveAttribute("data-scrollbars");
+  await expect(list.getByRole("option",{name:"Mina Patel"})).toHaveAttribute("aria-selected","true");
 });

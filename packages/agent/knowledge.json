@@ -80,6 +80,10 @@
     "screen-composition": [
       "composition"
     ],
+    "layout-composition": ["composition", "foundations"],
+    "application-structure": ["composition", "interaction"],
+    "typography": ["foundations", "quality"],
+    "decision-design": ["composition", "data-feedback"],
     "hierarchy": [
       "foundations",
       "composition"
@@ -475,7 +479,8 @@
     "recipe:table-bulk-actions": [
       "workflow:composition",
       "workflow:data-display",
-      "workflow:navigation"
+      "workflow:navigation",
+      "workflow:screen-composition"
     ],
     "recipe:grouped-form": [
       "workflow:composition",

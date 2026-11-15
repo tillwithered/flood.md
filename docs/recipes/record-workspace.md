@@ -30,6 +30,9 @@ discard late responses. Changing a filter resets the page and selection. Sorting
 resets the page; selection retains its IDs. The current page's checkbox selects
 only those rows. Bulk confirmation captures the proposed IDs before applying
 the operation, and a failed write leaves that selection available for retry.
+BulkActionBar shows the visible selected count and floats above the workspace.
+DataTable keeps the result range and announces selection. The workspace
+reserves clearance for the bar before selection.
 
 Injecting a real loader requires validating its payload and supplying a coherent
 total/page result. Transport, permissions, reconciliation with other writers,
@@ -39,6 +42,7 @@ authorization and production data durability remain host responsibilities.
 
 NavigationList owns destinations, Grid/Stack own the shell and shared field
 tracks, and the header stays at the same top anchor in short and long views.
+MetricGroup puts the related project counts on one aligned overview surface.
 The pane separator uses ResizablePanels when the workspace has room; narrower
 containers stack the navigation and editor with existing Grid/Stack owners. Table/DataTable keep dense horizontal
 overflow in their own region. The editor's Grid can reduce its track count with

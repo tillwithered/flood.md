@@ -215,6 +215,35 @@ test('Steps requests host navigation without pretending to be tabs or changing c
  await page.getByRole('checkbox',{name:'Steps prop disableLast',exact:true}).check();await expect(stage.getByRole('button',{name:/Review/})).toBeDisabled();await page.getByRole('checkbox',{name:'Steps prop error',exact:true}).check();await expect(stage.locator('[data-state=error]')).toContainText('Needs attention');
 });
 
+test('horizontal Steps follow panel width and retain step focus when they stack', async ({page}) => {
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto('/components/steps');
+  const steps = page.getByRole('list',{name:'Project setup'});
+  await page.getByRole('checkbox',{name:'Steps prop interactive',exact:true}).check();
+  const access = steps.getByRole('button',{name:/Access/});
+  await access.focus();
+  const readTracks = () => steps.evaluate(node => {
+    const rows = Array.from(node.children, item => item.getBoundingClientRect());
+    return {columns:new Set(rows.map(row => row.x)).size, fits:node.scrollWidth <= node.clientWidth};
+  });
+  expect(await readTracks()).toEqual({columns:3,fits:true});
+  await steps.evaluate(node => { node.parentElement!.style.width = '16rem'; });
+  expect(await readTracks()).toEqual({columns:1,fits:true});
+  await expect(access).toBeFocused();
+});
+
+test('StepProgress updates the visible position without adding a second announcement', async ({page}) => {
+  await page.goto('/components/step-progress');
+  const stage = page.locator('.preview-stage');
+  const header = stage.locator('.flood-step-progress__header');
+  await expect(header.getByText('Team access')).toBeVisible();
+  await expect(header.getByText('Step 2 of 3')).toBeVisible();
+  await expect(stage.getByRole('progressbar')).toHaveCount(0);
+  await choose(page,'StepProgress','step','3');
+  await expect(header.getByText('Review and finish')).toBeVisible();
+  await expect(header.getByText('Step 3 of 3')).toBeVisible();
+});
+
 test('Split collapses within its own container and retains logical DOM order',async({page})=>{
  await page.goto('/components/split');const stage=page.locator('.preview-stage'),layout=stage.locator('.flood-split__layout');await choose(page,'Split','collapseAt','never');
  let columns=await layout.evaluate(node=>getComputedStyle(node).gridTemplateColumns.split(' ').filter(Boolean));expect(columns).toHaveLength(2);await choose(page,'Split','side','start');expect(await layout.locator(':scope > :first-child').getAttribute('class')).toBe('flood-split__aside');

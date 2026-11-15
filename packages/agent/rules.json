@@ -561,7 +561,8 @@
       "verify": [
         "Affected states exercised and the captured images inspected",
         "Material findings tied to a specific state and screenshot, trace or measurement",
-        "Fix rechecked in the same state, with coverage and evidence gaps reported"
+        "Fix rechecked in the same state, with coverage and evidence gaps reported",
+        "Material completion claims name the exercised route, transition and observed outcome"
       ]
     },
     {
@@ -657,6 +658,9 @@
         "The first viewport establishes the task and reveals the next useful content or action",
         "Repeated comparisons use predictable tracks; local controls stay with the region they affect",
         "Reading and keyboard order preserve the task when the layout reflows",
+        "The shell and scroll owner fit the task; transitions preserve the intended working context",
+        "Persistent navigation represents real destinations and leaves enough width for the primary task at the supported desktop size",
+        "Adjacent control groups and result frames have deliberate visible separation at normal and constrained widths",
         "Each major surface and summary identifies scope, groups related content or supports a decision"
       ]
     },
@@ -684,6 +688,74 @@
       ]
     },
     {
+      "id": "layout.action-hierarchy",
+      "when": "Choosing sizes or visual emphasis for page, toolbar, row or overlay actions",
+      "for": ["designer", "developer", "agent", "reviewer"],
+      "requires": ["User task and affected states", "Rendered action group in context"],
+      "sourceOfTruth": "DESIGN.md",
+      "guide": "references/flood-hierarchy/SKILL.md",
+      "verify": [
+        "Peer controls share an intentional scale and alignment within each region",
+        "Choose the control size by region; compact desktop collection tools, ordinary form fields and a prominent standalone control can use different sizes",
+        "Prominence reflects the next useful action in the current state",
+        "Quiet icon actions remain findable and operable with adequate targets and visible keyboard focus"
+      ]
+    },
+    {
+      "id": "layout.application-continuity",
+      "when": "Building or extending a multi-route workspace or moving a task between a page and an overlay",
+      "for": ["designer", "developer", "agent", "reviewer"],
+      "requires": ["Real destinations and task sequence", "Two populated sibling routes and the affected surface"],
+      "sourceOfTruth": "Installed application structure and overlay contracts",
+      "guide": "references/flood-application-structure/SKILL.md",
+      "verify": [
+        "Equivalent pages preserve shell regions, title and content anchors, and action roles",
+        "Dialog, Drawer and Sheet retain the application's title, group and action relationships in their own geometry",
+        "The same task retains object identity, draft, meaningful return context and reachable actions when presentation changes",
+        "A consequential action distinguishes draft, saved state and its actual effect"
+      ]
+    },
+    {
+      "id": "layout.grouping-and-balance",
+      "when": "Arranging peer controls or aligning sections across a shared work area",
+      "for": ["designer", "developer", "agent", "reviewer"],
+      "requires": ["Scope of each region", "Populated screen at normal and constrained widths"],
+      "sourceOfTruth": "Host task and Flood layout composition guidance",
+      "guide": "references/flood-layout-composition/SKILL.md",
+      "verify": [
+        "Search and its related criteria remain together or split into distinct groups whose edges align with the same collection frame",
+        "Related regions share measured edges and each independent inset has a clear owner",
+        "When groups collide, search and frequent controls stay usable and keyboard order follows the resulting layout",
+        "Applying and clearing a criterion keeps persistent toolbar controls anchored"
+      ]
+    },
+    {
+      "id": "typography.role-and-fit",
+      "when": "Choosing text treatments for headings, prose, compact labels or comparable values",
+      "for": ["designer", "developer", "agent", "reviewer"],
+      "requires": ["Installed typography roles", "Representative text, including longer labels and larger values"],
+      "sourceOfTruth": "Installed design contract and the host's content requirements",
+      "guide": "references/flood-typography/SKILL.md",
+      "verify": [
+        "Task, group and field text have distinct roles at normal and enlarged text",
+        "Compact labels remain distinguishable at constrained width and full truncated values are available to pointer and keyboard users",
+        "Comparable values share alignment and unambiguous units"
+      ]
+    },
+    {
+      "id": "interaction.decision-evidence",
+      "when": "Supporting consequential decisions, batch outcomes or operational summaries",
+      "for": ["designer", "developer", "agent", "reviewer"],
+      "requires": ["Actual operation scope and reversibility", "Representative data and supported outcomes"],
+      "sourceOfTruth": "Host behavior and Flood decision design guidance",
+      "guide": "references/flood-decision-design/SKILL.md",
+      "verify": [
+        "The affected item, decision evidence and consequence are available before commitment",
+        "Routine and exceptional outcomes match actual operation semantics and preserve a way to resume work",
+        "Each visible metric has a decision it supports and a clear range or population"
+      ]
+    },
+    {
       "id": "records.scan",
       "when": "Composing record lists, detail views or several row metadata values",
       "for": [
@@ -702,6 +774,8 @@
       "verify": [
         "Field to decision and list/detail placement choices recorded outside UI",
         "Identity and summary remain readable with long and missing metadata",
+        "A priority column uses consistent value anatomy and size; neutral and urgent labels remain distinguishable",
+        "Row statuses stay on one line; truncated values keep a recognizable prefix and reveal full text on hover and keyboard focus",
         "Stable scan positions or real named comparison columns, not drifting pseudo-columns",
         "List, details, first-use and filtered empty states reviewed separately",
         "A short mutually exclusive filter for one table uses a selection control; verify keyboard selection, surviving search/sort and focused control",
@@ -734,7 +808,7 @@
     },
     {
       "id": "composition.family",
-      "when": "Adding a reusable component or changing its visual contract",
+      "when": "Adding a reusable component or changing its anatomy, geometry, material, states or motion",
       "for": [
         "designer",
         "developer",
@@ -749,7 +823,10 @@
       "guide": "references/component-families.md",
       "verify": [
         "Closest siblings rendered at the same size, surface and root text scale",
+        "Affected parts have an explicit owner and purpose across the relevant states",
         "Shape, nested inset and content-box overflow budget checked together",
+        "Painted perimeter and layer separation checked on their actual backing surfaces",
+        "Motion checked through reversal or repeated input and reduced motion when applicable",
         "Read-only editing restrictions kept separate from focus and disabled semantics",
         "A real host composition keeps its intended geometry through the relevant state change",
         "Another consumer checked after a shared primitive correction"

@@ -25,6 +25,8 @@ export async function buildAgentConsumer(root) {
   const workflows=command(['catalog','--kind','workflow','--group','foundations']);
   assert.ok(workflows.items.some(item=>item.id==='workflow:foundations'));
   const recipe=read('recipe:table-bulk-actions');assert.ok(recipe.requires.includes('workflow:data-display'));
+  assert.ok(recipe.requires.includes('workflow:screen-composition'));
+  assert.match(selected.get('workflow:screen-composition').text,/Choose the page and scroll owner/);
   const records=read('workflow:records');
   assert.ok(records.links.includes('reference:record-decisions'));
   assert.equal(records.text,await readFile(join(root,records.installedTarget),'utf8'));
@@ -42,6 +44,11 @@ export async function buildAgentConsumer(root) {
   assert.ok(grouped.requires.includes('workflow:forms'));
   await copyFile('apps/website/src/recipes/grouped-form.tsx',join(root,'agent-grouped-form.tsx'));
   read('component:data-table');read('reference:customization');read('token:sys.color.focus.ring');
+  for (const slug of ['badge', 'drawer']) {
+    const material = read(`component:${slug}`);
+    assert.equal(material.text, await readFile(`apps/website/public/components/${slug}.md`, 'utf8'));
+    assert.match(material.text, /## Design notes\n\n- /);
+  }
   assert.ok(command(['catalog','--kind','workflow','--group','motion']).items.some(item=>item.id==='workflow:motion'));
   const motion=read('workflow:motion');
   assert.equal(motion.text,await readFile(join(root,motion.installedTarget),'utf8'));
@@ -62,19 +69,10 @@ export async function buildAgentConsumer(root) {
   await writeFile(join(root,'tsconfig.json'),JSON.stringify({compilerOptions:{jsx:'react-jsx',target:'ES2022',module:'ESNext',moduleResolution:'Bundler',strict:true,skipLibCheck:true}}));
   await writeFile(join(root,'agent-entry.mjs'),`import React from 'react';
 import {createRoot} from 'react-dom/client';
-import {AppShell, FloodRoot, Container, Stack, Heading} from '@flood-md/react';
-import {TableBulkActions} from './agent-recipe.tsx';
+import {TableBulkActionsScreen} from './agent-recipe.tsx';
 import '@flood-md/react/styles.css';
 const h=React.createElement;
-createRoot(document.getElementById('app')).render(
-  h(FloodRoot, null,
-    h(AppShell, {
-      id: 'workspace', scroll: 'content', scrollOrientation: 'vertical',
-      scrollContentInset: 'none', scrollLabel: 'Workspace content',
-    },
-      h(Container, {size: 'lg', gutter: '4'},
-        h(Stack, {gap: '4', className: 'consumer-content'},
-          h(Heading, {level: 1, size: 'page'}, 'Project review'), h(TableBulkActions))))));
+createRoot(document.getElementById('app')).render(h(TableBulkActionsScreen));
 `);
   const before=process.env.NODE_ENV;let result;
   try{result=await build({root,configFile:false,logLevel:'silent',define:{'process.env.NODE_ENV':JSON.stringify('production')},build:{write:false,cssCodeSplit:false,lib:{entry:join(root,'agent-entry.mjs'),formats:['iife'],name:'FloodAgentConsumer'}}});}

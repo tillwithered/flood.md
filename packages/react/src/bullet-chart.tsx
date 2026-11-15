@@ -1,4 +1,4 @@
-import { forwardRef, type CSSProperties } from "react";
+import { forwardRef } from "react";
 import { Inline, Meter, Stack, Text, type BulletChartProps } from "./index.js";
 
 const defaultNumber = new Intl.NumberFormat("en", { maximumSignificantDigits: 21 });
@@ -42,9 +42,7 @@ export const BulletPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, BulletChart
             </Inline>
             <div className="flood-bullet-chart__plot" data-zero={item.value === 0 || undefined}>
               <Meter label={item.label} value={item.value} max={limit} tone="accent" hideLabel
-                valueText={`${valueLabel}: ${actual}, ${targetLabel}: ${target}`} />
-              <span aria-hidden="true" className="flood-bullet-chart__target"
-                style={{ "--flood-bullet-target": `${item.target / limit * 100}%` } as CSSProperties} />
+                valueText={`${valueLabel}: ${actual}`} reference={{value:item.target, label:`${targetLabel}: ${target}`}} />
             </div>
           </Stack>
         </li>;

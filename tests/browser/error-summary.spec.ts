@@ -3,6 +3,7 @@ import {build} from "vite";
 import {resolve} from "node:path";
 import {mkdir, writeFile} from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
+import {chooseSelectOption,chooseStudioSheetOption} from "./select-helpers";
 
 let bundled: Promise<string>;
 async function fixture() {
@@ -84,6 +85,30 @@ test("ErrorSummary missing targets fall back to native fragment navigation witho
   expect(errors).toEqual([]);
 });
 
+test("a form-wide error is readable without a link and field errors retain their target and message", async ({page}, info) => {
+  await page.goto("/components/error-summary");
+  const summary=page.getByRole("region",{name:"Review the form",exact:true});
+  await expect(summary).toBeVisible();
+  const appearance=page.getByRole("combobox",{name:"ErrorSummary prop appearance"});
+  if(await appearance.isVisible()) await chooseSelectOption(appearance,"inline");
+  else await chooseStudioSheetOption(page,"Appearance","inline");
+  await page.getByRole("checkbox",{name:"ErrorSummary prop showFormError"}).check();
+  const formError=summary.getByRole("listitem").filter({hasText:"This workspace has reached its project limit."});
+  await expect(formError).toBeVisible();
+  await expect(formError.getByRole("link")).toHaveCount(0);
+  await page.evaluate(()=>document.fonts.ready);
+  await summary.screenshot({path:info.outputPath("error-summary-inline.png")});
+  const link=summary.getByRole("link",{name:"Enter a project name.",exact:true});
+  await link.press("Enter");
+  const field=page.getByRole("textbox",{name:"Project name",exact:true});
+  await expect(field).toBeFocused();
+  await expect(field).toHaveAccessibleDescription("Enter a project name.");
+  await page.getByRole("checkbox",{name:"ErrorSummary prop showErrors"}).uncheck();
+  await expect(formError).toBeVisible();
+  await expect(summary.getByRole("link")).toHaveCount(0);
+  await expect(field).not.toHaveAttribute("aria-invalid","true");
+});
+
 test("ErrorSummary opts into one live channel and autofocus does not steal focus on message updates", async ({page}) => {
   await open(page);
   const summary = page.getByRole("region",{name:"Check your details",exact:true});
@@ -94,6 +119,7 @@ test("ErrorSummary opts into one live channel and autofocus does not steal focus
   await expect(summary).toHaveAttribute("aria-live","assertive");
   await expect(summary.getByRole("alert")).toHaveCount(0); await expect(summary.getByRole("status")).toHaveCount(0);
   await page.getByRole("button",{name:"Focus new summary",exact:true}).click(); await expect(summary).toBeFocused();
+  await expect(summary).toBeInViewport();
   await expect(summary).not.toHaveAttribute("aria-live");
   const typing = page.getByRole("textbox",{name:"Continue typing",exact:true});
   await typing.fill("Keep typing");

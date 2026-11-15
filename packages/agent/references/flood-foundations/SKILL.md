@@ -59,6 +59,13 @@ contrast: inspect the composited color over the actual backing content.
 
 ## Evidence
 
+For a shadow or border change, identify what needs to separate: an overlay
+from its backdrop, a control from its parent, or adjacent content regions.
+Inspect the resting edge, the busiest backing content and a nested case.
+Compare surface tone, perimeter and shadow together. Check that clipping,
+sticky headers or inner fills do not erase the intended edge. For translucent
+layers inspect both the actual composition and the opaque fallback.
+
 Trace a changed role to its consumers and compare resting, hover, selected,
 focused, disabled and advisory/error states where applicable. Inspect a field on
 a Surface and a popup over that field; inspect long text and enlarged root text.
@@ -73,6 +80,9 @@ independent of solid/subtle/outline/ghost prominence. It uses existing semantic
 color roles in FloodRoot; keep the normal accent focus and disabled behavior.
 A red label is not confirmation or permission to delete. Preserve that intent
 when OverflowActions moves the command into Menu.
+Use morePresentation=auto when rail width varies and keeping a primary action
+inline matters. The compact More trigger keeps the same name and focus. Verify
+the transition at the actual width with localized action and overflow labels.
 
 A numeric stepper is one horizontal control, not three wrapping fields. Keep its
 minimum action/value budget inside a dense table's local scroll region. Test the

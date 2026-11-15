@@ -5,8 +5,9 @@
 Use a settings page when a person needs to review and change several related
 preferences together. This example groups workspace details and notifications
 in one form with a single save boundary. Fieldset names the groups, Field
-associates labels and errors, and Grid lets related fields share tracks when
-there is room. Use a standalone form control for a preference that should
+associates labels and errors, and the aligned Fieldset shares a label and control
+track when there is room. Row switches put their controls at the same trailing
+edge as the general fields. Use a standalone form control for a preference that should
 apply immediately and has no shared save boundary.
 
 ## Save and discard
@@ -18,6 +19,10 @@ retry. Discard restores the accepted snapshot and moves focus back to the first
 field. Keep the save control available after success so a focused submit
 button stays in the tab order.
 
+FormActions groups the controls and gives SaveStatus a separate position.
+On narrow layouts, status text wraps below the buttons. Keep a longer
+failure message above the action row so the recovery instructions stay clear.
+
 This playground uses a dedicated browser storage key. The first visit starts
 with defaults. If a saved snapshot cannot be read or parsed, show a retry
 action and leave that snapshot intact. Use the host's actual persistence and
@@ -26,8 +31,6 @@ permission model when adapting the recipe.
 ## Source
 
 <!-- flood:settings-workspace -->
-
-<!-- flood:settings-workspace-styles -->
 
 ## Review
 

@@ -64,7 +64,20 @@ test('failed save retains edits until explicit cancel, then reopening uses accep
 test('late query, paging, captured selection and stable navigation use one host state',async({page})=>{
  await open(page,seeded);const heading=page.getByRole('heading',{name:'Projects',exact:true});const y=(await heading.boundingBox())!.y;
  const search=page.getByRole('searchbox',{name:'Search projects',exact:true});await search.fill('old');await search.fill('Project 1');await expect(page.getByRole('row').filter({hasText:'Project 1'})).toHaveCount(1);await page.waitForTimeout(150);await expect(page.getByRole('row').filter({hasText:'Project 1'})).toHaveCount(1);
- await page.getByRole('button',{name:'Clear filters',exact:true}).click();await page.getByRole('checkbox',{name:'Select Project 0',exact:true}).check();await page.getByRole('button',{name:'Next page',exact:true}).click();await page.getByRole('checkbox',{name:'Select Project 5',exact:true}).check();
+ await page.getByRole('button',{name:'Clear filters',exact:true}).click();
+ const table=page.getByRole('table',{name:'Projects',exact:true});
+ const geometry=()=>table.evaluate(node=>({top:node.getBoundingClientRect().top+window.scrollY,height:document.documentElement.scrollHeight}));
+ const first=page.getByRole('checkbox',{name:'Select Project 0',exact:true});
+ await first.waitFor();
+ const before=await geometry();
+ await first.check();
+ const bulk=page.getByRole('toolbar',{name:'Selected projects',exact:true});
+ await expect(bulk).toBeVisible();
+ const bar=(await bulk.boundingBox())!;
+ expect(bar.x+bar.width/2).toBeCloseTo(page.viewportSize()!.width/2,0);
+ expect(await geometry()).toEqual(before);
+ await expect(page.locator('.flood-data-table__footer [role=status]')).toHaveCount(0);
+ await page.getByRole('button',{name:'Next page',exact:true}).click();await page.getByRole('checkbox',{name:'Select Project 5',exact:true}).check();
  await page.getByRole('button',{name:'Delete selected',exact:true}).click();await page.getByRole('button',{name:'Delete projects',exact:true}).click();await expect(page.getByRole('button',{name:'Delete selected',exact:true})).toHaveCount(0);
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('projects')!).records.map((r:any)=>r.id))).toEqual(['p1','p2','p3','p4','p6','p7']);
  await page.getByRole('link',{name:'Overview',exact:true}).click();expect((await page.getByRole('heading',{name:'Overview',exact:true}).boundingBox())!.y).toBeCloseTo(y,0);

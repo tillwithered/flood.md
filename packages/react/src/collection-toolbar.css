@@ -2,6 +2,7 @@
 .flood-root .flood-collection-toolbar__row { min-inline-size:0; display:grid; grid-template-columns:minmax(12rem,24rem) minmax(0,1fr) auto; }
 .flood-root .flood-collection-toolbar__search { min-inline-size:0; max-inline-size:100%; }
 .flood-root .flood-collection-toolbar__summaries { min-inline-size:0; max-inline-size:100%; }
+.flood-root .flood-collection-toolbar__tags { justify-content:inherit; }
 .flood-root .flood-collection-toolbar__commands { margin-inline-start:auto; max-inline-size:100%; justify-content:flex-end; }
 .flood-root .flood-collection-toolbar__clear[data-visible="false"] { visibility:hidden; }
 .flood-root .flood-collection-toolbar__commands { grid-column:3; }
@@ -14,6 +15,24 @@
   .flood-root .flood-collection-toolbar__row { grid-template-columns:minmax(0,1fr); }
   .flood-root .flood-collection-toolbar__commands { grid-column:1; grid-row:2; }
   .flood-root .flood-collection-toolbar__summaries { grid-row:3; }
+}
+
+.flood-root .flood-collection-toolbar[data-align="split"] .flood-collection-toolbar__summaries {
+  justify-content:flex-end;
+  justify-self:end;
+}
+.flood-root .flood-collection-toolbar[data-align="split"] .flood-collection-toolbar__row:not(:has(> .flood-collection-toolbar__commands)) {
+  grid-template-columns:minmax(12rem,24rem) minmax(0,1fr);
+}
+@container (max-width:46rem) {
+  .flood-root .flood-collection-toolbar[data-align="split"] .flood-collection-toolbar__search { grid-column:1 / -1; }
+  .flood-root .flood-collection-toolbar[data-align="split"] .flood-collection-toolbar__summaries { grid-column:1; grid-row:2; justify-self:stretch; }
+  .flood-root .flood-collection-toolbar[data-align="split"] .flood-collection-toolbar__row:not(:has(> .flood-collection-toolbar__commands)) > .flood-collection-toolbar__summaries { grid-column:1 / -1; }
+  .flood-root .flood-collection-toolbar[data-align="split"] .flood-collection-toolbar__commands { grid-row:2; }
+}
+@container (max-width:28rem) {
+  .flood-root .flood-collection-toolbar[data-align="split"] .flood-collection-toolbar__row:not(:has(> .flood-collection-toolbar__commands)) { grid-template-columns:minmax(0,1fr); }
+  .flood-root .flood-collection-toolbar[data-align="split"] :is(.flood-collection-toolbar__summaries,.flood-collection-toolbar__commands) { grid-row:auto; }
 }
 
 .flood-root .flood-collection-toolbar[data-align="end"] .flood-collection-toolbar__row {

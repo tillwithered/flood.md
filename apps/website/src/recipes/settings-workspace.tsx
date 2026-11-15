@@ -2,10 +2,9 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
-  Alert, Button, Container, Field, Fieldset, Grid, Heading, Inline,
-  Input, Select, Stack, Surface, Switch, Text,
+  Alert, Button, Container, Field, Fieldset, FormActions, Heading,
+  Input, SaveStatus, Select, Stack, Surface, Switch, SwitchGroup, Text,
 } from "@flood-md/react";
-import "./settings-workspace.css";
 
 const storageKey = "flood:settings-workspace:v1";
 const timeZones = ["UTC", "Europe/London", "America/New_York", "Asia/Tokyo"] as const;
@@ -58,7 +57,7 @@ export function SettingsWorkspace() {
   const [readError, setReadError] = useState(false);
   const [nameError, setNameError] = useState("");
   const [saveError, setSaveError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<"saved" | "discarded" | null>(null);
   const nameInput = useRef<HTMLInputElement>(null);
 
   function load() {
@@ -81,7 +80,7 @@ export function SettingsWorkspace() {
 
   function update<K extends keyof WorkspaceSettings>(key: K, value: WorkspaceSettings[K]) {
     setDraft(current => ({ ...current, [key]: value }));
-    setNotice("");
+    setNotice(null);
     if (key === "name") setNameError("");
   }
 
@@ -99,13 +98,14 @@ export function SettingsWorkspace() {
       window.localStorage.setItem(storageKey, JSON.stringify(proposal));
     } catch {
       setSaveError("Settings could not be saved. Try again.");
+      setNotice(null);
       return;
     }
     setAccepted(proposal);
     setDraft(proposal);
     setNameError("");
     setSaveError("");
-    setNotice("Settings saved.");
+    setNotice("saved");
   }
 
   function reset() {
@@ -113,59 +113,55 @@ export function SettingsWorkspace() {
     setDraft(accepted);
     setNameError("");
     setSaveError("");
-    setNotice("Unsaved changes discarded.");
+    setNotice("discarded");
     nameInput.current?.focus({ preventScroll: true });
   }
 
   return (
-    <Container size="md" gutter="4">
+    <Container size="sm" gutter="4">
       <Stack gap="6">
         <Heading level={1} size="page">Workspace settings</Heading>
         {readError ? (
-          <Stack gap="4">
-            <Alert tone="error" announcement="polite">Settings could not be loaded.</Alert>
-            <Inline><Button variant="subtle" onClick={load}>Retry</Button></Inline>
-          </Stack>
+          <Alert tone="error" announcement="polite" action={<Button size="sm" variant="subtle" onClick={load}>Retry</Button>}>
+            Settings could not be loaded.
+          </Alert>
         ) : accepted ? (
           <Surface padding="6" elevation="raised">
             <form aria-label="Workspace settings" onSubmit={save} noValidate>
               <Stack gap="6">
-                <Fieldset legend="General" legendSize="section">
-                  <Grid minItemWidth="14rem" gap="4">
-                    <Field label="Workspace name" required error={nameError}>
-                      {props => (
-                        <Input {...props} ref={nameInput} name="name" maxLength={maxNameLength}
-                          value={draft.name} onChange={event => update("name", event.currentTarget.value)} />
-                      )}
-                    </Field>
-                    <Field label="Time zone">
-                      {props => (
-                        <Select {...props} name="timeZone" value={draft.timeZone}
-                          onChange={event => {
-                            const value = event.currentTarget.value;
-                            if (isTimeZone(value)) update("timeZone", value);
-                          }}>
-                          {timeZones.map(timeZone => <option key={timeZone}>{timeZone}</option>)}
-                        </Select>
-                      )}
-                    </Field>
-                  </Grid>
+                <Fieldset legend="General" legendSize="section" layout="aligned">
+                  <Field label="Workspace name" required error={nameError}>
+                    {props => (
+                      <Input {...props} ref={nameInput} name="name" maxLength={maxNameLength}
+                        value={draft.name} onChange={event => update("name", event.currentTarget.value)} />
+                    )}
+                  </Field>
+                  <Field label="Time zone">
+                    {props => (
+                      <Select {...props} name="timeZone" value={draft.timeZone}
+                        onChange={event => {
+                          const value = event.currentTarget.value;
+                          if (isTimeZone(value)) update("timeZone", value);
+                        }}>
+                        {timeZones.map(timeZone => <option key={timeZone}>{timeZone}</option>)}
+                      </Select>
+                    )}
+                  </Field>
                 </Fieldset>
-                <Fieldset legend="Notifications" legendSize="section">
-                  <Stack gap="0" className="settings-switches">
-                    <Switch className="settings-switch" label="New assignments" name="assignmentAlerts" checked={draft.assignmentAlerts}
-                      onChange={event => update("assignmentAlerts", event.currentTarget.checked)} />
-                    <Switch className="settings-switch" label="Weekly summary" name="weeklyDigest" checked={draft.weeklyDigest}
-                      onChange={event => update("weeklyDigest", event.currentTarget.checked)} />
-                  </Stack>
-                </Fieldset>
+                <SwitchGroup legend="Notifications" legendSize="section">
+                  <Switch layout="row" label="New assignments" name="assignmentAlerts" checked={draft.assignmentAlerts}
+                    onChange={event => update("assignmentAlerts", event.currentTarget.checked)} />
+                  <Switch layout="row" label="Weekly summary" name="weeklyDigest" checked={draft.weeklyDigest}
+                    onChange={event => update("weeklyDigest", event.currentTarget.checked)} />
+                </SwitchGroup>
                 <Stack gap="4">
                   {saveError && <Alert tone="error" announcement="polite">{saveError}</Alert>}
-                  <Inline gap="3">
-                    <Button type="submit">Save settings</Button>
-                    <Button variant="subtle" disabled={!dirty} onClick={reset}>Discard changes</Button>
-                    <Text size="compact" tone="subtle" role="status">{notice}</Text>
-                  </Inline>
+                  <FormActions
+                    primary={<Button type="submit">Save settings</Button>}
+                    secondary={<Button variant="subtle" disabled={!dirty} onClick={reset}>Discard changes</Button>}
+                    status={<SaveStatus state={notice === "saved" ? "saved" : "idle"}
+                      label={notice === "discarded" ? "Unsaved changes discarded." : notice === "saved" ? "Settings saved." : undefined} />}
+                  />
                 </Stack>
               </Stack>
             </form>

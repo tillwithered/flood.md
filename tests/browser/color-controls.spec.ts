@@ -80,3 +80,36 @@ test("ColorPicker native reset cancellation and inherited disabled apply to form
   await page.getByRole("checkbox", {name:"Disable fieldset",exact:true}).check();
   await expect(input).toBeDisabled(); expect(await formValue(page)).toBe(null);
 });
+test("a named ColorPalette keeps one active choice and supports read-only and disabled options", async ({page}) => {
+  await page.goto("/components/color-palette");
+  const group = page.getByRole("group", {name:"Accent colors"});
+  const pink = group.getByRole("button", {name:"Pink"});
+  const blue = group.getByRole("button", {name:"Blue"});
+  await expect(pink).toHaveAttribute("aria-pressed", "true");
+  await blue.press("Enter");
+  await expect(blue).toHaveAttribute("aria-pressed", "true");
+  await expect(pink).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("checkbox", {name:"ColorPalette prop disableLast"}).check();
+  await expect(group.getByRole("button", {name:"Mint"})).toBeDisabled();
+  await page.getByRole("checkbox", {name:"ColorPalette prop readOnly"}).check();
+  await expect(pink).toHaveAttribute("aria-disabled", "true");
+  await pink.press("Enter");
+  await expect(blue).toHaveAttribute("aria-pressed", "true");
+});
+
+test("ColorPicker can restore a selected preset after an invalid draft", async ({page}) => {
+  await open(page);
+  const brand = page.locator("#brand");
+  const hex = page.locator("#brand-hex");
+  const selected = brand.getByRole("button", {name:"#ff4499", exact:true});
+  await expect(selected).toHaveAttribute("aria-pressed", "true");
+  await hex.fill("#12");
+  await hex.blur();
+  await expect(brand.getByRole("alert")).toBeVisible();
+  await selected.click();
+  await expect(hex).toHaveValue("#ff4499");
+  await expect(brand.getByRole("alert")).toBeHidden();
+  const channel = brand.getByRole("group", {name:"Red", exact:true});
+  await expect(channel.locator("legend")).toContainText("255");
+  await expect(channel.getByRole("slider")).toHaveAccessibleName("Red");
+});

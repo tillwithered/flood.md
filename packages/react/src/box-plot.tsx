@@ -130,7 +130,7 @@ export const DistributionBoxes = /* @__PURE__ */ forwardRef<HTMLDivElement, BoxP
   return <div {...props} ref={ref} className={["flood-box-plot", className].filter(Boolean).join(" ")} role="group" aria-label={label}>
     {hasData ? <>
       {last > 0 && <VisuallyHidden id={instructions}>{navigationLabel}</VisuallyHidden>}
-      <div ref={plot} className="flood-box-plot__plot" dir="ltr" role={last > 0 ? "slider" : "img"} tabIndex={last > 0 ? 0 : undefined}
+      <div ref={plot} className="flood-box-plot__plot" dir="ltr" role={last > 0 ? "slider" : "img"} tabIndex={0}
         aria-label={last > 0 ? label : `${label}. ${valueText}`} aria-describedby={last > 0 ? instructions : undefined}
         aria-valuemin={last > 0 ? 1 : undefined} aria-valuemax={last > 0 ? items.length : undefined}
         aria-valuenow={last > 0 ? active + 1 : undefined} aria-valuetext={last > 0 ? valueText : undefined}

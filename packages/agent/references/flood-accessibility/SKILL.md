@@ -23,10 +23,12 @@ A scanner result is supporting evidence, not certification of an application.
   focus before testing keys. Some browsers do not mouse-focus native buttons;
   a custom combobox cannot rely on that default. Preserve an intentional focus
   move made by the host callback rather than forcing focus back afterward.
-- Check the accent focus perimeter in combinations with invalid, selected and
-  read-only states. It must remain visible without changing layout or hiding
-  beneath a rail, sticky region or overlay. Closing an overlay returns focus
-  appropriately without overriding a deliberate host focus move.
+- Put the visible keyboard cue on the control or region that handles the keys.
+  Static surfaces stay out of the Tab order. Use the control focus ring on
+  actionable controls and a compact cue for chart inspection. Check focus
+  separately from pointer hover, selection and read-only or invalid styling.
+  Keep it visible without moving layout, including in forced colors. Closing an
+  overlay returns focus without overriding a deliberate host focus move.
 - Evaluate text with its actual size, weight and composited background using
   applicable WCAG checks and supplementary APCA guidance. Decorative lines are
   different from necessary control/state indicators; do not relabel a necessary

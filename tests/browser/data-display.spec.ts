@@ -22,6 +22,53 @@ test("DescriptionList responds to its container and keeps tight term/value group
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
+test("DescriptionList keeps value actions on a shared edge and preserves long values", async ({page, context}, info) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/components/description-list");
+  await page.getByRole("checkbox", {name:"DescriptionList prop showActions"}).check();
+  const list = page.locator(".preview-stage .flood-description-list");
+  const copyVersion = list.getByRole("button", {name:"Copy version",exact:true});
+  const copyOwner = list.getByRole("button", {name:"Copy owner",exact:true});
+  const [version, owner] = await Promise.all([copyVersion.boundingBox(),copyOwner.boundingBox()]);
+  expect(version!.x + version!.width).toBeCloseTo(owner!.x + owner!.width, 0);
+  const value = (await list.locator(".flood-description-list__value").first().textContent())!.trim();
+  await copyVersion.press("Enter");
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(value);
+  await expect(copyVersion.or(list.getByRole("button", {name:/^Copied/}))).toBeFocused();
+
+  await page.getByRole("checkbox", {name:"DescriptionList prop constrainWidth"}).check();
+  await page.getByRole("checkbox", {name:"DescriptionList prop longValue"}).check();
+  await chooseSelectOption(page.getByRole("combobox", {name:"DescriptionList prop layout"}), "columns");
+  await page.evaluate(() => {document.documentElement.dir = "rtl"; document.documentElement.style.fontSize = "24px";});
+  const row = list.locator(".flood-description-list__item").last();
+  await expect(row.locator("dd")).toContainText("design-system-maintainers@a-very-long-example-company.example");
+  await expect(copyOwner).toBeVisible();
+  const [term, longValue] = await Promise.all([row.locator("dt").boundingBox(),row.locator(".flood-description-list__value").boundingBox()]);
+  expect(term!.y).toBeCloseTo(longValue!.y, 0);
+  expect(await row.evaluate(node => node.scrollWidth <= node.clientWidth)).toBe(true);
+
+  await page.evaluate(() => {document.documentElement.dir = "ltr"; document.documentElement.style.fontSize = "";});
+  await page.getByRole("checkbox", {name:"DescriptionList prop truncateValue"}).check();
+  const clipped = row.locator(".flood-truncated-text");
+  await expect(clipped).toHaveAttribute("tabindex","0");
+  expect((await clipped.boundingBox())!.height).toBeLessThan(longValue!.height);
+  const action = (await copyOwner.boundingBox())!;
+  const line = (await clipped.boundingBox())!;
+  expect(Math.abs(action.y + action.height / 2 - line.y - line.height / 2)).toBeLessThan(3);
+  await list.screenshot({path:info.outputPath("description-list-truncated.png")});
+  await clipped.focus();
+  const tooltip = page.getByRole("tooltip");
+  const fullValue = "design-system-maintainers@a-very-long-example-company.example";
+  await expect(tooltip).toHaveText(fullValue);
+  await page.locator(".preview-stage").screenshot({path:info.outputPath("description-list-disclosure.png")});
+  await page.keyboard.press("Escape");
+  await expect(tooltip).toBeHidden();
+  await page.keyboard.press("Tab");
+  await expect(copyOwner).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(fullValue);
+});
+
 test("Table preserves its caption, native headers and keyboard horizontal scrolling",async({page})=>{
   await page.setViewportSize({width:390,height:900});
   await page.goto("/components/table");
@@ -62,4 +109,32 @@ test("data examples are accessible and use the shared scroll area without page o
   await page.setViewportSize(info.project.name==="desktop"?{width:1440,height:1000}:{width:390,height:844});
   await page.evaluate(()=>{document.documentElement.style.fontSize="";});
   await section.screenshot({path:`.artifacts/data-display-${info.project.name}.png`});
+});
+test("ComparisonTable keeps its criteria visible when the last option scrolls into view", async ({page}, info) => {
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto("/components/comparison-table");
+  const table = page.getByRole("table",{name:"Backup plans"});
+  const viewport = page.locator(".preview-stage .flood-scroll-area__viewport").filter({has:table});
+  const criterion = table.getByRole("rowheader",{name:"Restore tests per month"});
+  const lastOption = table.getByRole("columnheader",{name:"Extended"});
+  await expect(table.getByRole("cell",{name:"0",exact:true})).toHaveCSS("text-align","end");
+  await expect(table.getByRole("cell",{name:"Unavailable",exact:true})).toHaveCount(1);
+  await expect(table.getByRole("columnheader",{name:"Current plan"})).toHaveAttribute("data-featured");
+  await page.evaluate(()=>document.fonts.ready);
+  const surface = page.locator(".preview-stage .flood-surface").filter({has:table});
+  await surface.screenshot({path:info.outputPath("comparison-table.png")});
+  await page.getByRole("checkbox",{name:"ComparisonTable prop constrainWidth"}).check();
+  await expect.poll(()=>viewport.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeGreaterThan(0);
+  const left = (await criterion.boundingBox())!.x;
+  await viewport.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(()=>viewport.evaluate(node=>node.scrollLeft)).toBeGreaterThan(0);
+  await viewport.evaluate(node=>{node.scrollLeft=node.scrollWidth;});
+  expect((await criterion.boundingBox())!.x).toBeCloseTo(left,0);
+  expect((await table.locator("caption").boundingBox())!.x).toBeCloseTo(left,0);
+  const criterionBox = (await criterion.boundingBox())!;
+  const lastOptionBox = (await lastOption.boundingBox())!;
+  expect(lastOptionBox.x).toBeCloseTo(criterionBox.x+criterionBox.width,0);
+  await viewport.blur();
+  await surface.screenshot({path:info.outputPath("comparison-table-narrow.png")});
 });

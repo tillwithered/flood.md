@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+- Place ExpandableText disclosure inline after the ellipsis and preserve reading
+  focus when a resize removes the toggle.
+
+- Add RatingSummary with a weighted score, total and responsive distribution.
+
+- Add ImageComparison for pointer and keyboard comparison of two aligned images
+  inside one frame.
+
+- Let FileCard place its preview action on the thumbnail and keep footer commands
+  together when metadata moves to its own line.
+
+- Keep Card selection at the trailing edge when wide header actions reflow.
+
+- Add ImageGallery for image inspection inside one dialog, with arrows or a
+  scrollable thumbnail rail.
+
+- Use Flood overlay scrollbars in ListBox and show avatars for people options.
+
+- Add a width-aware AvatarGroup layout for single-line lists of people.
+
+- Add ComparisonTable for evaluating the same criteria across options, with
+  pinned row labels, numeric alignment and localized missing values.
+
+- Add a responsive row layout to MetricGroup for compact summaries with an
+  aligned value edge and stable loading placeholders.
+
 ## 0.2.13 — Charts and discovery
 
 - Add optional focus recovery to Menu and Dialog-family overlays when their

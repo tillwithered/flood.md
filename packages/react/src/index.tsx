@@ -3,12 +3,15 @@
 import {
   forwardRef,
   createElement,
+  useEffect,
   useId,
+  useImperativeHandle,
   useRef,
   useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type TextareaHTMLAttributes,
+  type TimeHTMLAttributes,
   type SelectHTMLAttributes,
   type AnchorHTMLAttributes,
   type ReactNode,
@@ -21,10 +24,12 @@ import {
   type Ref,
   type MouseEvent as ReactMouseEvent,
   type TableHTMLAttributes,
+  type OlHTMLAttributes,
   type ImgHTMLAttributes,
   type BlockquoteHTMLAttributes,
 } from "react";
 import { useFocusableHidden } from "./focusable-hidden.js";
+import { EventTimestamp } from "./timestamp.js";
 import { PredicateRow } from "./filter-condition.js";
 import { PredicateGroup } from "./filter-group.js";
 import { CollectionQueryBar } from "./collection-toolbar.js";
@@ -32,6 +37,9 @@ import { CollectionViewSelector } from "./collection-view-switcher.js";
 import { WorkspaceSidebar } from "./sidebar.js";
 import { NavigationRow } from "./navigation-item.js";
 import { NavigationSection } from "./navigation-group.js";
+import { InboxContent } from "./notification-inbox.js";
+import { UploadQueueContent } from "./upload-queue.js";
+import { SearchGlyph } from "./search-glyph.js";
 import { resolveFieldStatus, hasFieldContent, mergeDescriptions } from "./field-state.js";
 import { SingleSelect } from "./select.js";
 import { MixedCheckbox } from "./checkbox.js";
@@ -39,24 +47,26 @@ import { OverlayScrollArea } from "./scroll-area.js";
 import { ChoiceGroup } from "./choice-group.js";
 import { Disclosure } from "./disclosure.js";
 import { AnchoredOverlay, ModalOverlay } from "./overlays.js";
-import { TabNavigation, BreadcrumbNavigation, PageNavigation } from "./navigation.js";
+import { TabNavigation, BreadcrumbNavigation, PageNavigation, CursorPageNavigation } from "./navigation.js";
 import { AvatarArtwork } from "./avatar.js";
-import { ValueIndicator, FeedbackMessage } from "./feedback.js";
+import { ValueIndicator, FeedbackMessage, StatusGlyph } from "./feedback.js";
 import { DescribedData, TabularData } from "./data-display.js";
 import { ActionMenu } from "./menu.js";
 import { RovingToolbar } from "./toolbar.js";
+import { ComposerForm } from "./message-composer.js";
 import { NumericStepper } from "./numeric-input.js";
 import { RangeControl } from "./slider.js";
-import {GroupedAvatars, NamedStatus, CaptionedFigure, AttributedQuote, InlineCodeText, MeasuredValue, EventTimeline} from "./content-elements.js";
+import {GroupedAvatars, NamedStatus, CaptionedFigure, AttributedQuote, InlineCodeText, MeasuredValue, EventTimeline, ExpandableParagraph, OverflowingText} from "./content-elements.js";
 import { NavigationMenu, StepSequence, ContentSection, PageHeading, SplitLayout, CenterLayout, SkipNavigation } from "./navigation-layout.js";
 import { ApplicationShell, ApplicationTopBar } from "./app-shell.js";
-import { CollectionListBox, SegmentedPinInput, StarRating, FileDropzone, SupportingCharacterCount } from "./form-controls.js";
+import { CollectionListBox, SegmentedPinInput, RatingStar, StarRating, FileDropzone, OwnedFileDropTarget, SupportingCharacterCount } from "./form-controls.js";
 import { ClipboardAction, NotificationRegion } from "./feedback-actions.js";
 import { ConfirmationDialog } from "./alert-dialog.js";
 import { FilePicker } from "./file-input.js";
-import { SearchField, PasswordField } from "./text-inputs.js";
+import { SearchField, PasswordField, VisibilityGlyph } from "./text-inputs.js";
 import { SearchSelection } from "./combobox.js";
 import { FreeTagEntry } from "./tag-input.js";
+import { TagList } from "./tag-group.js";
 import { InlineEditable } from "./editable.js";
 import { SearchCommandList } from "./command-list.js";
 import { SegmentedDateField } from "./date-field.js";
@@ -72,10 +82,11 @@ import { ContextActionMenu } from "./context-menu.js";
 import { SelectionTree } from "./tree.js";
 import { ClockTimePicker } from "./time-picker.js";
 import { CivilDateTimeRangePicker } from "./date-time-range-picker.js";
-import { FileRecord, UploadRecord, ModalImagePreview, FileMetadata } from "./file-records.js";
+import { FileRecord, FileGalleryCard, FileThumbnailSurface, FileNameText, UploadRecord, ModalImagePreview, ModalImageGallery, FileMetadata } from "./file-records.js";
 import { ManagedDataTable } from "./data-table.js";
+import { SkeletonTable } from "./table-skeleton.js";
 import { TrendPlot } from "./sparkline.js";
-import { SeriesPlot, GroupedBars, RankedBars, ShareRing, HeatmapGrid } from "./charts.js";
+import { SeriesPlot, GroupedBars, RankedBars, ShareRing, ShareBar, HeatmapGrid } from "./charts.js";
 import { ScatterPlot } from "./scatter-chart.js";
 import { RangePlot } from "./range-chart.js";
 import { DumbbellPlot } from "./dumbbell-chart.js";
@@ -84,7 +95,7 @@ import { BulletPlot } from "./bullet-chart.js";
 import { HistogramPlot } from "./histogram.js";
 import { WaterfallPlot } from "./waterfall-chart.js";
 import { CheckableCard, ExclusiveCard } from "./collection-cards.js";
-import { ColorPreview, ColorEditor } from "./color-controls.js";
+import { ColorPreview, ColorEditor, PaletteChoices } from "./color-controls.js";
 import { HoverPreview } from "./hover-card.js";
 import { HierarchicalSelect } from "./tree-select.js";
 import { CivilDateTimePicker } from "./date-time-picker.js";
@@ -102,6 +113,8 @@ export interface OverflowActionsProps extends Omit<HTMLAttributes<HTMLDivElement
   items: readonly OverflowAction[];
   onAction?: (id: string) => void;
   moreLabel?: string;
+  /** Auto uses the icon when it preserves more visible commands. The trigger always retains moreLabel. */
+  morePresentation?: "label" | "icon" | "auto";
   size?: "sm" | "md" | "lg" | "xl";
   variant?: ButtonProps["variant"];
   shape?: ToolbarProps["shape"];
@@ -173,9 +186,11 @@ export interface CollectionToolbarProps extends Omit<FieldsetProps, "children" |
   appliedFilters?: readonly CollectionFilterSummary[];
   onRemoveFilter?: (id: string) => void;
   appliedFiltersLabel?: string;
+  /** Controls how many accepted filters are displayed before the count disclosure. */
+  appliedFilterDisplay?: Pick<TagGroupProps, "maxVisibleTags" | "moreTagsLabel" | "fewerTagsLabel">;
   summaryPrefix?: ReactNode;
-  /** Align search and filters as a group to the end of a shared control row. */
-  align?: "stretch" | "end";
+  /** Keep query controls together, split search from trailing filters, or align the whole group to the end. */
+  align?: "stretch" | "split" | "end";
   /** At most two task-important quick filters; move additional properties into filterContent. */
   quickFilters?: ReactNode;
   /** Additional commands beside Filters in the same tool row. */
@@ -231,6 +246,7 @@ export interface BulkActionBarProps extends Omit<HTMLAttributes<HTMLDivElement>,
   onClear: () => void;
   clearLabel?: string;
   moreLabel?: string;
+  morePresentation?: OverflowActionsProps["morePresentation"];
   size?: "sm" | "md" | "lg" | "xl";
   /** One to three visible commands; the default is two. */
   maxVisibleActions?: 1 | 2 | 3;
@@ -307,25 +323,60 @@ export const DateTimeRangePicker = /* @__PURE__ */ forwardRef<HTMLDivElement,Dat
 export interface FileMetaProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children"> {
   format?: string;
   size?: number;
+  variant?: "chip" | "plain";
   formatSize?: (bytes: number) => string;
 }
 /** A quiet combined format/size chip; display metadata only. @since 0.2.8 */
 export const FileMeta = /* @__PURE__ */ forwardRef<HTMLSpanElement,FileMetaProps>(function FileMeta(props,ref){return <FileMetadata {...props} ref={ref}/>;});
 
 export interface FileActionLabels {
-  preview?: string; remove?: string; cancel?: string; retry?: string;
+  preview?: string; download?: string; remove?: string; cancel?: string; retry?: string;
   queued?: string; uploading?: string; success?: string; error?: string; cancelled?: string;
 }
+export interface FileNameProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children"> {
+  name: string;
+  overflow?: "wrap" | "truncate";
+  href?: string;
+  download?: boolean;
+}
+
+/** An exact file name with optional extension-preserving truncation. */
+export const FileName = /* @__PURE__ */ forwardRef<HTMLSpanElement, FileNameProps>(function FileName(
+  {overflow = "wrap", ...props}, ref,
+) { return <FileNameText {...props} overflow={overflow} ref={ref} />; });
+
+export interface FileThumbnailProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label" | "aria-hidden"> {
+  src?: string;
+  fit?: ImageProps["fit"];
+  presentation?: "inline" | "tile";
+  /** Width-to-height ratio for tile presentation. */
+  ratio?: number;
+}
+
+/** Decorative file artwork with a fixed frame and a generic fallback. */
+export const FileThumbnail = /* @__PURE__ */ forwardRef<HTMLDivElement,FileThumbnailProps>(function FileThumbnail(
+  {presentation="inline",fit="cover",ratio=4/3,...props},ref,
+){
+  return <FileThumbnailSurface {...props} presentation={presentation} fit={fit} ratio={ratio} ref={ref}/>;
+});
+
 export interface FileItemProps extends Omit<HTMLAttributes<HTMLLIElement>, "children" | "title"> {
   name: string;
+  nameOverflow?: FileNameProps["overflow"];
   size?: number;
   mimeType?: string;
   format?: string | null;
+  metadataVariant?: FileMetaProps["variant"];
   thumbnail?: ReactNode;
+  /** Decorative image URL used when thumbnail is omitted. */
+  thumbnailSrc?: string;
+  thumbnailFit?: ImageProps["fit"];
   description?: ReactNode;
   href?: string;
   download?: boolean;
   onPreview?: () => void;
+  /** Separate download destination, independent of the filename link. */
+  downloadHref?: string;
   onRemove?: () => void;
   disabled?: boolean;
   labels?: FileActionLabels;
@@ -333,16 +384,38 @@ export interface FileItemProps extends Omit<HTMLAttributes<HTMLLIElement>, "chil
 }
 /** A display row; it neither reads files nor creates object URLs. @since 0.2.8 */
 export const FileItem = /* @__PURE__ */ forwardRef<HTMLLIElement,FileItemProps>(function FileItem(props,ref){return <FileRecord {...props} ref={ref}/>;});
-export interface FileListProps extends DataListProps { label: string; }
+
+export interface FileCardProps extends Omit<CardProps, "title" | "actions" | "footer" | "children" | "description" | "media">,
+  Pick<FileItemProps, "name" | "nameOverflow" | "size" | "mimeType" | "format" | "description" | "href" | "download" | "downloadHref" | "onPreview" | "onRemove" | "disabled" | "labels" | "formatSize"> {
+  thumbnailSrc?: string;
+  thumbnailFit?: ImageProps["fit"];
+  thumbnailRatio?: number;
+  thumbnailPlacement?: "top" | "body";
+  /** Place the onPreview command on the artwork instead of in the footer. */
+  previewPlacement?: "footer" | "thumbnail";
+}
+
+/** A file in a visual gallery, with an optional thumbnail and independent commands. */
+export const FileCard = /* @__PURE__ */ forwardRef<HTMLDivElement,FileCardProps>(function FileCard(props,ref){
+  return <FileGalleryCard {...props} ref={ref}/>;
+});
+export interface FileListProps extends DataListProps {
+  label: string;
+  appearance?: "panel" | "plain" | "embedded";
+}
 /** A named native list of FileItem rows. @since 0.2.8 */
-export const FileList = /* @__PURE__ */ forwardRef<HTMLUListElement,FileListProps>(function FileList({label,className,...props},ref){
+export const FileList = /* @__PURE__ */ forwardRef<HTMLUListElement,FileListProps>(function FileList({label,appearance="panel",className,...props},ref){
   if(!label.trim())throw new Error("Flood FileList requires a nonempty label");
-  return <DataList {...props} ref={ref} aria-label={label} className={classes("flood-file-list",className)}/>;
+  return <DataList {...props} ref={ref} aria-label={label} className={classes("flood-file-list",className)} data-appearance={appearance}/>;
 });
 export interface UploadItemProps extends Omit<FileItemProps,"description"> {
-  state: "queued" | "uploading" | "success" | "error" | "cancelled";
+  state: "queued" | "uploading" | "paused" | "processing" | "success" | "error" | "cancelled";
+  /** Transfer percentage. Processing has its own indeterminate feedback. */
   progress?: number;
   error?: string;
+  labels?: FileActionLabels & { pause?: string; resume?: string; paused?: string; processing?: string };
+  onPause?: () => void;
+  onResume?: () => void;
   onCancel?: () => void;
   onRetry?: () => void;
 }
@@ -351,17 +424,63 @@ export const UploadItem = /* @__PURE__ */ forwardRef<HTMLLIElement,UploadItemPro
 export interface UploadListProps extends FileListProps {}
 /** A named native list of UploadItem rows. @since 0.2.8 */
 export const UploadList = /* @__PURE__ */ forwardRef<HTMLUListElement,UploadListProps>(function UploadList(props,ref){return <FileList {...props} ref={ref}/>;});
+
+export interface UploadQueueEntry extends Omit<UploadItemProps, "id" | "hidden"> {
+  /** Stable host identity. File names need not be unique. */
+  id: string;
+}
+export interface UploadQueueProps extends Omit<SectionProps, "children" | "description"> {
+  entries: readonly UploadQueueEntry[];
+  picker?: FileDropTargetProps;
+  /** Accessible name of the file list. */
+  listLabel?: string;
+  maxListHeight?: CSSProperties["maxBlockSize"];
+  density?: DataListProps["density"];
+  emptyContent?: ReactNode;
+}
+/** File intake and transfer rows in one host-owned queue. */
+export const UploadQueue = /* @__PURE__ */ forwardRef<HTMLElement,UploadQueueProps>(function UploadQueue(props,ref){
+  return <UploadQueueContent {...props} ref={ref}/>;
+});
 export interface ImagePreviewProps extends Omit<DialogProps,"children" | "description"> {
   src: string;
   alt: string;
   caption?: ReactNode;
   downloadHref?: string;
   downloadLabel?: string;
+  /** Offer a switch from the fitted image to its intrinsic size. */
+  zoomable?: boolean;
+  actualSizeLabel?: string;
+  viewportLabel?: string;
   loadingLabel?: string;
   errorLabel?: string;
 }
 /** A single-image viewer using Flood Dialog focus and dismissal. @since 0.2.8 */
 export const ImagePreview = /* @__PURE__ */ forwardRef<HTMLDialogElement,ImagePreviewProps>(function ImagePreview(props,ref){return <ModalImagePreview {...props} ref={ref}/>;});
+
+export interface ImageGalleryItem extends Pick<ImagePreviewProps,"src"|"alt"|"caption"|"downloadHref"> {
+  id: string;
+  /** A small image for the thumbnail rail. Original images load separately. */
+  thumbnailSrc?: string;
+  thumbnailLabel?: string;
+}
+
+export interface ImageGalleryProps extends Omit<ImagePreviewProps, "src" | "alt" | "caption" | "downloadHref"> {
+  items: readonly ImageGalleryItem[];
+  currentId?: string;
+  defaultCurrentId?: string;
+  onCurrentIdChange?: (id: string) => void;
+  navigation?: "arrows" | "thumbnails";
+  navigationLabel?: string;
+  previousLabel?: string;
+  nextLabel?: string;
+  getPositionLabel?: (position: number, total: number) => string;
+}
+
+/** Inspect a set of images within a single dialog. */
+export const ImageGallery = /* @__PURE__ */ forwardRef<HTMLDialogElement, ImageGalleryProps>(function ImageGallery(props,ref) {
+  return <ModalImageGallery {...props} ref={ref}/>;
+});
 
 export interface DataTableColumn {
   id: string;
@@ -372,6 +491,10 @@ export interface DataTableColumn {
   numeric?: boolean;
   align?: "start" | "end";
   width?: CSSProperties["width"];
+  /** Reserve a secondary line in this column when loading with skeleton rows. */
+  placeholderLines?: 1 | 2;
+  /** Keep plain text values on one line and reveal the full value on overflow. */
+  cellOverflow?: "truncate";
   /** Keep this column visible when the host or Columns menu hides other columns. */
   hideable?: boolean;
   /** Opt into pointer and keyboard width adjustments for this column. */
@@ -401,6 +524,7 @@ export interface DataTableRow {
 export interface DataTableSort { column: string; direction: "ascending" | "descending"; }
 export interface DataTableLabels {
   loading?: string;
+  refreshing?: string;
   empty?: string;
   error?: string;
   retry?: string;
@@ -408,6 +532,7 @@ export interface DataTableLabels {
   selectRow?: (label: string) => string;
   results?: (from: number, to: number, total: number) => string;
   selection?: (selected: number, total: number) => string;
+  cursorSelection?: (selected: number) => string;
   sort?: (label: string) => string;
   columns?: string;
   resetColumns?: string;
@@ -420,6 +545,8 @@ export interface DataTableLabels {
   previousPage?: string;
   nextPage?: string;
   page?: (page: number) => string;
+  pagePosition?: (page: number, pageCount: number) => string;
+  pageNumber?: (page: number) => string;
 }
 export interface DataTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   /** Host-owned heading, search and filters aligned with the outer table cells. */
@@ -427,6 +554,8 @@ export interface DataTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
   inset?: "standard" | "roomy";
   /** Ready with no rows only. Compose EmptyState/actions here; loading and error keep their owners. */
   emptyContent?: ReactNode;
+  /** Content for a failed read. Compose ErrorState and let the host own recovery. */
+  errorContent?: ReactNode;
   caption: string;
   hideCaption?: boolean;
   columns: readonly DataTableColumn[];
@@ -459,21 +588,30 @@ export interface DataTableProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
   page?: number;
   defaultPage?: number;
   pageSize?: number;
+  paginationPresentation?: PaginationProps["presentation"];
   onPageChange?: (page: number) => void;
   /** Hide the result range while preserving selection and pagination controls. */
   showResults?: boolean;
-  /** Hide the visible selection count while retaining its accessible status. */
-  showSelection?: boolean;
-  /** Server mode renders rows as the supplied page, without local sorting/slicing. */
-  paginationMode?: "client" | "server";
+  /** Replace the visible result range during selection, or hide the footer count while keeping its accessible status. */
+  showSelection?: boolean | "replace-results";
+  /** Server and cursor modes render supplied rows without local sorting or slicing. */
+  paginationMode?: "client" | "server" | "cursor";
+  /** Cursor controls and an optional known range shown in the footer summary. */
+  cursorPagination?: Pick<CursorPaginationProps, "previous" | "next" | "pending" | "position">;
   totalRows?: number;
-  /** Server dataset selection is controlled; the host validates IDs outside this page. */
+  /** Remote dataset selection is controlled; the host validates IDs outside this page. */
   selectionScope?: "page" | "dataset";
   state?: "ready" | "loading" | "error";
+  /** Use a spinner, a visible loading message, or placeholders on the existing column tracks. */
+  loadingAppearance?: "spinner" | "message" | "skeleton";
+  /** Placeholder count, up to pageSize. Defaults to the smaller of five and pageSize. */
+  loadingRowCount?: number;
+  /** Show background activity while ready rows and their controls are still usable. */
+  refreshing?: boolean;
   onRetry?: () => void;
   labels?: DataTableLabels;
 }
-/** A client-side table composed from native table, checkbox and pagination. @since 0.2.8 */
+/** A native table with selectable rows and client or remote pagination. @since 0.2.8 */
 export const DataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTableProps>(function DataTable(props,ref){return <ManagedDataTable {...props} ref={ref}/>;});
 
 export interface SparklineProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label" | "aria-labelledby"> {
@@ -583,6 +721,27 @@ export const DonutChart = /* @__PURE__ */ forwardRef<HTMLDivElement, DonutChartP
     navigationLabel = "Use the arrow keys to explore segments, or Home and End to jump.", ...props }, ref,
 ) {
   return <ShareRing {...props} totalLabel={totalLabel} emptyLabel={emptyLabel} navigationLabel={navigationLabel} ref={ref} />;
+});
+
+export interface CompositionBarProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  /** Up to six mutually exclusive parts in display order. */
+  items: readonly DonutChartItem[];
+  /** Use rows to align the readouts vertically. */
+  layout?: "inline" | "rows";
+  /** Readouts show amounts by default. Shares are available when the total is positive. */
+  readout?: "value" | "share" | "both";
+  emptyLabel?: string;
+  formatValue?: (value: number) => string;
+  /** Receives the share as a fraction from 0 to 1. */
+  formatShare?: (share: number) => string;
+}
+
+/** A compact proportional bar with always-visible category readouts. */
+export const CompositionBar = /* @__PURE__ */ forwardRef<HTMLDivElement, CompositionBarProps>(function CompositionBar(
+  {layout = "inline", readout = "value", emptyLabel = "No data", ...props}, ref,
+) {
+  return <ShareBar {...props} ref={ref} layout={layout} readout={readout} emptyLabel={emptyLabel} />;
 });
 
 export interface HeatmapProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
@@ -813,24 +972,147 @@ export const BarList = /* @__PURE__ */ forwardRef<HTMLDivElement, BarListProps>(
 export interface DataListProps extends Omit<HTMLAttributes<HTMLUListElement>, "role"> {
   density?: "compact" | "comfortable";
   dividers?: boolean;
+  /** Keep the selection column when no visible item currently offers selection. */
+  reserveSelectionSpace?: boolean;
 }
 /** A native list; links and actions stay independent. @since 0.2.8 */
-export const DataList = /* @__PURE__ */ forwardRef<HTMLUListElement,DataListProps>(function DataList({density="comfortable",dividers=true,className,...props},ref){
-  return <ul {...props} ref={ref} role="list" data-density={density} data-dividers={dividers} className={classes("flood-data-list",className)}/>;
+export const DataList = /* @__PURE__ */ forwardRef<HTMLUListElement,DataListProps>(function DataList({density="comfortable",dividers=true,reserveSelectionSpace,className,...props},ref){
+  return <ul {...props} ref={ref} role="list" data-density={density} data-dividers={dividers} data-reserve-selection={reserveSelectionSpace || undefined} className={classes("flood-data-list",className)}/>;
 });
+export interface NotificationListProps extends DataListProps {
+  label: string;
+  /** Preserve the media column when a filtered group has no visible artwork. */
+  reserveMediaSpace?: boolean;
+}
+
+/** A named inbox list that keeps notification rows on shared tracks. */
+export const NotificationList = /* @__PURE__ */ forwardRef<HTMLUListElement, NotificationListProps>(function NotificationList(
+  {label, density = "compact", dividers = false, reserveMediaSpace = false, className, ...props}, ref,
+) {
+  return <DataList {...props} ref={ref} density={density} dividers={dividers} aria-label={label}
+    data-reserve-media={reserveMediaSpace || undefined} className={classes("flood-notification-list", className)} />;
+});
+
+export interface NotificationItemProps extends Omit<DataListItemProps, "title" | "metadata" | "layout"> {
+  title: string;
+  href?: string;
+  linkProps?: Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href" | "children">;
+  unread?: boolean;
+  unreadLabel?: string;
+  timeLabel?: string;
+  dateTime?: string;
+  onUnreadChange?: (unread: boolean) => void;
+  markReadLabel?: string;
+  markUnreadLabel?: string;
+}
+
+/** A persistent notification with a native destination and independent read control. */
+export const NotificationItem = /* @__PURE__ */ forwardRef<HTMLLIElement, NotificationItemProps>(function NotificationItem(
+  {title, href, linkProps, media, unread = false, unreadLabel = "Unread", timeLabel, dateTime, onUnreadChange,
+    markReadLabel = "Mark as read", markUnreadLabel = "Mark as unread", actions, className, ...props}, ref,
+) {
+  const unreadId = useId();
+  const timestamp = timeLabel && (dateTime ? <Timestamp dateTime={dateTime}>{timeLabel}</Timestamp> : <span>{timeLabel}</span>);
+  const readLabel = unread ? markReadLabel : markUnreadLabel;
+  return <DataListItem {...props} ref={ref} className={classes("flood-notification-item", className)} data-unread={unread}
+    data-has-media={hasFieldContent(media) || undefined}
+    media={<span className="flood-notification-item__leading">
+      <CountBadge className="flood-notification-item__dot" count={unread ? 1 : 0} presentation="dot" aria-hidden="true" />
+      <span className="flood-notification-item__media">{media}</span>
+    </span>}
+    title={<>
+      {unread && <VisuallyHidden id={unreadId}>{unreadLabel}</VisuallyHidden>}
+      {href ? <Link {...linkProps} href={href} aria-describedby={mergeDescriptions(linkProps?.["aria-describedby"], unread && unreadId)}>{title}</Link> : title}
+    </>}
+    metadata={timestamp}
+    actions={onUnreadChange || hasFieldContent(actions) ? <>
+      {onUnreadChange && <IconButton type="button" size="xs" variant="ghost" label={readLabel} title={readLabel} onClick={() => onUnreadChange(!unread)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          {unread ? <path d="m5 12 4 4L19 6" /> : <circle cx="12" cy="12" r="4" />}
+        </svg>
+      </IconButton>}
+      {actions}
+    </> : undefined} />;
+});
+
+export type NotificationInboxFilter = "all" | "unread";
+
+export interface NotificationInboxItem extends Omit<NotificationItemProps, "id" | "onUnreadChange"> {
+  id: string;
+}
+
+export interface NotificationInboxProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  label: string;
+  items: readonly NotificationInboxItem[];
+  filter?: NotificationInboxFilter;
+  defaultFilter?: NotificationInboxFilter;
+  onFilterChange?: (filter: NotificationInboxFilter) => void;
+  onUnreadChange?: (id: string, unread: boolean) => void;
+  onMarkAllRead?: () => void;
+  markingAllRead?: boolean;
+  state?: "ready" | "loading" | "error";
+  loadingPlaceholder?: Pick<ListSkeletonProps, "rows" | "media" | "description" | "metadata">;
+  onRetry?: () => void;
+  retrying?: boolean;
+  density?: NotificationListProps["density"];
+  /** Condensed rows for an inbox inside a floating surface. */
+  appearance?: "default" | "overlay";
+  labels?: {
+    filter?: string;
+    all?: string;
+    unread?: string;
+    markAllRead?: string;
+    empty?: string;
+    caughtUp?: string;
+    loading?: string;
+    error?: string;
+    retry?: string;
+  };
+}
+
+/** A notification list with an unread filter and host-owned read actions. */
+export const NotificationInbox = /* @__PURE__ */ forwardRef<HTMLDivElement, NotificationInboxProps>(function NotificationInbox(props, ref) {
+  return <InboxContent {...props} ref={ref} />;
+});
+
+export interface RecordSelection {
+  label: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  disabled?: boolean;
+}
+export type DataListItemSelection = RecordSelection;
+
+function RecordCheckbox({selection, className}: {selection: RecordSelection; className?: string}) {
+  if (!selection.label.trim()) throw new Error("Flood record selection needs a label");
+  return <Checkbox label={selection.label} hideLabel className={className}
+    checked={selection.checked} disabled={selection.disabled}
+    onChange={event => selection.onCheckedChange(event.currentTarget.checked)} />;
+}
+
 export interface DataListItemProps extends Omit<HTMLAttributes<HTMLLIElement>, "title" | "children"> {
   title: ReactNode;
   description?: ReactNode;
+  /** Supporting facts grouped with the title and description on the leading edge. */
+  details?: ReactNode;
   media?: ReactNode;
   metadata?: ReactNode;
   actions?: ReactNode;
+  /** Independent checkbox for host-owned bulk selection. */
+  selection?: DataListItemSelection;
+  /** Anchor multiline content at the top and reflow trailing actions within a narrow DataList. */
+  layout?: "row" | "content";
 }
 /** A structured list row, never an interactive wrapper. @since 0.2.8 */
-export const DataListItem = /* @__PURE__ */ forwardRef<HTMLLIElement,DataListItemProps>(function DataListItem({title,description,media,metadata,actions,className,...props},ref){
-  return <li {...props} ref={ref} className={classes("flood-data-list-item",className)}>
+export const DataListItem = /* @__PURE__ */ forwardRef<HTMLLIElement,DataListItemProps>(function DataListItem({title,description,details,media,metadata,actions,selection,layout,className,...props},ref){
+  return <li {...props} ref={ref} data-layout={layout}
+    {...(selection && {"data-selectable":true,"data-selected":selection.checked || undefined})}
+    className={classes("flood-data-list-item",className)}>
+    {selection && <RecordCheckbox selection={selection} className="flood-data-list-item__selection" />}
     {hasFieldContent(media)&&<div className="flood-data-list-item__media">{media}</div>}
     <div className="flood-data-list-item__copy"><div className="flood-data-list-item__title">{title}</div>
       {hasFieldContent(description)&&<div className="flood-data-list-item__description">{description}</div>}
+      {hasFieldContent(details)&&<div className="flood-data-list-item__details">{details}</div>}
     </div>
     {(hasFieldContent(metadata)||hasFieldContent(actions))&&<div className="flood-data-list-item__trailing">
       {hasFieldContent(metadata)&&<div className="flood-data-list-item__metadata">{metadata}</div>}
@@ -838,12 +1120,43 @@ export const DataListItem = /* @__PURE__ */ forwardRef<HTMLLIElement,DataListIte
     </div>}
   </li>;
 });
-export interface CheckCardProps extends Omit<CheckboxProps,"label" | "children"> {
+
+export interface MetadataItem {
+  id: string;
+  value: ReactNode;
+  icon?: ReactNode;
+}
+
+export interface MetadataListProps extends Omit<HTMLAttributes<HTMLUListElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  items: readonly MetadataItem[];
+  size?: "sm" | "md";
+}
+
+/** Short supporting facts that wrap together within the content they describe. */
+export const MetadataList = /* @__PURE__ */ forwardRef<HTMLUListElement, MetadataListProps>(function MetadataList(
+  {label, items, size = "sm", className, ...props}, ref,
+) {
+  if (!label.trim() || new Set(items.map(item => item.id)).size !== items.length || items.some(item => !item.id.trim())) {
+    throw new Error("Flood MetadataList requires a name and unique nonempty item IDs");
+  }
+  const facts = items.filter(item => hasFieldContent(item.value) && (typeof item.value !== "string" || item.value.trim()));
+  if (!facts.length) return null;
+  return <ul {...props} ref={ref} role="list" aria-label={label} className={classes("flood-metadata-list", className)} data-size={size}>
+    {facts.map(({id, value, icon}) => <li key={id}>
+      {hasFieldContent(icon) && <IconSlot size={size === "sm" ? "2xs" : "xs"}>{icon}</IconSlot>}
+      <Text size={size === "sm" ? "helper" : "compact"} tone="subtle" className="flood-metadata-list__value">{value}</Text>
+    </li>)}
+  </ul>;
+});
+
+export interface CheckCardProps extends Omit<CheckboxProps,"label" | "children" | "hideLabel"> {
   label: string;
   description?: ReactNode;
   icon?: ReactNode;
   metadata?: ReactNode;
   density?: "compact" | "comfortable";
+  indicatorPlacement?: "start" | "end";
 }
 /** A native checkbox inside a clickable noninteractive content card. @since 0.2.8 */
 export const CheckCard = /* @__PURE__ */ forwardRef<HTMLInputElement,CheckCardProps>(function CheckCard(props,ref){return <CheckableCard {...props} ref={ref}/>;});
@@ -853,6 +1166,7 @@ export interface RadioCardProps extends Omit<ChoiceProps,"label" | "children"> {
   icon?: ReactNode;
   metadata?: ReactNode;
   density?: "compact" | "comfortable";
+  indicatorPlacement?: CheckCardProps["indicatorPlacement"];
 }
 /** Give exclusive choices the same native name and an enclosing Fieldset. @since 0.2.8 */
 export const RadioCard = /* @__PURE__ */ forwardRef<HTMLInputElement,RadioCardProps>(function RadioCard(props,ref){return <ExclusiveCard {...props} ref={ref}/>;});
@@ -862,6 +1176,24 @@ export interface ColorSwatchProps extends Omit<HTMLAttributes<HTMLSpanElement>, 
 }
 /** @since 0.2.8 */
 export const ColorSwatch = /* @__PURE__ */ forwardRef<HTMLSpanElement, ColorSwatchProps>(function ColorSwatch(props, ref) { return <ColorPreview {...props} ref={ref} />; });
+export interface ColorPaletteOption {
+  value: string;
+  label: string;
+  disabled?: boolean;
+}
+export interface ColorPaletteProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "onChange"> {
+  label: string;
+  options: readonly ColorPaletteOption[];
+  value?: string;
+  onValueChange: (value: string) => void;
+  appearance?: "swatches" | "labeled";
+  disabled?: boolean;
+  readOnly?: boolean;
+}
+/** An application-owned choice from a named palette. */
+export const ColorPalette = /* @__PURE__ */ forwardRef<HTMLDivElement, ColorPaletteProps>(function ColorPalette(
+  {appearance = "swatches", disabled = false, readOnly = false, ...props}, ref,
+) { return <PaletteChoices {...props} ref={ref} appearance={appearance} disabled={disabled} readOnly={readOnly} />; });
 export interface ColorPickerProps extends Omit<HTMLAttributes<HTMLDivElement>, "defaultValue" | "onChange" | "children"> {
   label: string; hideLabel?: boolean; value?: string; defaultValue?: string;
   onValueChange?: (value: string) => void; name?: string; form?: string;
@@ -973,10 +1305,14 @@ export interface NavigationItemDisclosure {
 }
 export interface NavigationItemProps extends Omit<HTMLAttributes<HTMLDivElement>,'children'|'onChange'> {
   label:string;
+  /** Reveal a clipped single-line label on the existing navigation target. */
+  labelOverflow?:"wrap"|"truncate";
   description?:string;
   icon?:ReactNode;
   reserveIcon?:boolean;
   trailing?:ReactNode;
+  /** A named unread count shown as a dot in compact navigation. */
+  compactBadge?: {count:number; label:string};
   /** Independent action rendered beside the primary control in expanded rows. */
   trailingAction?:ReactNode;
   href?:string;
@@ -1024,6 +1360,7 @@ export interface NavigationTreeItem {
   href?: string;
   icon?: ReactNode;
   trailing?: ReactNode;
+  compactBadge?: NavigationItemProps["compactBadge"];
   trailingAction?: ReactNode;
   disabled?: boolean;
   children?: readonly NavigationTreeItem[];
@@ -1033,6 +1370,7 @@ export interface NavigationTreeItem {
 }
 export interface NavigationTreeProps extends Omit<HTMLAttributes<HTMLElement>, "children" | "onChange"> {
   label: string;
+  labelOverflow?: NavigationItemProps["labelOverflow"];
   items: readonly NavigationTreeItem[];
   currentValue?: string;
   /** Page destination versus the current global module/location. */
@@ -1070,6 +1408,7 @@ export interface SidebarGroup {
 export interface SidebarSlotState { collapsed:boolean; }
 export interface SidebarProps extends Omit<HTMLAttributes<HTMLElement>,"children"|"onChange"> {
   label:string;
+  labelOverflow?:NavigationItemProps["labelOverflow"];
   groups:readonly SidebarGroup[];
   currentValue?:string;
   currentKind?:NavigationTreeProps["currentKind"];
@@ -1101,6 +1440,9 @@ export interface ErrorSummaryItem { id: string; fieldId: string; message: string
 export interface ErrorSummaryProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "title" | "onSelect" | "role" | "aria-live"> {
   title: string;
   errors: readonly ErrorSummaryItem[];
+  /** Form-wide validation messages with no individual focus target. */
+  formErrors?: readonly { id: string; message: string }[];
+  appearance?: AlertProps["appearance"];
   description?: ReactNode;
   announcement?: "off" | "polite" | "assertive";
   autoFocus?: boolean;
@@ -1289,6 +1631,10 @@ export interface CommandListItem {
   keywords?: readonly string[];
   disabled?: boolean;
   group?: string;
+  /** Decorative glyph. The label supplies the complete command name. */
+  icon?: ReactNode;
+  /** Display hint for a shortcut registered by the host. */
+  shortcut?: KeyboardShortcutKeys;
 }
 export interface CommandListProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "defaultValue" | "onChange"> {
   label: string;
@@ -1319,6 +1665,10 @@ export interface TagInputProps extends Omit<InputProps, "type" | "value" | "defa
   delimiters?: readonly string[];
   removeLabel?: string;
   requiredMessage?: string;
+  /** Show at most this many tags before the user expands the selection. */
+  maxVisibleTags?: number;
+  moreTagsLabel?: (hiddenCount: number) => string;
+  fewerTagsLabel?: string;
 }
 /** @since 0.2.7 */
 export const TagInput = /* @__PURE__ */ forwardRef<HTMLInputElement, TagInputProps>(function TagInput(
@@ -1368,7 +1718,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "solid" | "subtle" | "outline" | "ghost";
   tone?: "default" | "danger";
   size?: ControlSize;
-  loading?: boolean;
+  /** Keep focus and replace visible content with a spinner using retain-focus. */
+  loading?: boolean | "retain-focus";
 }
 export const Button = /* @__PURE__ */ forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
@@ -1381,18 +1732,25 @@ export const Button = /* @__PURE__ */ forwardRef<HTMLButtonElement, ButtonProps>
       type = "button",
       className,
       children,
+      onClick,
       ...props
     },
     ref,
   ) {
+    const retainsFocus = loading === "retain-focus";
     return (
       <button
         {...props}
         ref={ref}
         type={type}
         data-tone={tone === "danger" ? tone : undefined}
-        disabled={disabled || loading}
-        aria-busy={loading || undefined}
+        disabled={disabled || (loading === true)}
+        aria-busy={Boolean(loading) || props["aria-busy"]}
+        aria-disabled={retainsFocus || props["aria-disabled"]}
+        onClick={retainsFocus ? event => {
+          event.preventDefault();
+          event.stopPropagation();
+        } : onClick}
         className={classes(
           "flood-button",
           `flood-button--${variant}`,
@@ -1400,8 +1758,10 @@ export const Button = /* @__PURE__ */ forwardRef<HTMLButtonElement, ButtonProps>
           className,
         )}
       >
-        {loading && <Spinner decorative />}
-        {children}
+        {retainsFocus ? <>
+          <span className="flood-button__busy-spinner" aria-hidden="true"><Spinner decorative /></span>
+          <span className="flood-button__busy-label">{children}</span>
+        </> : <>{loading && <Spinner decorative />}{children}</>}
       </button>
     );
   },
@@ -1409,10 +1769,85 @@ export const Button = /* @__PURE__ */ forwardRef<HTMLButtonElement, ButtonProps>
 
 export type FieldStatus = "error" | "warning" | "success" | "info";
 
+export interface MessageAttachment {
+  id: string;
+  label: string;
+  removeLabel?: string;
+}
+
+export interface MessageComposerProps extends Omit<HTMLAttributes<HTMLFormElement>, "children" | "onChange" | "onSubmit"> {
+  layout?: "stacked" | "compact";
+  sendPresentation?: "icon" | "label";
+  label: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  onSend: () => void;
+  placeholder?: string;
+  disabled?: boolean;
+  streaming?: boolean;
+  onStop?: () => void;
+  attachments?: readonly MessageAttachment[];
+  /** Accessible name of the attachment list. */
+  attachmentsLabel?: string;
+  /** Number shown before the count disclosure. Omit to show all attachments. */
+  maxVisibleAttachments?: number;
+  moreAttachmentsLabel?: (hiddenCount: number) => string;
+  fewerAttachmentsLabel?: string;
+  onRemoveAttachment?: (id: string) => void;
+  onFilesSelect?: (files: File[]) => void;
+  accept?: string;
+  sendLabel?: string;
+  stopLabel?: string;
+  attachLabel?: string;
+  /** Localized context displayed above the draft, for example "Replying to Maya Chen". */
+  replyContext?: string;
+  onCancel?: () => void;
+  cancelLabel?: string;
+}
+
+/** A controlled draft for messages and replies with optional attachments. */
+export const MessageComposer = /* @__PURE__ */ forwardRef<HTMLFormElement, MessageComposerProps>(function MessageComposer(
+  {replyContext, onCancel, cancelLabel = "Cancel reply", sendLabel, ...props}, ref,
+) {
+  const contextId = useId();
+  const header = (replyContext || onCancel) && <div className="flood-message-composer__context">
+      {replyContext && <>
+        <IconSlot size="2xs" className="flood-message-composer__reply-icon"><ReplyIcon /></IconSlot>
+        <Text id={contextId} tone="subtle" size="helper" className="flood-message-composer__context-label">{replyContext}</Text>
+      </>}
+      {onCancel && <IconButton type="button" size="2xs" variant="ghost" label={cancelLabel} title={cancelLabel} onClick={onCancel} disabled={props.disabled}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
+          <path d="m6 6 12 12M18 6 6 18" />
+        </svg>
+      </IconButton>}
+    </div>;
+  return <ComposerForm {...props} sendLabel={sendLabel ?? (replyContext ? "Reply" : undefined)}
+    header={header} editorDescriptionId={replyContext ? contextId : undefined} ref={ref} />;
+});
+
+function ReplyIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m9 6-5 5 5 5M4 11h9a6 6 0 0 1 6 6v2" />
+  </svg>;
+}
+
+export interface CommentComposerProps extends MessageComposerProps {}
+
+/** MessageComposer with compact comment defaults. */
+export const CommentComposer = /* @__PURE__ */ forwardRef<HTMLFormElement, CommentComposerProps>(function CommentComposer(
+  {replyContext, layout = "compact", sendPresentation = "label", sendLabel, className, ...props}, ref,
+) {
+  return <MessageComposer {...props} layout={layout} sendPresentation={sendPresentation} replyContext={replyContext}
+    sendLabel={sendLabel ?? (replyContext ? "Reply" : "Post")} placeholder={props.placeholder ?? props.label}
+    className={classes("flood-comment-composer", className)} ref={ref} />;
+});
+
 export type ContentSize = "sm" | "md" | "lg";
 export interface TagProps extends HTMLAttributes<HTMLSpanElement> {
   size?: ContentSize;
   icon?: ReactNode;
+  /** Leading identity artwork. Takes the place of icon when both are supplied. */
+  avatar?: Pick<AvatarProps, "name" | "src" | "fallback" | "shape">;
   disabled?: boolean;
   onRemove?: () => void;
   removeLabel?: string;
@@ -1420,25 +1855,74 @@ export interface TagProps extends HTMLAttributes<HTMLSpanElement> {
 }
 /** @since 0.2.5 */
 export const Tag = /* @__PURE__ */ forwardRef<HTMLSpanElement, TagProps>(function Tag(
-  { size = "md", icon, disabled = false, onRemove, removeLabel, removeButtonProps, className, children, ...props }, ref,
+  { size = "md", icon, avatar, disabled = false, onRemove, removeLabel, removeButtonProps, className, children, ...props }, ref,
 ) {
   const label = removeLabel ?? (typeof children === "string" || typeof children === "number" ? `Remove ${children}` : "");
   if (onRemove && !label.trim()) throw new Error("Flood Tag removal needs an accessible removeLabel for rich content");
   const iconSize = size === "sm" ? "2xs" : size === "md" ? "xs" : "sm";
   return <span {...props} ref={ref} className={classes("flood-tag", className)} data-size={size} data-disabled={disabled || undefined}>
-    {hasFieldContent(icon) && <IconSlot size={iconSize}>{icon}</IconSlot>}
+    {avatar ? <Avatar {...avatar} size="2xs" decorative /> : hasFieldContent(icon) && <IconSlot size={iconSize}>{icon}</IconSlot>}
     <span className="flood-tag__label">{children}</span>
     {onRemove && <IconButton {...removeButtonProps} type="button" className={classes("flood-tag__remove", removeButtonProps?.className)} label={label} variant="ghost" size={iconSize} disabled={disabled} onClick={() => { if (!disabled) onRemove(); }}>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
     </IconButton>}
   </span>;
 });
+export interface TagGroupItem {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  avatar?: TagProps["avatar"];
+  disabled?: boolean;
+  removeLabel?: string;
+}
+
+export interface TagGroupProps extends Omit<HTMLAttributes<HTMLUListElement>, "children"> {
+  label: string;
+  items: readonly TagGroupItem[];
+  size?: ContentSize;
+  disabled?: boolean;
+  onRemove?: (id: string) => void;
+  maxVisibleTags?: number;
+  moreTagsLabel?: (hiddenCount: number) => string;
+  fewerTagsLabel?: string;
+}
+
+/** A controlled list of labels or removable tags with optional count disclosure. */
+export const TagGroup = /* @__PURE__ */ forwardRef<HTMLUListElement, TagGroupProps>(function TagGroup(props, ref) {
+  return <TagList {...props} ref={ref} />;
+});
+
 export interface KbdProps extends HTMLAttributes<HTMLElement> { size?: ContentSize; }
 /** @since 0.2.4 */
 export const Kbd = /* @__PURE__ */ forwardRef<HTMLElement, KbdProps>(function Kbd(
   { size = "sm", className, ...props }, ref,
 ) {
   return <kbd {...props} ref={ref} className={classes("flood-kbd", className)} data-size={size} />;
+});
+
+export type KeyboardShortcutKeys = string | readonly string[];
+
+export interface KeyboardShortcutProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children"> {
+  keys: KeyboardShortcutKeys;
+  /** Localized spoken form, useful when keycaps contain platform glyphs. */
+  label?: string;
+  size?: ContentSize;
+  presentation?: "keys" | "compact";
+}
+
+/** A display-only shortcut with a consistent visual and spoken key order. */
+export const KeyboardShortcut = /* @__PURE__ */ forwardRef<HTMLSpanElement, KeyboardShortcutProps>(function KeyboardShortcut(
+  {keys, label, size = "sm", presentation = "keys", className, ...props}, ref,
+) {
+  const parts = typeof keys === "string" ? [keys] : keys;
+  if (!parts.length) return null;
+  return <span {...props} ref={ref} dir="ltr" className={classes("flood-keyboard-shortcut", className)}>
+    <VisuallyHidden>{label ?? parts.join(" + ")}</VisuallyHidden>
+    {presentation === "compact"
+      ? <Kbd size={size} aria-hidden="true">{parts.join(" ")}</Kbd>
+      : parts.map((key, index) => <Kbd key={index} size={size} aria-hidden="true">{key}</Kbd>)}
+  </span>;
 });
 
 export interface ToolbarProps extends Omit<HTMLAttributes<HTMLDivElement>, "role"> {
@@ -1461,10 +1945,15 @@ export interface DescriptionItem {
   id: string;
   term: string;
   description: ReactNode;
+  /** Keep a recognizable plain-text value on one line with full text on focus. */
+  valueOverflow?: "wrap" | "truncate";
+  /** A compact utility action for this value, such as copying an identifier. */
+  action?: ReactNode;
 }
 export interface DescriptionListProps extends Omit<HTMLAttributes<HTMLDListElement>, "children"> {
   items: readonly DescriptionItem[];
-  layout?: "inline" | "stacked";
+  /** Inline adapts, columns retain shared tracks, and grid tiles short facts. */
+  layout?: "inline" | "columns" | "stacked" | "grid";
   density?: DataDensity;
   dividers?: boolean;
 }
@@ -1473,6 +1962,67 @@ export const DescriptionList = /* @__PURE__ */ forwardRef<HTMLDListElement, Desc
   { items, layout = "inline", density = "compact", dividers = false, ...props }, ref,
 ) {
   return <DescribedData {...props} ref={ref} items={items} layout={layout} density={density} dividers={dividers} />;
+});
+
+export interface ValueChangeProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  before?: ReactNode;
+  after?: ReactNode;
+  layout?: "inline" | "stacked" | "adaptive";
+  labels?: {before?: string; after?: string; added?: string; removed?: string};
+}
+
+/** Previous and current values, with an explicit label for additions and removals. */
+export const ValueChange = /* @__PURE__ */ forwardRef<HTMLDivElement, ValueChangeProps>(function ValueChange(
+  {before, after, layout = "inline", labels, className, ...props}, ref,
+) {
+  const hasBefore = hasFieldContent(before);
+  const hasAfter = hasFieldContent(after);
+  const pair = hasBefore && hasAfter;
+  const labeled = layout === "stacked" || !pair;
+  const adaptive = layout === "adaptive" && pair;
+  if (!hasBefore && !hasAfter) return null;
+  const label = (text: string) => labeled
+    ? <Text size="helper" tone="subtle" className="flood-value-change__label">{text}</Text>
+    : <>
+      <VisuallyHidden>{text}{" "}</VisuallyHidden>
+      {adaptive && <Text size="helper" tone="subtle" aria-hidden="true" className="flood-value-change__label flood-value-change__label--adaptive">{text}</Text>}
+    </>;
+  return <div {...props} ref={ref} className={classes("flood-value-change", className)} data-layout={layout} data-adaptive-pair={adaptive || undefined}>
+    {hasBefore && <div className="flood-value-change__value" data-side="before">
+      {label(pair ? labels?.before ?? "Before" : labels?.removed ?? "Removed")}
+      <div className="flood-value-change__content">{before}</div>
+    </div>}
+    {hasAfter && <div className="flood-value-change__value" data-side="after">
+      {pair && layout !== "stacked" && <IconSlot size="2xs" className="flood-value-change__arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M5 12h14m-6-6 6 6-6 6" />
+        </svg>
+      </IconSlot>}
+      {label(pair ? labels?.after ?? "After" : labels?.added ?? "Added")}
+      <div className="flood-value-change__content">{after}</div>
+    </div>}
+  </div>;
+});
+
+export interface ChangeListItem extends Pick<ValueChangeProps, "before" | "after"> {
+  id: string;
+  label: string;
+}
+
+export interface ChangeListProps extends Omit<DescriptionListProps, "items"> {
+  items: readonly ChangeListItem[];
+  valueLayout?: ValueChangeProps["layout"];
+  labels?: ValueChangeProps["labels"];
+}
+
+/** Named changes presented on shared definition-list tracks. */
+export const ChangeList = /* @__PURE__ */ forwardRef<HTMLDListElement, ChangeListProps>(function ChangeList(
+  {items, valueLayout, labels, ...props}, ref,
+) {
+  return <DescriptionList {...props} ref={ref} items={items.filter(item => hasFieldContent(item.before) || hasFieldContent(item.after)).map(item => ({
+    id: item.id, term: item.label,
+    description: <ValueChange before={item.before} after={item.after} layout={valueLayout} labels={labels} />,
+  }))} />;
 });
 
 export interface TableProps extends Omit<TableHTMLAttributes<HTMLTableElement>, "children"> {
@@ -1495,6 +2045,76 @@ export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(fu
   return <TabularData {...props} ref={ref} caption={caption} hideCaption={hideCaption} density={density} striped={striped} scrollLabel={scrollLabel} cellVerticalAlign={cellVerticalAlign} stickyHeader={stickyHeader}>{children}</TabularData>;
 });
 
+export interface ComparisonTableColumn {
+  id: string;
+  label: string;
+}
+
+export interface ComparisonTableRow {
+  id: string;
+  label: string;
+  cells: Readonly<Record<string, ReactNode>>;
+  /** End-align values with tabular figures. Use a shared unit in the criterion label. */
+  numeric?: boolean;
+}
+
+export interface ComparisonTableProps extends Omit<TableProps, "children" | "striped" | "cellVerticalAlign"> {
+  criterionLabel: string;
+  columns: readonly ComparisonTableColumn[];
+  rows: readonly ComparisonTableRow[];
+  /** Quietly emphasize a named option, such as the current plan. */
+  featuredColumnId?: string;
+  unavailableLabel?: string;
+}
+
+/** A table of shared criteria with a pinned criterion column. */
+export const ComparisonTable = /* @__PURE__ */ forwardRef<HTMLTableElement, ComparisonTableProps>(function ComparisonTable(
+  {criterionLabel, columns, rows, featuredColumnId, unavailableLabel = "Unavailable", className, ...props}, ref,
+) {
+  if ([columns, rows].some(items => items.some(({id}) => !id.trim()) || new Set(items.map(({id}) => id)).size !== items.length)) {
+    throw new Error("Flood ComparisonTable requires unique nonempty option and criterion IDs");
+  }
+  return <Table {...props} ref={ref} className={classes("flood-comparison-table", className)}>
+    <thead>
+      <tr>
+        <th scope="col">{criterionLabel}</th>
+        {columns.map(column => <th scope="col" key={column.id}
+          data-featured={column.id === featuredColumnId || undefined}>{column.label}</th>)}
+      </tr>
+    </thead>
+    <tbody>
+      {rows.map(row => <tr key={row.id}>
+        <th scope="row">{row.label}</th>
+        {columns.map(column => {
+          const value = Object.hasOwn(row.cells, column.id) ? row.cells[column.id] : undefined;
+          return <td key={column.id} data-featured={column.id === featuredColumnId || undefined} data-numeric={row.numeric || undefined}>
+            {hasFieldContent(value) ? value : <Text size="compact" tone="subtle">{unavailableLabel}</Text>}
+          </td>;
+        })}
+      </tr>)}
+    </tbody>
+  </Table>;
+});
+
+export interface TableSkeletonColumn extends Pick<DataTableColumn, "id" | "label" | "width" | "placeholderLines"> {
+  align?: "start" | "center" | "end";
+}
+
+export interface TableSkeletonProps extends Omit<TableProps, "children" | "aria-busy"> {
+  columns: readonly TableSkeletonColumn[];
+  rows?: number;
+  animate?: boolean;
+  announce?: boolean;
+  loadingLabel?: string;
+}
+
+/** A loading table with real column labels and decorative body rows. */
+export const TableSkeleton = /* @__PURE__ */ forwardRef<HTMLTableElement, TableSkeletonProps>(function TableSkeleton(
+  {rows = 4, announce = true, loadingLabel = "Loading rows…", animate = true, ...props}, ref,
+) {
+  return <SkeletonTable {...props} ref={ref} rows={rows} announce={announce} loadingLabel={loadingLabel} animate={animate} />;
+});
+
 export type SemanticTone = "neutral" | "accent" | "error" | "warning" | "success" | "info";
 export type BadgeTone = SemanticTone;
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -1507,6 +2127,38 @@ export const Badge = /* @__PURE__ */ forwardRef<HTMLSpanElement, BadgeProps>(fun
   { size = "md", tone = "neutral", variant = "subtle", className, ...props }, ref,
 ) {
   return <span {...props} ref={ref} className={classes("flood-badge", className)} data-size={size} data-tone={tone} data-variant={variant} />;
+});
+
+export interface CountBadgeProps extends Omit<BadgeProps, "children"> {
+  count: number;
+  max?: number;
+  showZero?: boolean;
+  presentation?: "count" | "dot";
+  locale?: string;
+  /** Localized label for the exact count, including when the visual number is capped. */
+  formatLabel?: (count: number) => string;
+}
+
+/** A passive count, optionally capped or represented by a dot. */
+export const CountBadge = /* @__PURE__ */ forwardRef<HTMLSpanElement, CountBadgeProps>(function CountBadge(
+  {count, max = 99, showZero = false, presentation = "count", size = "sm", tone, locale, lang, formatLabel, className, ...props}, ref,
+) {
+  if (!Number.isSafeInteger(count) || count < 0 || !Number.isSafeInteger(max) || max < 1) {
+    throw new RangeError("Flood CountBadge requires a nonnegative count and a positive maximum");
+  }
+  if (count === 0 && (!showZero || presentation === "dot")) return null;
+  const format = new Intl.NumberFormat(locale ?? lang ?? "en");
+  const dot = presentation === "dot";
+  const visible = dot ? "" : count > max ? `${format.format(max)}+` : format.format(count);
+  const label = formatLabel?.(count) ?? format.format(count);
+  if (!label.trim()) throw new Error("Flood CountBadge requires a nonempty formatted label");
+  return <Badge {...props} ref={ref} lang={lang ?? locale} size={size} tone={tone ?? (dot ? "accent" : "neutral")}
+    className={classes("flood-count-badge",className)} data-presentation={presentation}>
+    {visible === label ? <bdi>{visible}</bdi> : <>
+      {visible && <bdi aria-hidden="true">{visible}</bdi>}
+      <VisuallyHidden>{label}</VisuallyHidden>
+    </>}
+  </Badge>;
 });
 
 export interface SpinnerProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "role" | "aria-label" | "aria-hidden"> {
@@ -1539,24 +2191,181 @@ export const Skeleton = /* @__PURE__ */ forwardRef<HTMLSpanElement, SkeletonProp
     aria-hidden="true" style={{ width, height, ...style }} />;
 });
 
+export interface ListSkeletonProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role"> {
+  label: string;
+  rows?: number;
+  density?: DataListProps["density"];
+  media?: boolean;
+  description?: boolean;
+  metadata?: boolean;
+  reserveSelectionSpace?: boolean;
+  dividers?: boolean;
+  animate?: boolean;
+}
+
+/** A decorative list placeholder with one localized loading message. */
+export const ListSkeleton = /* @__PURE__ */ forwardRef<HTMLDivElement, ListSkeletonProps>(function ListSkeleton(
+  {label, rows = 3, density = "comfortable", media = false, description = false,
+    metadata = false, reserveSelectionSpace, dividers, animate = true, className, ...props}, ref,
+) {
+  if (!label.trim() || !Number.isSafeInteger(rows) || rows < 1) throw new Error("Flood ListSkeleton requires a label and a positive row count");
+  return <div {...props} ref={ref} className={classes("flood-list-skeleton", className)}>
+    <VisuallyHidden role="status">{label}</VisuallyHidden>
+    <DataList density={density} dividers={dividers} reserveSelectionSpace={reserveSelectionSpace} aria-hidden="true">
+      {Array.from({length: rows}, (_, index) => <DataListItem key={index}
+        media={media ? <Skeleton shape="circle" className="flood-list-skeleton__media" animate={animate} /> : undefined}
+        title={<Skeleton width={index % 2 ? "55%" : "70%"} className="flood-list-skeleton__line" animate={animate} />}
+        description={description ? <Skeleton width={index % 2 ? "72%" : "88%"} className="flood-list-skeleton__line" animate={animate} /> : undefined}
+        metadata={metadata ? <Skeleton className="flood-list-skeleton__metadata" animate={animate} /> : undefined}
+      />)}
+    </DataList>
+  </div>;
+});
+
+export interface AvatarPresence {
+  state: "online" | "away" | "busy" | "offline";
+  /** Localized name of the current availability state. */
+  label: string;
+}
+
 export interface AvatarProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "role" | "aria-label" | "aria-hidden"> {
   name: string;
   src?: string;
   fallback?: string;
-  size?: ContentSize;
+  size?: "2xs" | "xs" | ContentSize;
   shape?: "circle" | "rounded";
   decorative?: boolean;
+  /** Host-supplied availability. Omit when presence is unknown or irrelevant. */
+  presence?: AvatarPresence;
 }
 /** @since 0.2.4 */
 export const Avatar = /* @__PURE__ */ forwardRef<HTMLSpanElement, AvatarProps>(function Avatar(
-  { name, src, fallback, size = "md", shape = "circle", decorative = false, className, ...props }, ref,
+  { name, src, fallback, size = "md", shape = "circle", decorative = false, presence, className, ...props }, ref,
 ) {
+  if (presence && !presence.label.trim()) throw new Error("Flood Avatar presence requires a label");
   const initials = name.trim().split(/\s+/u).filter(Boolean).slice(0, 2).map(word => Array.from(word)[0]).join("").toUpperCase();
+  const label = presence ? `${name}, ${presence.label}` : name;
   return <span {...props} ref={ref} className={classes("flood-avatar", className)} data-size={size} data-shape={shape}
-    role={decorative ? undefined : "img"} aria-label={decorative ? undefined : name} aria-hidden={decorative || undefined}>
+    data-presence={presence?.state} role={decorative ? undefined : "img"} aria-label={decorative ? undefined : label} aria-hidden={decorative || undefined}>
     <AvatarArtwork key={src ?? ""} src={src} fallback={fallback ?? (initials || "?")} />
+    {presence && <span className="flood-avatar__presence" aria-hidden="true" />}
   </span>;
 });
+
+export interface AuthorMetaProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children"> {
+  name: string;
+  src?: string;
+  fallback?: string;
+  size?: "sm" | "md";
+  presence?: AvatarPresence;
+  /** Secondary identity or date, such as a Timestamp. */
+  metadata?: ReactNode;
+  metadataPlacement?: "below" | "inline";
+  nameOverflow?: "wrap" | "truncate";
+}
+
+/** A named person with an avatar and optional secondary metadata. */
+export const AuthorMeta = /* @__PURE__ */ forwardRef<HTMLSpanElement, AuthorMetaProps>(function AuthorMeta(
+  {name, src, fallback, size = "md", presence, metadata, metadataPlacement = "below", nameOverflow = "wrap", className, ...props}, ref,
+) {
+  if (!name.trim()) throw new Error("Flood AuthorMeta requires a name");
+  return <span {...props} ref={ref} className={classes("flood-author-meta", className)} data-size={size} data-metadata-placement={metadataPlacement}>
+    <Avatar name={name} src={src} fallback={fallback} size={size} presence={presence} decorative />
+    <span className="flood-author-meta__copy">
+      <Text size={size === "sm" ? "helper" : "label"} className="flood-author-meta__name" dir="auto">
+        {nameOverflow === "truncate" ? <TruncatedText dir="auto" hidden={props.hidden} tooltipSide="top">{name}</TruncatedText> : name}
+      </Text>
+      {presence && <VisuallyHidden>{presence.label}</VisuallyHidden>}
+      {hasFieldContent(metadata) && <Text size="helper" tone="subtle" className="flood-author-meta__metadata">{metadata}</Text>}
+    </span>
+  </span>;
+});
+
+export interface CommentProps extends HTMLAttributes<HTMLElement> {
+  author: Pick<AuthorMetaProps, "name" | "src" | "fallback" | "metadata" | "presence">;
+  size?: AuthorMetaProps["size"];
+  /** Host-owned commands such as Reply or Copy link. */
+  actions?: ReactNode;
+  /** Opens the reply editor for this comment. The host owns its placement and focus. */
+  onReply?: (event: ReactMouseEvent<HTMLButtonElement>) => void;
+  replyLabel?: string;
+  attachments?: ReactNode;
+  reactions?: ReactNode;
+  /** A persistent add-reaction affordance when this message already has reactions. */
+  reactionPicker?: ReactNode;
+  /** Reveal secondary actions on pointer hover or keyboard focus, while keeping their layout space. */
+  actionVisibility?: "on-interaction" | "always";
+}
+
+/** An attributed message with its own optional actions. */
+export const Comment = /* @__PURE__ */ forwardRef<HTMLElement, CommentProps>(function Comment(
+  {author, size = "md", actions, onReply, replyLabel = "Reply", attachments, reactions, reactionPicker, actionVisibility = "on-interaction", children, className, ...props}, ref,
+) {
+  const hasReactions = Array.isArray(reactions) ? reactions.some(hasFieldContent) : hasFieldContent(reactions);
+  const hasActions = Boolean(onReply) || hasFieldContent(actions);
+  return <article {...props} ref={ref} className={classes("flood-comment", className)} data-action-visibility={actionVisibility}>
+    <AuthorMeta {...author} size={size} metadataPlacement="inline" />
+    <div className="flood-comment__body">
+      <Text as="div" size={size === "sm" ? "compact" : "body"} className="flood-comment__message">{children}</Text>
+      {hasFieldContent(attachments) && <div className="flood-comment__attachments">{attachments}</div>}
+    </div>
+    {(hasReactions || hasFieldContent(reactionPicker) || hasActions) && <footer className="flood-comment__footer" data-has-reactions={hasReactions}>
+      <Inline gap="1" align="center">
+        {hasReactions && <Inline key="reactions" gap="1" align="center" className="flood-comment__reactions">{reactions}</Inline>}
+        {hasFieldContent(reactionPicker) && <div key="picker" className="flood-comment__picker">{reactionPicker}</div>}
+        {hasActions && <Inline gap="1" align="center" className="flood-comment__actions">
+          {onReply && <IconButton type="button" size="xs" variant="ghost" label={replyLabel} title={replyLabel} onClick={onReply}><ReplyIcon /></IconButton>}
+          {actions}
+        </Inline>}
+      </Inline>
+    </footer>}
+  </article>;
+});
+
+export interface CommentThreadItem extends Pick<CommentProps, "author" | "actions" | "onReply" | "replyLabel" | "attachments" | "reactions" | "reactionPicker"> {
+  id: string;
+  body: ReactNode;
+  replies?: readonly CommentThreadItem[];
+  /** A localized disclosure title. Omit to show replies directly. */
+  repliesDisclosure?: { label: string; defaultOpen?: boolean };
+}
+
+export interface CommentThreadProps extends Omit<OlHTMLAttributes<HTMLOListElement>, "children"> {
+  items: readonly CommentThreadItem[];
+  size?: CommentProps["size"];
+  actionVisibility?: CommentProps["actionVisibility"];
+  dividers?: boolean;
+}
+
+/** Related authored messages in the order supplied by the host. */
+export const CommentThread = /* @__PURE__ */ forwardRef<HTMLOListElement, CommentThreadProps>(function CommentThread(
+  {items, size = "sm", actionVisibility, dividers = false, className, ...props}, ref,
+) {
+  return <ol {...props} ref={ref} className={classes("flood-comment-thread", className)} data-dividers={dividers} data-size={size} role="list">
+    {renderCommentThreadItems(items, size, actionVisibility, 0)}
+  </ol>;
+});
+
+function renderCommentThreadItems(
+  items: readonly CommentThreadItem[],
+  size: NonNullable<CommentThreadProps["size"]>,
+  actionVisibility: CommentThreadProps["actionVisibility"],
+  depth: number,
+): ReactNode {
+  return items.map(item => {
+    const replies = item.replies?.length ? <ol className="flood-comment-thread__replies" role="list" data-indent={depth < 2}>
+      {renderCommentThreadItems(item.replies, size, actionVisibility, depth + 1)}
+    </ol> : null;
+    return <li key={item.id}>
+      <Comment author={item.author} size={size} actions={item.actions} onReply={item.onReply} replyLabel={item.replyLabel} attachments={item.attachments} reactions={item.reactions}
+        reactionPicker={item.reactionPicker} actionVisibility={actionVisibility}>{item.body}</Comment>
+      {replies && (item.repliesDisclosure ? <Collapsible title={item.repliesDisclosure.label}
+        defaultOpen={item.repliesDisclosure.defaultOpen} controlSize="sm" variant="flush" className="flood-comment-thread__disclosure">
+        {replies}
+      </Collapsible> : replies)}
+    </li>;
+  });
+}
 
 export interface ProgressProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role"> {
   label: string;
@@ -1566,6 +2375,8 @@ export interface ProgressProps extends Omit<HTMLAttributes<HTMLDivElement>, "chi
   size?: ContentSize;
   tone?: SemanticTone;
   hideLabel?: boolean;
+  /** Inline keeps the caption beside the track when there is room for both. */
+  layout?: "stacked" | "inline";
 }
 /** @since 0.2.4 */
 export const Progress = /* @__PURE__ */ forwardRef<HTMLDivElement, ProgressProps>(function Progress(
@@ -1574,9 +2385,25 @@ export const Progress = /* @__PURE__ */ forwardRef<HTMLDivElement, ProgressProps
   return <ValueIndicator {...props} ref={ref} kind="progress" label={label} value={value} min={0} max={max} valueText={valueText} size={size} tone={tone} hideLabel={hideLabel} />;
 });
 
+export type ProgressRingProps = Omit<ProgressProps, "layout">;
+/** Circular task progress for a compact status row or panel. */
+export const ProgressRing = /* @__PURE__ */ forwardRef<HTMLDivElement, ProgressRingProps>(function ProgressRing(
+  { label, value, max = 100, valueText, size = "md", tone = "accent", hideLabel = false, ...props }, ref,
+) {
+  return <ValueIndicator {...props} ref={ref} kind="progress" shape="ring" label={label} value={value} min={0} max={max}
+    valueText={valueText} size={size} tone={tone} hideLabel={hideLabel} />;
+});
+
 export interface MeterProps extends Omit<ProgressProps, "value"> {
   value: number;
   min?: number;
+  /** A named reference in the same units as value, such as a target or warning threshold. */
+  reference?: MeterReference;
+}
+
+export interface MeterReference {
+  value: number;
+  label: string;
 }
 /** @since 0.2.4 */
 export const Meter = /* @__PURE__ */ forwardRef<HTMLDivElement, MeterProps>(function Meter(
@@ -1585,10 +2412,90 @@ export const Meter = /* @__PURE__ */ forwardRef<HTMLDivElement, MeterProps>(func
   return <ValueIndicator {...props} ref={ref} kind="meter" label={label} value={value} min={min} max={max} valueText={valueText} size={size} tone={tone} hideLabel={hideLabel} />;
 });
 
+export interface CapacityMeterProps extends Omit<MeterProps, "value" | "min" | "max" | "tone" | "reference"> {
+  used: number;
+  capacity: number;
+  /** Usage at which a warning begins, in the same units as used and capacity. */
+  warningAt?: number;
+  unit?: string;
+  locale?: string;
+}
+
+/** Usage against a fixed capacity, including usage beyond the limit. */
+export const CapacityMeter = /* @__PURE__ */ forwardRef<HTMLDivElement, CapacityMeterProps>(function CapacityMeter(
+  {used, capacity, warningAt, unit, locale = "en", valueText, ...props}, ref,
+) {
+  if (!Number.isFinite(used) || used < 0 || !Number.isFinite(capacity) || capacity <= 0) {
+    throw new RangeError("Flood CapacityMeter requires nonnegative finite usage and positive finite capacity");
+  }
+  if (warningAt !== undefined && (!Number.isFinite(warningAt) || warningAt < 0 || warningAt > capacity)) {
+    throw new RangeError("Flood CapacityMeter warningAt must be within its capacity");
+  }
+  const usageState = used > capacity ? "over" : warningAt !== undefined && used >= warningAt ? "warning" : "normal";
+  const tone = usageState === "over" ? "error" : usageState === "warning" ? "warning" : "neutral";
+  const amount = new Intl.NumberFormat(locale, {maximumSignificantDigits: 21});
+  const readout = valueText ?? `${amount.format(used)} / ${amount.format(capacity)}${unit ? ` ${unit}` : ""}`;
+  return <Meter {...props} ref={ref} value={Math.min(used, capacity)} max={capacity} tone={tone} valueText={readout}
+    data-capacity-state={usageState} />;
+});
+
+export type FieldRequirementStatus = "pending" | "met" | "unmet";
+export interface FieldRequirement {
+  id: string;
+  label: string;
+  status?: FieldRequirementStatus;
+}
+export interface FieldChecklistProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  label: string;
+  items: readonly FieldRequirement[];
+  statusLabels?: Partial<Record<FieldRequirementStatus, string>>;
+}
+/** A readable list of host-evaluated form requirements. */
+export const FieldChecklist = /* @__PURE__ */ forwardRef<HTMLDivElement, FieldChecklistProps>(function FieldChecklist(
+  {label, items, statusLabels, className, ...props}, ref,
+) {
+  if (!label.trim() || items.some(item => !item.id.trim() || !item.label.trim()) || new Set(items.map(item => item.id)).size !== items.length) {
+    throw new Error("Flood FieldChecklist requires a label and unique nonempty item IDs and labels");
+  }
+  const defaults = {pending:"Not checked", met:"Met", unmet:"Not met"};
+  return <div {...props} ref={ref} className={classes("flood-field-checklist", className)}>
+    <List aria-label={label} marker={false} gap="1">
+      {items.map(({id, label: requirement, status = "pending"}) => <li key={id} data-status={status}>
+        <IconSlot size="2xs" className="flood-field-checklist__mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            {status === "met" ? <path d="m5 12 4 4L19 6" /> : status === "unmet" ? <path d="m7 7 10 10M17 7 7 17" /> : <circle cx="12" cy="12" r="6" />}
+          </svg>
+        </IconSlot>
+        <Text size="helper">{requirement}<VisuallyHidden>{`, ${statusLabels?.[status] ?? defaults[status]}`}</VisuallyHidden></Text>
+      </li>)}
+    </List>
+  </div>;
+});
+
+export interface PasswordStrengthProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  label?: string;
+  assessment?: Pick<MeterProps, "value" | "max" | "tone"> & {valueText: string};
+  requirements?: readonly FieldRequirement[];
+  requirementsLabel?: string;
+  statusLabels?: FieldChecklistProps["statusLabels"];
+}
+/** Displays a host's password assessment and optional requirements. */
+export const PasswordStrength = /* @__PURE__ */ forwardRef<HTMLDivElement, PasswordStrengthProps>(function PasswordStrength(
+  {label = "Password strength", assessment, requirements, requirementsLabel = "Password requirements", statusLabels, className, ...props}, ref,
+) {
+  return <Stack {...props} ref={ref} gap="2" className={classes("flood-password-strength", className)}>
+    {assessment && <Meter {...assessment} label={label} size="sm" />}
+    {requirements?.length ? <FieldChecklist items={requirements} label={requirementsLabel} statusLabels={statusLabels} /> : null}
+  </Stack>;
+});
+
 export interface AlertProps extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "role" | "aria-live"> {
   title?: string;
+  appearance?: "banner" | "inline";
   tone?: "neutral" | FieldStatus;
   icon?: ReactNode;
+  /** A host-owned command displayed separately from the announced message. */
+  action?: ReactNode;
   announcement?: "off" | "polite" | "assertive";
 }
 /** @since 0.2.4 */
@@ -1603,6 +2510,8 @@ export interface TabItem {
   label: string;
   content: ReactNode;
   icon?: ReactNode;
+  /** Passive count associated with this tab's panel. */
+  count?: number;
   disabled?: boolean;
 }
 export interface TabsProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "defaultValue" | "onChange"> {
@@ -1617,6 +2526,9 @@ export interface TabsProps extends Omit<HTMLAttributes<HTMLDivElement>, "childre
   controlSize?: "sm" | "md" | "lg" | "xl";
   disabled?: boolean;
   iconOnly?: boolean;
+  /** Visual maximum for a tab count, with a plus sign above the maximum. */
+  maxCount?: number;
+  formatCountLabel?: (count: number, item: TabItem) => string;
 }
 export const Tabs = /* @__PURE__ */ forwardRef<HTMLDivElement, TabsProps>(function Tabs(
   {activationMode="automatic",orientation="horizontal",controlSize="md",disabled=false,iconOnly=false,...props},ref,
@@ -1626,16 +2538,26 @@ export interface BreadcrumbProps extends Omit<HTMLAttributes<HTMLElement>, "chil
   items: readonly BreadcrumbItem[];
   label?: string;
   separator?: string;
+  layout?: "wrap" | "compact";
+  /** Number of visible path labels in compact layout, including the root and current page. */
+  maxVisibleItems?: number;
+  overflowLabel?: string;
 }
 export const Breadcrumb = /* @__PURE__ */ forwardRef<HTMLElement, BreadcrumbProps>(function Breadcrumb(
-  {label="Breadcrumb",separator="/",...props},ref,
-){return <BreadcrumbNavigation {...props} ref={ref} label={label} separator={separator} />;});
+  {label="Breadcrumb",separator="/",layout="wrap",maxVisibleItems=2,overflowLabel="Earlier pages",...props},ref,
+){return <BreadcrumbNavigation {...props} ref={ref} label={label} separator={separator}
+  layout={layout} maxVisibleItems={maxVisibleItems} overflowLabel={overflowLabel} />;});
 export interface PaginationProps extends Omit<HTMLAttributes<HTMLElement>, "children" | "onChange"> {
   page: number;
   pageCount: number;
   onPageChange?: (page: number) => void;
   getHref?: (page: number) => string;
   siblingCount?: 0 | 1 | 2;
+  /** Compact shows position between the arrows. Arrows keeps position available to assistive technology. */
+  presentation?: "numbered" | "compact" | "arrows";
+  positionLabel?: (page: number, pageCount: number) => string;
+  /** Formats page numbers. Default page and position labels use the same formatter. */
+  formatPage?: (page: number) => string;
   controlSize?: "sm" | "md" | "lg" | "xl";
   disabled?: boolean;
   label?: string;
@@ -1647,6 +2569,30 @@ export const Pagination = /* @__PURE__ */ forwardRef<HTMLElement, PaginationProp
   {siblingCount=1,controlSize="sm",disabled=false,label="Pagination",previousLabel="Previous page",nextLabel="Next page",...props},ref,
 ){return <PageNavigation {...props} ref={ref} siblingCount={siblingCount} controlSize={controlSize} disabled={disabled} label={label} previousLabel={previousLabel} nextLabel={nextLabel} />;});
 
+export type CursorPageTarget = { href: string; onSelect?: never } | { href?: never; onSelect: () => void };
+
+export interface CursorPaginationProps extends Omit<HTMLAttributes<HTMLElement>, "children"> {
+  previous?: CursorPageTarget;
+  next?: CursorPageTarget;
+  /** Show a known range or cursor position when it helps the reader. */
+  position?: string;
+  controlSize?: PaginationProps["controlSize"];
+  variant?: "ghost" | "subtle";
+  label?: string;
+  previousLabel?: string;
+  nextLabel?: string;
+  /** A host-owned request started by a callback. Keeps the active control focused. */
+  pending?: "previous" | "next";
+}
+
+/** Sequential navigation for collections with opaque cursors or unknown totals. */
+export const CursorPagination = /* @__PURE__ */ forwardRef<HTMLElement, CursorPaginationProps>(function CursorPagination(
+  {controlSize = "sm", variant = "subtle", label = "Pagination", previousLabel = "Previous page", nextLabel = "Next page", ...props}, ref,
+) {
+  return <CursorPageNavigation {...props} ref={ref} controlSize={controlSize} variant={variant}
+    label={label} previousLabel={previousLabel} nextLabel={nextLabel} />;
+});
+
 export interface OverlayTriggerProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   ref: RefCallback<HTMLButtonElement>;
 }
@@ -1655,7 +2601,7 @@ export interface MenuActionItem {
   type?: "item";
   label: string;
   icon?: ReactNode;
-  shortcut?: string;
+  shortcut?: KeyboardShortcutKeys;
   disabled?: boolean;
   tone?: "default" | "danger";
 }
@@ -1725,6 +2671,8 @@ export interface TooltipProps extends Omit<HTMLAttributes<HTMLDivElement>, "chil
   align?: "start" | "center" | "end";
   delay?: number;
   disabled?: boolean;
+  /** Position beside a containing region while the original trigger owns interaction. */
+  positionReference?: RefObject<HTMLElement | null>;
 }
 export const Tooltip = /* @__PURE__ */ forwardRef<HTMLDivElement, TooltipProps>(function Tooltip(
   {side = "top", align = "center", delay = 300, disabled = false, ...props}, ref,
@@ -1748,6 +2696,29 @@ export interface PopoverProps extends Omit<HTMLAttributes<HTMLDivElement>, "chil
 export const Popover = /* @__PURE__ */ forwardRef<HTMLDivElement, PopoverProps>(function Popover(
   {side = "bottom", align = "start", defaultOpen = false, disabled = false, closeLabel = "Close", ...props}, ref,
 ) { return <AnchoredOverlay {...props} ref={ref} kind="popover" side={side} align={align} defaultOpen={defaultOpen} disabled={disabled} closeLabel={closeLabel} />; });
+
+export interface HelpTipProps extends Omit<PopoverProps, "title" | "trigger" | "children" | "chrome" | "initialFocusRef" | "focusOnOpen" | "closeLabel"> {
+  /** Name the subject of the help, for example "About invoice dates". */
+  label: string;
+  content: string;
+}
+
+/** Optional help opened with the same action on pointer, touch and keyboard. */
+export const HelpTip = /* @__PURE__ */ forwardRef<HTMLDivElement, HelpTipProps>(function HelpTip(
+  {label, content, className, side = "top", align = "center", "aria-describedby": describedBy, ...props}, ref,
+) {
+  const contentId = useId();
+  return <Popover {...props} ref={ref} title={label} chrome="minimal" side={side} align={align}
+    aria-describedby={mergeDescriptions(describedBy, contentId)} className={classes("flood-help-tip", className)}
+    trigger={trigger => <IconButton {...trigger} label={label} size="2xs" variant="ghost" className="flood-help-tip__trigger">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 11.5v4m0-7h.01" />
+      </svg>
+    </IconButton>}>
+    <Text id={contentId} as="p" size="compact">{content}</Text>
+  </Popover>;
+});
 export interface DialogProps extends Omit<HTMLAttributes<HTMLDialogElement>, "children" | "title" | "role"> {
   title: string;
   description?: string;
@@ -1794,9 +2765,7 @@ export const CommandPalette = /* @__PURE__ */ forwardRef<HTMLDialogElement, Comm
   return <Dialog {...props} ref={ref} open={open ?? localOpen} onOpenChange={requestOpen}
     initialFocusRef={input} className={classes("flood-command-palette", className)}>
     <div className="flood-command-palette__search-icon">
-      <IconSlot size="sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true" focusable="false">
-        <circle cx="10.5" cy="10.5" r="5.75" /><path d="m15 15 4 4" />
-      </svg></IconSlot>
+      <IconSlot size="sm"><SearchGlyph /></IconSlot>
     </div>
     <SearchCommandList ref={input} label={searchLabel} hideLabel integrated items={items} controlSize={density === "compact" ? "sm" : "md"}
       query={query} defaultQuery={defaultQuery} onQueryChange={onQueryChange} loading={loading}
@@ -1850,6 +2819,8 @@ export interface CollapsibleProps extends Omit<HTMLAttributes<HTMLDivElement>, "
   disabled?: boolean;
   controlSize?: "sm" | "md" | "lg" | "xl";
   headingLevel?: 2 | 3 | 4 | 5 | 6;
+  /** Flush groups share their parent surface and content edge. */
+  variant?: "framed" | "flush";
 }
 export const Collapsible = /* @__PURE__ */ forwardRef<HTMLDivElement, CollapsibleProps>(function Collapsible(
   {open, defaultOpen = false, onOpenChange, disabled = false, controlSize = "md", ...props}, ref,
@@ -1876,15 +2847,17 @@ export interface AccordionProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
   disabled?: boolean;
   controlSize?: "sm" | "md" | "lg" | "xl";
   headingLevel?: 2 | 3 | 4 | 5 | 6;
+  /** Flush groups share their parent surface and content edge. */
+  variant?: "framed" | "flush";
 }
 export const Accordion = /* @__PURE__ */ forwardRef<HTMLDivElement, AccordionProps>(function Accordion(
-  {label, items, expansionMode = "single", value, defaultValue = [], onValueChange, disabled = false, controlSize = "md", headingLevel = 3, className, onKeyDown, ...props}, ref,
+  {label, items, variant = "framed", expansionMode = "single", value, defaultValue = [], onValueChange, disabled = false, controlSize = "md", headingLevel = 3, className, onKeyDown, ...props}, ref,
 ) {
   const [local, setLocal] = useState(() => [...new Set(defaultValue)]);
   const expanded = value ?? local;
   if (new Set(items.map(item => item.value)).size !== items.length) throw new Error("Flood accordion item values must be unique");
   if (expansionMode === "single" && new Set(expanded).size > 1) throw new Error("Flood single Accordion accepts at most one value");
-  return <div {...props} ref={ref} role="group" aria-label={label} className={classes("flood-accordion", className)} onKeyDown={event => {
+  return <div {...props} ref={ref} role="group" aria-label={label} data-variant={variant} className={classes("flood-accordion", className)} onKeyDown={event => {
     onKeyDown?.(event);
     if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing) return;
     const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(":scope > .flood-disclosure > .flood-disclosure__heading > .flood-disclosure__trigger:not(:disabled)"));
@@ -1920,6 +2893,71 @@ export const Toggle = /* @__PURE__ */ forwardRef<HTMLButtonElement, ToggleProps>
       if (pressed === undefined) setLocal(!selected);
       onPressedChange?.(!selected);
     }}>{iconOnly ? <IconSlot size={size}>{children}</IconSlot> : children}</Button>;
+});
+
+export interface ReactionButtonProps extends Omit<ToggleProps, "children" | "iconOnly" | "pressed" | "defaultPressed" | "size" | "variant"> {
+  label: string;
+  icon: ReactNode;
+  count: number;
+  pressed: boolean;
+  variant?: "subtle" | "outline" | "ghost";
+}
+
+/** A reaction with a host-owned count and pressed state. */
+export const ReactionButton = /* @__PURE__ */ forwardRef<HTMLButtonElement, ReactionButtonProps>(function ReactionButton(
+  {label, icon, count, pressed, variant = "subtle", className, "aria-describedby":describedBy, ...props}, ref,
+) {
+  const countId = useId();
+  if (!label.trim() || !Number.isSafeInteger(count) || count < 0) throw new Error("Flood ReactionButton requires a label and a nonnegative count");
+  return <Toggle {...props} ref={ref} size="xs" variant={variant} pressed={pressed}
+    className={classes("flood-reaction-button", className)} aria-label={label} aria-describedby={mergeDescriptions(describedBy, countId)}>
+    <IconSlot size="2xs">{icon}</IconSlot>
+    <span id={countId} className="flood-reaction-button__count">{count}</span>
+  </Toggle>;
+});
+
+export interface ReactionOption {
+  id: string;
+  label: string;
+  icon: ReactNode;
+  disabled?: boolean;
+  selected?: boolean;
+}
+
+export interface ReactionPickerProps extends Omit<PopoverProps, "children" | "trigger" | "title" | "chrome" | "initialFocusRef" | "onSelect"> {
+  label?: string;
+  options: readonly ReactionOption[];
+  /** Requests the next selection state, without changing the host's data. */
+  onSelect: (id: string, selected: boolean) => void;
+}
+
+/** A named reaction chooser with keyboard navigation and focus return. */
+export const ReactionPicker = /* @__PURE__ */ forwardRef<HTMLDivElement, ReactionPickerProps>(function ReactionPicker(
+  {label = "Add reaction", options, onSelect, disabled = false, side = "top", open:controlled, defaultOpen = false,
+    onOpenChange, className, ...props}, ref,
+) {
+  const [local, setLocal] = useState(defaultOpen);
+  const unavailable = disabled || options.length === 0;
+  const open = (controlled ?? local) && !unavailable;
+  function request(next: boolean) {
+    if (controlled === undefined) setLocal(next);
+    onOpenChange?.(next);
+  }
+  return <Popover {...props} ref={ref} title={label} chrome="minimal" side={side} open={open} onOpenChange={request}
+    disabled={unavailable} className={classes("flood-reaction-picker", className)}
+    trigger={trigger => <IconButton {...trigger} size="xs" iconSize="2xs" variant="ghost" label={label} title={label}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 14a8 8 0 1 1-9-10m-2 9a3.5 3.5 0 0 0 6 0M8 9h.01M14 9h.01M18 3v6m-3-3h6" />
+      </svg>
+    </IconButton>}>
+    <Toolbar label={label} variant="plain">
+      {options.map(option => <Toggle key={option.id} aria-label={option.label} title={option.label}
+        iconOnly size="sm" variant="ghost" className="flood-reaction-picker__option" pressed={option.selected ?? false}
+        disabled={option.disabled} onPressedChange={selected => { request(false); onSelect(option.id, selected); }}>
+        {option.icon}
+      </Toggle>)}
+    </Toolbar>
+  </Popover>;
 });
 
 export interface ToggleOption {
@@ -1983,6 +3021,37 @@ export const ButtonGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, ButtonGrou
   return <ScrollArea orientation="horizontal" tabIndex={-1} role="group" aria-label={`${label} scrolling`} className="flood-connected-scroll" hidden={props.hidden} dir={props.dir} lang={props.lang} style={{maxInlineSize:"100%"}}><div {...props} ref={ref} role="group" aria-label={label} data-orientation={orientation} className={classes("flood-button-group", className)} /></ScrollArea>;
 });
 
+export interface SplitButtonProps extends Omit<ButtonGroupProps, "orientation"> {
+  /** Accessible name for the button that opens the alternatives. */
+  menuLabel: string;
+  items: MenuProps["items"];
+  onAction?: MenuProps["onAction"];
+  /** Native button props for the primary action only. */
+  primaryButtonProps?: Omit<ButtonProps, "children" | "size" | "variant" | "tone">;
+  size?: ControlSize;
+  variant?: "solid" | "subtle" | "outline";
+  /** Disables both actions. Use primaryButtonProps.disabled or loading for the primary action alone. */
+  disabled?: boolean;
+}
+
+/** A default action and a connected menu of alternatives. */
+export const SplitButton = /* @__PURE__ */ forwardRef<HTMLDivElement, SplitButtonProps>(function SplitButton(
+  { menuLabel, items, onAction, primaryButtonProps, size = "md", variant = "solid", disabled = false, children, ...props }, ref,
+) {
+  return <ButtonGroup {...props} ref={ref}>
+    <Button {...primaryButtonProps} size={size} variant={variant} disabled={disabled || primaryButtonProps?.disabled}>
+      {children}
+    </Button>
+    <Menu label={menuLabel} items={items} onAction={onAction} disabled={disabled || items.length === 0} align="end"
+      trigger={triggerProps => <IconButton {...triggerProps} label={menuLabel} size={size} variant={variant}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </IconButton>}
+    />
+  </ButtonGroup>;
+});
+
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   status?: FieldStatus;
   invalid?: boolean;
@@ -2031,6 +3100,91 @@ export const FileInput = /* @__PURE__ */ forwardRef<HTMLInputElement, FileInputP
   return <FilePicker {...props} ref={ref} clearable={clearable} clearLabel={clearLabel} controlSize={controlSize} actionComponent={IconButton} iconComponent={IconSlot} />;
 });
 
+export type FileTriggerControlProps = Pick<ButtonProps, "type" | "disabled" | "onClick" | "aria-label">;
+
+export interface FileTriggerProps extends Pick<InputHTMLAttributes<HTMLInputElement>, "accept" | "capture" | "multiple" | "disabled"> {
+  label: string;
+  onFilesSelect: (files: File[]) => void;
+  trigger?: (props: FileTriggerControlProps) => ReactNode;
+}
+
+/** Opens the native file chooser for an application-owned action. */
+export const FileTrigger = /* @__PURE__ */ forwardRef<HTMLInputElement, FileTriggerProps>(function FileTrigger(
+  {label, onFilesSelect, trigger, ...inputProps}, ref,
+) {
+  const input = useRef<HTMLInputElement>(null);
+  useImperativeHandle(ref, () => input.current!, []);
+  const triggerProps: FileTriggerControlProps = {
+    type: "button",
+    disabled: inputProps.disabled,
+    "aria-label": label,
+    onClick: () => {
+      const node = input.current;
+      if (node && !node.matches(":disabled")) node.click();
+    },
+  };
+  return <>
+    <input {...inputProps} ref={input} type="file" hidden onChange={event => {
+      const node = event.currentTarget;
+      const files = Array.from(node.files ?? []);
+      node.value = "";
+      if (!node.matches(":disabled") && files.length) onFilesSelect(files);
+    }} />
+    {trigger ? trigger(triggerProps) : <Button {...triggerProps} variant="subtle">{label}</Button>}
+  </>;
+});
+
+export interface AvatarPickerProps extends Omit<FieldsetProps, "children" | "legend" | "layout"> {
+  label?: string;
+  name: string;
+  src?: string;
+  /** A host-accepted local image, shown ahead of the stored source. */
+  file?: File | null;
+  fallback?: AvatarProps["fallback"];
+  size?: ContentSize;
+  shape?: AvatarProps["shape"];
+  accept?: string;
+  busy?: boolean;
+  chooseLabel?: string;
+  replaceLabel?: string;
+  removeLabel?: string;
+  onFileSelect: (file: File) => void;
+  onRemove?: () => void;
+}
+
+/** A profile image preview with compact choose, replace and remove actions. */
+export const AvatarPicker = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, AvatarPickerProps>(function AvatarPicker(
+  {label = "Profile photo", name, src, file, fallback, size = "lg", shape,
+    accept = "image/*", busy = false, disabled, chooseLabel = "Choose photo", replaceLabel = "Change photo",
+    removeLabel = "Remove photo", onFileSelect, onRemove, ...props}, ref,
+) {
+  const button = useRef<HTMLButtonElement>(null);
+  const [preview, setPreview] = useState<{file: File; url: string}>();
+  useEffect(() => {
+    if (!file) { setPreview(undefined); return; }
+    const url = URL.createObjectURL(file);
+    setPreview({file, url});
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+  const hasPhoto = Boolean(src || file);
+  return <Fieldset {...props} ref={ref} legend={label} disabled={disabled} aria-busy={busy || undefined}>
+    <Inline gap="3">
+      <Avatar name={name} src={preview && preview.file === file ? preview.url : src} fallback={fallback} size={size} shape={shape} />
+      <Inline gap="2">
+        <FileTrigger accept={accept} label={hasPhoto ? replaceLabel : chooseLabel} disabled={disabled || busy}
+          onFilesSelect={files => onFileSelect(files[0])}
+          trigger={trigger => <Button {...trigger} ref={button} size="sm" variant="subtle" loading={busy}>
+            {hasPhoto ? replaceLabel : chooseLabel}
+          </Button>} />
+        {hasPhoto && onRemove && <Button size="sm" variant="ghost" disabled={busy} onClick={event => {
+          if (event.currentTarget === event.currentTarget.ownerDocument.activeElement) button.current?.focus({preventScroll: true});
+          onRemove();
+        }}>{removeLabel}</Button>}
+      </Inline>
+    </Inline>
+  </Fieldset>;
+});
+
 export interface SearchInputProps extends Omit<InputProps, "type" | "children"> {
   clearable?: boolean;
   clearLabel?: string;
@@ -2057,6 +3211,8 @@ export interface ComboboxOption {
   value: string;
   label: string;
   description?: string;
+  /** Optional visual identity, named by the existing option label. */
+  avatar?: Pick<AvatarProps, "src" | "fallback" | "shape">;
   keywords?: readonly string[];
   disabled?: boolean;
   group?: string;
@@ -2109,6 +3265,10 @@ export interface MultiSelectProps extends Omit<ComboboxProps, "value" | "default
   defaultValue?: readonly string[];
   onValueChange?: (value: string[]) => void;
   removeItemLabel?: string;
+  /** Show at most this many tags before the user expands the selection. */
+  maxVisibleTags?: number;
+  moreTagsLabel?: (hiddenCount: number) => string;
+  fewerTagsLabel?: string;
 }
 /** @since 0.2.5 */
 export const MultiSelect = /* @__PURE__ */ forwardRef<HTMLInputElement, MultiSelectProps>(function MultiSelect(
@@ -2126,12 +3286,53 @@ export interface NumberInputProps extends Omit<InputProps, "type" | "value" | "d
   step?: number;
   decreaseLabel?: string;
   increaseLabel?: string;
+  /** Hide the step buttons while keeping native numeric editing and arrow-key stepping. */
+  appearance?: "stepper" | "plain";
 }
 /** @since 0.2.5 */
 export const NumberInput = /* @__PURE__ */ forwardRef<HTMLInputElement, NumberInputProps>(function NumberInput(
   { defaultValue = 0, step = 1, controlSize = "md", decreaseLabel = "Decrease value", increaseLabel = "Increase value", ...props }, ref,
 ) {
   return <NumericStepper {...props} ref={ref} defaultValue={defaultValue} step={step} controlSize={controlSize} decreaseLabel={decreaseLabel} increaseLabel={increaseLabel} inputComponent={InputGroup} buttonComponent={IconButton} />;
+});
+
+export interface NumberRangeEndpoint extends Pick<NumberInputProps, "name" | "value" | "defaultValue" | "onValueChange"> {
+  label: string;
+}
+
+export interface NumberRangeFieldProps extends Omit<FieldsetProps, "legend" | "children" | "layout" | "name"> {
+  label: string;
+  start: NumberRangeEndpoint;
+  end: NumberRangeEndpoint;
+  min?: number;
+  max?: number;
+  step?: number;
+  required?: boolean;
+  readOnly?: boolean;
+  controlSize?: NumberInputProps["controlSize"];
+}
+
+/** Two numeric inputs with a shared legend and independent native form values. */
+export const NumberRangeField = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, NumberRangeFieldProps>(function NumberRangeField(
+  { label, start, end, min, max, step, required, readOnly, controlSize, id: explicitId,
+    form, error, hint, message, status, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props }, ref,
+) {
+  const generatedId = useId();
+  const id = explicitId ?? `flood-${generatedId}`;
+  const hasError = hasFieldContent(error);
+  const resolvedStatus = resolveFieldStatus(status, hasError, ariaInvalid);
+  const description = mergeDescriptions(describedBy, hasFieldContent(hint) && `${id}-hint`,
+    hasError ? `${id}-error` : hasFieldContent(message) && `${id}-message`);
+  return <Fieldset {...props} ref={ref} id={id} form={form} legend={label} hint={hint} error={error} message={message}
+    status={resolvedStatus} aria-describedby={describedBy} aria-invalid={ariaInvalid}>
+    <Grid minItemWidth="8rem" gap="3">
+      {[start, end].map(({ label: endpointLabel, defaultValue = null, ...endpoint }, index) =>
+        <Field key={index} label={endpointLabel} required={required} describedBy={description} status={resolvedStatus}>
+          {field => <NumberInput {...field} {...endpoint} defaultValue={defaultValue} min={min} max={max}
+            step={step} form={form} readOnly={readOnly} controlSize={controlSize} appearance="plain" />}
+        </Field>)}
+    </Grid>
+  </Fieldset>;
 });
 
 export interface SliderProps extends Omit<FieldsetProps, "legend" | "children" | "defaultValue" | "onChange"> {
@@ -2144,6 +3345,8 @@ export interface SliderProps extends Omit<FieldsetProps, "legend" | "children" |
   step?: number;
   thumbLabels?: readonly string[];
   showValue?: boolean;
+  /** Place the readout beside a visible label. With hideLabel it stays above the rail. */
+  valuePlacement?: "below-label" | "inline";
   readOnly?: boolean;
   controlSize?: "sm" | "md" | "lg" | "xl";
 }
@@ -2208,13 +3411,14 @@ export interface ChoiceProps extends Omit<
 }
 export interface CheckboxProps extends ChoiceProps {
   indeterminate?: boolean;
+  hideLabel?: boolean;
 }
 export const Checkbox = /* @__PURE__ */ forwardRef<HTMLInputElement, CheckboxProps>(
-  function Checkbox({ label, indeterminate = false, className, ...props }, ref) {
+  function Checkbox({ label, indeterminate = false, hideLabel = false, className, ...props }, ref) {
     return (
-      <label hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-choice", className)}>
+      <label hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-choice", hideLabel && "flood-choice--icon", className)}>
         <MixedCheckbox {...props} ref={ref} indeterminate={indeterminate} />
-        <span>{label}</span>
+        {hideLabel ? <VisuallyHidden>{label}</VisuallyHidden> : <span>{label}</span>}
       </label>
     );
   },
@@ -2230,22 +3434,93 @@ export const Radio = /* @__PURE__ */ forwardRef<HTMLInputElement, ChoiceProps>(f
     </label>
   );
 });
-export const Switch = /* @__PURE__ */ forwardRef<HTMLInputElement, ChoiceProps>(function Switch(
-  { label, className, ...props },
+export interface SwitchProps extends ChoiceProps {
+  layout?: "inline" | "row";
+  description?: ReactNode;
+}
+
+export const Switch = /* @__PURE__ */ forwardRef<HTMLInputElement, SwitchProps>(function Switch(
+  { label, layout = "inline", description, className, readOnly, onClick, onChange, "aria-labelledby": labelledBy, "aria-describedby": describedBy, ...props },
   ref,
 ) {
+  const id = useId();
+  const hasDescription = hasFieldContent(description);
   return (
-    <label hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-choice", "flood-switch", className)}>
-      <span>{label}</span>
+    <label hidden={props.hidden} dir={props.dir} lang={props.lang} className={classes("flood-choice", "flood-switch", layout === "row" && "flood-setting-row", className)}>
+      {layout === "row" || hasDescription
+        ? <SettingDetails label={label} description={description} labelId={`${id}-label`} descriptionId={`${id}-description`} />
+        : <span>{label}</span>}
       <input
         {...props}
+        aria-labelledby={labelledBy ?? (hasDescription && !props["aria-label"] ? `${id}-label` : undefined)}
+        aria-describedby={mergeDescriptions(describedBy, hasDescription && `${id}-description`)}
+        aria-readonly={readOnly || props["aria-readonly"] || undefined}
         ref={ref}
         type="checkbox"
         role="switch"
+        readOnly={readOnly}
+        required={props.required && !readOnly}
+        onClick={event => {
+          onClick?.(event);
+          if (readOnly) event.preventDefault();
+        }}
+        onChange={event => { if (!readOnly) onChange?.(event); }}
         className="flood-switch-input"
       />
     </label>
   );
+});
+
+function SettingDetails({label, description, labelId, descriptionId}: {
+  label: ReactNode;
+  description?: ReactNode;
+  labelId?: string;
+  descriptionId?: string;
+}) {
+  return <span className="flood-setting-row__details">
+    <Text id={labelId} size="compact" className="flood-setting-row__label">{label}</Text>
+    {hasFieldContent(description) && <Text id={descriptionId} size="helper" tone="subtle">{description}</Text>}
+  </span>;
+}
+
+export interface SettingRowProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  label: ReactNode;
+  description?: ReactNode;
+  value?: ReactNode;
+  /** Shorten a plain text value to one line when it does not fit. */
+  valueOverflow?: "wrap" | "truncate";
+  action?: ReactNode;
+  layout?: "adaptive" | "inline" | "stacked";
+}
+
+/** A settings label and optional explanation with an independently named action. */
+export const SettingRow = /* @__PURE__ */ forwardRef<HTMLDivElement, SettingRowProps>(function SettingRow(
+  {label, description, value, valueOverflow = "wrap", action, layout = "adaptive", className, ...props}, ref,
+) {
+  const hasValue = hasFieldContent(value);
+  const hasAction = hasFieldContent(action);
+  return <div {...props} ref={ref} className={classes("flood-setting-row", className)} data-layout={layout} data-has-description={hasFieldContent(description) || undefined}>
+    <SettingDetails label={label} description={description} />
+    {(hasValue || hasAction) && <div className="flood-setting-row__trailing">
+      {hasValue && <Text as="div" size="compact" tone="subtle" className="flood-setting-row__value">
+        {valueOverflow === "truncate" && typeof value === "string" ? <TruncatedText>{value}</TruncatedText> : value}
+      </Text>}
+      {hasAction && <div className="flood-setting-row__action">{action}</div>}
+    </div>}
+  </div>;
+});
+
+export interface SettingGroupProps extends SectionProps {
+  density?: DataDensity;
+  dividers?: boolean;
+}
+
+/** A named group of independently actionable or switchable settings. */
+export const SettingGroup = /* @__PURE__ */ forwardRef<HTMLElement, SettingGroupProps>(function SettingGroup(
+  {density = "comfortable", dividers = false, headingSize = "group", className, ...props}, ref,
+) {
+  return <Section {...props} ref={ref} headingSize={headingSize} className={classes("flood-setting-group", className)}
+    data-density={density} data-dividers={dividers} />;
 });
 
 export interface LabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
@@ -2262,6 +3537,8 @@ export interface FieldsetProps extends FieldsetHTMLAttributes<HTMLFieldSetElemen
   legend: ReactNode;
   /** Visual role only; compact choice captions remain the default. @since 0.2.10 */
   legendSize?: "label" | "section";
+  /** Align direct Field labels beside their controls when the group has room. */
+  layout?: "stacked" | "aligned";
   /** @since 0.2.3 */
   hideLabel?: boolean;
   hint?: ReactNode;
@@ -2271,7 +3548,7 @@ export interface FieldsetProps extends FieldsetHTMLAttributes<HTMLFieldSetElemen
 }
 /** A native group: disabled, form ownership and nested fieldsets retain browser behavior. */
 export const Fieldset = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, FieldsetProps>(function Fieldset(
-  { legend, legendSize = "label", hideLabel = false, hint, error, message, status, children, className, id: explicitId, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props }, ref,
+  { legend, legendSize = "label", layout = "stacked", hideLabel = false, hint, error, message, status, children, className, id: explicitId, "aria-describedby": describedBy, "aria-invalid": ariaInvalid, ...props }, ref,
 ) {
   const generatedId = useId();
   const id = explicitId ?? `flood-${generatedId}`;
@@ -2279,7 +3556,7 @@ export const Fieldset = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Fieldset
   const hasHint = hasFieldContent(hint), hasError = hasFieldContent(error), hasMessage = hasFieldContent(message) && !hasError;
   const resolvedStatus = resolveFieldStatus(status, hasError, ariaInvalid);
   const description = mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && `${id}-message`);
-  return <fieldset {...props} ref={ref} id={id} className={classes("flood-fieldset", className)} data-legend-size={legendSize} data-hide-label={hideLabel || undefined} data-status={resolvedStatus}
+  return <fieldset {...props} ref={ref} id={id} className={classes("flood-fieldset", className)} data-legend-size={legendSize} data-layout={layout} data-hide-label={hideLabel || undefined} data-status={resolvedStatus}
     aria-describedby={description} aria-invalid={resolvedStatus === "error" || ariaInvalid || undefined}>
     <legend ref={legendRef} className={classes("flood-legend", hideLabel && "flood-visually-hidden--focusable")}>{legend}</legend>
     <div className="flood-fieldset__body">
@@ -2289,6 +3566,18 @@ export const Fieldset = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Fieldset
       {hasError && <div id={`${id}-error`} className="flood-error" role="alert">{error}</div>}
     </div>
   </fieldset>;
+});
+
+export interface SwitchGroupProps extends Omit<FieldsetProps, "layout"> {
+  density?: DataDensity;
+  dividers?: boolean;
+}
+
+/** Related on/off preferences with a shared legend and native disabled state. */
+export const SwitchGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, SwitchGroupProps>(function SwitchGroup(
+  {density = "comfortable", dividers = false, className, ...props}, ref,
+) {
+  return <Fieldset {...props} ref={ref} className={classes("flood-switch-group", className)} data-density={density} data-dividers={dividers} />;
 });
 
 export interface ChoiceOption {
@@ -2365,6 +3654,36 @@ export const CheckboxGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Che
     selected={value} initial={defaultValue} onSelectionChange={onValueChange} fieldsetComponent={Fieldset} choiceComponent={Checkbox} />;
 });
 
+export interface ChoiceCardOption extends ChoiceOption, Pick<CheckCardProps, "description" | "metadata" | "icon"> {
+  label: string;
+}
+
+interface ChoiceCardGroupAppearance {
+  options: readonly ChoiceCardOption[];
+  density?: CheckCardProps["density"];
+  minItemWidth?: GridProps["minItemWidth"];
+  indicatorPlacement?: CheckCardProps["indicatorPlacement"];
+}
+
+export interface RadioCardGroupProps extends Omit<RadioGroupProps, "options" | "orientation" | "layout">, ChoiceCardGroupAppearance {}
+export const RadioCardGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, RadioCardGroupProps>(function RadioCardGroup(
+  {value, defaultValue, onValueChange, options, density = "comfortable", minItemWidth = "12rem", indicatorPlacement, ...props}, ref,
+) {
+  return <ChoiceGroup {...props} ref={ref} options={options} kind="radio" orientation="vertical"
+    selected={value === undefined ? undefined : [value]} initial={defaultValue === undefined ? [] : [defaultValue]}
+    onSelectionChange={next => onValueChange?.(next[0] ?? "")} fieldsetComponent={Fieldset} choiceComponent={Radio}
+    cards={{minItemWidth, render:(index, input) => <RadioCard {...options[index]} {...input} density={density} indicatorPlacement={indicatorPlacement} />}} />;
+});
+
+export interface CheckCardGroupProps extends Omit<CheckboxGroupProps, "options" | "orientation" | "layout">, ChoiceCardGroupAppearance {}
+export const CheckCardGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, CheckCardGroupProps>(function CheckCardGroup(
+  {value, defaultValue = [], onValueChange, options, density = "comfortable", minItemWidth = "12rem", indicatorPlacement, ...props}, ref,
+) {
+  return <ChoiceGroup {...props} ref={ref} options={options} kind="checkbox" orientation="vertical"
+    selected={value} initial={defaultValue} onSelectionChange={onValueChange} fieldsetComponent={Fieldset} choiceComponent={Checkbox}
+    cards={{minItemWidth, render:(index, input) => <CheckCard {...options[index]} {...input} density={density} indicatorPlacement={indicatorPlacement} />}} />;
+});
+
 export interface FieldControlProps {
   id: string;
   "aria-describedby"?: string;
@@ -2377,6 +3696,10 @@ export interface FieldProps {
   message?: ReactNode;
   id?: string;
   label: ReactNode;
+  /** Optional action beside the label. It stays outside the native label element. */
+  labelAside?: ReactNode;
+  /** Place the label and hint beside the control when the field has room. */
+  layout?: "stacked" | "adaptive";
   /** @since 0.2.3 */
   hideLabel?: boolean;
   hint?: ReactNode;
@@ -2390,6 +3713,8 @@ export function Field({
   message,
   id: explicitId,
   label,
+  labelAside,
+  layout = "stacked",
   hideLabel = false,
   hint,
   error,
@@ -2406,29 +3731,28 @@ export function Field({
   const resolvedStatus = hasError ? "error" : status;
   const description =
     mergeDescriptions(describedBy, hasHint && `${id}-hint`, hasError && `${id}-error`, hasMessage && !hasError && `${id}-message`);
-  return (
-    <div className="flood-field" data-hide-label={hideLabel || undefined} data-status={resolvedStatus}>
-      <Label ref={labelRef} htmlFor={id} required={required} className={hideLabel ? "flood-visually-hidden--focusable" : undefined}>{label}</Label>
-      {children({
-        id,
-        "aria-describedby": description,
-        "aria-invalid": hasError || resolvedStatus === "error" ? true : undefined,
-        status: resolvedStatus,
-        required,
-      })}
-      {hasHint && (
-        <div id={`${id}-hint`} className="flood-hint">
-          {hint}
-        </div>
-      )}
-      {hasMessage && !hasError && <div id={`${id}-message`} className="flood-message" role={resolvedStatus === "error" ? "alert" : undefined}>{message}</div>}
-      {hasError && (
-        <div id={`${id}-error`} className="flood-error" role="alert">
-          {error}
-        </div>
-      )}
-    </div>
-  );
+  const fieldLabel = <Label ref={labelRef} htmlFor={id} required={required} className={hideLabel ? "flood-visually-hidden--focusable" : undefined}>{label}</Label>;
+  const labelLine = hasFieldContent(labelAside)
+    ? <Inline gap="1" className="flood-field__label-line">{fieldLabel}{labelAside}</Inline> : fieldLabel;
+  const control = children({
+    id,
+    "aria-describedby": description,
+    "aria-invalid": hasError || resolvedStatus === "error" ? true : undefined,
+    status: resolvedStatus,
+    required,
+  });
+  const guidance = hasHint && <div id={`${id}-hint`} className="flood-hint">{hint}</div>;
+  const feedback = hasError
+    ? <div id={`${id}-error`} className="flood-error" role="alert">{error}</div>
+    : hasMessage && <div id={`${id}-message`} className="flood-message" role={resolvedStatus === "error" ? "alert" : undefined}>{message}</div>;
+  const adaptive = layout === "adaptive";
+  return <div className="flood-field" data-layout={adaptive ? "adaptive" : undefined}
+    data-hide-label={hideLabel || undefined} data-status={resolvedStatus}>
+    {adaptive ? <div className="flood-field__adaptive-row">
+      <div className="flood-field__identity">{labelLine}{guidance}</div>
+      <div className="flood-field__editor">{control}{feedback}</div>
+    </div> : <>{labelLine}{control}{guidance}{feedback}</>}
+  </div>;
 }
 
 export interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
@@ -2448,6 +3772,23 @@ export const FloodRoot = /* @__PURE__ */ forwardRef<HTMLDivElement, HTMLAttribut
   },
 );
 
+export interface TimestampProps extends Omit<TimeHTMLAttributes<HTMLTimeElement>, "dateTime" | "children"> {
+  dateTime: string;
+  /** Use provided text while keeping the machine-readable dateTime. */
+  children?: string;
+  format?: "date" | "time" | "date-time";
+  /** Format elapsed time against this explicitly zoned ISO instant. */
+  relativeTo?: string;
+  /** Display time zone for absolute instants. Civil dates are never shifted. */
+  timeZone?: string;
+  size?: "helper" | "compact";
+}
+
+/** A semantic timestamp with localized formatting for civil dates or zoned instants. */
+export const Timestamp = /* @__PURE__ */ forwardRef<HTMLTimeElement, TimestampProps>(function Timestamp(props, ref) {
+  return <EventTimestamp {...props} ref={ref} />;
+});
+
 export interface TextProps extends HTMLAttributes<HTMLElement> {
   as?: "span" | "p" | "div";
   size?: "lead" | "body" | "compact" | "label" | "helper";
@@ -2457,6 +3798,33 @@ export const Text = /* @__PURE__ */ forwardRef<HTMLElement, TextProps>(function 
   { as = "span", size = "body", tone = "default", className, ...props }, ref,
 ) {
   return createElement(as, { ...props, ref, className: classes("flood-text", `flood-type--${size}`, `flood-tone--${tone}`, className) });
+});
+
+export interface ExpandableTextProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  children: string;
+  lines?: number;
+  size?: TextProps["size"];
+  tone?: TextProps["tone"];
+  expanded?: boolean;
+  defaultExpanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+  moreLabel?: string;
+  lessLabel?: string;
+}
+/** A plain-text excerpt that can reveal its full passage in place. */
+export const ExpandableText = /* @__PURE__ */ forwardRef<HTMLDivElement, ExpandableTextProps>(function ExpandableText(props, ref) {
+  return <ExpandableParagraph {...props} ref={ref} />;
+});
+
+export interface TruncatedTextProps extends Pick<HTMLAttributes<HTMLSpanElement>, "id" | "className" | "style" | "dir" | "lang" | "hidden"> {
+  children: string;
+  /** Preferred tooltip side. The overlay can flip at the viewport edge. */
+  tooltipSide?: TooltipProps["side"];
+}
+
+/** One line of plain text with full-value disclosure when the line is clipped. */
+export const TruncatedText = /* @__PURE__ */ forwardRef<HTMLSpanElement, TruncatedTextProps>(function TruncatedText(props, ref) {
+  return <OverflowingText {...props} ref={ref} />;
 });
 
 export interface HeadingProps extends HTMLAttributes<HTMLHeadingElement> {
@@ -2557,6 +3925,57 @@ export const Image = /* @__PURE__ */ forwardRef<HTMLImageElement, ImageProps>(fu
   if (typeof alt !== "string") throw new TypeError("Flood Image requires explicit alt text (empty for decorative images)");
   return <img {...props} ref={ref} alt={alt} data-fit={fit} className={classes("flood-image", className)} />;
 });
+export interface ImageComparisonSource extends Pick<ImageProps, "src" | "alt" | "srcSet" | "sizes"> {
+  src: string;
+  /** Visible label for this version, such as Original or Revised. */
+  label: string;
+}
+export interface ImageComparisonProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "defaultValue"> {
+  before: ImageComparisonSource;
+  after: ImageComparisonSource;
+  /** Accessible label of the slider. Its value is the visible percentage of the before image. */
+  label: string;
+  value?: number;
+  defaultValue?: number;
+  onValueChange?: (value: number) => void;
+  ratio?: number;
+  fit?: ImageProps["fit"];
+  disabled?: boolean;
+}
+/** Compare two images in the same fixed frame by revealing one over the other. */
+export const ImageComparison = /* @__PURE__ */ forwardRef<HTMLDivElement, ImageComparisonProps>(function ImageComparison(
+  {before, after, label, value, defaultValue = 50, onValueChange, ratio, fit = "contain", disabled, className, ...props}, ref,
+) {
+  const [localValue, setLocalValue] = useState(defaultValue);
+  const position = value ?? localValue;
+  if (!Number.isFinite(position)) throw new RangeError("Flood ImageComparison requires a finite value");
+  if (![before, after].every(image => image.src.trim() && image.alt.trim() && image.label.trim())) {
+    throw new Error("Flood ImageComparison requires two image sources with alt text and visible labels");
+  }
+  const percent = Math.min(100, Math.max(0, Math.round(position)));
+  const {label:beforeLabel, ...beforeImage} = before;
+  const {label:afterLabel, ...afterImage} = after;
+  return <div {...props} ref={ref} className={classes("flood-image-comparison", className)}>
+    <AspectRatio ratio={ratio} className="flood-image-comparison__frame"
+      style={{"--flood-comparison-position":`${percent}%`} as CSSProperties}>
+      <Image {...beforeImage} fit={fit} draggable={false}/>
+      <Image {...afterImage} fit={fit} draggable={false} className="flood-image-comparison__after"/>
+      <span className="flood-image-comparison__divider" aria-hidden="true"/>
+      <span className="flood-image-comparison__grip" aria-hidden="true">
+        <IconSlot><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="m9 7-5 5 5 5m6-10 5 5-5 5"/></svg></IconSlot>
+      </span>
+      <Slider label={label} hideLabel showValue={false} disabled={disabled} value={[percent]} className="flood-image-comparison__control"
+        onValueChange={([next]) => {
+          if (value === undefined) setLocalValue(next);
+          onValueChange?.(next);
+        }}/>
+    </AspectRatio>
+    <Inline align="baseline" gap="3" className="flood-image-comparison__labels">
+      <Text size="helper" tone="subtle">{beforeLabel}</Text>
+      <Text size="helper" tone="subtle">{afterLabel}</Text>
+    </Inline>
+  </div>;
+});
 export interface ListProps extends Omit<HTMLAttributes<HTMLUListElement | HTMLOListElement>, "role"> {
   ordered?: boolean;
   start?: number;
@@ -2580,48 +3999,165 @@ export interface EmptyStateProps extends Omit<HTMLAttributes<HTMLDivElement>, "t
   actions?: ReactNode;
   headingLevel?: 2 | 3 | 4 | 5 | 6;
   density?: "compact" | "comfortable";
+  layout?: "centered" | "inline" | "row";
 }
+
+function ContentStateFrame({
+  layout, density, marker, title, description, actions, announce, rootRef, className, ...props
+}: Omit<HTMLAttributes<HTMLDivElement>, "title" | "children"> &
+    Pick<EmptyStateProps, "layout" | "density" | "description" | "actions"> & {
+      marker?: ReactNode; title: ReactNode; announce?: boolean; rootRef: Ref<HTMLDivElement>;
+    }) {
+  const intro = <Stack gap="1" className="flood-empty-state__intro" role={announce ? "status" : undefined}>
+    {title}
+    {hasFieldContent(description) && <Text as="div" size="compact" tone="subtle">{description}</Text>}
+  </Stack>;
+  const commands = hasFieldContent(actions) && <Inline gap="2" className="flood-empty-state__actions">{actions}</Inline>;
+  return <Stack {...props} ref={rootRef} gap="4" data-density={density} data-layout={layout} className={classes("flood-content-state", className)}>
+    {marker && <div className="flood-empty-state__icon">{marker}</div>}
+    {layout === "row" ? <Inline align="center" gap="3" className="flood-empty-state__row">{intro}{commands}</Inline> : <>{intro}{commands}</>}
+  </Stack>;
+}
+
 /** Static empty content, not loading, an error boundary or a live announcement. @since 0.2.4 */
 export const EmptyState = /* @__PURE__ */ forwardRef<HTMLDivElement, EmptyStateProps>(function EmptyState(
-  { title, description, icon, actions, headingLevel = 2, density = "comfortable", className, ...props }, ref,
+  { title, icon, headingLevel = 2, density = "comfortable", layout = "centered", className, ...props }, ref,
 ) {
   if (typeof title !== "string" || !title.trim()) throw new Error("Flood EmptyState requires a nonempty title");
-  return <Stack {...props} ref={ref} gap="4" data-density={density} className={classes("flood-empty-state", className)}>
-    {hasFieldContent(icon) && <div className="flood-empty-state__icon"><IconSlot size="2xl">{icon}</IconSlot></div>}
-    <Stack gap="1"><Heading level={headingLevel} size="section">{title}</Heading>
-      {hasFieldContent(description) && <Text as="div" size="compact" tone="subtle">{description}</Text>}
-    </Stack>
-    {hasFieldContent(actions) && <Inline gap="2" className="flood-empty-state__actions">{actions}</Inline>}
-  </Stack>;
+  const compactLayout = layout !== "centered";
+  return <ContentStateFrame {...props} rootRef={ref} layout={layout} density={density} className={classes("flood-empty-state", className)}
+    title={<Heading level={headingLevel} size={compactLayout ? "group" : "section"}>{title}</Heading>}
+    marker={hasFieldContent(icon) && <IconSlot size={compactLayout ? "sm" : density === "compact" ? "lg" : "2xl"}>{icon}</IconSlot>} />;
+});
+
+export interface NoResultsProps extends Omit<EmptyStateProps, "title" | "actions"> {
+  title?: string;
+  onReset?: () => void;
+  resetLabel?: string;
+  /** A persistent input or filter control that receives focus before results change. */
+  resetFocusRef?: RefObject<HTMLElement | null>;
+}
+
+/** An empty result set after narrowing an existing collection. */
+export const NoResults = /* @__PURE__ */ forwardRef<HTMLDivElement, NoResultsProps>(function NoResults(
+  {title = "No results", onReset, resetLabel = "Clear filters", resetFocusRef, layout = "row", density = "compact", className, ...props}, ref,
+) {
+  return <EmptyState {...props} ref={ref} title={title} layout={layout} density={density} className={classes("flood-no-results", className)}
+    actions={onReset && <Button variant="subtle" size="sm" onClick={() => {
+      resetFocusRef?.current?.focus({preventScroll:true});
+      onReset();
+    }}>{resetLabel}</Button>} />;
+});
+
+export interface ErrorStateProps extends EmptyStateProps {
+  onRetry?: () => void;
+  retryLabel?: string;
+  retrying?: boolean;
+}
+
+/** A failed content region with an optional host-owned retry. */
+export const ErrorState = /* @__PURE__ */ forwardRef<HTMLDivElement, ErrorStateProps>(function ErrorState(
+  {onRetry, retryLabel = "Try again", retrying = false, icon, actions, className, ...props}, ref,
+) {
+  return <EmptyState {...props} ref={ref} className={classes("flood-error-state", className)}
+    icon={icon === undefined ? <StatusGlyph tone="error" /> : icon}
+    actions={onRetry ? <>
+      <Button type="button" size="sm" variant="subtle" loading={retrying && "retain-focus"} onClick={onRetry}>{retryLabel}</Button>
+      {actions}
+    </> : actions} />;
+});
+
+export interface LoadingStateProps extends Omit<EmptyStateProps, "title" | "headingLevel" | "icon"> {
+  label: string;
+  /** Use the visible message as the status region when the host has no announcement owner. */
+  announce?: boolean;
+}
+
+/** A visible loading message for a content region with no accepted data to show. */
+export const LoadingState = /* @__PURE__ */ forwardRef<HTMLDivElement, LoadingStateProps>(function LoadingState(
+  {label, announce = false, density = "comfortable", layout = "centered", className, ...props}, ref,
+) {
+  if (typeof label !== "string" || !label.trim()) throw new Error("Flood LoadingState requires a nonempty label");
+  const centered = layout === "centered";
+  const spinnerSize = centered ? density === "compact" ? "md" : "lg" : "sm";
+  return <ContentStateFrame {...props} rootRef={ref} layout={layout} density={density} announce={announce}
+    className={classes("flood-loading-state", className)}
+    title={<Text as="p" size={centered ? "body" : "label"}>{label}</Text>}
+    marker={<Spinner size={spinnerSize} decorative />} />;
 });
 
 export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, "title"> {
+  /** Artwork at the top of the card, aligned with peers independently of their titles. */
+  media?: ReactNode;
   title?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
   footer?: ReactNode;
+  footerDivider?: boolean;
+  /** Independent checkbox for host-owned bulk selection. */
+  selection?: RecordSelection;
   headingLevel?: 2 | 3 | 4 | 5 | 6;
+  headingSize?: HeadingProps["size"];
   density?: "compact" | "comfortable";
   elevation?: "default" | "raised";
 }
 /** A structured content surface, not an interactive wrapper. @since 0.2.4 */
 export const Card = /* @__PURE__ */ forwardRef<HTMLDivElement, CardProps>(function Card(
-  { title, description, actions, footer, headingLevel = 2, density = "comfortable", elevation = "default", children, className, ...props }, ref,
+  { media, title, description, actions, footer, footerDivider = true, selection, headingLevel = 2, headingSize = "section", density = "comfortable",
+    elevation = "default", children, className, style, ...props }, ref,
 ) {
   const present = hasFieldContent;
   const heading = present(title), hint = present(description), action = present(actions);
   return <Surface {...props} ref={ref} elevation={elevation} padding={density === "compact" ? "4" : "6"}
+    style={selection?.checked ? {
+      background: `linear-gradient(var(--flood-sys-color-selection-background), var(--flood-sys-color-selection-background)), var(--flood-sys-color-surface-${elevation})`,
+      ...style,
+    } : style}
+    {...(selection && {"data-selectable":true,"data-selected":selection.checked || undefined})}
     data-density={density} className={classes("flood-card", className)}>
-    {(heading || hint || action) && <div className="flood-card__header">
-      {(heading || hint) && <div className="flood-card__intro">
-        {heading && <Heading level={headingLevel} size="section">{title}</Heading>}
-        {hint && <Text as="div" size="compact" tone="subtle">{description}</Text>}
+    {present(media) && <div className="flood-card__media">{media}</div>}
+    {(heading || hint || action || selection) && <div className="flood-card__header">
+      {(heading || hint || action) && <div className="flood-card__header-main">
+        {(heading || hint) && <div className="flood-card__intro">
+          {heading && <Heading level={headingLevel} size={headingSize}>{title}</Heading>}
+          {hint && <Text as="div" size="compact" tone="subtle">{description}</Text>}
+        </div>}
+        {action && <div className="flood-card__actions">{actions}</div>}
       </div>}
-      {action && <div className="flood-card__actions">{actions}</div>}
+      {selection && <RecordCheckbox className="flood-card__selection" selection={selection} />}
     </div>}
     {present(children) && <div className="flood-card__body">{children}</div>}
-    {present(footer) && <div className="flood-card__footer">{footer}</div>}
+    {present(footer) && <div className="flood-card__footer" data-divider={footerDivider || undefined}>{footer}</div>}
   </Surface>;
+});
+
+export interface CardSkeletonProps extends Omit<CardProps, "title" | "description" | "actions" | "footer" | "selection" | "children" | "aria-hidden" | "media"> {
+  /** Match the width-to-height ratio used by the loaded media slot. */
+  mediaRatio?: number;
+  description?: boolean;
+  headerAction?: boolean;
+  bodyLines?: number;
+  footerAction?: boolean;
+  animate?: boolean;
+}
+
+/** Decorative loading geometry for a Card. The surrounding region owns announcements. */
+export const CardSkeleton = /* @__PURE__ */ forwardRef<HTMLDivElement, CardSkeletonProps>(function CardSkeleton(
+  {mediaRatio, description = false, headerAction = false, bodyLines = 2, footerAction = false, animate = true, className, ...props}, ref,
+) {
+  if (!Number.isSafeInteger(bodyLines) || bodyLines < 0) throw new Error("Flood CardSkeleton requires a nonnegative bodyLines count");
+  const line = (width: string, key?: number) => <span key={key} className="flood-card-skeleton__line">
+    <Skeleton width={width} height=".65em" animate={animate} />
+  </span>;
+  return <Card {...props} ref={ref} className={className} aria-hidden="true"
+    media={mediaRatio === undefined ? undefined : <AspectRatio ratio={mediaRatio}><Skeleton shape="rounded" height="100%" animate={animate}/></AspectRatio>}
+    title={line("9em")}
+    description={description ? line("12em") : undefined}
+    actions={headerAction ? <Skeleton width="3.25rem" className="flood-card-skeleton__header-action" animate={animate} /> : undefined}
+    footer={footerAction ? <Skeleton width="7rem" className="flood-card-skeleton__footer-action" animate={animate} /> : undefined}>
+    {bodyLines > 0 && <Text as="div" size="compact">{Array.from({length: bodyLines}, (_, index) =>
+      line(index === bodyLines - 1 ? "66%" : "94%", index))}</Text>}
+  </Card>;
 });
 
 export interface IconSlotProps extends HTMLAttributes<HTMLSpanElement> {
@@ -2643,6 +4179,74 @@ export const IconButton = /* @__PURE__ */ forwardRef<HTMLButtonElement, IconButt
   { label, size = "md", iconSize = size, variant = "subtle", className, children, ...props }, ref,
 ) {
   return <Button {...props} ref={ref} size={size} variant={variant} aria-label={label} className={classes("flood-icon-button", className)}><IconSlot size={iconSize}>{children}</IconSlot></Button>;
+});
+
+export interface NotificationTriggerProps extends Omit<IconButtonProps, "children" | "type" | "tone" | "loading"> {
+  unreadCount?: number;
+  /** Localized description of the exact unread count. */
+  formatUnread?: (count: number) => string;
+}
+
+/** An icon button for opening an inbox, with an optional unread indicator. */
+export const NotificationTrigger = /* @__PURE__ */ forwardRef<HTMLButtonElement, NotificationTriggerProps>(function NotificationTrigger(
+  {label, unreadCount = 0, formatUnread, size = "sm", variant = "ghost", title = label, className, ...props}, ref,
+) {
+  if (!label.trim()) throw new Error("Flood NotificationTrigger requires an accessible label");
+  if (!Number.isSafeInteger(unreadCount) || unreadCount < 0) {
+    throw new RangeError("Flood NotificationTrigger requires a nonnegative unread count");
+  }
+  const unread = unreadCount ? formatUnread?.(unreadCount) ?? `${unreadCount} unread` : "";
+  return <IconButton {...props} ref={ref} type="button" label={unread ? `${label}, ${unread}` : label}
+    title={title} size={size} variant={variant} className={classes("flood-notification-trigger", className)}>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 12a2 2 0 0 0 4 0" />
+    </svg>
+    <CountBadge count={unreadCount} presentation="dot" className="flood-notification-trigger__unread" aria-hidden="true" />
+  </IconButton>;
+});
+
+export interface SearchTriggerProps extends Omit<ButtonProps, "children" | "aria-label" | "type"> {
+  label: string;
+  iconOnly?: boolean;
+  fullWidth?: boolean;
+  /** Display hint for a shortcut already implemented by the host. */
+  shortcut?: KeyboardShortcutKeys;
+}
+
+/** A button that opens search, with an optional host-provided keyboard hint. */
+export const SearchTrigger = /* @__PURE__ */ forwardRef<HTMLButtonElement, SearchTriggerProps>(function SearchTrigger(
+  {label, shortcut, iconOnly = false, fullWidth = false, size = "sm", variant = "subtle", title = label, className, ...props}, ref,
+) {
+  if (!label.trim()) throw new Error("Flood SearchTrigger requires an accessible label");
+  const triggerClass = classes("flood-search-trigger", className);
+  if (iconOnly) {
+    return <IconButton {...props} ref={ref} label={label} title={title} size={size} variant={variant} className={triggerClass}>
+      <SearchGlyph />
+    </IconButton>;
+  }
+  return <Button {...props} ref={ref} title={title} size={size} variant={variant}
+    className={triggerClass} data-full-width={fullWidth || undefined}>
+    <IconSlot size={size}><SearchGlyph /></IconSlot>
+    <span className="flood-search-trigger__label">{label}</span>
+    {shortcut && <KeyboardShortcut keys={shortcut} aria-hidden="true" className="flood-search-trigger__shortcut" />}
+  </Button>;
+});
+
+export interface IconLinkProps extends Omit<LinkProps, "href" | "variant" | "aria-label"> {
+  href: string;
+  label: string;
+  variant?: Exclude<LinkProps["variant"], "text">;
+  iconSize?: ControlSize;
+}
+
+/** An icon-only native anchor with the same geometry as IconButton. */
+export const IconLink = /* @__PURE__ */ forwardRef<HTMLAnchorElement, IconLinkProps>(function IconLink(
+  {label, size = "md", iconSize = size, variant = "subtle", className, children, ...props}, ref,
+) {
+  if (!label.trim()) throw new Error("Flood IconLink requires an accessible label");
+  return <Link {...props} ref={ref} size={size} variant={variant} aria-label={label} className={classes("flood-icon-link", className)}>
+    <IconSlot size={iconSize}>{children}</IconSlot>
+  </Link>;
 });
 
 export const Divider = /* @__PURE__ */ forwardRef<HTMLHRElement, HTMLAttributes<HTMLHRElement>>(
@@ -2731,6 +4335,7 @@ export interface AvatarGroupItem {
   name: string;
   src?: string;
   fallback?: string;
+  presence?: AvatarPresence;
 }
 export interface AvatarGroupProps extends Omit<HTMLAttributes<HTMLUListElement>, "children"> {
   items: readonly AvatarGroupItem[];
@@ -2738,6 +4343,13 @@ export interface AvatarGroupProps extends Omit<HTMLAttributes<HTMLUListElement>,
   max?: number;
   size?: ContentSize;
   overflowLabel?: string;
+  overflowPresentation?: "count" | "popover";
+  /** Fit the available inline width before showing the overflow count. */
+  layout?: "wrap" | "fit";
+  /** Keep avatars separate even when no visible person has a presence indicator. */
+  spacing?: "auto" | "separated";
+  /** Title of the overflow popover. */
+  overflowTitle?: string;
 }
 export const AvatarGroup = /* @__PURE__ */ forwardRef<HTMLUListElement, AvatarGroupProps>(function AvatarGroup(
   {max = 4, size = "md", ...props}, ref,
@@ -2748,10 +4360,62 @@ export interface StatusIndicatorProps extends Omit<HTMLAttributes<HTMLSpanElemen
   tone?: SemanticTone;
   size?: ContentSize;
   announce?: boolean;
+  /** A single line by default. Use chip for a tinted surface, wrap for prose, or icon in compact regions. */
+  presentation?: "label" | "chip" | "wrap" | "icon";
+  /** Decorative artwork for icon presentation. The label still names the state. */
+  icon?: ReactNode;
 }
 export const StatusIndicator = /* @__PURE__ */ forwardRef<HTMLSpanElement, StatusIndicatorProps>(function StatusIndicator(
   {tone = "neutral", size = "md", announce = false, ...props}, ref,
 ) { return <NamedStatus {...props} ref={ref} tone={tone} size={size} announce={announce}/>; });
+
+const saveStatusAppearance = {
+  idle: {label:"",tone:"neutral"},
+  dirty: {label:"Unsaved changes",tone:"neutral"},
+  saving: {label:"Saving changes…",tone:"neutral"},
+  saved: {label:"Changes saved",tone:"success"},
+  error: {label:"Changes could not be saved",tone:"error"},
+} as const;
+
+export interface SaveStatusProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "role"> {
+  state: keyof typeof saveStatusAppearance;
+  label?: string;
+  /** Announces state text changes. Use false when the host already announces them. */
+  announce?: boolean;
+}
+
+/** Quiet feedback for a host-owned save operation. */
+export const SaveStatus = /* @__PURE__ */ forwardRef<HTMLSpanElement, SaveStatusProps>(function SaveStatus(
+  {state, label, announce = true, className, ...props}, ref,
+) {
+  const appearance = saveStatusAppearance[state];
+  const message = label ?? appearance.label;
+  return <span {...props} ref={ref} className={classes("flood-save-status",className)}
+    role={announce ? "status" : undefined} aria-atomic={announce || undefined}>
+    {message && (state === "saving"
+      ? <><Spinner size="sm" decorative /><Text as="span" size="helper" tone="subtle">{message}</Text></>
+      : <StatusIndicator size="sm" presentation="wrap" label={message} tone={appearance.tone} />)}
+  </span>;
+});
+
+export interface FormActionsProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  primary: ReactNode;
+  secondary?: ReactNode;
+  status?: ReactNode;
+  align?: "start" | "end";
+  /** Reserve a feedback line below the row, or stack full-width actions above it. */
+  layout?: "auto" | "status-below" | "stacked";
+}
+
+/** A responsive action row for a native form. The host supplies its buttons and feedback. */
+export const FormActions = /* @__PURE__ */ forwardRef<HTMLDivElement, FormActionsProps>(function FormActions(
+  {primary, secondary, status, align = "end", layout = "auto", className, ...props}, ref,
+) {
+  return <div {...props} ref={ref} className={classes("flood-form-actions",className)} data-align={align} data-layout={layout}>
+    <Inline gap="2" className="flood-form-actions__buttons">{secondary}{primary}</Inline>
+    {hasFieldContent(status) && <div className="flood-form-actions__status">{status}</div>}
+  </div>;
+});
 
 export interface FigureProps extends HTMLAttributes<HTMLElement> {
   caption?: ReactNode;
@@ -2776,14 +4440,107 @@ export const InlineCode = /* @__PURE__ */ forwardRef<HTMLElement, InlineCodeProp
   {size = "md", wrap = true, ...props}, ref,
 ) { return <InlineCodeText {...props} ref={ref} size={size} wrap={wrap}/>; });
 
+export interface CopyableValueProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children"> {
+  value: string;
+  appearance?: "text" | "code";
+  /** Wrap when the entire value must stay visible. Truncate in a dense row with room for a recognizable prefix. */
+  overflow?: "wrap" | "truncate";
+  copyLabel?: string;
+  copiedLabel?: string;
+  errorLabel?: string;
+}
+
+function PresentedValue({value, appearance, overflow}: Pick<CopyableValueProps, "value"|"appearance"|"overflow">) {
+  if (overflow === "truncate") {
+    return <OverflowingText appearance={appearance} dir="auto" className="flood-copyable-value__text">{value}</OverflowingText>;
+  }
+  return appearance === "code"
+    ? <InlineCode size="sm" className="flood-copyable-value__text"><bdi>{value}</bdi></InlineCode>
+    : <Text size="compact" className="flood-copyable-value__text"><bdi>{value}</bdi></Text>;
+}
+
+/** A readable value with a named, compact clipboard action. */
+export const CopyableValue = /* @__PURE__ */ forwardRef<HTMLSpanElement, CopyableValueProps>(function CopyableValue(
+  {value, appearance = "text", overflow = "wrap", copyLabel = "Copy value", copiedLabel, errorLabel, className, ...props}, ref,
+) {
+  return <span {...props} ref={ref} className={classes("flood-copyable-value", className)}>
+    <PresentedValue value={value} appearance={appearance} overflow={overflow}/>
+    <CopyButton iconOnly size="xs" variant="ghost" value={value}
+      copyLabel={copyLabel} copiedLabel={copiedLabel} errorLabel={errorLabel} />
+  </span>;
+});
+
+export interface RevealValueProps extends CopyableValueProps {
+  visible?: boolean;
+  defaultVisible?: boolean;
+  onVisibleChange?: (visible: boolean) => void;
+  copyable?: boolean;
+  showLabel?: string;
+  hideLabel?: string;
+  hiddenValueLabel?: string;
+}
+
+/** A visually masked read-only value with an explicit reveal action. */
+export const RevealValue = /* @__PURE__ */ forwardRef<HTMLSpanElement, RevealValueProps>(function RevealValue(
+  {value, appearance="code", overflow="truncate", visible, defaultVisible=false, onVisibleChange,
+    copyable=false, showLabel="Show value", hideLabel="Hide value", hiddenValueLabel="Value hidden",
+    copyLabel="Copy value", copiedLabel, errorLabel, className, ...props}, ref,
+){
+  const valueId = useId();
+  const [localVisible,setLocalVisible] = useState(defaultVisible);
+  const shown = visible ?? localVisible;
+  const actionLabel = shown ? hideLabel : showLabel;
+  return <span {...props} ref={ref} className={classes("flood-copyable-value","flood-reveal-value",className)}>
+    <span id={valueId} className="flood-reveal-value__display">
+      {shown ? <PresentedValue value={value} appearance={appearance} overflow={overflow}/> : <>
+        <span aria-hidden="true"><PresentedValue value="••••••••" appearance={appearance}/></span>
+        <VisuallyHidden>{hiddenValueLabel}</VisuallyHidden>
+      </>}
+    </span>
+    <IconButton size="xs" variant="ghost" label={actionLabel} title={actionLabel}
+      aria-expanded={shown} aria-controls={valueId} onClick={()=>{
+        if (visible === undefined) setLocalVisible(!shown);
+        onVisibleChange?.(!shown);
+      }}><VisibilityGlyph visible={shown}/></IconButton>
+    {copyable && <CopyButton key={String(shown)} iconOnly size="xs" variant="ghost" value={shown ? value : ""} disabled={!shown}
+      copyLabel={copyLabel} copiedLabel={copiedLabel} errorLabel={errorLabel}/>}
+  </span>;
+});
+
 export interface MetricTrend {
   label: string;
   direction: "up" | "down" | "flat";
   tone?: SemanticTone;
+  /** A comparison period or baseline such as “vs last month”. */
+  context?: string;
+  /** Use a tint when the change needs a distinct marker among neighboring values. */
+  variant?: "plain" | "chip";
 }
+
+export interface MetricDeltaProps extends MetricTrend, Omit<HTMLAttributes<HTMLSpanElement>, "children"> {}
+
+/** A directional comparison whose visual tone is chosen independently. */
+export const MetricDelta = /* @__PURE__ */ forwardRef<HTMLSpanElement, MetricDeltaProps>(function MetricDelta(
+  {label, direction, tone = "neutral", context, variant = "plain", className, ...props}, ref,
+) {
+  if (!label.trim()) throw new Error("Flood MetricDelta requires meaningful comparison text");
+  const change = <>
+    <span aria-hidden="true">{direction === "up" ? "↑" : direction === "down" ? "↓" : "→"}</span>
+    <bdi>{label}</bdi>
+  </>;
+  return <span {...props} ref={ref} className={classes("flood-metric-delta", className)} data-tone={tone} data-variant={variant}>
+    {variant === "chip" ? <Badge size="sm" tone={tone}>{change}</Badge> : <span className="flood-metric-delta__change">{change}</span>}
+    {context?.trim() && <>{" "}<bdi className="flood-metric-delta__context">{context}</bdi></>}
+  </span>;
+});
 export interface MetricProps extends Omit<HTMLAttributes<HTMLDListElement>, "children"> {
   label: string;
   value: ReactNode;
+  state?: "ready" | "loading" | "unavailable";
+  loadingLabel?: string;
+  unavailableLabel?: string;
+  /** A trailing unit such as ms or GB. */
+  unit?: string;
   hint?: ReactNode;
   trend?: MetricTrend;
   size?: ContentSize;
@@ -2791,6 +4548,73 @@ export interface MetricProps extends Omit<HTMLAttributes<HTMLDListElement>, "chi
 export const Metric = /* @__PURE__ */ forwardRef<HTMLDListElement, MetricProps>(function Metric(
   {size = "md", ...props}, ref,
 ) { return <MeasuredValue {...props} ref={ref} size={size}/>; });
+
+type MetricContent = Pick<MetricProps, "label" | "value" | "unit" | "hint" | "trend" | "state" | "loadingLabel" | "unavailableLabel">;
+
+export interface MetricCardProps extends Omit<SurfaceProps, "children"> {
+  metric: MetricContent & Pick<MetricProps, "size">;
+  /** Optional compact chart for the same measure, reading after the value. */
+  chart?: ReactNode;
+  /** Override chart loading when its data arrives independently of the value. */
+  chartLoading?: boolean;
+  layout?: "inline" | "stacked";
+}
+
+/** A metric and its optional history on one shared surface. */
+export const MetricCard = /* @__PURE__ */ forwardRef<HTMLDivElement, MetricCardProps>(function MetricCard(
+  {metric, chart, chartLoading, layout = "inline", padding = "4", className, ...props}, ref,
+) {
+  const value = <Metric {...metric} />;
+  const loadingPlot = chartLoading ?? metric.state === "loading";
+  const plot = (hasFieldContent(chart) || chartLoading === true) && (
+    <div className="flood-metric-card__chart" aria-busy={loadingPlot || undefined}>
+      {loadingPlot ? <Skeleton shape="rounded" className="flood-metric-card__chart-placeholder"/> : chart}
+    </div>
+  );
+  return <Surface {...props} ref={ref} padding={padding} data-layout={layout} className={classes("flood-metric-card", className)}>
+    {layout === "inline"
+      ? <Inline gap="3" align="center" className="flood-metric-card__body">{value}{plot}</Inline>
+      : <Stack gap="3" className="flood-metric-card__body">{value}{plot}</Stack>}
+  </Surface>;
+});
+
+export interface MetricGroupItem extends MetricContent {
+  id: string;
+}
+
+export interface MetricGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
+  label: string;
+  items: readonly MetricGroupItem[];
+  appearance?: "plain" | "panel";
+  /** Use rows for a vertical summary with end-aligned values. */
+  layout?: "grid" | "rows";
+  size?: ContentSize;
+  /** Minimum item width in the grid layout. */
+  minItemWidth?: GridProps["minItemWidth"];
+}
+
+/** Related metrics that share value alignment and one optional surface. */
+export const MetricGroup = /* @__PURE__ */ forwardRef<HTMLDivElement, MetricGroupProps>(function MetricGroup(
+  {label, items, size = "sm", appearance = "plain", layout = "grid", minItemWidth = "10rem", className, ...props}, ref,
+) {
+  if (!label.trim() || items.some(item => !item.id.trim()) || new Set(items.map(item => item.id)).size !== items.length) {
+    throw new Error("Flood MetricGroup requires a label and unique nonempty item IDs");
+  }
+  const metrics = items.map(({id, ...metric}) => <Metric key={id} {...metric} size={size} />);
+  const groupProps = { ...props, role:"group", "aria-label":label };
+  const layoutProps = {
+    columns: layout === "rows" ? 1 as const : undefined,
+    gap: layout === "rows" ? "4" as const : "6" as const,
+    minItemWidth,
+    "data-layout": layout,
+  };
+  if (appearance === "panel") {
+    return <Surface {...groupProps} ref={ref} padding="4" className={classes("flood-metric-group__panel",className)}>
+      <Grid {...layoutProps} className="flood-metric-group">{metrics}</Grid>
+    </Surface>;
+  }
+  return <Grid {...groupProps} {...layoutProps} ref={ref} className={classes("flood-metric-group",className)}>{metrics}</Grid>;
+});
 
 export interface TimelineItem {
   id: string;
@@ -2800,14 +4624,62 @@ export interface TimelineItem {
   dateTime?: string;
   timeLabel?: string;
   icon?: ReactNode;
+  /** Optional formatted heading for activity layouts. title supplies the text fallback. */
+  summary?: ReactNode;
+  /** Rich event details such as a file row or a thread. */
+  content?: ReactNode;
+  /** Track segment from this event to the next in feed and schedule layouts. */
+  connector?: "solid" | "dashed" | "none";
 }
 export interface TimelineProps extends Omit<HTMLAttributes<HTMLOListElement>, "children"> {
   label: string;
   items: readonly TimelineItem[];
+  /** Use activity for recorded events and progress for steps (default). */
+  mode?: "progress" | "activity";
+  /** Inline metadata in a feed or a shared leading time track in a schedule. */
+  layout?: "stacked" | "feed" | "schedule";
+  density?: "compact" | "comfortable";
   stateLabels?: {complete?: string; current?: string; upcoming?: string};
 }
 export const Timeline = /* @__PURE__ */ forwardRef<HTMLOListElement, TimelineProps>(function Timeline(props, ref) {
   return <EventTimeline {...props} ref={ref}/>;
+});
+
+export interface ActivityTimelineGroup {
+  id: string;
+  label: string;
+  dateTime?: string;
+  items: readonly Omit<TimelineItem, "state">[];
+}
+
+export interface ActivityTimelineProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  label: string;
+  groups: readonly ActivityTimelineGroup[];
+  density?: TimelineProps["density"];
+  headingLevel?: HeadingProps["level"];
+  emptyContent?: ReactNode;
+}
+
+/** A feed of chronological events grouped into named periods by the host. */
+export const ActivityTimeline = /* @__PURE__ */ forwardRef<HTMLDivElement, ActivityTimelineProps>(function ActivityTimeline(
+  {label, groups, density = "comfortable", headingLevel = 3, emptyContent, className, ...props}, ref,
+) {
+  if (!label.trim() || new Set(groups.map(group => group.id)).size !== groups.length ||
+      groups.some(group => !group.id.trim() || !group.label.trim())) {
+    throw new Error("Flood ActivityTimeline needs a label and unique nonempty group IDs and labels");
+  }
+  const populated = groups.filter(group => group.items.length > 0);
+  return <Stack {...props} ref={ref} role="region" aria-label={label} gap={density === "compact" ? "6" : "8"}
+    className={classes("flood-activity-timeline", className)}>
+    {populated.length ? populated.map(group =>
+      <Stack key={group.id} gap={density === "compact" ? "2" : "3"}>
+        <Heading level={headingLevel} size="group" className="flood-activity-timeline__heading">
+          {group.dateTime ? <Timestamp dateTime={group.dateTime}>{group.label}</Timestamp> : group.label}
+        </Heading>
+        <Timeline label={group.label} items={group.items} mode="activity" layout="feed" density={density} />
+      </Stack>,
+    ) : emptyContent}
+  </Stack>;
 });
 
 
@@ -2848,6 +4720,29 @@ export interface StepsProps extends Omit<HTMLAttributes<HTMLOListElement>, "chil
 export const Steps = /* @__PURE__ */ forwardRef<HTMLOListElement, StepsProps>(function Steps(
   {orientation = "horizontal", ...props}, ref,
 ) { return <StepSequence {...props} ref={ref} orientation={orientation} />; });
+
+export interface StepProgressProps extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "children"> {
+  title: string;
+  step: number;
+  totalSteps: number;
+  formatPosition?: (step: number, totalSteps: number) => string;
+}
+export const StepProgress = /* @__PURE__ */ forwardRef<HTMLDivElement, StepProgressProps>(function StepProgress(
+  {title, step, totalSteps, formatPosition = (current, total) => `Step ${current} of ${total}`, className, ...props}, ref,
+) {
+  if (!Number.isSafeInteger(step) || !Number.isSafeInteger(totalSteps) || step < 1 || step > totalSteps) {
+    throw new Error("Flood StepProgress requires a step from 1 to totalSteps");
+  }
+  const position = formatPosition(step, totalSteps);
+  if (!title.trim() || !position.trim()) throw new Error("Flood StepProgress requires a title and position label");
+  return <div {...props} ref={ref} className={classes("flood-step-progress", className)}>
+    <div className="flood-step-progress__header">
+      <Text size="label">{title}</Text>
+      <Text size="helper" tone="subtle">{position}</Text>
+    </div>
+    <Progress label={position} value={step} max={totalSteps} size="sm" hideLabel aria-hidden="true" />
+  </div>;
+});
 
 export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, "title"> {
   title: string;
@@ -3004,13 +4899,131 @@ export const Rating = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, RatingProp
   {max = 5, defaultValue = 0, hideLabel = false, readOnly = false, size = "md", ...props}, ref,
 ) { return <StarRating {...props} ref={ref} max={max} defaultValue={defaultValue} hideLabel={hideLabel} readOnly={readOnly} size={size} />; });
 
+export interface RatingValueProps extends Omit<HTMLAttributes<HTMLSpanElement>, "children" | "role"> {
+  /** A fractional rating, or null when ratings are unavailable. */
+  value: number | null;
+  max?: number;
+  count?: number;
+  size?: ContentSize;
+  appearance?: "stars" | "compact";
+  showValue?: boolean;
+  unratedLabel?: string;
+}
+
+/** A noninteractive rating for cards, lists and records. */
+export const RatingValue = /* @__PURE__ */ forwardRef<HTMLSpanElement, RatingValueProps>(function RatingValue(
+  {value, max = 5, count, size = "md", appearance = "stars", showValue = true, unratedLabel = "No ratings",
+    lang, "aria-label": label, className, ...props}, ref,
+) {
+  if (!Number.isInteger(max) || max < 1 || max > 10 ||
+      (value !== null && (!Number.isFinite(value) || value < 0 || value > max)) ||
+      (count !== undefined && (!Number.isSafeInteger(count) || count < 0))) {
+    throw new Error("Flood RatingValue requires a rating within its scale and a nonnegative integer count");
+  }
+  const format = new Intl.NumberFormat(lang ?? "en", {maximumFractionDigits: 2});
+  const score = value === null ? "" : format.format(value);
+  const countText = count === undefined ? undefined : format.format(count);
+  const name = value === null ? unratedLabel :
+    `${score} out of ${format.format(max)}${countText !== undefined ? ` from ${countText} ${count === 1 ? "rating" : "ratings"}` : ""}`;
+  return <span {...props} ref={ref} lang={lang} role="img" aria-label={label ?? name}
+    className={classes("flood-rating-value", className)} data-size={size}>
+    {value === null ? <Text size="helper" tone="subtle">{unratedLabel}</Text> : <>
+      <span className="flood-rating-value__stars" aria-hidden="true">
+        {appearance === "compact" ? <RatingStar fill={1} /> :
+          Array.from({length:max}, (_, index) => <RatingStar key={index} fill={Math.max(0, Math.min(1, value - index))} />)}
+      </span>
+      {(showValue || appearance === "compact" || countText !== undefined) && <span className="flood-rating-value__numbers" aria-hidden="true">
+        {(showValue || appearance === "compact") && <Text size="compact" className="flood-rating-value__score">{appearance === "compact" ? `${score}/${format.format(max)}` : score}</Text>}
+        {countText !== undefined && <Text size="helper" tone="subtle">({countText})</Text>}
+      </span>}
+    </>}
+  </span>;
+});
+
+export interface RatingSummaryLabels {
+  empty?: string;
+  count?: (count: number, formattedCount: string) => string;
+  score?: (formattedScore: string, formattedMax: string) => string;
+  bucket?: (starCount: number, formattedStarCount: string) => string;
+}
+
+export interface RatingSummaryProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role"> {
+  label: string;
+  /** Counts from one star to the highest score. Use zero for any empty bucket. */
+  counts: readonly number[];
+  labels?: RatingSummaryLabels;
+  layout?: "auto" | "stacked";
+}
+
+/** The aggregate score and distribution calculated from the same rating counts. */
+export const RatingSummary = /* @__PURE__ */ forwardRef<HTMLDivElement, RatingSummaryProps>(function RatingSummary(
+  {label, counts, labels, layout = "auto", lang, className, ...props}, ref,
+) {
+  const buckets = Array.from(counts);
+  const max = buckets.length;
+  const total = buckets.reduce((sum, count) => sum + count, 0);
+  if (!label.trim() || max < 1 || max > 10 || !Number.isSafeInteger(total) ||
+      buckets.some(count => !Number.isSafeInteger(count) || count < 0)) {
+    throw new Error("Flood RatingSummary requires a label and one to ten nonnegative safe integer counts with a safe total");
+  }
+  const locale = lang ?? "en";
+  const formatNumber = new Intl.NumberFormat(locale);
+  const countLabel = (count: number, formatted: string) => labels?.count?.(count, formatted) ??
+    `${formatted} ${count === 1 ? "rating" : "ratings"}`;
+  const average = total ? Math.min(max, buckets.reduce((sum, count, index) => sum + count * (index + 1), 0) / total) : null;
+  const maximum = formatNumber.format(max);
+  const score = average === null ? undefined : new Intl.NumberFormat(locale, {maximumFractionDigits: 1}).format(average);
+  const scoreLabel = score === undefined ? undefined : labels?.score?.(score, maximum) ?? `${score} out of ${maximum}`;
+  return <div {...props} ref={ref} lang={lang} role="group" aria-label={label}
+    className={classes("flood-rating-summary", className)} data-layout={layout}>
+    {average === null ? <RatingValue value={null} max={max} unratedLabel={labels?.empty}/> :
+      <div className="flood-rating-summary__body">
+        <Stack gap="1" className="flood-rating-summary__overview">
+          <Inline gap="1" align="baseline" aria-hidden="true" className="flood-rating-summary__score">
+            <Text className="flood-rating-summary__value"><bdi>{score}</bdi></Text>
+            <Text size="compact" tone="subtle">/ <bdi>{maximum}</bdi></Text>
+          </Inline>
+          <RatingValue value={average} max={max} lang={lang} size="sm" showValue={false} aria-label={scoreLabel}/>
+          <Text size="helper" tone="subtle" className="flood-rating-summary__count">{countLabel(total, formatNumber.format(total))}</Text>
+        </Stack>
+        <List marker={false} gap="1" className="flood-rating-summary__distribution">
+          {[...buckets].reverse().map((count, index) => {
+            const stars = max - index;
+            const starText = formatNumber.format(stars);
+            const countText = formatNumber.format(count);
+            const bucketLabel = labels?.bucket?.(stars, starText) ?? `${starText} ${stars === 1 ? "star" : "stars"}`;
+            return <li key={stars} className="flood-rating-summary__bucket">
+              <Text size="helper" tone="subtle" aria-hidden="true"><bdi>{starText}</bdi></Text>
+              <Meter label={bucketLabel} value={count} max={total} valueText={countLabel(count, countText)} size="sm" hideLabel/>
+              <Text size="helper" tone="subtle" aria-hidden="true" className="flood-rating-summary__bucket-count"><bdi>{countText}</bdi></Text>
+            </li>;
+          })}
+        </List>
+      </div>}
+  </div>;
+});
+
 export interface DropzoneProps extends Omit<FileInputProps, "onDragEnter" | "onDragLeave" | "onDragOver" | "onDrop"> {
   label: string;
   description?: string;
+  density?: "compact" | "comfortable";
 }
 export const Dropzone = /* @__PURE__ */ forwardRef<HTMLInputElement, DropzoneProps>(function Dropzone(
-  {description = "Drop files here or choose from your device.", multiple = true, ...props}, ref,
+  {description = "Drag files here", multiple = true, ...props}, ref,
 ) { return <FileDropzone {...props} ref={ref} description={description} multiple={multiple} />; });
+
+export interface FileDropTargetProps extends Omit<HTMLAttributes<HTMLDivElement>,
+  "children" | "onDragEnter" | "onDragLeave" | "onDragOver" | "onDrop">,
+  Pick<FileTriggerProps, "accept" | "capture" | "multiple" | "disabled" | "onFilesSelect"> {
+  label: string;
+  description?: string;
+  chooseLabel?: string;
+}
+
+/** A picker and file drop surface for a host-owned import or upload queue. */
+export const FileDropTarget = /* @__PURE__ */ forwardRef<HTMLDivElement, FileDropTargetProps>(function FileDropTarget(props, ref) {
+  return <OwnedFileDropTarget {...props} ref={ref}/>;
+});
 
 export interface CharacterCountProps extends HTMLAttributes<HTMLOutputElement> {
   value?: string;

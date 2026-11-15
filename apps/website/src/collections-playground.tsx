@@ -1,6 +1,7 @@
 "use client";
 import {useRef,useState} from 'react';
-import {Button,DataTable,EmptyState,Field,FileItem,FileList,FloodRoot,Heading,Select,Stack,StatusIndicator,Surface,Tabs,ToastRegion,type ToastItem} from '@flood-md/react';
+import {Badge,DataTable,Field,FileItem,FileList,FloodRoot,Heading,NoResults,Select,Stack,StatusIndicator,Surface,Tabs,ToastRegion,type ToastItem} from '@flood-md/react';
+import {SearchX} from 'lucide-react';
 import {SiteHeader} from './site-header';
 import {SiteFooter} from './site-footer';
 import {CollectionViewControls} from './recipes/collection-views';
@@ -95,9 +96,9 @@ export function ProjectCollection({storage,onUpdateStatus}: {
    inset="roomy" showColumnVisibility
    toolbar={({columns}) => <CollectionViewControls label="Projects" schema={projectSchema} presets={projectPresets}
      value={query} onValueChange={change} storageKey="flood-project-views-v1" storage={storage} toolbarActions={columns}/>}
-   emptyContent={<EmptyState title="No matching projects" actions={<Button variant="subtle" onClick={()=>{change({...query,search:'',conditions:[]});collection.current?.querySelector<HTMLInputElement>('.flood-collection-toolbar input')?.focus({preventScroll:true});}}>Reset filters</Button>}/>}
+   emptyContent={<NoResults title="No matching projects" headingLevel={2} icon={<SearchX />}/>}
    columns={[{id:'name',label:'Project',sortable:true,hideable:false},{id:'owner',label:'Owner',sortable:true},{id:'status',label:'Status',sortable:true},{id:'priority',label:'Priority',sortable:true}]}
-   rows={rows.map(project=>({id:project.id,label:project.name,cells:{name:project.name,owner:owners.find(owner=>owner.value===project.owner)!.label,status:<StatusIndicator label={projectSchema.properties[0].options.find(option=>option.value===project.status)!.label} tone={project.status==='active'?'success':project.status==='paused'?'warning':'neutral'}/>,priority:project.priority==='urgent'?'Urgent':'Normal'},sortValues:{name:project.name,owner:project.owner,status:project.status,priority:project.priority==='urgent'?1:0}}))}/>
+   rows={rows.map(project=>({id:project.id,label:project.name,cells:{name:project.name,owner:owners.find(owner=>owner.value===project.owner)!.label,status:<StatusIndicator label={projectSchema.properties[0].options.find(option=>option.value===project.status)!.label} tone={project.status==='active'?'success':project.status==='paused'?'warning':'neutral'}/>,priority:<Badge size="sm" tone={project.priority==='urgent'?'warning':'neutral'}>{project.priority==='urgent'?'Urgent':'Normal'}</Badge>},sortValues:{name:project.name,owner:project.owner,status:project.status,priority:project.priority==='urgent'?1:0}}))}/>
   </Surface>
  </Stack></section>;
 }
@@ -124,7 +125,7 @@ export function FileCollection({storage}: {storage?:ViewStorage}){
  return <section aria-label="Files collection"><Stack gap="6">
   <CollectionViewControls label="Files" schema={fileSchema} presets={filePresets} value={query} onValueChange={setQuery} storageKey="flood-file-views-v1" storage={storage}/>
   <div style={{maxWidth:'16rem'}}><Field label="Sort files" hideLabel>{props=><Select {...props} value={`${sort.column}:${sort.direction}`} onChange={event=>{const[column,direction]=event.target.value.split(':');setQuery({...query,sort:{column,direction:direction as 'ascending'|'descending'}});}}><option value="name:ascending">Name A–Z</option><option value="name:descending">Name Z–A</option><option value="size:ascending">Size small–large</option><option value="size:descending">Size large–small</option></Select>}</Field></div>
-  {rows.length?<FileList label="Files">{rows.map(file=><FileItem key={file.id} name={file.name} size={file.size} format={file.kind.toUpperCase()} description={teams.find(team=>team.value===file.team)!.label}/>)}</FileList>:<EmptyState title="No matching files" actions={<Button variant="subtle" onClick={()=>setQuery({...query,search:'',conditions:[]})}>Reset filters</Button>}/>}
+  {rows.length?<FileList label="Files">{rows.map(file=><FileItem key={file.id} name={file.name} size={file.size} format={file.kind.toUpperCase()} description={teams.find(team=>team.value===file.team)!.label}/>)}</FileList>:<NoResults title="No matching files" headingLevel={2} icon={<SearchX />}/>}
  </Stack></section>;
 }
 

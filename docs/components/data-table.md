@@ -1,5 +1,15 @@
 # DataTable
 
+Use `paginationPresentation="compact"` for a tight table footer when previous
+and next are enough. Localize the page position through `labels.pagePosition`.
+Use `paginationPresentation="arrows"` when the visible result range supplies
+enough context. `labels.pageNumber` formats the digits in numbered pagination.
+
+Use `showSelection="replace-results"` to show the selected count in place
+of the result range. The range returns when selection clears. When a
+BulkActionBar already displays the count, use `showSelection={false}` and
+keep the table's accessible selection status.
+
 A native table composed from Flood Table, Checkbox, Button, Pagination and
 feedback components. It sorts and pages one complete client-side collection.
 It does not fetch data, virtualize rows or implement spreadsheet/grid keyboard
@@ -25,6 +35,10 @@ Import DataTable and shared styles from `@flood-md/react`; render inside FloodRo
 Column and row IDs must be nonempty and unique. Each row's `cells` is a record
 keyed by column ID. Cells may contain Badge, Link, Menu or other React content.
 Supply `label` for a readable row-selection name; otherwise the row ID is used.
+
+In a ready empty table, the empty-state message carries the result. The default
+result range appears when there are visible rows. A supplied `labels.results`
+can still provide a project-specific summary for an empty page.
 
 ## Sorting
 
@@ -97,6 +111,21 @@ size to the remaining columns and scroll locally when they need more space.
 
 ## Column widths and pinning
 
+Set `state="loading"` and `loadingAppearance="skeleton"` to keep the table
+header and show decorative placeholders on the existing column tracks. Set
+`loadingRowCount` to the expected number of rows, up to `pageSize`. It
+defaults to five or the page size, whichever is smaller. Provide
+`defaultColumnWidths` or controlled widths when column positions must remain
+fixed across a load. Set `placeholderLines: 2` on columns with a title and a
+secondary line so the loading row reserves that height. Intrinsically sized
+columns can expand when real values arrive.
+
+Use `refreshing` with `state="ready"` for background requests while the
+accepted rows remain safe to use. The progress cue follows the table header
+without changing its height or blocking selection, sorting or paging.
+Localize it with `labels.refreshing`. Keep the request, its errors and
+acceptance of updated rows in the host.
+
 Set `resizable: true` on columns whose content benefits from an adjustable
 width. Use `width` for the initial CSS width and `minWidth` / `maxWidth` for
 resize limits in CSS pixels. Drag the horizontal-arrow handle at the edge of
@@ -128,6 +157,20 @@ name stays available to assistive technology. An overflowing label opens a
 Flood Tooltip on hover or keyboard focus.
 Pass a short `unit` such as `"USD"` or `"kg"` to display it beside the label
 as a badge. Put the unit in the header when it applies to every row.
+
+Use `StatusIndicator` with a short, single-line label for row status. In a
+compact status column, `presentation="icon"` accepts a recognizable glyph and
+keeps the full label available through Tooltip and assistive technology.
+Use the same StatusIndicator size throughout the column so icon backplates
+and text-status dots share one leading track, including in RTL.
+For a priority column that uses `Badge`, use the same size and variant for
+each populated value. A neutral badge suits ordinary priority and a warning
+badge can emphasize urgent work. Supply the underlying value in `sortValues`.
+For a plain string column whose visible prefix remains meaningful, use
+`cellOverflow: "truncate"` with a suitable column width. A clipped value gains
+a tooltip on pointer hover and keyboard focus. Rich cells, primary actions and
+multi-line descriptions keep their own layout. Keep decisive and ambiguous
+values readable by giving them space or a visible details view.
 
 ## Row details and trends
 
@@ -173,12 +216,34 @@ an automatic callback. In client mode pass a complete collection. For server
 pages, use `paginationMode="server"` with controlled page, `totalRows`, and
 controlled sort when columns are sortable.
 
+For an API with opaque cursors, use `paginationMode="cursor"` and pass the
+current batch as `rows`. Set `cursorPagination.previous` and
+`cursorPagination.next` to native link targets or host request callbacks.
+Use `cursorPagination.pending` during a callback request. An optional
+`cursorPagination.position` shows a known range in the footer's result slot.
+The footer accepts cursor controls even when the current batch has no rows.
+With sortable columns, provide controlled `sort` and `onSortChange` and restart
+from the appropriate cursor when the query changes. Selection defaults to the
+loaded page. For controlled dataset selection, localize the count with
+`labels.cursorSelection`.
+
 ## States and presentation
 
-`state="loading"` replaces rows with Spinner and marks the region busy.
-`state="error"` shows Alert and an optional retry Button through `onRetry`.
-An empty ready collection shows the empty message. Sorting, selection and page
-controls are blocked while loading or errored. Existing selection is retained.
+`state="loading"` shows a Spinner by default. Use `loadingAppearance="message"`
+for a compact LoadingState with a visible `labels.loading` message. It uses the
+table's single status announcement and pairs with a compact row ErrorState.
+`state="error"` shows ErrorState
+and enables its retry action if you supply `onRetry`. An empty ready collection
+shows `emptyContent` or the localized fallback message. Each spanning message
+stays in the visible table area during horizontal scrolling. Sorting, selection
+and page controls are blocked while loading or errored. Existing selection is
+retained.
+
+Provide `errorContent` to customize a failed read, for example with a compact
+`ErrorState layout="row"` and a host-managed retry. Keep `labels.error` consistent
+with the visible failure message, and restore focus when recovery removes the
+action. In a filtered empty result, use the existing filter reset when it is
+already visible in the toolbar.
 
 `density`, `striped`, `hideCaption` and `minWidth` adapt presentation. Horizontal
 overflow stays in the existing ScrollArea. Keep the caption meaningful even when
