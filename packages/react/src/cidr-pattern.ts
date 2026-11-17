@@ -17,9 +17,9 @@ function ipv6AddressPattern() {
   return `(?:${[...uncompressed, ...compressed, ...embedded].join("|")})`;
 }
 
-const ipv4Cidr = `${ipv4}\\/${ipv4Prefix}`;
+const ipv4Cidr = `${ipv4}/${ipv4Prefix}`;
 const ipv6Address = /* @__PURE__ */ ipv6AddressPattern();
-const ipv6Cidr = `${ipv6Address}\\/${ipv6Prefix}`;
+const ipv6Cidr = `${ipv6Address}/${ipv6Prefix}`;
 
 export function cidrPattern(family: "IPv4" | "IPv6" | undefined) {
   return family === "IPv4" ? ipv4Cidr : family === "IPv6" ? ipv6Cidr : `(?:${ipv4Cidr}|${ipv6Cidr})`;
