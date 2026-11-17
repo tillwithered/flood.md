@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
-  Button, Inline, KeyboardShortcut, Popover, Stack, Text,
+  Button, Inline, KeyboardShortcut, Popover, Stack, Text, VisuallyHidden,
   type RecordedShortcut, type ShortcutModifier, type ShortcutRecorderProps,
 } from "./index.js";
 
@@ -75,8 +75,8 @@ export const ShortcutCapture = /* @__PURE__ */ forwardRef<HTMLDivElement, Shortc
   return <Popover {...props} ref={ref} className={["flood-shortcut-recorder", className].filter(Boolean).join(" ")}
     title={label} closeLabel={copy.cancel} disabled={disabled} open={open && !disabled} onOpenChange={changeOpen}
     initialFocusRef={capture}
-    trigger={trigger => <Button {...trigger} size="sm" variant="outline"
-      >
+    trigger={trigger => <Button {...trigger} size="sm" variant="outline">
+      <VisuallyHidden>{label}, </VisuallyHidden>
       {accepted ? <KeyboardShortcut keys={display(accepted)} /> : copy.unassigned}
     </Button>}>
     <Stack gap="3">
