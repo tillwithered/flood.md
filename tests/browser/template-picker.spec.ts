@@ -1,0 +1,51 @@
+import {expect, test} from "@playwright/test";
+import {chooseSelectOption} from "./select-helpers";
+
+test("TemplatePicker previews changes and requires a separate apply action", async ({page}, info) => {
+  await page.goto("/components/template-picker");
+  const panel = page.locator(".preview-stage .flood-surface");
+  const picker = panel.getByRole("combobox",{name:"Template"});
+  const applied = panel.getByRole("status");
+  const existing = page.getByRole("checkbox",{name:"TemplatePicker prop existing"});
+  const failure = page.getByRole("checkbox",{name:"TemplatePicker prop fail"});
+  const pending = page.getByRole("checkbox",{name:"TemplatePicker prop pending"});
+  await expect(picker).toHaveValue("Incident report · Operations");
+  await expect(panel.getByText("High",{exact:true})).toBeVisible();
+  await expect(applied).toHaveCount(0);
+  await page.evaluate(() => document.fonts.ready);
+  await panel.screenshot({path:info.outputPath("template-picker.png"),animations:"disabled"});
+
+  await picker.fill("Workspace");
+  await picker.press("Enter");
+  await expect(picker).toHaveValue("Feature request · Workspace");
+  await expect(panel.getByText("Triage",{exact:true})).toBeVisible();
+  await expect(applied).toHaveCount(0);
+  await picker.fill("Security");
+  const restricted = page.getByRole("option",{name:/Access request/});
+  await expect(restricted).toHaveAttribute("aria-disabled","true");
+  await expect(restricted).toContainText("Security team only");
+  await picker.press("Escape");
+  await expect(picker).toHaveValue("Feature request · Workspace");
+
+  await picker.fill("Operations");
+  await picker.press("Enter");
+  await existing.check();
+  await expect(panel.getByText("Replaces existing values in Priority.")).toBeVisible();
+  const replace = panel.getByRole("button",{name:"Replace fields"});
+  await page.getByRole("checkbox",{name:"TemplatePicker prop narrow"}).check();
+  await chooseSelectOption(page.getByRole("combobox",{name:"TemplatePicker prop surface"}),"overlay");
+  expect(await panel.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+  await panel.screenshot({path:info.outputPath("template-picker-narrow.png"),animations:"disabled"});
+  await failure.check();
+  await replace.click();
+  await expect(panel.getByRole("alert")).toHaveText("Couldn’t apply the template. Try again.");
+  await expect(picker).toHaveValue("Incident report · Operations");
+  await pending.check();
+  await expect(picker).toBeDisabled();
+  await expect(replace).toHaveAttribute("aria-busy","true");
+  await pending.uncheck();
+  await failure.uncheck();
+  await replace.click();
+  await expect(applied).toHaveText("Template applied");
+  await expect(replace).toBeFocused();
+});

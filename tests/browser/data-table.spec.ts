@@ -46,6 +46,27 @@ createRoot(document.getElementById('app')).render(h(Screen));`);
 async function open(page:Page,action=false){bundled??=fixture();await page.route(/\/__data-table\.html(?:\?.*)?$/,async route=>route.fulfill({contentType:"text/html",body:await bundled}));await page.goto(action ? "/__data-table.html?action" : "/__data-table.html");}
 const names=(page:Page)=>page.locator("tbody tr td:nth-child(2)").allTextContents();
 
+test("fixed column tracks stay put through loading and empty states with the disclosure track", async ({page}) => {
+  await page.goto("/components/data-table");
+  await page.getByRole("checkbox", {name:"DataTable prop fixedColumns"}).check();
+  const table = page.locator(".preview-stage").getByRole("table", {name:"Projects"});
+  const tracks = () => table.locator("thead th").evaluateAll(headers =>
+    headers.map(header => {
+      const {x,width} = header.getBoundingClientRect();
+      return [x,width];
+    }));
+  await page.evaluate(() => document.fonts.ready);
+  await expect(table).toHaveCSS("table-layout", "fixed");
+  const ready = await tracks();
+  const state = page.getByRole("combobox", {name:"DataTable prop state", exact:true});
+  await chooseSelectOption(state,"loading");
+  expect(await tracks()).toEqual(ready);
+  await page.getByRole("checkbox", {name:"DataTable prop emptyRows"}).check();
+  await chooseSelectOption(state,"ready");
+  expect(await tracks()).toEqual(ready);
+  await expect(table.getByText("No projects yet")).toBeVisible();
+});
+
 test("cursor pagination uses the table footer and replaces the loaded rows", async ({page}, info) => {
   await page.goto("/components/data-table");
   await page.getByRole("checkbox",{name:"DataTable prop cursorPages"}).check();

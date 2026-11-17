@@ -1,0 +1,28 @@
+.flood-root .flood-delivery-attempts {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-delivery-attempts__heading {
+  justify-content: space-between;
+  row-gap: var(--flood-sys-space-1);
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-delivery-attempts__heading .flood-timestamp {
+  font-weight: 400;
+}
+
+.flood-root .flood-delivery-attempts__summary {
+  row-gap: var(--flood-sys-space-1);
+}
+
+.flood-root .flood-delivery-attempts__summary .flood-status-indicator {
+  color: var(--flood-sys-color-content-default);
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-delivery-attempts__retry {
+  justify-content: flex-end;
+  margin-block-start: var(--flood-sys-space-2);
+}

@@ -1,12 +1,18 @@
 import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef } from 'react';
-import { Button, Fieldset, FilterCondition, IconSlot, Inline, SegmentedControl, Stack, type FilterGroupProps } from './index.js';
+import {
+  Button, Fieldset, FilterCondition, IconSlot, Inline, SegmentedControl, Stack,
+  type FilterGroupProps, type FilterGroupValue, type TypedFilterGroupProps,
+} from './index.js';
+import { emptyTypedCondition } from './filter-condition.js';
 
 const useBrowserLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-export const PredicateGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, FilterGroupProps>(function PredicateGroup({
-  label, properties, value, onValueChange, controlSize = 'sm', hideLabel = true, disabled = false,
-  allowDuplicateProperties = false, maxConditions, labels, conditionLabels, className, ...props
-}, forwardedRef) {
+export const PredicateGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, FilterGroupProps | TypedFilterGroupProps>(function PredicateGroup(allProps, forwardedRef) {
+  const {
+    label, properties, value, onValueChange: _onValueChange, mode, controlSize = 'sm', hideLabel = true, disabled = false,
+    allowDuplicateProperties = false, maxConditions, labels, conditionLabels, className, ...fieldset
+  } = allProps;
+  const { operatorLabels, locale, ...props } = fieldset as typeof fieldset & Pick<TypedFilterGroupProps, 'operatorLabels' | 'locale'>;
   const root = useRef<HTMLFieldSetElement>(null), add = useRef<HTMLButtonElement>(null), serial = useRef(0);
   const generated = useId();
   useImperativeHandle(forwardedRef, () => root.current!, []);
@@ -44,25 +50,63 @@ export const PredicateGroup = /* @__PURE__ */ forwardRef<HTMLFieldSetElement, Fi
     let id: string;
     do { id = `${generated}-condition-${++serial.current}`; } while (ids.includes(id));
     pending.current = { kind: 'add', id, source, opener: root.current?.ownerDocument.activeElement ?? null };
-    onValueChange({ ...value, conditions: [...value.conditions, { id, property: available[0].id, operator: 'is', values: [] }] });
+    const property = available[0];
+    if (allProps.mode === 'typed' && 'kind' in property) {
+      allProps.onValueChange({ ...allProps.value, conditions: [...allProps.value.conditions, { ...emptyTypedCondition(property), id }] });
+    } else if (allProps.mode !== 'typed') {
+      allProps.onValueChange({ ...allProps.value, conditions: [...allProps.value.conditions, { id, property: property.id, operator: 'is', values: [] }] });
+    }
   }
   function remove(id: string, index: number) {
     if (disabled) return;
     pending.current = { kind: 'remove', id, source, next: ids[index + 1], previous: ids[index - 1], opener: root.current?.ownerDocument.activeElement ?? null };
-    onValueChange({ ...value, conditions: value.conditions.filter(condition => condition.id !== id) });
+    if (allProps.mode === 'typed') {
+      allProps.onValueChange({ ...allProps.value, conditions: allProps.value.conditions.filter(condition => condition.id !== id) });
+    } else {
+      allProps.onValueChange({ ...allProps.value, conditions: allProps.value.conditions.filter(condition => condition.id !== id) });
+    }
   }
 
+  function changeMatch(match: FilterGroupValue['match']) {
+    if (disabled) return;
+    if (allProps.mode === 'typed') allProps.onValueChange({ ...allProps.value, match });
+    else allProps.onValueChange({ ...allProps.value, match });
+  }
+
+  function unavailable(property: { id: string; disabled?: boolean }, rowId: string) {
+    return property.disabled || (!allowDuplicateProperties &&
+      value.conditions.some(other => other.id !== rowId && other.property === property.id));
+  }
+
+  const rowProps = (id: string, index: number) => ({
+    'data-filter-condition-id': id, label: `${names.condition} ${index + 1}`,
+    labels: conditionLabels, controlSize, disabled, onRemove: () => remove(id, index),
+  });
+  const rows = allProps.mode === 'typed' ? allProps.value.conditions.map((condition, index) => (
+    <FilterCondition key={condition.id} {...rowProps(condition.id, index)} mode="typed" locale={locale} operatorLabels={operatorLabels}
+      properties={allProps.properties.map(property => ({ ...property, disabled: unavailable(property, condition.id) }))}
+      value={condition} onValueChange={next => {
+        if (!disabled) allProps.onValueChange({ ...allProps.value, conditions: allProps.value.conditions.map(
+          row => row.id === condition.id ? { ...next, id: row.id } : row
+        ) });
+      }} />
+  )) : allProps.value.conditions.map((condition, index) => (
+    <FilterCondition key={condition.id} {...rowProps(condition.id, index)}
+      properties={allProps.properties.map(property => ({ ...property, disabled: unavailable(property, condition.id) }))}
+      value={condition} onValueChange={next => {
+        if (!disabled) allProps.onValueChange({ ...allProps.value, conditions: allProps.value.conditions.map(
+          row => row.id === condition.id ? { ...next, id: row.id } : row
+        ) });
+      }} />
+  ));
+
   return <Fieldset {...props} ref={root} tabIndex={props.tabIndex ?? -1} legend={label} hideLabel={hideLabel} disabled={disabled}
-    className={['flood-filter-group', className].filter(Boolean).join(' ')}>
+    className={['flood-filter-group', className].filter(Boolean).join(' ')} data-mode={mode}>
     <Stack gap="3">
       {ids.length > 1 && <SegmentedControl label={names.match} name={`${generated}-match`} hideLabel controlSize={controlSize} value={value.match} disabled={disabled}
         options={[{ value: 'all', label: names.all }, { value: 'any', label: names.any }]}
-        onValueChange={match => { if (!disabled) onValueChange({ ...value, match: match as 'all' | 'any' }); }} />}
-      {value.conditions.map((condition, index) => <FilterCondition key={condition.id} data-filter-condition-id={condition.id}
-        label={`${names.condition} ${index + 1}`} labels={conditionLabels} controlSize={controlSize} disabled={disabled}
-        properties={properties.map(property => ({ ...property, disabled: property.disabled || (!allowDuplicateProperties && value.conditions.some(other => other.id !== condition.id && other.property === property.id)) }))}
-        value={condition} onValueChange={next => { if (!disabled) onValueChange({ ...value, conditions: value.conditions.map(row => row.id === condition.id ? { ...row, ...next, id: row.id } : row) }); }}
-        onRemove={() => remove(condition.id, index)} />)}
+        onValueChange={match => { if (match === 'all' || match === 'any') changeMatch(match); }} />}
+      {rows}
       <Inline gap="2"><Button ref={add} data-add-condition variant="subtle" size={controlSize} disabled={!canAdd} onClick={append}>
         <IconSlot size={controlSize}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></IconSlot>
         {names.add}

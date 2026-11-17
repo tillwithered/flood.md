@@ -5,6 +5,37 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
 import { chooseSelectOption } from "./select-helpers";
 
+test("RatingBreakdown filters reviews without changing the original counts", async ({page}) => {
+  await page.goto("/components/rating-breakdown");
+  const distribution = page.getByRole("list", {name:"Ratings by star"});
+  const results = page.getByRole("list", {name:"Customer reviews"});
+  const five = distribution.getByRole("button", {name:"5 stars, 2 ratings"});
+  const two = distribution.getByRole("button", {name:"2 stars, 1 rating"});
+  await expect(results.getByRole("listitem")).toHaveCount(4);
+  await expect(distribution.getByRole("button", {name:"3 stars, 0 ratings"})).toBeDisabled();
+  const dimensions = await five.boundingBox();
+  await five.press("Enter");
+  await expect(five).toHaveAttribute("aria-pressed", "true");
+  await expect(five).toBeFocused();
+  await expect(results.getByRole("listitem")).toHaveCount(2);
+  await expect(two).toHaveAttribute("aria-pressed", "false");
+  const selectedDimensions = (await five.boundingBox())!;
+  expect(selectedDimensions.width).toBeCloseTo(dimensions!.width, 0);
+  expect(selectedDimensions.y).toBeCloseTo(dimensions!.y, 0);
+  await two.click();
+  await expect(two).toHaveAttribute("aria-pressed", "true");
+  await expect(five).toHaveAttribute("aria-pressed", "false");
+  await expect(results.getByRole("listitem")).toHaveCount(1);
+  await expect(results).toContainText("The download timed out twice.");
+  await two.press("Space");
+  await expect(results.getByRole("listitem")).toHaveCount(4);
+  await five.press("Enter");
+  await page.getByRole("checkbox", {name:"RatingBreakdown prop filterable"}).uncheck();
+  await expect(results.getByRole("listitem")).toHaveCount(4);
+  await expect(distribution.getByRole("button")).toHaveCount(0);
+  await expect(distribution.getByRole("meter", {name:"5 stars"})).toHaveAttribute("aria-valuenow", "2");
+});
+
 test("RatingSummary derives the score, total and aligned bars from the rating counts", async ({page}, info) => {
   await page.setViewportSize({width:1440,height:940});
   await page.goto("/components/rating-summary");

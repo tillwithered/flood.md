@@ -1,4 +1,81 @@
 import {test,expect} from '@playwright/test';
+import {chooseSelectOption} from './select-helpers';
+
+test('overflowing Tabs reveal more labels without choosing a panel', async ({page}, info) => {
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto('/components/tabs');
+  await page.getByRole('checkbox',{name:'Tabs prop overflowControls',exact:true}).check();
+  const tabs=page.locator('.preview-stage .flood-tabs');
+  const viewport=tabs.locator('.flood-tabs__scroll');
+  const next=tabs.getByRole('button',{name:'Scroll to next tabs'});
+  const previous=tabs.getByRole('button',{name:'Scroll to previous tabs'});
+  const first=tabs.getByRole('tab',{name:'Overview'});
+  const files=tabs.getByRole('tab',{name:'Files'});
+  await tabs.evaluate(node=>{node.style.width='48rem';});
+  await expect(next).toHaveCount(0);
+  await tabs.evaluate(node=>{node.style.width='17rem';});
+  await expect(next).toBeVisible();
+  await expect(previous).toHaveAttribute('aria-disabled','true');
+  await expect(tabs.locator('.flood-scroll-area__track--horizontal')).toBeHidden();
+  await page.evaluate(()=>document.fonts.ready);
+  await expect(first).toHaveCSS('opacity','1');
+  await expect(files).toHaveAttribute('data-clipped','');
+  await expect(files).toHaveCSS('opacity','0');
+  const [arrowBox, firstBox] = await Promise.all([next.boundingBox(),first.boundingBox()]);
+  expect(Math.abs((arrowBox!.y+arrowBox!.height/2) - (firstBox!.y+firstBox!.height/2))).toBeLessThan(1);
+  const narrowBounds=await tabs.boundingBox();
+  expect(firstBox!.y-narrowBounds!.y).toBeGreaterThan(2);
+  await expect(viewport).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  await tabs.screenshot({path:info.outputPath('tabs-overflow-start.png')});
+  await next.click();
+  await expect.poll(()=>viewport.evaluate(node=>node.scrollLeft)).toBeGreaterThan(0);
+  await expect(files).not.toHaveAttribute('data-clipped');
+  await expect(files).toHaveCSS('opacity','1');
+  await expect(first).toHaveAttribute('aria-selected','true');
+  await expect(next).toBeFocused();
+  await expect(previous).not.toHaveAttribute('aria-disabled');
+  expect(await tabs.boundingBox()).toEqual(narrowBounds);
+  await first.press('End');
+  await expect(next).toHaveAttribute('aria-disabled','true');
+  await expect(tabs.getByRole('tab',{selected:true})).not.toHaveText('Overview');
+  await tabs.screenshot({path:info.outputPath('tabs-overflow-end.png')});
+  await previous.focus();
+  await tabs.evaluate(node=>{node.style.width='48rem';});
+  await expect(previous).toHaveCount(0);
+  await expect(tabs.getByRole('tab',{selected:true})).toBeFocused();
+});
+
+test('a long label stays inside a scrollable Tabs rail', async ({page}, info) => {
+  await page.goto('/components/tabs');
+  await page.getByRole('checkbox',{name:'Tabs prop overflowControls',exact:true}).check();
+  await page.getByRole('checkbox',{name:'Tabs prop narrow',exact:true}).check();
+  const tabs=page.locator('.preview-stage .flood-tabs');
+  const label='Overview of project activity and access';
+  await tabs.locator('.flood-tab__label').first().evaluate((node,value)=>{node.textContent=value;},label);
+  const first=tabs.getByRole('tab',{name:label});
+  const next=tabs.getByRole('button',{name:'Scroll to next tabs'});
+  await expect(first.getByText(label)).toHaveAttribute('title',label);
+  await expect(first.getByText(label)).toHaveCSS('text-overflow','ellipsis');
+  await expect(first).not.toHaveAttribute('data-clipped');
+  await tabs.screenshot({path:info.outputPath('tabs-long-label.png')});
+  await next.click();
+  await expect(tabs.getByRole('tab',{name:'Activity',exact:true})).not.toHaveAttribute('data-clipped');
+  await expect(first).toHaveAttribute('aria-selected','true');
+});
+
+test('Tabs scroll toward the next label in RTL and leave focus unchanged', async ({page}) => {
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto('/components/tabs');
+  await page.getByRole('checkbox',{name:'Tabs prop overflowControls',exact:true}).check();
+  const tabs=page.locator('.preview-stage .flood-tabs');
+  await tabs.evaluate(node=>{node.dir='rtl';node.style.width='17rem';});
+  const viewport=tabs.locator('.flood-tabs__scroll');
+  const next=tabs.getByRole('button',{name:'Scroll to next tabs'});
+  await next.press('Enter');
+  await expect.poll(()=>viewport.evaluate(node=>node.scrollLeft)).toBeLessThan(0);
+  await expect(next).toBeFocused();
+  await expect(tabs.getByRole('tab',{name:'Overview'})).toHaveAttribute('aria-selected','true');
+});
 
 test('AppTopBar border has no effect on header or breadcrumb geometry', async ({page}) => {
  await page.goto('/components/app-top-bar');
@@ -14,6 +91,31 @@ test('AppTopBar border has no effect on header or breadcrumb geometry', async ({
  await page.getByRole('checkbox',{name:'AppTopBar prop bordered',exact:true}).check();
  await expect(bar).toHaveAttribute('data-bordered','true');
  expect(await measure()).toEqual(before);
+});
+
+test('compact AppTopBar gives commands their width and keeps deep breadcrumb links reachable', async ({page}, info) => {
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto('/components/app-top-bar');
+  await chooseSelectOption(page.getByRole('combobox',{name:'AppTopBar prop layout',exact:true}),'compact');
+  for (const name of ['deepPath','narrow']) await page.getByRole('checkbox',{name:`AppTopBar prop ${name}`,exact:true}).check();
+  const bar=page.locator('.preview-stage .flood-app-top-bar');
+  const path=bar.getByRole('navigation',{name:'Workspace path'});
+  const ancestors=path.getByRole('button',{name:'Earlier pages'});
+  const search=bar.getByRole('button',{name:'Search',exact:true});
+  await expect(path.locator('[aria-current="page"] .flood-truncated-text')).toHaveText('Release readiness and accessibility');
+  const [menuBox, searchBox] = await Promise.all([ancestors.boundingBox(),search.boundingBox()]);
+  expect(menuBox!.y+menuBox!.height/2).toBeCloseTo(searchBox!.y+searchBox!.height/2,0);
+  expect(await bar.evaluate(node=>node.scrollWidth)).toBeLessThanOrEqual(await bar.evaluate(node=>node.clientWidth));
+  await ancestors.press('Enter');
+  const menu=page.getByRole('dialog',{name:'Earlier pages'});
+  await expect(menu.getByRole('link',{name:'Design system'})).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(ancestors).toBeFocused();
+  await bar.screenshot({path:info.outputPath('app-top-bar-compact.png')});
+
+  await bar.evaluate(node=>{node.parentElement!.style.width='12rem';});
+  expect((await search.boundingBox())!.y).toBeGreaterThan((await path.boundingBox())!.y);
+  expect(await bar.evaluate(node=>node.scrollWidth)).toBeLessThanOrEqual(await bar.evaluate(node=>node.clientWidth));
 });
 
 test('large component pages open directly in the studio with catalog and API controls', async ({page}) => {
@@ -287,4 +389,35 @@ test('PageHeader keeps one primary heading and wraps actions within the availabl
   expect(geometry).toEqual({below:true, contained:true});
   await action.focus();
   await expect(action).toBeFocused();
+});
+
+test('PageHeader keeps title metadata separate and anchors commands to a long title', async ({page}, info) => {
+  await page.setViewportSize({width:1440,height:940});
+  await page.goto('/components/page-header');
+  const knob = (name:string) => page.getByRole('checkbox',{name:`PageHeader prop ${name}`,exact:true});
+  for (const name of ['longTitle','showDescription','secondaryAction','showMetadata']) await knob(name).check();
+  await page.evaluate(()=>document.fonts.ready);
+  const header = page.locator('.preview-stage .flood-page-header');
+  const title = header.getByRole('heading',{name:'Payment reconciliation and approvals',exact:true});
+  const metadata = header.locator('.flood-page-header__metadata');
+  const description = header.locator('.flood-section__description');
+  const report = header.getByRole('button',{name:'Download report',exact:true});
+  const review = header.getByRole('button',{name:'Start review',exact:true});
+  await expect(metadata).toHaveText('12 open');
+  await header.evaluate(node=>{node.parentElement!.style.width='42rem';});
+  const firstLineHeight = await title.evaluate(node=>parseFloat(getComputedStyle(node).lineHeight));
+  const titleBox = (await title.boundingBox())!;
+  const reportBox = (await report.boundingBox())!;
+  expect(titleBox.height).toBeGreaterThan(firstLineHeight);
+  expect(reportBox.y + reportBox.height / 2).toBeLessThan(titleBox.y + firstLineHeight);
+  await header.screenshot({path:info.outputPath('page-header-wide.png')});
+
+  await knob('narrow').check();
+  const descriptionBox = (await description.boundingBox())!;
+  expect((await report.boundingBox())!.y).toBeGreaterThan(descriptionBox.y+descriptionBox.height);
+  expect(await header.evaluate(node=>node.scrollWidth)).toBeLessThanOrEqual(await header.evaluate(node=>node.clientWidth));
+  await report.focus();
+  await page.keyboard.press('Tab');
+  await expect(review).toBeFocused();
+  await header.screenshot({path:info.outputPath('page-header-narrow.png')});
 });

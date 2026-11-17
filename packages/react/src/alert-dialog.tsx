@@ -1,12 +1,15 @@
 import {forwardRef, useRef, useState} from "react";
+import type {ReactNode} from "react";
 import type {AlertDialogProps} from "./index.js";
 import {Button} from "./index.js";
 import {ModalOverlay} from "./overlays.js";
 
-export const ConfirmationDialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, AlertDialogProps>(function ConfirmationDialog({
+type ConfirmationDialogProps = AlertDialogProps & {children?: ReactNode};
+
+export const ConfirmationDialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, ConfirmationDialogProps>(function ConfirmationDialog({
   open: controlled, defaultOpen = false, onOpenChange, onConfirm, onCancel,
   confirmLabel = "Continue", cancelLabel = "Cancel", confirmDisabled = false,
-  className, ...props
+  children, className, ...props
 }, ref) {
   const [local, setLocal] = useState(defaultOpen);
   const cancel = useRef<HTMLButtonElement>(null);
@@ -19,6 +22,7 @@ export const ConfirmationDialog = /* @__PURE__ */ forwardRef<HTMLDialogElement, 
     onOpenChange={next => { if (next) request(true); else dismiss(); }}
     closeOnOutsideClick={false} showCloseButton={false} initialFocusRef={cancel}
     className={["flood-alert-dialog", className].filter(Boolean).join(" ")}>
+    {children}
     <div className="flood-alert-dialog__actions">
       <Button ref={cancel} type="button" variant="subtle" onClick={dismiss}>{cancelLabel}</Button>
       <Button type="button" disabled={confirmDisabled} onClick={() => {

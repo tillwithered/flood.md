@@ -35,6 +35,9 @@ inset/stroke. Do not force unrelated actions to follow that formula. Compare
 top/bottom and start/end insets around a nested InputGroup action optically.
 
 Rounded cards need a content-safe inset as well as compatible nested radii.
+Follow the [corner clearance check](../spacing.md#check-clearance-inside-a-rounded-corner)
+when the nearest glyph sits inside the curve's span. Compare a different
+block-start inset with a smaller outer radius before widening the whole layout.
 Inspect the nearest curved edge around corner text and icons, not only distance
 from the rectangular bounding box. Use supported surface padding and radius
 choices together; increase the inset or reduce the radius when corners look
@@ -48,6 +51,13 @@ a shorter sticky or scrolling child must not determine the divider's length.
 Distinguish a real component from its preview scene. Fixed preview height and
 reserved feedback space can prevent a demo from jumping; they should not impose
 an empty message row or fixed height on every production field.
+
+In repeated cards, audit the lane inset, card inset, and distance between
+text and metadata as separate gaps. Start with a narrow lane inset when the
+lane already has a visible boundary. Group the title and its supporting text
+more closely than adjacent cards. Measure a short card, a two-line card, and
+an empty lane together. Keep enough drop area and leave action targets usable
+at the narrowest supported width.
 
 ## Establish shared alignment tracks
 

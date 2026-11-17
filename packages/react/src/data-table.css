@@ -43,9 +43,21 @@
 .flood-root .flood-data-table__header-content:focus-visible { outline:var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); border-radius:var(--flood-sys-radius-indicator); }
 .flood-root .flood-data-table__header-label { min-inline-size:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .flood-root .flood-data-table__cell-text { contain:inline-size; }
-.flood-root .flood-data-table__table:not([data-fixed-columns]) .flood-data-table__header-label { min-inline-size:max-content; }
+.flood-root .flood-data-table__table:not([data-fixed-columns], [data-column-layout="fixed"]) .flood-data-table__header-label { min-inline-size:max-content; }
 .flood-root .flood-data-table__header-unit { flex:none; color:var(--flood-sys-color-content-subtle); }
 .flood-root .flood-data-table__choice { inline-size:1%; white-space:nowrap; }
+.flood-root .flood-data-table__table[data-column-layout="fixed"]:not([data-fixed-columns]) > thead > tr > .flood-data-table__choice {
+  inline-size:calc(var(--flood-sys-control-sm-height) + 2 * var(--flood-sys-space-3));
+}
+.flood-root .flood-data-table__table[data-column-layout="fixed"]:not([data-fixed-columns]) > thead > tr > .flood-data-table__expand {
+  --flood-data-table-utility-target:var(--flood-sys-control-sm-height);
+  inline-size:calc(var(--flood-data-table-utility-target) + 2 * var(--flood-data-table-edge));
+}
+@media (pointer:coarse) {
+  .flood-root .flood-data-table__table[data-column-layout="fixed"]:not([data-fixed-columns]) > thead > tr > .flood-data-table__expand {
+    --flood-data-table-utility-target:max(var(--flood-sys-control-sm-height), var(--flood-sys-size-touch));
+  }
+}
 .flood-root .flood-data-table__choice .flood-choice { min-block-size:var(--flood-sys-control-sm-height); }
 .flood-root .flood-data-table__table > tbody > tr[data-selected] { background:var(--flood-sys-color-selection-background); }
 .flood-root .flood-data-table th[aria-sort="descending"] .flood-data-table__sort svg { rotate:180deg; }

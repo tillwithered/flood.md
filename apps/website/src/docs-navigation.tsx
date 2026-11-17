@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Button, Collapsible, Link, NavigationList, ScrollArea, Sheet, Stack, Text } from "@flood-md/react";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { Button, Collapsible, Link, NavigationList, ScrollArea, Sheet, Stack, TableOfContents, Text, type TableOfContentsItem } from "@flood-md/react";
 import { docPages } from "../routes.mjs";
 import { compactNavigation, useStudioMedia } from "./studio-media";
 import "./docs-navigation.css";
@@ -11,7 +11,6 @@ const guideGroups = [
 ] as const;
 
 type GuidePage = (typeof docPages)[number];
-type OutlineItem = { id: string; label: string };
 
 const guideLinks = [
   ...guideGroups.flatMap(({ label, includes }) => docPages.filter(includes).map(page => ({ page, group: label }))),
@@ -57,17 +56,19 @@ export function MobileDocsNavigation({ path }: { path: string }) {
   </div>;
 }
 
-export function GuideOutline({ items, mobile = false }: { items: readonly OutlineItem[]; mobile?: boolean }) {
+export function GuideOutline({ items, mobile = false, scrollRootRef }: {
+  items: readonly TableOfContentsItem[];
+  mobile?: boolean;
+  scrollRootRef?: RefObject<HTMLDivElement | null>;
+}) {
   if (!items.length) return null;
 
-  const links = <nav aria-label="On this page" className="guide-outline-links">
-    <Stack gap="2">{items.map(item => <Link key={item.id} href={`#${item.id}`}>{item.label}</Link>)}</Stack>
-  </nav>;
+  const links = <TableOfContents items={items} scrollRootRef={scrollRootRef} />;
 
   if (mobile) return <Collapsible className="guide-outline-mobile" title="On this page" controlSize="sm">{links}</Collapsible>;
 
   return <aside className="doc-toc guide-outline" aria-label="Page outline">
     <Text size="helper" tone="subtle">On this page</Text>
-    <ScrollArea contentInset="scrollbar" className="guide-outline-scroll" tabIndex={-1}>{links}</ScrollArea>
+    <ScrollArea contentInset="none" className="guide-outline-scroll" tabIndex={-1}>{links}</ScrollArea>
   </aside>;
 }

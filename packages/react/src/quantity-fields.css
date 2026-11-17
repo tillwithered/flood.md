@@ -1,0 +1,21 @@
+.flood-root .flood-money-field > .flood-input {
+  font-variant-numeric: tabular-nums;
+}
+.flood-root .flood-money-field__currency {
+  font-size: var(--flood-sys-type-helper-size);
+  line-height: var(--flood-sys-type-helper-line-height);
+  white-space: nowrap;
+}
+
+.flood-root .flood-unit-number-field > .flood-fieldset__body {
+  container: flood-quantity / inline-size;
+}
+.flood-root .flood-unit-number-field .flood-unit-number-field__layout {
+  grid-template-columns: minmax(0, 1fr) minmax(7rem, 37%);
+  align-items: end;
+}
+@container flood-quantity (inline-size < 16rem) {
+  .flood-root .flood-unit-number-field .flood-unit-number-field__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

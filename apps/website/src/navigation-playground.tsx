@@ -1,8 +1,8 @@
 "use client";
 import {useCallback,useEffect,useRef,useState,type Dispatch,type FormEvent,type RefCallback,type SetStateAction} from 'react';
 import {Archive,ArrowLeft,Bell,Check,ChevronDown,Ellipsis,FileText,Folder,FolderKanban,Inbox,PanelLeftClose,PanelLeftOpen,LifeBuoy,Plus,Settings,UserRound} from 'lucide-react';
-import {AppShell,AppTopBar,Avatar,Badge,Breadcrumb,Button,CollectionToolbar,CommandPalette,CountBadge,DataList,DataListItem,DataTable,Dialog,EmptyState,Field,FileItem,FileList,FloodRoot,Heading,IconButton,IconSlot,Inline,Input,Link,Menu,NavigationGroup,NavigationTree,ScrollArea,SearchTrigger,SegmentedControl,Select,Sidebar,Stack,StatusIndicator,Text,Tooltip,type NavigationTreeItem,type SidebarGroup} from '@flood-md/react';
-import {phoneViewport,useStudioMedia} from './studio-media';
+import {AppShell,AppTopBar,Avatar,Badge,Breadcrumb,Button,CollectionToolbar,CommandPalette,CountBadge,DataList,DataListItem,DataTable,Dialog,EmptyState,Field,FileItem,FileList,FloodRoot,Heading,IconButton,IconSlot,Inline,Input,Link,Menu,NavigationGroup,NavigationTree,NoResults,ScrollArea,SearchTrigger,SegmentedControl,Select,Sidebar,Stack,StatusIndicator,Text,Tooltip,type NavigationTreeItem,type SidebarGroup} from '@flood-md/react';
+import {useStudioMedia} from './studio-media';
 import './navigation-playground.css';
 
 type WorkspaceId='studio'|'labs';
@@ -89,7 +89,7 @@ export default function NavigationPlayground(){
   const rail=useRef<HTMLElement>(null);
   const pendingNavigationFocus=useRef<string|null>(null);
   const [layout,setLayout]=useState('composed'),[contextVisible,setContextVisible]=useState(true),[compact,setCompact]=useState(false);
-  const phone = useStudioMedia(phoneViewport);
+  const compactPath = useStudioMedia("(max-width: 52rem)");
   const [{workspace:workspaceId,route},setLocation]=useState(readLocation);
   const lastRoutes=useRef<Partial<Record<WorkspaceId,string>>>({});
   const [projects,setProjects]=useWorkspaceState(workspaceId,{studio:initialProjects,labs:labsProjects});
@@ -135,7 +135,6 @@ export default function NavigationPlayground(){
     const previous=lastFocused.current,document=heading.current?.ownerDocument;
     if(previous&&!previous.isConnected&&document?.activeElement===document?.body)heading.current?.focus({preventScroll:true});
   });
-  function focusSearch(){main.current?.querySelector<HTMLInputElement>('input[type="search"]')?.focus({preventScroll:true});}
   function changeQuery(next:string){setQueries(current=>({...current,[module]:next}));}
   function openSettings(){setWorkspaceDraft(workspace);setSettings(true);}
   function saveProject(event:FormEvent){event.preventDefault();const value=name.trim();if(!value){setInvalid('Enter a project name.');return;}setProjects(current=>[{id:crypto.randomUUID(),name:value,owner:'Maya Chen',status:'active',updated:'Just now'},...current]);setCreating(false);setName('');setInvalid(undefined);setQueries(current=>({...current,projects:''}));setStatus('all');window.location.hash=href('projects/all');}
@@ -197,9 +196,9 @@ export default function NavigationPlayground(){
   const visibleProjects=projectPage?projects.filter(project=>project.id===projectPage.id):projects.filter(project=>(view!=='active'||project.status==='active')&&(view!=='mine'||project.owner==='Maya Chen')&&(view!=='archived'||project.status==='archived')&&(status==='all'||project.status===status)&&`${project.name} ${project.owner}`.toLowerCase().includes(query.toLowerCase()));
   const visibleMessages=messages.filter(message=>(view!=='unread'||!message.read)&&`${message.title} ${message.body}`.toLowerCase().includes(query.toLowerCase()));
   const visibleFiles=(workspaceId==='labs'?files.slice(2):files).filter(file=>(view!=='documents'||file.format==='PDF')&&file.name.toLowerCase().includes(query.toLowerCase()));
-  const clearFilters=()=>{focusSearch();changeQuery('');if(module==='projects')setStatus('all');};
-  const canClearFilters=Boolean(query||module==='projects'&&status!=='all');
-  const filteredEmpty=<EmptyState title="No matching projects" density="compact" actions={<Button variant="subtle" size="sm" onClick={clearFilters}>Clear filters</Button>}/>;
+  const clearFilters=()=>setStatus('all');
+  const canClearFilters=module==='projects'&&status!=='all';
+  const filteredEmpty=<NoResults title="No matching projects"/>;
   function drawerItems(items: readonly NavigationTreeItem[], close: () => void): NavigationTreeItem[] {
     return items.map(item => ({
       ...item,
@@ -237,13 +236,14 @@ export default function NavigationPlayground(){
         {brand(state)}
       </div>} footer={account} className="navigation-lab__rail"/>}
       {(layout==='classic'||contextVisible)&&<Sidebar id={layout==='composed'?'workspace-context':undefined} label={layout==='composed'?`${moduleNames[module]} navigation`:'Workspace navigation'} groups={groups} currentValue={route} size="sm" width="15rem" collapsed={layout==='classic'&&compact} onCollapsedChange={setCompact} collapsible={layout==='classic'} headerLayout="inline" expandedValues={expandedValues} onExpandedValuesChange={setExpandedValues} header={layout==='composed'?<Inline gap="2"><IconSlot size="sm">{glyph(module==='projects'?FolderKanban:module==='inbox'?Inbox:Folder)}</IconSlot><Text size="label">{moduleNames[module]}</Text></Inline>:brand} footer={layout==='classic'?account:undefined} className={layout==='composed'?'navigation-lab__context':'navigation-lab__classic'}/>}
-      </>} topBar={navigationTrigger=><AppTopBar className="navigation-lab__main-header" bordered start={
-          <Breadcrumb label="Workspace path" items={[{label:workspace,href:href('projects/all')},{label:moduleNames[module],href:href(`${module}/all`)},{label:title}]}/>
+      </>} topBar={navigationTrigger=><AppTopBar className="navigation-lab__main-header" layout="compact" bordered start={
+          <Breadcrumb label="Workspace path" layout="compact" maxVisibleItems={compactPath?2:3}
+            items={[{label:workspace,href:href('projects/all')},{label:moduleNames[module],href:href(`${module}/all`)},{label:title}]}/>
         } end={<>
           {navigationTrigger}
           <CommandPalette title="Go to page" searchLabel="Search pages" placeholder="Search pages…"
             emptyMessage="No matching pages" items={navigationDestinations} onAction={goToDestination}
-            trigger={props=><SearchTrigger {...props} label="Go to page" iconOnly={phone} />}/>
+            trigger={props=><SearchTrigger {...props} label="Go to page" iconOnly={compactPath} />}/>
           <Link href="https://flood.md/docs" target="_blank" rel="noreferrer" variant="ghost" size="sm" className="navigation-lab__help"><IconSlot size="sm"><LifeBuoy/></IconSlot><span className="navigation-lab__toolbar-label">Help</span></Link></>} />}
     >
           <Stack gap="6" className="navigation-lab__content-inner">
@@ -256,7 +256,7 @@ export default function NavigationPlayground(){
               appliedFilters={module==='projects'&&status!=='all'?[{id:'status',label:`Status: ${status[0].toUpperCase()+status.slice(1)}`}]:[]} onRemoveFilter={()=>setStatus('all')}
               filtersOpen={filtersOpen} onFiltersOpenChange={open=>{setFiltersOpen(open);if(open)setDraftStatus(status);}} filterTitle="Project filters"
               filterContent={module==='projects'?<form onSubmit={event=>{event.preventDefault();setStatus(draftStatus);setFiltersOpen(false);}}><Stack gap="4"><Field label="Status">{field=><Select {...field} controlSize="sm" value={draftStatus} onChange={event=>setDraftStatus(event.target.value)}><option value="all">All statuses</option><option value="active">Active</option><option value="paused">Paused</option><option value="archived">Archived</option></Select>}</Field><Inline gap="2"><Button type="submit" size="sm">Apply filters</Button><Button variant="subtle" size="sm" onClick={()=>setFiltersOpen(false)}>Cancel</Button></Inline></Stack></form>:undefined}/>}
-            {module==='projects'?<DataTable caption="Projects" hideCaption minWidth="34rem" pageSize={8} density="comfortable" emptyContent={filteredEmpty} columns={[{id:'name',label:'Project',sortable:true},{id:'status',label:'Status',sortable:true},{id:'owner',label:'Owner',sortable:true},{id:'updated',label:'Updated',align:'end'},{id:'actions',label:'Actions',align:'end',width:'3rem'}]} rows={visibleProjects.map(project=>({id:project.id,label:project.name,cells:{name:project.name,status:<StatusIndicator label={project.status[0].toUpperCase()+project.status.slice(1)} tone={project.status==='active'?'success':project.status==='paused'?'warning':'neutral'} size="sm"/>,owner:<Text size="compact">{project.owner}</Text>,updated:<Text size="compact" tone="subtle">{project.updated}</Text>,actions:<Menu label={`${project.name} actions`} controlSize="sm" items={[{id:'active',label:'Set active'},{id:'paused',label:'Pause project'},{id:'archived',label:'Archive project'}]} onAction={id=>setProjects(current=>current.map(item=>item.id===project.id?{...item,status:id as Project['status'],updated:'Just now'}:item))} trigger={props=><IconButton {...props} label={`${project.name} actions`} variant="ghost" size="sm"><Ellipsis/></IconButton>}/>} ,sortValues:{name:project.name,status:project.status,owner:project.owner}}))}/>:module==='files'?visibleFiles.length?<FileList label="Files">{visibleFiles.map(file=><FileItem key={file.id} name={file.name} format={file.format} size={file.size}/>)}</FileList>:<EmptyState title="No matching files" density="compact" actions={<Button size="sm" variant="subtle" onClick={()=>changeQuery('')}>Clear search</Button>}/>:visibleMessages.length?<DataList aria-label="Messages" className="navigation-lab__messages">{visibleMessages.map(message=><DataListItem key={message.id} media={<IconSlot size="md"><Inbox/></IconSlot>} title={<Button variant="ghost" size="sm" onClick={()=>{setMessages(current=>current.map(item=>item.id===message.id?{...item,read:true}:item));setDetail(message.id);}}>{message.title}</Button>} description={message.body} metadata={!message.read?<StatusIndicator label="Unread" tone="accent" size="sm"/>:undefined}/>)}</DataList>:<EmptyState title={view==='unread'?'You’re all caught up':'No matching messages'} density="compact"/>}
+            {module==='projects'?<DataTable caption="Projects" hideCaption minWidth="34rem" pageSize={8} density="comfortable" emptyContent={filteredEmpty} columns={[{id:'name',label:'Project',sortable:true},{id:'status',label:'Status',sortable:true},{id:'owner',label:'Owner',sortable:true},{id:'updated',label:'Updated',align:'end'},{id:'actions',label:'Actions',align:'end',width:'3rem'}]} rows={visibleProjects.map(project=>({id:project.id,label:project.name,cells:{name:project.name,status:<StatusIndicator label={project.status[0].toUpperCase()+project.status.slice(1)} tone={project.status==='active'?'success':project.status==='paused'?'warning':'neutral'} size="sm"/>,owner:<Text size="compact">{project.owner}</Text>,updated:<Text size="compact" tone="subtle">{project.updated}</Text>,actions:<Menu label={`${project.name} actions`} controlSize="sm" items={[{id:'active',label:'Set active'},{id:'paused',label:'Pause project'},{id:'archived',label:'Archive project'}]} onAction={id=>setProjects(current=>current.map(item=>item.id===project.id?{...item,status:id as Project['status'],updated:'Just now'}:item))} trigger={props=><IconButton {...props} label={`${project.name} actions`} variant="ghost" size="sm"><Ellipsis/></IconButton>}/>} ,sortValues:{name:project.name,status:project.status,owner:project.owner}}))}/>:module==='files'?visibleFiles.length?<FileList label="Files">{visibleFiles.map(file=><FileItem key={file.id} name={file.name} format={file.format} size={file.size}/>)}</FileList>:<NoResults title="No matching files"/>:visibleMessages.length?<DataList aria-label="Messages" className="navigation-lab__messages">{visibleMessages.map(message=><DataListItem key={message.id} media={<IconSlot size="md"><Inbox/></IconSlot>} title={<Button variant="ghost" size="sm" onClick={()=>{setMessages(current=>current.map(item=>item.id===message.id?{...item,read:true}:item));setDetail(message.id);}}>{message.title}</Button>} description={message.body} metadata={!message.read?<StatusIndicator label="Unread" tone="accent" size="sm"/>:undefined}/>)}</DataList>:unread===0&&view==='unread'?<EmptyState title="You’re all caught up" density="compact"/>:<NoResults title="No matching messages"/>}
           </Stack>
     </AppShell>
     {detail&&<Dialog title={messages.find(message=>message.id===detail)?.title??'Message'} open onOpenChange={open=>{if(!open)setDetail(null);}} trigger={()=>null}>

@@ -3,6 +3,7 @@ import {build} from 'vite';
 import {resolve} from 'node:path';
 import {mkdir,writeFile} from 'node:fs/promises';
 import AxeBuilder from '@axe-core/playwright';
+import {chooseSelectOption} from './select-helpers';
 let bundle:Promise<string>;
 async function fixture(){
  const file=(p:string)=>JSON.stringify(resolve(p).replaceAll('\\','/'));const directory=resolve(`.artifacts/calendar-${process.pid}`);await mkdir(directory,{recursive:true});const entry=resolve(directory,'entry.mjs');
@@ -12,6 +13,27 @@ async function fixture(){
 }
 async function open(page:Page){bundle??=fixture();await page.route('**/__calendar.html',async route=>route.fulfill({contentType:'text/html',body:await bundle}));await page.goto('/__calendar.html');await expect(page.locator('#basic')).toBeVisible();}
 const day=(page:Page,id:string,date:string)=>page.locator(`#${id} [data-calendar-date="${date}"]`);
+
+test('Calendar can toggle independent dates and clear them without losing focus',async({page},info)=>{
+ await page.goto('/components/calendar');
+ await chooseSelectOption(page.getByRole('combobox',{name:'Calendar prop selectionMode',exact:true}),'multiple');
+ const calendar=page.locator('.preview-stage .flood-calendar');
+ const grid=calendar.getByRole('grid');
+ const date=(value:string)=>grid.locator(`button[data-calendar-date="${value}"]`);
+ await expect(grid).toHaveAttribute('aria-multiselectable','true');
+ await expect(grid.getByRole('gridcell',{selected:true})).toHaveCount(3);
+ await date('2026-10-06').press('Enter');
+ await date('2026-10-06').press('ArrowRight');
+ await expect(date('2026-10-07')).toBeFocused();
+ await date('2026-10-07').press('Space');
+ await expect(grid.getByRole('gridcell',{selected:true})).toHaveCount(3);
+ await expect(date('2026-10-06')).not.toHaveAttribute('data-selected','true');
+ await expect(date('2026-10-07')).toHaveAttribute('data-selected','true');
+ await calendar.screenshot({path:info.outputPath('multiple-dates.png')});
+ await calendar.getByRole('button',{name:'Clear selection'}).click();
+ await expect(grid.getByRole('gridcell',{selected:true})).toHaveCount(0);
+ await expect(date('2026-10-07')).toBeFocused();
+});
 
 test('Calendar renders six weeks, one roving day, Gregorian leap dates and native selection',async({page})=>{
  await open(page);const calendar=page.locator('#basic');await expect(calendar.getByRole('grid')).toHaveAccessibleName('Choose date February 2024');await expect(calendar.getByRole('gridcell')).toHaveCount(42);await expect(calendar.locator('[data-calendar-date][tabindex="0"]')).toHaveCount(1);await expect(day(page,'basic','2024-02-29')).toBeFocused();await expect(day(page,'basic','2024-02-29')).toHaveAttribute('aria-current','date');await expect(calendar.getByRole('columnheader').first()).toHaveText('Mon');const box=await calendar.boundingBox();const inset=await calendar.evaluate(node=>{const card=node.getBoundingClientRect(),title=node.querySelector('.flood-calendar__month')!.getBoundingClientRect(),first=node.querySelector('[data-calendar-date]')!.getBoundingClientRect();return{radius:parseFloat(getComputedStyle(node).borderTopLeftRadius),title:title.left-card.left,grid:first.left-card.left};});expect(inset.title).toBeGreaterThanOrEqual(inset.radius/2);expect(inset.title).toBeLessThanOrEqual(inset.radius);expect(Math.abs(inset.title-inset.grid)).toBeLessThanOrEqual(1);await day(page,'basic','2024-02-29').press('ArrowRight');await expect(calendar.locator('.flood-calendar__month')).toHaveText('March 2024');await expect(day(page,'basic','2024-03-01')).toBeFocused();await day(page,'basic','2024-03-01').press('Enter');await expect(day(page,'basic','2024-03-01')).toHaveAttribute('data-selected','true');await expect(page.locator('#events')).toHaveText('[["select","2024-03-01"]]');expect((await calendar.boundingBox())!.height).toBeCloseTo(box!.height,1);await expect(day(page,'early','0001-01-01')).toHaveAccessibleName('Monday, January 1, 1');await expect(page.locator('#early').getByRole('button',{name:'Previous month',exact:true})).toBeDisabled();

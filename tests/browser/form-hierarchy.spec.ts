@@ -2,6 +2,7 @@ import {test,expect,type Page} from '@playwright/test';
 import {build} from 'vite';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
+import {chooseSelectOption} from "./select-helpers";
 let bundle:Promise<string>;
 async function fixture(){
  const file=(p:string)=>JSON.stringify(resolve(p).replaceAll('\\','/'));
@@ -31,4 +32,52 @@ test('task, section and field roles remain distinct while shared tracks and labe
 test('calendar keeps content width for a narrow anchor and still fits a narrow viewport with nested dismissal',async({page})=>{
  await page.setViewportSize({width:1280,height:1000});await open(page);await page.getByRole('button',{name:'Choose date',exact:true}).click();const panel=page.locator('.flood-date-picker__panel:popover-open');const width=(await panel.boundingBox())!.width;const anchor=(await page.locator('.flood-date-picker').boundingBox())!.width;expect(width).toBeGreaterThan(anchor);expect(width).toBeGreaterThanOrEqual(320);
  await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'New appointment',exact:true})).toBeVisible();await page.setViewportSize({width:320,height:844});await page.getByRole('button',{name:'Choose date',exact:true}).click();const box=(await panel.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(-1);expect(box.x+box.width).toBeLessThanOrEqual(321);await panel.locator('button[data-calendar-date="2026-10-15"]').click();await expect(panel).not.toBeVisible();expect(await page.locator('form').evaluate(e=>new FormData(e as HTMLFormElement).get('date'))).toBe('2026-10-15');await expect(page.getByRole('dialog',{name:'New appointment',exact:true})).toBeVisible();
+});
+
+test("aligned settings reflow as a group and keep the chosen value", async ({page}, testInfo) => {
+  await page.setViewportSize({width: 1440, height: 1000});
+  await page.goto("/components/setting-group");
+  const group = page.getByRole("region", {name: "Workspace preferences"});
+  const view = group.getByRole("combobox", {name: "Default view"});
+  await expect(view).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await chooseSelectOption(page.getByRole("combobox", {name: "SettingGroup prop layout"}), "aligned");
+  await expect(group).toHaveAttribute("data-layout", "aligned");
+  await chooseSelectOption(view, "activity");
+
+  async function measure(width: number) {
+    await group.evaluate(async (node, w) => {
+      node.style.inlineSize = `${w}px`;
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    }, width);
+    return group.evaluate(node => {
+      const rect = (selector: string) => node.querySelector(selector)!.getBoundingClientRect();
+      return {
+        fieldLabel: rect(".flood-field__identity"),
+        editor: rect(".flood-field__editor"),
+        actionLabel: rect(".flood-setting-row[data-layout] .flood-setting-row__details"),
+        action: rect(".flood-setting-row__trailing"),
+        toggle: rect(".flood-switch-input"),
+        group: node.getBoundingClientRect(),
+        overflow: node.scrollWidth - node.clientWidth,
+      };
+    });
+  }
+
+  const wide = await measure(448);
+  expect(wide.fieldLabel.x).toBeCloseTo(wide.actionLabel.x, 0);
+  expect(wide.editor.x + wide.editor.width).toBeCloseTo(wide.action.x + wide.action.width, 0);
+  expect(wide.action.x).toBeGreaterThanOrEqual(wide.editor.x);
+  await group.screenshot({path: testInfo.outputPath("settings-aligned-wide.png")});
+
+  const narrow = await measure(384);
+  expect(narrow.editor.x).toBeCloseTo(narrow.fieldLabel.x, 0);
+  expect(narrow.action.x).toBeCloseTo(narrow.actionLabel.x, 0);
+  expect(narrow.editor.y).toBeGreaterThan(narrow.fieldLabel.y + narrow.fieldLabel.height);
+  expect(narrow.action.y).toBeGreaterThan(narrow.actionLabel.y + narrow.actionLabel.height);
+  expect(narrow.toggle.x + narrow.toggle.width).toBeCloseTo(narrow.group.x + narrow.group.width, 0);
+  expect(narrow.overflow).toBe(0);
+  await expect(view).toContainText("Activity");
+  await expect(view).toHaveAccessibleDescription("Opens when you enter the workspace.");
+  await group.screenshot({path: testInfo.outputPath("settings-aligned-narrow.png")});
 });

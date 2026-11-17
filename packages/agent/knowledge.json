@@ -349,7 +349,10 @@
   "documentGroups": {
     "charts.md": ["charts", "data-feedback", "composition"],
     "recipes/record-management.md": ["data-feedback", "composition"],
+    "recipes/file-gallery.md": ["data-feedback", "composition"],
     "recipes/settings-workspace.md": ["interaction", "composition"],
+    "recipes/product-variants.md": ["composition", "interaction", "data-feedback"],
+    "recipes/merge-records.md": ["composition", "interaction", "data-feedback"],
     "README.md": [
       "composition"
     ],
@@ -400,6 +403,22 @@
       "composition",
       "interaction"
     ],
+    "recipes/import-mapping.md": ["composition", "interaction", "data-feedback"],
+    "recipes/action-review.md": ["composition", "data-feedback", "interaction"],
+    "recipes/record-association.md": ["composition", "data-feedback", "interaction"],
+    "recipes/refresh-controls.md": ["composition", "data-feedback", "interaction"],
+    "recipes/checkpoint-navigator.md": ["composition", "interaction"],
+    "recipes/dependent-filters.md": ["composition", "interaction", "data-feedback"],
+    "recipes/document-review.md": ["composition", "interaction", "data-feedback"],
+    "recipes/code-editor-workspace.md": ["composition", "interaction", "data-feedback"],
+    "recipes/code-review.md": ["composition", "interaction", "data-feedback"],
+    "recipes/address-confirmation.md": ["composition", "interaction", "data-feedback"],
+    "recipes/version-history.md": ["composition", "interaction", "data-feedback"],
+    "recipes/conversion-funnel.md": ["composition", "data-feedback"],
+    "recipes/collaborative-save.md": ["composition", "interaction", "data-feedback"],
+    "recipes/map-and-list.md": ["composition", "interaction"],
+    "recipes/support-reply.md": ["composition", "data-feedback", "interaction"],
+    "recipes/staged-changes.md": ["composition", "data-feedback", "interaction"],
     "recipes/filter-bar.md": [
       "composition",
       "data-feedback"
@@ -466,6 +485,22 @@
       "workflow:forms",
       "workflow:feedback"
     ],
+    "recipe:import-mapping": ["workflow:forms", "workflow:data-display", "workflow:feedback"],
+    "recipe:action-review": ["workflow:decision-design", "workflow:data-display", "workflow:feedback"],
+    "recipe:record-association": ["workflow:forms", "workflow:records"],
+    "recipe:refresh-controls": ["workflow:data-display", "workflow:feedback"],
+    "recipe:checkpoint-navigator": ["workflow:navigation", "workflow:forms"],
+    "recipe:dependent-filters": ["workflow:forms", "workflow:data-display"],
+    "recipe:document-review": ["workflow:records", "workflow:interface-content", "component:text-revision", "component:comment-thread"],
+    "recipe:code-editor-workspace": ["workflow:data-display", "workflow:feedback", "component:resizable-panels", "component:data-table"],
+    "recipe:code-review": ["workflow:data-display", "component:code-diff", "component:tree", "component:comment-thread"],
+    "recipe:address-confirmation": ["workflow:forms", "component:autocomplete", "component:change-list"],
+    "recipe:version-history": ["workflow:data-display", "workflow:feedback"],
+    "recipe:conversion-funnel": ["workflow:data-display"],
+    "recipe:collaborative-save": ["workflow:forms", "workflow:feedback"],
+    "recipe:map-and-list": ["workflow:data-display", "workflow:navigation"],
+    "recipe:support-reply": ["workflow:forms", "workflow:interface-content", "workflow:records"],
+    "recipe:staged-changes": ["workflow:forms", "workflow:feedback", "workflow:decision-design"],
     "recipe:filter-bar": [
       "workflow:composition",
       "workflow:forms",
@@ -488,6 +523,10 @@
       "workflow:interface-content",
       "workflow:hierarchy"
     ],
+    "recipe:file-gallery": [
+      "workflow:records",
+      "workflow:overlays"
+    ],
     "workflow:verification": [
       "workflow:interface-content"
     ],
@@ -509,6 +548,8 @@
       "workflow:forms",
       "workflow:feedback"
     ],
+    "recipe:product-variants": ["workflow:data-display", "workflow:forms", "component:editable-grid"],
+    "recipe:merge-records": ["workflow:records", "workflow:forms", "workflow:overlays", "component:comparison-table"],
     "recipe:record-workspace": [
       "workflow:composition",
       "workflow:hierarchy",

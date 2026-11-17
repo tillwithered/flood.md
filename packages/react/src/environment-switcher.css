@@ -1,0 +1,30 @@
+.flood-root .flood-environment-switcher {
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.flood-root .flood-environment-switcher .flood-environment-switcher__trigger {
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  gap: var(--flood-sys-space-2);
+}
+
+.flood-root .flood-environment-switcher__name,
+.flood-root .flood-environment-switcher__scope {
+  display: block;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flood-root .flood-environment-switcher__scope {
+  flex: none;
+  max-inline-size: min(66%, 10rem);
+}
+
+.flood-root .flood-environment-switcher__chevron {
+  flex: none;
+  color: var(--flood-sys-color-content-subtle);
+}

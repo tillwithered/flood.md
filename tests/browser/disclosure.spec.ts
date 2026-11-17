@@ -30,6 +30,61 @@ createRoot(document.getElementById('app')).render(h(App));`);
 }
 async function open(page:Page){bundle??=fixture();const html=await bundle;await page.route("**/__disclosure.html",route=>route.fulfill({contentType:"text/html",body:html}));await page.goto("/__disclosure.html")}
 
+test("ToolCallGroup preserves individual inspections as the batch status changes", async ({page}) => {
+  await page.goto("/components/tool-call-group");
+  const group = page.locator(".preview-stage .flood-tool-call-group");
+  const trigger = group.getByRole("button", {name:/Workspace search/});
+  await expect(trigger).toHaveAccessibleName(/1 active.*1 failed/);
+  await trigger.press("Enter");
+  const calls = group.getByRole("list", {name:"Workspace search", exact:true});
+  await expect(calls.getByRole("listitem")).toHaveCount(3);
+  const read = calls.getByRole("button", {name:/Read export policy Running/});
+  expect((await read.boundingBox())!.x).toBeGreaterThan((await trigger.boundingBox())!.x);
+  await read.press("Enter");
+  await expect(calls.getByText("Check the policy for records retention.")).toBeVisible();
+  await trigger.press("Space");
+  await expect(trigger).toHaveAttribute("aria-expanded","false");
+  await trigger.press("Space");
+  await expect(read).toHaveAttribute("aria-expanded","true");
+  const scenario = page.getByRole("combobox", {name:"Scenario", exact:true});
+  await scenario.click();
+  await page.getByRole("option", {name:"Completed", exact:true}).click();
+  await expect(trigger).toHaveAccessibleName(/3 calls/);
+  await expect(calls.getByRole("button", {name:/Read export policy Completed/})).toHaveAttribute("aria-expanded","true");
+  await expect(calls.getByText("Retain customer exports for 30 days.")).toBeVisible();
+  await page.getByRole("checkbox", {name:"ToolCallGroup prop narrow"}).check();
+  await expect.poll(() => group.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+  await scenario.click();
+  await page.getByRole("option", {name:"Empty", exact:true}).click();
+  await expect(group).toHaveCount(0);
+});
+
+test("ToolCall keeps inspection open through state changes and hides empty disclosure", async ({page}) => {
+  await page.goto("/components/tool-call");
+  const call = page.locator(".preview-stage .flood-tool-call");
+  const trigger = call.getByRole("button", {name:/Search workspace files/});
+  await expect(trigger).toHaveAccessibleName(/Completed/);
+  await expect(call.getByText("3 documents found.")).toBeHidden();
+  await trigger.press("Enter");
+  await expect(call.getByText("3 documents found.")).toBeVisible();
+  const state = page.getByRole("combobox", {name:"ToolCall prop state"});
+  await state.click();
+  await page.getByRole("option", {name:"running", exact:true}).click();
+  await expect(trigger).toHaveAccessibleName(/Running/);
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await expect(call.getByRole("heading", {name:"Input", exact:true})).toBeVisible();
+  await expect(call.getByRole("heading", {name:"Output", exact:true})).toHaveCount(0);
+  await state.click();
+  await page.getByRole("option", {name:"failed", exact:true}).click();
+  await expect(call.getByRole("heading", {name:"Error", exact:true})).toBeVisible();
+  await expect(call.getByRole("status")).toHaveText("Search workspace files: Failed");
+  await page.getByRole("checkbox", {name:"ToolCall prop narrow"}).check();
+  await expect.poll(() => call.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+  await page.getByRole("checkbox", {name:"ToolCall prop showDetails"}).uncheck();
+  await expect(trigger).toHaveCount(0);
+  await expect(call.getByText("Failed", {exact:true})).toBeVisible();
+});
+
 test("Collapsible keyboard, mounted state, controlled ownership and closing focus",async({page})=>{
   await open(page);const local=page.getByRole("button",{name:"Local",exact:true});
   await expect(local).toHaveAttribute("aria-expanded","false");await expect(page.getByRole("textbox",{name:"Local input",exact:true})).toHaveCount(0);

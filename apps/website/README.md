@@ -13,6 +13,9 @@ Flood SkipLink with a focusable main target; installation, code and agent action
 use Flood CopyButton. Guide readers link to their Markdown source. The component
 Reference drawer contains the agent action with the current example. Only brand and
 page layout remain website styles. Component studio uses the compact header.
+On phones, pair each card with its skeleton at the same canvas height. Check
+the default loaded and loading examples at 320 and 390 px with touch targets
+enabled. Keep the canvas scrollable for larger examples and explicit zoom.
 The reader composes SegmentedControl (import mode), Sheet (mobile navigation,
 reference and touch choices), Drawer (wide component reference), Collapsible (compact outline and adapter source),
 Surface/Stack/Inline/Text (catalog cards), Link button variants (sidebar,

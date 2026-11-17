@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-export function useInlineOverflow(text: string, enabled = true) {
+export function useInlineOverflow(text: string, enabled = true, segmented = false) {
   const ref = useRef<HTMLSpanElement>(null);
   const [overflow, setOverflow] = useState(false);
 
@@ -18,7 +18,7 @@ export function useInlineOverflow(text: string, enabled = true) {
       observer?.disconnect();
       fonts?.removeEventListener("loadingdone", measure);
     };
-  }, [text, enabled]);
+  }, [text, enabled, segmented]);
 
   return { ref, overflow: enabled && overflow };
 }

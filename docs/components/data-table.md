@@ -120,6 +120,16 @@ fixed across a load. Set `placeholderLines: 2` on columns with a title and a
 secondary line so the loading row reserves that height. Intrinsically sized
 columns can expand when real values arrive.
 
+Set `columnLayout="fixed"` for a collection where users scan the same columns
+before and after filtering, loading or an empty result. Set `column.width` for
+columns that need a deliberate share and leave a flexible column to take the
+remaining space. Choose `minWidth` so the table scrolls before essential labels
+or actions become unreadable. Use the default `auto` layout when row content
+should determine the column widths.
+In expandable collections, pass `defaultExpandedIds={[]}` (or a controlled
+`expandedIds`) to reserve the disclosure track when the rows are absent.
+Keep the identity column visible across results with `hideable: false`.
+
 Use `refreshing` with `state="ready"` for background requests while the
 accepted rows remain safe to use. The progress cue follows the table header
 without changing its height or blocking selection, sorting or paging.

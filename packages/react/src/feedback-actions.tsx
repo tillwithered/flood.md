@@ -1,9 +1,8 @@
 import {forwardRef, useEffect, useImperativeHandle, useRef, useState, type MouseEvent} from "react";
 import type {CopyButtonProps, ToastRegionProps, ToastItem} from "./index.js";
-import {Button, IconButton, IconSlot, ScrollArea, Spinner, VisuallyHidden} from "./index.js";
+import {Button, IconButton, IconSlot, IconSwap, ScrollArea, Spinner, VisuallyHidden} from "./index.js";
 
-function ClipboardGlyph({ index, pending }: { index: number; pending: boolean }) {
-  if (pending) return <Spinner decorative />;
+function ClipboardGlyph({ index }: { index: number }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
     {index === 1 ? <path d="m5 12 4 4L19 6"/> : index === 2 ? <path d="m6 6 12 12M18 6 6 18"/> : <>
       <rect x="8" y="8" width="12" height="12" rx="2"/>
@@ -52,6 +51,12 @@ export const ClipboardAction = /* @__PURE__ */ forwardRef<HTMLButtonElement, Cop
     onCopied?.();
   };
   const buttonLabel = accessibleLabel ? (phase === "idle" ? accessibleLabel : `${label}: ${accessibleLabel}`) : label;
+  const glyph = <IconSwap state={pending ? "pending" : phase} icons={{
+    idle: <ClipboardGlyph index={0} />,
+    copied: <ClipboardGlyph index={1} />,
+    error: <ClipboardGlyph index={2} />,
+    pending: pending ? <Spinner decorative /> : null,
+  }} />;
   const buttonProps = {
     ...props, ref, type: "button" as const, size, variant, disabled,
     "aria-disabled": pending || props["aria-disabled"],
@@ -62,13 +67,12 @@ export const ClipboardAction = /* @__PURE__ */ forwardRef<HTMLButtonElement, Cop
   return <>
     {iconOnly
       ? <IconButton {...buttonProps} label={buttonLabel} title={props.title ?? buttonLabel}>
-        <ClipboardGlyph index={phaseIndex} pending={pending} />
+        {glyph}
       </IconButton>
       : <Button {...buttonProps} aria-label={buttonLabel}>
-        <span className="flood-copy-button__labels" aria-hidden="true">{labels.map((text, index) => <span key={index} data-visible={index === phaseIndex || undefined}>
-          <IconSlot size={size}><ClipboardGlyph index={index} pending={pending} /></IconSlot>
-          <span>{text}</span>
-        </span>)}</span>
+        <IconSlot size={size}>{glyph}</IconSlot>
+        <span className="flood-action-labels" aria-hidden="true">{labels.map((text, index) =>
+          <span key={index} data-visible={index === phaseIndex || undefined}>{text}</span>)}</span>
       </Button>}
     <VisuallyHidden role="status">{phase === "idle" ? "" : label}</VisuallyHidden>
   </>;

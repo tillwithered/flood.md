@@ -1,0 +1,65 @@
+.flood-root .flood-media-transcript { min-inline-size: 0; }
+.flood-root .flood-media-transcript__controls { justify-content: space-between; align-items: center; }
+.flood-root .flood-media-transcript__controls > .flood-text { padding-inline-start: var(--flood-sys-space-3); }
+.flood-root .flood-media-transcript__viewport { border-radius: var(--flood-sys-radius-field); }
+.flood-root .flood-media-transcript__cue {
+  position: relative;
+  display: grid;
+  grid-template-columns: max-content minmax(0,1fr);
+  column-gap: var(--flood-sys-space-2);
+  justify-content: stretch;
+  align-items: baseline;
+  inline-size: 100%;
+  block-size: auto;
+  white-space: normal;
+  text-align: start;
+  overflow-wrap: anywhere;
+  font-weight: var(--flood-sys-type-body-weight);
+  border-radius: var(--flood-sys-radius-field);
+}
+.flood-root :is(.flood-media-transcript__cue, .flood-media-chapters__chapter)[aria-current]::before {
+  position: absolute;
+  content: "";
+  inset-inline-start: var(--flood-sys-space-1);
+  inset-block: var(--flood-sys-space-2);
+  inline-size: var(--flood-sys-focus-width);
+  border-radius: var(--flood-sys-radius-action);
+  background: var(--flood-sys-color-focus-ring);
+}
+.flood-root .flood-media-transcript__cue[aria-current] time { color: var(--flood-sys-color-content-default); }
+.flood-root .flood-media-transcript__cue time {
+  min-inline-size: 5ch;
+  color: var(--flood-sys-color-content-subtle);
+  font-variant-numeric: tabular-nums;
+}
+
+.flood-root .flood-media-chapters > li + li { margin-block-start: var(--flood-sys-space-1); }
+.flood-root .flood-media-chapters__chapter {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  justify-content: stretch;
+  align-items: center;
+  column-gap: var(--flood-sys-space-3);
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: auto;
+  padding-block: var(--flood-sys-space-2);
+  border-radius: var(--flood-sys-radius-field);
+  text-align: start;
+}
+.flood-root .flood-media-chapters[data-thumbnails] .flood-media-chapters__chapter {
+  grid-template-columns: min(24%, 5rem) minmax(0, 1fr) max-content;
+}
+.flood-root .flood-media-chapters[data-thumbnails] .flood-media-chapters__title { grid-column: 2; }
+.flood-root .flood-media-chapters__title { white-space: normal; overflow-wrap: anywhere; }
+.flood-root .flood-media-chapters__thumbnail {
+  inline-size: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: max(0px, calc(var(--flood-sys-radius-field) - var(--flood-sys-space-2)));
+}
+.flood-root .flood-media-chapters__chapter time {
+  color: var(--flood-sys-color-content-subtle);
+  font-weight: var(--flood-sys-type-body-weight);
+  font-variant-numeric: tabular-nums;
+}

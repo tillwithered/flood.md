@@ -12,6 +12,16 @@ export const HierarchicalNavigation = /* @__PURE__ */ forwardRef<HTMLElement, Na
   size = "md", variant = "quiet", compact = false, flyoutSide = "right", branchGuides = false, id: explicitId, className, tabIndex = -1, ...props
 }, forwardedRef) {
   if (!label.trim()) throw new Error("Flood NavigationTree requires a nonempty label");
+  const validate = (entries: readonly NavigationTreeItem[], ancestors = new Set<readonly NavigationTreeItem[]>(), values = new Set<string>()) => {
+    if (ancestors.has(entries)) throw new Error("Flood NavigationTree does not accept recursive item arrays");
+    const nextAncestors = new Set(ancestors); nextAncestors.add(entries);
+    for (const item of entries) {
+      if (!item.value.trim() || !item.label.trim() || values.has(item.value)) throw new Error("Flood NavigationTree requires globally unique nonempty values and labels");
+      values.add(item.value);
+      if (item.children) validate(item.children, nextAncestors, values);
+    }
+  };
+  validate(items);
   const generated = useId(), id = explicitId ?? `flood-navigation-tree-${generated}`;
   const root = useRef<HTMLElement>(null);
   useImperativeHandle(forwardedRef, () => root.current!, []);

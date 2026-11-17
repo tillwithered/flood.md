@@ -1,0 +1,34 @@
+.flood-root .flood-approval-request__choice {
+  align-items: flex-start;
+  padding-block: var(--flood-sys-space-1);
+}
+
+.flood-root .flood-approval-request__choice > input {
+  flex: none;
+  margin-block-start: calc((1em * var(--flood-sys-type-compact-line-height) - var(--flood-sys-size-choice)) / 2);
+}
+
+.flood-root .flood-approval-request__choice-copy {
+  display: grid;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-approval-request__choice-title {
+  font-weight: var(--flood-sys-type-label-weight);
+}
+
+.flood-root .flood-approval-request__choice:has(> input:disabled) .flood-text {
+  color: inherit;
+}
+
+.flood-root .flood-approval-request__submit {
+  max-inline-size: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-approval-request__result:focus-visible {
+  outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring);
+  outline-offset: var(--flood-sys-focus-offset);
+}

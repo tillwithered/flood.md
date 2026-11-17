@@ -98,7 +98,7 @@ export function lockScroll(document: Document) {
   };
 }
 
-export function positionLayer(anchor:HTMLElement,panel:HTMLElement,side:Side,align:Align,overlap=false){
+export function positionLayer(anchor:HTMLElement,panel:HTMLElement,side:Side,align:Align,overlap=false,anchorBounds?:DOMRect){
   const view=panel.ownerDocument.defaultView!;const visual=view.visualViewport;
   const viewport={left:visual?.offsetLeft??0,top:visual?.offsetTop??0,width:visual?.width??view.innerWidth,height:visual?.height??view.innerHeight};
   // Top-layer coordinates are viewport-relative, but CSS lengths still inherit zoom.
@@ -107,7 +107,7 @@ export function positionLayer(anchor:HTMLElement,panel:HTMLElement,side:Side,ali
   const panelLength=(viewportLength:number)=>`${viewportLength/zoom}px`;
   panel.style.setProperty("--flood-overlay-available-width",panelLength(Math.max(0,viewport.width-2*gap)));
   panel.style.setProperty("--flood-overlay-available-height",panelLength(Math.max(0,viewport.height-2*gap)));
-  const bounds=anchor.getBoundingClientRect(),anchorWidth=panelLength(bounds.width),anchorHeight=panelLength(bounds.height);
+  const bounds=anchorBounds??anchor.getBoundingClientRect(),anchorWidth=panelLength(bounds.width),anchorHeight=panelLength(bounds.height);
   if(panel.style.getPropertyValue("--flood-overlay-anchor-width")!==anchorWidth)panel.style.setProperty("--flood-overlay-anchor-width",anchorWidth);
   if(panel.style.getPropertyValue("--flood-overlay-anchor-height")!==anchorHeight)panel.style.setProperty("--flood-overlay-anchor-height",anchorHeight);
   const position=placeOverlay(bounds,panel.getBoundingClientRect(),viewport,side,align,gap,getComputedStyle(anchor).direction==="rtl",overlap);

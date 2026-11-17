@@ -55,8 +55,7 @@
 
 /* Explicit canvas scopes reset every role after automatic material owners. */
 .flood-root[data-flood-surface="base"],
-.flood-root :where([data-flood-surface="base"], .flood-dropzone,
-  .flood-tabs:not([data-variant="line"]) > .flood-tabs__scroll) {
+.flood-root :where([data-flood-surface="base"], .flood-dropzone) {
   --flood-sys-color-action-subtle-rest: var(--flood-sys-color-context-base-action-rest);
   --flood-sys-color-action-subtle-hover: var(--flood-sys-color-context-base-action-hover);
   --flood-sys-color-action-subtle-pressed: var(--flood-sys-color-context-base-action-pressed);
@@ -101,7 +100,7 @@
     .flood-file-list, .flood-color-picker__panel, .flood-bulk-action-bar,
     .flood-tabs:not([data-variant="line"]), .flood-disclosure:not(.flood-accordion > .flood-disclosure), .flood-accordion,
     .flood-segmented .flood-choice-group, .flood-data-table__footer, .flood-code-snippet,
-    .flood-dropzone, .flood-tabs:not([data-variant="line"]) > .flood-tabs__scroll, [data-flood-surface]) {
+    .flood-dropzone, [data-flood-surface]) {
     --flood-sys-color-surface-current: Canvas;
     --flood-sys-color-surface-supporting: Canvas;
     --flood-sys-color-surface-avatar: Canvas;

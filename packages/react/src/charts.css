@@ -454,6 +454,61 @@
   inline-size: max-content;
   max-inline-size: min(10rem, calc(100% - 2 * var(--flood-sys-space-2)));
 }
+
+.flood-root .flood-uptime-history {
+  position: relative;
+  min-inline-size: 0;
+}
+
+.flood-root .flood-uptime-history__periods {
+  display: grid;
+  grid-template-columns: repeat(var(--flood-uptime-periods), minmax(0, 1fr));
+  gap: min(var(--flood-sys-space-1), 0.55%, calc(38% / var(--flood-uptime-periods)));
+  min-block-size: 1.5rem;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flood-root .flood-uptime-history__periods > li {
+  position: relative;
+  block-size: 1.5rem;
+  min-inline-size: 0;
+  border-radius: var(--flood-sys-radius-action);
+  background: color-mix(in srgb, var(--flood-uptime-tone) 66%, var(--flood-sys-color-surface-current));
+  --flood-uptime-tone: var(--flood-sys-color-feedback-success);
+}
+
+.flood-root .flood-uptime-history__periods > [data-status="degraded"] { --flood-uptime-tone: var(--flood-sys-color-feedback-warning); }
+.flood-root .flood-uptime-history__periods > [data-status="outage"] { --flood-uptime-tone: var(--flood-sys-color-feedback-error); }
+.flood-root .flood-uptime-history__periods > [data-status="unknown"] {
+  --flood-uptime-tone: var(--flood-sys-color-content-subtle);
+  background: repeating-linear-gradient(135deg, transparent 0 3px,
+    color-mix(in srgb, var(--flood-uptime-tone) 42%, transparent) 3px 4px);
+}
+
+.flood-root .flood-uptime-history__periods > [data-active] {
+  outline: var(--flood-sys-stroke-width) solid var(--flood-uptime-tone);
+  outline-offset: calc(-1 * var(--flood-sys-stroke-width));
+}
+
+.flood-root .flood-uptime-history__periods > li:focus-visible {
+  outline: var(--flood-sys-stroke-width) solid var(--flood-sys-color-content-default);
+  outline-offset: var(--flood-sys-stroke-width);
+}
+
+.flood-root .flood-uptime-history__tooltip {
+  position: absolute;
+  z-index: 1;
+  inset-block-end: calc(100% + var(--flood-sys-space-2));
+  inline-size: max-content;
+  max-inline-size: min(15rem, 100%);
+}
+
+@media (pointer: coarse) {
+  .flood-root .flood-uptime-history__periods { min-block-size: var(--flood-sys-size-touch); }
+}
 .flood-root .flood-heatmap__table.flood-table {
   --flood-heatmap-inset: calc(var(--flood-sys-space-1) / 2);
   table-layout: fixed;

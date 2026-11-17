@@ -10,11 +10,11 @@ export const DescribedData = /* @__PURE__ */ forwardRef<HTMLDListElement, Descri
     throw new Error("Flood description items require unique nonempty IDs");
   return <dl {...props} ref={ref} className={["flood-description-list", className].filter(Boolean).join(" ")}
     data-layout={layout} data-density={density} data-dividers={dividers}>
-    {items.map(({id, term, description, valueOverflow, action}) => {
+    {items.map(({id, term, description, layout: itemLayout, valueOverflow, action}) => {
       const hasAction = hasFieldContent(action);
       const truncate = valueOverflow === "truncate" && typeof description === "string";
       const value = truncate ? <TruncatedText dir="auto">{description}</TruncatedText> : description;
-      return <div key={id} className="flood-description-list__item" data-has-action={hasAction || undefined}
+      return <div key={id} className="flood-description-list__item" data-layout={itemLayout} data-has-action={hasAction || undefined}
         data-value-overflow={truncate ? "truncate" : undefined}>
         <dt>{term}</dt>
         {hasAction ? <dd className="flood-description-list__value-with-action">
@@ -49,7 +49,8 @@ export const TabularData = /* @__PURE__ */ forwardRef<HTMLTableElement, TablePro
   return <div className="flood-table-container" hidden={hidden} dir={dir} lang={lang}>
     <ScrollArea ref={viewport} orientation={scrollVertically ? "both" : "horizontal"}
       contentInset={scrollVertically ? "scrollbar" : undefined}
-      tabIndex={scrollVertically ? 0 : undefined} style={scrollVertically ? { maxBlockSize: maxViewportHeight } : undefined}
+      tabIndex={props.role === "grid" ? -1 : scrollVertically ? 0 : undefined}
+      style={scrollVertically ? { maxBlockSize: maxViewportHeight } : undefined}
       aria-label={scrollLabel ?? caption}
       onFocus={pinHeader ? event => {
         const target = event.target;

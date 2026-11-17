@@ -1,0 +1,20 @@
+.flood-root .flood-source-line {
+  --flood-source-line-body: minmax(min-content, 1fr);
+  display: grid;
+  grid-template-columns: var(--flood-source-line-body) auto;
+  gap: var(--flood-sys-space-2);
+  align-items: start;
+  min-inline-size: 0;
+  font-family: var(--flood-sys-font-mono);
+  font-size: var(--flood-sys-type-helper-size);
+  line-height: var(--flood-sys-type-compact-line-height);
+}
+.flood-root .flood-source-line[data-marker] { grid-template-columns: 1ch var(--flood-source-line-body) auto; }
+.flood-root .flood-source-line[data-wrap] { --flood-source-line-body: minmax(0, 1fr); }
+.flood-root .flood-source-line__text { white-space: pre; font: inherit; }
+.flood-root .flood-source-line[data-wrap] .flood-source-line__text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.flood-root .flood-source-line__marker {
+  color: var(--flood-source-line-marker, var(--flood-sys-color-content-subtle));
+  user-select: none;
+}
+.flood-root .flood-source-line__action { align-self: start; font-family: var(--flood-sys-font-sans); }
