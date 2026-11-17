@@ -256,7 +256,7 @@ export const KanbanCollection = /* @__PURE__ */ forwardRef<HTMLDivElement,Kanban
                   {card.dueDate && <Text size="helper" tone="subtle"><time dateTime={card.dueDate.dateTime}>{card.dueDate.label}</time></Text>}
                   {card.assignee && <Avatar {...card.assignee} size="xs" title={card.assignee.name} className="flood-kanban-board__assignee" />}
                 </Inline>;
-                return <Card key={card.id} title={heading} headingSize="group" headingLevel={3}
+                return <Card key={card.id} title={heading} headingSize="group" headingLevel={2}
                 density="compact" elevation="raised" footerDivider={false}
                 footer={details ? <Stack gap="2">{details}{metadata}</Stack> : metadata}
                 style={cardLayout==="compact" ? {paddingBlock:"var(--flood-sys-space-2)",paddingInline:"var(--flood-sys-space-3)"} : undefined}
