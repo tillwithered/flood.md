@@ -95,8 +95,11 @@ export function ProjectCollection({storage,onUpdateStatus}: {
    <DataTable caption="Projects" hideCaption minWidth="36rem" selectable showSelection={false} pageSize={5} page={page} onPageChange={setPage} selectedIds={selection} onSelectionChange={ids=>{setSelection(ids);setFeedback(null);}} sort={query.sort} onSortChange={sort=>change({...query,sort})}
    inset="roomy" columnLayout="fixed" showColumnVisibility
    toolbar={({columns}) => <CollectionViewControls label="Projects" schema={projectSchema} presets={projectPresets}
-     value={query} onValueChange={change} storageKey="flood-project-views-v1" storage={storage} toolbarActions={columns}/>}
-   emptyContent={<NoResults title="No matching projects" headingLevel={2} icon={<SearchX />}/>}
+     value={query} onValueChange={change} storageKey="flood-project-views-v1" storage={storage} toolbarActions={columns} clearAvailable={rows.length > 0}/>}
+   emptyContent={<NoResults title="No matching projects" headingLevel={2} icon={<SearchX />} onReset={() => {
+      collection.current?.querySelector<HTMLButtonElement>('button[id^="flood-collection-filters-"]')?.focus({preventScroll:true});
+      change(emptyCollectionQuery());
+    }}/>}
    columns={[{id:'name',label:'Project',sortable:true,hideable:false},{id:'owner',label:'Owner',sortable:true,width:'21%'},{id:'status',label:'Status',sortable:true,width:'20%'},{id:'priority',label:'Priority',sortable:true,width:'17%'}]}
    rows={rows.map(project=>({id:project.id,label:project.name,cells:{name:project.name,owner:owners.find(owner=>owner.value===project.owner)!.label,status:<StatusIndicator label={projectSchema.properties[0].options.find(option=>option.value===project.status)!.label} tone={project.status==='active'?'success':project.status==='paused'?'warning':'neutral'}/>,priority:<Badge size="sm" tone={project.priority==='urgent'?'warning':'neutral'}>{project.priority==='urgent'?'Urgent':'Normal'}</Badge>},sortValues:{name:project.name,owner:project.owner,status:project.status,priority:project.priority==='urgent'?1:0}}))}/>
   </Surface>
