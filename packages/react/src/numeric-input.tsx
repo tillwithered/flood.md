@@ -6,7 +6,7 @@ interface Props extends NumberInputProps {
   buttonComponent: typeof IconButton;
 }
 
-/** The browser owns decimal stepping, validity, editing and form submission. */
+/** Prefer native stepping while keeping a deterministic fallback for controlled inputs. */
 export const NumericStepper = /* @__PURE__ */ forwardRef<HTMLInputElement, Props>(function NumericStepper({
   inputComponent: Group, buttonComponent: Action, value, defaultValue = 0,
   onValueChange, min, max, step = 1, disabled, readOnly, controlSize = "md",
@@ -39,6 +39,9 @@ export const NumericStepper = /* @__PURE__ */ forwardRef<HTMLInputElement, Props
   const move = (direction: number) => {
     const node = input.current;
     if (!node || disabled || readOnly || node.matches(":disabled")) return;
+    const previous = node.value;
+    if (direction > 0) node.stepUp(); else node.stepDown();
+    if (node.value !== previous) { publish(node.value); return; }
     const before = node.value === "" ? (direction > 0 ? min ?? 0 : max ?? 0) : Number(node.value);
     const decimalPlaces = (value: number) => { const [coefficient, exponent] = String(value).toLowerCase().split("e"); return Math.max(0, (coefficient.split(".")[1]?.length ?? 0) - Number(exponent ?? 0)); };
     const precision = Math.max(decimalPlaces(step), decimalPlaces(before), min === undefined ? 0 : decimalPlaces(min), max === undefined ? 0 : decimalPlaces(max));
