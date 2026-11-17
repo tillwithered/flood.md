@@ -2233,7 +2233,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       const placeholder = (hasActions:boolean, description:boolean) => element("FileCardSkeleton",{
         style:gallery?undefined:cardWidth,thumbnailRatio:ratio,thumbnailPlacement:v.thumbnailPlacement,density:v.density,
         description:gridExample ? undefined : description,descriptionLines:gridExample && description ? 2 : undefined,
-        metadata:showType || showSize,reserveSelectionSpace:v.selectable,
+        metadata:loadingExample ? v.metadata : showType || showSize,reserveSelectionSpace:v.selectable,
         footerActions:hasActions?Number(showDownload)+Number(showPreview && v.previewPlacement === "footer"):0,
         previewOnThumbnail:hasActions && showPreview && v.previewPlacement === "thumbnail",animate:v.animate,
       });
