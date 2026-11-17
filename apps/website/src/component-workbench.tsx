@@ -1,4 +1,4 @@
-import { Fragment, createElement, useEffect, useId, useRef, useState, type ReactNode, type CSSProperties, type MouseEvent, type KeyboardEvent, type FormEvent } from "react";
+import { Fragment, createElement, useEffect, useLayoutEffect, useId, useRef, useState, type ReactNode, type CSSProperties, type MouseEvent, type KeyboardEvent, type FormEvent } from "react";
 import { House, Folder, Layers3, Bell, ChartNoAxesColumn, Settings, CircleHelp, ArrowRight, Copy, Plus, Undo2, Redo2, History, Bold, Italic, Underline, Share2, CalendarDays, CalendarRange, Calendar, Pencil, Archive, Trash2, Ellipsis, ChevronDown, CircleCheck, CircleAlert, CircleX, Paperclip, MessageCircle, ThumbsUp, Eye, EyeOff, Lock, LockOpen, BookOpen, CreditCard, Globe, Package, ShieldCheck } from "lucide-react";
 import * as Flood from "@flood-md/react";
 import { Laptop, Smartphone, Monitor, Repeat2, BellOff } from "lucide-react";
@@ -14,6 +14,7 @@ type Binding = { expression: string; value: unknown };
 type ElementRecipe = { tag: string; props?: Record<string, unknown>; children?: Array<ElementRecipe | string | Binding>; field?: ElementRecipe; previewSlot?: CSSProperties; previewFeedback?: true; previewClassName?: string };
 const element = (tag: string, props: Record<string, unknown> = {}, ...children: Array<ElementRecipe | string | Binding>): ElementRecipe => ({ tag, props, children });
 const binding = (expression: string, value: unknown): Binding => ({ expression, value });
+const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 const cardMedia = () => binding(
   '<FileThumbnail presentation="tile" ratio={16 / 9} src="/charts-share.png" />',
   <Flood.FileThumbnail presentation="tile" ratio={16 / 9} src="/charts-share.png"/>,
@@ -6405,7 +6406,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, i
   const moveReorderItem = (move: Flood.ReorderMove) => setReorderItems(items=>applyPreviewMove(items,move));
   const setGridChanges = (changes: readonly Flood.EditableGridChange[]) =>
     setGridRows(rows=>applyGridPreviewChanges(rows,changes));
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     setPairs(initialPairs);
     setFindState(initialFindState);
     setTreeLayer(initialTreeLayer);
