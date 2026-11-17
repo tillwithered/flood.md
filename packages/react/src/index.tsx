@@ -5151,7 +5151,7 @@ export const ReceiptMatchReview = /* @__PURE__ */ forwardRef<HTMLElement, Receip
   return <Section {...props} ref={ref} title={title} headingSize="group"
     className={classes("flood-receipt-match-review", className)}
     actions={<StatusIndicator label={labels?.outcomes?.[outcome] ?? state.label} tone={state.tone} presentation="wrap" size="sm" />}>
-    {fields.length > 0 ? <Table caption="Receipt comparison" hideCaption density="compact" className="flood-receipt-match-review__table">
+    {fields.length > 0 ? <Table caption={`${labels?.receipt ?? "Receipt"} and ${labels?.transaction ?? "transaction"} comparison`} hideCaption density="compact" className="flood-receipt-match-review__table">
       <thead>
         <tr><th scope="col">{labels?.field ?? "Field"}</th><th scope="col">{labels?.receipt ?? "Receipt"}</th>
           <th scope="col">{labels?.transaction ?? "Transaction"}</th></tr>
