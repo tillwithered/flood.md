@@ -9,8 +9,8 @@ export const ResourceLinkPreview = /* @__PURE__ */ forwardRef<HTMLAnchorElement,
   const sourceId = `${id}-source`;
   const excerptId = `${id}-excerpt`;
   return <Link {...props} ref={ref} href={href} className={["flood-link-preview", className].filter(Boolean).join(" ")}
-    aria-labelledby={props["aria-labelledby"] ?? (props["aria-label"] ? undefined : titleId)}
-    aria-describedby={[sourceId, description ? excerptId : undefined, describedBy].filter(Boolean).join(" ")}>
+    aria-labelledby={[props["aria-labelledby"], titleId, description ? excerptId : undefined, sourceId].filter(Boolean).join(" ")}
+    aria-describedby={describedBy}>
     {thumbnailSrc && <AspectRatio ratio={1} className="flood-link-preview__thumbnail" aria-hidden="true">
       <Image key={thumbnailSrc} src={thumbnailSrc} alt="" loading="lazy" decoding="async" onError={event => {
         event.currentTarget.hidden = true;
