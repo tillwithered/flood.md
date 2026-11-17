@@ -8031,9 +8031,10 @@ export const MeetingAvailability = /* @__PURE__ */ forwardRef<HTMLDivElement, Me
   const localTime = (timeZone: string) => {
     const cached = formattedByZone.get(timeZone);
     if (cached !== undefined) return cached;
-    const formatted = new Intl.DateTimeFormat(locale ?? props.lang ?? "en-US", {
-      timeZone, month:"short", day:"numeric", hour:"numeric", minute:"2-digit", timeZoneName:"short",
-    }).formatRange(start,end);
+    const formatter = new Intl.DateTimeFormat(locale ?? props.lang ?? "en-US", {
+      timeZone, month:"short", day:"numeric", hour:"numeric", minute:"2-digit",
+    });
+    const formatted = `${formatter.format(start)} – ${formatter.format(end)} (${timeZone})`;
     formattedByZone.set(timeZone,formatted);
     return formatted;
   };
