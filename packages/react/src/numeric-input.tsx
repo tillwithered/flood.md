@@ -6,7 +6,7 @@ interface Props extends NumberInputProps {
   buttonComponent: typeof IconButton;
 }
 
-/** Prefer native stepping while keeping a deterministic fallback for controlled inputs. */
+/** The browser owns decimal stepping, validity, editing and form submission. */
 export const NumericStepper = /* @__PURE__ */ forwardRef<HTMLInputElement, Props>(function NumericStepper({
   inputComponent: Group, buttonComponent: Action, value, defaultValue = 0,
   onValueChange, min, max, step = 1, disabled, readOnly, controlSize = "md",
@@ -39,15 +39,9 @@ export const NumericStepper = /* @__PURE__ */ forwardRef<HTMLInputElement, Props
   const move = (direction: number) => {
     const node = input.current;
     if (!node || disabled || readOnly || node.matches(":disabled")) return;
-    const previous = node.value;
+    const before = node.value;
     if (direction > 0) node.stepUp(); else node.stepDown();
-    if (node.value !== previous) { publish(node.value); return; }
-    const before = node.value === "" ? (direction > 0 ? min ?? 0 : max ?? 0) : Number(node.value);
-    const decimalPlaces = (value: number) => { const [coefficient, exponent] = String(value).toLowerCase().split("e"); return Math.max(0, (coefficient.split(".")[1]?.length ?? 0) - Number(exponent ?? 0)); };
-    const precision = Math.max(decimalPlaces(step), decimalPlaces(before), min === undefined ? 0 : decimalPlaces(min), max === undefined ? 0 : decimalPlaces(max));
-    const candidate = Number((before + direction * step).toFixed(precision));
-    const next = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, candidate));
-    if (next !== before) { node.value = String(next); publish(node.value); }
+    if (node.value !== before) publish(node.value);
   };
   const glyph = (increase: boolean) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14" />{increase && <path d="M12 5v14" />}</svg>;
   return <Group {...props} ref={input} type="number" value={current} min={min} max={max} step={step}
