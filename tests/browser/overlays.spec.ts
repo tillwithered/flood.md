@@ -116,8 +116,8 @@ test("Overlay catalog examples work on mobile and preserve their playground fram
     const layer=page.getByRole(slug==="tooltip"?"tooltip":"dialog");await expect(layer).toBeVisible();
     expect((await stage.boundingBox())!.height).toBeCloseTo(before.height,1);
     const box=(await layer.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(page.viewportSize()!.width+1);
-    const selector=slug==="tooltip"?"[role=tooltip]":"[role=dialog]";
-    expect((await new AxeBuilder({page}).include(selector).analyze()).violations).toEqual([]);
+    await layer.evaluate(node => node.setAttribute("data-a11y-scan", "true"));
+    expect((await new AxeBuilder({page}).include('[data-a11y-scan="true"]').analyze()).violations).toEqual([]);
     await layer.screenshot({path:`.artifacts/${slug}-${info.project.name}.png`,animations:"disabled"});
     await page.keyboard.press("Escape");await expect(layer).toBeHidden();
   }
