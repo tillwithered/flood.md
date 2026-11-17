@@ -33,8 +33,9 @@
   .flood-root .flood-calendar__navigation { align-self:flex-end; }
 }
 @media(forced-colors:active) { .flood-root .flood-calendar { background:Canvas; color:CanvasText; border-color:CanvasText; } .flood-root .flood-calendar__day[data-selected] { background:Highlight; color:HighlightText; forced-color-adjust:none; } .flood-root .flood-calendar__day:focus-visible { border-color:Highlight; } .flood-root .flood-calendar__day[data-selected]:focus-visible { border-color:CanvasText; } .flood-root .flood-calendar__day[aria-disabled="true"],.flood-root .flood-calendar__day:disabled { color:GrayText; } }
-.flood-root .flood-calendar__clear {
-  display: flex;
-  justify-content: end;
-  margin-block-start: var(--flood-sys-space-2);
+.flood-root .flood-calendar__footer {
+  display:flex;
+  justify-content:flex-end;
+  min-block-size:calc(var(--flood-sys-control-sm-height) + var(--flood-sys-space-2));
 }
+.flood-root .flood-calendar__clear { display:flex; justify-content:flex-end; }
