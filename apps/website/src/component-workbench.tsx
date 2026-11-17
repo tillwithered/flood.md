@@ -2222,8 +2222,8 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       const gallery = gridExample || v.gallery;
       const showPreview = gridExample || v.showPreview;
       const showDownload = gridExample || v.showDownload;
-      const showSize = gridExample || v.showSize;
-      const showType = gridExample || v.showType;
+      const showSize = gridExample || (loadingExample ? v.metadata : v.showSize);
+      const showType = gridExample || (loadingExample ? v.metadata : v.showType);
       const name = v.longName ? "Flood-brand-mark-original-transparent-background.png" : "Flood mark.png";
       const ratio = v.ratio === "16:9" ? 16/9 : v.ratio === "1:1" ? 1 : 4/3;
       const cardWidth = {width:v.narrow?"12rem":"18rem",maxInlineSize:"100%"};
@@ -2234,7 +2234,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       const placeholder = (hasActions:boolean, description:boolean) => element("FileCardSkeleton",{
         style:gallery?undefined:cardWidth,thumbnailRatio:ratio,thumbnailPlacement:v.thumbnailPlacement,density:v.density,
         description:gridExample ? undefined : description,descriptionLines:gridExample && description ? 2 : undefined,
-        metadata:loadingExample ? v.metadata : showType || showSize,reserveSelectionSpace:v.selectable,
+        metadata:showType || showSize,reserveSelectionSpace:v.selectable,
         footerActions:hasActions?Number(showDownload)+Number(showPreview && v.previewPlacement === "footer"):0,
         previewOnThumbnail:hasActions && showPreview && v.previewPlacement === "thumbnail",animate:v.animate,
       });
