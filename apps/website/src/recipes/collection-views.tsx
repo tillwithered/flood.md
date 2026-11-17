@@ -46,13 +46,13 @@ export function AppliedFilterControl({ property, value, onChange }: {
 
 interface CollectionViewControlsProps {
  label:string;schema:CollectionSchema;presets:readonly CollectionView[];
- value:CollectionQuery;onValueChange:(query:CollectionQuery)=>void;storageKey:string;storage?:ViewStorage;toolbarActions?:ReactNode;
+ value:CollectionQuery;onValueChange:(query:CollectionQuery)=>void;storageKey:string;storage?:ViewStorage;toolbarActions?:ReactNode;clearAvailable?:boolean;
 }
 type NameDraft={kind:'create'|'rename';id?:string;name:string;snapshot:CollectionQuery;error?:string;invalid?:string};
 const inlineFilterLimit = 2;
 
 /** Host recipe: shared behaviour, not a second Flood component implementation. */
-export function CollectionViewControls({label,schema,presets,value,onValueChange,storageKey,storage,toolbarActions}:CollectionViewControlsProps){
+export function CollectionViewControls({label,schema,presets,value,onValueChange,storageKey,storage,toolbarActions,clearAvailable=true}:CollectionViewControlsProps){
  const [saved,setSaved]=useState<ViewRead|{state:'loading';views:[]}>({state:'loading',views:[]}),[selectedId,setSelectedId]=useState(presets[0].id);
  const [editing,setEditing]=useState(false),[draft,setDraft]=useState(()=>copyCollectionQuery(value)),[draftError,setDraftError]=useState('');
  const [advancedEditor, setAdvancedEditor] = useState(false);
@@ -165,7 +165,7 @@ export function CollectionViewControls({label,schema,presets,value,onValueChange
     })}
     summaryPrefix={!compactConditions&&value.conditions.length>1?(value.match==='all'?'All:':'Any:'):undefined}
     onRemoveFilter={id=>changeWorkingQuery({...value,conditions:value.conditions.filter(condition=>condition.id!==id)})}
-    onClear={()=>changeWorkingQuery(queryWithoutFilters)} canClear={canClearFilters}
+    onClear={()=>changeWorkingQuery(queryWithoutFilters)} canClear={canClearFilters && clearAvailable}
     filterTitle={label+' filters'} filtersOpen={editing} onFiltersOpenChange={requestEditor}
     filterPanelRef={editorPanel} filterPanelClassName={simpleEditor?undefined:'collection-filter-editor'}
     filterContent={
