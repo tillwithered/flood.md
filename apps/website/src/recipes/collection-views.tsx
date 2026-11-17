@@ -165,7 +165,7 @@ export function CollectionViewControls({label,schema,presets,value,onValueChange
     })}
     summaryPrefix={!compactConditions&&value.conditions.length>1?(value.match==='all'?'All:':'Any:'):undefined}
     onRemoveFilter={id=>changeWorkingQuery({...value,conditions:value.conditions.filter(condition=>condition.id!==id)})}
-    onClear={()=>changeWorkingQuery(queryWithoutFilters)} canClear={canClearFilters && clearAvailable}
+    onClear={()=>changeWorkingQuery({...queryWithoutFilters,search:canClearFilters?value.search:""})} canClear={canClearFilters || (!clearAvailable && Boolean(value.search))}
     filterTitle={label+' filters'} filtersOpen={editing} onFiltersOpenChange={requestEditor}
     filterPanelRef={editorPanel} filterPanelClassName={simpleEditor?undefined:'collection-filter-editor'}
     filterContent={
