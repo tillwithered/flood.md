@@ -179,7 +179,7 @@ export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGrid
     </div>
     :<CalendarPeriodGrid key={view} focusValue={view==="years"?String(year).padStart(4,"0"):month} choices={periodChoices} label={view==="years"?viewNames.year:`${viewNames.month}: ${year}`} onChoose={choosePeriod} autoFocus={focusView||autoFocus} disabled={effectiveDisabled} readOnly={readOnly&&(granularity==="year"||granularity==="month"&&view==="months")}/> }
     </div>
-    <div className="flood-calendar__footer">{footer}</div>
+    {(multiple || footer) && <div className="flood-calendar__footer">{footer}</div>}
   </div>;
 });
 
