@@ -3009,7 +3009,7 @@ export interface QueryPlanProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
 
 /** Inspect nested query operations, estimates and optional execution measurements. @since 0.2.14 */
 export const QueryPlan = /* @__PURE__ */ forwardRef<HTMLDivElement, QueryPlanProps>(function QueryPlan(
-  {label, root, headingLevel = 3, value, defaultValue, onValueChange, labels, lang, className, ...props}, ref,
+  {label, root, headingLevel = 2, value, defaultValue, onValueChange, labels, lang, className, ...props}, ref,
 ) {
   const [localValue, setLocalValue] = useState(defaultValue);
   const operations = new Map<string, QueryPlanOperation>();
@@ -5151,7 +5151,7 @@ export const ReceiptMatchReview = /* @__PURE__ */ forwardRef<HTMLElement, Receip
   return <Section {...props} ref={ref} title={title} headingSize="group"
     className={classes("flood-receipt-match-review", className)}
     actions={<StatusIndicator label={labels?.outcomes?.[outcome] ?? state.label} tone={state.tone} presentation="wrap" size="sm" />}>
-    {fields.length > 0 ? <Table caption={title} hideCaption density="compact" className="flood-receipt-match-review__table">
+    {fields.length > 0 ? <Table caption="Receipt comparison" hideCaption density="compact" className="flood-receipt-match-review__table">
       <thead>
         <tr><th scope="col">{labels?.field ?? "Field"}</th><th scope="col">{labels?.receipt ?? "Receipt"}</th>
           <th scope="col">{labels?.transaction ?? "Transaction"}</th></tr>
@@ -11292,7 +11292,7 @@ export const CollaboratorPresence = /* @__PURE__ */ forwardRef<HTMLDivElement, C
     description={presence.status === "reconnecting" && people.length ? lastKnown : undefined}
     emptyLabel={triggerText ?? empty} trigger={trigger => (
       <Button {...trigger} size="sm" variant="ghost" disabled={disabled}
-        className="flood-collaborator-presence__trigger" aria-label={`${label}: ${triggerText ?? count}`}>
+        className="flood-collaborator-presence__trigger" aria-label={triggerText ?? count}>
         {people.length > 0 && <span className="flood-collaborator-presence__faces" aria-hidden="true">
           {people.slice(0,3).map(({id,name,src,fallback}) => <Avatar key={id} name={name} src={src} fallback={fallback} decorative size="2xs" />)}
         </span>}
