@@ -24,7 +24,7 @@ export const EnvironmentSelector = /* @__PURE__ */ forwardRef<HTMLDivElement, En
     return <div {...props} ref={ref} className={["flood-environment-switcher", className].filter(Boolean).join(" ")}>
       <Menu label={label} items={items} controlSize={size} disabled={unavailable}
         trigger={trigger => <Button {...trigger} size={size} variant={variant}
-          aria-label={active ? optionName(active) : placeholder}
+          aria-label={active ? [active.label, active.scope?.label].filter(Boolean).join(" ") : placeholder}
           title={active ? optionName(active) : undefined} className="flood-environment-switcher__trigger">
           {active?.icon && <IconSlot size={size}>{active.icon}</IconSlot>}
           <span className="flood-environment-switcher__name">{active?.label ?? placeholder}</span>
