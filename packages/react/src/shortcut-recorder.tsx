@@ -76,7 +76,7 @@ export const ShortcutCapture = /* @__PURE__ */ forwardRef<HTMLDivElement, Shortc
     title={label} closeLabel={copy.cancel} disabled={disabled} open={open && !disabled} onOpenChange={changeOpen}
     initialFocusRef={capture}
     trigger={trigger => <Button {...trigger} size="sm" variant="outline"
-      aria-label={accepted ? `${label}, ${display(accepted).join(" + ")}` : `${label}, ${copy.unassigned}`}>
+      >
       {accepted ? <KeyboardShortcut keys={display(accepted)} /> : copy.unassigned}
     </Button>}>
     <Stack gap="3">
