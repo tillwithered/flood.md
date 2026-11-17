@@ -39,9 +39,11 @@ export const NumericStepper = /* @__PURE__ */ forwardRef<HTMLInputElement, Props
   const move = (direction: number) => {
     const node = input.current;
     if (!node || disabled || readOnly || node.matches(":disabled")) return;
-    const before = node.value;
-    if (direction > 0) node.stepUp(); else node.stepDown();
-    if (node.value !== before) publish(node.value);
+    const before = node.value === "" ? (direction > 0 ? min ?? 0 : max ?? 0) : Number(node.value);
+    const precision = Math.max(String(step).split(".")[1]?.length ?? 0, String(before).split(".")[1]?.length ?? 0);
+    const candidate = Number((before + direction * step).toFixed(precision));
+    const next = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, candidate));
+    if (next !== before) { node.value = String(next); publish(node.value); }
   };
   const glyph = (increase: boolean) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14" />{increase && <path d="M12 5v14" />}</svg>;
   return <Group {...props} ref={input} type="number" value={current} min={min} max={max} step={step}
