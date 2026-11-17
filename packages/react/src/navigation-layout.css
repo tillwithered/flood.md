@@ -98,6 +98,9 @@
 .flood-root .flood-app-top-bar[data-layout="compact"] > .flood-app-top-bar__start > .flood-breadcrumb[data-layout="compact"] > ol > li:first-child:not([data-current]) {
   max-inline-size:25%;
 }
+.flood-root .flood-app-top-bar[data-layout="compact"] .flood-breadcrumb [aria-current="page"] .flood-truncated-text {
+  letter-spacing:-.01em;
+}
 .flood-root :is(.flood-app-shell, .flood-app-top-bar)[hidden] { display: none; }
 .flood-root .flood-section__body { margin-block-start: var(--flood-sys-space-4); min-inline-size: 0; }
 .flood-root .flood-setting-group {
