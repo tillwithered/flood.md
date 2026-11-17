@@ -2,7 +2,7 @@ import { forwardRef, useId } from "react";
 import { DataList, DataListItem, Heading, Link, Stack, StatusIndicator, Text, type RecordRelationsProps } from "./index.js";
 
 export const RelatedRecords = /* @__PURE__ */ forwardRef<HTMLDivElement, RecordRelationsProps>(function RelatedRecords(
-  { label, groups, groupHeadingLevel = 3, emptyContent, className, ...props }, ref,
+  { label, groups, groupHeadingLevel = 2, emptyContent, className, ...props }, ref,
 ) {
   const groupId = useId();
   if (!label.trim() || new Set(groups.map(group => group.id)).size !== groups.length ||
