@@ -19,8 +19,84 @@ async function timersReady(page:Page,id:string){
  await expect(page.getByRole('status',{name:'Timer ready',exact:true})).toHaveText(id);
 }
 
-test('CopyButton writes only from enabled clicks and preserves label geometry',async({page})=>{
- await page.addInitScript(()=>{(window as any).copies=[];Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async(text:string)=>{if((window as any).failCopy)throw new Error('Clipboard denied');(window as any).copies.push(text);}}});});await open(page);const copy=page.getByRole('button',{name:'Copy',exact:true}),width=(await copy.boundingBox())!.width;const geometry=async()=>page.locator('.flood-copy-button').first().evaluate(button=>{const row=button.querySelector('[data-visible]')!;const [icon,label]=Array.from(row.children).map(node=>node.getBoundingClientRect());const box=button.getBoundingClientRect();return {gap:label.left-icon.right,left:icon.left-box.left,right:box.right-label.right,width:box.width};});const idle=await geometry();expect(Math.abs(idle.left-idle.right)).toBeLessThan(1);await copy.click();await expect(page.getByRole('button',{name:'Copied',exact:true})).toBeVisible();const copied=await geometry();expect(copied.gap).toBe(idle.gap);expect(Math.abs(copied.left-copied.right)).toBeLessThan(1);expect((await page.getByRole('button',{name:'Copied',exact:true}).boundingBox())!.width).toBe(width);expect(await page.evaluate(()=>(window as any).copies)).toEqual(['local test']);await expect(page.getByRole('button',{name:'Disabled copy'})).toBeDisabled();await expect(copy).toBeVisible();await page.evaluate(()=>(window as any).failCopy=true);await copy.click();await expect(page.getByRole('button',{name:'Failed',exact:true})).toBeVisible();const failed=await geometry();expect(failed.gap).toBe(idle.gap);expect(failed.width).toBe(width);expect(Math.abs(failed.left-failed.right)).toBeLessThan(1);await expect(page.getByRole('status',{name:'Copy error'})).toHaveText('Clipboard denied');
+test("ProfileSummary keeps identity and actions reachable at narrow width", async ({page}) => {
+  await page.goto("/components/profile-summary");
+  const stage = page.locator(".preview-stage");
+  const summary = stage.locator(".flood-profile-summary");
+  await expect(summary.getByRole("list", {name:"Profile facts"})).toContainText("248 followers");
+  await page.getByRole("checkbox", {name:"ProfileSummary prop narrow"}).check();
+  await page.getByRole("checkbox", {name:"ProfileSummary prop longProfile"}).check();
+  await expect(summary.getByText("@alexandra-konstantinova.design.example", {exact:true})).toBeVisible();
+  await expect.poll(() => summary.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+  await summary.getByRole("button", {name:"Follow Alexandra Konstantinova", exact:true}).press("Enter");
+  await expect(summary.getByRole("button", {name:"Following Alexandra Konstantinova, unfollow"})).toBeFocused();
+  await page.getByRole("checkbox", {name:"ProfileSummary prop details"}).uncheck();
+  await expect(summary.getByRole("list", {name:"Profile facts"})).toHaveCount(0);
+  await expect(summary.getByText("Alexandra Konstantinova", {exact:true})).toBeVisible();
+});
+
+test("FollowButton keeps its width and focus across subscription actions", async ({page}) => {
+  await page.goto("/components/follow-button");
+  const follow = page.getByRole("button", {name: "Follow Maya Chen", exact: true});
+  const following = page.getByRole("button", {name: "Following Maya Chen, unfollow"});
+  const requested = page.getByRole("button", {name: "Requested Maya Chen, cancel request"});
+  const pending = page.getByRole("checkbox", {name: "FollowButton prop pending"});
+  const width = (await follow.boundingBox())!.width;
+  await pending.check();
+  await follow.focus();
+  await expect(follow).toHaveAttribute("aria-busy", "true");
+  await follow.press("Enter");
+  await expect(follow).toBeFocused();
+  await expect(following).toHaveCount(0);
+  expect((await follow.boundingBox())!.width).toBeCloseTo(width, 0);
+  await pending.uncheck();
+  await follow.press("Enter");
+  await expect(following).toBeFocused();
+  expect((await following.boundingBox())!.width).toBeCloseTo(width, 0);
+  await following.press("Space");
+  await expect(follow).toBeFocused();
+  await page.getByRole("checkbox", {name: "FollowButton prop privateProfile"}).check();
+  await follow.click();
+  await expect(requested).toBeFocused();
+  expect((await requested.boundingBox())!.width).toBeCloseTo(width, 0);
+  await requested.press("Enter");
+  await expect(follow).toBeFocused();
+});
+
+test('CopyButton writes only from enabled clicks and preserves label geometry', async ({page}, info) => {
+ await page.addInitScript(() => {
+  (window as any).copies = [];
+  Object.defineProperty(navigator, 'clipboard', {
+   configurable: true, value: { writeText: async (text: string) => {
+    if ((window as any).failCopy) throw new Error('Clipboard denied');
+    (window as any).copies.push(text);
+   } },
+  });
+ });
+ await open(page);
+ const copy = page.getByRole('button', {name: 'Copy', exact: true});
+ const geometry = () => page.locator('.flood-copy-button').first().evaluate(button => {
+  const icon = button.querySelector(':scope > .flood-icon')!.getBoundingClientRect();
+  const label = button.querySelector('.flood-action-labels > [data-visible]')!.getBoundingClientRect();
+  const box = button.getBoundingClientRect();
+  return {gap: label.left - icon.right, left: icon.left - box.left, right: box.right - label.right, width: box.width};
+ });
+ const idle = await geometry();
+ expect(Math.abs(idle.left - idle.right)).toBeLessThan(1);
+ await copy.click();
+ const copied = page.getByRole('button', {name: 'Copied', exact: true});
+ await expect(copied).toBeVisible();
+ await expect.poll(geometry).toEqual(idle);
+ await expect(copied.locator('.flood-icon-swap__glyph[data-active]')).toHaveCSS('opacity', '1');
+ await copied.screenshot({path: info.outputPath('copy-button-copied.png')});
+ expect(await page.evaluate(() => (window as any).copies)).toEqual(['local test']);
+ await expect(page.getByRole('button', {name: 'Disabled copy'})).toBeDisabled();
+ await expect(copy).toBeVisible();
+ await page.evaluate(() => (window as any).failCopy = true);
+ await copy.click();
+ await expect(page.getByRole('button', {name: 'Failed', exact: true})).toBeVisible();
+ await expect.poll(geometry).toEqual(idle);
+ await expect(page.getByRole('status', {name: 'Copy error'})).toHaveText('Clipboard denied');
 });
 
 test('icon-only CopyButton keeps its square target and announces the copy result', async ({ page }) => {

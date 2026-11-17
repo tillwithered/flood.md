@@ -5,6 +5,47 @@ description: Compose and verify Flood form ownership, labels, values, validation
 
 # Preserve the form contract
 
+Use MeetingAvailability near scheduling controls to review a proposed slot.
+Keep unknown availability distinct from free time and time outside working
+hours. Show the attendee’s local date when it differs from the organizer's.
+Fetch availability and resolve calendar permissions in the host.
+
+Use SpendLimitForm when a resource has both a spending notification and an
+enforced limit. Describe the consequence next to the enforced threshold.
+Keep unset separate from zero, and ask for confirmation when a newly saved
+limit would interrupt a running service. Use UsageLimit for current usage.
+
+Use SharingPanel when the user needs to see direct grants and change general
+access for a resource. Describe who can open or discover it in each scope.
+Keep the selected draft distinct from what the server enforces and supply a
+copyable link only for the effective scope. Preserve the proposal on failure.
+
+Use AccessInviteForm to invite one person to a known workspace, project, or
+team. Show the resource and the selected role's practical effect. Require an
+explicit role choice unless a host policy deliberately provides one. Reset
+or revalidate the role when the resource changes and preserve the email on
+request failure. The host authorizes the role and resource together and
+announces success after it accepts the request.
+
+Use AccessRequestForm when someone hits a known restricted resource. Name
+the signed-in account and only the resource details it may discover. Add a
+message input when it can help the reviewer. If policy blocks requests,
+explain the available next step. A submitted request is still awaiting a
+decision, so the host continues to enforce the existing access.
+
+Use PendingInvitationList after sending to show invitations awaiting acceptance,
+expired invitations, and delivery failures. Render the actions allowed for each
+invitation. If revocation removes a row, restore focus to a remaining action
+or a stable control near the list.
+
+Use VariableReferencePicker for a single configuration reference. Supply only
+display-safe source names and keys. Keep the stable reference ID in form data.
+Resolve the value and validate the source in the host when saving the draft.
+
+Use ColorFilter beside search to stage and apply a single color criterion.
+Keep the text query independent. The host determines matching and updates the
+results only after the color filter is applied or cleared.
+
 For a message composer in a narrow panel, use `maxVisibleAttachments` if the
 file list can crowd the draft. Check that expanding the list preserves the draft
 and that a hidden file still goes with the message.
@@ -21,7 +62,157 @@ choose it for an explicit entry-only interaction or inside a composition that
 already supplies Calendar. Do not silently omit the calendar just because the
 brief did not enumerate every affordance of choosing a date.
 
+Use RelativeTimeRangePicker for a filter that can follow a relative window
+such as the last 24 hours or use fixed calendar bounds. Preserve both drafts
+when switching modes. Keep time zone conversion, the meaning of day-based
+intervals, and applying or submitting the filter in the host. Check a preset,
+an absolute edit, and a mode switch at the narrowest supported width.
+
+Use RestartPolicyEditor in a service’s runtime settings to configure automatic
+recovery after a stop. Explain the consequence of the selected mode. Keep the
+failure-only limit in the draft across mode switches and include it in the
+saved policy only when it applies. Read allowed modes and limits from the host.
+
+Use EstimateMenu beside a task or work item when estimates come from the
+team’s discrete scale. Use a short visible value with a full label. Keep a
+known zero distinct from an unestimated task. Retain the accepted estimate
+when the team changes its scale and let the host resolve existing values.
+
+Use DatabaseWebhookForm to configure delivery of row changes from one table.
+Require explicit events and a destination. Disambiguate tables by schema
+where needed and let the server enforce permissions and outbound URL policy.
+Keep the draft in place on rejection.
+
+Use EnvironmentCreationForm when a new environment can start empty or copy an
+existing one. Show which configuration or data will carry over for the selected
+source. Check source eligibility and name conflicts in the host. Keep the draft
+available after rejection.
+
+Use LogExportForm to export the current log query with an explicit format
+and row limit. Show its fixed time range or ask how far back to retrieve.
+Keep all existing source and filter constraints in the host request.
+Preserve selections if the download fails.
+
+Use TemplatePicker beside a record draft when a template fills several fields.
+Show the actual proposed values and identify any existing fields that will be
+replaced. Selecting a template changes the preview. Apply the changes only
+after the explicit apply action and preserve the user's draft if it fails.
+
+Use ModelPicker in a run or workflow that can use multiple inference models.
+Show one decision-relevant capability or the reason a model is unavailable.
+Keep the provider visible with the committed name and use a stable host ID
+when passing the choice into the request.
+
+Use ContentLanguagePicker to record the languages of an item separately from
+the interface locale. Provide the host’s accepted language tags. Give authors
+the chance to correct a detected draft, including adding another language to
+multilingual content. The picker submits the accepted tags.
+
+Use HandleField for a public account address. Pass a fixed domain when the user
+edits only their name, or accept the full address for a custom domain. Key each
+availability result by the exact address. Use DomainVerification for the separate
+step that proves ownership of a custom domain.
+
+Use CronScheduleField when a scheduler requires a cron expression. Validate
+using the service’s grammar and return a preview for the exact draft and zone.
+Show the zone beside upcoming runs, and keep unavailable previews separate
+from a known empty preview window.
+
+Use TimeZoneSelect when a user searches a named zone rather than choosing
+from a short fixed list. Pass the instant for display, preserve the named
+identifier, and resolve ambiguous civil times in the host. Use
+RecurrenceEditor for daily or weekly schedules. Keep inactive end drafts
+when switching modes and validate the active rule before generating dates.
+Use QuietHoursEditor for one weekly notification pause window in the host's
+time zone. Days select where the window starts. An end before the start
+falls on the following day. Validate the complete draft and apply the host's
+daylight-saving policy before saving.
+
 ## Assign ownership
+
+Use RecordRelationForm when the user needs to create a direct link between
+records. Name the direction from the source record's viewpoint and keep the
+draft when the host rejects it. Render accepted relationships with RecordRelations.
+
+Use ReplicaAllocation to edit planned counts across deployable regions.
+Keep the service-wide budget visible and include assignable regions with zero
+replicas. Use StagedChanges to review the plan and keep applying it in the host.
+Use DeploymentRegionPicker for a single location choice.
+
+Use ContentReportForm for a moderation report about an identified subject.
+Show the applicable reasons and require supporting details only when the
+chosen reason needs them. Keep the draft on failure and acknowledge success
+after the moderation service accepts it. Show the recipient when the app
+supports routing reports to multiple services.
+
+Use ModerationAppealForm to request reconsideration of one published decision.
+Keep the reason visible and bind the draft to that decision's ID. Preserve the
+explanation on refusal. Show the updated state in ModerationNotice once the
+service accepts the appeal.
+
+Use ContentLabelSettings when viewers choose how one provider's labels affect
+their feed. Name the provider and identify choices fixed by policy. Keep the
+last accepted visibility if the host refuses a request. Use ContentAdvisory
+at the point where a label permits deliberate reveal.
+
+Use MutedWordForm to draft a viewer's content mute before adding it to
+MutedWordList. Keep the word, match scope, duration and exception editable
+after rejection. Resolve expiry and duplicates when the host saves, and
+update the active list after acceptance.
+
+Use NotificationChannelSettings for a delivery channel with individual event
+preferences. Keep those choices intact when the channel is paused and show
+the source of any fixed choice on its row. Keep required alerts that bypass
+the pause outside the group. The host owns acceptance and delivery.
+
+Use PermissionEditor for one role's grouped permission draft. Show the named
+source of inherited permissions, preserve their resolved state, and let
+the host validate and commit editable grants together. Check one inherited
+grant, one inherited restriction and one editable permission by keyboard.
+
+Use ShortcutRecorder to capture an editable keyboard chord. Show conflicts
+from the host's actual bindings and persist only after explicit confirmation.
+Choose logical key or physical code matching for the host action and expose
+the accepted binding in KeyboardShortcut or ShortcutReference. Preserve Tab
+navigation and verify Escape leaves the saved binding unchanged.
+
+Use Calendar with selectionMode="multiple" for independent days. Use
+RangeCalendar for a continuous interval and DatePicker for a date field that
+people can type into. Keep date IDs in ISO form and check removal, clearing,
+and keyboard focus across month navigation.
+
+Use MoneyField for a named currency and UnitNumberField for a number with a
+measurement unit. Keep money as a decimal string. Changing a measurement unit
+leaves the quantity intact, so make conversion explicit in the host.
+Use PaymentMethodPicker when comparing payment methods by delivery and fee.
+Show an explicit zero fee for a fee-free quote and keep unknown estimates
+distinct. Recheck the selected method and its quote in the host before
+accepting a payment.
+
+Use ExpenseAllocationForm to reconcile one expense across named destinations
+in the original currency. Retain amounts when the authoritative total changes
+or saving fails. Apply destination rules and persist the accepted split in the host.
+Use KeyValueEditor for editable collections of pairs and key errors by stable
+row ID. Preserve the focused field when a key changes.
+
+Use the typed mode of FilterCondition or FilterGroup when a query accepts text,
+numeric or calendar-date operands. Changing which property is filtered resets
+the operand. Changing its operator preserves the entered value. The host
+decides when to apply the draft and how to interpret a missing value.
+
+Use SuggestionTextarea or the suggestions prop on MessageComposer for
+in-draft mentions and slash commands. The host owns the available entries and
+what a selected ID means. Check insertion after existing text with the
+keyboard and confirm the same Enter press does not also submit the message.
+
+Use QueryInput when advanced search combines free text or an exact identifier
+with field constraints. Keep query grammar, suggestions and execution with
+the host. Supply only the range being completed and keep committed conditions
+as individually removable tokens. Check the caret and untouched text after
+completion or removal. For plain text search, use SearchInput.
+Use VisualSearchForm when an image and text can describe the same query.
+Keep the selected image identified beside the query and preserve the text
+when changing or removing the image. The host owns the chooser and results.
 
 Use NumberRangeField for exact lower and upper bounds, with the unit in the
 group legend and a clear name on each endpoint. A Slider suits approximate
@@ -30,6 +221,10 @@ endpoints until the host validates the pair, and attach one shared error when
 the user needs to correct it. For a narrow standalone numeric field, use
 NumberInput appearance="plain" to keep numeric and keyboard behavior with
 more room for the value. Use the stepper when incrementing is a common task.
+
+Use RolloutAllocation for two variants sharing the same eligible audience.
+Choose a step that matches the release policy. The displayed shares must
+always total 100 percent. Keep publication and cohort assignment in the host.
 
 Use ColorPalette for a defined set of colors and ColorPicker for custom hex
 or RGB edits. Give each swatch a meaningful name, and show those names when
@@ -53,11 +248,24 @@ choices when each card needs comparison details. Set minItemWidth against the
 longest meaningful copy, then verify the same group after the grid reflows.
 Use a shared indicatorPlacement across peer cards. Check logical start and
 end in both writing directions, including the selected and disabled states.
+Use DeploymentRegionPicker in setup or migration when placement choices need
+geography and eligibility details. Distinguish automatic placement from a
+specific location, and keep the current deployment separate from the draft.
+Show the host's migration impact and apply the draft in a separate action.
+Use CidrField for an IP address with a required prefix length. Keep the draft
+text intact while users correct it. The host validates range semantics and
+eligibility before saving. Use NetworkAllowlist beside the field to show
+which ranges already belong to the draft or applied policy.
 
 In a multi-step form, use Steps to show the whole sequence or StepProgress in
 a narrow panel that only needs the current stage. The host owns which steps
 can be visited, validation before continuing, and focus when the stage changes.
 Keep the current step title from repeating an adjacent heading.
+
+When users jump between answered, unanswered and flagged sections, use
+recipe:checkpoint-navigator. Preserve answers while navigating and keep
+the flag as an independent action. Verify that answering a section retains
+its flag.
 
 - Field supplies label/description/error associations through its render props;
   spread those props onto the actual Flood control. Fieldset groups related
@@ -67,6 +275,10 @@ Keep the current step title from repeating an adjacent heading.
 - Decide controlled value/onValueChange versus uncontrolled defaultValue. A
   default initializes; changing it is not an update contract. Handle host refusal
   of a requested value without reporting that it was saved or losing focus.
+- For filter choices that constrain each other, use recipe:dependent-filters.
+  Invalidate the incompatible child when the parent changes, apply the pair as
+  one query change and keep unrelated constraints. A late child-option response
+  belongs to the parent that requested it.
 - Set native name/form/required and submit/reset button types deliberately.
   Inspect FormData, including repeated checkbox names with getAll and the
   component's documented submission shape. Visible prefixes are not submitted
@@ -78,6 +290,9 @@ Keep the current step title from repeating an adjacent heading.
 - Error is invalid; warning/success/info are advisory, not validation algorithms.
   Host validation decides the error and useful message. Keep native constraints,
   invalid focus and the accessible message association coherent.
+- Use FindBar to move among matches in an open document. The host owns matches,
+  editor selection and replacements. Check empty results, invalid expressions and
+  Enter or Shift+Enter in the query field.
 - Use ErrorSummary for multiple errors after a submission attempt. The links
   belong to errors with a real field target. Put form-wide validation messages
   without a control in formErrors. Check that autoFocus brings the summary into
@@ -112,6 +327,10 @@ For an editable value inside the same group, use Field layout=adaptive and
 spread the supplied control props. Keep the restriction or consequence with
 the label, and put validation feedback below the control. Narrow the actual
 panel and verify that fields stack in order without losing their draft values.
+Choose SettingGroup layout=aligned when direct adaptive fields and command
+rows should share columns and stack at the same width. Check the transition
+with a field hint and a row that has both a value and an action. Row-layout
+switches remain on their trailing edge as the group narrows.
 Use whitespace between rows and enable dividers only for dense peers that are
 hard to distinguish. Use Fieldset when the controls need a native form legend.
 
@@ -124,7 +343,12 @@ to the latest saved values. Confirm a successful save only after the host
 accepts it. See `recipe:settings-workspace` for a working local example.
 
 Use FormActions to keep the primary and secondary buttons together at the end
-of the form. Use SaveStatus for brief feedback beside those actions or in an
+of a short form. Use SaveBar when a long settings form needs save and discard
+within reach throughout editing. Bind it to the native form and the actual
+draft, verify viewport placement does not shift the form, and test discard,
+failed save and focus after the bar disappears.
+
+Use SaveStatus for brief feedback beside form actions or in an
 autosave header. Keep a failed save's recovery guidance above the action row
 and announce each outcome once. Check button position and reading order at
 the width where the status wraps.
@@ -181,6 +405,10 @@ stop action in the send slot during a response. Exercise bare Enter, Shift+Enter
 IME confirmation, attachment removal and sending a file with no text.
 Keep an embedded draft editor on its composer's surface. Use the caret and
 the existing border for focus feedback and keep hover feedback on the actions.
+Use the compact layout when the draft and actions usually fit side by side.
+The actions flow below the editor when they need more space. Check the
+composer in its narrowest host with the actual localized send label and
+attachment action, and confirm that the draft and focus survive reflow.
 
 Check entry, clear, incomplete drafts, invalid input, accepted/refused controlled
 updates, submit and normal/cancelled reset where supported. Match date/time

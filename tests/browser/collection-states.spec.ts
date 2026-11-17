@@ -168,4 +168,50 @@ test('CardSkeleton reserves the same card frame across loading and ready states'
   await expect(media.locator('img')).toBeVisible();
   expect((await media.boundingBox())!.height).toBeCloseTo(loadingMedia.height,0);
   await card.screenshot({path:info.outputPath('card-with-media-loaded.png')});
+  if (info.project.name === 'desktop') {
+    await loaded.uncheck();
+    await page.getByRole('checkbox',{name:'CardSkeleton prop longDescription'}).check();
+    const descriptionLines = card.locator('.flood-card__intro > .flood-text .flood-card-skeleton__line');
+    await expect(descriptionLines).toHaveCount(2);
+    const wrappedLoading = (await card.boundingBox())!.height;
+    await card.screenshot({path:info.outputPath('card-description-loading.png')});
+    await loaded.check();
+    await expect(card.getByText('The release moved to 12 November while the team checks the final artwork.')).toBeVisible();
+    expect((await card.boundingBox())!.height).toBeCloseTo(wrappedLoading,0);
+    await card.screenshot({path:info.outputPath('card-description-loaded.png')});
+    await page.getByRole('checkbox',{name:'CardSkeleton prop narrow'}).check();
+    const narrowReady = (await card.boundingBox())!.height;
+    await loaded.uncheck();
+    expect((await card.boundingBox())!.height).toBeCloseTo(narrowReady,0);
+  }
+});
+
+test('selectable cards keep the checkbox track through loading without a phantom control', async ({page}, info) => {
+  await page.goto('/components/card-skeleton');
+  const card = page.locator('.preview-stage .flood-card');
+  const knob = (name:string) => page.getByRole('checkbox',{name:`CardSkeleton prop ${name}`,exact:true});
+  await knob('selectable').check();
+  await knob('narrow').check();
+  await page.evaluate(()=>document.fonts.ready);
+  const selection = card.locator('.flood-card__selection');
+  const intro = card.locator('.flood-card__intro');
+  const frame = async () => {
+    const root = (await card.boundingBox())!;
+    const slot = (await selection.boundingBox())!;
+    return {x:slot.x-root.x,y:slot.y-root.y,width:slot.width,height:slot.height};
+  };
+  await expect(selection.locator('.flood-skeleton')).toBeVisible();
+  await expect(card.locator('input, button, a, [tabindex]')).toHaveCount(0);
+  const loadingFrame = await frame();
+  const loadingIntro = (await intro.boundingBox())!.width;
+  await card.screenshot({path:info.outputPath('card-selection-loading.png')});
+  await knob('loaded').check();
+  const checkbox = card.getByRole('checkbox',{name:'Select project'});
+  await expect(checkbox).toBeVisible();
+  expect(await frame()).toEqual(loadingFrame);
+  expect((await intro.boundingBox())!.width).toBe(loadingIntro);
+  await card.screenshot({path:info.outputPath('card-selection-ready.png')});
+  await checkbox.press('Space');
+  await expect(checkbox).toBeChecked();
+  await expect(card.getByRole('button',{name:'Open project'})).toBeEnabled();
 });

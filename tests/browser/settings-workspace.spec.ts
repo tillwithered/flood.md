@@ -3,6 +3,152 @@ import { chooseSelectOption } from "./select-helpers";
 
 const storageKey = "flood:settings-workspace:v1";
 
+test("StagedChanges discards one change without losing other resources or keyboard focus", async ({page}) => {
+  await page.goto("/components/staged-changes");
+  const review = page.getByRole("group", {name:"Proposed changes"});
+  const web = review.getByRole("list", {name:"Web service"});
+  const worker = review.getByRole("button", {name:"Queue worker", exact:true});
+  await expect(web).toContainText("US East");
+  await expect(web).toContainText("EU West");
+  await expect(web).toContainText("Added");
+  await worker.press("Space");
+  await expect(worker).toHaveAttribute("aria-expanded", "false");
+  await web.getByRole("button", {name:"Discard Region from Web service"}).press("Enter");
+  await expect(web.getByText("Region", {exact:true})).toHaveCount(0);
+  await expect(web).toContainText("/ready");
+  await expect(worker).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByRole("heading", {name:"Proposed changes", exact:true})).toBeFocused();
+  await page.getByRole("checkbox", {name:"StagedChanges prop narrow"}).check();
+  await worker.press("Enter");
+  const jobs = review.getByRole("list", {name:"Queue worker"});
+  await expect(jobs).toContainText("Removed");
+  await expect.poll(() => review.evaluate(node => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(1);
+  await jobs.getByRole("button", {name:"Discard Legacy queue from Queue worker"}).click();
+  await expect(worker).toHaveCount(0);
+  await web.getByRole("button", {name:"Discard Health check path from Web service"}).click();
+  await expect(review.getByText("No staged changes.")).toBeVisible();
+});
+
+test("SaveBar submits and resets its associated form without moving it", async ({page}) => {
+  await page.goto("/components/save-bar");
+  const form = page.getByRole("form", {name:"Project settings"});
+  const project = form.getByRole("textbox", {name:"Project name"});
+  const bar = page.getByRole("group", {name:"Save changes"});
+  const save = bar.getByRole("button", {name:"Save", exact:true});
+  await expect(bar).toBeHidden();
+  const initial = await form.boundingBox();
+  await project.fill("Website");
+  await expect(bar).toBeVisible();
+  expect((await form.boundingBox())!.y).toBeCloseTo(initial!.y, 0);
+  await bar.getByRole("button", {name:"Discard", exact:true}).click();
+  await expect(project).toHaveValue("Design system");
+  await expect(project).toBeFocused();
+  await expect(bar).toBeHidden();
+  await project.fill("");
+  await save.click();
+  await expect(project).toBeFocused();
+  await expect(bar).toBeVisible();
+  await project.fill("Website");
+  await save.click();
+  await expect(bar).toBeHidden();
+  await expect(project).toBeFocused();
+  await page.getByRole("checkbox", {name:"SaveBar prop failSave"}).check();
+  await project.fill("Web platform");
+  await save.click();
+  await expect(bar.getByRole("status")).toContainText("Could not save the project name");
+  await expect(project).toHaveValue("Web platform");
+  await bar.getByRole("button", {name:"Discard", exact:true}).click();
+  await expect(project).toHaveValue("Website");
+  await project.fill("Web platform");
+  await save.click();
+  await expect(bar.getByRole("status")).toContainText("Could not save the project name");
+  await page.getByRole("checkbox", {name:"SaveBar prop failSave"}).uncheck();
+  await save.click();
+  await expect(bar).toBeHidden();
+  await expect(project).toHaveValue("Web platform");
+  await page.getByRole("checkbox", {name:"SaveBar prop holdSave"}).check();
+  await project.fill("Release dashboard");
+  await save.click();
+  await expect(save).toBeFocused();
+  await expect(save).toHaveAttribute("aria-busy", "true");
+  await expect(bar.getByRole("button", {name:"Discard", exact:true})).toBeDisabled();
+});
+
+test("CopyableValue can distinguish clipped IDs by their ending", async ({page,context}) => {
+  await context.grantPermissions(["clipboard-read","clipboard-write"]);
+  await page.setViewportSize({width:1440,height:940});
+  await page.goto("/components/copyable-value");
+  const toggle = (prop:string) => page.getByRole("checkbox",{name:`CopyableValue prop ${prop}`,exact:true});
+  await chooseSelectOption(page.getByRole("combobox",{name:"CopyableValue prop appearance",exact:true}),"code");
+  await chooseSelectOption(page.getByRole("combobox",{name:"CopyableValue prop overflow",exact:true}),"truncate");
+  await toggle("identifiers").check();
+  await toggle("preserveEnd").check();
+  await toggle("constrainWidth").check();
+  await page.evaluate(()=>document.fonts.ready);
+  const values = page.locator(".preview-stage .flood-truncated-text[data-preserve-end]");
+  await expect(values).toHaveCount(2);
+  for (const [index,ending] of ["0174","0179"].entries()) {
+    const inline = values.nth(index);
+    const tail = inline.locator("span").last();
+    await expect(tail).toHaveText(ending);
+    await expect(inline).toHaveAttribute("tabindex","0");
+    expect(await tail.evaluate(node=>node.scrollWidth <= node.clientWidth)).toBe(true);
+  }
+  const full = "req_workflow_recovery_0179";
+  await values.nth(1).focus();
+  await expect(page.getByRole("tooltip")).toHaveText(full);
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Tab");
+  const copy = page.getByRole("button",{name:"Copy request 0179",exact:true});
+  await expect(copy).toBeFocused();
+  await copy.press("Enter");
+  await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toBe(full);
+  await toggle("constrainWidth").uncheck();
+  await expect(values.nth(1)).not.toHaveAttribute("tabindex");
+});
+
+test.describe("touch value disclosure", () => {
+  test.use({hasTouch:true,viewport:{width:1440,height:940},reducedMotion:"reduce"});
+
+  test("RevealValue groups actions when a detail value has little space", async ({page,context}) => {
+    await context.grantPermissions(["clipboard-read","clipboard-write"]);
+    await page.goto("/components/reveal-value");
+    const toggle = (prop:string) => page.getByRole("checkbox",{name:`RevealValue prop ${prop}`,exact:true});
+    const component = page.locator(".preview-stage .flood-reveal-value");
+    const display = component.locator(".flood-reveal-value__display");
+    const actions = component.locator(".flood-reveal-value__actions");
+    const value = "flood_demo_3f089bf2d2e34452a4e66d53e6af0cf1";
+    const show = component.getByRole("button",{name:"Show token"});
+    const hide = component.getByRole("button",{name:"Hide token"});
+    const copy = component.getByRole("button",{name:"Copy token"});
+    await page.evaluate(()=>document.fonts.ready);
+    expect((await actions.boundingBox())!.x).toBeGreaterThan((await display.boundingBox())!.x);
+    await toggle("inDetails").check();
+    await toggle("constrainWidth").check();
+    await toggle("longValue").check();
+    await expect(component).not.toContainText(value);
+    await expect(copy).toBeDisabled();
+    const masked = (await component.boundingBox())!;
+    const text = (await display.boundingBox())!;
+    const commands = (await actions.boundingBox())!;
+    const term = (await page.locator('.preview-stage dt').filter({hasText:"Token"}).boundingBox())!;
+    expect(commands.y).toBeGreaterThan(text.y+text.height);
+    expect(text.width).toBeCloseTo(masked.width,0);
+    expect(Math.abs(term.y+term.height/2-text.y-text.height/2)).toBeLessThan(3);
+    await expect(show).toHaveCSS("min-block-size","44px");
+    await show.press("Enter");
+    await expect(hide).toBeFocused();
+    await expect(display).toContainText(value);
+    expect((await component.boundingBox())!.height).toBeCloseTo(masked.height,0);
+    await copy.press("Enter");
+    await expect.poll(() => page.evaluate(()=>navigator.clipboard.readText())).toBe(value);
+    await hide.press("Enter");
+    await expect(show).toBeFocused();
+    await expect(copy).toBeDisabled();
+    await expect(component).not.toContainText(value);
+  });
+});
+
 test("settings validate, discard drafts and save both sections across reloads", async ({ page }) => {
   await page.goto("/playground/settings");
   const form = page.getByRole("form", { name: "Workspace settings" });

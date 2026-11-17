@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile, writeFile, rm, readdir } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { once } from 'node:events';
+import { tmpdir } from 'node:os';
 import { prepareSiteBundle, checkLocalSite, verifySite, waitForSite } from '../scripts/site-contract.mjs';
 
 const sha = 'a'.repeat(40);
@@ -12,8 +13,9 @@ async function fixture(handler) {
  return {server,url:'http://127.0.0.1:'+server.address().port,close:()=>new Promise(resolve=>server.close(resolve))};
 }
 
-test('isolated deploy artifact includes only runtime files and serves the complete agent bundle', async () => {
- const bundle = await prepareSiteBundle();
+test('isolated deploy artifact includes only runtime files and serves the complete agent bundle', async (context) => {
+ const bundle = await prepareSiteBundle(tmpdir());
+ context.after(() => rm(bundle, {recursive: true, force: true}));
  const entries = await readdir(bundle);
  assert.deepEqual(entries.sort(), ['Dockerfile','apps']);
  assert.match(await readFile(bundle+'/Dockerfile','utf8'),/USER node/);

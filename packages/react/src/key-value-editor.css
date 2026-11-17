@@ -1,0 +1,77 @@
+.flood-root .flood-key-value-row {
+  container: flood-key-value-row / inline-size;
+  min-inline-size: 0;
+  --flood-key-value-control-height: var(--flood-sys-control-sm-height);
+  --flood-key-value-label-offset: calc(
+    var(--flood-sys-type-field-label-size) * var(--flood-sys-type-field-label-line-height) + var(--flood-sys-space-1)
+  );
+}
+
+.flood-root .flood-key-value-row[data-size="md"] { --flood-key-value-control-height: var(--flood-sys-control-md-height); }
+.flood-root .flood-key-value-row[data-size="lg"] { --flood-key-value-control-height: var(--flood-sys-control-lg-height); }
+.flood-root .flood-key-value-row[data-size="xl"] { --flood-key-value-control-height: var(--flood-sys-control-xl-height); }
+
+.flood-root .flood-key-value-row__grid {
+  grid-template-columns: var(--flood-key-value-leading,) minmax(0, 2fr) minmax(0, 3fr) var(--flood-key-value-trailing,);
+  align-items: start;
+}
+.flood-root .flood-key-value-row[data-enabled-control] { --flood-key-value-leading: auto; }
+.flood-root .flood-key-value-row[data-removable] { --flood-key-value-trailing: auto; }
+.flood-root .flood-key-value-row__key,
+.flood-root .flood-key-value-row__value { min-inline-size: 0; }
+.flood-root .flood-key-value-row__enable,
+.flood-root .flood-key-value-row__remove { margin-block-start: var(--flood-key-value-label-offset); }
+.flood-root .flood-key-value-row__enable {
+  display: flex;
+  align-items: center;
+  min-block-size: var(--flood-key-value-control-height);
+  margin-block-start: calc(
+    var(--flood-key-value-label-offset) +
+    min(0px, (var(--flood-key-value-control-height) - var(--flood-sys-control-md-height)) / 2)
+  );
+}
+.flood-root .flood-key-value-editor__add { margin-block-start: var(--flood-sys-space-1); }
+
+@media (pointer: coarse) {
+  .flood-root .flood-key-value-row__enable {
+    min-block-size: max(var(--flood-key-value-control-height), var(--flood-sys-size-touch));
+    margin-block-start: var(--flood-key-value-label-offset);
+  }
+}
+
+@container flood-key-value-row (max-width: 19rem) {
+  .flood-root .flood-key-value-row__grid {
+    grid-template-columns: var(--flood-key-value-leading,) minmax(0, 1fr) var(--flood-key-value-trailing,);
+  }
+  .flood-root .flood-key-value-row__value {
+    grid-column-start: var(--flood-key-value-value-column, 1);
+    grid-column-end: -1;
+    grid-row: 2;
+  }
+  .flood-root .flood-key-value-row[data-enabled-control] .flood-key-value-row__value {
+    --flood-key-value-value-column: 2;
+  }
+  .flood-root .flood-key-value-row__remove { grid-column: -2; grid-row: 1; }
+}
+
+/* The first row supplies the visible column names. Keep a label on each
+   field for accessible names and restore visible pairs in stacked layout. */
+@container flood-key-value-row (width > 19rem) {
+  .flood-root .flood-key-value-row[data-continuation] .flood-field > .flood-label {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .flood-root .flood-key-value-row[data-continuation] :is(.flood-key-value-row__enable,.flood-key-value-row__remove) {
+    margin-block-start: 0;
+  }
+  @media (pointer: fine) {
+    .flood-root .flood-key-value-row[data-continuation] .flood-key-value-row__enable {
+      margin-block-start: min(0px, (var(--flood-key-value-control-height) - var(--flood-sys-control-md-height)) / 2);
+    }
+  }
+}

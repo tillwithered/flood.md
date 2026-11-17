@@ -1,0 +1,58 @@
+.flood-root .flood-content-advisory__content {
+  min-inline-size: 0;
+}
+
+.flood-root .flood-content-advisory__content[hidden] {
+  display: none;
+}
+
+.flood-root .flood-content-advisory__action-labels {
+  display: grid;
+  min-inline-size: 0;
+}
+
+.flood-root .flood-content-advisory__action-labels > span {
+  grid-area: 1 / 1;
+}
+
+.flood-root .flood-content-advisory__action-labels > [aria-hidden="true"] {
+  visibility: hidden;
+}
+
+.flood-root .flood-content-advisory__frame {
+  position: relative;
+  box-sizing: border-box;
+  display: grid;
+  align-items: center;
+  min-inline-size: 0;
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-radius: var(--flood-sys-radius-field);
+  background: var(--flood-sys-color-surface-current);
+}
+
+.flood-root .flood-content-advisory__placeholder {
+  padding: var(--flood-sys-space-4);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-content-advisory__placeholder[aria-hidden="true"] {
+  visibility: hidden;
+}
+
+.flood-root .flood-content-advisory__frame > .flood-content-advisory__content {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.flood-root .flood-content-advisory__frame > .flood-content-advisory__content > :is(img, video) {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+}
+
+.flood-root .flood-content-advisory__controls {
+  justify-content: flex-end;
+}

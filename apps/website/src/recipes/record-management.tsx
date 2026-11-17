@@ -2,10 +2,10 @@
 
 import {useEffect, useId, useLayoutEffect, useRef, useState, type FormEvent} from "react";
 import {
-  Button, CopyableValue, DataTable, DescriptionList, Drawer, NoResults,
-  Field, FormActions, Grid, Heading, Input, SearchInput, Section, Select,
-  Stack, StatusIndicator, Surface, Table, Timestamp, ToastRegion,
-  type DataTableColumn, type ToastItem,
+  AuditTimeline, Button, CopyableValue, DataTable, DescriptionList, Drawer, NoResults,
+  Field, FormActions, Grid, Input, PageHeader, SearchInput, Section, Select,
+  Stack, StatusIndicator, Surface, ToastRegion,
+  type AuditTimelineGroup, type ChangeListItem, type DataTableColumn, type ToastItem,
 } from "@flood-md/react";
 
 const statuses = {
@@ -28,18 +28,19 @@ const requestColumns: DataTableColumn[] = [
   {id: "status", label: "Status", sortable: true},
 ];
 
-const activityByRequest: Record<string, readonly {date: string; activity: string}[]> = {
+const activityDate = new Intl.DateTimeFormat("en", {month: "short", day: "numeric", timeZone: "UTC"});
+const activityTime = new Intl.DateTimeFormat("en", {hour: "numeric", minute: "2-digit", timeZone: "UTC"});
+const initialActivity: Record<string, readonly AuditTimelineGroup[]> = {
   "REQ-105": [
-    {date: "2026-11-10", activity: "Access issue reported"},
-    {date: "2026-11-11", activity: "Identity verified"},
-    {date: "2026-11-12", activity: "Recovery link sent"},
+    {id: "2026-11-12", label: "Nov 12", dateTime: "2026-11-12", items: [{id: "link", title: "Recovery link sent"}]},
+    {id: "2026-11-11", label: "Nov 11", dateTime: "2026-11-11", items: [{id: "verified", title: "Identity verified"}]},
+    {id: "2026-11-10", label: "Nov 10", dateTime: "2026-11-10", items: [{id: "reported", title: "Access issue reported"}]},
   ],
   "REQ-117": [
-    {date: "2026-11-11", activity: "Permission review requested"},
-    {date: "2026-11-12", activity: "Regional roles exported"},
+    {id: "2026-11-12", label: "Nov 12", dateTime: "2026-11-12", items: [{id: "exported", title: "Regional roles exported"}]},
+    {id: "2026-11-11", label: "Nov 11", dateTime: "2026-11-11", items: [{id: "requested", title: "Permission review requested"}]},
   ],
 };
-const activityDate = new Intl.DateTimeFormat("en", {month: "short", day: "numeric", timeZone: "UTC"});
 
 const fixtures: RequestRecord[] = [
   {id: "REQ-104", title: "Update billing address", owner: "Mina Chen", status: "new", summary: "Use the new address on future invoices."},
@@ -69,6 +70,7 @@ const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLa
 export function RecordManagement() {
   const formId = useId();
   const [records, setRecords] = useState(fixtures);
+  const [history, setHistory] = useState(initialActivity);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status | "all">("all");
   const [recordId, setRecordId] = useState<string | null>(null);
@@ -80,7 +82,7 @@ export function RecordManagement() {
   const edit = useRef<HTMLButtonElement>(null);
   const returnToEdit = useRef(false);
   const selected = records.find(record => record.id === recordId);
-  const activity = selected ? activityByRequest[selected.id] : undefined;
+  const activity = selected ? history[selected.id] : undefined;
   const results = records.filter(record => matchesRequest(record, query, status));
   const editing = draft !== null;
   const open = selected !== undefined;
@@ -109,7 +111,7 @@ export function RecordManagement() {
 
   function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!draft) return;
+    if (!draft || !selected) return;
     const title = draft.title.trim();
     if (!title) {
       subject.current?.setCustomValidity("Enter a subject.");
@@ -117,6 +119,29 @@ export function RecordManagement() {
       return;
     }
     const updated = {...draft, title, owner: draft.owner.trim()};
+    const changes: ChangeListItem[] = [];
+    if (selected.title !== updated.title) changes.push({id: "title", label: "Subject", before: selected.title, after: updated.title});
+    if (selected.owner !== updated.owner) changes.push({id: "owner", label: "Owner", before: selected.owner || undefined, after: updated.owner || undefined});
+    if (selected.status !== updated.status) changes.push({
+      id: "status", label: "Status",
+      before: <StatusIndicator {...statuses[selected.status]} size="sm" />,
+      after: <StatusIndicator {...statuses[updated.status]} size="sm" />,
+    });
+    if (changes.length) {
+      const now = new Date();
+      const dateTime = now.toISOString();
+      const day = dateTime.slice(0, 10);
+      setHistory(current => {
+        const groups = current[updated.id] ?? [];
+        const existing = groups.find(group => group.id === day);
+        const items = existing?.items ?? [];
+        const entry = {id: `edit-${items.length}`, title: "Request updated", timeLabel: activityTime.format(now), dateTime, changes};
+        return {...current, [updated.id]: [
+          {id: day, label: activityDate.format(now), dateTime: day, items: [entry, ...items]},
+          ...groups.filter(group => group.id !== day),
+        ]};
+      });
+    }
     setRecords(current => current.map(record => record.id === updated.id ? updated : record));
     setNotice({
       id: updated.id,
@@ -136,7 +161,7 @@ export function RecordManagement() {
 
   return <section aria-label="Request workspace">
     <Stack gap="6">
-      <Heading level={1} size="page">Requests</Heading>
+      <PageHeader title="Requests" headingSize="page" />
       <Grid gap="4" minItemWidth="12rem">
         <Field label="Search requests">
           {field => <SearchInput {...field} ref={search} value={query} clearLabel="Clear search"
@@ -210,20 +235,14 @@ export function RecordManagement() {
               </Field>
             </Stack>
           </form>
-          : selected && <Stack gap="8"><DescriptionList items={[
+          : selected && <Stack gap="8"><DescriptionList layout="columns" items={[
               {id: "request-id", term: "Request ID",
-                description: <CopyableValue value={selected.id} copyLabel="Copy request ID" overflow="truncate" />},
+                description: <CopyableValue value={selected.id} copyLabel="Copy request ID" overflow="truncate" preserveEnd={3} />},
               {id: "owner", term: "Owner", description: selected.owner || "Unassigned"},
               {id: "status", term: "Status", description: <StatusIndicator {...statuses[selected.status]} />},
             ]} />
             {activity && <Section title="Activity" headingLevel={3} headingSize="group">
-              <Table caption="Request activity" hideCaption density="compact">
-                <thead><tr><th scope="col">Date</th><th scope="col">Event</th></tr></thead>
-                <tbody>{activity.map(item => <tr key={item.date}>
-                  <td><Timestamp dateTime={item.date} size="compact">{activityDate.format(new Date(item.date))}</Timestamp></td>
-                  <td>{item.activity}</td>
-                </tr>)}</tbody>
-              </Table>
+              <AuditTimeline label="Request activity" groups={activity} headingLevel={4} density="compact" />
             </Section>}
           </Stack>}
       </Drawer>

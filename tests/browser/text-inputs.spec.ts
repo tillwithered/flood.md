@@ -29,7 +29,7 @@ test('PasswordStrength displays host-provided results and keeps requirements ind
 let bundle:Promise<string>;
 async function fixture(){
  const file=(p:string)=>JSON.stringify(resolve(p).replaceAll('\\','/'));const directory=resolve(`.artifacts/text-inputs-${process.pid}`);await mkdir(directory,{recursive:true});const entry=resolve(directory,'entry.mjs');
- await writeFile(entry,`import React,{useState}from ${file('node_modules/react/index.js')};import{createRoot}from ${file('node_modules/react-dom/client.js')};import{FloodRoot,SearchInput,PasswordInput,Button}from ${file('packages/react/dist/index.js')};import ${file('packages/react/dist/styles.css')};const h=React.createElement;function App(){const[value,V]=useState('controlled');return h(FloodRoot,null,h('form',{onSubmit:e=>e.preventDefault()},h(SearchInput,{'aria-label':'Uncontrolled',defaultValue:'initial',name:'q'}),h(SearchInput,{'aria-label':'Controlled',value,onChange:e=>V(e.currentTarget.value)}),h(SearchInput,{'aria-label':'Fixed',value:'fixed',onChange:()=>{}}),h(PasswordInput,{'aria-label':'Secret',defaultValue:'local-demo'}),h(PasswordInput,{'aria-label':'Fixed secret',visible:false,onVisibleChange:()=>{}}),h('fieldset',{disabled:true},h(PasswordInput,{'aria-label':'Disabled secret'})),h(Button,{type:'reset'},'Reset')))}createRoot(document.getElementById('app')).render(h(App));`);
+ await writeFile(entry,`import React,{useState}from ${file('node_modules/react/index.js')};import{createRoot}from ${file('node_modules/react-dom/client.js')};import{FloodRoot,SearchInput,PasswordInput,Textarea,Button}from ${file('packages/react/dist/index.js')};import ${file('packages/react/dist/styles.css')};const h=React.createElement;function App(){const[value,V]=useState('controlled');return h(FloodRoot,null,h('form',{onSubmit:e=>e.preventDefault()},h(SearchInput,{'aria-label':'Uncontrolled',defaultValue:'initial',name:'q'}),h(SearchInput,{'aria-label':'Controlled',value,onChange:e=>V(e.currentTarget.value)}),h(SearchInput,{'aria-label':'Fixed',value:'fixed',onChange:()=>{}}),h(PasswordInput,{'aria-label':'Secret',defaultValue:'local-demo'}),h(PasswordInput,{'aria-label':'Fixed secret',visible:false,onVisibleChange:()=>{}}),h('fieldset',{disabled:true},h(PasswordInput,{'aria-label':'Disabled secret'})),h(Textarea,{'aria-label':'Growing note',autoGrow:true,rows:2,maxRows:4,defaultValue:'Draft',name:'note'}),h(Button,{type:'reset'},'Reset')))}createRoot(document.getElementById('app')).render(h(App));`);
  const result=await build({configFile:false,logLevel:'silent',define:{'process.env.NODE_ENV':'"production"'},build:{write:false,cssCodeSplit:false,lib:{entry,formats:['iife'],name:'Fixture'}}});const output=Array.isArray(result)?result[0].output:result.output;return '<!doctype html><html lang="en"><title>Text fields</title><style>'+output.filter(x=>x.type==='asset'&&x.fileName.endsWith('.css')).map(x=>(x as any).source).join('')+'</style><body><div id="app"></div><script>'+output.filter(x=>x.type==='chunk').map(x=>(x as any).code).join('')+'</script></body></html>';
 }
 test('SearchInput clear uses native changes, respects controlled ownership and resets',async({page})=>{
@@ -38,6 +38,34 @@ test('SearchInput clear uses native changes, respects controlled ownership and r
  for(const input of [a,b,fixed])await input.locator('..').getByRole('button',{name:'Clear search'}).click();
  await expect(a).toHaveValue('');await expect(a.locator('..').getByRole('button')).toHaveCount(0);await expect(b).toHaveValue('');await expect(fixed).toHaveValue('fixed');await page.getByRole('button',{name:'Reset',exact:true}).click();await expect(a).toHaveValue('initial');await expect(a.locator('..').getByRole('button',{name:'Clear search'})).toBeVisible();
  const password=page.getByLabel('Secret',{exact:true});await password.focus();await password.evaluate((node:HTMLInputElement)=>node.setSelectionRange(2,5));await password.locator('..').getByRole('button',{name:'Show password'}).click();await expect(password).toHaveAttribute('type','text');await expect(password).toHaveValue('local-demo');await expect(password).toBeFocused();expect(await password.evaluate((node:HTMLInputElement)=>[node.selectionStart,node.selectionEnd])).toEqual([2,5]);await password.locator('..').getByRole('button',{name:'Hide password'}).focus();await page.keyboard.press('Space');await expect(password).toHaveAttribute('type','password');const fixedSecret=page.getByLabel('Fixed secret',{exact:true});await fixedSecret.locator('..').getByRole('button').click();await expect(fixedSecret).toHaveAttribute('type','password');await expect(page.getByLabel('Disabled secret').locator('..').getByRole('button')).toBeDisabled();
+});
+test('Textarea autoGrow keeps width and native reset while enforcing its row bounds', async ({page}) => {
+ bundle ??= fixture();
+ await page.route('**/__text-inputs.html', async route => route.fulfill({contentType:'text/html',body:await bundle}));
+ await page.goto('/__text-inputs.html');
+ const note = page.getByRole('textbox',{name:'Growing note'});
+ const metrics = () => note.evaluate(node => {
+  const box = node.getBoundingClientRect();
+  return {width:box.width,height:box.height,overflow:node.scrollHeight-node.clientHeight};
+ });
+ const initial = await metrics();
+ await note.fill('One\nTwo\nThree');
+ const grown = await metrics();
+ expect(grown.width).toBe(initial.width);
+ expect(grown.height).toBeGreaterThan(initial.height);
+ expect(grown.overflow).toBeLessThanOrEqual(1);
+ await note.fill('One\nTwo\nThree\nFour\nFive\nSix');
+ const capped = await metrics();
+ expect(capped.height).toBeGreaterThan(grown.height);
+ expect(capped.overflow).toBeGreaterThan(0);
+ expect(await note.evaluate(node => {
+  node.scrollTop = node.scrollHeight;
+  return node.scrollTop;
+ })).toBeGreaterThan(0);
+ expect(await note.evaluate((node:HTMLTextAreaElement) => new FormData(node.form!).get('note'))).toBe('One\nTwo\nThree\nFour\nFive\nSix');
+ await page.getByRole('button',{name:'Reset',exact:true}).click();
+ await expect(note).toHaveValue('Draft');
+ await expect.poll(async () => (await metrics()).height).toBe(initial.height);
 });
 test('Text input catalog previews preserve stage geometry and expose field states',async({page})=>{
  for(const slug of ['search-input','password-input']){

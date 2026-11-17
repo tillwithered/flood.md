@@ -13,6 +13,11 @@ findings alone. When implementing a fix, repeat the same interaction after it.
 
 ## Capture and inspect
 
+For a change to a mark or control that appears on multiple Flood surfaces,
+capture the same state on canvas and its actual backing material. Include a
+raised or inset panel and an overlay when the component is used there. Check
+that translucent markers remain readable where they overlap a connector.
+
 Use the project's Playwright setup or equivalent browser tooling. Reach states
 with clicks, keyboard and scroll. Wait for fonts and the intended stable state
 before a still capture. Keep motion enabled when investigating a jump or flicker;

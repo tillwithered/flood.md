@@ -1,9 +1,22 @@
 "use client";
 import {useRef, useState, type FormEvent} from "react";
-import {Button, Checkbox, DescriptionList, Drawer, Field, FileItem, FileList,
-  Inline, Input, Link, Section, Select, Stack, StatusIndicator, Surface, Text} from "@flood-md/react";
+import {Button, Checkbox, DescriptionList, DocumentPreview, Drawer, Field, FileItem, FileList,
+  Heading, Inline, Input, Link, Section, Select, Stack, StatusIndicator, Surface, Text} from "@flood-md/react";
 
 const defaults = {name: "Design workspace", visibility: "private", updates: true};
+const attachments = [
+  {
+    name:"Research findings — international expansion and onboarding.pdf", size:2457600, status:"Ready for review", tone:"info",
+    pages:[
+      {title:"Research findings", body:"In the first week, new teams looked for a short list of setup tasks and a way to invite teammates."},
+      {title:"Recommended changes", body:"Put the first setup task on the workspace home and link to the full checklist from there."},
+    ],
+  },
+  {
+    name:"Brand guidelines.pdf", size:1048576, status:"Reviewed", tone:"success",
+    pages:[{title:"Brand guidelines", body:"Use the wordmark on plain backgrounds and keep the surrounding area clear of other marks."}],
+  },
+] as const;
 
 /** Host state and native form semantics; no persistence or upload transport. */
 export function WorkspaceReview() {
@@ -67,10 +80,15 @@ export function WorkspaceReview() {
           trigger={props => <Button {...props} variant="subtle">Review files</Button>}
           footer={<Button onClick={() => setFilesOpen(false)}>Done reviewing</Button>}>
           <FileList label="Sample project files" appearance="plain" dividers={false}>
-            <FileItem lang="en" name="Research findings — international expansion and onboarding.pdf" format={null} size={2457600} metadataVariant="plain"
-              description={<StatusIndicator label="Ready for review" tone="info" size="sm" presentation="wrap" />} />
-            <FileItem lang="en" name="Brand guidelines.pdf" format={null} size={1048576} metadataVariant="plain"
-              description={<StatusIndicator label="Reviewed" tone="success" size="sm" presentation="wrap" />} />
+            {attachments.map(file => <FileItem key={file.name} lang="en" name={file.name} nameOverflow="truncate" format={null} size={file.size} metadataVariant="plain"
+              description={<StatusIndicator label={file.status} tone={file.tone} size="sm" presentation="wrap" />}
+              renderPreview={trigger => <DocumentPreview title={file.name} pageCount={file.pages.length} trigger={trigger}
+                renderPage={page => {
+                  const content = file.pages[page - 1];
+                  return {state:"ready",content:<Surface padding="6" style={{inlineSize:"36rem",maxInlineSize:"100%"}}>
+                    <Stack gap="3"><Heading level={3} size="section">{content.title}</Heading><Text as="p">{content.body}</Text></Stack>
+                  </Surface>};
+                }} />} />)}
           </FileList>
         </Drawer>
         <Text as="p" size="helper" tone="subtle"><Link href="/docs/recipes/workspace-review">Read the composition and its checks</Link></Text>

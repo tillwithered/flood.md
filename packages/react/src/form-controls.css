@@ -73,6 +73,36 @@
   .flood-root .flood-rating-summary__bucket { grid-template-columns:subgrid; }
 }
 .flood-root .flood-rating-summary__bucket-count { text-align:end; overflow-wrap:anywhere; }
+.flood-root .flood-rating-summary__bucket[data-filterable] {
+  position: relative;
+  min-block-size: var(--flood-sys-control-sm-height);
+  padding-inline: var(--flood-sys-space-2);
+  border-radius: var(--flood-sys-radius-field);
+}
+.flood-root .flood-rating-summary__bucket:has(> .flood-rating-summary__bucket-action:hover:not(:disabled)) {
+  background: var(--flood-sys-color-action-ghost-hover);
+}
+.flood-root .flood-rating-summary__bucket:has(> .flood-rating-summary__bucket-action[aria-pressed="true"]) {
+  background: var(--flood-sys-color-selection-background);
+}
+.flood-root .flood-rating-summary__bucket > .flood-rating-summary__bucket-action:is(.flood-button) {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+  border-radius: inherit;
+  background: transparent;
+}
+.flood-root .flood-rating-summary__bucket-action:focus-visible {
+  outline-offset: calc(-1 * var(--flood-sys-focus-width));
+}
+@media (forced-colors: active) {
+  .flood-root .flood-rating-summary__bucket:has(> .flood-rating-summary__bucket-action[aria-pressed="true"]) {
+    outline: 1px solid Highlight;
+    outline-offset: -1px;
+  }
+}
 @container flood-rating-summary (min-width:23rem) {
   .flood-root .flood-rating-summary[data-layout="auto"] > .flood-rating-summary__body {
     grid-template-columns:minmax(6.5rem, 1fr) minmax(0, 2fr);

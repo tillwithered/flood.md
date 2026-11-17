@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ComponentType, type RefObject } from "react";
 import { CopyButton, CodeSnippet, FloodRoot, Heading, ScrollArea, SkipLink, Text } from "@flood-md/react";
 import "@flood-md/react/styles.css";
 import "./site.css";
@@ -15,7 +15,13 @@ const MotionPlayground = lazy(() => import("./motion-playground"));
 const FormatFilterPreview = lazy(() => import("./format-filter-preview"));
 const RecordManagement = lazy(() => import("./recipes/record-management").then(module => ({ default: module.RecordManagement })));
 const SettingsWorkspace = lazy(() => import("./recipes/settings-workspace").then(module => ({ default: module.SettingsWorkspace })));
+const ProductVariants = lazy(() => import("./recipes/product-variants").then(module => ({ default: module.ProductVariants })));
+const MergeRecords = lazy(() => import("./recipes/merge-records").then(module => ({ default: module.MergeRecords })));
+const ImportMapping = lazy(() => import("./recipes/import-mapping").then(module => ({ default: module.ImportMapping })));
 const ChartsPlayground = lazy(() => import("./charts-playground"));
+const DocumentReview = lazy(() => import("./recipes/document-review").then(module => ({ default: module.DocumentReview })));
+const CodeEditorExample = lazy(() => import("./recipes/code-editor-workspace").then(module => ({ default: module.CodeEditorExample })));
+const CodeReview = lazy(() => import("./recipes/code-review").then(module => ({ default: module.CodeReview })));
 const command = `npx @flood-md/cli@${release.version} init`;
 
 function Home() {
@@ -42,7 +48,8 @@ function Home() {
   </main>;
 }
 
-type AppProps = { path: string; documentation?: ComponentType<{ path: string }> };
+type DocProps = { path: string; scrollRootRef?: RefObject<HTMLDivElement | null> };
+type AppProps = { path: string; documentation?: ComponentType<DocProps> };
 
 export function App(props: AppProps) {
   const pageScroll = useRef<HTMLDivElement>(null);
@@ -93,11 +100,11 @@ export function App(props: AppProps) {
     };
   }, []);
   return <ScrollArea ref={pageScroll} className="site-page-scroll" contentInset="none" tabIndex={-1}>
-    <Page {...props} />
+    <Page {...props} scrollRootRef={pageScroll} />
   </ScrollArea>;
 }
 
-function Page({ path, documentation: Reader }: AppProps) {
+function Page({ path, documentation: Reader, scrollRootRef }: AppProps & Pick<DocProps, "scrollRootRef">) {
   if (path === "/playground/navigation") return <Suspense fallback={null}><NavigationPlayground /></Suspense>;
   if (path === "/playground/motion") return <Suspense fallback={null}><MotionPlayground /></Suspense>;
   if (path === "/playground/surfaces") return <Suspense fallback={null}><SurfaceStudy /></Suspense>;
@@ -106,7 +113,13 @@ function Page({ path, documentation: Reader }: AppProps) {
   if (path === "/playground") return <Suspense fallback={<p>Loading examples…</p>}><Examples /></Suspense>;
   const home = path === "/";
   const Recipe = path === "/playground/records" ? RecordManagement : path === "/playground/settings" ? SettingsWorkspace :
-    path === "/playground/charts" ? ChartsPlayground : undefined;
+    path === "/playground/product-variants" ? ProductVariants :
+    path === "/playground/merge-records" ? MergeRecords :
+    path === "/playground/import-mapping" ? ImportMapping :
+    path === "/playground/charts" ? ChartsPlayground :
+    path === "/playground/document-review" ? DocumentReview :
+    path === "/playground/code-editor" ? CodeEditorExample :
+    path === "/playground/code-review" ? CodeReview : undefined;
   const activeFormat = path === "/playground/collections/active-format";
   const filterGroup = path === "/playground/collections/filter-group";
   const savedViews = path === "/playground/collections/saved-views";
@@ -123,7 +136,7 @@ function Page({ path, documentation: Reader }: AppProps) {
         <Suspense fallback={null}>
           <FormatFilterPreview mode={savedViews ? "views" : filterGroup ? "group" : activeFormat ? "tag" : "select"} />
         </Suspense>
-      ) : Reader ? <Reader path={path} /> : <main id="main-content" tabIndex={-1} className="doc-loading">Loading documentation…</main>}
+      ) : Reader ? <Reader path={path} scrollRootRef={scrollRootRef} /> : <main id="main-content" tabIndex={-1} className="doc-loading">Loading documentation…</main>}
       <SiteFooter />
     </div>
   </FloodRoot>;

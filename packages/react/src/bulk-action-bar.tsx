@@ -4,7 +4,7 @@ import { IconButton, OverflowActions, Text, VisuallyHidden, type BulkActionBarPr
 /** Selection owns the count; the host owns accepted record updates and focus after removal. */
 export const SelectionActionBar = /* @__PURE__ */ forwardRef<HTMLDivElement, BulkActionBarProps>(function SelectionActionBar({
   label, selectionCount, selectionLabel = `${selectionCount} selected`, items, onAction, onClear,
-  counter = "label", counterWidth,
+  counter = "label", counterWidth, placement = "inline",
   clearLabel = "Clear selection", moreLabel = "More", morePresentation = "label", size = "sm", maxVisibleActions = 2,
   disabled = false, pending = false, className, ...props
 }, ref) {
@@ -15,7 +15,7 @@ export const SelectionActionBar = /* @__PURE__ */ forwardRef<HTMLDivElement, Bul
   if (selectionCount === 0) return null;
   return <OverflowActions {...props} ref={ref} label={label} items={items} onAction={onAction}
     moreLabel={moreLabel} morePresentation={morePresentation} size={size} variant="subtle" shape="pill" maxVisibleActions={maxVisibleActions}
-    disabled={disabled || pending} aria-busy={pending || undefined}
+    disabled={disabled || pending} aria-busy={pending || undefined} data-placement={placement}
     className={["flood-bulk-action-bar", className].filter(Boolean).join(" ")}
     leading={counter === "none" ? undefined : <Text size="compact" className="flood-bulk-action-bar__selection" data-counter={counter}
       style={counterWidth === undefined ? undefined : { inlineSize: counterWidth }} title={selectionLabel}>

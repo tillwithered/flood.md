@@ -11,12 +11,13 @@ export function validateRange(value: number | undefined, min: number, max: numbe
     throw new RangeError("Flood indicator value must be finite and within its range");
 }
 
-type IndicatorProps = ProgressProps & { kind: "progress" | "meter"; shape?: "ring"; min: number; max: number; reference?: MeterReference };
+type IndicatorProps = ProgressProps & { kind: "progress" | "meter"; shape?: "ring"; min: number; max: number; reference?: MeterReference; projection?: MeterReference };
 export const ValueIndicator = /* @__PURE__ */ forwardRef<HTMLDivElement, IndicatorProps>(function ValueIndicator(
-  { kind, shape, label, value, min, max, reference, valueText, size, tone, hideLabel, layout = "stacked", className, ...props }, ref,
+  { kind, shape, label, value, min, max, reference, projection, valueText, size, tone, hideLabel, layout = "stacked", className, ...props }, ref,
 ) {
   const labelId = `flood-indicator-${useId()}`;
   const referenceId = `${labelId}-reference`;
+  const projectionId = `${labelId}-projection`;
   validateRange(value, min, max, kind === "progress");
   if (reference) {
     validateRange(reference.value, min, max, false);
@@ -25,23 +26,32 @@ export const ValueIndicator = /* @__PURE__ */ forwardRef<HTMLDivElement, Indicat
   const unknown = value === undefined;
   const percent = unknown ? undefined : ((value - min) / (max - min)) * 100;
   const referencePercent = reference ? ((reference.value - min) / (max - min)) * 100 : undefined;
+  const projectionPercent = projection ? ((projection.value - min) / (max - min)) * 100 : undefined;
+  const descriptionIds = [projection && projectionId, reference && referenceId].filter(Boolean).join(" ");
   const ring = shape === "ring";
   const caption = <><span id={labelId}>{label}</span>{valueText && <span className="flood-indicator__value" aria-hidden="true">{valueText}</span>}</>;
   return <div {...props} ref={ref} className={["flood-indicator", className].filter(Boolean).join(" ")}
     data-kind={kind} data-shape={shape} data-size={size} data-tone={tone} data-layout={ring ? undefined : layout} data-indeterminate={unknown}>
     {hideLabel ? <VisuallyHidden as="div">{caption}</VisuallyHidden> : <div className="flood-indicator__caption">{caption}</div>}
     <div className={ring ? "flood-indicator__ring" : "flood-indicator__track"} role={kind === "meter" ? "meter" : "progressbar"}
-      aria-labelledby={labelId} aria-describedby={reference ? referenceId : undefined}
+      aria-labelledby={labelId} aria-describedby={descriptionIds || undefined}
       aria-valuemin={min} aria-valuemax={max} aria-valuenow={value} aria-valuetext={valueText}>
       {ring ? <svg viewBox="0 0 40 40" aria-hidden="true" focusable="false">
         <circle className="flood-indicator__ring-track" cx="20" cy="20" r="17" />
         <circle className="flood-indicator__ring-fill" cx="20" cy="20" r="17" pathLength="100"
           data-empty={percent === 0 || undefined} style={{ strokeDasharray: `${percent ?? 28} 100` }} />
       </svg> : <span className="flood-indicator__fill" style={{ inlineSize: percent === undefined ? undefined : `${percent}%` }} />}
+      {projectionPercent !== undefined && percent !== undefined && projectionPercent > percent &&
+        <span className="flood-indicator__projection" aria-hidden="true"
+          style={{insetInlineStart:`${percent}%`,inlineSize:`${projectionPercent - percent}%`}} />}
       {reference && <span className="flood-indicator__reference" aria-hidden="true"
         style={{"--flood-indicator-reference-position": `${referencePercent}%`} as CSSProperties} />}
     </div>
-    {reference && (hideLabel ? <VisuallyHidden id={referenceId}>{reference.label}</VisuallyHidden>
+    {projection && <div className="flood-indicator__comparison">
+      <span id={projectionId}>{projection.label}</span>
+      {reference && <span id={referenceId}>{reference.label}</span>}
+    </div>}
+    {reference && !projection && (hideLabel ? <VisuallyHidden id={referenceId}>{reference.label}</VisuallyHidden>
       : <span id={referenceId} className="flood-indicator__reference-label">{reference.label}</span>)}
   </div>;
 });

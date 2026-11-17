@@ -1,0 +1,41 @@
+.flood-root .flood-milestone-progress {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  min-inline-size: 0;
+  gap: var(--flood-sys-space-2);
+}
+
+.flood-root .flood-milestone-progress__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  align-content: center;
+  justify-content: space-between;
+  row-gap: var(--flood-sys-space-1);
+  column-gap: var(--flood-sys-space-3);
+  min-inline-size: 0;
+  min-block-size: var(--flood-sys-control-xs-height);
+}
+
+.flood-root .flood-milestone-progress__name {
+  min-inline-size: 0;
+  font-size: var(--flood-sys-type-label-size);
+  font-weight: var(--flood-sys-type-label-weight);
+  line-height: var(--flood-sys-type-label-line-height);
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-milestone-progress__facts {
+  min-inline-size: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--flood-sys-space-3);
+  row-gap: var(--flood-sys-space-1);
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-milestone-progress__amount {
+  font-variant-numeric: tabular-nums;
+}

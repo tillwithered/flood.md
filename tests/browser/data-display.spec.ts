@@ -69,6 +69,34 @@ test("DescriptionList keeps value actions on a shared edge and preserves long va
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(fullValue);
 });
 
+test("a stacked description item uses the full value width without moving the other facts", async ({page}, info) => {
+  await page.setViewportSize({width:1440,height:940});
+  await page.goto("/components/description-list");
+  await chooseSelectOption(page.getByRole("combobox",{name:"DescriptionList prop layout"}),"columns");
+  for (const name of ["constrainWidth", "longValue", "showActions"]) {
+    await page.getByRole("checkbox",{name:`DescriptionList prop ${name}`}).check();
+  }
+  const list = page.locator('.preview-stage dl[aria-label="Project details"]');
+  const owner = list.locator("dd").last();
+  const term = list.locator("dt").last();
+  const before = (await owner.boundingBox())!;
+  const peer = (await list.locator("dd").first().boundingBox())!;
+  await page.getByRole("checkbox",{name:"DescriptionList prop stackOwner"}).check();
+  const bounds = (await owner.boundingBox())!;
+  const termBounds = (await term.boundingBox())!;
+  expect(bounds.x).toBeCloseTo(termBounds.x,0);
+  expect(bounds.y).toBeGreaterThan(termBounds.y+termBounds.height);
+  expect(bounds.width).toBeGreaterThan(before.width);
+  expect(bounds.height).toBeLessThan(before.height);
+  expect((await list.locator("dd").first().boundingBox())!.width).toBe(peer.width);
+  await expect(list.getByRole("button",{name:"Copy owner"})).toBeInViewport();
+  await list.screenshot({path:info.outputPath("description-mixed-columns.png")});
+  await page.getByRole("checkbox",{name:"DescriptionList prop constrainWidth"}).uncheck();
+  await chooseSelectOption(page.getByRole("combobox",{name:"DescriptionList prop layout"}),"grid");
+  expect((await owner.boundingBox())!.width).toBeCloseTo((await list.boundingBox())!.width,0);
+  await expect(list.locator("dt")).toHaveText(["Project","Version","Owner"]);
+});
+
 test("Table preserves its caption, native headers and keyboard horizontal scrolling",async({page})=>{
   await page.setViewportSize({width:390,height:900});
   await page.goto("/components/table");

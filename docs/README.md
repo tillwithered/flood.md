@@ -26,13 +26,30 @@ them without a separate content service.
 | [FAQ](faq.md) | Compatibility, customization, updates and common problems |
 | [Command palette](recipes/command-palette.md) | Compose Dialog and CommandList with host-owned actions |
 | [Table bulk actions](recipes/table-bulk-actions.md) | Controlled cross-page selection and local confirmation |
+| [File gallery](recipes/file-gallery.md) | File previews, selection, archives and focus recovery |
 | [Grouped form](recipes/grouped-form.md) | Shared tracks, semantic groups and optional fields |
+| [Import mapping](recipes/import-mapping.md) | Match incoming columns to fields and correct validation errors |
+| [Action review](recipes/action-review.md) | Inspect a proposed action and submit a decision |
+| [Record association](recipes/record-association.md) | Search for a related record and keep its relationship draft |
+| [Refresh controls](recipes/refresh-controls.md) | Manual and scheduled refresh while keeping collection rows |
+| [Checkpoint navigator](recipes/checkpoint-navigator.md) | Jump to a review section and independently flag it |
+| [Dependent filters](recipes/dependent-filters.md) | Apply related choices together and recover from incompatible values |
+| [Version history](recipes/version-history.md) | Inspect, compare and restore saved versions |
+| [Conversion funnel](recipes/conversion-funnel.md) | Compare ordered stages of the same cohort |
+| [Collaborative save](recipes/collaborative-save.md) | Preserve local edits and review a conflicting save |
+| [Map and list](recipes/map-and-list.md) | Share selection between location results and a map adapter |
+| [Support reply](recipes/support-reply.md) | Isolate channel drafts and review macro changes |
+| [Staged changes](recipes/staged-changes.md) | Review an explicit draft and select changes to apply |
+| [Document review](recipes/document-review.md) | Review inline revisions and their linked discussions |
+| [Code editor workspace](recipes/code-editor-workspace.md) | Connect a code editor and its query results |
+| [Code review](recipes/code-review.md) | Inspect changed files and hold discussions on source lines |
+| [Address confirmation](recipes/address-confirmation.md) | Fill dependent address fields and confirm a correction |
 | [Record management](recipes/record-management.md) | Search, filter and edit records without losing the working list |
 | [Settings workspace](recipes/settings-workspace.md) | Group settings, validate a draft and save changes |
 
 ## Versions
 
-This branch documents **version 0.2.14**; source availability does
+This branch documents **version 0.2.15**; source availability does
 not establish npm publication. Use matching exact versions of the Flood packages. Documentation on `main` can describe later work; the
 [release tags](https://github.com/tillwithered/flood.md/releases) preserve the
 source and docs for each release. Installed `flood/DESIGN.md` takes precedence

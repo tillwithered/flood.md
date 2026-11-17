@@ -1,0 +1,13 @@
+.flood-root :is(.flood-recurrence-editor, .flood-quiet-hours-editor) { container: flood-weekdays / inline-size; }
+
+@container flood-weekdays (max-width: 27rem) {
+  .flood-root :is(.flood-recurrence-editor__weekdays, .flood-quiet-hours-editor__weekdays) .flood-choice-group {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: var(--flood-sys-space-2);
+  }
+}
+
+@container flood-weekdays (max-width: 16rem) {
+  .flood-root :is(.flood-recurrence-editor__weekdays, .flood-quiet-hours-editor__weekdays) .flood-choice-group { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

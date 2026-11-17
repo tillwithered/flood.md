@@ -1,0 +1,12 @@
+.flood-root .flood-deadline-status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--flood-sys-space-1) var(--flood-sys-space-2);
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  vertical-align: baseline;
+  font-variant-numeric: tabular-nums;
+}
+
+.flood-root .flood-deadline-status[hidden] { display: none; }

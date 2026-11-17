@@ -65,7 +65,8 @@ export function CollectionViewControls({label,schema,presets,value,onValueChange
  const compactConditions = (value.match === 'all' || value.conditions.length < 2) &&
    value.conditions.every(condition => condition.operator === 'is' && condition.values.length === 1);
  const collapseFilters = schema.properties.length > inlineFilterLimit;
- const canClearFilters = value.conditions.length > 0 || Boolean(value.search);
+ const canClearFilters = value.conditions.length > 0;
+ const queryWithoutFilters = {...value, conditions: []};
  const simpleEditor = collapseFilters && compactConditions && !advancedEditor;
 
  useEffect(() => {
@@ -85,18 +86,26 @@ export function CollectionViewControls({label,schema,presets,value,onValueChange
    const existing = value.conditions.find(condition => condition.property === property);
    const conditions = value.conditions.filter(condition => condition.property !== property);
    if (option) conditions.push({ id: existing?.id ?? crypto.randomUUID(), property, operator: 'is', values: [option] });
-   onValueChange({ ...value, match: 'all', conditions });
+   changeWorkingQuery({ ...value, match: 'all', conditions });
  }
  useEffect(()=>setEditing(false),[appliedKey]);
  useEffect(()=>{try{setSaved(readCollectionViews(storageKey,schema,storage??window.localStorage,presets.map(preset=>preset.name)));}catch{setSaved({state:'error',views:[],raw:null});}},[storageKey,storage,schemaKey,readAttempt]);
  const views=[...presets,...saved.views],selected=views.find(view=>view.id===selectedId)??presets[0];
- const dirty=collectionQueryKey(value)!==collectionQueryKey(selected.query),custom=saved.views.find(view=>view.id===selected.id);
+ const savedQueryKey=collectionQueryKey(selected.query);
+ const dirty=appliedKey!==savedQueryKey,custom=saved.views.find(view=>view.id===selected.id);
+ const clearRestoresSavedView = (Boolean(value.search) && collectionQueryKey({...value, search: ''}) === savedQueryKey)
+   || (canClearFilters && collectionQueryKey(queryWithoutFilters) === savedQueryKey);
+ const canResetView = dirty && !clearRestoresSavedView;
+ function changeWorkingQuery(next: CollectionQuery) {
+   if (operationError?.kind === 'update' && collectionQueryKey(next) === savedQueryKey) setOperationError(null);
+   onValueChange(next);
+ }
  function persist(views:CollectionView[]){
   if(saved.state!=='ready')return false;
   try{(storage??window.localStorage).setItem(storageKey,JSON.stringify({version:1,views}));setSaved({state:'ready',views});setOperationError(null);return true;}catch{return false;}
  }
  const requestEditor=(next:boolean)=>{if(next){setDraft(copyCollectionQuery(value));setDraftError('');setAdvancedEditor(false);}setEditing(next);};
- function apply(event:FormEvent<HTMLFormElement>){event.preventDefault();try{onValueChange(parseCollectionQuery({...value,match:draft.match,conditions:draft.conditions},schema));setEditing(false);}catch{setDraftError('Choose a value for each condition.');}}
+ function apply(event:FormEvent<HTMLFormElement>){event.preventDefault();try{changeWorkingQuery(parseCollectionQuery({...value,match:draft.match,conditions:draft.conditions},schema));setEditing(false);}catch{setDraftError('Choose a value for each condition.');}}
  function saveName(event:FormEvent<HTMLFormElement>){
   event.preventDefault();if(!nameDraft)return;const name=nameDraft.name.trim();
   if(!name){setNameDraft({...nameDraft,invalid:'Enter a view name.'});return;}
@@ -106,7 +115,7 @@ export function CollectionViewControls({label,schema,presets,value,onValueChange
   if(persist(next)){setNameDraft(null);setSelectedId(id);}else setNameDraft({...nameDraft,error:'The view could not be saved. Try again.'});
  }
  function action(id:string){
-  if(id==='reset'){onValueChange(copyCollectionQuery(selected.query));setOperationError(error=>error?.kind==='update'?null:error);return;}
+  if(id==='reset'){viewInput.current?.focus({preventScroll:true});changeWorkingQuery(copyCollectionQuery(selected.query));return;}
   if(id==='create'||id==='rename'||id==='delete')viewInput.current?.focus({preventScroll:true});
   if(id==='create')setNameDraft({kind:'create',name:'',snapshot:copyCollectionQuery(value)});
   else if(id==='rename'&&custom)setNameDraft({kind:'rename',id:custom.id,name:custom.name,snapshot:copyCollectionQuery(custom.query)});
@@ -130,7 +139,7 @@ export function CollectionViewControls({label,schema,presets,value,onValueChange
  const actions:OverflowAction[]=[
   ...(custom&&dirty?[{id:'update',label:'Update view',priority:20,disabled:saved.state!=='ready'}]:[]),
   {id:'create',label:'Save as new view',priority:10,disabled:saved.state!=='ready'},
-  ...(dirty?[{id:'reset',label:'Reset view'}]:[]),
+  ...(canResetView?[{id:'reset',label:'Reset view'}]:[]),
   ...(custom?[{id:'rename',label:'Rename',disabled:saved.state!=='ready'},{id:'delete',label:'Delete view',tone:'danger' as const,disabled:saved.state!=='ready'}]:[]),
  ];
  return <Stack gap="3" className="collection-view-controls" aria-label={`${label} collection controls`}>
@@ -142,7 +151,7 @@ export function CollectionViewControls({label,schema,presets,value,onValueChange
   {operationError&&<Alert tone="error" announcement="polite"><Inline gap="3">{operationError.message}<Button size="sm" variant="ghost" onClick={()=>setOperationError(null)}>Dismiss</Button></Inline></Alert>}
   <CollectionToolbar label={label+' collection toolbar'} searchValue={value.search}
     actions={toolbarActions}
-    onSearchValueChange={search=>onValueChange({...value,search})}
+    onSearchValueChange={search=>changeWorkingQuery({...value,search})}
     searchLabel={'Search '+label.toLowerCase()} searchPlaceholder={'Search '+label.toLowerCase()+'…'} clearSearchLabel={'Clear '+label.toLowerCase()+' search'}
     appliedFiltersLabel={label+' applied filters'}
     quickFilters={compactConditions&&!collapseFilters?schema.properties.map(property=><AppliedFilterControl key={property.id}
@@ -155,8 +164,8 @@ export function CollectionViewControls({label,schema,presets,value,onValueChange
         removeLabel:'Remove '+property.label.toLowerCase()+' filter'+(compactConditions?': '+labels[0]:'')};
     })}
     summaryPrefix={!compactConditions&&value.conditions.length>1?(value.match==='all'?'All:':'Any:'):undefined}
-    onRemoveFilter={id=>onValueChange({...value,conditions:value.conditions.filter(condition=>condition.id!==id)})}
-    onClear={()=>onValueChange({...value,search:'',conditions:[]})} canClear={canClearFilters}
+    onRemoveFilter={id=>changeWorkingQuery({...value,conditions:value.conditions.filter(condition=>condition.id!==id)})}
+    onClear={()=>changeWorkingQuery(queryWithoutFilters)} canClear={canClearFilters}
     filterTitle={label+' filters'} filtersOpen={editing} onFiltersOpenChange={requestEditor}
     filterPanelRef={editorPanel} filterPanelClassName={simpleEditor?undefined:'collection-filter-editor'}
     filterContent={

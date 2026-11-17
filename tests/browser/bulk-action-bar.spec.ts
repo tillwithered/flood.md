@@ -84,6 +84,39 @@ test('the visible capsule hugs the controls and icon overflow keeps the narrow r
   await expect(bar.getByRole('button',{name:'Pause',exact:true})).toBeVisible();
 });
 
+test('viewport placement floats without moving the table or adding document overflow', async ({page}, info) => {
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.goto('/playground/content#table-bulk-actions');
+  const scene = page.locator('#table-bulk-actions');
+  const table = scene.getByRole('table',{name:'Project list'});
+  const first = scene.getByRole('checkbox',{name:'Select Design system',exact:true});
+  const search = scene.getByRole('searchbox');
+  const bar = scene.getByRole('toolbar',{name:'Bulk project actions'});
+  const geometry = () => table.evaluate(node => {
+    const rect = node.getBoundingClientRect();
+    return {width:rect.width, top:rect.top+scrollY, height:document.documentElement.scrollHeight};
+  });
+  await first.scrollIntoViewIfNeeded();
+  await page.evaluate(()=>document.fonts.ready);
+  const before = await geometry();
+  await first.check();
+  await expect(bar.getByText('1 selected',{exact:true})).toBeVisible();
+  const frame = (await bar.boundingBox())!;
+  const viewport = page.viewportSize()!;
+  expect(frame.x + frame.width / 2).toBeCloseTo(viewport.width / 2,0);
+  expect(viewport.height - frame.y - frame.height).toBeCloseTo(16,0);
+  expect(await geometry()).toEqual(before);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(viewport.width);
+  await scene.getByRole('checkbox',{name:'Select Website',exact:true}).check();
+  await expect(bar.getByText('2 selected',{exact:true})).toBeVisible();
+  expect(await bar.boundingBox()).toEqual(frame);
+  await page.screenshot({path:info.outputPath('bulk-action-viewport.png')});
+  await bar.getByRole('button',{name:'Clear selection',exact:true}).press('Enter');
+  await expect(bar).toHaveCount(0);
+  await expect(search).toBeFocused();
+  expect(await geometry()).toEqual(before);
+});
+
 test('resizing moves focused commands into overflow without wrapping or losing focus', async ({page}) => {
   await page.setViewportSize({width:1280,height:800});
   const bar = await open(page);

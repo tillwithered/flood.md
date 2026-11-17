@@ -18,7 +18,11 @@ storage and permission limits are documented above; they are not repeated as
 badges, helper paragraphs and drawer descriptions in the product composition.
 
 Drawer owns modal focus, scroll locking and dismissal. Its FileList/FileItem rows
-reuse FileMeta and StatusIndicator. The English example supplies an explicit
+reuse FileMeta and StatusIndicator. Each FileItem supplies its named preview
+button to DocumentPreview through `renderPreview`. Close the document to
+return to the same file button inside the drawer. The example supplies sample
+page content. A production host provides page data for the file being reviewed.
+The English example supplies an explicit
 locale for file metadata, keeping server and browser formatting consistent.
 No parallel popup, field or file chip is
 implemented in this recipe. Stack, Inline and Surface own the composition's gaps
@@ -48,6 +52,8 @@ the form. The status uses text as well as color.
 Exercise invalid submit and focus, corrected submit, unchecked values, dirty
 drafts, normal/cancelled reset and the accepted snapshot. Open the drawer by
 keyboard, dismiss it and verify focus returns to the trigger. Inspect its long
-file names and metadata with enlarged text and RTL at a narrow width; local
+file names and metadata with enlarged text and RTL at a narrow width. Open a
+file's preview, advance a page and dismiss the viewer with Escape. Check that
+the drawer stays open and focus returns to the file button. Local
 scrolling must keep all content reachable without page overflow. These checks
 support this recipe; they do not certify every possible host composition.

@@ -2,7 +2,7 @@ import { isValidElement, useEffect, useRef, useState, type ReactNode, type RefOb
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowRight, ArrowUpRight, List } from "lucide-react";
-import { Breadcrumb, Button, CodeSnippet, Collapsible, Drawer, Grid, Heading, IconButton, IconSlot, Inline, KeyboardShortcut, Link, NavigationItem, PageHeader, ScrollArea, SearchInput, Select, SegmentedControl, Sheet, Stack, Surface, Text } from "@flood-md/react";
+import { Breadcrumb, Button, CodeSnippet, Collapsible, Drawer, Grid, Heading, HighlightText, IconButton, IconSlot, Inline, KeyboardShortcut, Link, NavigationItem, PageHeader, ScrollArea, SearchInput, Select, SegmentedControl, Sheet, Stack, Surface, Text } from "@flood-md/react";
 import { docPages, siteOrigin } from "../routes.mjs";
 import { componentPages, componentGroups, matchesComponent } from "./component-catalog";
 import { ComponentWorkbench } from "./component-workbench";
@@ -110,7 +110,7 @@ function ComponentNavigation({ path, query, onQueryChange, initialFocusRef }: { 
   </nav>;
 }
 
-export default function Documentation({ path }: { path: string }) {
+export default function Documentation({ path, scrollRootRef }: { path: string; scrollRootRef?: RefObject<HTMLDivElement | null> }) {
   const doc = docPages.find(page => page.path === path);
   const component = componentPages.find(page => path === `/components/${page.slug}`);
   const catalog = path === "/components";
@@ -280,7 +280,7 @@ export default function Documentation({ path }: { path: string }) {
           { label: title },
         ]} /></div>}
         {!workspacePreview && <PageHeader className="doc-heading" title={title} description={description} />}
-        {doc && <GuideOutline items={toc} mobile />}
+        {doc && <GuideOutline items={toc} scrollRootRef={scrollRootRef} mobile />}
         <div className="doc-body">
         {doc && (connection
           ? <AgentConnection {...connection} markdown={markdown} renderMarkdown={renderMarkdown} />
@@ -322,8 +322,8 @@ export default function Documentation({ path }: { path: string }) {
                 {group.components.map(page => <Link className="catalog-card" key={page.slug} href={`/components/${page.slug}`}>
                   <Surface padding="4" className="catalog-card-surface">
                     <Stack gap="2">
-                      <Inline gap="4" className="catalog-card-title"><Text size="label">{page.name}</Text><IconSlot size="sm"><ArrowUpRight /></IconSlot></Inline>
-                      <Text size="compact" tone="subtle">{page.description}</Text>
+                      <Inline gap="4" className="catalog-card-title"><Text size="label"><HighlightText query={query}>{page.name}</HighlightText></Text><IconSlot size="sm"><ArrowUpRight /></IconSlot></Inline>
+                      <Text size="compact" tone="subtle"><HighlightText query={query}>{page.description}</HighlightText></Text>
                     </Stack>
                   </Surface>
                 </Link>)}
@@ -367,6 +367,6 @@ export default function Documentation({ path }: { path: string }) {
         </nav></>}
       </main>
     </div>
-    {doc && <GuideOutline items={toc} />}
+    {doc && <GuideOutline items={toc} scrollRootRef={scrollRootRef} />}
   </div>;
 }

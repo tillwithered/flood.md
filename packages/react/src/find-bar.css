@@ -1,0 +1,23 @@
+.flood-root .flood-find-bar {
+  min-inline-size: 0;
+  container: flood-find-bar / inline-size;
+}
+.flood-root .flood-find-bar__rows { grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+.flood-root .flood-find-bar__query { min-inline-size: 0; }
+.flood-root :is(.flood-find-bar__controls, .flood-find-bar__replace-actions) { justify-content: flex-end; }
+.flood-root .flood-find-bar__controls {
+  min-block-size: var(--flood-sys-control-sm-height);
+  max-inline-size: 100%;
+}
+.flood-root .flood-find-bar__controls[data-size="md"] { min-block-size: var(--flood-sys-control-md-height); }
+.flood-root .flood-find-bar__controls[data-size="lg"] { min-block-size: var(--flood-sys-control-lg-height); }
+.flood-root .flood-find-bar__controls[data-size="xl"] { min-block-size: var(--flood-sys-control-xl-height); }
+.flood-root .flood-find-bar__count {
+  padding-inline: var(--flood-sys-space-1);
+  min-inline-size: 6ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+@container flood-find-bar (max-width: 23rem) {
+  .flood-root .flood-find-bar__rows { grid-template-columns: minmax(0, 1fr); }
+}

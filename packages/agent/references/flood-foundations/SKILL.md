@@ -56,6 +56,9 @@ selection, supporting chips and progress tracks, not only Button screenshots.
 Check the opaque fallback when transparency is reduced or unsupported and
 system colors under forced colors. A token's alpha is not evidence of sufficient
 contrast: inspect the composited color over the actual backing content.
+Use ColorContrast to inspect an opaque sRGB pair after resolving or
+compositing the actual colors. Choose the text size case based on the
+consuming interface and review the rendered specimen at that scale.
 
 ## Evidence
 

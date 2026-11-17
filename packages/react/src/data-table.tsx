@@ -50,7 +50,7 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
   caption,hideCaption=false,columns,rows,density="comfortable",striped=false,minWidth="40rem",toolbar,inset="standard",
   maxViewportHeight,stickyHeader,
   showColumnVisibility=false,hiddenColumnIds,defaultHiddenColumnIds=[],onHiddenColumnIdsChange,
-  columnWidths,defaultColumnWidths,onColumnWidthsChange,
+  columnWidths,defaultColumnWidths,onColumnWidthsChange,columnLayout:layoutMode="auto",
   expandedIds,defaultExpandedIds,onExpandedChange,
   sort:controlledSort,defaultSort=null,onSortChange,locale="en",selectable=false,
   selectedIds,defaultSelectedIds=[],onSelectionChange,page:controlledPage,defaultPage=1,pageSize=10,onPageChange,showResults=true,showSelection=true,
@@ -200,8 +200,10 @@ export const ManagedDataTable = /* @__PURE__ */ forwardRef<HTMLDivElement,DataTa
     <Table ref={columnLayout.table} className="flood-data-table__table" caption={caption} hideCaption={hideCaption} density={density} striped={striped}
       aria-busy={tableBusy || undefined}
       maxViewportHeight={maxViewportHeight} stickyHeader={stickyHeader}
-      data-inset={inset} data-fixed-columns={columnLayout.fixedWidth !== undefined || undefined}
-      style={columnLayout.fixedWidth === undefined ? {minWidth} : {minWidth,inlineSize:columnLayout.fixedWidth,tableLayout:"fixed"}}>
+      data-inset={inset} data-column-layout={layoutMode === "fixed" ? layoutMode : undefined}
+      data-fixed-columns={columnLayout.fixedWidth !== undefined || undefined}
+      style={{minWidth, inlineSize:columnLayout.fixedWidth,
+        tableLayout:columnLayout.fixedWidth !== undefined || layoutMode === "fixed" ? "fixed" : undefined}}>
       <thead><tr>
         {expansion.enabled && <th {...columnLayout.utilityCell("expansion", true)} scope="col"
           data-data-table-utility="expansion" className="flood-data-table__expand">
