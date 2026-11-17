@@ -5126,6 +5126,7 @@ export interface ReceiptMatchReviewProps extends Omit<SectionProps, "children" |
     field?: string;
     receipt?: string;
     transaction?: string;
+    review?: string;
     missing?: string;
     different?: string;
     empty?: string;
@@ -5148,10 +5149,10 @@ export const ReceiptMatchReview = /* @__PURE__ */ forwardRef<HTMLElement, Receip
   }
   const state = receiptMatchOutcomes[outcome];
   const missing = <Text as="span" size="compact" tone="subtle">{labels?.missing ?? "Unavailable"}</Text>;
-  return <Section {...props} ref={ref} title={title} headingSize="group"
+  return <Section {...props} ref={ref} title={`${title} ${labels?.review ?? "review"}`} headingSize="group"
     className={classes("flood-receipt-match-review", className)}
     actions={<StatusIndicator label={labels?.outcomes?.[outcome] ?? state.label} tone={state.tone} presentation="wrap" size="sm" />}>
-    {fields.length > 0 ? <Table caption={`${labels?.receipt ?? "Receipt"} and ${labels?.transaction ?? "transaction"} comparison`} hideCaption density="compact" className="flood-receipt-match-review__table">
+    {fields.length > 0 ? <Table caption={title} hideCaption density="compact" className="flood-receipt-match-review__table">
       <thead>
         <tr><th scope="col">{labels?.field ?? "Field"}</th><th scope="col">{labels?.receipt ?? "Receipt"}</th>
           <th scope="col">{labels?.transaction ?? "Transaction"}</th></tr>
@@ -8032,9 +8033,9 @@ export const MeetingAvailability = /* @__PURE__ */ forwardRef<HTMLDivElement, Me
     const cached = formattedByZone.get(timeZone);
     if (cached !== undefined) return cached;
     const formatter = new Intl.DateTimeFormat(locale ?? props.lang ?? "en-US", {
-      timeZone, month:"short", day:"numeric", hour:"numeric", minute:"2-digit",
+      timeZone, month:"short", day:"numeric", hour:"numeric", minute:"2-digit", timeZoneName:"short",
     });
-    const formatted = `${formatter.format(start)} – ${formatter.format(end)} (${timeZone})`;
+    const formatted = `${formatter.format(start)} – ${formatter.format(end)}`;
     formattedByZone.set(timeZone,formatted);
     return formatted;
   };
