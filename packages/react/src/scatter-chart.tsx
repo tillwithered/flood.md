@@ -133,7 +133,7 @@ export const ScatterPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, ScatterCha
     return id;
   };
   const trackPointer = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== "touch") setHover(nearest(event));
+    if (event.pointerType !== "touch") { setCursor(undefined); setHover(nearest(event)); }
   };
   const navigate = (event: KeyboardEvent<HTMLDivElement>) => {
     let next: number;
