@@ -202,23 +202,6 @@ export default function Documentation({ path }: { path: string }) {
   const agentContext = `Documentation version: ${content.version}${localPreview ? " (local source preview; source-only additions are not published)" : ""}.\n\nUse Flood for this task. Read the matching installed package declarations before making API changes.\n\n` +
     `Page: ${resourceOrigin}${path}\nAgent skill: ${resourceOrigin}/agent/SKILL.md\nDesign contract: ${resourceOrigin}/agent/DESIGN.md\nCanonical Markdown: ${resourceOrigin}${path}.md\nConnect to Flood MCP: ${siteOrigin}/docs/mcp\n\n` +
     `The example below reflects the current playground settings. Keep native semantics and accessibility, import Flood styles once, and use semantic tokens before overrides. Do not invent unavailable components or claim that source-only APIs are already published.\n\n${pageMarkdown}`;
-  useEffect(() => {
-    document.title = `${title} — flood.md`;
-    let cancelled = false;
-    // A deep link can arrive before the lazy article exists. Resolve it after
-    // the article and local font are ready, without a global navigation handler.
-    const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
-    const restored = navigation?.type === "back_forward" && typeof history.state?.floodScrollTop === "number";
-    if (!workspacePreview && window.location.hash && !restored) {
-      const hash = window.location.hash;
-      void document.fonts.ready.then(() => {
-        if (cancelled) return;
-        try { document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ behavior: "instant" }); }
-        catch { /* A malformed fragment does not prevent reading the page. */ }
-      });
-    }
-    return () => { cancelled = true; };
-  }, [title, workspacePreview]);
   const renderMarkdown = (source: string) => <div className="markdown-content"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
     a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>,
     pre: ({ children }) => {

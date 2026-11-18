@@ -1,6 +1,26 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+test("global search leaves the background at the same scroll position", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperties(navigator, { platform: { value: "Win32" }, userAgentData: { value: undefined } });
+  });
+  await page.goto("/components");
+  const viewport = page.locator(".site-page-scroll");
+  const opener = page.getByRole("searchbox", { name: "Search Flood" });
+  await expect(opener).toHaveAttribute("aria-keyshortcuts", "Control+K");
+  const position = await viewport.evaluate(node => { node.scrollTop = 500; return node.scrollTop; });
+  expect(position).toBeGreaterThan(100);
+  await page.keyboard.press("Control+k");
+  const dialog = page.getByRole("dialog", { name: "Search Flood" });
+  await expect(dialog.getByRole("combobox")).toBeFocused();
+  await expect.poll(() => viewport.evaluate(node => node.scrollTop)).toBe(position);
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(opener).toBeFocused();
+  await expect.poll(() => viewport.evaluate(node => node.scrollTop)).toBe(position);
+});
+
 test("search can reopen during its exit and skips animation with reduced motion", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperties(navigator, { platform: { value: "Win32" }, userAgentData: { value: undefined } });
@@ -57,19 +77,27 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   const input = search.getByRole("combobox");
   await expect(input).toBeFocused();
   await expect(search.getByRole("button", { name: "Close" })).toHaveCount(0);
-  await expect(search.getByRole("group", { name: "Common workflows" }).getByRole("option")).toHaveCount(3);
-  await expect(search.getByRole("group", { name: "Component families" })).toBeVisible();
-  const forms = search.getByRole("option", { name: "Forms", exact: true });
-  await forms.hover();
-  await expect(forms).toHaveAttribute("aria-selected", "false");
+  const tasks = search.getByRole("group", { name: "Start with a task" });
+  await expect(tasks.getByRole("option")).toHaveCount(3);
+  const lastOption = search.getByRole("option").last();
+  await lastOption.hover();
+  await expect(lastOption).toHaveAttribute("aria-selected", "false");
   await input.hover();
   await expect(input).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await input.press("ArrowDown");
-  await expect(search.getByRole("option", { name: /^Collection views/ })).toHaveAttribute("aria-selected", "true");
+  await expect(search.getByRole("option").nth(1)).toHaveAttribute("aria-selected", "true");
   await input.fill("DataTable");
   await expect(search.getByRole("option").first()).toContainText("DataTable");
   await input.fill("DataTabel");
   await expect(search.getByRole("option").first()).toContainText("DataTable");
+  await input.fill("data tabel");
+  await expect(search.getByRole("option").first()).toContainText("DataTable");
+  await input.fill("How do I save filters?");
+  await expect(search.getByRole("option").first()).toContainText("Collection views");
+  await input.fill("How do I connect an agent?");
+  await expect(search.getByRole("option").first()).toContainText("Connect your agent");
+  await input.fill("filter and sort records");
+  await expect(search.getByRole("option").first()).toContainText("Filter bar");
   await input.fill("nothing matches 8093");
   await expect(search.getByRole("option")).toContainText("No results.");
   await input.fill("bulk edit");
@@ -80,6 +108,13 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   await expect(search.getByRole("option")).toContainText("No results in docs");
   await scopes.getByRole("tab", { name: "Recipes" }).click();
   await expect(search.getByRole("option").first()).toContainText("Table bulk actions");
+  await page.keyboard.press("Control+k");
+  await expect(input).toBeFocused();
+  expect(await input.evaluate(node => {
+    const field = node as HTMLInputElement;
+    return field.value.slice(field.selectionStart ?? 0, field.selectionEnd ?? 0);
+  })).toBe("bulk edit");
+  await expect(scopes.getByRole("tab", { name: "Recipes" })).toHaveAttribute("aria-selected", "true");
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.keyboard.press("Escape");
   const homeSearch = page.getByRole("searchbox", { name: "Search Flood", exact: true });
@@ -138,7 +173,7 @@ test("recipes and agent setup are discoverable from stable navigation routes", a
   await page.goto("/");
   await page.getByRole("searchbox", { name: "Search Flood" }).click();
   const search = page.getByRole("dialog", { name: "Search Flood" });
-  await search.getByRole("option", { name: /^Form submission/ }).click();
+  await search.getByRole("option", { name: /^Validate and submit a form/ }).click();
   await expect(page).toHaveURL(/\/docs\/recipes\/form-submission$/);
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Recipes", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Recipes", exact: true })).toBeVisible();

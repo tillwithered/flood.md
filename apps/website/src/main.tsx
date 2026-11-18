@@ -1,13 +1,11 @@
-import { usesDocumentation } from "../site-guides.mjs";
 import { createRoot, hydrateRoot } from "react-dom/client";
 import { App } from "./app";
+import { loadSitePage } from "./site-pages";
 
 async function start() {
   const root = document.getElementById("root")!;
   const path = window.location.pathname;
-  const documentation = usesDocumentation(path)
-    ? (await import("./documentation")).default : undefined;
-  const app = <App path={path} documentation={documentation} />;
+  const app = <App path={path} {...await loadSitePage(path)} />;
   if (root.hasChildNodes()) hydrateRoot(root, app);
   else createRoot(root).render(app);
 }

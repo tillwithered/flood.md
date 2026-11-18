@@ -19,8 +19,7 @@ test("shared Flood header keeps its geometry and native navigation across routes
     const box=(await header.boundingBox())!;
     const searchBox = (await header.locator(".site-search-entry").boundingBox())!;
     expect(Math.abs(searchBox.x + searchBox.width / 2 - box.x - box.width / 2)).toBeLessThan(1);
-    if(path==="/components/button" && info.project.name !== "mobile")expect(box.height).toBeLessThan(height!);
-    else if(height!==undefined)expect(Math.abs(box.height-height)).toBeLessThan(1);
+    if(height!==undefined)expect(Math.abs(box.height-height)).toBeLessThan(1);
     else height=box.height;
     await expect(header.getByRole("link",{name:"flood.md home"})).toHaveText("flood.md");
     if(path.startsWith("/docs"))await expect(nav.getByRole("link",{name:"Docs",exact:true})).toHaveAttribute("aria-current","page");
@@ -34,6 +33,52 @@ test("shared Flood header keeps its geometry and native navigation across routes
   await page.setViewportSize({width:320,height:900});
   await page.evaluate(()=>{document.documentElement.style.fontSize="24px"});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test("client navigation preserves the shared frame through a delayed load and Back", async ({ page }, info) => {
+  let release: () => void = () => {};
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route(/\/assets\/documentation-[^/]+\.js$/, async route => {
+    await held;
+    await route.continue();
+  });
+  await page.goto("/");
+  const header = page.locator(".site-header");
+  const viewport = page.locator(".site-page-scroll");
+  const search = page.getByRole("searchbox", { name: "Search Flood" });
+  await expect(search).toHaveAttribute("aria-keyshortcuts", /\+K$/);
+  await header.evaluate(node => { node.setAttribute("data-test-stable-header", "true"); });
+  const frame = () => viewport.evaluate(node => {
+    const { x, y, width, height } = node.querySelector(".site-header")!.getBoundingClientRect();
+    return { x, y, width, height, viewWidth: node.clientWidth, windowWidth: innerWidth - document.documentElement.clientWidth };
+  });
+  const initial = await frame();
+  try {
+    await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Docs", exact: true }).click();
+    const loading = page.locator(".site-route-loading");
+    await expect(loading).toBeVisible();
+    await expect(loading.getByRole("status")).toHaveText("Loading Introduction…");
+    await expect(header).toHaveAttribute("data-test-stable-header", "true");
+    expect(await frame()).toEqual(initial);
+    await page.screenshot({ path: info.outputPath("route-loading.png") });
+    release();
+    await expect(page.getByRole("heading", { level: 1, name: "Introduction", exact: true })).toBeVisible();
+    await expect(page.getByRole("main")).toBeFocused();
+    await expect(page).toHaveURL(/\/docs$/);
+    await expect(page).toHaveTitle("Introduction — flood.md");
+    await expect(header).toHaveAttribute("data-test-stable-header", "true");
+    expect(await frame()).toEqual(initial);
+    await page.screenshot({ path: info.outputPath("route-loaded.png") });
+    await page.goBack();
+    await expect(page.getByRole("heading", { level: 1, name: /Good interfaces/ })).toBeVisible();
+    await expect(header).toHaveAttribute("data-test-stable-header", "true");
+    expect(await frame()).toEqual(initial);
+    await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Recipes", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Recipes", exact: true })).toBeVisible();
+    expect(await frame()).toEqual(initial);
+  } finally {
+    release();
+  }
 });
 
 test("Link button appearances share Button metrics while preserving anchor behavior",async({page})=>{

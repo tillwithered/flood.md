@@ -6,13 +6,14 @@ html:has(.site-page-scroll) { overflow: clip; }
    when wheel or touch movement reaches a modal body's scroll boundary. */
 html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 .site-root {
+  --site-frame-padding: clamp(var(--flood-sys-space-4), 4vw, 3.5rem);
   --site-preview-background: var(--flood-sys-color-surface-canvas);
   --landing-panel-padding: clamp(var(--flood-sys-space-6), 3vw, 2.5rem);
   min-block-size: 100svh;
   -webkit-font-smoothing: antialiased;
 }
 .site-root * { box-sizing: border-box; }
-.site-shell { max-inline-size: 90rem; min-block-size: 100svh; margin-inline: auto; padding-inline: clamp(var(--flood-sys-space-4), 4vw, 3.5rem); }
+.site-shell { max-inline-size: 90rem; min-block-size: 100svh; margin-inline: auto; padding-inline: var(--site-frame-padding); }
 .home-site .site-shell { display: flex; flex-direction: column; }
 .home-main { flex: 1; display: grid; align-content: center; padding-block: clamp(2.5rem, 7vw, 6rem); }
 .home-main .hero { padding-block: 0; }
@@ -87,7 +88,7 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 
 /* Documentation composes the public library; page layout belongs to the website. */
 .docs-layout { display: grid; grid-template-columns: 13rem minmax(0, 1fr) 10rem; gap: clamp(2rem, 4vw, 4rem); padding-block: 2.5rem 4rem; }
-.site-shell:has(.docs-layout[data-preview-layout="workspace"]) {
+.site-shell[data-studio] {
   display: flex;
   flex-direction: column;
   block-size: 100dvh;
@@ -97,13 +98,12 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
   background: var(--flood-sys-color-surface-canvas);
   overflow: hidden;
 }
-.site-shell:has(.docs-layout[data-preview-layout="workspace"]) > .site-header {
+.site-shell[data-studio] > .site-header {
   flex: none;
-  min-block-size: 3.5rem;
-  padding-block: var(--flood-sys-space-2);
-  padding-inline: var(--flood-sys-space-4);
+  inline-size: calc(min(100%, 90rem) - 2 * var(--site-frame-padding));
+  margin-inline: auto;
 }
-.site-shell:has(.docs-layout[data-preview-layout="workspace"]) > .site-footer { display: none; }
+.site-shell[data-studio] > .site-footer { display: none; }
 .docs-layout[data-preview-layout="workspace"] {
   display: grid;
   grid-template: minmax(0, 1fr) / 12.75rem minmax(0, 1fr);
@@ -173,7 +173,7 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 .studio-reference-content .doc-section[tabindex="-1"]:focus,
 .studio-catalog-sheet .side-nav[tabindex="-1"]:focus { outline: none; }
 @media (scripting: none) {
-  .site-shell:has(.docs-layout[data-preview-layout="workspace"]) { block-size: auto; overflow: visible; }
+  .site-shell[data-studio] { block-size: auto; overflow: visible; }
   .docs-layout[data-preview-layout="workspace"] .doc-article { block-size: auto; overflow: visible; }
   .docs-layout[data-preview-layout="workspace"] :is(.studio-catalog-toggle, .studio-action-row) { display: none; }
   .docs-layout[data-preview-layout="workspace"] .component-workbench[data-studio] {
@@ -196,7 +196,7 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
   .flood-root .studio-reference-trigger .flood-keyboard-shortcut { display: none; }
 }
 @media (max-width: 36rem) {
-  .site-shell:has(.docs-layout[data-preview-layout="workspace"]) { block-size: auto; overflow: visible; }
+  .site-shell[data-studio] { block-size: auto; overflow: visible; }
   .docs-layout[data-preview-layout="workspace"] {
     display: block;
     padding: var(--flood-sys-space-3) var(--flood-sys-space-4) var(--flood-sys-space-8);
