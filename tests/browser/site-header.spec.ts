@@ -3,26 +3,82 @@ import {chooseSelectOption} from "./select-helpers";
 
 test("shared Flood header keeps its geometry and native navigation across routes",async({page},info)=>{
   let height:number|undefined;
-  for(const path of ["/","/docs","/components/button","/playground"]){
+  for(const path of ["/docs","/components/button","/playground","/"]){
     await page.goto(path);
     const header=page.locator(".site-header"),nav=page.getByRole("navigation",{name:"Main navigation"});
-    await expect(nav.getByRole("link")).toHaveCount(3);
+    await expect(header).toHaveCSS("border-block-end-width","0px");
+    await expect(nav.getByRole("link")).toHaveCount(4);
+    const search = header.getByRole("searchbox", {name:"Search Flood"});
+    await expect(search).toBeVisible();
+    await expect(page.getByRole("searchbox", {name:"Search Flood"})).toHaveCount(1);
+    await expect(header.getByRole("link", {name:"GitHub"})).toHaveText("GitHub");
     for(const link of await nav.getByRole("link").all()){
-      await expect(link).toHaveClass(/flood-button/);
+      await expect(link).toHaveClass(/flood-icon-link/);
       await expect(link).not.toHaveAttribute("role","button");
     }
     const box=(await header.boundingBox())!;
-    if(path==="/components/button")expect(box.height).toBeLessThan(height!);
-    else if(height!==undefined)expect(Math.abs(box.height-height)).toBeLessThan(1);
+    const searchBox = (await header.locator(".site-search-entry").boundingBox())!;
+    expect(Math.abs(searchBox.x + searchBox.width / 2 - box.x - box.width / 2)).toBeLessThan(1);
+    if(height!==undefined)expect(Math.abs(box.height-height)).toBeLessThan(1);
     else height=box.height;
-    await expect(header.getByRole("link",{name:"flood.md home"})).toHaveText(path.startsWith("/components") ? "" : "flood.md");
+    await expect(header.getByRole("link",{name:"flood.md home"})).toHaveText("flood.md");
     if(path.startsWith("/docs"))await expect(nav.getByRole("link",{name:"Docs",exact:true})).toHaveAttribute("aria-current","page");
     if(path.startsWith("/components"))await expect(nav.getByRole("link",{name:"Components",exact:true})).toHaveAttribute("aria-current","page");
     if(path==="/"||path==="/docs")await header.screenshot({path:`.artifacts/shared-header-${path==="/"?"home":"docs"}-${info.project.name}.png`});
+    if(path === "/") {
+      await nav.getByRole("link", {name:"Components", exact:true}).focus();
+      await expect(page.getByRole("tooltip").filter({hasText:"Components"})).toBeVisible();
+    }
   }
   await page.setViewportSize({width:320,height:900});
   await page.evaluate(()=>{document.documentElement.style.fontSize="24px"});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test("client navigation preserves the shared frame through a delayed load and Back", async ({ page }, info) => {
+  let release: () => void = () => {};
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route(/\/assets\/documentation-[^/]+\.js$/, async route => {
+    await held;
+    await route.continue();
+  });
+  await page.goto("/");
+  const header = page.locator(".site-header");
+  const viewport = page.locator(".site-page-scroll");
+  const search = page.getByRole("searchbox", { name: "Search Flood" });
+  await expect(search).toHaveAttribute("aria-keyshortcuts", /\+K$/);
+  await header.evaluate(node => { node.setAttribute("data-test-stable-header", "true"); });
+  const frame = () => viewport.evaluate(node => {
+    const { x, y, width, height } = node.querySelector(".site-header")!.getBoundingClientRect();
+    return { x, y, width, height, viewWidth: node.clientWidth, windowWidth: innerWidth - document.documentElement.clientWidth };
+  });
+  const initial = await frame();
+  try {
+    await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Docs", exact: true }).click();
+    const loading = page.locator(".site-route-loading");
+    await expect(loading).toBeVisible();
+    await expect(loading.getByRole("status")).toHaveText("Loading Introduction…");
+    await expect(header).toHaveAttribute("data-test-stable-header", "true");
+    expect(await frame()).toEqual(initial);
+    await page.screenshot({ path: info.outputPath("route-loading.png") });
+    release();
+    await expect(page.getByRole("heading", { level: 1, name: "Introduction", exact: true })).toBeVisible();
+    await expect(page.getByRole("main")).toBeFocused();
+    await expect(page).toHaveURL(/\/docs$/);
+    await expect(page).toHaveTitle("Introduction — flood.md");
+    await expect(header).toHaveAttribute("data-test-stable-header", "true");
+    expect(await frame()).toEqual(initial);
+    await page.screenshot({ path: info.outputPath("route-loaded.png") });
+    await page.goBack();
+    await expect(page.getByRole("heading", { level: 1, name: /Good interfaces/ })).toBeVisible();
+    await expect(header).toHaveAttribute("data-test-stable-header", "true");
+    expect(await frame()).toEqual(initial);
+    await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Recipes", exact: true }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Recipes", exact: true })).toBeVisible();
+    expect(await frame()).toEqual(initial);
+  } finally {
+    release();
+  }
 });
 
 test("Link button appearances share Button metrics while preserving anchor behavior",async({page})=>{
@@ -42,7 +98,7 @@ test("Link button appearances share Button metrics while preserving anchor behav
 });
 
 test("page scroll uses a Flood overlay rail without shifting the catalog",async({page},info)=>{
-  await page.goto("/components");
+  await page.goto("/components/category/forms");
   const viewport=page.locator(".site-page-scroll");
   const rail=viewport.locator("..").locator(":scope > .flood-scroll-area__track--vertical");
   await expect(rail).toBeVisible();
@@ -102,8 +158,8 @@ test("deep links and Studio use the page and preview ScrollAreas independently",
 });
 
 test("going back from a component restores the position in the catalog",async({page})=>{
-  await page.goto("/components");
-  const catalogLink=page.getByRole("main").locator(".catalog-card").nth(12);
+  await page.goto("/components/category/forms");
+  const catalogLink=page.getByRole("main").locator(".discovery-result").nth(47);
   await catalogLink.scrollIntoViewIfNeeded();
   const viewport=page.locator(".site-page-scroll");
   const before=await viewport.evaluate(node=>node.scrollTop);

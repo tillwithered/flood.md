@@ -190,6 +190,15 @@ test("Navigation playgrounds reflow, expose valid recipes and preserve panel beh
       await page.getByRole("checkbox",{name:"Tabs prop disabled",exact:true}).check();await expect(stage.getByRole("tabpanel",{name:"Activity"})).toBeVisible();await page.getByRole("checkbox",{name:"Tabs prop disabled",exact:true}).uncheck();
       await chooseSelectOption(page.getByRole("combobox",{name:"Tabs prop orientation",exact:true}),"horizontal");
       await assertJoined(false);
+      const variant = page.getByRole("combobox", { name: "Tabs prop variant", exact: true });
+      const activity = stage.getByRole("tab", { name: "Activity" });
+      await chooseSelectOption(variant, "pill");
+      const pill = await activity.evaluate(tab => parseFloat(getComputedStyle(tab).borderTopLeftRadius));
+      await chooseSelectOption(variant, "round");
+      const round = await activity.evaluate(tab => parseFloat(getComputedStyle(tab).borderTopLeftRadius));
+      expect(round).toBeGreaterThan(0);
+      expect(round).toBeLessThan(pill);
+      await expect(stage.getByRole("tabpanel", { name: "Activity" })).toBeVisible();
     }else if(slug==="pagination"){
       await stage.getByRole("button",{name:"Next page",exact:true}).click();await expect(stage).toContainText("Page 2 of 20");await expect(page.locator("#usage .site-code-block code")).toContainText("useState(2)");
       await page.getByRole("checkbox",{name:"Pagination prop links",exact:true}).check();await stage.getByRole("link",{name:"Next page",exact:true}).click();await expect(stage).toContainText("Page 3 of 20");

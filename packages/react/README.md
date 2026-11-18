@@ -476,8 +476,10 @@ Read-only text controls retain keyboard focus and copying while preventing edits
 and picker activation; they are not disabled controls.
 
 Tabs uses `variant="contained"` by default. Choose `variant="line"` for page
-sections with a selection marker along the edge next to the panel. Both variants
-support horizontal and vertical orientation and the same keyboard behavior.
+sections with a selection marker along the edge next to the panel. Use
+`variant="pill"` for capsule tabs and `variant="round"` for rounded rectangles
+on an existing surface. All variants support horizontal and vertical orientation
+and the same keyboard behavior.
 
 Version 0.2.10 adds Fieldset legendSize="label" | "section"
 (default label). Independent section legends use a 1rem/600 role; named fields

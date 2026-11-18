@@ -28,7 +28,7 @@ test("every indexable URL ships distinct metadata, readable content and reader s
     assert.equal(response.status, 200, path);
     const html = await response.text();
     const metadata = pageMetadata(path);
-    assert.ok(html.includes(`<title>${metadata.title}</title>`), path);
+    assert.ok(html.includes(`<title>${metadata.title.replaceAll("&", "&amp;")}</title>`), path);
     assert.equal(titles.has(metadata.title), false, path);
     titles.add(metadata.title);
     assert.ok(html.includes(`<link rel="canonical" href="https://flood.md${path}"`), path);
@@ -36,8 +36,10 @@ test("every indexable URL ships distinct metadata, readable content and reader s
     assert.ok(html.includes(`<meta property="og:url" content="https://flood.md${path}"`), path);
     assert.equal((html.match(/<h1[ >]/g) ?? []).length, 1, path);
     assert.doesNotMatch(html, /Loading documentation|id="S:0"|<!--\$\?-->/, path);
-    if (path !== "/") assert.match(html, /<link rel="stylesheet" href="\/assets\/documentation-[^"]+\.css"/, path);
-    if (path.startsWith("/components/")) assert.match(html, /API reference/, path);
+    const component = path.startsWith("/components/") && !path.startsWith("/components/category/");
+    if (path.startsWith("/docs") || component) assert.match(html, /<link rel="stylesheet" href="\/assets\/documentation-[^"]+\.css"/, path);
+    else assert.match(html, /href="\/assets\/index-[^"]+\.css"/, path);
+    if (component) assert.match(html, /API reference/, path);
   }
 });
 

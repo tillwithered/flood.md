@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { docPages, componentSlugs } from "../apps/website/routes.mjs";
+import { docPages, componentSlugs, pageMetadata, pagePaths } from "../apps/website/routes.mjs";
 import { componentMarkdown, catalogMarkdown } from "../apps/website/component-docs.mjs";
 import { readComponentContract, readRecipeSlugs } from "./component-contract.mjs";
 import { readAgentWorkflows } from './agent-workflows.mjs';
@@ -10,6 +10,14 @@ const catalog = JSON.parse(await readFile("apps/website/src/component-catalog.js
 const contract = readComponentContract(await readFile("packages/react/src/index.tsx", "utf8"));
 const recipes = readRecipeSlugs(await readFile("apps/website/src/component-workbench.tsx", "utf8"));
 const release = JSON.parse(await readFile("apps/website/src/release.json", "utf8"));
+const highlights = JSON.parse(await readFile("apps/website/src/release-highlights.json", "utf8"));
+for (const [version, items] of Object.entries(highlights)) {
+  if (!/^\d+\.\d+\.\d+$/.test(version) || !Array.isArray(items) || items.length > 3 ||
+      items.some(item => !item || !componentSlugs.includes(item.slug) || typeof item.summary !== "string" || !item.summary.trim()) ||
+      new Set(items.map(item => item.slug)).size !== items.length) {
+    throw new Error(`Invalid website search highlights for ${version}`);
+  }
+}
 const same = (left, right) => JSON.stringify([...left].sort()) === JSON.stringify([...right].sort());
 if (!same(contract.map(item => item.name), catalog.map(item => item.name))) throw new Error("Every public component needs catalog content; stale or undocumented exports block the build");
 if (!same(componentSlugs, catalog.map(page => page.slug)) || !same(recipes, componentSlugs)) throw new Error("Component routes, catalog and live recipes differ");
@@ -44,4 +52,10 @@ await writeFile(`${root}/components.md`, catalogMarkdown(pages));
 for (const page of pages) await writeFile(`${root}/components/${page.slug}.md`, componentMarkdown(page));
 await mkdir("apps/website/src/generated", { recursive: true });
 await writeFile("apps/website/src/generated/content.json", JSON.stringify({ version: release.version, docs: documents, components: pages }, null, 2) + "\n");
+await writeFile("apps/website/src/generated/component-summaries.json", JSON.stringify(
+  pages.map(({ slug, name, group, description }) => ({ slug, name, group, description })),
+) + "\n");
+await writeFile("apps/website/src/generated/routes.json", JSON.stringify(
+  Object.fromEntries([...pagePaths].map(path => [path, pageMetadata(path)])),
+) + "\n");
 console.log(`Built ${pages.length} component pages and API contracts for ${release.version} from source.`);

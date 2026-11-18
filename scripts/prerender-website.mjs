@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { build } from "vite";
+import { usesDocumentation } from "../apps/website/site-guides.mjs";
 import { pagePaths, indexablePaths, siteOrigin, pageMetadata } from "../apps/website/routes.mjs";
 
 const workspace = fileURLToPath(new URL("../", import.meta.url));
@@ -20,7 +21,7 @@ for (const path of pagePaths) {
   const metadata = pageMetadata(path);
   const html = metadata.indexable ? await render(path) : "";
   if (metadata.indexable && (!html.includes("<h1") || html.includes("Loading documentation…"))) throw new Error(`Incomplete prerender: ${path}`);
-  const readerStyles = path.startsWith("/docs") || path.startsWith("/components")
+  const readerStyles = usesDocumentation(path)
     ? (manifest["src/documentation.tsx"]?.css ?? []).map(file => `    <link rel="stylesheet" href="/${escape(file)}" />`).join("\n") : "";
   const { shareImage } = metadata;
   const image = shareImage ?? { path: "/flood-mark.png", alt: "Flood mark" };

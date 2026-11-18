@@ -1,0 +1,46 @@
+import type { ComponentType, ReactNode } from "react";
+import { usesDocumentation } from "../site-guides.mjs";
+
+export type PageContent = {
+  documentation?: ComponentType<{ path: string }>;
+  preview?: ReactNode;
+  standalone?: boolean;
+  recipe?: boolean;
+};
+
+const standalonePages = {
+  "/playground": () => import("./examples"),
+  "/playground/content": () => import("./content-board"),
+  "/playground/collections": () => import("./collections-playground"),
+  "/playground/surfaces": () => import("./surface-study"),
+  "/playground/navigation": () => import("./navigation-playground"),
+  "/playground/motion": () => import("./motion-playground"),
+};
+const recipePages = {
+  "/playground/records": () => import("./recipes/record-management").then(module => ({ default: module.RecordManagement })),
+  "/playground/settings": () => import("./recipes/settings-workspace").then(module => ({ default: module.SettingsWorkspace })),
+  "/playground/charts": () => import("./charts-playground"),
+};
+const filterModes = {
+  "/playground/collections/format": "select",
+  "/playground/collections/active-format": "tag",
+  "/playground/collections/filter-group": "group",
+  "/playground/collections/saved-views": "views",
+} as const;
+
+export async function loadSitePage(path: string): Promise<PageContent> {
+  if (usesDocumentation(path)) return { documentation: (await import("./documentation")).default };
+  if (Object.hasOwn(standalonePages, path)) {
+    const View = (await standalonePages[path as keyof typeof standalonePages]()).default;
+    return { preview: <View />, standalone: true };
+  }
+  if (Object.hasOwn(recipePages, path)) {
+    const View = (await recipePages[path as keyof typeof recipePages]()).default;
+    return { preview: <View />, recipe: true };
+  }
+  if (Object.hasOwn(filterModes, path)) {
+    const View = (await import("./format-filter-preview")).default;
+    return { preview: <View mode={filterModes[path as keyof typeof filterModes]} /> };
+  }
+  return {};
+}

@@ -717,6 +717,7 @@
     "code": "<Tabs label=\"Project sections\" items={[{value:\"overview\",label:\"Overview\",content:\"Project context.\"},{value:\"activity\",label:\"Activity\",content:\"Recent updates.\"}]} />",
     "notes": [
       "Use variant=\"line\" for page-level sections with an active marker beside the panel. The default contained variant joins tabs and content in one surface.",
+      "Use variant=\"pill\" for capsule tabs or variant=\"round\" for rounded rectangles on an existing surface, such as a search sidebar.",
       "Arrow keys navigate enabled tabs; automatic activation is default, manual needs Enter/Space. Tab leaves the tablist. Horizontal direction follows RTL.",
       "Supply count for a passive panel total. The badge caps the display and assistive technology receives the exact value. Localize that description with formatCountLabel. Icon-only tabs use a dot when the count is positive.",
       "Inactive panels remain mounted but hidden. Keep form validation and persistent selection under host control. Invalid, missing or disabled selected values fall back to the first available item."

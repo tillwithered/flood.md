@@ -76,7 +76,7 @@ jobs:
         if: steps.browser.outputs.reused != 'true' || (github.event_name == 'push' && steps.scope.outputs.scope == 'full' && steps.affected.outputs.full_coverage == 'true')
         shell: bash
         run: |
-          paths=(packages/react/dist packages/tokens/dist apps/website/dist apps/website/dist-server .artifacts/ci-plan.json)
+          paths=(packages/react/dist packages/tokens/dist apps/website/dist apps/website/dist-server apps/website/src/generated .artifacts/ci-plan.json)
           if [ -d .artifacts/agent-consumer ]; then paths+=(.artifacts/agent-consumer); fi
           if [ -d examples/next/.next ]; then paths+=(examples/next/.next); fi
           tar --exclude='examples/next/.next/cache' -czf .artifacts/browser-build.tgz "${paths[@]}"

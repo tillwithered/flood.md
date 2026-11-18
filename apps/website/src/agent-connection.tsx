@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Heading, IconSlot, Inline, Link, Select, Stack, Surface, Tabs, Text } from "@flood-md/react";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { useState } from "react";
-import { siteOrigin } from "../routes.mjs";
+import { siteOrigin } from "../site-guides.mjs";
 import { agentScenarios } from "./agent-scenarios";
 import { CopyButton } from "./code-block";
 import { phoneViewport, useStudioMedia } from "./studio-media";

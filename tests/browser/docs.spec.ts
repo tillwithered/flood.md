@@ -9,7 +9,7 @@ test("home stays focused and navigation exposes documentation and GitHub", async
   await expect(page.getByRole("form")).toHaveCount(0);
   const nav = page.getByRole("navigation", { name: "Main navigation" });
   await expect(nav.getByRole("link", { name: "Docs", exact: true })).toHaveAttribute("href", "/docs");
-  const github = nav.getByRole("link", { name: "GitHub", exact: true });
+  const github = page.getByRole("banner").getByRole("link", { name: "GitHub", exact: true });
   await expect(github).toHaveAttribute("href", "https://github.com/tillwithered/flood.md");
   await expect.poll(() => github.locator("img").evaluate((node: HTMLImageElement) => node.naturalWidth)).toBe(16);
   await expect(page.getByRole("contentinfo")).toBeVisible();

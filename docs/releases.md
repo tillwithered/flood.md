@@ -103,6 +103,11 @@ Releases remain explicit GitHub Release events. Merging component or website
 work does not publish npm or automatically increase a version. Group compatible
 changes into a reviewed candidate and choose its version deliberately.
 
+For the website search panel, add up to three component highlights for the
+candidate version in `apps/website/src/release-highlights.json`. Use catalog slugs
+and short descriptions that match the release notes. The panel shows these as
+preview items until `apps/website/src/release.json` marks the version published.
+
 For an interactive first release, npm 12 staged publishing can submit tarballs
 without bypass tokens: `npx npm@12.2.1 stage publish <tarball> --access public`.
 After automated review, the owner approves each staged version with 2FA on npm.
