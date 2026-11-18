@@ -21,7 +21,7 @@ export function SiteHeader({ path }: { path: string }) {
     </nav>
     <Inline gap="2" className="header-utilities">
       <SiteSearch />
-        <Link href="https://github.com/tillwithered/flood.md" variant="subtle" size="sm" className="header-github" aria-label="GitHub">
+        <Link href="https://github.com/tillwithered/flood.md" variant="ghost" size="sm" className="header-github" aria-label="GitHub">
           <IconSlot size="sm"><img className="github-mark" src="/github-mark.svg" alt="" width="20" height="20" /></IconSlot>
           <span>GitHub</span>
         </Link>

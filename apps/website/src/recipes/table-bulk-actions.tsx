@@ -22,7 +22,7 @@ export function TableBulkActionsScreen() {
   </FloodRoot>;
 }
 
-export function TableBulkActions({ compact = false }: { compact?: boolean }) {
+export function TableBulkActions() {
   const [projects,setProjects] = useState(initialProjects);
   const [search,setSearch] = useState('');
   const [scope,setScope] = useState('all');
@@ -57,10 +57,10 @@ export function TableBulkActions({ compact = false }: { compact?: boolean }) {
     setFeedback([{id:'archive',title:`${ids.size} ${ids.size===1?'project archived':'projects archived'}.`,status:'success'}]);
   }
 
-  return <Surface padding={compact ? "3" : "4"}>
+  return <Surface padding="4">
     <Section title="Projects">
       <Stack gap="4">
-        <DataTable caption="Project list" hideCaption selectable pageSize={3} page={page} onPageChange={setPage} minWidth={compact ? "18rem" : "28rem"}
+        <DataTable caption="Project list" hideCaption selectable pageSize={3} page={page} onPageChange={setPage} minWidth="28rem"
           toolbar={<CollectionToolbar ref={toolbar} label="Project filters" searchLabel="Search projects" searchValue={search} controlSize="sm" align="split"
             onSearchValueChange={value=>changeQuery(value,scope)}
             quickFilters={<Field label="Scope" hideLabel>{field=><Select {...field} controlSize="sm" value={scope}

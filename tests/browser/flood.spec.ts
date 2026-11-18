@@ -101,8 +101,8 @@ test("installation follows the publication gate and exposes real documentation l
     await expect(copy).toBeDisabled();
   }
   await expect(page.getByRole("link", { name: "Components", exact: true }).first()).toHaveAttribute("href", "/components");
-  await expect(page.getByRole("main").getByRole("link", { name: "Explore recipes", exact: true })).toHaveAttribute("href", "/recipes");
-  await expect(page.getByRole("main").getByRole("link", { name: "Get started", exact: true })).toHaveAttribute("href", "/docs/installation");
+  await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Recipes", exact: true })).toHaveAttribute("href", "/recipes");
+  await expect(page.getByRole("main").getByRole("table")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /For your agent/i })).toHaveAttribute("href", "/agent/SKILL.md");
 });
 

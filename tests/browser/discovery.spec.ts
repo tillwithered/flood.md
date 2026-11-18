@@ -40,7 +40,7 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
 
 test("recipes and agent setup are discoverable from stable navigation routes", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Explore recipes", exact: true }).click();
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Recipes", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Recipes", exact: true })).toBeVisible();
   await page.getByRole("link", { name: /^E-commerce / }).click();
   await expect(page).toHaveURL(/\/recipes\/e-commerce$/);

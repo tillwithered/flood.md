@@ -17,61 +17,7 @@
   color: var(--flood-sys-color-content-default);
 }
 
-.discovery-home { flex: 1; min-inline-size: 0; }
-.discovery-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 1.35fr);
-  align-items: end;
-  gap: clamp(1.5rem, 5vw, 5rem);
-  padding-block: clamp(2.5rem, 5.5vw, 5.5rem) clamp(2rem, 3vw, 3rem);
-}
-.discovery-hero .discovery-hero-title {
-  font-size: clamp(2.75rem, 5.5vw, 5.35rem);
-  line-height: 1.04;
-  letter-spacing: -.048em;
-}
-.discovery-hero-copy { padding-block-end: var(--flood-sys-space-2); }
-.discovery-hero-description { max-inline-size: 32ch; }
-.hero-install { inline-size: fit-content; max-inline-size: 100%; }
-.hero-install-status:empty { display: none; }
-.site-root .hero-preview {
-  display: grid;
-  grid-template-columns: minmax(12rem, 1fr) minmax(0, 2.8fr);
-  min-inline-size: 0;
-  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
-  border-radius: var(--flood-sys-radius-field);
-}
-.hero-preview-header {
-  align-items: start;
-  padding: clamp(1rem, 3.2vw, 3rem);
-  border-inline-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative);
-}
-.hero-preview-header p { max-inline-size: 30ch; }
-.hero-preview-components { margin-block-start: auto; }
-.hero-preview-demo { min-inline-size: 0; padding: clamp(.25rem, 1.25vw, 1rem); }
-.hero-preview-demo .flood-collection-toolbar { padding-inline: 0; }
-
-.home-discovery { padding-block: clamp(2rem, 4vw, 4rem); }
-.home-installation {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--flood-sys-space-4);
-  padding-block: var(--flood-sys-space-8);
-  border-block: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative);
-}
-.home-section-heading, .discovery-filter, .discovery-card-top { justify-content: space-between; align-items: center; }
-.home-directory-link {
-  display: flex;
-  align-items: center;
-  gap: var(--flood-sys-space-3);
-  padding: var(--flood-sys-space-3) var(--flood-sys-space-4);
-  border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative);
-}
-.home-directory-link > svg { inline-size: 1em; margin-inline-start: auto; }
-.site-root .home-directory-link { color: inherit; text-decoration: none; }
-.site-root .home-directory-link:hover { text-decoration: underline; }
+.discovery-filter, .discovery-card-top { justify-content: space-between; align-items: center; }
 
 .discovery-page { max-inline-size: 74rem; min-block-size: 68svh; margin-inline: auto; padding-block: clamp(2rem, 5vw, 4.5rem); }
 .discovery-heading { margin-block-end: clamp(1.75rem, 3.2vw, 3.5rem); }
@@ -92,10 +38,10 @@
 }
 .discovery-card:is(:hover, :focus-visible) .discovery-arrow { color: var(--flood-sys-color-content-default); }
 .discovery-card .discovery-glyph { color: var(--flood-sys-color-content-subtle); }
-.discovery-family-grid, .recipe-collection-grid, .home-discovery .discovery-recipe-grid {
+.discovery-family-grid, .recipe-collection-grid {
   border-block: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative);
 }
-.site-root :is(.discovery-family-grid, .recipe-collection-grid, .home-discovery) .discovery-card-surface {
+.site-root :is(.discovery-family-grid, .recipe-collection-grid) .discovery-card-surface {
   --discovery-card-background: transparent;
   border: 0;
   border-radius: 0;
@@ -121,9 +67,6 @@
   .site-search-trigger { min-inline-size: 0; }
   .site-search-trigger .flood-search-trigger__shortcut, .header-utilities .header-github > span:last-child { display: none; }
 }
-@media (max-width: 60rem) {
-  .discovery-hero { grid-template-columns: minmax(0, 1fr); }
-}
 @media (max-width: 47rem) {
   .site-header { grid-template-columns: minmax(0, 1fr) auto; }
   .header-nav { grid-column: 1 / -1; grid-row: 2; min-inline-size: 0; }
@@ -133,9 +76,5 @@
 }
 @media (max-width: 35rem) {
   .site-header { gap: var(--flood-sys-space-2); padding-block: var(--flood-sys-space-2); }
-  .discovery-hero .discovery-hero-title { font-size: clamp(2.45rem, 10.3vw, 3.75rem); }
-  .discovery-hero-break { display: none; }
-  .site-root .hero-preview { grid-template-columns: minmax(0, 1fr); }
-  .hero-preview-header { border-inline-end: 0; border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
   .discovery-heading > p { font-size: var(--flood-sys-type-body-size); }
 }

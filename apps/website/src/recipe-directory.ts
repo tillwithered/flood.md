@@ -30,8 +30,6 @@ export const recipes = docPages.filter(page => page.group === "recipes").map(pag
 
 export type Recipe = (typeof recipes)[number];
 export const recipeByPath = new Map(recipes.map(recipe => [recipe.path, recipe]));
-export const featuredRecipes = ["table-bulk-actions", "record-management", "settings-workspace"]
-  .flatMap(slug => recipes.filter(recipe => recipe.slug === slug));
 export const recipeGroups = recipeCollections.map(collection => ({
   ...collection,
   recipes: recipes.filter(recipe => recipe.groups?.includes(collection.id)),

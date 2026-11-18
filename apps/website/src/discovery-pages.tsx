@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from "react";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, BookOpen, Box, ChartNoAxesCombined, Compass, Layers3, LayoutGrid, ListChecks, PanelsTopLeft, ShoppingBag, SlidersHorizontal, Terminal, TextCursor, Wallet, Workflow } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Box, ChartNoAxesCombined, Compass, Layers3, LayoutGrid, ListChecks, PanelsTopLeft, ShoppingBag, SlidersHorizontal, Terminal, TextCursor, Wallet, Workflow } from "lucide-react";
 import { Breadcrumb, CopyButton, Grid, Heading, IconSlot, Inline, Link, SearchInput, Stack, Surface, Text } from "@flood-md/react";
 import { directoryGroups, directoryComponents, matchesComponent, type ComponentSummary } from "./component-directory-data";
-import { featuredRecipes, recipeGroups, recipes, recipePrompt, type Recipe } from "./recipe-directory";
+import { recipeGroups, recipes, recipePrompt, type Recipe } from "./recipe-directory";
 import { agentScenarios } from "./agent-scenarios";
 import { TableBulkActions } from "./recipes/table-bulk-actions";
 
@@ -206,21 +206,4 @@ export function AgentsDirectory() {
       </Stack></section>
     </Stack>
   </main>;
-}
-
-export function HomeDiscoveryLinks() {
-  return <Stack gap="6" className="home-discovery">
-    <section aria-labelledby="home-start-heading"><Stack gap="4">
-      <Inline gap="3" className="home-section-heading">
-        <Heading id="home-start-heading" level={2} size="large">Start with a real task</Heading>
-        <Link href="/recipes" variant="ghost" size="sm">All recipes <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
-      </Inline>
-      <RecipeCards items={featuredRecipes} />
-    </Stack></section>
-    <Grid gap="3" minItemWidth="16rem" className="home-directory-links">
-      <Link href="/components" className="home-directory-link"><IconSlot><Box /></IconSlot><span>Browse component families</span><ArrowDownRight /></Link>
-      <Link href="/docs" className="home-directory-link"><IconSlot><BookOpen /></IconSlot><span>Read the documentation</span><ArrowDownRight /></Link>
-      <Link href="/for-agents" className="home-directory-link"><IconSlot><Terminal /></IconSlot><span>Connect a coding agent</span><ArrowDownRight /></Link>
-    </Grid>
-  </Stack>;
 }
