@@ -8,17 +8,18 @@ test("shared Flood header keeps its geometry and native navigation across routes
     const header=page.locator(".site-header"),nav=page.getByRole("navigation",{name:"Main navigation"});
     await expect(header).toHaveCSS("border-block-end-width","0px");
     await expect(nav.getByRole("link")).toHaveCount(4);
-    const search = page.getByRole(path === "/" ? "main" : "banner").getByRole(path === "/" ? "searchbox" : "button", {name:"Search Flood"});
+    const search = header.getByRole("searchbox", {name:"Search Flood"});
     await expect(search).toBeVisible();
-    if (path === "/") await expect(header.getByRole("button", {name:"Search Flood"})).toHaveCount(0);
+    await expect(page.getByRole("searchbox", {name:"Search Flood"})).toHaveCount(1);
     await expect(header.getByRole("link", {name:"GitHub"})).toBeVisible();
     for(const link of await nav.getByRole("link").all()){
       await expect(link).toHaveClass(/flood-button/);
       await expect(link).not.toHaveAttribute("role","button");
     }
     const box=(await header.boundingBox())!;
-    if (path === "/" && info.project.name === "mobile") expect(box.height).toBeLessThan(height!);
-    else if(path==="/components/button" && info.project.name !== "mobile")expect(box.height).toBeLessThan(height!);
+    const searchBox = (await header.locator(".site-search-entry").boundingBox())!;
+    expect(Math.abs(searchBox.x + searchBox.width / 2 - box.x - box.width / 2)).toBeLessThan(1);
+    if(path==="/components/button" && info.project.name !== "mobile")expect(box.height).toBeLessThan(height!);
     else if(height!==undefined)expect(Math.abs(box.height-height)).toBeLessThan(1);
     else height=box.height;
     await expect(header.getByRole("link",{name:"flood.md home"})).toHaveText("flood.md");

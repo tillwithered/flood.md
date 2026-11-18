@@ -9,7 +9,7 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
     });
   });
   await page.goto("/");
-  await expect(page.getByRole("main").getByRole("searchbox", { name: "Search Flood" }))
+  await expect(page.getByRole("banner").getByRole("searchbox", { name: "Search Flood" }))
     .toHaveAttribute("aria-keyshortcuts", "Control+K");
   await page.keyboard.press("Control+k");
   const search = page.getByRole("dialog", { name: "Search Flood" });
@@ -77,16 +77,16 @@ test("the shortcut hint follows the operating system and stays quiet on touch de
     });
   });
   await page.goto("/");
-  const trigger = page.getByRole("main").getByRole("searchbox", { name: "Search Flood" });
+  const trigger = page.getByRole("banner").getByRole("searchbox", { name: "Search Flood" });
   await expect(trigger).toHaveAttribute("aria-keyshortcuts", "Meta+K");
-  await expect(page.locator(".home-search kbd")).toHaveText(["⌘", "K"]);
+  await expect(page.locator(".site-search-entry kbd")).toHaveText(["⌘", "K"]);
   await page.keyboard.press("Meta+k");
   await expect(page.getByRole("dialog", { name: "Search Flood" }).getByRole("combobox")).toBeFocused();
 
   await page.goto("/docs?touch");
-  const headerSearch = page.getByRole("banner").getByRole("button", { name: "Search Flood" });
+  const headerSearch = page.getByRole("banner").getByRole("searchbox", { name: "Search Flood" });
   await expect(headerSearch).toHaveAttribute("aria-keyshortcuts", "Meta+K");
-  await expect(headerSearch.locator("kbd")).toHaveCount(0);
+  await expect(page.locator(".site-search-entry kbd")).toHaveCount(0);
   await headerSearch.click();
   await expect(page.getByRole("dialog", { name: "Search Flood" })).toBeVisible();
 });
@@ -105,7 +105,7 @@ test("recipes and agent setup are discoverable from stable navigation routes", a
   await expect(page.getByRole("link", { name: /^Table bulk actions / })).toBeVisible();
   await page.getByRole("link", { name: "Categories", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Categories", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Search Flood" }).click();
+  await page.getByRole("banner").getByRole("searchbox", { name: "Search Flood" }).click();
   const scopes = search.getByRole("tablist", { name: "Search scope" });
   const explore = scopes.getByRole("tab", { name: "Explore" });
   await explore.press((await scopes.getAttribute("aria-orientation")) === "vertical" ? "ArrowDown" : "ArrowRight");
