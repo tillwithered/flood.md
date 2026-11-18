@@ -35,14 +35,6 @@ const indexed = entries.map(entry => {
   return { entry, label, keywords, text, words: text.split(" ") };
 });
 
-export const startingPoints: Entry[] = [
-  { id: "/components", label: "Components", kind: "Component", description: "Browse by component family." },
-  { id: "/recipes", label: "Recipes", kind: "Recipe", description: "Explore runnable interface patterns." },
-  { id: "/for-agents", label: "For agents", kind: "Guide", description: "Connect Flood and try an example prompt." },
-  ...["/docs/recipes/table-bulk-actions", "/docs/recipes/collection-views", "/docs/installation"]
-    .flatMap(id => entries.filter(entry => entry.id === id)),
-];
-
 function nearSpelling(query: string, candidate: string) {
   if (query.length < 5 || Math.abs(query.length - candidate.length) > 1) return false;
   const [short, long] = query.length <= candidate.length ? [query, candidate] : [candidate, query];
@@ -55,7 +47,7 @@ function nearSpelling(query: string, candidate: string) {
 
 export function searchSite(query: string): Entry[] {
   const phrase = normalize(query);
-  if (!phrase) return startingPoints;
+  if (!phrase) return [];
   const terms = phrase.split(" ");
   const joined = key(query);
   return indexed.flatMap(({ entry, label, keywords, text, words }) => {

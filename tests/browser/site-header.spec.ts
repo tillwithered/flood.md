@@ -3,19 +3,22 @@ import {chooseSelectOption} from "./select-helpers";
 
 test("shared Flood header keeps its geometry and native navigation across routes",async({page},info)=>{
   let height:number|undefined;
-  for(const path of ["/","/docs","/components/button","/playground"]){
+  for(const path of ["/docs","/components/button","/playground","/"]){
     await page.goto(path);
     const header=page.locator(".site-header"),nav=page.getByRole("navigation",{name:"Main navigation"});
     await expect(header).toHaveCSS("border-block-end-width","0px");
     await expect(nav.getByRole("link")).toHaveCount(4);
-    await expect(header.getByRole("button", {name:"Search Flood"})).toBeVisible();
+    const search = page.getByRole(path === "/" ? "main" : "banner").getByRole("button", {name:"Search Flood"});
+    await expect(search).toBeVisible();
+    if (path === "/") await expect(header.getByRole("button", {name:"Search Flood"})).toHaveCount(0);
     await expect(header.getByRole("link", {name:"GitHub"})).toBeVisible();
     for(const link of await nav.getByRole("link").all()){
       await expect(link).toHaveClass(/flood-button/);
       await expect(link).not.toHaveAttribute("role","button");
     }
     const box=(await header.boundingBox())!;
-    if(path==="/components/button" && info.project.name !== "mobile")expect(box.height).toBeLessThan(height!);
+    if (path === "/" && info.project.name === "mobile") expect(box.height).toBeLessThan(height!);
+    else if(path==="/components/button" && info.project.name !== "mobile")expect(box.height).toBeLessThan(height!);
     else if(height!==undefined)expect(Math.abs(box.height-height)).toBeLessThan(1);
     else height=box.height;
     await expect(header.getByRole("link",{name:"flood.md home"})).toHaveText("flood.md");

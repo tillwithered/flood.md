@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CodeSnippet, CopyButton, Heading, Text } from "@flood-md/react";
 import release from "./release.json";
+import { SiteSearch } from "./site-search";
 
 const command = `npx @flood-md/cli@${release.version} init`;
 
@@ -15,6 +16,7 @@ export function Home() {
       <Text as="p" size="lead" tone="subtle" className="hero-description">
         An open-source design system for developers and coding agents.
       </Text>
+      <div className="home-search"><SiteSearch placement="home" /></div>
       <div className="installation">
         <CodeSnippet code={command} prompt="$" className="installation-code" aria-label="Installation command"
           action={<CopyButton value={command} iconOnly size="sm" variant="ghost" disabled={!release.published}

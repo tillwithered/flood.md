@@ -3,11 +3,21 @@ import AxeBuilder from "@axe-core/playwright";
 
 test("search finds a recipe from a task and opens it from the keyboard", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.addInitScript(() => {
+    Object.defineProperties(navigator, {
+      platform: { value: "Win32" }, userAgentData: { value: undefined },
+    });
+  });
   await page.goto("/");
+  await expect(page.getByRole("main").getByRole("button", { name: "Search Flood" }))
+    .toHaveAttribute("aria-keyshortcuts", "Control+K");
   await page.keyboard.press("Control+k");
   const search = page.getByRole("dialog", { name: "Search Flood" });
   const input = search.getByRole("combobox");
   await expect(input).toBeFocused();
+  await expect(search.getByRole("group", { name: "Industry recipes" })).toBeVisible();
+  await search.getByRole("option", { name: "Bulk edit", exact: true }).click();
+  await expect(input).toHaveValue("bulk edit");
   await input.fill("DataTable");
   await expect(search.getByRole("option").first()).toContainText("DataTable");
   await input.fill("DataTabel");
@@ -36,6 +46,29 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   await live.getByRole("button", { name: "Archive projects" }).click();
   await confirmation.getByRole("button", { name: "Archive selected" }).click();
   await expect(live.getByText("Design system", { exact: true })).toHaveCount(0);
+});
+
+test("the shortcut hint follows the operating system and stays quiet on touch devices", async ({ page }) => {
+  await page.addInitScript(() => {
+    const touch = new URL(location.href).searchParams.has("touch");
+    Object.defineProperties(navigator, {
+      platform: { value: "MacIntel" }, userAgentData: { value: undefined },
+      maxTouchPoints: { value: touch ? 5 : 0 },
+    });
+  });
+  await page.goto("/");
+  const trigger = page.getByRole("main").getByRole("button", { name: "Search Flood" });
+  await expect(trigger).toHaveAttribute("aria-keyshortcuts", "Meta+K");
+  await expect(trigger.locator("kbd")).toHaveText(["⌘", "K"]);
+  await page.keyboard.press("Meta+k");
+  await expect(page.getByRole("dialog", { name: "Search Flood" }).getByRole("combobox")).toBeFocused();
+
+  await page.goto("/docs?touch");
+  const headerSearch = page.getByRole("banner").getByRole("button", { name: "Search Flood" });
+  await expect(headerSearch).toHaveAttribute("aria-keyshortcuts", "Meta+K");
+  await expect(headerSearch.locator("kbd")).toHaveCount(0);
+  await headerSearch.click();
+  await expect(page.getByRole("dialog", { name: "Search Flood" })).toBeVisible();
 });
 
 test("recipes and agent setup are discoverable from stable navigation routes", async ({ page }) => {

@@ -1,15 +1,41 @@
 import { useEffect, useRef, useState } from "react";
-import { CommandPalette, SearchTrigger } from "@flood-md/react";
-import { BookOpen, Boxes, Layers3, Rows3 } from "lucide-react";
+import { CommandList, Dialog, SearchTrigger, type CommandListItem } from "@flood-md/react";
+import { ArrowUpRight, BookOpen, Boxes, Layers3, Rows3, Search, ShoppingBag, Terminal, Wallet } from "lucide-react";
 
 const glyphs = { Component: Boxes, Recipe: Rows3, Guide: BookOpen, Collection: Layers3 };
 
-export function SiteSearch() {
+const browseItems: readonly CommandListItem[] = [
+  { id: "/components", label: "Components", group: "Browse", icon: <Boxes /> },
+  { id: "/recipes", label: "Recipes", group: "Browse", icon: <Rows3 /> },
+  { id: "/docs", label: "Docs", group: "Browse", icon: <BookOpen /> },
+  { id: "/for-agents", label: "For agents", group: "Browse", icon: <Terminal /> },
+  { id: "query:DataTable", label: "DataTable", group: "Try a search", icon: <Search /> },
+  { id: "query:bulk edit", label: "Bulk edit", group: "Try a search", icon: <Search /> },
+  { id: "query:saved filters", label: "Saved filters", group: "Try a search", icon: <Search /> },
+  { id: "/recipes/e-commerce", label: "E-commerce", group: "Industry recipes", icon: <ShoppingBag /> },
+  { id: "/recipes/fintech", label: "Fintech", group: "Industry recipes", icon: <Wallet /> },
+  { id: "/recipes/hosting", label: "Hosting", group: "Industry recipes", icon: <ArrowUpRight /> },
+];
+
+type Keyboard = { modifier: "Meta" | "Control"; hint: string; touch: boolean };
+
+function getKeyboard(device: Navigator): Keyboard {
+  const clientHints = (device as Navigator & { userAgentData?: { platform?: string; mobile?: boolean } }).userAgentData;
+  const platform = clientHints?.platform || device.platform;
+  const apple = /Mac|iP(?:ad|hone|od)/i.test(platform);
+  const touch = clientHints?.mobile === true || /Android|iP(?:ad|hone|od)/i.test(platform + " " + device.userAgent) ||
+    (apple && device.maxTouchPoints > 1);
+  return { modifier: apple ? "Meta" : "Control", hint: apple ? "⌘" : "Ctrl", touch };
+}
+
+export function SiteSearch({ placement = "header" }: { placement?: "home" | "header" }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [keyboard, setKeyboard] = useState<Keyboard>();
   const [model, setModel] = useState<typeof import("./site-search-model")>();
   const [error, setError] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  const input = useRef<HTMLInputElement>(null);
 
   function changeOpen(next: boolean) {
     setOpen(next);
@@ -22,9 +48,12 @@ export function SiteSearch() {
   }
 
   useEffect(() => {
+    const keyboard = getKeyboard(navigator);
+    setKeyboard(keyboard);
     function onShortcut(event: KeyboardEvent) {
-      if (event.defaultPrevented || event.isComposing || event.repeat || event.altKey ||
-          !(event.metaKey || event.ctrlKey) || (event.code !== "KeyK" && event.key.toLowerCase() !== "k") ||
+      const modifierMatches = keyboard.modifier === "Meta" ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+      if (event.defaultPrevented || event.isComposing || event.repeat || event.altKey || event.shiftKey ||
+          !modifierMatches || (event.code !== "KeyK" && event.key.toLowerCase() !== "k") ||
           document.querySelector("dialog:modal")) return;
       event.preventDefault();
       trigger.current?.click();
@@ -33,20 +62,33 @@ export function SiteSearch() {
     return () => document.removeEventListener("keydown", onShortcut);
   }, []);
 
-  const items = (open ? model?.searchSite(query) ?? [] : []).map(entry => {
+  const browsing = !query.trim();
+  const items = browsing ? browseItems : (model?.searchSite(query) ?? []).map(entry => {
     const Icon = glyphs[entry.kind];
     return { id: entry.id, label: entry.label, icon: <Icon />,
-      description: entry.kind + " · " + entry.description,
-      group: query.trim() ? undefined : "Explore Flood",
-      keywords: [query],
-    };
+      description: entry.kind + " · " + entry.description, keywords: [query] };
   });
 
-  return <CommandPalette title="Search Flood" searchLabel="Search components, recipes and guides" items={items}
-    placeholder="Try DataTable or bulk edit…" open={open} className="site-search"
+  function selectResult(id: string) {
+    if (id.startsWith("query:")) {
+      setQuery(id.slice("query:".length));
+      return;
+    }
+    changeOpen(false);
+    window.location.assign(id);
+  }
+
+  return <Dialog title="Search Flood" open={open} className="site-search" initialFocusRef={input}
     trigger={props => <SearchTrigger {...props} ref={trigger} label="Search Flood"
-      shortcut={["Ctrl/⌘", "K"]} aria-keyshortcuts="Control+K Meta+K" className="site-search-trigger" size="sm" variant="subtle" />}
-    query={query} onQueryChange={setQuery} loading={!model && !error}
-    emptyMessage={error ? "Search couldn’t load. Reopen it to retry." : "No results. Try a component name or a task like bulk edit."}
-    onOpenChange={changeOpen} onAction={id => window.location.assign(id)} />;
+      shortcut={keyboard && !keyboard.touch ? [keyboard.hint, "K"] : undefined}
+      aria-keyshortcuts={keyboard ? keyboard.modifier + "+K" : undefined}
+      className="site-search-trigger" fullWidth size={placement === "home" ? "lg" : "md"} variant="subtle" />}
+    onOpenChange={changeOpen}>
+    <CommandList ref={input} label="Search components, recipes and guides" hideLabel items={items}
+      className="site-search-list" data-browsing={browsing || undefined} controlSize="lg"
+      placeholder="Search components, recipes and guides…" query={query} onQueryChange={setQuery}
+      loading={!browsing && !model && !error}
+      emptyMessage={error ? "Search couldn’t load. Reopen it to retry." : "No results. Try a component name or a task like bulk edit."}
+      onAction={selectResult} />
+  </Dialog>;
 }
