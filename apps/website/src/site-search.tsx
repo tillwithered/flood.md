@@ -5,6 +5,9 @@ import { BookOpen, Boxes, Layers3, Rows3, Search } from "lucide-react";
 const glyphs = { Component: Boxes, Recipe: Rows3, Guide: BookOpen, Collection: Layers3 };
 
 const browseItems: readonly CommandListItem[] = [
+  { id: "/components", label: "Components", group: "Explore Flood", description: "Buttons, inputs and data tables", icon: <Boxes /> },
+  { id: "/recipes", label: "Recipes", group: "Explore Flood", description: "Forms, navigation and bulk actions", icon: <Rows3 /> },
+  { id: "/docs", label: "Docs", group: "Explore Flood", description: "Installation, themes and tokens", icon: <BookOpen /> },
   { id: "query:DataTable", label: "DataTable", group: "Try a search", icon: <Search /> },
   { id: "query:bulk edit", label: "Bulk edit", group: "Try a search", icon: <Search /> },
   { id: "query:saved filters", label: "Saved filters", group: "Try a search", icon: <Search /> },
@@ -74,7 +77,7 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
     window.location.assign(id);
   }
 
-  return <CommandPalette title="Search Flood" open={open} className="site-search" items={items}
+  return <CommandPalette title="Search Flood" open={open} className="site-search" data-browsing={browsing || undefined} items={items}
     getFallbackFocus={() => homeEntry.current}
     trigger={props => placement === "home" ?
       <InputGroup type="search" ref={homeEntry} className="home-search-input" aria-label="Search Flood"

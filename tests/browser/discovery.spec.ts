@@ -15,8 +15,9 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   const search = page.getByRole("dialog", { name: "Search Flood" });
   const input = search.getByRole("combobox");
   await expect(input).toBeFocused();
+  await expect(search.getByRole("group", { name: "Explore Flood" }).getByRole("option")).toHaveCount(3);
   await expect(search.getByRole("group", { name: "Try a search" })).toBeVisible();
-  await expect(search.getByRole("option")).toHaveCount(3);
+  await expect(search.getByRole("group", { name: "Try a search" }).getByRole("option")).toHaveCount(3);
   await search.getByRole("option", { name: "Bulk edit", exact: true }).click();
   await expect(input).toHaveValue("bulk edit");
   await input.fill("DataTable");
