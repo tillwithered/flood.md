@@ -1,17 +1,50 @@
 import { useEffect, useRef, useState } from "react";
-import { CommandPalette, IconSlot, InputGroup, KeyboardShortcut, SearchTrigger, type CommandListItem } from "@flood-md/react";
-import { BookOpen, Boxes, Layers3, Rows3, Search } from "lucide-react";
+import { Button, CommandList, Dialog, IconSlot, InputGroup, KeyboardShortcut, SearchTrigger, type CommandListItem } from "@flood-md/react";
+import { BookOpen, Boxes, ChartNoAxesColumn, CreditCard, Layers3, ListChecks, PanelsTopLeft, Rows3, Search, Server, ShoppingBag, SlidersHorizontal, Terminal } from "lucide-react";
+import type { SearchScope } from "./site-search-model";
 
 const glyphs = { Component: Boxes, Recipe: Rows3, Guide: BookOpen, Collection: Layers3 };
 
-const browseItems: readonly CommandListItem[] = [
-  { id: "/components", label: "Components", group: "Explore Flood", description: "Buttons, inputs and data tables", icon: <Boxes /> },
-  { id: "/recipes", label: "Recipes", group: "Explore Flood", description: "Forms, navigation and bulk actions", icon: <Rows3 /> },
-  { id: "/docs", label: "Docs", group: "Explore Flood", description: "Installation, themes and tokens", icon: <BookOpen /> },
-  { id: "query:DataTable", label: "DataTable", group: "Try a search", icon: <Search /> },
-  { id: "query:bulk edit", label: "Bulk edit", group: "Try a search", icon: <Search /> },
-  { id: "query:saved filters", label: "Saved filters", group: "Try a search", icon: <Search /> },
+const scopes = [
+  { id: "all", label: "Explore", icon: Search },
+  { id: "components", label: "Components", icon: Boxes },
+  { id: "recipes", label: "Recipes", icon: Rows3 },
+  { id: "docs", label: "Docs", icon: BookOpen },
+] as const;
+
+const tasks = ["Bulk edit", "Form validation", "Saved filters"];
+const taskItems = tasks.map(label => ({ id: `query:${label.toLowerCase()}`, label, group: "Search by task", icon: <Search /> }));
+const families: readonly CommandListItem[] = [
+  { id: "/components/category/forms", label: "Forms", group: "Component families", icon: <ListChecks /> },
+  { id: "/components/category/navigation", label: "Navigation", group: "Component families", icon: <PanelsTopLeft /> },
+  { id: "/components/category/charts", label: "Charts", group: "Component families", icon: <ChartNoAxesColumn /> },
+  { id: "/components/category/overlays", label: "Overlays", group: "Component families", icon: <Layers3 /> },
 ];
+const industries: readonly CommandListItem[] = [
+  { id: "/recipes/e-commerce", label: "E-commerce", description: "Product and inventory UI", group: "Recipes by industry", icon: <ShoppingBag /> },
+  { id: "/recipes/fintech", label: "Fintech", description: "Review records and changes", group: "Recipes by industry", icon: <CreditCard /> },
+  { id: "/recipes/hosting", label: "Hosting", description: "Configure services and settings", group: "Recipes by industry", icon: <Server /> },
+];
+const browseItems: Record<SearchScope, readonly CommandListItem[]> = {
+  all: [...industries, ...families, ...taskItems],
+  components: [...families,
+    { id: "/components/data-table", label: "DataTable", description: "Inspect, sort and select records", group: "Components", icon: <Rows3 /> },
+    { id: "/components/command-palette", label: "CommandPalette", description: "Searchable actions and navigation", group: "Components", icon: <Search /> },
+    { id: "/components", label: "Browse all components", group: "Components", icon: <Boxes /> },
+  ],
+  recipes: [
+    { id: "/recipes/tables", label: "Tables & records", group: "Workflows", icon: <Rows3 /> },
+    { id: "/recipes/forms", label: "Forms & settings", group: "Workflows", icon: <ListChecks /> },
+    { id: "/recipes/workspace", label: "Workspaces", group: "Workflows", icon: <PanelsTopLeft /> },
+    ...industries,
+  ],
+  docs: [
+    { id: "/docs/installation", label: "Installation", description: "Set up Flood in React or Next.js", group: "Get started", icon: <Terminal /> },
+    { id: "/docs/mcp", label: "Connect your agent", description: "Use the library from your coding agent", group: "Get started", icon: <Boxes /> },
+    { id: "/docs/foundations", label: "Foundations", description: "Typography, tokens and surfaces", group: "Design guidance", icon: <BookOpen /> },
+    { id: "/docs/theming", label: "Customization", description: "Adapt Flood to your project", group: "Design guidance", icon: <SlidersHorizontal /> },
+  ],
+};
 
 type Keyboard = { modifier: "Meta" | "Control"; hint: string; touch: boolean };
 
@@ -27,11 +60,13 @@ function getKeyboard(device: Navigator): Keyboard {
 export function SiteSearch({ placement = "header" }: { placement?: "home" | "header" }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [scope, setScope] = useState<SearchScope>("all");
   const [keyboard, setKeyboard] = useState<Keyboard>();
   const [model, setModel] = useState<typeof import("./site-search-model")>();
   const [error, setError] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const homeEntry = useRef<HTMLInputElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
   const composing = useRef(false);
   const shortcut = keyboard && !keyboard.touch ? [keyboard.hint, "K"] : undefined;
   const shortcutLabel = keyboard ? keyboard.modifier + "+K" : undefined;
@@ -40,6 +75,7 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
     setOpen(next);
     if (!next) {
       setQuery("");
+      setScope("all");
     } else if (!model) {
       setError(false);
       void import("./site-search-model").then(setModel, () => setError(true));
@@ -62,7 +98,7 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
   }, []);
 
   const browsing = !query.trim();
-  const items = browsing ? browseItems : (model?.searchSite(query) ?? []).map(entry => {
+  const items = browsing ? browseItems[scope] : (model?.searchSite(query, scope) ?? []).map(entry => {
     const Icon = glyphs[entry.kind];
     return { id: entry.id, label: entry.label, icon: <Icon />,
       description: entry.kind + " · " + entry.description, keywords: [query] };
@@ -70,19 +106,19 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
 
   function selectResult(id: string) {
     if (id.startsWith("query:")) {
-      setOpen(true);
       setQuery(id.slice("query:".length));
       return;
     }
     window.location.assign(id);
   }
 
-  return <CommandPalette title="Search Flood" open={open} className="site-search" data-browsing={browsing || undefined} items={items}
+  return <><Dialog title="Search Flood" open={open} className="site-search" data-browsing={browsing || undefined} data-scope={scope}
+    initialFocusRef={searchInput}
     getFallbackFocus={() => homeEntry.current}
     trigger={props => placement === "home" ?
       <InputGroup type="search" ref={homeEntry} className="home-search-input" aria-label="Search Flood"
         aria-controls={props["aria-controls"]} aria-haspopup="dialog" aria-keyshortcuts={shortcutLabel}
-        placeholder="Search the library…" autoComplete="off" spellCheck={false}
+        placeholder="Search components or tasks…" autoComplete="off" spellCheck={false}
         controlSize="xl" value={query}
         start={<IconSlot size="sm"><Search /></IconSlot>}
         end={shortcut && <KeyboardShortcut keys={shortcut} aria-hidden="true" />}
@@ -104,9 +140,29 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
         }} /> : <SearchTrigger {...props} ref={trigger} label="Search Flood"
       shortcut={shortcut} aria-keyshortcuts={shortcutLabel}
       className="site-search-trigger" fullWidth size="md" variant="subtle" />}
-    onOpenChange={changeOpen} searchLabel="Search components, recipes and guides"
-    placeholder="Search the library…" query={query} onQueryChange={setQuery}
-    loading={!browsing && !model && !error}
-    emptyMessage={error ? "Search couldn’t load. Reopen it to retry." : "No results. Try a component name or a task like bulk edit."}
-    onAction={selectResult} />;
+    onOpenChange={changeOpen}>
+    <div className="site-search-layout">
+      <div className="site-search-icon" aria-hidden="true"><IconSlot size="md"><Search /></IconSlot></div>
+      <CommandList ref={searchInput} label="Search components, recipes and guides" hideLabel
+        controlSize="md" items={items} placeholder={scope === "all" ? "Search the library…" : `Search ${scope}…`}
+        query={query} onQueryChange={setQuery}
+        loading={!browsing && !model && !error}
+        emptyMessage={error ? "Search couldn’t load. Reopen it to retry." : scope === "all"
+          ? "No results. Try a component name or a task like bulk edit."
+          : `No results in ${scope}. Choose Explore to search the whole library.`}
+        onAction={selectResult} />
+      <div role="group" aria-label="Search scope" className="site-search-scopes">
+        {scopes.map(({ id, label, icon: Icon }) => <Button key={id} size="sm" variant={scope === id ? "subtle" : "ghost"}
+          type="button" aria-pressed={scope === id} onClick={() => setScope(id)}>
+          <IconSlot size="sm"><Icon /></IconSlot>{label}
+        </Button>)}
+      </div>
+    </div>
+  </Dialog>
+  {placement === "home" && <div className="home-search-tasks" aria-label="Suggested searches" role="group">
+    {tasks.map(task => <Button key={task} type="button" variant="ghost" size="sm" onClick={() => {
+      setQuery(task.toLowerCase());
+      changeOpen(true);
+    }}>{task}</Button>)}
+  </div>}</>;
 }
