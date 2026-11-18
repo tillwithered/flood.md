@@ -46,13 +46,12 @@
 }
 .site-root .site-search > .flood-overlay-header {
   position: absolute;
-  z-index: 1;
-  inset-block-start: 0;
-  inset-inline-end: var(--site-search-inset);
-  min-block-size: var(--site-search-row);
-  align-items: center;
 }
-.site-root .site-search .flood-overlay-close { align-self: center; }
+.site-root .site-search.flood-dialog::backdrop {
+  background: color-mix(in srgb, var(--flood-sys-color-surface-canvas) 56%, transparent);
+  backdrop-filter: blur(8px);
+}
+.site-root .site-search .flood-overlay-close { display: none; }
 .site-root .site-search .flood-button { --flood-action-hover: var(--flood-action-rest); }
 .site-search .flood-overlay-title {
   position: absolute;
@@ -82,7 +81,7 @@
 .site-root .site-search .flood-command-list > .flood-input {
   grid-area: input;
   min-block-size: var(--site-search-row);
-  padding-inline: calc(var(--site-search-inset) + 2rem) calc(var(--site-search-inset) + 2rem);
+  padding-inline: calc(var(--site-search-inset) + 2rem) var(--site-search-inset);
   border: 0;
   border-radius: 0;
   background: transparent;

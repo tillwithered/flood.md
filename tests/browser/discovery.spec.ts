@@ -15,6 +15,7 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   const search = page.getByRole("dialog", { name: "Search Flood" });
   const input = search.getByRole("combobox");
   await expect(input).toBeFocused();
+  await expect(search.getByRole("button", { name: "Close" })).toHaveCount(0);
   await expect(search.getByRole("group", { name: "Common workflows" }).getByRole("option")).toHaveCount(3);
   await expect(search.getByRole("group", { name: "Component families" })).toBeVisible();
   const forms = search.getByRole("option", { name: "Forms", exact: true });
@@ -41,6 +42,11 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.keyboard.press("Escape");
   const homeSearch = page.getByRole("searchbox", { name: "Search Flood", exact: true });
+  await expect(homeSearch).toBeFocused();
+  await homeSearch.click();
+  await expect(search).toBeVisible();
+  await page.mouse.click(1, 1);
+  await expect(search).toBeHidden();
   await expect(homeSearch).toBeFocused();
   await homeSearch.fill("массовое редактирование");
   await expect(input).toHaveValue("массовое редактирование");
