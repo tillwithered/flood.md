@@ -1,6 +1,46 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+test("a slow page transition keeps the header in place and restores scroll on Back", async ({ page }) => {
+  let releaseGuide!: () => void;
+  const guideReady = new Promise<void>(resolve => { releaseGuide = resolve; });
+  await page.route(/\/assets\/documentation-[^/]+\.js$/, async route => {
+    await guideReady;
+    await route.continue();
+  });
+
+  await page.goto("/components");
+  const search = page.getByRole("searchbox", { name: "Search Flood" });
+  await expect(search).toHaveAttribute("aria-keyshortcuts", /\+K$/);
+  const headerSearch = await search.elementHandle();
+  const initialBounds = await search.boundingBox();
+  const viewport = page.locator(".site-page-scroll");
+  const loading = page.getByRole("status").filter({ hasText: /^Loading / });
+
+  try {
+    await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Docs", exact: true }).click();
+    await expect(loading).toBeVisible();
+    expect(await search.boundingBox()).toEqual(initialBounds);
+  } finally {
+    releaseGuide();
+  }
+
+  await expect(page).toHaveURL(/\/docs$/);
+  await expect(loading).toBeHidden();
+  expect(await search.boundingBox()).toEqual(initialBounds);
+  expect(await headerSearch?.evaluate(element => element.isConnected)).toBe(true);
+
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Components", exact: true }).click();
+  await expect(page).toHaveURL(/\/components$/);
+  const scrollTop = await viewport.evaluate(node => { node.scrollTop = 500; return node.scrollTop; });
+  expect(scrollTop).toBeGreaterThan(100);
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Docs", exact: true }).evaluate((link: HTMLAnchorElement) => link.click());
+  await expect(page).toHaveURL(/\/docs$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/components$/);
+  await expect.poll(() => viewport.evaluate(node => node.scrollTop)).toBe(scrollTop);
+});
+
 test("global search leaves the background at the same scroll position", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperties(navigator, { platform: { value: "Win32" }, userAgentData: { value: undefined } });
