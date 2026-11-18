@@ -9,6 +9,8 @@ test("search can reopen during its exit and skips animation with reduced motion"
   await page.goto("/");
   await page.addStyleTag({ content: ".site-search { --flood-sys-motion-duration-exit: 500ms; }" });
   const opener = page.getByRole("searchbox", { name: "Search Flood" });
+  const field = page.locator(".site-search-input");
+  const idleBorder = await field.evaluate(node => getComputedStyle(node).borderTopWidth);
   const dialog = page.getByRole("dialog", { name: "Search Flood" });
   const input = dialog.getByRole("combobox");
   await page.keyboard.press("Control+k");
@@ -23,6 +25,7 @@ test("search can reopen during its exit and skips animation with reduced motion"
   await page.mouse.click(1, 1);
   await expect(dialog).toBeHidden();
   await expect(opener).toBeFocused();
+  await expect(field).toHaveCSS("border-top-width", idleBorder);
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await opener.click();
@@ -30,6 +33,12 @@ test("search can reopen during its exit and skips animation with reduced motion"
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await expect(opener).toBeFocused();
+  await expect(field).toHaveCSS("border-top-width", idleBorder);
+  await expect(opener).toHaveCSS("caret-color", "rgba(0, 0, 0, 0)");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await expect(opener).toBeFocused();
+  await expect(field).not.toHaveCSS("border-top-width", idleBorder);
 });
 
 test("search finds a recipe from a task and opens it from the keyboard", async ({ page, context }) => {

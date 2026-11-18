@@ -19,6 +19,13 @@
   --flood-sys-color-focus-ring: var(--flood-sys-color-content-subtle);
   border-radius: calc(var(--flood-group-height) / 2);
 }
+@media (forced-colors: none) {
+  .site-root .site-search-input:has(> .flood-input[data-returned-focus]:focus-visible) {
+    --flood-group-stroke: var(--flood-sys-stroke-width);
+    border-color: var(--flood-sys-color-field-border);
+  }
+  .site-root .site-search-input > .flood-input[data-returned-focus] { caret-color: transparent; }
+}
 .home-install { display: grid; justify-items: center; gap: var(--flood-sys-space-2); margin: var(--flood-sys-space-6) auto 0; }
 .site-root .home-install .flood-code-snippet { max-inline-size: 100%; text-align: start; }
 .site-root .home-install-link { color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); }

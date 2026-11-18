@@ -65,6 +65,7 @@ function getKeyboard(device: Navigator): Keyboard {
 export function SiteSearch() {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [returnedFocus, setReturnedFocus] = useState(false);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<SearchScope>("all");
   const [narrow, setNarrow] = useState(false);
@@ -79,6 +80,7 @@ export function SiteSearch() {
   const shortcutLabel = keyboard ? keyboard.modifier + "+K" : undefined;
 
   const finishClose = useCallback(() => {
+    setReturnedFocus(true);
     setOpen(false);
     setClosing(false);
     setQuery("");
@@ -166,10 +168,11 @@ export function SiteSearch() {
       <InputGroup type="search" ref={entry} className="site-search-input" aria-label="Search Flood"
         aria-controls={props["aria-controls"]} aria-haspopup="dialog" aria-keyshortcuts={shortcutLabel}
         placeholder="Search the library…" autoComplete="off" spellCheck={false}
-        controlSize="md" value={query}
+        controlSize="md" value={query} data-returned-focus={returnedFocus || undefined}
         start={<IconSlot size="sm"><Search /></IconSlot>}
         end={shortcut && <KeyboardShortcut keys={shortcut} aria-hidden="true" />}
         onClick={() => changeOpen(true)}
+        onBlur={() => setReturnedFocus(false)}
         onCompositionStart={() => { composing.current = true; }}
         onCompositionEnd={event => {
           composing.current = false;
@@ -181,6 +184,7 @@ export function SiteSearch() {
           if (!composing.current) changeOpen(true);
         }}
         onKeyDown={event => {
+          setReturnedFocus(false);
           if (event.key !== "Enter" || composing.current || event.nativeEvent.isComposing) return;
           event.preventDefault();
           changeOpen(true);
