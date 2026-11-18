@@ -13,6 +13,9 @@
 .site-root .site-search .flood-command-list__viewport { max-block-size: min(26rem, 52dvh); }
 .site-search .flood-command-list__label, .discovery-result-name { font-weight: 600; }
 .site-search .flood-command-list__description { white-space: normal; }
+.site-root .site-search [data-active] .flood-command-list__description {
+  color: var(--flood-sys-color-content-default);
+}
 
 .discovery-home { flex: 1; min-inline-size: 0; }
 .discovery-hero {
