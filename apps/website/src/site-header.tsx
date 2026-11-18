@@ -22,9 +22,9 @@ export function SiteHeader({ path }: { path: string }) {
     <div className="header-actions">
       <nav aria-label="Main navigation" className="header-nav">
         <Inline gap="1" className="header-links">
-          {destinations.map(({ href, label, icon: Icon, current }) => <Tooltip key={href} content={label} side="bottom"
+          {destinations.map(({ href, label, icon: Icon, current }) => <Tooltip key={href} content={label} side="bottom" delay={80}
             trigger={props => <IconLink {...props} aria-describedby={undefined} href={href} label={label} variant="ghost"
-              size="md" aria-current={current ? "page" : undefined}><Icon /></IconLink>} />)}
+              size="sm" iconSize="xs" aria-current={current ? "page" : undefined}><Icon /></IconLink>} />)}
         </Inline>
       </nav>
       <Link href="https://github.com/tillwithered/flood.md" variant="subtle" size="sm" className="header-github">
