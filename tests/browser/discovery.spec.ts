@@ -9,7 +9,7 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
     });
   });
   await page.goto("/");
-  await expect(page.getByRole("main").getByRole("button", { name: "Search Flood" }))
+  await expect(page.getByRole("main").getByRole("searchbox", { name: "Search Flood" }))
     .toHaveAttribute("aria-keyshortcuts", "Control+K");
   await page.keyboard.press("Control+k");
   const search = page.getByRole("dialog", { name: "Search Flood" });
@@ -28,9 +28,10 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   await expect(search.getByRole("option").first()).toContainText("Table bulk actions");
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "Search Flood" })).toBeFocused();
-  await page.getByRole("button", { name: "Search Flood" }).click();
-  await input.fill("массовое редактирование");
+  const homeSearch = page.getByRole("searchbox", { name: "Search Flood", exact: true });
+  await expect(homeSearch).toBeFocused();
+  await homeSearch.fill("массовое редактирование");
+  await expect(input).toHaveValue("массовое редактирование");
   await expect(search.getByRole("option").first()).toContainText("Table bulk actions");
   await input.press("Enter");
   await expect(page).toHaveURL(/\/docs\/recipes\/table-bulk-actions$/);
@@ -57,9 +58,9 @@ test("the shortcut hint follows the operating system and stays quiet on touch de
     });
   });
   await page.goto("/");
-  const trigger = page.getByRole("main").getByRole("button", { name: "Search Flood" });
+  const trigger = page.getByRole("main").getByRole("searchbox", { name: "Search Flood" });
   await expect(trigger).toHaveAttribute("aria-keyshortcuts", "Meta+K");
-  await expect(trigger.locator("kbd")).toHaveText(["⌘", "K"]);
+  await expect(page.locator(".home-search kbd")).toHaveText(["⌘", "K"]);
   await page.keyboard.press("Meta+k");
   await expect(page.getByRole("dialog", { name: "Search Flood" }).getByRole("combobox")).toBeFocused();
 

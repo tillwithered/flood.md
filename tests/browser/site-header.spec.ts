@@ -8,7 +8,7 @@ test("shared Flood header keeps its geometry and native navigation across routes
     const header=page.locator(".site-header"),nav=page.getByRole("navigation",{name:"Main navigation"});
     await expect(header).toHaveCSS("border-block-end-width","0px");
     await expect(nav.getByRole("link")).toHaveCount(4);
-    const search = page.getByRole(path === "/" ? "main" : "banner").getByRole("button", {name:"Search Flood"});
+    const search = page.getByRole(path === "/" ? "main" : "banner").getByRole(path === "/" ? "searchbox" : "button", {name:"Search Flood"});
     await expect(search).toBeVisible();
     if (path === "/") await expect(header.getByRole("button", {name:"Search Flood"})).toHaveCount(0);
     await expect(header.getByRole("link", {name:"GitHub"})).toBeVisible();

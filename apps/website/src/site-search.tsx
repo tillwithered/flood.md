@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CommandList, Dialog, SearchTrigger, type CommandListItem } from "@flood-md/react";
+import { CommandList, Dialog, IconSlot, InputGroup, KeyboardShortcut, SearchTrigger, type CommandListItem } from "@flood-md/react";
 import { ArrowUpRight, BookOpen, Boxes, Layers3, Rows3, Search, ShoppingBag, Terminal, Wallet } from "lucide-react";
 
 const glyphs = { Component: Boxes, Recipe: Rows3, Guide: BookOpen, Collection: Layers3 };
@@ -35,7 +35,11 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
   const [model, setModel] = useState<typeof import("./site-search-model")>();
   const [error, setError] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
+  const homeEntry = useRef<HTMLInputElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const composing = useRef(false);
+  const shortcut = keyboard && !keyboard.touch ? [keyboard.hint, "K"] : undefined;
+  const shortcutLabel = keyboard ? keyboard.modifier + "+K" : undefined;
 
   function changeOpen(next: boolean) {
     setOpen(next);
@@ -56,7 +60,7 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
           !modifierMatches || (event.code !== "KeyK" && event.key.toLowerCase() !== "k") ||
           document.querySelector("dialog:modal")) return;
       event.preventDefault();
-      trigger.current?.click();
+      (homeEntry.current ?? trigger.current)?.click();
     }
     document.addEventListener("keydown", onShortcut);
     return () => document.removeEventListener("keydown", onShortcut);
@@ -79,10 +83,32 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
   }
 
   return <Dialog title="Search Flood" open={open} className="site-search" initialFocusRef={input}
-    trigger={props => <SearchTrigger {...props} ref={trigger} label="Search Flood"
-      shortcut={keyboard && !keyboard.touch ? [keyboard.hint, "K"] : undefined}
-      aria-keyshortcuts={keyboard ? keyboard.modifier + "+K" : undefined}
-      className="site-search-trigger" fullWidth size={placement === "home" ? "lg" : "md"} variant="subtle" />}
+    getFallbackFocus={() => homeEntry.current}
+    trigger={props => placement === "home" ?
+      <InputGroup type="search" ref={homeEntry} className="home-search-input" aria-label="Search Flood"
+        aria-controls={props["aria-controls"]} aria-haspopup="dialog" aria-keyshortcuts={shortcutLabel}
+        placeholder="Search the library…" autoComplete="off" spellCheck={false}
+        controlSize="xl" value={query}
+        start={<IconSlot size="sm"><Search /></IconSlot>}
+        end={shortcut && <KeyboardShortcut keys={shortcut} aria-hidden="true" />}
+        onClick={() => changeOpen(true)}
+        onCompositionStart={() => { composing.current = true; }}
+        onCompositionEnd={event => {
+          composing.current = false;
+          setQuery(event.currentTarget.value);
+          changeOpen(true);
+        }}
+        onChange={event => {
+          setQuery(event.currentTarget.value);
+          if (!composing.current) changeOpen(true);
+        }}
+        onKeyDown={event => {
+          if (event.key !== "Enter" || composing.current || event.nativeEvent.isComposing) return;
+          event.preventDefault();
+          changeOpen(true);
+        }} /> : <SearchTrigger {...props} ref={trigger} label="Search Flood"
+      shortcut={shortcut} aria-keyshortcuts={shortcutLabel}
+      className="site-search-trigger" fullWidth size="md" variant="subtle" />}
     onOpenChange={changeOpen}>
     <CommandList ref={input} label="Search components, recipes and guides" hideLabel items={items}
       className="site-search-list" data-browsing={browsing || undefined} controlSize="lg"
