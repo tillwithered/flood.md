@@ -6,6 +6,7 @@ export { docPages, recipeCollections, siteOrigin };
 
 export const componentSlugs = catalog.map(component => component.slug);
 const discoveryPages = [
+  { path: "/categories", label: "Categories", description: "Explore Flood recipes by industry and product type." },
   { path: "/recipes", label: "Recipes", description: "Explore runnable interface recipes built with Flood." },
   { path: "/for-agents", label: "For agents", description: "Connect your coding agent to Flood and try a real task." },
   ...recipeCollections.map(item => ({ ...item, path: `/recipes/${item.id}` })),

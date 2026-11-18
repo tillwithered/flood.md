@@ -4,8 +4,8 @@ import { docPages } from "../site-guides.mjs";
 import { recipeByPath, recipeGroups } from "./recipe-directory";
 
 type Kind = "Component" | "Recipe" | "Guide" | "Collection";
-export type SearchScope = "all" | "components" | "recipes" | "docs";
-type Entry = { id: string; label: string; kind: Kind; scope: Exclude<SearchScope, "all">; description: string; keywords?: readonly string[] };
+export type SearchScope = "all" | "categories" | "components" | "recipes" | "docs";
+type Entry = { id: string; label: string; kind: Kind; scope: Exclude<SearchScope, "all" | "categories">; category?: boolean; description: string; keywords?: readonly string[] };
 
 const normalize = (value: string) => value.normalize("NFKD").replace(/\p{M}/gu, "")
   .replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
@@ -24,6 +24,7 @@ const entries: Entry[] = [
   }),
   ...recipeGroups.map(group => ({
     id: "/recipes/" + group.id, label: group.label, description: group.description, kind: "Collection" as const, scope: "recipes" as const,
+    category: group.category,
   })),
   ...groups.map(group => ({
     id: "/components/category/" + group.id, label: group.label + " components",
@@ -53,7 +54,7 @@ export function searchSite(query: string, scope: SearchScope): Entry[] {
   const terms = phrase.split(" ");
   const joined = key(query);
   return indexed.flatMap(({ entry, label, keywords, text, words }) => {
-    if (scope !== "all" && scope !== entry.scope) return [];
+    if (scope === "categories" ? !entry.category : scope !== "all" && scope !== entry.scope) return [];
     if (key(label) === joined) return [{ entry, score: 100 }];
     if (keywords.includes(phrase)) return [{ entry, score: 90 }];
     if (key(label).startsWith(joined)) return [{ entry, score: 80 }];

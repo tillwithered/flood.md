@@ -4,7 +4,7 @@ import "@flood-md/react/styles.css";
 import "./site.css";
 import "./discovery.css";
 import { Home } from "./home";
-import { AgentsDirectory, ComponentDirectory, RecipesDirectory } from "./discovery-pages";
+import { AgentsDirectory, CategoriesDirectory, ComponentDirectory, RecipesDirectory } from "./discovery-pages";
 import { SiteHeader } from "./site-header";
 import { SiteFooter } from './site-footer';
 
@@ -93,6 +93,7 @@ function Page({ path, documentation: Reader }: AppProps) {
       <SiteHeader path={path} />
       {home ? <Home /> :
       path === "/components" || path.startsWith("/components/category/") ? <ComponentDirectory family={path.split("/")[3]} /> :
+      path === "/categories" ? <CategoriesDirectory /> :
       path === "/recipes" || path.startsWith("/recipes/") ? <RecipesDirectory collection={path.split("/")[2]} /> :
       path === "/for-agents" ? <AgentsDirectory /> : Recipe ? (
         <main id="main-content" tabIndex={-1} className="recipe-playground">

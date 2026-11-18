@@ -2525,7 +2525,7 @@ export interface TabsProps extends Omit<HTMLAttributes<HTMLDivElement>, "childre
   onValueChange?: (value: string) => void;
   activationMode?: "automatic" | "manual";
   orientation?: "horizontal" | "vertical";
-  variant?: "contained" | "line";
+  variant?: "contained" | "line" | "pill" | "round";
   controlSize?: "sm" | "md" | "lg" | "xl";
   disabled?: boolean;
   iconOnly?: boolean;

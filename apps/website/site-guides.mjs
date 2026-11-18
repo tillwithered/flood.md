@@ -33,9 +33,11 @@ export const recipeCollections = [
   { id: "tables", label: "Tables & records", description: "Find, organize and act on records." },
   { id: "forms", label: "Forms & settings", description: "Edit values and recover from errors." },
   { id: "workspace", label: "Workspaces", description: "Navigate and review complex work." },
-  { id: "e-commerce", label: "E-commerce", description: "Browse and update collections of products and records." },
-  { id: "fintech", label: "Fintech", description: "Review changes and work with structured data." },
-  { id: "hosting", label: "Hosting", description: "Build tools for configuration and service operations." },
+  { id: "fintech", label: "Fintech", description: "Review financial records, check supporting files, and confirm changes.", category: true },
+  { id: "e-commerce", label: "E-commerce", description: "Manage product catalogs, inventory, and bulk updates.", category: true },
+  { id: "saas", label: "B2B SaaS", description: "Build workspaces, in-app navigation, and settings flows.", category: true },
+  { id: "hosting", label: "Cloud & hosting", description: "Build service consoles for resource lists, configuration, and settings.", category: true },
+  { id: "operations", label: "Internal tools", description: "Build review queues, record editors, and bulk workflows for operations teams.", category: true },
 ];
 
 export const siteOrigin = "https://flood.md";

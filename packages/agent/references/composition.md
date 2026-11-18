@@ -152,7 +152,10 @@ Use href/target for navigation, Button for actions; never nest the two or add
 role=button. Link has no disabled/loading contract. Available in 0.2.3.
 Tabs switches linked content panels. Use the default contained variant for a
 shared surface where the selected fill joins the panel. Use variant="line" for
-page-level sections whose content sits on the page canvas. Arrows activate by default,
+page-level sections whose content sits on the page canvas. Use variant="pill" for
+capsule tabs or variant="round" for rounded rectangles on an existing surface,
+such as a search sidebar.
+Arrows activate by default,
 or focus only with activationMode=manual; Enter/Space commit. One tab
 stop, RTL/orientation aware, disabled skip. Panels stay mounted/hidden and retain
 native form constraints. Controlled/missing/disabled selected values derive first

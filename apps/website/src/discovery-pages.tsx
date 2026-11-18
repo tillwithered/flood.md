@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { ArrowRight, ArrowUpRight, Box, ChartNoAxesCombined, Compass, Layers3, LayoutGrid, ListChecks, PanelsTopLeft, ShoppingBag, SlidersHorizontal, Terminal, TextCursor, Wallet, Workflow } from "lucide-react";
 import { Breadcrumb, CopyButton, Grid, Heading, IconSlot, Inline, Link, SearchInput, Stack, Surface, Text } from "@flood-md/react";
 import { directoryGroups, directoryComponents, matchesComponent, type ComponentSummary } from "./component-directory-data";
-import { recipeGroups, recipes, recipePrompt, type Recipe } from "./recipe-directory";
+import { recipeCategories, recipeGroups, recipes, recipePrompt, type Recipe } from "./recipe-directory";
 import { agentScenarios } from "./agent-scenarios";
 import { TableBulkActions } from "./recipes/table-bulk-actions";
 
@@ -10,6 +10,7 @@ const categoryIcons = {
   setup: Box, layout: LayoutGrid, typography: TextCursor, actions: Workflow, forms: SlidersHorizontal,
   navigation: Compass, content: Layers3, charts: ChartNoAxesCombined, overlays: PanelsTopLeft, feedback: ListChecks,
   tables: ListChecks, workspace: PanelsTopLeft, "e-commerce": ShoppingBag, fintech: Wallet, hosting: Terminal,
+  saas: PanelsTopLeft, operations: Workflow,
 } as const;
 const commonComponents = ["button", "data-table", "input", "select", "dialog", "app-shell"]
   .flatMap(slug => directoryComponents.filter(component => component.slug === slug));
@@ -116,18 +117,28 @@ export function RecipeCards({ items }: { items: readonly Recipe[] }) {
   </Grid>;
 }
 
-export function RecipesDirectory({ collection }: { collection?: string }) {
-  const group = recipeGroups.find(entry => entry.id === collection);
-  const taskGroups = recipeGroups.slice(0, 3);
-  const industries = recipeGroups.slice(3);
-  const renderGroups = (items: typeof recipeGroups) => <Grid gap="3" minItemWidth="15rem" className="recipe-collection-grid">
+function RecipeCollectionCards({ items }: { items: typeof recipeGroups }) {
+  return <Grid gap="3" minItemWidth="19rem" className="recipe-collection-grid">
     {items.map(item => <DirectoryCard key={item.id} href={`/recipes/${item.id}`} title={item.label}
       description={item.description} icon={item.id} meta={`${item.recipes.length} recipes`} />)}
   </Grid>;
+}
+
+export function CategoriesDirectory() {
+  return <main id="main-content" tabIndex={-1} className="discovery-page">
+    <DirectoryHeading title="Categories" description="Browse Flood recipes by industry and product type." />
+    <RecipeCollectionCards items={recipeCategories} />
+  </main>;
+}
+
+export function RecipesDirectory({ collection }: { collection?: string }) {
+  const group = recipeGroups.find(entry => entry.id === collection);
+  const taskGroups = recipeGroups.filter(entry => !entry.category);
   return <main id="main-content" tabIndex={-1} className="discovery-page">
     <DirectoryHeading title={group?.label ?? "Recipes"}
       description={group?.description ?? "Working patterns for tables, forms and product workspaces."}
-      parent={group ? { label: "Recipes", href: "/recipes" } : undefined} />
+      parent={group?.category ? { label: "Categories", href: "/categories" }
+        : group ? { label: "Recipes", href: "/recipes" } : undefined} />
     <Stack gap="12">
       {group ? <section aria-labelledby="collection-heading"><Stack gap="4">
         <Heading id="collection-heading" level={2} size="section">Recipes in this collection</Heading>
@@ -135,11 +146,11 @@ export function RecipesDirectory({ collection }: { collection?: string }) {
       </Stack></section> : <>
         <section aria-labelledby="tasks-heading"><Stack gap="4">
           <Heading id="tasks-heading" level={2} size="section">Browse by task</Heading>
-          {renderGroups(taskGroups)}
+          <RecipeCollectionCards items={taskGroups} />
         </Stack></section>
         <section aria-labelledby="industries-heading"><Stack gap="4">
-          <Heading id="industries-heading" level={2} size="section">Browse by industry</Heading>
-          {renderGroups(industries)}
+          <Heading id="industries-heading" level={2} size="section">Browse by category</Heading>
+          <RecipeCollectionCards items={recipeCategories} />
         </Stack></section>
         <section aria-labelledby="all-recipes-heading"><Stack gap="4">
           <Heading id="all-recipes-heading" level={2} size="section">All recipes</Heading>

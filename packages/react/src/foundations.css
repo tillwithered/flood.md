@@ -685,6 +685,15 @@
 .flood-root .flood-tabs__panel { min-inline-size: 0; padding: var(--flood-sys-space-4); font-size: var(--flood-sys-type-compact-size); line-height: var(--flood-sys-type-compact-line-height); overflow-wrap: break-word; }
 .flood-root .flood-tabs__panel[hidden] { display: none; }
 .flood-root .flood-tabs__panel:focus-visible { outline: var(--flood-sys-focus-width) solid var(--flood-sys-color-focus-ring); outline-offset: calc(-1 * var(--flood-sys-focus-width)); }
+.flood-root .flood-tabs:is([data-variant="pill"], [data-variant="round"]) { border: 0; border-radius: 0; background: transparent; }
+.flood-root .flood-tabs:is([data-variant="pill"], [data-variant="round"]) .flood-tabs__scroll { background: transparent; }
+.flood-root .flood-tabs:is([data-variant="pill"], [data-variant="round"]) .flood-tabs__list { gap: var(--flood-sys-space-1); }
+.flood-root .flood-tabs[data-variant="pill"] .flood-tab { border-radius: var(--flood-sys-radius-action); }
+.flood-root .flood-tabs[data-variant="round"] .flood-tab { border-radius: calc(var(--flood-sys-radius-field) / 2); }
+.flood-root .flood-tabs:is([data-variant="pill"], [data-variant="round"]) .flood-tab[aria-selected="true"] {
+  background: var(--flood-sys-color-selection-background);
+  color: var(--flood-sys-color-selection-content);
+}
 .flood-root .flood-tabs[data-variant="line"] {
   gap: var(--flood-sys-space-4);
   border: 0;

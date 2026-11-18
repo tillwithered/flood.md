@@ -3,7 +3,7 @@
 .flood-root :where(.flood-surface, .flood-dialog, .flood-overlay-panel,
   .flood-select__menu, .flood-toast, .flood-toolbar:not([data-variant="plain"]), .flood-calendar:not(.flood-date-picker__panel .flood-calendar):not(.flood-date-range-picker__panel .flood-calendar),
   .flood-file-list, .flood-color-picker__panel, .flood-bulk-action-bar,
-  .flood-tabs:not([data-variant="line"]), .flood-disclosure:not(.flood-accordion > .flood-disclosure), .flood-accordion,
+  .flood-tabs[data-variant="contained"], .flood-disclosure:not(.flood-accordion > .flood-disclosure), .flood-accordion,
   .flood-segmented .flood-choice-group, .flood-data-table__footer, .flood-code-snippet),
 .flood-root :where([data-flood-surface="filled"], [data-flood-surface="floating"]),
 .flood-root:is([data-flood-surface="filled"], [data-flood-surface="floating"]) {
@@ -33,7 +33,7 @@
 
 .flood-root[data-flood-surface="filled"],
 .flood-root :where([data-flood-surface="filled"], .flood-surface[data-flood-elevation="default"], .flood-toolbar:not([data-variant="plain"]), .flood-file-list, .flood-color-picker__panel,
-  .flood-tabs:not([data-variant="line"]), .flood-disclosure:not(.flood-accordion > .flood-disclosure), .flood-accordion,
+  .flood-tabs[data-variant="contained"], .flood-disclosure:not(.flood-accordion > .flood-disclosure), .flood-accordion,
   .flood-segmented .flood-choice-group, .flood-data-table__footer, .flood-code-snippet) {
   --flood-sys-color-surface-current: var(--flood-sys-color-surface-default);
 }
@@ -56,7 +56,7 @@
 /* Explicit canvas scopes reset every role after automatic material owners. */
 .flood-root[data-flood-surface="base"],
 .flood-root :where([data-flood-surface="base"], .flood-dropzone,
-  .flood-tabs:not([data-variant="line"]) > .flood-tabs__scroll) {
+  .flood-tabs[data-variant="contained"] > .flood-tabs__scroll) {
   --flood-sys-color-action-subtle-rest: var(--flood-sys-color-context-base-action-rest);
   --flood-sys-color-action-subtle-hover: var(--flood-sys-color-context-base-action-hover);
   --flood-sys-color-action-subtle-pressed: var(--flood-sys-color-context-base-action-pressed);
@@ -99,9 +99,9 @@
   .flood-root, .flood-root :where(.flood-surface, .flood-dialog, .flood-overlay-panel,
     .flood-select__menu, .flood-toast, .flood-toolbar:not([data-variant="plain"]), .flood-calendar:not(.flood-date-picker__panel .flood-calendar):not(.flood-date-range-picker__panel .flood-calendar),
     .flood-file-list, .flood-color-picker__panel, .flood-bulk-action-bar,
-    .flood-tabs:not([data-variant="line"]), .flood-disclosure:not(.flood-accordion > .flood-disclosure), .flood-accordion,
+    .flood-tabs[data-variant="contained"], .flood-disclosure:not(.flood-accordion > .flood-disclosure), .flood-accordion,
     .flood-segmented .flood-choice-group, .flood-data-table__footer, .flood-code-snippet,
-    .flood-dropzone, .flood-tabs:not([data-variant="line"]) > .flood-tabs__scroll, [data-flood-surface]) {
+    .flood-dropzone, .flood-tabs[data-variant="contained"] > .flood-tabs__scroll, [data-flood-surface]) {
     --flood-sys-color-surface-current: Canvas;
     --flood-sys-color-surface-supporting: Canvas;
     --flood-sys-color-surface-avatar: Canvas;
