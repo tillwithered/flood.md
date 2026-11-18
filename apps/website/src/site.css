@@ -6,7 +6,7 @@ html:has(.site-page-scroll) { overflow: clip; }
    when wheel or touch movement reaches a modal body's scroll boundary. */
 html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 .site-root {
-  --site-preview-background: radial-gradient(circle, rgb(255 170 205 / .035) .045rem, transparent .045rem) 0 0 / 1.25rem 1.25rem #1a161a;
+  --site-preview-background: var(--flood-sys-color-surface-canvas);
   --landing-panel-padding: clamp(var(--flood-sys-space-6), 3vw, 2.5rem);
   min-block-size: 100svh;
   -webkit-font-smoothing: antialiased;

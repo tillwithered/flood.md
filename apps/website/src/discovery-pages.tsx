@@ -11,6 +11,8 @@ const categoryIcons = {
   navigation: Compass, content: Layers3, charts: ChartNoAxesCombined, overlays: PanelsTopLeft, feedback: ListChecks,
   tables: ListChecks, workspace: PanelsTopLeft, "e-commerce": ShoppingBag, fintech: Wallet, hosting: Terminal,
 } as const;
+const commonComponents = ["button", "data-table", "input", "select", "dialog", "app-shell"]
+  .flatMap(slug => directoryComponents.filter(component => component.slug === slug));
 
 function CategoryIcon({ name }: { name: string }) {
   const Icon = categoryIcons[name as keyof typeof categoryIcons] ?? Box;
@@ -33,7 +35,8 @@ function DirectoryCard({ href, title, description, icon, meta, id }: {
   href: string; title: string; description: string; icon: string; meta?: ReactNode; id?: string;
 }) {
   return <Link href={href} id={id} className="discovery-card">
-    <Surface padding="4" className="discovery-card-surface">
+    <Surface padding="4" className="discovery-card-surface"
+      style={{ background: "var(--discovery-card-background, var(--flood-sys-color-surface-default))" }}>
       <Stack gap="3">
         <Inline gap="2" align="center" className="discovery-card-top">
           <CategoryIcon name={icon} />
@@ -80,7 +83,8 @@ export function ComponentDirectory({ family }: { family?: string }) {
           {searching && !matches.length ? "No components found." : `${matches.length} ${matches.length === 1 ? "component" : "components"}`}
         </Text>
       </Inline>
-      {group || searching ? <ComponentLinks pages={matches} /> : <section aria-labelledby="families-heading">
+      {group || searching ? <ComponentLinks pages={matches} /> : <>
+      <section aria-labelledby="families-heading">
         <Stack gap="4">
           <Heading level={2} size="section" id="families-heading">Browse families</Heading>
           <Grid gap="3" minItemWidth="15rem" className="discovery-family-grid" role="navigation" aria-label="Component categories">
@@ -89,7 +93,12 @@ export function ComponentDirectory({ family }: { family?: string }) {
               meta={`${item.components.length} ${item.components.length === 1 ? "component" : "components"}`} />)}
           </Grid>
         </Stack>
-      </section>}
+      </section>
+      <section aria-labelledby="common-components"><Stack gap="4">
+        <Heading level={2} size="section" id="common-components">Start with the essentials</Heading>
+        <ComponentLinks pages={commonComponents} />
+      </Stack></section>
+      </>}
       <Inline gap="4">
         <Link href="/recipes">See components in recipes <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
         {(!group || group.id === "charts") && <Link href="/docs/charts">Chart guide</Link>}
@@ -111,7 +120,7 @@ export function RecipesDirectory({ collection }: { collection?: string }) {
   const group = recipeGroups.find(entry => entry.id === collection);
   const taskGroups = recipeGroups.slice(0, 3);
   const industries = recipeGroups.slice(3);
-  const renderGroups = (items: typeof recipeGroups) => <Grid gap="3" minItemWidth="15rem">
+  const renderGroups = (items: typeof recipeGroups) => <Grid gap="3" minItemWidth="15rem" className="recipe-collection-grid">
     {items.map(item => <DirectoryCard key={item.id} href={`/recipes/${item.id}`} title={item.label}
       description={item.description} icon={item.id} meta={`${item.recipes.length} recipes`} />)}
   </Grid>;
