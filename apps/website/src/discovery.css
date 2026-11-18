@@ -8,8 +8,7 @@
 .site-header .header-actions { display: flex; align-items: center; justify-content: end; gap: var(--flood-sys-space-2); min-inline-size: 0; }
 .site-header .header-nav { min-inline-size: 0; margin: 0; }
 .site-header .header-github { flex: none; }
-.site-header .header-links { flex-wrap: wrap; gap: var(--flood-sys-space-1); }
-.site-header .header-links .flood-link { padding-inline: var(--flood-sys-space-2); }
+.site-header .header-links { flex-wrap: wrap; }
 .site-search-entry { inline-size: min(100%, 36rem); justify-self: center; min-inline-size: 0; }
 .home-main { padding-block: clamp(2.5rem, 7svh, 5rem); }
 .home-discovery .hero-title { font-size: clamp(2.15rem, 6.8vw, 5.5rem); line-height: 1.07; text-wrap: balance; }
@@ -17,6 +16,7 @@
 .home-discovery .hero-description { font-size: clamp(1rem, 1.7vw, 1.375rem); margin-block-start: var(--flood-sys-space-6); }
 .site-root .site-search-input {
   --flood-group-height: max(2.75rem, var(--flood-control-height));
+  --flood-sys-color-focus-ring: var(--flood-sys-color-content-subtle);
   border-radius: calc(var(--flood-group-height) / 2);
 }
 .home-install { display: grid; justify-items: center; gap: var(--flood-sys-space-2); margin: var(--flood-sys-space-6) auto 0; }
@@ -189,9 +189,6 @@
 @media (max-width: 35rem) {
   .home-discovery .hero-title { font-size: clamp(1.8rem, 8.6vw, 3.5rem); }
 }
-@media (max-width: 22rem) {
-  .site-header .header-links .flood-link { padding-inline: var(--flood-sys-space-1); }
-}
 .discovery-filter, .discovery-card-top { justify-content: space-between; align-items: center; }
 
 .discovery-page { max-inline-size: 74rem; min-block-size: 68svh; margin-inline: auto; padding-block: clamp(2rem, 5vw, 4.5rem); }
@@ -238,10 +235,7 @@
 .recipe-introduction { margin-block-end: var(--flood-sys-space-8); }
 .recipe-introduction [id="live-example"] > .flood-stack > .flood-surface { border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); }
 
-@media (max-width: 90rem) {
-  .site-header .header-github > span:last-child { display: none; }
-}
-@media (max-width: 79.99rem) {
+@media (width < 64rem) {
   .site-header { grid-template-columns: minmax(0, 1fr) auto; }
   .site-header .header-actions { grid-column: 2; grid-row: 1; }
   .site-header .site-search-entry { grid-column: 1 / -1; grid-row: 2; }

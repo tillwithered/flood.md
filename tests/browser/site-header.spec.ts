@@ -11,9 +11,9 @@ test("shared Flood header keeps its geometry and native navigation across routes
     const search = header.getByRole("searchbox", {name:"Search Flood"});
     await expect(search).toBeVisible();
     await expect(page.getByRole("searchbox", {name:"Search Flood"})).toHaveCount(1);
-    await expect(header.getByRole("link", {name:"GitHub"})).toBeVisible();
+    await expect(header.getByRole("link", {name:"GitHub"})).toHaveText("GitHub");
     for(const link of await nav.getByRole("link").all()){
-      await expect(link).toHaveClass(/flood-button/);
+      await expect(link).toHaveClass(/flood-icon-link/);
       await expect(link).not.toHaveAttribute("role","button");
     }
     const box=(await header.boundingBox())!;
@@ -26,6 +26,10 @@ test("shared Flood header keeps its geometry and native navigation across routes
     if(path.startsWith("/docs"))await expect(nav.getByRole("link",{name:"Docs",exact:true})).toHaveAttribute("aria-current","page");
     if(path.startsWith("/components"))await expect(nav.getByRole("link",{name:"Components",exact:true})).toHaveAttribute("aria-current","page");
     if(path==="/"||path==="/docs")await header.screenshot({path:`.artifacts/shared-header-${path==="/"?"home":"docs"}-${info.project.name}.png`});
+    if(path === "/") {
+      await nav.getByRole("link", {name:"Components", exact:true}).focus();
+      await expect(page.getByRole("tooltip").filter({hasText:"Components"})).toBeVisible();
+    }
   }
   await page.setViewportSize({width:320,height:900});
   await page.evaluate(()=>{document.documentElement.style.fontSize="24px"});

@@ -71,8 +71,6 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
   .site-header .wordmark { font-size: var(--flood-sys-type-section-size); }
   .wordmark img { inline-size: 2rem; block-size: 2rem; }
   .site-header .header-links { gap: var(--flood-sys-space-1); }
-  .site-header .header-links .flood-link { padding-inline: var(--flood-sys-space-2); }
-  .header-github > span:last-child { display: none; }
   .hero { padding-block-start: var(--flood-sys-space-6); }
   .hero .hero-title { font-size: clamp(2rem, 8vw, 2.75rem); }
   .hero-line + .hero-line { margin-block-start: var(--flood-sys-space-1); }
@@ -327,7 +325,6 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 @media (max-width: 23rem) {
   .site-header .wordmark { font-size: var(--flood-sys-type-body-size); gap: var(--flood-sys-space-1); }
   .site-header .wordmark img { inline-size: 1.625rem; block-size: 1.625rem; }
-  .site-header .header-links .flood-link { padding-inline: var(--flood-sys-space-1); }
 }
 @media (forced-colors: active) {
   .side-nav .side-link[aria-current="page"] { outline: 1px solid Highlight; }

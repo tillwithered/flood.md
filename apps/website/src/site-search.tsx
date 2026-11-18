@@ -99,8 +99,11 @@ export function SiteSearch() {
       if (event.defaultPrevented || event.isComposing || event.repeat || event.altKey || event.shiftKey ||
           !modifierMatches || (event.code !== "KeyK" && event.key.toLowerCase() !== "k") ||
           document.querySelector("dialog:modal")) return;
+      const opener = entry.current;
+      if (!opener) return;
       event.preventDefault();
-      entry.current?.click();
+      opener.focus({ preventScroll: true });
+      opener.click();
     }
     document.addEventListener("keydown", onShortcut);
     return () => {

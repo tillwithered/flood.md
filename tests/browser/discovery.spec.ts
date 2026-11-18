@@ -11,6 +11,7 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   await page.goto("/");
   await expect(page.getByRole("banner").getByRole("searchbox", { name: "Search Flood" }))
     .toHaveAttribute("aria-keyshortcuts", "Control+K");
+  await page.getByRole("main").focus();
   await page.keyboard.press("Control+k");
   const search = page.getByRole("dialog", { name: "Search Flood" });
   const input = search.getByRole("combobox");
