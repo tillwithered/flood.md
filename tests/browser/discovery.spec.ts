@@ -1,6 +1,37 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+test("search can reopen during its exit and skips animation with reduced motion", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperties(navigator, { platform: { value: "Win32" }, userAgentData: { value: undefined } });
+  });
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/");
+  await page.addStyleTag({ content: ".site-search { --flood-sys-motion-duration-exit: 500ms; }" });
+  const opener = page.getByRole("searchbox", { name: "Search Flood" });
+  const dialog = page.getByRole("dialog", { name: "Search Flood" });
+  const input = dialog.getByRole("combobox");
+  await page.keyboard.press("Control+k");
+  await input.fill("Fintech");
+  await expect(dialog.getByRole("option", { name: /^Fintech/ }).first()).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveAttribute("data-closing", "true");
+  await page.keyboard.press("Control+k");
+  await expect(dialog).not.toHaveAttribute("data-closing");
+  await expect(input).toBeFocused();
+  await expect(input).toHaveValue("Fintech");
+  await page.mouse.click(1, 1);
+  await expect(dialog).toBeHidden();
+  await expect(opener).toBeFocused();
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await opener.click();
+  await expect(dialog).toHaveCSS("transition-duration", "0s");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(opener).toBeFocused();
+});
+
 test("search finds a recipe from a task and opens it from the keyboard", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.addInitScript(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CommandList, Dialog, IconSlot, InputGroup, KeyboardShortcut, Tabs, type CommandListItem } from "@flood-md/react";
 import { BookOpen, Boxes, ChartNoAxesColumn, Layers3, LayoutGrid, ListChecks, PanelsTopLeft, Rows3, Search, SlidersHorizontal, Terminal } from "lucide-react";
 import { recipeCategories } from "./recipe-directory";
@@ -64,6 +64,7 @@ function getKeyboard(device: Navigator): Keyboard {
 
 export function SiteSearch() {
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<SearchScope>("all");
   const [narrow, setNarrow] = useState(false);
@@ -71,21 +72,45 @@ export function SiteSearch() {
   const [model, setModel] = useState<typeof import("./site-search-model")>();
   const [error, setError] = useState(false);
   const entry = useRef<HTMLInputElement>(null);
+  const panel = useRef<HTMLDialogElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const composing = useRef(false);
   const shortcut = keyboard && !keyboard.touch ? [keyboard.hint, "K"] : undefined;
   const shortcutLabel = keyboard ? keyboard.modifier + "+K" : undefined;
 
+  const finishClose = useCallback(() => {
+    setOpen(false);
+    setClosing(false);
+    setQuery("");
+    setScope("all");
+  }, []);
+
   function changeOpen(next: boolean) {
-    setOpen(next);
     if (!next) {
-      setQuery("");
-      setScope("all");
-    } else if (!model) {
+      if (window.matchMedia("(prefers-reduced-motion: reduce), (forced-colors: active)").matches ||
+          panel.current?.closest('[data-flood-motion="reduce"]')) finishClose();
+      else setClosing(true);
+      return;
+    }
+    setClosing(false);
+    setOpen(true);
+    if (!model) {
       setError(false);
       void import("./site-search-model").then(setModel, () => setError(true));
     }
   }
+
+  useEffect(() => {
+    if (!closing) return;
+    const dialog = panel.current;
+    const exit = dialog?.getAnimations?.().find(animation =>
+      "transitionProperty" in animation && animation.transitionProperty === "opacity");
+    if (!exit) { finishClose(); return; }
+    let current = true;
+    function complete() { if (current && dialog?.hasAttribute("data-closing")) finishClose(); }
+    void exit.finished.then(complete, complete);
+    return () => { current = false; };
+  }, [closing, finishClose]);
 
   useEffect(() => {
     const keyboard = getKeyboard(navigator);
@@ -97,12 +122,13 @@ export function SiteSearch() {
     function onShortcut(event: KeyboardEvent) {
       const modifierMatches = keyboard.modifier === "Meta" ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
       if (event.defaultPrevented || event.isComposing || event.repeat || event.altKey || event.shiftKey ||
-          !modifierMatches || (event.code !== "KeyK" && event.key.toLowerCase() !== "k") ||
-          document.querySelector("dialog:modal")) return;
+          !modifierMatches || (event.code !== "KeyK" && event.key.toLowerCase() !== "k")) return;
+      const modal = document.querySelector("dialog:modal");
+      if (modal && (modal !== panel.current || !modal.hasAttribute("data-closing"))) return;
       const opener = entry.current;
       if (!opener) return;
       event.preventDefault();
-      opener.focus({ preventScroll: true });
+      if (!modal) opener.focus({ preventScroll: true });
       opener.click();
     }
     document.addEventListener("keydown", onShortcut);
@@ -132,7 +158,8 @@ export function SiteSearch() {
       : `No results in ${scope}. Choose All to search the whole library.`}
     onAction={id => window.location.assign(id)} />;
 
-  return <Dialog title="Search Flood" open={open} className="site-search" data-browsing={browsing || undefined} data-scope={scope}
+  return <Dialog ref={panel} title="Search Flood" open={open} className="site-search" data-closing={closing || undefined}
+    data-browsing={browsing || undefined} data-scope={scope}
     initialFocusRef={searchInput}
     getFallbackFocus={() => entry.current}
     trigger={props =>
