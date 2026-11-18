@@ -25,28 +25,21 @@
 .home-install-link { margin-block-start: var(--flood-sys-space-3); }
 .site-root .site-search {
   --flood-sys-color-focus-ring: var(--flood-sys-color-content-subtle);
-  inline-size: min(49rem, calc(100% - 2rem));
+  inline-size: min(41rem, calc(100% - 2rem));
   max-inline-size: calc(100% - 2rem);
-  inset-block-start: min(12dvh, 7rem);
-  margin-block: 0 auto;
-  max-block-size: calc(100dvh - min(12dvh, 7rem) - 1rem);
+  background: var(--flood-sys-color-surface-default);
 }
-.site-root .site-search > .flood-overlay-body { margin-block-start: var(--flood-sys-space-4); }
-.site-search .flood-command-list__viewport { max-block-size: min(24rem, 49dvh); }
+.site-root .site-search .flood-command-list__viewport { max-block-size: min(24rem, 52dvh); }
 .site-search .flood-command-list__label, .discovery-result-name { font-weight: 600; }
 .site-search .flood-command-list__description { white-space: normal; }
 .site-root .site-search [data-active] .flood-command-list__description {
   color: var(--flood-sys-color-content-default);
 }
-.site-search [data-browsing] .flood-command-list__viewport > .flood-scroll-area__content {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: start;
-  gap: var(--flood-sys-space-2);
-}
-.site-search [data-browsing] .flood-command-list__option { min-block-size: var(--flood-sys-control-md-height); }
-@media (min-width: 36.01rem) {
-  .site-search [data-browsing] .flood-command-list__group + .flood-command-list__group { margin-block-start: 0; }
+@media (forced-colors: none) {
+  .site-root .site-search .flood-command-list > .flood-input:focus-visible {
+    background: var(--flood-sys-color-surface-supporting);
+    outline: none;
+  }
 }
 
 .discovery-filter, .discovery-card-top { justify-content: space-between; align-items: center; }
@@ -108,8 +101,7 @@
   .site-header .header-nav { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
   .site-header[data-search] .header-nav { grid-row: 3; }
   .site-header .header-links { justify-content: start; flex-wrap: wrap; }
-  .site-root .site-search { inset-block-start: 1rem; max-block-size: calc(100dvh - 2rem); padding: var(--flood-sys-space-4); }
-  .site-search [data-browsing] .flood-command-list__viewport > .flood-scroll-area__content { grid-template-columns: minmax(0, 1fr); }
+  .site-root .site-search.flood-command-palette { inset-block-start: 1rem; max-block-size: calc(100dvh - 2rem); }
 }
 @media (max-width: 35rem) {
   .site-header { gap: var(--flood-sys-space-2); padding-block: var(--flood-sys-space-2); }

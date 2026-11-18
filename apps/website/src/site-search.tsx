@@ -1,20 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { CommandList, Dialog, IconSlot, InputGroup, KeyboardShortcut, SearchTrigger, type CommandListItem } from "@flood-md/react";
-import { ArrowUpRight, BookOpen, Boxes, Layers3, Rows3, Search, ShoppingBag, Terminal, Wallet } from "lucide-react";
+import { CommandPalette, IconSlot, InputGroup, KeyboardShortcut, SearchTrigger, type CommandListItem } from "@flood-md/react";
+import { BookOpen, Boxes, Layers3, Rows3, Search } from "lucide-react";
 
 const glyphs = { Component: Boxes, Recipe: Rows3, Guide: BookOpen, Collection: Layers3 };
 
 const browseItems: readonly CommandListItem[] = [
-  { id: "/components", label: "Components", group: "Browse", icon: <Boxes /> },
-  { id: "/recipes", label: "Recipes", group: "Browse", icon: <Rows3 /> },
-  { id: "/docs", label: "Docs", group: "Browse", icon: <BookOpen /> },
-  { id: "/for-agents", label: "For agents", group: "Browse", icon: <Terminal /> },
   { id: "query:DataTable", label: "DataTable", group: "Try a search", icon: <Search /> },
   { id: "query:bulk edit", label: "Bulk edit", group: "Try a search", icon: <Search /> },
   { id: "query:saved filters", label: "Saved filters", group: "Try a search", icon: <Search /> },
-  { id: "/recipes/e-commerce", label: "E-commerce", group: "Industry recipes", icon: <ShoppingBag /> },
-  { id: "/recipes/fintech", label: "Fintech", group: "Industry recipes", icon: <Wallet /> },
-  { id: "/recipes/hosting", label: "Hosting", group: "Industry recipes", icon: <ArrowUpRight /> },
 ];
 
 type Keyboard = { modifier: "Meta" | "Control"; hint: string; touch: boolean };
@@ -36,7 +29,6 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
   const [error, setError] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const homeEntry = useRef<HTMLInputElement>(null);
-  const input = useRef<HTMLInputElement>(null);
   const composing = useRef(false);
   const shortcut = keyboard && !keyboard.touch ? [keyboard.hint, "K"] : undefined;
   const shortcutLabel = keyboard ? keyboard.modifier + "+K" : undefined;
@@ -75,14 +67,14 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
 
   function selectResult(id: string) {
     if (id.startsWith("query:")) {
+      setOpen(true);
       setQuery(id.slice("query:".length));
       return;
     }
-    changeOpen(false);
     window.location.assign(id);
   }
 
-  return <Dialog title="Search Flood" open={open} className="site-search" initialFocusRef={input}
+  return <CommandPalette title="Search Flood" open={open} className="site-search" items={items}
     getFallbackFocus={() => homeEntry.current}
     trigger={props => placement === "home" ?
       <InputGroup type="search" ref={homeEntry} className="home-search-input" aria-label="Search Flood"
@@ -109,12 +101,9 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
         }} /> : <SearchTrigger {...props} ref={trigger} label="Search Flood"
       shortcut={shortcut} aria-keyshortcuts={shortcutLabel}
       className="site-search-trigger" fullWidth size="md" variant="subtle" />}
-    onOpenChange={changeOpen}>
-    <CommandList ref={input} label="Search components, recipes and guides" hideLabel items={items}
-      className="site-search-list" data-browsing={browsing || undefined} controlSize="lg"
-      placeholder="Search components, recipes and guides…" query={query} onQueryChange={setQuery}
-      loading={!browsing && !model && !error}
-      emptyMessage={error ? "Search couldn’t load. Reopen it to retry." : "No results. Try a component name or a task like bulk edit."}
-      onAction={selectResult} />
-  </Dialog>;
+    onOpenChange={changeOpen} searchLabel="Search components, recipes and guides"
+    placeholder="Search the library…" query={query} onQueryChange={setQuery}
+    loading={!browsing && !model && !error}
+    emptyMessage={error ? "Search couldn’t load. Reopen it to retry." : "No results. Try a component name or a task like bulk edit."}
+    onAction={selectResult} />;
 }
