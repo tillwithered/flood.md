@@ -29,18 +29,6 @@
 .home-install { display: grid; justify-items: center; gap: var(--flood-sys-space-2); margin: var(--flood-sys-space-4) auto 0; }
 .site-root .home-install .flood-code-snippet { max-inline-size: 100%; text-align: start; }
 .site-root .home-install-link { color: var(--flood-sys-color-content-subtle); font-size: var(--flood-sys-type-helper-size); }
-.home-search-tasks {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--flood-sys-space-1);
-  margin-block-start: var(--flood-sys-space-2);
-}
-.site-root .home-search-tasks .flood-button {
-  color: var(--flood-sys-color-content-subtle);
-  border-radius: 2rem;
-}
-
 .site-root .site-search.flood-dialog {
   --site-search-row: 4.25rem;
   --site-search-top: min(10dvh, 5rem);
@@ -131,7 +119,7 @@
   padding-inline-end: max(var(--site-search-inset), var(--flood-scroll-content-inline, 0px));
 }
 .site-root .site-search .flood-command-list__viewport {
-  min-block-size: min(21rem, 48dvh);
+  min-block-size: min(18rem, 48dvh);
   max-block-size: min(26rem, 61dvh);
 }
 .site-search .flood-command-list__label, .discovery-result-name { font-weight: 600; }

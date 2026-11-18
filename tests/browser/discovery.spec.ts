@@ -15,10 +15,8 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   const search = page.getByRole("dialog", { name: "Search Flood" });
   const input = search.getByRole("combobox");
   await expect(input).toBeFocused();
-  await expect(search.getByRole("group", { name: "Recipes by industry" }).getByRole("option")).toHaveCount(3);
-  await expect(search.getByRole("group", { name: "Search by task" })).toBeVisible();
-  await search.getByRole("option", { name: "Bulk edit", exact: true }).click();
-  await expect(input).toHaveValue("bulk edit");
+  await expect(search.getByRole("group", { name: "Common workflows" }).getByRole("option")).toHaveCount(3);
+  await expect(search.getByRole("group", { name: "Component families" })).toBeVisible();
   await input.fill("DataTable");
   await expect(search.getByRole("option").first()).toContainText("DataTable");
   await input.fill("DataTabel");
@@ -37,13 +35,9 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   await page.keyboard.press("Escape");
   const homeSearch = page.getByRole("searchbox", { name: "Search Flood", exact: true });
   await expect(homeSearch).toBeFocused();
-  await page.getByRole("group", { name: "Suggested searches" }).getByRole("button", { name: "Form validation" }).click();
-  await expect(input).toHaveValue("form validation");
-  await expect(scopes.getByRole("button", { name: "Explore" })).toHaveAttribute("aria-pressed", "true");
-  await expect(search.getByRole("option").first()).toContainText("Form submission");
-  await page.keyboard.press("Escape");
   await homeSearch.fill("массовое редактирование");
   await expect(input).toHaveValue("массовое редактирование");
+  await expect(scopes.getByRole("button", { name: "All", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(search.getByRole("option").first()).toContainText("Table bulk actions");
   await input.press("Enter");
   await expect(page).toHaveURL(/\/docs\/recipes\/table-bulk-actions$/);
@@ -86,6 +80,10 @@ test("the shortcut hint follows the operating system and stays quiet on touch de
 
 test("recipes and agent setup are discoverable from stable navigation routes", async ({ page }) => {
   await page.goto("/");
+  await page.getByRole("searchbox", { name: "Search Flood" }).click();
+  const search = page.getByRole("dialog", { name: "Search Flood" });
+  await search.getByRole("option", { name: /^Form submission/ }).click();
+  await expect(page).toHaveURL(/\/docs\/recipes\/form-submission$/);
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Recipes", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Recipes", exact: true })).toBeVisible();
   await page.getByRole("link", { name: /^E-commerce / }).click();

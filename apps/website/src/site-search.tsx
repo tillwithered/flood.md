@@ -12,8 +12,11 @@ const scopes = [
   { id: "docs", label: "Docs", icon: BookOpen },
 ] as const;
 
-const tasks = ["Bulk edit", "Form validation", "Saved filters"];
-const taskItems = tasks.map(label => ({ id: `query:${label.toLowerCase()}`, label, group: "Search by task", icon: <Search /> }));
+const workflows: readonly CommandListItem[] = [
+  { id: "/docs/recipes/form-submission", label: "Form submission", description: "Validate and submit forms", group: "Common workflows", icon: <ListChecks /> },
+  { id: "/docs/recipes/collection-views", label: "Collection views", description: "Save filters and columns", group: "Common workflows", icon: <SlidersHorizontal /> },
+  { id: "/docs/recipes/table-bulk-actions", label: "Table bulk actions", description: "Act on several records at once", group: "Common workflows", icon: <Rows3 /> },
+];
 const families: readonly CommandListItem[] = [
   { id: "/components/category/forms", label: "Forms", group: "Component families", icon: <ListChecks /> },
   { id: "/components/category/navigation", label: "Navigation", group: "Component families", icon: <PanelsTopLeft /> },
@@ -26,7 +29,7 @@ const industries: readonly CommandListItem[] = [
   { id: "/recipes/hosting", label: "Hosting", description: "Configure services and settings", group: "Recipes by industry", icon: <Server /> },
 ];
 const browseItems: Record<SearchScope, readonly CommandListItem[]> = {
-  all: [...industries, ...families, ...taskItems],
+  all: [...workflows, ...families],
   components: [...families,
     { id: "/components/data-table", label: "DataTable", description: "Inspect, sort and select records", group: "Components", icon: <Rows3 /> },
     { id: "/components/command-palette", label: "CommandPalette", description: "Searchable actions and navigation", group: "Components", icon: <Search /> },
@@ -104,21 +107,13 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
       description: entry.kind + " · " + entry.description, keywords: [query] };
   });
 
-  function selectResult(id: string) {
-    if (id.startsWith("query:")) {
-      setQuery(id.slice("query:".length));
-      return;
-    }
-    window.location.assign(id);
-  }
-
-  return <><Dialog title="Search Flood" open={open} className="site-search" data-browsing={browsing || undefined} data-scope={scope}
+  return <Dialog title="Search Flood" open={open} className="site-search" data-browsing={browsing || undefined} data-scope={scope}
     initialFocusRef={searchInput}
     getFallbackFocus={() => homeEntry.current}
     trigger={props => placement === "home" ?
       <InputGroup type="search" ref={homeEntry} className="home-search-input" aria-label="Search Flood"
         aria-controls={props["aria-controls"]} aria-haspopup="dialog" aria-keyshortcuts={shortcutLabel}
-        placeholder="Search components or tasks…" autoComplete="off" spellCheck={false}
+        placeholder="Search the library…" autoComplete="off" spellCheck={false}
         controlSize="xl" value={query}
         start={<IconSlot size="sm"><Search /></IconSlot>}
         end={shortcut && <KeyboardShortcut keys={shortcut} aria-hidden="true" />}
@@ -149,20 +144,14 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
         loading={!browsing && !model && !error}
         emptyMessage={error ? "Search couldn’t load. Reopen it to retry." : scope === "all"
           ? "No results. Try a component name or a task like bulk edit."
-          : `No results in ${scope}. Choose Explore to search the whole library.`}
-        onAction={selectResult} />
+          : `No results in ${scope}. Choose All to search the whole library.`}
+        onAction={id => window.location.assign(id)} />
       <div role="group" aria-label="Search scope" className="site-search-scopes">
         {scopes.map(({ id, label, icon: Icon }) => <Button key={id} size="sm" variant={scope === id ? "subtle" : "ghost"}
           type="button" aria-pressed={scope === id} onClick={() => setScope(id)}>
-          <IconSlot size="sm"><Icon /></IconSlot>{label}
+          <IconSlot size="sm"><Icon /></IconSlot>{id === "all" && !browsing ? "All" : label}
         </Button>)}
       </div>
     </div>
-  </Dialog>
-  {placement === "home" && <div className="home-search-tasks" aria-label="Suggested searches" role="group">
-    {tasks.map(task => <Button key={task} type="button" variant="ghost" size="sm" onClick={() => {
-      setQuery(task.toLowerCase());
-      changeOpen(true);
-    }}>{task}</Button>)}
-  </div>}</>;
+  </Dialog>;
 }
