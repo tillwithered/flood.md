@@ -19,6 +19,7 @@
   --flood-sys-color-focus-ring: var(--flood-sys-color-content-subtle);
   border-radius: calc(var(--flood-group-height) / 2);
 }
+.site-root .site-search-input .flood-kbd { border: 0; padding-inline: var(--flood-sys-space-2); }
 @media (forced-colors: none) {
   .site-root .site-search-input:has(> .flood-input[data-returned-focus]:focus-visible) {
     --flood-group-stroke: var(--flood-sys-stroke-width);

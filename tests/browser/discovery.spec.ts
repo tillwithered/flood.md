@@ -120,7 +120,9 @@ test("the shortcut hint follows the operating system and stays quiet on touch de
   await page.goto("/");
   const trigger = page.getByRole("banner").getByRole("searchbox", { name: "Search Flood" });
   await expect(trigger).toHaveAttribute("aria-keyshortcuts", "Meta+K");
-  await expect(page.locator(".site-search-entry kbd")).toHaveText(["⌘", "K"]);
+  const keycap = page.locator(".site-search-entry kbd");
+  await expect(keycap).toHaveText(["⌘ K"]);
+  await expect(keycap).toHaveCSS("border-top-width", "0px");
   await page.keyboard.press("Meta+k");
   await expect(page.getByRole("dialog", { name: "Search Flood" }).getByRole("combobox")).toBeFocused();
 

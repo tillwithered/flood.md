@@ -170,7 +170,7 @@ export function SiteSearch() {
         placeholder="Search the library…" autoComplete="off" spellCheck={false}
         controlSize="md" value={query} data-returned-focus={returnedFocus || undefined}
         start={<IconSlot size="sm"><Search /></IconSlot>}
-        end={shortcut && <KeyboardShortcut keys={shortcut} aria-hidden="true" />}
+        end={shortcut && <KeyboardShortcut keys={shortcut} presentation="compact" aria-hidden="true" />}
         onClick={() => changeOpen(true)}
         onBlur={() => setReturnedFocus(false)}
         onCompositionStart={() => { composing.current = true; }}
