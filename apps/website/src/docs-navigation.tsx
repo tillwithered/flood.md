@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Collapsible, Link, NavigationList, ScrollArea, Sheet, Stack, Text } from "@flood-md/react";
-import { docPages } from "../routes.mjs";
+import { docPages } from "../site-guides.mjs";
 import { compactNavigation, useStudioMedia } from "./studio-media";
 import "./docs-navigation.css";
 
@@ -16,11 +16,14 @@ type OutlineItem = { id: string; label: string };
 const guideLinks = [
   ...guideGroups.flatMap(({ label, includes }) => docPages.filter(includes).map(page => ({ page, group: label }))),
   ...docPages.filter(page => page.group !== "recipes" && !guideGroups.some(({ includes }) => includes(page))).map(page => ({ page, group: "More" })),
-  ...docPages.filter(page => page.group === "recipes").map(page => ({ page, group: "Recipes" })),
 ].map(({ page, group }) => ({ label: page.label, href: page.path, value: page.path, group }));
+const recipeLinks = docPages.filter(page => page.group === "recipes").map(page => ({
+  label: page.label, href: page.path, value: page.path,
+}));
 
 export function DocsNavigation({ path, visible = true }: { path: string; visible?: boolean }) {
   const nav = useRef<HTMLElement>(null);
+  const recipe = path.startsWith("/docs/recipes/");
   useEffect(() => {
     const viewport = nav.current?.closest<HTMLElement>(".flood-scroll-area__viewport, .flood-overlay-body");
     const current = nav.current?.querySelector('[aria-current="page"]');
@@ -40,18 +43,21 @@ export function DocsNavigation({ path, visible = true }: { path: string; visible
   }, [path, visible]);
 
   return <Stack gap="4" className="guide-navigation">
-    <NavigationList ref={nav} label="Documentation sections" size="sm" items={guideLinks} currentValue={path} />
-    <Link href="/components" variant="ghost" size="sm" className="guide-components-link">All components</Link>
+    {recipe && <Link href="/recipes" variant="ghost" size="sm" className="guide-components-link">All recipes</Link>}
+    <NavigationList ref={nav} label={recipe ? "Recipe navigation" : "Documentation sections"} size="sm"
+      items={recipe ? recipeLinks : guideLinks} currentValue={path} />
+    {!recipe && <Link href="/components" variant="ghost" size="sm" className="guide-components-link">All components</Link>}
   </Stack>;
 }
 
 export function MobileDocsNavigation({ path }: { path: string }) {
   const [open, setOpen] = useState(false);
   const compact = useStudioMedia(compactNavigation);
+  const recipe = path.startsWith("/docs/recipes/");
   useEffect(() => { if (!compact) setOpen(false); }, [compact]);
   return <div className="guide-mobile-navigation">
-    <Sheet title="Documentation" size="lg" open={compact && open} onOpenChange={setOpen}
-      trigger={props => <Button {...props} variant="subtle" size="sm">Browse documentation</Button>}>
+    <Sheet title={recipe ? "Recipes" : "Documentation"} size="lg" open={compact && open} onOpenChange={setOpen}
+      trigger={props => <Button {...props} variant="subtle" size="sm">{recipe ? "Browse recipes" : "Browse documentation"}</Button>}>
       <DocsNavigation path={path} visible={open} />
     </Sheet>
   </div>;

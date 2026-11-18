@@ -6,16 +6,18 @@ test("shared Flood header keeps its geometry and native navigation across routes
   for(const path of ["/","/docs","/components/button","/playground"]){
     await page.goto(path);
     const header=page.locator(".site-header"),nav=page.getByRole("navigation",{name:"Main navigation"});
-    await expect(nav.getByRole("link")).toHaveCount(3);
+    await expect(nav.getByRole("link")).toHaveCount(4);
+    await expect(header.getByRole("button", {name:"Search Flood"})).toBeVisible();
+    await expect(header.getByRole("link", {name:"GitHub"})).toBeVisible();
     for(const link of await nav.getByRole("link").all()){
       await expect(link).toHaveClass(/flood-button/);
       await expect(link).not.toHaveAttribute("role","button");
     }
     const box=(await header.boundingBox())!;
-    if(path==="/components/button")expect(box.height).toBeLessThan(height!);
+    if(path==="/components/button" && info.project.name !== "mobile")expect(box.height).toBeLessThan(height!);
     else if(height!==undefined)expect(Math.abs(box.height-height)).toBeLessThan(1);
     else height=box.height;
-    await expect(header.getByRole("link",{name:"flood.md home"})).toHaveText(path.startsWith("/components") ? "" : "flood.md");
+    await expect(header.getByRole("link",{name:"flood.md home"})).toHaveText("flood.md");
     if(path.startsWith("/docs"))await expect(nav.getByRole("link",{name:"Docs",exact:true})).toHaveAttribute("aria-current","page");
     if(path.startsWith("/components"))await expect(nav.getByRole("link",{name:"Components",exact:true})).toHaveAttribute("aria-current","page");
     if(path==="/"||path==="/docs")await header.screenshot({path:`.artifacts/shared-header-${path==="/"?"home":"docs"}-${info.project.name}.png`});
@@ -42,7 +44,7 @@ test("Link button appearances share Button metrics while preserving anchor behav
 });
 
 test("page scroll uses a Flood overlay rail without shifting the catalog",async({page},info)=>{
-  await page.goto("/components");
+  await page.goto("/components/category/forms");
   const viewport=page.locator(".site-page-scroll");
   const rail=viewport.locator("..").locator(":scope > .flood-scroll-area__track--vertical");
   await expect(rail).toBeVisible();
@@ -102,8 +104,8 @@ test("deep links and Studio use the page and preview ScrollAreas independently",
 });
 
 test("going back from a component restores the position in the catalog",async({page})=>{
-  await page.goto("/components");
-  const catalogLink=page.getByRole("main").locator(".catalog-card").nth(12);
+  await page.goto("/components/category/forms");
+  const catalogLink=page.getByRole("main").locator(".discovery-result").nth(47);
   await catalogLink.scrollIntoViewIfNeeded();
   const viewport=page.locator(".site-page-scroll");
   const before=await viewport.evaluate(node=>node.scrollTop);

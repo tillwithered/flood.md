@@ -44,4 +44,7 @@ await writeFile(`${root}/components.md`, catalogMarkdown(pages));
 for (const page of pages) await writeFile(`${root}/components/${page.slug}.md`, componentMarkdown(page));
 await mkdir("apps/website/src/generated", { recursive: true });
 await writeFile("apps/website/src/generated/content.json", JSON.stringify({ version: release.version, docs: documents, components: pages }, null, 2) + "\n");
+await writeFile("apps/website/src/generated/component-summaries.json", JSON.stringify(
+  pages.map(({ slug, name, group, description }) => ({ slug, name, group, description })),
+) + "\n");
 console.log(`Built ${pages.length} component pages and API contracts for ${release.version} from source.`);

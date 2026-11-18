@@ -26,9 +26,9 @@ const variants = ["solid", "subtle", "outline", "ghost"];
 const statusGlyphs = {CircleHelp, History, CircleCheck, CircleAlert, CircleX, Bell};
 const filePreviewImages = ["none","image","unavailable"];
 const uploadQueueExamples = [
-  {id:"brand",name:"Brand guidelines.pdf",size:2400000,state:"uploading",progress:45},
-  {id:"cover",name:"Cover.png",size:850000,state:"processing"},
-  {id:"logo",name:"Logo.svg",size:18400,state:"success"},
+  {id:"brand",name:"Brand guidelines.pdf",size:2400000,state:"uploading",progress:45,lang:"en-US"},
+  {id:"cover",name:"Cover.png",size:850000,state:"processing",lang:"en-US"},
+  {id:"logo",name:"Logo.svg",size:18400,state:"success",lang:"en-US"},
 ] as const satisfies readonly Flood.UploadQueueEntry[];
 const filePreviewImage = (state: string | boolean) =>
   state === "image" ? "/flood-mark.png" : state === "unavailable" ? "/missing-file-preview.png" : undefined;
@@ -2570,7 +2570,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, i
   if (usesFileCardState) preamble += '  const [fileStates, setFileStates] = useState<Record<string, "preview" | "removed" | undefined>>({});\n';
   if (component.slug === "upload-queue") preamble += `  const [selected, setSelected] = useState<{id:string; name:string; size:number}[]>([]);
   const [states, setStates] = useState<Record<string,"cancelled"|"removed">>({});
-  const samples: {id:string; name:string; size:number; state:"uploading"|"processing"|"success"; progress?:number}[] = ${JSON.stringify(values.showExamples ? uploadQueueExamples : [])};
+  const samples: {id:string; name:string; size:number; state:"uploading"|"processing"|"success"; progress?:number; lang:string}[] = ${JSON.stringify(values.showExamples ? uploadQueueExamples : [])};
   function addFiles(files: File[]) {
     const picked = files.map(file => ({id:crypto.randomUUID(), name:file.name, size:file.size}));
     setSelected(current => [...current, ...picked]);

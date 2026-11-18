@@ -1,8 +1,10 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ComponentType } from "react";
-import { CopyButton, CodeSnippet, FloodRoot, Heading, ScrollArea, SkipLink, Text } from "@flood-md/react";
+import { lazy, Suspense, useEffect, useRef, type ComponentType } from "react";
+import { FloodRoot, ScrollArea, SkipLink } from "@flood-md/react";
 import "@flood-md/react/styles.css";
 import "./site.css";
-import release from "./release.json";
+import "./discovery.css";
+import { Home } from "./home";
+import { AgentsDirectory, ComponentDirectory, RecipesDirectory } from "./discovery-pages";
 import { SiteHeader } from "./site-header";
 import { SiteFooter } from './site-footer';
 
@@ -16,32 +18,6 @@ const FormatFilterPreview = lazy(() => import("./format-filter-preview"));
 const RecordManagement = lazy(() => import("./recipes/record-management").then(module => ({ default: module.RecordManagement })));
 const SettingsWorkspace = lazy(() => import("./recipes/settings-workspace").then(module => ({ default: module.SettingsWorkspace })));
 const ChartsPlayground = lazy(() => import("./charts-playground"));
-const command = `npx @flood-md/cli@${release.version} init`;
-
-function Home() {
-  const [status, setStatus] = useState("");
-  return <main id="main-content" tabIndex={-1} className="home-main">
-    <section className="hero" aria-labelledby="hero-title">
-      <Heading level={1} size="display" id="hero-title" className="hero-title">
-        <span className="hero-line">Good interfaces</span>
-        <span className="hero-line">start with a little <span className="brand-phrase"><img className="hero-mark" src="/flood-mark.png" alt="" width="108" height="108" /> Flood.</span></span>
-      </Heading>
-      <Text as="p" size="lead" tone="subtle" className="hero-description">
-        An open-source design system for developers and coding agents.
-      </Text>
-      <div className="installation">
-        <CodeSnippet code={command} prompt="$" className="installation-code" aria-label="Installation command"
-          action={<CopyButton value={command} iconOnly size="sm" variant="ghost" disabled={!release.published}
-            aria-label="Copy installation command" onCopied={() => setStatus("Command copied.")}
-            onCopyError={() => setStatus("Select the command and copy it manually.")} />} />
-        <Text as="p" size="helper" tone="subtle" role="status" className="installation-status">
-          {release.published ? status : "Available after release"}
-        </Text>
-      </div>
-    </section>
-  </main>;
-}
-
 type AppProps = { path: string; documentation?: ComponentType<{ path: string }> };
 
 export function App(props: AppProps) {
@@ -115,7 +91,10 @@ function Page({ path, documentation: Reader }: AppProps) {
     <SkipLink href="#main-content" />
     <div className="site-shell">
       <SiteHeader path={path} />
-      {home ? <Home /> : Recipe ? (
+      {home ? <Home /> :
+      path === "/components" || path.startsWith("/components/category/") ? <ComponentDirectory family={path.split("/")[3]} /> :
+      path === "/recipes" || path.startsWith("/recipes/") ? <RecipesDirectory collection={path.split("/")[2]} /> :
+      path === "/for-agents" ? <AgentsDirectory /> : Recipe ? (
         <main id="main-content" tabIndex={-1} className="recipe-playground">
           <Suspense fallback={null}><Recipe /></Suspense>
         </main>

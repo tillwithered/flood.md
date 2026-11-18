@@ -1,9 +1,11 @@
+import { RecipeIntroduction } from "./discovery-pages";
+import { recipeByPath, recipes } from "./recipe-directory";
 import { isValidElement, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowRight, ArrowUpRight, List } from "lucide-react";
-import { Breadcrumb, Button, CodeSnippet, Collapsible, Drawer, Grid, Heading, IconButton, IconSlot, Inline, KeyboardShortcut, Link, NavigationItem, PageHeader, ScrollArea, SearchInput, Select, SegmentedControl, Sheet, Stack, Surface, Text } from "@flood-md/react";
-import { docPages, siteOrigin } from "../routes.mjs";
+import { Breadcrumb, Button, CodeSnippet, Collapsible, Drawer, Heading, IconButton, IconSlot, Inline, KeyboardShortcut, Link, NavigationItem, PageHeader, ScrollArea, SearchInput, Select, SegmentedControl, Sheet, Stack, Surface, Text } from "@flood-md/react";
+import { docPages, siteOrigin } from "../site-guides.mjs";
 import { componentPages, componentGroups, matchesComponent } from "./component-catalog";
 import { ComponentWorkbench } from "./component-workbench";
 import { CodeBlock, CopyButton } from "./code-block";
@@ -113,9 +115,7 @@ function ComponentNavigation({ path, query, onQueryChange, initialFocusRef }: { 
 export default function Documentation({ path }: { path: string }) {
   const doc = docPages.find(page => page.path === path);
   const component = componentPages.find(page => path === `/components/${page.slug}`);
-  const catalog = path === "/components";
   const [query, setQuery] = useState("");
-  const [catalogJump, setCatalogJump] = useState("");
   const workspacePreview = Boolean(component);
   const [workspacePanel, setWorkspacePanel] = useState<"catalog" | "reference" | null>(null);
   const phone = useStudioMedia(phoneViewport);
@@ -177,10 +177,9 @@ export default function Documentation({ path }: { path: string }) {
       drawer.removeEventListener("animationend", alignAfterEntry);
     };
   },[workspacePanel,workspacePreview,referenceAnchor,path,phone]);
-  const visibleGroups = catalog ? componentGroups.map(group => ({ ...group, components: group.components.filter(page => matchesComponent(page, query)) })).filter(group => group.components.length > 0) : [];
-  const resultCount = visibleGroups.reduce((total, group) => total + group.components.length, 0);
-  const searching = query.trim().length > 0;
-  const title = doc?.label ?? component?.name ?? (catalog ? "Components" : "Page not found");
+  const recipe = recipeByPath.get(path);
+  const relatedRecipes = component ? recipes.filter(item => item.uses?.includes(component.slug)) : [];
+  const title = doc?.label ?? component?.name ?? "Page not found";
   const description = doc?.description ?? component?.description;
   const raw = doc ? sources[doc.file] : "";
   const markdown = raw?.replace(/^# .*\r?\n/, "") ?? "";
@@ -189,6 +188,7 @@ export default function Documentation({ path }: { path: string }) {
   const [exampleImports, setExampleImports] = useState(() => component ? ["FloodRoot", ...component.imports.filter(name => componentPages.some(page => page.name === name))] : []);
   const [exampleCode, setExampleCode] = useState(() => component ? usageCode(component) : "");
   const docSections = doc ? sections(markdown) : [];
+  if (recipe?.slug === "table-bulk-actions") docSections.unshift({ id: "live-example", label: "Live example", line: -1 });
   const toc = doc ? (doc.file === "charts.md" ? [...docSections, { id: "latency-example", label: "Request latency example" }] : docSections) : component
     ? [{ id: "preview", label: "Component lab" }, { id: "usage", label: "Use in your project" }, { id: "design-notes", label: "Design notes" }, { id: "api", label: "API reference" }]
     : [];
@@ -262,10 +262,14 @@ export default function Documentation({ path }: { path: string }) {
             {component.api.length > 0 && <ScrollArea orientation="horizontal" className="table-scroll" role="region" aria-label={`${component.name} props`}><table><thead><tr><th scope="col">Prop</th><th scope="col">Values</th><th scope="col">Default</th></tr></thead><tbody>{component.api.map(([prop, values, fallback]) => <tr key={prop}><td><code>{prop}</code></td><td>{values}</td><td>{fallback}</td></tr>)}</tbody></table></ScrollArea>}
             <Link href={`${repository}/blob/v${release.version}/packages/react/src/index.tsx`}>View TypeScript source <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link>
           </section>
+          {relatedRecipes.length > 0 && <section className="doc-section" aria-label="Recipes using this component">
+            <Heading level={2} size="section">Used in recipes</Heading>
+            <Inline gap="3">{relatedRecipes.map(item => <Link key={item.path} href={item.path}>{item.label}</Link>)}</Inline>
+          </section>}
           <Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link><Link href="/agent/SKILL.md">Agent skill</Link><Link href="/docs/mcp">Connect your agent</Link></Inline>
           </div>
   );
-  return <div className="docs-layout" data-preview-layout={workspacePreview ? "workspace" : undefined} data-catalog={catalog || undefined}>
+  return <div className="docs-layout" data-preview-layout={workspacePreview ? "workspace" : undefined}>
     {(doc || component) && <aside className="desktop-sidebar" id={workspacePreview ? "studio-catalog" : undefined} aria-label={doc ? "Documentation navigation" : "Component navigation"}>
       <ScrollArea contentInset={doc ? "scrollbar" : "none"} aria-label={doc ? "Documentation sections scroll" : "Component list scroll"} className={doc ? "guide-navigation-scroll" : undefined} style={component ? { maxHeight: "100%" } : undefined}>
         {doc ? <DocsNavigation path={path} /> : <ComponentNavigation path={path} query={query} onQueryChange={setQuery} />}
@@ -274,64 +278,23 @@ export default function Documentation({ path }: { path: string }) {
     <div className="doc-center">
       {doc && <MobileDocsNavigation path={path} />}
       <main tabIndex={-1} id="main-content" className="doc-article">
+        {recipe && <div className="doc-breadcrumb"><Breadcrumb label="Page breadcrumb"
+          items={[{ label: "Recipes", href: "/recipes" }, { label: title }]} /></div>}
         {component && <div className="doc-breadcrumb"><Breadcrumb label="Page breadcrumb" layout="compact" maxVisibleItems={3} items={[
           { label: "Components", href: "/components" },
-          { label: componentGroups.find(group => group.id === component.group)?.label ?? component.group, href: `/components#${component.group}` },
+          { label: componentGroups.find(group => group.id === component.group)?.label ?? component.group, href: `/components/category/${component.group}` },
           { label: title },
         ]} /></div>}
         {!workspacePreview && <PageHeader className="doc-heading" title={title} description={description} />}
         {doc && <GuideOutline items={toc} mobile />}
         <div className="doc-body">
+        {recipe && <RecipeIntroduction recipe={recipe} />}
         {doc && (connection
           ? <AgentConnection {...connection} markdown={markdown} renderMarkdown={renderMarkdown} />
           : renderMarkdown(markdown))}
         {doc?.file === "charts.md" && <section id="latency-example" className="chart-guide-example" aria-label="Request latency example">
           <ChartsPlayground headingLevel={2} />
         </section>}
-        {catalog && <Stack gap="8" className="component-catalog">
-          <Stack gap="3">
-            <SearchInput className="catalog-search" aria-label="Search components" placeholder="Find a component…" value={query}
-              onChange={event => setQuery(event.currentTarget.value)} onKeyDown={event => { if (event.key === "Escape") setQuery(""); }} />
-            <Inline gap="3" align="center" className="catalog-summary">
-              <Text as="p" size="compact" tone="subtle" role="status">{searching && resultCount === 0 ? "No components found." : `${resultCount} ${resultCount === 1 ? "component" : "components"}`}</Text>
-              <Link href="/docs/charts" size="sm">Chart guide <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
-            </Inline>
-            {!searching && <>
-              <nav className="catalog-category-links" aria-label="Component categories"><Inline gap="2">
-                {componentGroups.map(group => <Link key={group.id} variant="outline" size="sm" href={`#${group.id}`}>{group.label}</Link>)}
-              </Inline></nav>
-              <div className="catalog-category-picker">
-                <Select aria-label="Jump to component category" controlSize="sm" value={catalogJump} onChange={event => {
-                  const category = event.currentTarget.value;
-                  setCatalogJump(category);
-                  if (category) window.location.hash = category;
-                }}>
-                  <option value="">Jump to category</option>
-                  {componentGroups.map(group => <option key={group.id} value={group.id}>{group.label}</option>)}
-                </Select>
-              </div>
-            </>}
-          </Stack>
-          {visibleGroups.map(group => <section id={group.id} key={group.id}>
-            <Stack gap="4">
-              <Stack gap="1">
-                <Heading level={2} size="section">{group.label}</Heading>
-                <Text as="p" size="compact" tone="subtle">{group.description}</Text>
-              </Stack>
-              <Grid gap="3" className="catalog-grid">
-                {group.components.map(page => <Link className="catalog-card" key={page.slug} href={`/components/${page.slug}`}>
-                  <Surface padding="4" className="catalog-card-surface">
-                    <Stack gap="2">
-                      <Inline gap="4" className="catalog-card-title"><Text size="label">{page.name}</Text><IconSlot size="sm"><ArrowUpRight /></IconSlot></Inline>
-                      <Text size="compact" tone="subtle">{page.description}</Text>
-                    </Stack>
-                  </Surface>
-                </Link>)}
-              </Grid>
-            </Stack>
-          </section>)}
-        </Stack>}
-
         {component && <>
           <section id="preview" aria-label={`${component.name} preview`}>
             <ComponentWorkbench key={component.slug} component={component} onCodeChange={setExampleCode} onImportsChange={setExampleImports} importMode={importMode}
@@ -357,9 +320,9 @@ export default function Documentation({ path }: { path: string }) {
           </section>
           {workspacePanel !== "reference" && <section className="studio-reference-fallback" aria-label="Component reference">{referenceContent}</section>}
         </>}
-        {!doc && !component && !catalog && <Link href="/docs">Back to documentation</Link>}
+        {!doc && !component && <Link href="/docs">Back to documentation</Link>}
         </div>
-        {(doc || catalog) && <><Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link></Inline>
+        {doc && <><Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link></Inline>
         <nav aria-label="Previous and next page"><Inline gap="4" className="doc-pagination">
           {previous && <Link href={previous.path} variant="subtle" size="sm"><IconSlot size="sm"><ArrowLeft /></IconSlot><Text style={{font:"inherit"}}>{previous.name}</Text></Link>}
           {next && <Link href={next.path} variant="subtle" size="sm" style={{marginInlineStart:"auto"}}><Text style={{font:"inherit"}}>{next.name}</Text><IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
