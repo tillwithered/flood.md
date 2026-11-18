@@ -141,6 +141,11 @@ export function SiteSearch({ placement = "header" }: { placement?: "home" | "hea
       <CommandList ref={searchInput} label="Search components, recipes and guides" hideLabel
         controlSize="md" items={items} placeholder={scope === "all" ? "Search the library…" : `Search ${scope}…`}
         query={query} onQueryChange={setQuery}
+        onPointerMoveCapture={event => {
+          if (event.pointerType === "mouse" && event.target instanceof Element && event.target.closest('[role="option"]')) {
+            event.stopPropagation();
+          }
+        }}
         loading={!browsing && !model && !error}
         emptyMessage={error ? "Search couldn’t load. Reopen it to retry." : scope === "all"
           ? "No results. Try a component name or a task like bulk edit."

@@ -17,6 +17,13 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   await expect(input).toBeFocused();
   await expect(search.getByRole("group", { name: "Common workflows" }).getByRole("option")).toHaveCount(3);
   await expect(search.getByRole("group", { name: "Component families" })).toBeVisible();
+  const forms = search.getByRole("option", { name: "Forms", exact: true });
+  await forms.hover();
+  await expect(forms).toHaveAttribute("aria-selected", "false");
+  await input.hover();
+  await expect(input).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await input.press("ArrowDown");
+  await expect(search.getByRole("option", { name: /^Collection views/ })).toHaveAttribute("aria-selected", "true");
   await input.fill("DataTable");
   await expect(search.getByRole("option").first()).toContainText("DataTable");
   await input.fill("DataTabel");
