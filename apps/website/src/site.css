@@ -104,7 +104,6 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
   min-block-size: 3.5rem;
   padding-block: var(--flood-sys-space-2);
   padding-inline: var(--flood-sys-space-4);
-  border-block-end: 0;
 }
 .site-shell:has(.docs-layout[data-preview-layout="workspace"]) > .site-footer { display: none; }
 .docs-layout[data-preview-layout="workspace"] {
@@ -200,9 +199,6 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 }
 @media (max-width: 36rem) {
   .site-shell:has(.docs-layout[data-preview-layout="workspace"]) { block-size: auto; overflow: visible; }
-  .site-shell:has(.docs-layout[data-preview-layout="workspace"]) > .site-header {
-    border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative);
-  }
   .docs-layout[data-preview-layout="workspace"] {
     display: block;
     padding: var(--flood-sys-space-3) var(--flood-sys-space-4) var(--flood-sys-space-8);
