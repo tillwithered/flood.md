@@ -10,17 +10,12 @@ COPY packages/tokens/package.json packages/tokens/
 RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY . .
 ARG RAILWAY_GIT_COMMIT_SHA
-RUN npm run build
+RUN npm run build && npm run site:bundle && mv .artifacts/website-runtime-* /opt/flood-site-runtime
 
 FROM node:24-alpine
 ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=build --chown=node:node /app/apps/website/dist ./apps/website/dist
-COPY --from=build --chown=node:node /app/apps/website/dist-server ./apps/website/dist-server
-COPY --from=build --chown=node:node /app/apps/website/server.mjs ./apps/website/server.mjs
-COPY --from=build --chown=node:node /app/apps/website/visitors.mjs ./apps/website/visitors.mjs
-COPY --from=build --chown=node:node /app/apps/website/routes.mjs ./apps/website/routes.mjs
-COPY --from=build --chown=node:node /app/apps/website/src/component-catalog.json ./apps/website/src/component-catalog.json
+COPY --from=build --chown=node:node /opt/flood-site-runtime/apps/website ./apps/website
 USER node
 EXPOSE 4173
 CMD ["node", "apps/website/server.mjs"]
