@@ -1,0 +1,26 @@
+.flood-root .flood-token-input {
+  box-sizing: border-box;
+  min-inline-size: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.flood-root .flood-token-input[data-empty][data-placeholder]::before {
+  content: attr(data-placeholder);
+  color: var(--flood-sys-color-field-placeholder);
+  pointer-events: none;
+  position: absolute;
+}
+.flood-root .flood-token-input[aria-readonly="true"] {
+  background: var(--flood-sys-color-field-readonly);
+  border-style: dashed;
+}
+.flood-root .flood-token-input[aria-disabled="true"] {
+  background: var(--flood-sys-color-field-disabled);
+  color: var(--flood-sys-color-field-disabled-content);
+}
+.flood-root .flood-token-input__token {
+  display: inline-block;
+  white-space: normal;
+  vertical-align: baseline;
+  user-select: all;
+}

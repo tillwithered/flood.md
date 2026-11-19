@@ -21,6 +21,10 @@ const details: Record<string, RecipeDetails> = {
   "record-workspace": { keywords: ["remote pagination", "data recovery", "record layout"], uses: ["data-table", "app-shell"] },
   "record-management": { keywords: ["edit records", "catalog editor", "product administration"], uses: ["data-table", "drawer", "collection-toolbar"], preview: "/playground/records" },
   "settings-workspace": { keywords: ["configuration", "preferences", "settings panel", "save draft"], uses: ["field", "app-shell", "button"], preview: "/playground/settings" },
+  "chat-starter": { keywords: ["chat", "messenger", "conversation", "stream reply", "seeded avatar"], uses: ["chat-message", "message-scroller", "message-composer", "character-avatar"], preview: "/playground/chat-starter" },
+  "auth-card": { keywords: ["sign in", "register", "verification", "authentication", "login"], uses: ["field", "password-input", "pin-input", "form-actions"], preview: "/playground/auth-card" },
+  "inventory-grid": { keywords: ["spreadsheet", "virtual rows", "inline editing", "inventory totals"], uses: ["editable-grid", "search-input", "select"], preview: "/playground/inventory-grid" },
+  "conversion-funnel": { keywords: ["conversion", "funnel", "stage rates"], uses: ["funnel-chart", "bar-list", "metric"] },
 };
 
 export const recipes = docPages.filter(page => page.group === "recipes").map(page => {

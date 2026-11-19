@@ -1,0 +1,210 @@
+.flood-root .flood-comparison-chart {
+  --flood-comparison-accent: var(--flood-sys-color-accent-content);
+  --flood-comparison-focus: var(--flood-sys-color-content-subtle);
+  --flood-comparison-line-width: calc(2 * var(--flood-sys-stroke-width));
+  min-inline-size: 0;
+}
+.flood-root .flood-comparison-chart__plot {
+  position: relative;
+  min-inline-size: 0;
+  cursor: crosshair;
+}
+.flood-root .flood-comparison-chart__plot:focus-visible {
+  outline: none;
+}
+.flood-root .flood-comparison-chart__plot:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset-block-start: calc(-1 * var(--flood-sys-space-2));
+  inset-inline: 0;
+  margin-inline: auto;
+  inline-size: var(--flood-sys-space-4);
+  border-block-start: var(--flood-sys-focus-width) solid var(--flood-comparison-focus);
+  pointer-events: none;
+}
+.flood-root .flood-comparison-chart__inspection {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: var(--flood-sys-space-2);
+  inset-inline-end: var(--flood-sys-space-2);
+  display: grid;
+  gap: var(--flood-sys-space-1);
+  max-inline-size: min(17rem, calc(100% - var(--flood-sys-space-4)));
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.flood-root .flood-comparison-chart__inspection[data-side="start"] {
+  inset-inline-end: auto;
+  inset-inline-start: var(--flood-sys-space-2);
+}
+.flood-root .flood-comparison-chart__reading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--flood-sys-space-2);
+}
+.flood-root .flood-comparison-chart__plot svg {
+  display: block;
+  inline-size: 100%;
+}
+.flood-root .flood-comparison-chart :is([data-series="0"], .flood-comparison-chart__funnel, .flood-comparison-chart__sankey) {
+  color: var(--flood-comparison-accent);
+}
+.flood-root .flood-comparison-chart [data-series="1"] {
+  color: var(--flood-sys-color-content-subtle);
+  --flood-comparison-dash: 5 4;
+}
+.flood-root .flood-comparison-chart [data-series="2"] {
+  color: var(--flood-sys-color-content-default);
+  --flood-comparison-dash: 1 4;
+}
+.flood-root .flood-comparison-chart [data-series="3"] {
+  color: var(--flood-sys-color-content-subtle);
+  --flood-comparison-dash: 8 4 2 4;
+}
+.flood-root :is(.flood-comparison-chart__line, .flood-comparison-chart__radar-profile) {
+  stroke: currentColor;
+  stroke-width: var(--flood-comparison-line-width);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: var(--flood-comparison-dash, none);
+  vector-effect: non-scaling-stroke;
+}
+.flood-root .flood-comparison-chart__line { fill: none; }
+.flood-root :is(.flood-comparison-chart__point, .flood-comparison-chart__node) { fill: currentColor; }
+.flood-root .flood-comparison-chart__radar-profile { fill: color-mix(in srgb, currentColor 12%, transparent); }
+.flood-root .flood-comparison-chart__guide {
+  fill: none;
+  stroke: var(--flood-sys-color-divider-decorative);
+  vector-effect: non-scaling-stroke;
+}
+.flood-root .flood-comparison-chart__cursor,
+.flood-root .flood-comparison-chart__guide[data-active] {
+  stroke: var(--flood-comparison-accent);
+  vector-effect: non-scaling-stroke;
+}
+.flood-root :is(.flood-comparison-chart__bar, .flood-comparison-chart__funnel-segment) {
+  fill: currentColor;
+  fill-opacity: .48;
+  stroke: currentColor;
+  vector-effect: non-scaling-stroke;
+}
+.flood-root .flood-comparison-chart__hit { fill: transparent; stroke: none; }
+.flood-root .flood-comparison-chart__legend {
+  flex-wrap: wrap;
+  margin-block-start: var(--flood-sys-space-3);
+}
+.flood-root .flood-comparison-chart__legend svg {
+  inline-size: var(--flood-sys-space-4);
+  flex: none;
+}
+.flood-root .flood-comparison-chart__combo {
+  --flood-comparison-plot-height: 13.5rem;
+  display: grid;
+  grid-template-columns: fit-content(25%) minmax(0, 1fr) fit-content(25%);
+  gap: var(--flood-sys-space-2);
+}
+.flood-root .flood-comparison-chart__combo-data { grid-area: 1 / 2; }
+.flood-root .flood-comparison-chart__combo-data > svg {
+  block-size: var(--flood-comparison-plot-height);
+  background: radial-gradient(circle, var(--flood-sys-color-divider-decorative) .045rem, transparent .06rem) 0 0 / var(--flood-sys-space-3) var(--flood-sys-space-3);
+}
+.flood-root .flood-comparison-chart [data-series] > .flood-comparison-chart__bar { stroke-dasharray: var(--flood-comparison-dash, none); }
+.flood-root .flood-comparison-chart__axis { grid-area: 1 / 1; text-align: end; overflow-wrap: anywhere; }
+.flood-root .flood-comparison-chart__axis[data-side="right"] { grid-area: 1 / 3; text-align: start; }
+.flood-root .flood-comparison-chart__axis > div {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  block-size: var(--flood-comparison-plot-height);
+  font-variant-numeric: tabular-nums;
+}
+.flood-root .flood-comparison-chart__axis[data-flat] > div { justify-content: center; }
+.flood-root .flood-comparison-chart__axis > .flood-text { display: block; margin-block-start: var(--flood-sys-space-2); }
+.flood-root .flood-comparison-chart__categories {
+  position: relative;
+  min-block-size: var(--flood-sys-space-4);
+  margin-block-start: var(--flood-sys-space-2);
+}
+.flood-root .flood-comparison-chart__categories > * {
+  position: absolute;
+  translate: -50% 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flood-root .flood-comparison-chart__categories[data-sparse] > :first-child { translate: 0; }
+.flood-root .flood-comparison-chart__categories[data-sparse] > :last-child { translate: -100% 0; }
+.flood-root .flood-comparison-chart__funnel { display: grid; gap: var(--flood-sys-space-1); }
+.flood-root .flood-comparison-chart__funnel-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 3fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--flood-sys-space-2);
+  min-block-size: var(--flood-sys-space-8);
+}
+.flood-root .flood-comparison-chart__funnel-row > svg { block-size: var(--flood-sys-space-8); }
+.flood-root .flood-comparison-chart__funnel-row > .flood-text:last-child { text-align: end; font-variant-numeric: tabular-nums; }
+.flood-root .flood-comparison-chart__funnel-row > .flood-text {
+  color: var(--flood-sys-color-content-default);
+  overflow-wrap: anywhere;
+}
+.flood-root .flood-comparison-chart__radar {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: center;
+  gap: var(--flood-sys-space-2);
+}
+.flood-root .flood-comparison-chart__radar-plot {
+  position: relative;
+  grid-area: 1 / 1;
+  aspect-ratio: 1;
+  max-inline-size: 20rem;
+}
+.flood-root .flood-comparison-chart__radar-index {
+  position: absolute;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+.flood-root .flood-comparison-chart__radar-key { display: grid; gap: var(--flood-sys-space-2); overflow-wrap: anywhere; }
+.flood-root .flood-comparison-chart__radar-key > .flood-text { min-block-size: 1.5rem; }
+.flood-root :is(.flood-comparison-chart__radar-key > [data-active], .flood-comparison-chart__sankey-key > [data-active] > *) {
+  color: var(--flood-comparison-accent);
+}
+.flood-root .flood-comparison-chart__radar-scale {
+  grid-area: 2 / 1 / 2 / -1;
+  color: var(--flood-sys-color-content-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.flood-root .flood-comparison-chart__sankey > svg { block-size: 13.5rem; }
+.flood-root .flood-comparison-chart__ribbon {
+  fill: currentColor;
+  fill-opacity: .25;
+  stroke: var(--flood-sys-color-border-decorative);
+  vector-effect: non-scaling-stroke;
+}
+.flood-root .flood-comparison-chart__sankey-key {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
+  gap: var(--flood-sys-space-2) var(--flood-sys-space-4);
+  margin-block-start: var(--flood-sys-space-2);
+  color: var(--flood-sys-color-content-default);
+}
+.flood-root .flood-comparison-chart__sankey-key > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--flood-sys-space-2);
+  min-block-size: 1.5rem;
+  overflow-wrap: anywhere;
+}
+.flood-root .flood-comparison-chart__sankey-key > div > :last-child { font-variant-numeric: tabular-nums; }
+.flood-root :is(.flood-comparison-chart__bar[data-active], .flood-comparison-chart__ribbon[data-active],
+  .flood-comparison-chart__funnel-row[data-active] .flood-comparison-chart__funnel-segment) { fill-opacity: .8; }
+.flood-root .flood-comparison-chart__node:not([data-active]) { opacity: .6; }
+@media (forced-colors: active) {
+  .flood-root .flood-comparison-chart { --flood-comparison-accent: Highlight; --flood-comparison-focus: Highlight; }
+  .flood-root .flood-comparison-chart svg { forced-color-adjust: none; color: CanvasText; }
+  .flood-root .flood-comparison-chart :is(.flood-comparison-chart__guide, .flood-comparison-chart__ribbon) { stroke: CanvasText; }
+  .flood-root .flood-comparison-chart [data-active] { color: Highlight; }
+}

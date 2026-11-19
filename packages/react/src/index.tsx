@@ -120,6 +120,8 @@ import { CalendarDatePicker } from "./date-picker.js";
 import { ValidationErrorSummary } from "./error-summary.js";
 import { ResizablePaneGroup } from "./resizable-panels.js";
 import { DateRangeCalendar } from "./range-calendar.js";
+import { Questionnaire as QuestionnaireView } from "./questionnaire.js";
+import { EventCalendar as EventCalendarView } from "./event-calendar.js";
 import { PairedDateRangeField } from "./date-range-field.js";
 import { CalendarDateRangePicker } from "./date-range-picker.js";
 import { ContextActionMenu } from "./context-menu.js";
@@ -133,6 +135,7 @@ import { ManagedDataTable } from "./data-table.js";
 import { SkeletonTable } from "./table-skeleton.js";
 import { TrendPlot } from "./sparkline.js";
 import { SeriesPlot, GroupedBars, RankedBars, ShareRing, ShareBar, HeatmapGrid } from "./charts.js";
+import type { ChartInspection } from "./chart-inspection.js";
 import { UptimeHistoryStrip } from "./uptime-history.js";
 import { ShortcutReferencePanel } from "./shortcut-reference.js";
 import { ShortcutCapture } from "./shortcut-recorder.js";
@@ -1125,8 +1128,11 @@ export interface LineChartProps extends Omit<HTMLAttributes<HTMLDivElement>, "ch
   /** Shared finite bounds containing every observation. */
   domain?: readonly [number, number];
   variant?: "line" | "area";
+  /** Keep the leading fill, fill all series, stack signed values, or show nonnegative shares. */
+  areaLayout?: "first" | "overlay" | "stacked" | "percent";
   /** Shape-preserving interpolation between observations. */
   curve?: "linear" | "smooth";
+  onInspect?: (entry: ChartInspection | null) => void;
   /** Show the numeric scale and horizontal reference lines. */
   showYAxis?: boolean;
   /** Show the series key below the plot. Defaults to false. */
@@ -1151,6 +1157,7 @@ export interface BarChartProps extends Omit<HTMLAttributes<HTMLDivElement>, "chi
   layout?: "grouped" | "stacked" | "percent";
   /** One to four grouped series. Use null for a missing value. */
   series: readonly ChartSeries[];
+  onInspect?: (entry: ChartInspection | null) => void;
   /** Finite bounds containing zero and each observation or signed stack extent. Percent uses a fixed scale. */
   domain?: readonly [number, number];
   /** Show the series key below the plot. Defaults to false. */
@@ -1220,6 +1227,7 @@ export const CompositionBar = /* @__PURE__ */ forwardRef<HTMLDivElement, Composi
 
 export interface HeatmapProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   label: string;
+  onInspect?: (entry: ChartInspection | null) => void;
   columns: readonly string[];
   rows: readonly { id: string; label: string; values: readonly (number | null)[] }[];
   /** Shared zero-based scale. Defaults to the largest observed value. */
@@ -1317,6 +1325,8 @@ export interface ScatterChartPoint {
   label?: string;
   x: number;
   y: number;
+  seriesId?: string;
+  size?: number;
 }
 
 export interface ScatterChartProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "role" | "aria-label"> {
@@ -1325,6 +1335,11 @@ export interface ScatterChartProps extends Omit<HTMLAttributes<HTMLDivElement>, 
   yLabel: string;
   /** Observations in keyboard navigation order, with stable, unique IDs. */
   points: readonly ScatterChartPoint[];
+  series?: readonly { id: string; label: string }[];
+  sizeMax?: number;
+  sizeLabel?: string;
+  formatSize?: (value: number) => string;
+  onInspect?: (entry: ChartInspection | null) => void;
   /** Finite, increasing bounds that contain all x observations. */
   xDomain?: readonly [number, number];
   /** Finite, increasing bounds that contain all y observations. */
@@ -4969,6 +4984,11 @@ export const Table = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(fu
 export interface EditableGridColumn {
   id: string;
   label: string;
+  /** Preferred column width in CSS pixels. */
+  width?: number;
+  resizable?: boolean;
+  minWidth?: number;
+  maxWidth?: number;
   inputMode?: InputProps["inputMode"];
   align?: "start" | "end";
   readOnly?: boolean;
@@ -4998,6 +5018,13 @@ export interface EditableGridLabels {
 export interface EditableGridProps extends Omit<TableProps, "children" | "role" | "onCopy" | "onPaste" | "onKeyDown"> {
   columns: readonly EditableGridColumn[];
   rows: readonly EditableGridRow[];
+  /** Use fixed-height rows and keep only the visible window mounted. Values are CSS pixels. */
+  virtualRows?: { height: number; rowHeight?: number; overscan?: number };
+  /** Keep the first column visible when the grid scrolls horizontally. */
+  pinFirstColumn?: boolean;
+  columnWidths?: Readonly<Record<string, number>>;
+  defaultColumnWidths?: Readonly<Record<string, number>>;
+  onColumnWidthsChange?: (widths: Record<string, number>) => void;
   /** Receive a validated batch. Return a message to reject it while keeping values unchanged. */
   onChanges?: (changes: readonly EditableGridChange[], source: "edit" | "paste") => string | void;
   readOnly?: boolean;
@@ -5363,6 +5390,8 @@ export interface AvatarProps extends Omit<HTMLAttributes<HTMLSpanElement>, "chil
   name: string;
   src?: string;
   fallback?: string;
+  /** Decorative artwork used while the image is unavailable. */
+  fallbackArtwork?: ReactNode;
   size?: "2xs" | "xs" | ContentSize;
   shape?: "circle" | "rounded";
   decorative?: boolean;
@@ -5371,14 +5400,14 @@ export interface AvatarProps extends Omit<HTMLAttributes<HTMLSpanElement>, "chil
 }
 /** @since 0.2.4 */
 export const Avatar = /* @__PURE__ */ forwardRef<HTMLSpanElement, AvatarProps>(function Avatar(
-  { name, src, fallback, size = "md", shape = "circle", decorative = false, presence, className, ...props }, ref,
+  { name, src, fallback, fallbackArtwork, size = "md", shape = "circle", decorative = false, presence, className, ...props }, ref,
 ) {
   if (presence && !presence.label.trim()) throw new Error("Flood Avatar presence requires a label");
   const initials = name.trim().split(/\s+/u).filter(Boolean).slice(0, 2).map(word => Array.from(word)[0]).join("").toUpperCase();
   const label = presence ? `${name}, ${presence.label}` : name;
   return <span {...props} ref={ref} className={classes("flood-avatar", className)} data-size={size} data-shape={shape}
     data-presence={presence?.state} role={decorative ? undefined : "img"} aria-label={decorative ? undefined : label} aria-hidden={decorative || undefined}>
-    <AvatarArtwork key={src ?? ""} src={src} fallback={fallback ?? (initials || "?")} />
+    <AvatarArtwork key={src ?? ""} src={src} fallback={fallback ?? (initials || "?")} fallbackArtwork={fallbackArtwork} />
     {presence && <span className="flood-avatar__presence" aria-hidden="true" />}
   </span>;
 });
@@ -13256,6 +13285,71 @@ export const StepProgress = /* @__PURE__ */ forwardRef<HTMLDivElement, StepProgr
   </div>;
 });
 
+export interface QuestionnaireOption {
+  id: string;
+  label: string;
+}
+
+export interface QuestionnaireQuestion {
+  id: string;
+  title: string;
+  description?: string;
+  options: readonly QuestionnaireOption[];
+  selection?: "single" | "multiple";
+  required?: boolean;
+  otherLabel?: string;
+}
+
+export interface QuestionnaireAnswer {
+  selected: readonly string[];
+  other?: string;
+}
+
+export type QuestionnaireAnswers = Readonly<Record<string, QuestionnaireAnswer | undefined>>;
+
+export interface QuestionnaireProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "onChange" | "onSubmit"> {
+  label: string;
+  questions: readonly QuestionnaireQuestion[];
+  answers: QuestionnaireAnswers;
+  onAnswersChange: (answers: QuestionnaireAnswers) => void;
+  onComplete: (answers: QuestionnaireAnswers) => void;
+  pending?: boolean;
+  completed?: boolean;
+  completion?: ReactNode;
+  error?: string;
+  labels?: { back?: string; next?: string; submit?: string; required?: string; otherRequired?: string; complete?: string; position?: (step: number, total: number) => string };
+}
+
+/** @since 0.2.16 */
+export const Questionnaire = /* @__PURE__ */ forwardRef<HTMLDivElement, QuestionnaireProps>(function Questionnaire(props, ref) {
+  return <QuestionnaireView {...props} ref={ref} />;
+});
+
+export interface CalendarEvent {
+  id: string;
+  date: string;
+  title: string;
+  detail?: ReactNode;
+}
+
+export interface EventCalendarProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  label: string;
+  /** Gregorian YYYY-MM displayed in the calendar. */
+  month: string;
+  onMonthChange: (month: string) => void;
+  events: readonly CalendarEvent[];
+  today?: string;
+  locale?: string;
+  weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  maxVisibleEvents?: number;
+  labels?: { previous?: string; next?: string; more?: (count: number) => string; events?: (count: number) => string; back?: string };
+}
+
+/** @since 0.2.16 */
+export const EventCalendar = /* @__PURE__ */ forwardRef<HTMLDivElement, EventCalendarProps>(function EventCalendar(props, ref) {
+  return <EventCalendarView {...props} ref={ref} />;
+});
+
 export interface SectionProps extends Omit<HTMLAttributes<HTMLElement>, "title"> {
   title: string;
   description?: ReactNode;
@@ -15194,3 +15288,25 @@ export interface CharacterCountProps extends HTMLAttributes<HTMLOutputElement> {
 export const CharacterCount = /* @__PURE__ */ forwardRef<HTMLOutputElement, CharacterCountProps>(function CharacterCount(
   {mode = "count", label = "Characters", overLimitLabel = "Over limit", ...props}, ref,
 ) { return <SupportingCharacterCount {...props} ref={ref} mode={mode} label={label} overLimitLabel={overLimitLabel} />; });
+
+export { Carousel } from "./carousel.js";
+export type { CarouselItem, CarouselProps } from "./carousel.js";
+export { MaskedInput } from "./masked-input.js";
+export type { MaskedInputProps } from "./masked-input.js";
+export { PhoneInput } from "./phone-input.js";
+export type { PhoneInputCountry, PhoneInputDetails, PhoneInputProps } from "./phone-input.js";
+export { CharacterAvatar } from "./character-avatar.js";
+export type { CharacterAvatarProps } from "./character-avatar.js";
+export { ChatMessage } from "./chat-message.js";
+export type { ChatMessageProps } from "./chat-message.js";
+export { MessageScroller } from "./message-scroller.js";
+export type { MessageScrollerProps } from "./message-scroller.js";
+export { ComboChart, FunnelChart, RadarChart, SankeyChart } from "./comparison-charts.js";
+export type { ComboChartAxis, ComboChartProps, ComboChartSeries, FunnelChartProps, FunnelChartStage, RadarChartAxis, RadarChartProps, SankeyChartLink, SankeyChartNode, SankeyChartProps } from "./comparison-charts.js";
+export type { ChartInspection } from "./chart-inspection.js";
+export { TokenInput } from "./token-input.js";
+export type { TokenInputPart, TokenInputProps, TokenInputSuggestion, TokenInputToken } from "./token-input.js";
+export { Cascader } from "./cascader.js";
+export type { CascaderOption, CascaderProps } from "./cascader.js";
+export { DualListSelector } from "./dual-list-selector.js";
+export type { DualListSelectorLabels, DualListSelectorProps } from "./dual-list-selector.js";

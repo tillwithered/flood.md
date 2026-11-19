@@ -363,7 +363,7 @@ const knobs: Record<string, Knob[]> = {
   "collection-card": [{...toggle("showActions",true),label:"Copy link"},{...toggle("empty"),label:"No artwork"},{...toggle("narrow"),label:"Narrow width"}],
   "image-mosaic": [select("count",["1","2","3","4","5"],"3"),{...toggle("missingThumbnail"),label:"Unavailable thumbnail"}],
   "document-preview": [select("pageState",["ready","loading","error","empty"],"ready"),{...toggle("singlePage"),label:"Single page"},{...toggle("inDrawer"),label:"Open from a drawer"}],
-  "editable-grid": [select("density", ["compact", "comfortable"], "comfortable"), toggle("readOnly"), toggle("emptyRows")],
+  "editable-grid": [select("density", ["compact", "comfortable"], "comfortable"), toggle("readOnly"), toggle("emptyRows"), {...toggle("virtualRows"),label:"Large dataset"}],
   "import-column-mapping": [select("scenario",["Draft","Field removed","Empty"],"Draft"),select("surface",["canvas","raised","overlay"],"raised"),{...toggle("narrow"),label:"Narrow width"},toggle("disabled")],
   "reorder-list": [select("density", ["compact", "comfortable"], "comfortable"), toggle("rejectMoves"),toggle("disabled")],
   "kanban-board": [select("appearance",["open","contained"],"open"),select("cardLayout",["compact","project"],"compact"),select("dragActivation",["handle","card"],"handle"),toggle("showCounts",true),toggle("rejectMoves"),toggle("disabled")],
@@ -466,14 +466,14 @@ const knobs: Record<string, Knob[]> = {
   "metric-card": [select("state", ["ready", "loading", "unavailable"], "ready"), select("layout", ["inline", "stacked"], "inline"), select("size", ["sm", "md", "lg"], "md"), select("comparisonStyle", ["plain", "chip"], "plain"), {...select("chartState", ["follow metric", "ready", "loading"], "follow metric"),label:"Chart state"}, toggle("showChart",true), {...toggle("showChartLabel"),label:"Show chart label"}, toggle("showComparison",true), {...toggle("narrow"),label:"Narrow card"}],
   "metric-group": [select("scenario", ["ready", "mixed", "loading"], "ready"), select("appearance", ["plain", "panel"], "plain"), select("layout", ["grid", "rows"], "grid"), select("size", ["sm", "md", "lg"], "sm"), {...toggle("longLabel"),label:"Long label"}, {...toggle("longValue"),label:"Long value"}, {...toggle("showComparison",true),label:"Show comparison"}, {...toggle("narrow"),label:"Narrow panel"}],
   sparkline: [select("size", ["sm", "md"], "md"), select("tone", ["neutral", "accent", "success", "warning", "error"], "accent"), select("variant", ["line", "area"], "area"), select("series", ["rising", "falling", "gaps"], "rising"), toggle("showLabel")],
-  "line-chart": [select("variant", ["line", "area"], "area"), select("curve", ["linear", "smooth"], "smooth"), select("data", ["complete", "month", "gap", "single", "empty"], "complete"), toggle("comparison", true), {...toggle("showYAxis"), label:"Y axis"}, {...toggle("showLegend"), label:"Legend"}],
+  "line-chart": [select("variant", ["line", "area"], "area"), {...select("areaLayout", ["first", "overlay", "stacked", "percent"], "first"), label:"Area layout"}, select("curve", ["linear", "smooth"], "smooth"), select("data", ["complete", "month", "gap", "single", "empty"], "complete"), toggle("comparison", true), {...toggle("showYAxis"), label:"Y axis"}, {...toggle("showLegend"), label:"Legend"}],
   "bar-chart": [select("layout", ["grouped", "stacked", "percent"], "grouped"), select("data", ["complete", "missing", "signed", "zero", "empty"], "complete"), toggle("comparison", true), {...toggle("showLegend"), label:"Legend"}],
   "donut-chart": [select("data", ["complete", "single", "zero", "empty"], "complete"), {...toggle("showLegend"), label:"Legend"}],
   "composition-bar": [select("layout", ["inline", "rows"], "inline"), select("readout", ["value", "share", "both"], "value"), select("data", ["complete", "long labels", "small share", "zero", "empty"], "complete"), {...toggle("narrow"), label:"Narrow width"}],
   "heatmap": [select("data", ["complete", "gaps", "empty"], "complete")],
   "uptime-history": [select("window",["30","90"],"30"),select("scenario",["Incidents","Healthy","No data","Empty"],"Incidents"),{...toggle("narrow"),label:"Narrow width"}],
   "service-availability": [select("window",["30","90"],"30"),select("scenario",["Mixed","Healthy","No history","No services"],"Mixed")],
-  "scatter-chart": [select("data", ["complete", "single", "empty"], "complete")],
+  "scatter-chart": [select("data", ["complete", "bubble", "single", "empty"], "complete")],
   "range-chart": [select("data", ["complete", "gap", "empty"], "complete"), {...toggle("midpoint", true), label:"Median"}],
   "dumbbell-chart": [select("data", ["complete", "missing", "empty"], "complete")],
   "box-plot": [select("data", ["complete", "gap", "flat", "empty"], "complete"), {...toggle("outliers", true), label:"Outliers"}],
@@ -1027,6 +1027,10 @@ const initialGridRows: readonly Flood.EditableGridRow[] = [
   {id:"folders",label:"Folders",values:{product:"Folders",stock:"19",reserved:"7"}},
   {id:"labels",label:"Label rolls",values:{product:"Label rolls",stock:"68",reserved:"12"}},
 ];
+const largeGridRows: readonly Flood.EditableGridRow[] = [...initialGridRows, ...Array.from({length:1200}, (_, index) => ({
+  id:`item-${index+1}`, label:`Inventory item ${index+1}`,
+  values:{product:`Inventory item ${index+1}`,stock:String(50+index%91),reserved:String(index%23)},
+}))];
 const initialBoardColumns: readonly Flood.KanbanColumn[] = [
   {id:"queue",label:"Backlog",cards:[
     {id:"reports",title:"Usage reports",description:"Export weekly metrics as CSV.",metadata:"Release 14 · Maya Chen"},
@@ -2518,7 +2522,9 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     }
     case "editable-grid": return element("Stack",{style:{width:"36rem",maxWidth:"100%"}},
       element("EditableGrid",{caption:"Inventory quantities",density:v.density,readOnly:v.readOnly,
-        columns:binding("columns",gridPreviewColumns),rows:v.emptyRows ? [] : binding("rows",actions.gridRows),
+        virtualRows:v.virtualRows ? {height:340} : undefined, stickyHeader:v.virtualRows || undefined,
+        pinFirstColumn:v.virtualRows || undefined, columns:binding("columns",v.virtualRows ? gridPreviewColumns.map(column=>({...column,width:192,resizable:true})) : gridPreviewColumns),
+        rows:v.emptyRows ? [] : binding("rows", v.virtualRows ? actions.gridRows : actions.gridRows.slice(0, initialGridRows.length)),
         onChanges:binding("applyChanges",actions.setGridChanges)}));
     case "data-table": {
       const pageSize = Number(v.pageSize);
@@ -3442,7 +3448,7 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
       return element("Surface", {padding:"6", style:{width:"50rem",maxWidth:"100%"}},
         element("Stack", {gap:"4"},
           ...(v.data === "complete" || monthly ? [element("Metric", {label:monthly ? "Monthly visits" : "Weekly visits", value:new Intl.NumberFormat("en").format(current.reduce((sum, value) => sum + value, 0))})] : []),
-          element("LineChart", {label:"Daily visits", categories, series:v.data === "empty" ? [] : series, domain:[0,120], variant:v.variant, curve:v.curve, showYAxis:v.showYAxis || undefined, showLegend:v.showLegend || undefined})));
+          element("LineChart", {label:"Daily visits", categories, series:v.data === "empty" ? [] : series, domain:v.areaLayout === "stacked" || v.areaLayout === "percent" ? undefined : [0,120], variant:v.variant, areaLayout:v.areaLayout, curve:v.curve, showYAxis:v.showYAxis || undefined, showLegend:v.showLegend || undefined})));
     }
     case "bar-chart": {
       const percent = v.layout === "percent";
@@ -3557,10 +3563,14 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     }
     case "scatter-chart": {
       const samples = [[12,110],[18,136],[24,121],[31,155],[39,147],[43,177],[52,162],[58,204],[65,195],[72,235],[78,216],[86,265],[95,252],[104,301]];
-      const points = samples.map(([x, y], i) => ({id:String(i + 1), label:`Run ${i + 1}`, x, y}));
+      const bubble = v.data === "bubble";
+      const points = samples.map(([x, y], i) => ({id:String(i + 1), label:`Run ${i + 1}`, x, y,
+        ...(bubble ? {seriesId:i%2 ? "preview" : "production",size:(i+2)*(i+2)} : {})}));
       return element("Surface", {padding:"4", style:{width:"42rem",maxWidth:"100%"}},
         element("Stack", {gap:"3"}, element("Heading", {level:2,size:"group"}, "Response time by traffic"),
           element("ScatterChart", {label:"Response time by traffic", xLabel:"Requests / sec", yLabel:"Response time (ms)",
+            series:bubble ? [{id:"production",label:"Production"},{id:"preview",label:"Preview"}] : undefined,
+            sizeLabel:bubble ? "Concurrent sessions" : undefined,
             points:v.data === "empty" ? [] : v.data === "single" ? points.slice(6, 7) : points})));
     }
     case "range-chart": {
@@ -5302,6 +5312,84 @@ function recipeFor(slug: string, values: Values, actions: PreviewActions): Eleme
     case "date-range-field": return element("div",{style:{width:"38rem",maxWidth:"100%"}},element("DateRangeField",{label:"Travel dates",startName:"start",endName:"end",defaultValue:{start:"2026-10-12",end:"2026-10-18"},controlSize:v.controlSize,order:v.order,status:fieldStatus,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled}));
     case "date-range-picker": return element("div",{style:{width:"38rem",maxWidth:"100%"}},element("DateRangePicker",{label:"Travel dates",startName:"start",endName:"end",defaultValue:{start:"2026-10-12",end:"2026-10-18"},today:"2026-10-26",locale:v.locale,controlSize:v.controlSize,order:v.order,status:fieldStatus,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled}));
     case "time-field": return element("div",{style:{width:"26rem",maxWidth:"100%"}},element("TimeField",{key:String(v.precision),label:"Start time",name:"startTime",defaultValue:v.precision === "second"?"09:30:00":"09:30",precision:v.precision,controlSize:v.controlSize,status:fieldStatus,hideLabel:v.hideLabel,required:v.required,readOnly:v.readOnly,disabled:v.disabled}));
+    case "questionnaire": {
+      const questions: Flood.QuestionnaireQuestion[] = [
+        {id:"use", title:"What are you building?", required:true, options:[{id:"dashboard",label:"Dashboard"},{id:"portal",label:"Customer portal"}], otherLabel:"Other"},
+        {id:"needs", title:"What do you need first?", selection:"multiple", options:[{id:"forms",label:"Forms"},{id:"charts",label:"Charts"},{id:"tables",label:"Tables"}]},
+      ];
+      return element("div", {style:{width:"28rem",maxWidth:"100%"}}, element("Questionnaire", {
+        label:"Project setup", questions, completed:binding('status === "complete"', actions.status === "complete"),
+        answers:binding('status && status !== "complete" ? JSON.parse(status) : {}', actions.status && actions.status !== "complete" ? JSON.parse(actions.status) : {}),
+        onAnswersChange:binding("answers => setStatus(JSON.stringify(answers))", (answers: Flood.QuestionnaireAnswers) => actions.setStatus(JSON.stringify(answers))),
+        onComplete:binding('() => setStatus("complete")', () => actions.setStatus("complete"))
+      }));
+    }
+    case "carousel": return element("div",{style:{width:"40rem",maxWidth:"100%"}},element("Carousel",{
+      label:"Recent projects", slideSize:"min(14rem, 80%)", items:binding(
+        '[{ id: "orbit", label: "Orbit", content: <Surface padding="4">Orbit</Surface> }, { id: "atlas", label: "Atlas", content: <Surface padding="4">Atlas</Surface> }, { id: "studio", label: "Studio", content: <Surface padding="4">Studio</Surface> }, { id: "field", label: "Field notes", content: <Surface padding="4">Field notes</Surface> }]',
+        ["Orbit","Atlas","Studio","Field notes"].map(label=>({id:label,label,content:<Flood.Surface padding="4">{label}</Flood.Surface>})))
+    }));
+    case "masked-input": return element("div",{style:{width:"23rem",maxWidth:"100%"}}, {
+      ...element("Field",{label:"Identifier"}), field:element("MaskedInput",{mask:"999-99-9999",name:"identifier",placeholder:"123-45-6789"})
+    });
+    case "phone-input": return element("div",{style:{width:"25rem",maxWidth:"100%"}}, {
+      ...element("Field",{label:"Phone number"}), field:element("PhoneInput",{defaultCountry:"US",countries:["US","GB","KZ"],name:"phone"})
+    });
+    case "token-input": return element("div",{style:{width:"28rem",maxWidth:"100%"}},element("TokenInput",{
+      label:"Message", placeholder:"Type @ for teammates",
+      suggestions:[{id:"mia",label:"Mia",trigger:"@"},{id:"plan",label:"Plan",trigger:"/"}]
+    }));
+    case "cascader": return element("div",{style:{width:"24rem",maxWidth:"100%"}},element("Cascader",{
+      label:"Region", options:[
+        {id:"eu",label:"Europe",children:[{id:"de",label:"Germany",children:[{id:"ber",label:"Berlin"},{id:"ham",label:"Hamburg"}]},{id:"fr",label:"France"}]},
+        {id:"asia",label:"Asia",children:[{id:"kz",label:"Kazakhstan"}]},
+      ]
+    }));
+    case "dual-list-selector": return element("div",{style:{width:"36rem",maxWidth:"100%"}},element("DualListSelector",{
+      label:"Project members", options:[{value:"mira",label:"Mira Chen"},{value:"kai",label:"Kai Brooks"},{value:"alex",label:"Alex Morgan"},{value:"jun",label:"Jun Park"}],
+      value:binding('status ? JSON.parse(status) : ["kai"]', actions.status ? JSON.parse(actions.status) : ["kai"]),
+      onValueChange:binding("ids => setStatus(JSON.stringify(ids))",(ids:string[])=>actions.setStatus(JSON.stringify(ids)))
+    }));
+    case "character-avatar": return element("Stack",{gap:"3"},
+      element("Inline",{},...["Mia","Alex","Sam","Taylor","Jun"].map(name=>element("CharacterAvatar",{
+        name, seed:binding(`\`${name}-\${status}\``, `${name}-${actions.status}`), size:"lg"
+      }))),
+      element("Button",{variant:"subtle",onClick:binding("() => setStatus(crypto.randomUUID())",()=>actions.setStatus(crypto.randomUUID()))},"Randomize"));
+    case "chat-message": return element("div",{style:{width:"28rem",maxWidth:"100%"}},element("Stack",{gap:"4"},
+      element("ChatMessage",{author:"Mia",avatar:binding('<CharacterAvatar name="Mia" seed="staff-mia" size="sm" decorative />',<Flood.CharacterAvatar name="Mia" seed="staff-mia" size="sm" decorative />),timestamp:"10:42"},"The monthly review is ready."),
+      element("ChatMessage",{author:"You",direction:"outgoing",timestamp:"10:46"},"Thanks, I’ll read it before the call.")));
+    case "message-scroller": return element("div",{style:{width:"28rem",maxWidth:"100%"}},element("MessageScroller",{label:"Conversation",style:{blockSize:"14rem"}},
+      element("Stack",{gap:"3"},...Array.from({length:8},(_,index)=>element("ChatMessage",{author:index%2?"Mia":"You",direction:index%2?"incoming":"outgoing"},
+        ["Have you checked the release notes?","Yes, the component list is ready.","I’ll run the remaining browser checks.","Sounds good."][index%4])))));
+    case "combo-chart": return element("div",{style:{width:"42rem",maxWidth:"100%"}},element("ComboChart",{
+      label:"Subscriptions and churn", categories:["Jan","Feb","Mar","Apr"],
+      leftAxis:{label:"Subscriptions"},rightAxis:{label:"Churn"},
+      series:[{id:"subscriptions",label:"Subscriptions",kind:"bar",values:[80,94,99,118]},{id:"churn",label:"Churn",kind:"line",axis:"right",values:[6,4,5,3]}]
+    }));
+    case "funnel-chart": return element("div",{style:{width:"39rem",maxWidth:"100%"}},element("FunnelChart",{
+      label:"Trial conversion",stages:[{id:"visitors",label:"Visitors",value:1350},{id:"started",label:"Trials",value:710},{id:"activated",label:"Activated",value:330},{id:"paid",label:"Paid",value:160}]
+    }));
+    case "radar-chart": return element("div",{style:{width:"39rem",maxWidth:"100%"}},element("RadarChart",{
+      label:"Service health",axes:[{id:"uptime",label:"Uptime"},{id:"speed",label:"Speed"},{id:"support",label:"Support"},{id:"retention",label:"Retention"},{id:"adoption",label:"Adoption"}],
+      domain:[0,100], series:[{id:"now",label:"This month",values:[98,79,84,75,91]},{id:"before",label:"Last month",values:[91,60,77,70,85]}]
+    }));
+    case "sankey-chart": return element("div",{style:{width:"42rem",maxWidth:"100%"}},element("SankeyChart",{
+      label:"Cash flow",nodes:[{id:"sales",label:"Sales"},{id:"services",label:"Services"},{id:"cash",label:"Cash inflow"},{id:"costs",label:"Costs"},{id:"reserve",label:"Reserve"}],
+      links:[{id:"s-c",source:"sales",target:"cash",value:90},{id:"v-c",source:"services",target:"cash",value:45},{id:"c-cost",source:"cash",target:"costs",value:80},{id:"c-r",source:"cash",target:"reserve",value:55}]
+    }));
+    case "event-calendar": {
+      const events: Flood.CalendarEvent[] = [
+        {id:"kickoff",date:"2026-10-13",title:"Project kickoff",detail:"10:00–10:30 · Design team"},
+        {id:"demo",date:"2026-10-13",title:"Demo",detail:"13:00–14:00 · Product team"},
+        {id:"retro",date:"2026-10-13",title:"Retro",detail:"15:00–15:45 · Engineering"},
+        {id:"planning",date:"2026-10-21",title:"Planning",detail:"10:00–11:00 · Product team"},
+      ];
+      return element("div",{style:{width:"44rem",maxWidth:"100%"}},element("EventCalendar",{
+        label:"Team events", today:"2026-10-13", events,
+        month:binding('status || "2026-10"', actions.status || "2026-10"),
+        onMonthChange:binding("setStatus", actions.setStatus)
+      }));
+    }
     case "calendar": {
       const selection = v.selectionMode === "multiple" ? {
         selectionMode:"multiple",label:"Choose unavailable days",defaultSelectedDates:["2026-10-06","2026-10-15","2026-10-26"],
@@ -6406,7 +6494,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, i
   const [expenseLines, setExpenseLines] = useState(initialExpenseLines);
   const [replicaCounts, setReplicaCounts] = useState(initialReplicaCounts);
   const [quantity, setQuantity] = useState<Flood.UnitNumberValue>(initialQuantity);
-  const [gridRows, setGridRows] = useState(initialGridRows);
+  const [gridRows, setGridRows] = useState(component.slug === "editable-grid" ? largeGridRows : initialGridRows);
   const [reorderItems, setReorderItems] = useState(initialReorderItems);
   const [boardExamples, setBoardExamples] = useState(initialBoardExamples);
   const [boardCardId, setBoardCardId] = useState<string | null>(null);
@@ -6448,7 +6536,7 @@ export function ComponentWorkbench({ component, onCodeChange, onImportsChange, i
     setExpenseLines(initialExpenseLines);
     setReplicaCounts(initialReplicaCounts);
     setQuantity(initialQuantity);
-    setGridRows(initialGridRows);
+    setGridRows(component.slug === "editable-grid" ? largeGridRows : initialGridRows);
     setReorderItems(initialReorderItems);
     setBoardExamples(initialBoardExamples);
     setBoardCardId(null);
@@ -6988,7 +7076,7 @@ ${cards.map(({icon,...card})=>{
     {id:"stock",label:"In stock",align:"end",inputMode:"numeric",validate:validateQuantity},
     {id:"reserved",label:"Reserved",align:"end",inputMode:"numeric",validate:validateQuantity},
   ];
-  const [rows, setRows] = useState<GridProps["rows"]>(${JSON.stringify(initialGridRows)});
+  const [rows, setRows] = useState<GridProps["rows"]>(${JSON.stringify(initialGridRows)}${values.virtualRows ? '.concat(Array.from({length:1200}, (_, index) => ({id:`item-${index+1}`,label:`Inventory item ${index+1}`,values:{product:`Inventory item ${index+1}`,stock:String(50+index%91),reserved:String(index%23)}})))' : ''});
   const applyChanges: GridProps["onChanges"] = changes => setRows(previous => previous.map(row => {
     const edits = changes.filter(change => change.rowId === row.id);
     return edits.length ? {...row, values:{...row.values, ...Object.fromEntries(edits.map(change => [change.columnId, change.value]))}} : row;
@@ -7173,7 +7261,7 @@ ${cards.map(({icon,...card})=>{
     imports.add("Button");
     if (values.partial || values.state === "ready") imports.add("Image");
   }
-  const usesStatus = (component.slug === "publication-preview" && values.scenario !== "Link only") || ["access-request-form", "live-follow-control", "image-alt-text-editor", "import-column-mapping"].includes(component.slug) || hasFeedback || component.slug === "template-picker" || component.slug === "environment-creation-form" || component.slug === "database-webhook-form" || component.slug === "log-export-form" || component.slug === "content-report-form" || component.slug === "content-label-settings" || component.slug === "muted-word-form" || component.slug === "save-bar" || ["deployment-rollback-dialog","feed-update","generation-preview","thumbnail-strip","zoom-control","rollout-allocation","review-thread","backup-picker","image-annotations","image-focal-point","media-trim-range","deployment-region-picker","cidr-field"].includes(component.slug) || (component.slug === "profile-summary" && values.follow) ||
+  const usesStatus = ["event-calendar", "questionnaire", "character-avatar", "dual-list-selector"].includes(component.slug) || (component.slug === "publication-preview" && values.scenario !== "Link only") || ["access-request-form", "live-follow-control", "image-alt-text-editor", "import-column-mapping"].includes(component.slug) || hasFeedback || component.slug === "template-picker" || component.slug === "environment-creation-form" || component.slug === "database-webhook-form" || component.slug === "log-export-form" || component.slug === "content-report-form" || component.slug === "content-label-settings" || component.slug === "muted-word-form" || component.slug === "save-bar" || ["deployment-rollback-dialog","feed-update","generation-preview","thumbnail-strip","zoom-control","rollout-allocation","review-thread","backup-picker","image-annotations","image-focal-point","media-trim-range","deployment-region-picker","cidr-field"].includes(component.slug) || (component.slug === "profile-summary" && values.follow) ||
     ["follow-button","dependency-graph","file-trigger","form-actions","filter-condition","file-item", "file-list", "file-list-skeleton", "upload-item", "upload-list","data-table","data-list", "data-list-item","context-menu", "command-list", "command-palette", "steps", "section", "drawer", "alert-dialog", "empty-state", "card", "toolbar", "menu", "breadcrumb", "segmented-control", "toggle", "toggle-group", "button", "button-group", "split-button", "input-group", "icon-button", "stack", "inline", "radio-group", "checkbox-group"].includes(component.slug) || (component.slug === "code-snippet" && Boolean(values.copyAction));
   if (usesChecked) preamble += `  const [checked, setChecked] = useState(${JSON.stringify(Boolean(values.checked))});\n`;
   const usesRecordSelection = ["muted-word-list", "notification-channel-settings", "permission-editor", "staged-changes", "changed-file-list", "pending-invitation-list", "log-context"].includes(component.slug) ||
@@ -7261,7 +7349,7 @@ ${cards.map(({icon,...card})=>{
       setExpenseLines(initialExpenseLines);
       setReplicaCounts(initialReplicaCounts);
       setQuantity(initialQuantity);
-      setGridRows(initialGridRows);
+      setGridRows(component.slug === "editable-grid" ? largeGridRows : initialGridRows);
       setReorderItems(initialReorderItems);
       setBoardExamples(initialBoardExamples);
       setBoardCardId(null);

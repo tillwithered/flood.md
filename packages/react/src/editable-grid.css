@@ -36,6 +36,42 @@
   outline-offset: calc(-1 * var(--flood-sys-focus-width));
 }
 .flood-root .flood-editable-grid__cell[data-editing] .flood-editable-grid__value { visibility: hidden; }
+.flood-root .flood-editable-grid[data-virtual] .flood-editable-grid__value {
+  display: block;
+  min-block-size: 0;
+  block-size: calc(var(--flood-editable-grid-fixed-row) - var(--flood-sys-stroke-width));
+  padding-block: 0;
+  line-height: calc(var(--flood-editable-grid-fixed-row) - var(--flood-sys-stroke-width));
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.flood-root .flood-editable-grid[data-virtual] .flood-editable-grid__spacer > td {
+  border: 0;
+  padding: 0;
+}
+.flood-root .flood-editable-grid[data-pin-first] > thead > tr > th:first-child,
+.flood-root .flood-editable-grid[data-pin-first] > tbody > tr:not(.flood-editable-grid__spacer) > td:first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 2;
+  background: var(--flood-sys-color-surface-raised);
+  border-inline-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-field-border);
+}
+.flood-root .flood-editable-grid[data-pin-first] > thead > tr > th:first-child {
+  z-index: 3;
+}
+.flood-root .flood-editable-grid[data-pin-first] > tbody > tr > td:first-child[aria-selected="true"]:not([data-editing]) {
+  background: var(--flood-sys-color-selection-background);
+}
+.flood-root .flood-editable-grid > thead th[data-resize-edge] {
+  --flood-data-table-resize-hit: var(--flood-sys-space-6);
+  --flood-data-table-resize-inset: var(--flood-sys-space-1);
+  position: relative;
+  box-sizing: border-box;
+  padding-inline-end: calc(var(--flood-data-table-resize-hit) + 2 * var(--flood-data-table-resize-inset));
+}
+.flood-root .flood-editable-grid[data-pin-first] > thead > tr > th[data-resize-edge]:first-child { position: sticky; }
 .flood-root .flood-editable-grid__body > .flood-editable-grid__input {
   --flood-editable-grid-editor-inset: var(--flood-sys-space-1);
   position: absolute;

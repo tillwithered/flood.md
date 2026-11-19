@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import { Inline, List, Meter, Metric, Stack, Surface, Table, Text, VisuallyHidden, type BarChartProps, type BarListProps, type ChartSeries, type CompositionBarProps, type DonutChartItem, type DonutChartProps, type HeatmapProps, type LineChartProps } from "./index.js";
 import { placeOverlay } from "./overlay-runtime.js";
+import { useChartInspection } from "./chart-inspection.js";
 
 type PlotProps = LineChartProps & Required<Pick<LineChartProps, "variant" | "curve" | "emptyLabel" | "missingLabel" | "navigationLabel">>;
 const defaultNumber = new Intl.NumberFormat("en", { maximumSignificantDigits: 21 });
@@ -49,15 +50,15 @@ function yAt(points: readonly (number | null)[], position: number, smooth: boole
     + 3 * u * t * t * (end - slope(points, i + 1, end, delta) / 3) + t ** 3 * end;
 }
 
-function drawSeries(values: readonly (number | null)[], min: number, max: number, smooth: boolean) {
+function drawSeries(values: readonly (number | null)[], min: number, max: number, smooth: boolean, bases?: readonly number[]) {
   const line: string[] = [], area: string[] = [], singles: number[] = [];
-  const points = values.map(value => {
-    if (!observed(value)) return null;
+  const ordinate = (value: number) => {
     const fraction = min === max ? .5 : Number.isFinite(max - min)
       ? (value - min) / (max - min)
       : (value / 2 - min / 2) / (max / 2 - min / 2);
     return (1 - fraction) * plotHeight;
-  });
+  };
+  const points = values.map(value => observed(value) ? ordinate(value) : null);
   let segmentStart = 0, startIndex = 0;
   // The harmonic mean keeps control points within each observed interval.
   points.forEach((y, index) => {
@@ -75,13 +76,43 @@ function drawSeries(values: readonly (number | null)[], min: number, max: number
     }
     if (index + 1 < points.length && points[index + 1] !== null) return;
     if (starts) singles.push(index);
-    else area.push(`${line.slice(segmentStart).join(" ")} V${plotHeight} H${xFor(startIndex, values.length)} Z`);
+    else {
+      const baseline = bases
+        ? bases.slice(startIndex, index + 1).reverse().map((value, offset) =>
+          `L${xFor(index - offset, values.length)} ${ordinate(value)}`).join(" ")
+        : `V${plotHeight} H${xFor(startIndex, values.length)}`;
+      area.push(`${line.slice(segmentStart).join(" ")} ${baseline} Z`);
+    }
   });
   return { line: line.join(" "), area: area.join(" "), singles, points };
 }
 
+function stackArea(series: readonly ChartSeries[], count: number, percent: boolean) {
+  const positives = new Array<number>(count).fill(0);
+  const negatives = new Array<number>(count).fill(0);
+  const shares = percent ? positives.map((_, index) => {
+    const values = series.map(item => item.values[index]).filter(observed);
+    if (values.some(value => value < 0)) throw new RangeError("Flood LineChart percent area needs nonnegative observations");
+    const max = Math.max(0, ...values);
+    return max === 0 ? {max: 1, sum: 1} : {max, sum: values.reduce((sum, value) => sum + value / max, 0)};
+  }) : undefined;
+  return series.map(item => {
+    const bases: number[] = [];
+    const values = item.values.map((value, index) => {
+      if (!observed(value)) { bases[index] = 0; return null; }
+      const stack = value < 0 ? negatives : positives;
+      const share = shares?.[index];
+      bases[index] = stack[index];
+      stack[index] += share ? (value / share.max) / share.sum : value;
+      if (!Number.isFinite(stack[index])) throw new RangeError("Flood LineChart area stacks must have finite totals");
+      return percent ? Math.min(1, stack[index]) : stack[index];
+    });
+    return {values, bases};
+  });
+}
+
 export const SeriesPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, PlotProps>(function SeriesPlot({
-  label, categories, series, domain, variant, curve, showYAxis, showLegend = false, formatValue = formatNumber, emptyLabel, missingLabel, navigationLabel, className, ...props
+  label, categories, series, domain, variant, areaLayout = "first", curve, showYAxis, showLegend = false, formatValue = formatNumber, emptyLabel, missingLabel, navigationLabel, className, onInspect, ...props
 }, ref) {
   const id = useId();
   const [cursor, setCursor] = useState<number | null>(null);
@@ -94,15 +125,20 @@ export const SeriesPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, PlotProps>(
       series.some(item => !item.id.trim() || !item.label.trim() || item.values.length !== categories.length)) {
     throw new Error("Flood LineChart needs up to four uniquely named series with one value per category");
   }
-  for (const item of series) for (const value of item.values) {
+  const stacked = variant === "area" && (areaLayout === "stacked" || areaLayout === "percent");
+  const percent = stacked && areaLayout === "percent";
+  const areaStack = useMemo(() => stacked ? stackArea(series, categories.length, percent) : undefined, [series, categories.length, stacked, percent]);
+  const plotted = areaStack ?? series;
+  for (const item of plotted) for (const value of item.values) {
     if (observed(value)) { low = Math.min(low, value); high = Math.max(high, value); }
   }
-  if (domain && (!Number.isFinite(domain[0]) || !Number.isFinite(domain[1]) ||
+  const hasData = low !== Infinity;
+  if (stacked && hasData) { low = Math.min(low, 0); high = Math.max(high, 0); }
+  if (!percent && domain && (!Number.isFinite(domain[0]) || !Number.isFinite(domain[1]) ||
       domain[0] >= domain[1] || low < domain[0] || high > domain[1])) {
     throw new RangeError("Flood LineChart domain must contain all observations and have finite increasing bounds");
   }
-  const hasData = low !== Infinity;
-  const [min, max] = domain ?? [low, high];
+  const [min, max] = percent ? [0, 1] : domain ?? [low, high];
   const last = categories.length - 1;
   const canInspect = hasData && last > 0;
   useEffect(() => {
@@ -119,8 +155,16 @@ export const SeriesPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, PlotProps>(
   const showPoint = last > 0 && (focused || hover?.inside || touchPoint !== null);
   const values = hasData ? series.map(item => item.values[active]) : [];
   const formatted = values.map(value => observed(value) ? formatValue(value) : missingLabel);
-  const smooth = curve === "smooth";
-  const plot = useMemo(() => hasData ? series.map(item => drawSeries(item.values, min, max, smooth)) : [], [series, min, max, smooth, hasData]);
+  useChartInspection(onInspect && hasData && showPoint ? {
+    id: String(active), label: categories[active], values: series.map((item, i) => ({
+      label: item.label, value: observed(values[i]) ? values[i] : null, formattedValue: formatted[i],
+    })),
+  } : null, onInspect);
+  // Linear interpolation keeps both boundaries of each stacked band aligned.
+  const smooth = !stacked && curve === "smooth";
+  const plot = useMemo(() => hasData ? plotted.map((item, index) => drawSeries(item.values, min, max, smooth, areaStack?.[index].bases)) : [],
+    [plotted, min, max, smooth, hasData, areaStack]);
+  const areaLayers = variant === "area" ? plot.slice(0, areaLayout === "first" ? 1 : undefined) : [];
   const ticks = showYAxis ? (min === max ? [min] : [max, max / 2 + min / 2, min]) : [];
   const categoryTicks = last >= 12
     ? [0, Math.round(last / 4), Math.round(last / 2), Math.round(3 * last / 4), last]
@@ -190,7 +234,7 @@ export const SeriesPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, PlotProps>(
       {last > 0 && <VisuallyHidden id={id}>{navigationLabel}</VisuallyHidden>}
       <div className="flood-line-chart__body" data-y-axis={showYAxis || undefined}>
         {showYAxis && <div className="flood-line-chart__y" aria-hidden="true" data-flat={min === max || undefined}>
-          {ticks.map((value, i) => <Text key={i} size="helper" tone="subtle">{formatValue(value)}</Text>)}
+          {ticks.map((value, i) => <Text key={i} size="helper" tone="subtle">{percent ? formatPercent(value) : formatValue(value)}</Text>)}
         </div>}
         <div className="flood-line-chart__plot" role={last > 0 ? "slider" : "img"} tabIndex={last > 0 ? 0 : undefined}
           aria-label={last > 0 ? label : valueText} aria-describedby={last > 0 ? id : undefined}
@@ -219,9 +263,10 @@ export const SeriesPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, PlotProps>(
           }}>
           <svg viewBox={`0 0 ${plotWidth} ${plotHeight}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
             {variant === "area" && <defs>
-              <linearGradient className="flood-line-chart__gradient" id={`${id}-fill`} x1="0" x2="0" y1="0" y2="1">
+              {areaLayers.map((_, i) => <linearGradient key={series[i].id} className="flood-line-chart__gradient"
+                data-series={i} id={`${id}-fill-${i}`} x1="0" x2="0" y1="0" y2="1">
                 <stop stopColor="currentColor" stopOpacity=".3" /><stop offset="1" stopColor="currentColor" stopOpacity="0" />
-              </linearGradient>
+              </linearGradient>)}
               <linearGradient id={`${id}-area-edges`}>
                 <stop stopColor="white" stopOpacity="0" />
                 <stop offset=".07" stopColor="white" />
@@ -243,8 +288,8 @@ export const SeriesPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, PlotProps>(
                 height={plotHeight + 8} fill={`url(#${id}-highlight-fade)`} />
             </mask></defs>
             {showYAxis && <path className="flood-line-chart__grid" d={min === max ? "M0 100H600" : "M0 0H600M0 100H600M0 200H600"} />}
-            {variant === "area" && <path className="flood-line-chart__area" d={plot[0].area}
-              fill={`url(#${id}-fill)`} mask={`url(#${id}-area-mask)`} />}
+            {areaLayers.map((item, i) => <path key={series[i].id} className="flood-line-chart__area" d={item.area}
+              fill={`url(#${id}-fill-${i})`} mask={`url(#${id}-area-mask)`} />)}
             {plot.map((item, i) => {
               return <g key={series[i].id} data-series={i}>
                 <path className="flood-line-chart__stroke" d={item.line} />
@@ -289,7 +334,7 @@ export const SeriesPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, PlotProps>(
 type GroupedBarsProps = BarChartProps & Required<Pick<BarChartProps, "emptyLabel" | "missingLabel" | "navigationLabel">>;
 
 export const GroupedBars = /* @__PURE__ */ forwardRef<HTMLDivElement, GroupedBarsProps>(function GroupedBars({
-  label, categories, series, domain, layout = "grouped", showLegend = false, formatValue = formatNumber, formatShare = formatPercent, emptyLabel, missingLabel, navigationLabel, className, ...props
+  label, categories, series, domain, layout = "grouped", showLegend = false, formatValue = formatNumber, formatShare = formatPercent, emptyLabel, missingLabel, navigationLabel, className, onInspect, ...props
 }, ref) {
   const instructions = useId();
   const [cursor, setCursor] = useState(0);
@@ -342,6 +387,11 @@ export const GroupedBars = /* @__PURE__ */ forwardRef<HTMLDivElement, GroupedBar
     return percent && total > 0 ? `${formatShare(value / total)} · ${formatValue(value)}` : formatValue(value);
   }) : [];
   const valueText = [categories[active], ...series.map((item, i) => `${item.label}: ${values[i]}`)].join(", ");
+  useChartInspection(onInspect && hasData && inspecting ? {
+    id: String(active), label: categories[active], values: series.map((item, i) => ({
+      label: item.label, value: observed(item.values[active]) ? item.values[active] : null, formattedValue: values[i],
+    })),
+  } : null, onInspect);
   const navigate = (event: KeyboardEvent<HTMLDivElement>) => {
     let next: number;
     switch (event.key) {
@@ -414,7 +464,7 @@ export const GroupedBars = /* @__PURE__ */ forwardRef<HTMLDivElement, GroupedBar
 
 type ShareRingProps = DonutChartProps & Required<Pick<DonutChartProps, "totalLabel" | "emptyLabel" | "navigationLabel">>;
 const defaultPercent = new Intl.NumberFormat("en", {style:"percent", maximumFractionDigits:1});
-function formatPercent(share: number) {
+export function formatPercent(share: number) {
   if (share > 0 && share < .0005) return `<${defaultPercent.format(.001)}`;
   if (share < 1 && share >= .9995) return `>${defaultPercent.format(.999)}`;
   return defaultPercent.format(share);
@@ -595,7 +645,7 @@ export const ShareRing = /* @__PURE__ */ forwardRef<HTMLDivElement, ShareRingPro
 type HeatmapGridProps = HeatmapProps & Required<Pick<HeatmapProps, "missingLabel" | "emptyLabel">>;
 
 export const HeatmapGrid = /* @__PURE__ */ forwardRef<HTMLDivElement, HeatmapGridProps>(function HeatmapGrid({
-  label, columns, rows, max, formatValue = formatNumber, missingLabel, emptyLabel, className, ...props
+  label, columns, rows, max, formatValue = formatNumber, missingLabel, emptyLabel, className, onInspect, ...props
 }, ref) {
   const table = useRef<HTMLTableElement>(null);
   const tooltip = useRef<HTMLDivElement>(null);
@@ -629,6 +679,11 @@ export const HeatmapGrid = /* @__PURE__ */ forwardRef<HTMLDivElement, HeatmapGri
   const active = inspection === undefined ? -1 : Math.min(inspection, last);
   const activeRow = active >= 0 ? rows[Math.floor(active / width)] : undefined;
   const activeValue = activeRow?.values[active % width];
+  useChartInspection(onInspect && activeRow ? {
+    id: JSON.stringify([activeRow.id, active % width]), label: columns[active % width], values: [{
+      label: activeRow.label, value: activeValue ?? null, formattedValue: activeValue == null ? missingLabel : formatValue(activeValue),
+    }],
+  } : null, onInspect);
   useChartLayoutEffect(() => {
     const panel = tooltip.current;
     const area = panel?.offsetParent;

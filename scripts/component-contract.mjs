@@ -1,4 +1,20 @@
 import { parse } from "@babel/parser";
+import { readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+
+const parseSource = source => parse(source, { sourceType: "module", plugins: ["typescript", "jsx"] });
+
+export async function loadComponentContractInputs(entry) {
+  const source = await readFile(entry, "utf8");
+  const paths = [...new Set(parseSource(source).program.body
+    .filter(statement => statement.type === "ExportNamedDeclaration" && statement.exportKind !== "type" && statement.source)
+    .map(statement => statement.source.value))];
+  const modules = await Promise.all(paths.map(async path => {
+    if (!/^\.\/[a-z0-9-]+\.js$/.test(path)) throw new Error(`Component contract: unsupported source ${path}`);
+    return [path, await readFile(resolve(dirname(entry), path.replace(/\.js$/, ".tsx")), "utf8")];
+  }));
+  return { source, modules: new Map(modules) };
+}
 
 /** Return the explicit preview cases; a fallback cannot satisfy recipe coverage. */
 export function readRecipeSlugs(source) {
@@ -17,8 +33,8 @@ export function readRecipeSlugs(source) {
 }
 
 /** Extract the supported, local TypeScript component declarations without executing source. */
-export function readComponentContract(source) {
-  const ast = parse(source, { sourceType: "module", plugins: ["typescript", "jsx"] });
+export function readComponentContract(source, modules = new Map()) {
+  const ast = parseSource(source);
   const declarations = new Map();
   const exports = [];
   const forwardRefs = new Set();
@@ -48,10 +64,10 @@ export function readComponentContract(source) {
     }
     if (statement.type === "ExportNamedDeclaration" && statement.exportKind !== "type") {
       for (const specifier of statement.specifiers) {
-        if (specifier.type === "ExportSpecifier" && specifier.exportKind !== "type") exports.push({ name: nameOf(specifier.exported), local: nameOf(specifier.local), statement });
+        if (specifier.type === "ExportSpecifier" && specifier.exportKind !== "type") exports.push({ name: nameOf(specifier.exported), local: nameOf(specifier.local), statement, module: statement.source?.value });
         else if (specifier.exportKind !== "type") throw new Error("Component contract: unsupported runtime re-export");
       }
-      if (statement.source) throw new Error("Component contract: external re-exports need an explicit source resolver");
+      if (statement.source && !modules.has(statement.source.value)) throw new Error("Component contract: external re-exports need an explicit source resolver");
     }
     if (statement.type === "ExportAllDeclaration" || statement.type === "ExportDefaultDeclaration") throw new Error("Component contract: unsupported default or wildcard export");
   }
@@ -154,7 +170,28 @@ export function readComponentContract(source) {
     return { props: [...props.values()], nativeProps: [...new Set(contracts.flatMap((contract) => contract.nativeProps))] };
   }
 
+  const moduleContracts = new Map();
+  function readModuleContract(path) {
+    if (!moduleContracts.has(path)) {
+      const module = modules.get(path);
+      const names = new Set(parseSource(module).program.body.flatMap(statement => {
+        const declaration = statement.type === "ExportNamedDeclaration" ? statement.declaration : statement;
+        return declaration?.id?.name ? [declaration.id.name] : [];
+      }));
+      // Public modules can extend the entry's prop contracts through type-only imports.
+      const sharedTypes = [...declarations.entries()].filter(([name, node]) =>
+        !names.has(name) && ["TSInterfaceDeclaration", "TSTypeAliasDeclaration"].includes(node.type));
+      moduleContracts.set(path, readComponentContract([module, ...sharedTypes.map(([, node]) => raw(node))].join("\n")));
+    }
+    return moduleContracts.get(path);
+  }
+
   return exports.filter((entry) => /^[A-Z]/.test(entry.name)).map((entry) => {
+    if (entry.module) {
+      const contract = readModuleContract(entry.module).find(item => item.name === entry.local);
+      if (!contract) throw new Error(`Component contract: missing modular export ${entry.name}`);
+      return { ...contract, name: entry.name };
+    }
     const declaration = declarations.get(entry.local);
     let render, propsType;
     if (declaration?.type === "FunctionDeclaration") render = declaration;

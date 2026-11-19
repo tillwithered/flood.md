@@ -349,6 +349,9 @@
     }
   ],
   "documentGroups": {
+    "recipes/chat-starter.md": ["composition", "interaction"],
+    "recipes/auth-card.md": ["composition", "interaction"],
+    "recipes/inventory-grid.md": ["composition", "data-feedback"],
     "charts.md": ["charts", "data-feedback", "composition"],
     "recipes/record-management.md": ["data-feedback", "composition"],
     "recipes/file-gallery.md": ["data-feedback", "composition"],
@@ -460,6 +463,9 @@
     ]
   },
   "prerequisites": {
+    "recipe:chat-starter": ["component:character-avatar", "component:chat-message", "component:message-scroller", "component:message-composer"],
+    "recipe:auth-card": ["component:field", "component:password-input", "component:pin-input", "component:form-actions"],
+    "recipe:inventory-grid": ["component:editable-grid", "component:search-input", "component:select"],
     "workflow:forms": [
       "workflow:composition"
     ],
