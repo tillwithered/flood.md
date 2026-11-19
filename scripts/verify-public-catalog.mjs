@@ -57,6 +57,8 @@ export async function verifyPublicCatalog(base) {
 
   assertInventory(scopedPaths(htmlLinks(directory), componentPattern, origin), componentLinks, "Component directory must match the public selection");
   assertInventory(scopedPaths(htmlLinks(charts), componentPattern, origin), chartLinks, "Charts directory must match the public chart selection");
+  assert.deepEqual(htmlLinks(charts).filter(link => componentPattern.test(link)), selection.charts.map(componentPath),
+    "Charts must start with the common visualization types");
   assertInventory(scopedPaths(htmlLinks(recipes), recipePattern, origin), recipeLinks, "Recipe directory must match the starter recipes");
   assertInventory(scopedPaths(markdownLinks(markdownIndex), componentPattern, origin), componentLinks, "Markdown index must match the public selection");
   const indexedLinks = sitemapLinks(sitemap);

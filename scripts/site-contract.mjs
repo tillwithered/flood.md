@@ -54,7 +54,7 @@ export async function prepareSiteBundle(parent = join(workspace, '.artifacts')) 
   }
 }
 
-export async function verifySite(base, { expectedCommit, expectedVersion, expectedFiles } = {}) {
+export async function verifySite(base, { expectedCommit, expectedVersion, expectedFiles, expectedProfile } = {}) {
   const origin = new URL(base);
   if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password) throw new Error('A plain HTTP(S) website origin is required');
   const read = async (path, type, method = 'GET') => {
@@ -66,6 +66,7 @@ export async function verifySite(base, { expectedCommit, expectedVersion, expect
   if (metadata.schemaVersion !== 1 || typeof metadata.version !== 'string') throw new Error('Invalid website release metadata');
   if (expectedCommit && (!hashPattern.test(expectedCommit) || metadata.sourceCommit !== expectedCommit || metadata.sourceDirty)) throw new Error('Website does not serve the expected clean source commit');
   if (expectedVersion && metadata.version !== expectedVersion) throw new Error('Website release version differs');
+  if (expectedProfile && metadata.profile !== expectedProfile) throw new Error('Website catalog profile differs');
   if ((await read('/health', 'text/plain')).body !== 'ok') throw new Error('Website health probe failed');
   const visitors = await read('/api/visitors', 'application/json');
   const counter = JSON.parse(visitors.body);
@@ -190,7 +191,7 @@ export async function checkLocalSite(directory, { expectedCommit } = {}) {
       child.once('exit', () => { clearTimeout(timeout); reject(new Error('Website runtime exited before readiness')); });
       child.stdout.on('data', data => { output += data; const match = /Flood website listening on (\d+)/.exec(output); if (match) { clearTimeout(timeout); resolve(Number(match[1])); } });
     });
-    return await verifySite('http://127.0.0.1:' + port, { expectedCommit, expectedVersion: expected.version, expectedFiles });
+    return await verifySite('http://127.0.0.1:' + port, { expectedCommit, expectedVersion: expected.version, expectedFiles, expectedProfile: process.env.FLOOD_WEBSITE_PROFILE });
   } finally {
     if (child.exitCode === null) {
       const stopped = new Promise(resolve => child.once('exit', resolve));
@@ -204,7 +205,7 @@ export async function waitForSite(base, expectedCommit, timeout = 600000) {
   if (!Number.isFinite(timeout) || timeout < 1) throw new Error('Invalid deployment verification timeout');
   const start = Date.now(); let last;
   do {
-    try { return await verifySite(base, { expectedCommit }); }
+    try { return await verifySite(base, { expectedCommit, expectedProfile: process.env.EXPECTED_WEBSITE_PROFILE }); }
     catch (error) { last = error; }
     if (Date.now() - start >= timeout) break;
     await pause(Math.min(5000, timeout - (Date.now() - start)));
