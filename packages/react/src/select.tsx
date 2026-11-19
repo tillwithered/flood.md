@@ -175,6 +175,8 @@ export const SingleSelect = /* @__PURE__ */ forwardRef<HTMLSelectElement, Select
       if (parent && !parent.open) { frame = view.requestAnimationFrame(start); return; }
       if (typeof popup.showPopover !== "function") throw new Error("Flood Select requires the native Popover API");
       popup.style.visibility = "hidden"; popup.showPopover(); update();
+      // Let ScrollArea apply its measured scrollbar inset before showing the positioned popup.
+      popup.style.visibility = "hidden";
       unregister = registerLayer(document, {
         panel: popup,
         // Native callbacks are mirrored on the hidden select inside this span.

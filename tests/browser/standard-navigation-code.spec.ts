@@ -44,6 +44,12 @@ test("CodeBlock bounds its scroll area, wraps on demand and copies original sour
   await expect.poll(() => viewport.evaluate(node => node.scrollWidth - node.clientWidth)).toBe(0);
   await block.getByRole("button", { name: "Copy code", exact: true }).click();
   await expect.poll(async () => (await page.evaluate(() => navigator.clipboard.readText())).replaceAll("\r\n", "\n")).toBe(original);
+  await page.evaluate(() => Object.defineProperty(navigator.clipboard, "writeText", {
+    value: async () => { throw new DOMException("Clipboard denied", "NotAllowedError"); },
+  }));
+  await block.getByRole("button").click();
+  await expect(block.getByRole("status")).toHaveText("Failed");
+  await expect(block.locator("pre code")).toHaveText(original!);
   await page.getByRole("checkbox", { name: "CodeBlock prop showCopy", exact: true }).uncheck();
   await expect(block.getByRole("button")).toHaveCount(0);
 });
