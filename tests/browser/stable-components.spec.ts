@@ -60,6 +60,10 @@ test("EditableGrid mounts a window and edits a record across a virtual jump", as
   await page.locator(".preview-stage").screenshot({ path: info.outputPath("virtual-editable-grid.png") });
   await bottom.press("Control+Home");
   await expect(notebook).toBeFocused();
+  const resize = grid.getByRole("separator", { name: "Resize In stock column" });
+  const width = Number(await resize.getAttribute("aria-valuenow"));
+  await resize.press("ArrowRight");
+  await expect(resize).toHaveAttribute("aria-valuenow", String(width + 8));
 });
 
 test("Inventory Grid filters thousands of rows and recalculates the summary", async ({ page }) => {

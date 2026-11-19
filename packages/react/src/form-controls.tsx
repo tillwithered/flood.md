@@ -89,7 +89,17 @@ export const CollectionListBox = /* @__PURE__ */ forwardRef<HTMLDivElement, List
       data-status={resolvedStatus} data-appearance={appearance} className={cx("flood-list-box", `flood-control--${controlSize}`, className)}
       onBlur={event=>{onBlur?.(event);if(!event.defaultPrevented&&!event.currentTarget.contains(event.relatedTarget as Node|null))setTouched(true);}}
       onInvalid={event=>{onInvalid?.(event);if(event.defaultPrevented)return;event.preventDefault();setTouched(true);root.current?.focus();}}
-      onFocus={event => { onFocus?.(event); if (!options[active] || options[active].disabled) setActive(first); else root.current?.querySelector<HTMLElement>(`[id="${id}-option-${active}"]`)?.scrollIntoView({block:"nearest"}); }}
+      onFocus={event => {
+        onFocus?.(event);
+        if (!options[active] || options[active].disabled) { setActive(first); return; }
+        const viewport = event.currentTarget;
+        const option = viewport.querySelector<HTMLElement>(`[id="${id}-option-${active}"]`);
+        if (!option) return;
+        const frame = viewport.getBoundingClientRect();
+        const bounds = option.getBoundingClientRect();
+        if (bounds.top < frame.top) viewport.scrollTop += bounds.top - frame.top;
+        else if (bounds.bottom > frame.bottom) viewport.scrollTop += bounds.bottom - frame.bottom;
+      }}
       onKeyDown={event => {
         onKeyDown?.(event);
         if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing || blocked()) return;
@@ -116,7 +126,8 @@ export const CollectionListBox = /* @__PURE__ */ forwardRef<HTMLDivElement, List
       {options.map((option, index) => <div key={option.value} id={`${id}-option-${index}`} role="option"
         aria-selected={selected.includes(option.value)} aria-disabled={option.disabled || undefined}
         data-active={index === active || undefined} className="flood-list-box__option"
-        onClick={() => { if (blocked()) return; root.current?.focus(); setActive(index); commit(index); }}>
+        onMouseDown={event => { if (event.button === 0) event.preventDefault(); }}
+        onClick={() => { if (blocked()) return; root.current?.focus({preventScroll:true}); setActive(index); commit(index); }}>
         {hasAvatars && <span className="flood-selection-option__avatar" aria-hidden="true">
           {option.avatar && <Avatar {...option.avatar} name={option.label} size="xs" decorative />}
         </span>}
