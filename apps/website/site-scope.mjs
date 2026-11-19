@@ -2,7 +2,7 @@ import selection from "./src/public-catalog.json" with { type: "json" };
 
 export const isPublicSite = typeof __FLOOD_PUBLIC_SITE__ === "boolean"
   ? __FLOOD_PUBLIC_SITE__
-  : process.env.FLOOD_WEBSITE_PROFILE === "public";
+  : typeof process !== "undefined" && process.env.FLOOD_WEBSITE_PROFILE === "public";
 
 const components = new Set([...selection.components, ...selection.charts]);
 const recipes = new Set(selection.recipes);
