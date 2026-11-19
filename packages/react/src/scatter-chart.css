@@ -24,6 +24,7 @@
   inset: var(--flood-scatter-inset);
   pointer-events: none;
 }
+.flood-root .flood-scatter-chart[data-sized] { --flood-scatter-inset: var(--flood-sys-space-4); }
 
 .flood-root .flood-scatter-chart__area::before {
   content: "";
@@ -35,22 +36,54 @@
   mask-composite: intersect;
 }
 
+.flood-root .flood-scatter-chart__mark {
+  --flood-scatter-color: var(--flood-chart-accent);
+  box-sizing: border-box;
+  inline-size: var(--flood-scatter-diameter, calc(1.6 * var(--flood-sys-space-1)));
+  aspect-ratio: 1;
+  flex: none;
+  border-radius: 50%;
+  border: var(--flood-chart-stroke-width) solid color-mix(in srgb, var(--flood-scatter-color) 68%, transparent);
+  background: color-mix(in srgb, var(--flood-scatter-color) 22%, transparent);
+}
+.flood-root .flood-scatter-chart__mark[data-series] {
+  --flood-scatter-diameter: var(--flood-sys-space-2);
+}
+.flood-root .flood-scatter-chart__mark[data-series="1"] {
+  --flood-scatter-color: var(--flood-sys-color-content-subtle);
+  border-style: dashed;
+}
+.flood-root .flood-scatter-chart__mark[data-series="2"] {
+  --flood-scatter-color: var(--flood-sys-color-content-default);
+  border-style: dotted;
+}
+.flood-root .flood-scatter-chart__mark[data-series="3"] {
+  --flood-scatter-color: var(--flood-sys-color-content-subtle);
+  border-style: double;
+  border-width: calc(3 * var(--flood-sys-stroke-width));
+}
+.flood-root .flood-scatter-chart__mark[data-proportional] {
+  border-width: var(--flood-sys-stroke-width);
+}
+.flood-root .flood-scatter-chart__mark[data-zero] {
+  inline-size: var(--flood-sys-space-1);
+  background: none;
+  border-style: solid;
+}
 .flood-root .flood-scatter-chart__point {
   position: absolute;
-  box-sizing: border-box;
-  inline-size: calc(1.6 * var(--flood-sys-space-1));
-  aspect-ratio: 1;
   translate: -50% -50%;
-  border-radius: 50%;
-  border: var(--flood-chart-stroke-width) solid color-mix(in srgb, var(--flood-chart-accent) 68%, transparent);
-  background: color-mix(in srgb, var(--flood-chart-accent) 22%, transparent);
 }
 
 .flood-root .flood-scatter-chart__point[data-active] {
   z-index: 1;
-  border-color: var(--flood-chart-accent);
-  background: var(--flood-chart-accent);
-  box-shadow: 0 0 0 .1875rem color-mix(in srgb, var(--flood-chart-accent) 24%, transparent);
+  border-color: var(--flood-scatter-color);
+  background: var(--flood-scatter-color);
+  box-shadow: 0 0 0 .1875rem color-mix(in srgb, var(--flood-scatter-color) 24%, transparent);
+}
+.flood-root .flood-scatter-chart__point[data-active][data-zero] { background: none; }
+.flood-root .flood-scatter-chart__legend {
+  margin-block-start: var(--flood-sys-space-3);
 }
 
 .flood-root .flood-scatter-chart__guides {
@@ -156,7 +189,7 @@
 }
 
 @media (forced-colors: active) {
-  .flood-root .flood-scatter-chart__point { forced-color-adjust: none; background: Canvas; border-color: CanvasText; }
+  .flood-root .flood-scatter-chart__mark { forced-color-adjust: none; background: Canvas; border-color: CanvasText; }
   .flood-root .flood-scatter-chart__point[data-active] { background: Highlight; border-color: Highlight; box-shadow: none; }
   .flood-root .flood-scatter-chart__guides::before,
   .flood-root .flood-scatter-chart__guides::after { forced-color-adjust: none; background: Highlight; }

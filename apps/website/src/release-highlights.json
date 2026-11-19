@@ -1,5 +1,14 @@
 {
-  "0.2.15": ["navigation-menu", "code-block", "select"],
+  "0.2.16": [
+    "carousel",
+    "character-avatar",
+    "combo-chart"
+  ],
+  "0.2.15": [
+    "navigation-menu",
+    "code-block",
+    "select"
+  ],
   "0.2.14": [
     "message-composer",
     "comparison-table",

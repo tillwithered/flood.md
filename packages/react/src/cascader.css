@@ -1,0 +1,99 @@
+.flood-root .flood-cascader {
+  min-inline-size: 0;
+}
+.flood-root .flood-cascader__trigger {
+  inline-size: 100%;
+  justify-content: space-between;
+  border-radius: var(--flood-sys-radius-field);
+  border-color: var(--flood-sys-color-field-border);
+  background: var(--flood-sys-color-field-background);
+  color: var(--flood-sys-color-field-content);
+  text-align: start;
+}
+.flood-root .flood-cascader__trigger[aria-invalid="true"] {
+  border-color: var(--flood-sys-color-feedback-error);
+}
+.flood-root .flood-cascader__value {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flood-root .flood-cascader__value[data-placeholder] {
+  color: var(--flood-sys-color-field-placeholder);
+}
+.flood-root .flood-cascader__arrow {
+  flex: none;
+  line-height: 0;
+}
+.flood-root .flood-cascader__arrow > svg {
+  inline-size: var(--flood-control-icon);
+  block-size: var(--flood-control-icon);
+  rotate: 90deg;
+}
+.flood-root .flood-cascader__panel {
+  padding: var(--flood-sys-space-1);
+  inline-size: max-content;
+  min-inline-size: min(12rem, var(--flood-overlay-available-width, 100vw));
+  max-inline-size: var(--flood-overlay-available-width, 100vw);
+}
+.flood-root .flood-cascader__columns {
+  display: flex;
+  align-items: stretch;
+}
+.flood-root .flood-cascader__column {
+  flex: 0 0 11rem;
+  min-inline-size: 0;
+}
+.flood-root .flood-cascader__column + .flood-cascader__column {
+  border-inline-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+}
+.flood-root .flood-cascader__column-scroll {
+  max-block-size: min(17rem, 48vh);
+}
+.flood-root .flood-cascader__column .flood-list-box {
+  padding: var(--flood-sys-space-1);
+  border-radius: var(--flood-sys-radius-field);
+}
+.flood-root .flood-cascader__column .flood-list-box__description {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.flood-root .flood-cascader__column .flood-list-box__option:has(.flood-list-box__description) .flood-list-box__check {
+  font-size: 0;
+}
+.flood-root .flood-cascader__column .flood-list-box__option:has(.flood-list-box__description) .flood-list-box__check::after {
+  content: "";
+  display: inline-block;
+  inline-size: var(--flood-sys-space-1);
+  block-size: var(--flood-sys-space-1);
+  border-block-start: var(--flood-sys-stroke-width) solid currentColor;
+  border-inline-end: var(--flood-sys-stroke-width) solid currentColor;
+  rotate: 45deg;
+}
+.flood-root .flood-cascader__column .flood-list-box__check:dir(rtl)::after {
+  rotate: -45deg;
+}
+.flood-root .flood-cascader__navigation {
+  display: none;
+}
+@media (max-width: 36rem) {
+  .flood-root .flood-cascader__navigation {
+    display: flex;
+    padding: var(--flood-sys-space-1);
+  }
+  .flood-root .flood-cascader__column {
+    flex: 1 1 auto;
+    inline-size: min(18rem, calc(var(--flood-overlay-available-width, 100vw) - 2 * var(--flood-sys-space-1)));
+  }
+  .flood-root .flood-cascader__column + .flood-cascader__column {
+    border-inline-start: 0;
+  }
+  .flood-root .flood-cascader__column:not([data-current]) {
+    display: none;
+  }
+}

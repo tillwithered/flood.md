@@ -1,5 +1,13 @@
 # Motion
 
+`Carousel` uses native scrolling and removes scripted smooth scrolling for reduced
+motion. `MessageScroller` follows growing content without replaying an animation
+for each edit. `MaskedInput`, `PhoneInput`, `Questionnaire`, `CharacterAvatar`,
+`ChatMessage`, `DualListSelector`, `ComboChart`, `FunnelChart`, `RadarChart` and `SankeyChart` update
+their content without motion. `TokenInput` and `EventCalendar` use the shared
+overlay behavior for contextual suggestions and event details. `Cascader` uses
+the shared popover transition around navigation between lists.
+
 Flood uses short motion to show where an interface changed. Motion follows the
 component's own state and respects the operating system's reduced-motion preference.
 

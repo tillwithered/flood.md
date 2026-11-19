@@ -1,0 +1,33 @@
+.flood-root .flood-carousel {
+  min-inline-size: 0;
+}
+.flood-root .flood-carousel__viewport {
+  scroll-snap-type: inline mandatory;
+}
+.flood-root .flood-carousel__slides {
+  display: flex;
+  gap: var(--flood-sys-space-3);
+  min-inline-size: 0;
+}
+.flood-root .flood-carousel__slide {
+  flex: 0 0 min(var(--flood-carousel-slide-size), 100%);
+  min-inline-size: 0;
+  scroll-snap-align: start;
+  overflow-wrap: anywhere;
+}
+.flood-root .flood-carousel__slide:last-child {
+  scroll-snap-align: end;
+}
+.flood-root .flood-carousel__controls {
+  justify-content: center;
+}
+.flood-root .flood-carousel__controls .flood-icon-button:dir(rtl) > .flood-icon {
+  scale: -1 1;
+}
+.flood-root .flood-carousel__controls .flood-icon-button[aria-disabled="true"] {
+  pointer-events: none;
+  color: var(--flood-sys-color-field-disabled-content);
+}
+.flood-root .flood-carousel__position {
+  font-variant-numeric: tabular-nums;
+}

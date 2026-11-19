@@ -6,7 +6,7 @@ export const isPublicSite = typeof __FLOOD_PUBLIC_SITE__ === "boolean"
 
 const components = new Set([...selection.components, ...selection.charts]);
 const recipes = new Set(selection.recipes);
-const starterPreviews = new Set(["/playground/navigation", "/playground/settings", "/playground/table-bulk-actions"]);
+const starterPreviews = new Set(["/playground/navigation", "/playground/settings", "/playground/table-bulk-actions", "/playground/chat-starter", "/playground/auth-card", "/playground/inventory-grid"]);
 
 export function isSitePreview(path) {
   return !isPublicSite || starterPreviews.has(path);

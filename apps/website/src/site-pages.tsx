@@ -26,6 +26,9 @@ const recipePages = {
   "/playground/records": () => import("./recipes/record-management").then(module => ({ default: module.RecordManagement })),
   "/playground/settings": () => import("./recipes/settings-workspace").then(module => ({ default: module.SettingsWorkspace })),
   "/playground/table-bulk-actions": () => import("./recipes/table-bulk-actions").then(module => ({ default: module.TableBulkActions })),
+  "/playground/chat-starter": () => import("./recipes/chat-starter").then(module => ({ default: module.ChatStarter })),
+  "/playground/auth-card": () => import("./recipes/auth-card").then(module => ({ default: module.AuthCardExample })),
+  "/playground/inventory-grid": () => import("./recipes/inventory-grid").then(module => ({ default: module.InventoryGrid })),
   "/playground/charts": () => import("./charts-playground"),
 };
 const filterModes = {

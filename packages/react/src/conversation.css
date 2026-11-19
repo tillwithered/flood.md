@@ -1,0 +1,50 @@
+.flood-root .flood-avatar > .flood-avatar__artwork {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.flood-root .flood-character-avatar__drawing { inline-size: 100%; block-size: 100%; display: block; }
+.flood-root .flood-chat-message {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--flood-sys-space-2);
+  align-items: start;
+  min-inline-size: 0;
+}
+.flood-root .flood-chat-message[data-direction="outgoing"] { grid-template-columns: minmax(0, 1fr) auto; }
+.flood-root .flood-chat-message__avatar { grid-column: 1; grid-row: 1; }
+.flood-root .flood-chat-message__content { grid-column: 2; grid-row: 1; justify-self: start; }
+.flood-root .flood-chat-message[data-direction="outgoing"] > .flood-chat-message__avatar { grid-column: 2; }
+.flood-root .flood-chat-message[data-direction="outgoing"] > .flood-chat-message__content {
+  grid-column: 1;
+  justify-self: end;
+  align-items: flex-end;
+}
+.flood-root .flood-chat-message__content { inline-size: fit-content; max-inline-size: min(100%, 45rem); min-inline-size: 0; }
+.flood-root .flood-chat-message__meta { flex-wrap: wrap; row-gap: var(--flood-sys-space-1); }
+.flood-root .flood-chat-message[data-direction="outgoing"] .flood-chat-message__meta { justify-content: flex-end; }
+.flood-root .flood-chat-message__author { overflow-wrap: anywhere; min-inline-size: 0; }
+.flood-root .flood-chat-message__body {
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  padding: var(--flood-sys-space-2) var(--flood-sys-space-3);
+  background: var(--flood-sys-color-surface-supporting);
+  border: var(--flood-sys-stroke-width) solid transparent;
+  border-radius: var(--flood-sys-radius-field);
+}
+.flood-root .flood-chat-message[data-direction="incoming"] .flood-chat-message__body {
+  background: transparent;
+  border-color: var(--flood-sys-color-border-decorative);
+}
+.flood-root .flood-chat-message__text { overflow-wrap: anywhere; white-space: pre-wrap; }
+.flood-root .flood-message-scroller { position: relative; display: grid; grid-template-rows: minmax(0, 1fr); min-block-size: 0; min-inline-size: 0; }
+.flood-root .flood-message-scroller > .flood-scroll-area { min-block-size: 0; block-size: 100%; }
+.flood-root .flood-message-scroller__viewport { block-size: 100%; overscroll-behavior-y: contain; scroll-behavior: auto; }
+.flood-root .flood-message-scroller__jump { position: absolute; inset-inline: var(--flood-sys-space-2); inset-block-end: var(--flood-sys-space-3); display: flex; justify-content: center; pointer-events: none; }
+.flood-root .flood-message-scroller__jump > .flood-button { pointer-events: auto; }
+.flood-root :is(.flood-chat-message, .flood-message-scroller)[hidden] { display: none; }
+@media (forced-colors: active) {
+  .flood-root .flood-chat-message__body { border-color: CanvasText; }
+}

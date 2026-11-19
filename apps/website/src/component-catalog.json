@@ -3916,8 +3916,9 @@
       "The chart shows dates and a quiet dot grid by default. Enable showYAxis when numeric levels need to be visible at a glance.",
       "Series names appear in the inspection readout. Set showLegend when the key needs to be visible before interaction.",
       "Supply equally spaced categories in reading order and up to four named series with the same number of values. Null and nonfinite values leave gaps. Zero is an observation.",
-      "Use a shared domain containing all observations when comparing separate charts. Area shading belongs to the first series. Line styles distinguish the series independently of color. Set curve to linear for straight segments.",
-      "Explore values by hovering, tapping, or using arrow keys, Home and End. The default number format is English; supply formatValue and translated empty, missing and navigation labels for other locales."
+      "Use a shared domain containing all observations when comparing separate charts. Area shading defaults to the first series. Line styles distinguish the series independently of color. Set curve to linear for straight segments.",
+      "Explore values by hovering, tapping, or using arrow keys, Home and End. The default number format is English; supply formatValue and translated empty, missing and navigation labels for other locales.",
+      "For an area plot use areaLayout to choose first, overlay, stacked or percent. Use onInspect to connect the active category with a nearby metric."
     ]
   },
   {
@@ -5230,7 +5231,8 @@
       "Arrow keys move the active cell. Shift with arrows or a click extends selection. Home and End move within the row and a platform modifier reaches grid edges.",
       "Press Enter, F2, or type to begin a draft. Escape cancels. Enter commits while preserving focus and Tab commits and moves to the adjacent cell.",
       "Copy preserves a rectangular selection. Paste plain text or a tab-separated block. A single value fills a selected rectangle. A batch with out-of-range, read-only or invalid cells is rejected as a whole.",
-      "Rows and accepted changes are controlled by the host. Use column validate for synchronous cell validation and return a message from onChanges to reject a whole change. The host owns saving, network errors, and accepted history."
+      "Rows and accepted changes are controlled by the host. Use column validate for synchronous cell validation and return a message from onChanges to reject a whole change. The host owns saving, network errors, and accepted history.",
+      "Opt into virtualRows for large, fixed-height, single-line grids. The full dataset remains the source for keyboard navigation and clipboard ranges. Set pinFirstColumn to keep row identities in view. Opt a column into keyboard and pointer resizing with resizable."
     ],
     "imports": [
       "EditableGrid"
@@ -6714,6 +6716,217 @@
     ],
     "imports": [
       "MediaTranscript"
+    ]
+  },
+  {
+    "slug": "questionnaire",
+    "name": "Questionnaire",
+    "group": "forms",
+    "description": "Collect validated single and multiple answers in a short, navigable sequence.",
+    "exampleState": "  const [answers, setAnswers] = useState<import(\"@flood-md/react\").QuestionnaireAnswers>({});\n  const [complete, setComplete] = useState(false);\n",
+    "code": "<Questionnaire label=\"Project setup\" answers={answers} onAnswersChange={setAnswers}\n  completed={complete} onComplete={() => setComplete(true)} questions={[\n    {id: \"type\", title: \"What are you building?\", required: true,\n     options: [{id: \"portal\", label: \"Portal\"}, {id: \"dashboard\", label: \"Dashboard\"}], otherLabel: \"Other\"},\n    {id: \"feature\", title: \"What do you need first?\", selection: \"multiple\",\n     options: [{id: \"forms\", label: \"Forms\"}, {id: \"charts\", label: \"Charts\"}]},\n  ]} />",
+    "imports": [
+      "Questionnaire"
+    ],
+    "notes": [
+      "Keep answers in the host so Back, further editing and retries preserve accepted input.",
+      "Use stable question and option IDs. Supply otherLabel to allow one free-text alternative.",
+      "Wrap the questionnaire in its own surface. It owns a form and should not be nested inside another form.",
+      "The host reports pending, completion and save failures. Use Steps alone when all screens already own their controls."
+    ]
+  },
+  {
+    "slug": "event-calendar",
+    "name": "EventCalendar",
+    "group": "content",
+    "description": "Inspect scheduled events by month with a day agenda for additional events.",
+    "exampleState": "  const [month, setMonth] = useState(\"2026-10\");\n",
+    "code": "<EventCalendar label=\"Team events\" month={month} onMonthChange={setMonth} events={[{id: \"demo\", date: \"2026-10-13\", title: \"Demo\", detail: \"13:00–14:00\"}]} />",
+    "imports": [
+      "EventCalendar"
+    ],
+    "notes": [
+      "Supply Gregorian local date strings and store the visible month in the host.",
+      "Use stable event IDs within each day, and include detail when an event can be opened.",
+      "Additional events remain available in the day popover. Narrow layouts show the number of events per day and open the complete agenda. Use Calendar for selecting dates."
+    ]
+  },
+  {
+    "slug": "carousel",
+    "name": "Carousel",
+    "group": "content",
+    "description": "Browse a row of cards with native scrolling and named navigation.",
+    "code": "<Carousel label=\"Recent projects\" slideSize=\"min(12rem, 85%)\" items={[\n  {id: \"orbit\", label: \"Orbit\", content: <Surface padding=\"4\">Orbit</Surface>},\n  {id: \"atlas\", label: \"Atlas\", content: <Surface padding=\"4\">Atlas</Surface>},\n  {id: \"studio\", label: \"Studio\", content: <Surface padding=\"4\">Studio</Surface>},\n]} />",
+    "imports": [
+      "Carousel",
+      "Surface"
+    ],
+    "notes": [
+      "Provide a stable ID and a useful label for each slide. Set slideSize to let the next card show without hiding navigation. Swipe or scroll directly, use the labeled arrows, or focus the viewport and use the arrow keys, Home and End."
+    ]
+  },
+  {
+    "slug": "masked-input",
+    "name": "MaskedInput",
+    "group": "forms",
+    "description": "Enter a fixed-format value with visible separators and stable caret editing.",
+    "code": "<Field label=\"Member code\">\n  {field => <MaskedInput {...field} mask=\"AAA-9999\" name=\"memberCode\" defaultValue=\"ABX1024\" />}\n</Field>",
+    "imports": [
+      "Field",
+      "MaskedInput"
+    ],
+    "notes": [
+      "Wrap in Field and pass its input props. Use 9 for digits, A for letters and * for alphanumeric characters. The draft and submitted value contain raw characters, while the control displays literals. An incomplete nonempty value blocks native submission."
+    ]
+  },
+  {
+    "slug": "phone-input",
+    "name": "PhoneInput",
+    "group": "forms",
+    "description": "Enter a national or international phone number with a country selector.",
+    "code": "<Field label=\"Phone number\">\n  {field => <PhoneInput {...field} defaultCountry=\"US\" countries={[\"US\", \"GB\", \"KZ\"]} name=\"phone\" />}\n</Field>",
+    "imports": [
+      "Field",
+      "PhoneInput"
+    ],
+    "notes": [
+      "Wrap in Field. The country selector shows searchable country choices. Read the draft and e164 from onValueChange. A valid named input submits the E.164 number. Keep draft values in the host when the form needs to preserve editing across resets or steps."
+    ]
+  },
+  {
+    "slug": "token-input",
+    "name": "TokenInput",
+    "group": "forms",
+    "description": "Edit text with atomic mentions and commands using contextual suggestions.",
+    "code": "<TokenInput label=\"Message\" placeholder=\"Type @ for teammates\" suggestions={[\n  {id: \"mia\", label: \"Mia Chen\", trigger: \"@\"},\n  {id: \"plan\", label: \"Plan\", trigger: \"/\"},\n]} />",
+    "imports": [
+      "TokenInput"
+    ],
+    "notes": [
+      "Supply stable suggestion IDs and use resolveSuggestions for asynchronous options. Structured parts can round-trip through the TokenInput clipboard format and submit as JSON when named. Use onValueChange for host-owned drafts. Use TagInput for a separate list of values."
+    ]
+  },
+  {
+    "slug": "character-avatar",
+    "name": "CharacterAvatar",
+    "group": "content",
+    "description": "Render a stable illustrated character from an application-owned seed.",
+    "code": "<CharacterAvatar name=\"Mia Chen\" seed=\"person-mia\" />",
+    "imports": [
+      "CharacterAvatar"
+    ],
+    "notes": [
+      "Use a stable, non-sensitive identifier as the seed. Change it deliberately to pick another character. When an adjacent name identifies the person, set decorative to keep the name from being repeated."
+    ]
+  },
+  {
+    "slug": "chat-message",
+    "name": "ChatMessage",
+    "group": "content",
+    "description": "Display a chat message with its author, content and optional context.",
+    "code": "<ChatMessage author=\"Mia Chen\" direction=\"incoming\"\n  avatar={<CharacterAvatar name=\"Mia Chen\" seed=\"person-mia\" size=\"sm\" decorative />}\n  timestamp={<time dateTime=\"14:52\">14:52</time>}>The review is ready.</ChatMessage>",
+    "imports": [
+      "ChatMessage",
+      "CharacterAvatar"
+    ],
+    "notes": [
+      "Use direction for who sent the message. Keep replies, attachments, timestamps and actions in slots when they affect this message. Use MessageScroller to handle transcript position."
+    ]
+  },
+  {
+    "slug": "message-scroller",
+    "name": "MessageScroller",
+    "group": "layout",
+    "description": "Follow a conversation while keeping the reader’s position when they scroll away.",
+    "code": "<MessageScroller label=\"Conversation\" style={{blockSize: \"12rem\"}}>\n  <Stack gap=\"3\">\n    {Array.from({length: 6}, (_, index) => (\n      <ChatMessage key={index} author={index % 2 ? \"Mia\" : \"You\"}\n        direction={index % 2 ? \"incoming\" : \"outgoing\"}>\n        {index % 2 ? \"I have the latest draft.\" : \"Ready for the review?\"}\n      </ChatMessage>\n    ))}\n  </Stack>\n</MessageScroller>",
+    "imports": [
+      "MessageScroller",
+      "ChatMessage",
+      "Stack"
+    ],
+    "notes": [
+      "Give the scroller a bounded height. New content follows the latest message only while the reader is near the end. Own conversation state and timely announcements in the host."
+    ]
+  },
+  {
+    "slug": "combo-chart",
+    "name": "ComboChart",
+    "group": "charts",
+    "description": "Compare related measures as columns and lines on one category axis.",
+    "code": "<ComboChart label=\"Subscriptions and churn\" categories={[\"Jan\", \"Feb\", \"Mar\"]}\n  leftAxis={{label: \"Subscriptions\"}} rightAxis={{label: \"Churn\"}} series={[\n    {id: \"subs\", label: \"Subscriptions\", kind: \"bar\", values: [80, 94, 99]},\n    {id: \"churn\", label: \"Churn\", kind: \"line\", axis: \"right\", values: [6, 4, 5]},\n  ]} />",
+    "imports": [
+      "ComboChart"
+    ],
+    "notes": [
+      "Assign explicit axis labels when values use different units. Keep marker inspection and external summary metrics linked with onInspect."
+    ]
+  },
+  {
+    "slug": "funnel-chart",
+    "name": "FunnelChart",
+    "group": "charts",
+    "description": "Show how counts change across an ordered set of conversion stages.",
+    "code": "<FunnelChart label=\"Trial conversion\" stages={[\n  {id: \"visitors\", label: \"Visitors\", value: 1350},\n  {id: \"trials\", label: \"Trials\", value: 710},\n  {id: \"paid\", label: \"Paid\", value: 160},\n]} />",
+    "imports": [
+      "FunnelChart"
+    ],
+    "notes": [
+      "Pass stages in journey order with nonnegative values. Use the stage names and numbers to communicate the change in addition to the shape."
+    ]
+  },
+  {
+    "slug": "radar-chart",
+    "name": "RadarChart",
+    "group": "charts",
+    "description": "Compare multiple measures on a shared radial scale.",
+    "code": "<RadarChart label=\"Service health\" domain={[0, 100]} axes={[\n  {id: \"uptime\", label: \"Uptime\"}, {id: \"speed\", label: \"Speed\"},\n  {id: \"support\", label: \"Support\"}, {id: \"retention\", label: \"Retention\"},\n]} series={[{id: \"current\", label: \"This month\", values: [98, 79, 84, 75]}]} />",
+    "imports": [
+      "RadarChart"
+    ],
+    "notes": [
+      "Normalize measures to a common scale before plotting. Use a chart with a common linear baseline when exact comparisons matter more."
+    ]
+  },
+  {
+    "slug": "sankey-chart",
+    "name": "SankeyChart",
+    "group": "charts",
+    "description": "Inspect weighted flows between stages of a directed process.",
+    "code": "<SankeyChart label=\"Cash flow\" nodes={[\n  {id: \"sales\", label: \"Sales\"}, {id: \"inflow\", label: \"Inflow\"},\n  {id: \"reserves\", label: \"Reserves\"},\n]} links={[\n  {id: \"source\", source: \"sales\", target: \"inflow\", value: 90},\n  {id: \"reserve\", source: \"inflow\", target: \"reserves\", value: 90},\n]} />",
+    "imports": [
+      "SankeyChart"
+    ],
+    "notes": [
+      "Use unique IDs and acyclic links with positive finite values. Keep node and flow labels specific enough to understand without relying on color."
+    ]
+  },
+  {
+    "slug": "cascader",
+    "name": "Cascader",
+    "group": "forms",
+    "description": "Choose a complete path through a hierarchy, one level at a time.",
+    "code": "<Cascader label=\"Region\" name=\"region\" options={[\n  {id: \"eu\", label: \"Europe\", children: [\n    {id: \"de\", label: \"Germany\"},\n    {id: \"fr\", label: \"France\"},\n  ]},\n  {id: \"asia\", label: \"Asia\", children: [{id: \"kz\", label: \"Kazakhstan\"}]},\n]} />",
+    "imports": [
+      "Cascader"
+    ],
+    "notes": [
+      "A branch opens another list. A leaf commits the complete path. Keep stable IDs within each level and supply onValueChange when the host persists the path.",
+      "Use TreeSelect for selection inside one expandable tree."
+    ]
+  },
+  {
+    "slug": "dual-list-selector",
+    "name": "DualListSelector",
+    "group": "forms",
+    "description": "Search and transfer selected items between available and assigned lists.",
+    "exampleState": "  const [assigned, setAssigned] = useState([\"kai\"]);\n",
+    "code": "<DualListSelector label=\"Project members\" value={assigned} onValueChange={setAssigned}\n  options={[{value: \"mira\", label: \"Mira Chen\"}, {value: \"kai\", label: \"Kai Brooks\"}, {value: \"alex\", label: \"Alex Morgan\"}]} />",
+    "imports": [
+      "DualListSelector"
+    ],
+    "notes": [
+      "The host controls assigned IDs. Selection within a pane is temporary and independent of the committed membership.",
+      "Use explicit transfer actions and preserve disabled assignments for items the operator cannot move."
     ]
   }
 ]

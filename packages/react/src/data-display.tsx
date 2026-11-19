@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef } from "react";
+import { forwardRef, useEffect, useRef, type UIEventHandler } from "react";
 import type { DescriptionListProps, TableProps } from "./index.js";
 import { ScrollArea, TruncatedText } from "./index.js";
 import { hasFieldContent } from "./field-state.js";
@@ -26,8 +26,13 @@ export const DescribedData = /* @__PURE__ */ forwardRef<HTMLDListElement, Descri
   </dl>;
 });
 
-export const TabularData = /* @__PURE__ */ forwardRef<HTMLTableElement, TableProps>(function TabularData(
-  { caption, children, hideCaption, density, striped, scrollLabel, cellVerticalAlign, maxViewportHeight, stickyHeader, className, hidden, dir, lang, ...props }, ref,
+interface TabularDataProps extends TableProps {
+  onViewportMount?: (node: HTMLDivElement | null) => void;
+  onViewportScroll?: UIEventHandler<HTMLDivElement>;
+}
+
+export const TabularData = /* @__PURE__ */ forwardRef<HTMLTableElement, TabularDataProps>(function TabularData(
+  { caption, children, hideCaption = false, density = "comfortable", striped = false, scrollLabel, cellVerticalAlign = "middle", maxViewportHeight, stickyHeader, className, hidden, dir, lang, onViewportMount, onViewportScroll, ...props }, ref,
 ) {
   const viewport = useRef<HTMLDivElement>(null);
   const scrollVertically = maxViewportHeight !== undefined;
@@ -47,10 +52,11 @@ export const TabularData = /* @__PURE__ */ forwardRef<HTMLTableElement, TablePro
   }, [pinHeader, children]);
 
   return <div className="flood-table-container" hidden={hidden} dir={dir} lang={lang}>
-    <ScrollArea ref={viewport} orientation={scrollVertically ? "both" : "horizontal"}
+    <ScrollArea ref={node=>{viewport.current=node; onViewportMount?.(node);}} orientation={scrollVertically ? "both" : "horizontal"}
       contentInset={scrollVertically ? "scrollbar" : undefined}
       tabIndex={props.role === "grid" ? -1 : scrollVertically ? 0 : undefined}
       style={scrollVertically ? { maxBlockSize: maxViewportHeight } : undefined}
+      onScroll={onViewportScroll}
       aria-label={scrollLabel ?? caption}
       onFocus={pinHeader ? event => {
         const target = event.target;

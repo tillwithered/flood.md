@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { readComponentContract, readRecipeSlugs } from "../scripts/component-contract.mjs";
+import { loadComponentContractInputs, readComponentContract, readRecipeSlugs } from "../scripts/component-contract.mjs";
 
-const source = await readFile("packages/react/src/index.tsx", "utf8");
+const { source, modules } = await loadComponentContractInputs("packages/react/src/index.tsx");
 const catalog = JSON.parse(await readFile("apps/website/src/component-catalog.json", "utf8"));
 test("recipe coverage detects added, duplicate and unsupported preview cases", () => {
   const recipe = 'function recipeFor(slug) { switch(slug) { case "button": return 1; case "input": case "textarea": return 2; default: return null; } }';
@@ -16,7 +16,7 @@ const byName = (contract, name) => contract.find((entry) => entry.name === name)
 const prop = (contract, name, key) => byName(contract, name).props.find((entry) => entry.name === key);
 
 test("real component contracts resolve aliases, native inheritance and explicit defaults", () => {
-  const contract = readComponentContract(source);
+  const contract = readComponentContract(source, modules);
   assert.deepEqual(contract.map(entry => entry.name).sort(), catalog.map(entry => entry.name).sort());
   assert.match(prop(contract, "Button", "size").type, /"2xs".*"2xl"/);
   assert.equal(prop(contract, "Button", "loading").defaultValue, "false");
@@ -46,8 +46,8 @@ export const Notice = forwardRef<HTMLDivElement, NoticeProps>(function Notice(
   {message, tone = "info", ...props}, ref
 ) { return <div {...props} ref={ref}>{message}</div>; });
 `;
-  const contract = readComponentContract(expanded);
-  assert.equal(contract.length, readComponentContract(source).length + 1);
+  const contract = readComponentContract(expanded, modules);
+  assert.equal(contract.length, readComponentContract(source, modules).length + 1);
   assert.equal(prop(contract, "Button", "emphasis").required, false);
   assert.equal(prop(contract, "IconButton", "emphasis").required, false);
   assert.equal(prop(contract, "Notice", "tone").defaultValue, '"info"');
@@ -85,7 +85,7 @@ test("unsupported source contracts fail rather than silently documenting incompl
 test("literal options and defaults track additive API changes without evaluating expressions", () => {
   const changed = source.replace('"2xl";', '"2xl" | "3xl";')
     .replace(/(export const Button =[^]*?size = )"md"/, '$1"lg"');
-  const contract = readComponentContract(changed);
+  const contract = readComponentContract(changed, modules);
   assert.deepEqual(prop(contract, "Button", "size").options, ["2xs", "xs", "sm", "md", "lg", "xl", "2xl", "3xl"]);
   assert.equal(prop(contract, "Button", "size").defaultLiteral, "lg");
   assert.equal(prop(contract, "Button", "size").defaultValue, '"lg"');

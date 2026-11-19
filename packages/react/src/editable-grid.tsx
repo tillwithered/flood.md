@@ -1,5 +1,7 @@
-import {forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent} from "react";
-import {Input, Table, Text, type EditableGridChange, type EditableGridProps} from "./index.js";
+import {Fragment, forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode} from "react";
+import {Input, Text, type EditableGridChange, type EditableGridProps} from "./index.js";
+import {TabularData} from "./data-display.js";
+import {useDataTableColumnLayout} from "./data-table-columns.js";
 import {positionLayer} from "./overlay-runtime.js";
 
 type Address = {rowId:string; columnId:string};
@@ -38,9 +40,11 @@ function readTsv(text: string): string[][] | undefined {
 const clamp = (index: number, length: number) => Math.max(0,Math.min(length-1,index));
 
 export const SheetGrid = /* @__PURE__ */ forwardRef<HTMLTableElement, EditableGridProps>(function SheetGrid({
-  caption, columns, rows, readOnly = false, onChanges, labels, className, onFocus, onBlur, "aria-describedby": describedBy, ...props
+  caption, columns, rows, readOnly = false, onChanges, labels, virtualRows, pinFirstColumn, columnWidths, defaultColumnWidths, onColumnWidthsChange, className, onFocus, onBlur, "aria-describedby": describedBy, ...props
 }, ref) {
-  const grid = useRef<HTMLTableElement>(null);
+  const columnLayout = useDataTableColumnLayout(columns, columns, {columnWidths, defaultColumnWidths, onColumnWidthsChange});
+  const grid = columnLayout.table;
+  const viewport = useRef<HTMLDivElement>(null);
   const cellNodes = useRef(new Map<string,HTMLTableCellElement>());
   const editor = useRef<HTMLInputElement>(null);
   const errorLayer = useRef<HTMLDivElement>(null);
@@ -51,11 +55,12 @@ export const SheetGrid = /* @__PURE__ */ forwardRef<HTMLTableElement, EditableGr
   const [selection, setSelection] = useState<Selection>();
   const [pending, setPending] = useState<Draft>();
   const [error, setError] = useState<string>();
+  const [scrollTop, setScrollTop] = useState(0);
   const errorId = useId();
   useImperativeHandle(ref,()=>grid.current!,[]);
 
-  const rowIndices = new Map(rows.map((row,index)=>[row.id,index]));
-  const columnIndices = new Map(columns.map((column,index)=>[column.id,index]));
+  const rowIndices = useMemo(() => new Map(rows.map((row,index)=>[row.id,index])), [rows]);
+  const columnIndices = useMemo(() => new Map(columns.map((column,index)=>[column.id,index])), [columns]);
   if (!caption.trim() || !columns.length || columns.some(column=>!column.id.trim() || !column.label.trim())
     || rows.some(row=>!row.id.trim()) || rowIndices.size!==rows.length || columnIndices.size!==columns.length) {
     throw new Error("Flood EditableGrid requires a caption, unique nonempty row/column IDs, and named columns");
@@ -83,15 +88,52 @@ export const SheetGrid = /* @__PURE__ */ forwardRef<HTMLTableElement, EditableGr
   const values = ({row,column}: Point) => rows[row].values[columns[column].id] ?? "";
   const fromPoint = ({row,column}: Point) => ({rowId:rows[row].id,columnId:columns[column].id});
   const label = (row: number) => rows[row].label ?? rows[row].id;
+  const rowHeight = virtualRows?.rowHeight ?? 44;
+  const overscan = virtualRows?.overscan ?? 5;
+  if (virtualRows && (!Number.isFinite(virtualRows.height) || virtualRows.height < 1 || !Number.isFinite(rowHeight) || rowHeight < 24 || !Number.isInteger(overscan) || overscan < 0)) {
+    throw new Error("Flood EditableGrid requires a positive viewport height, row height of at least 24px, and nonnegative integer overscan");
+  }
+  const bodyStart = grid.current?.tBodies[0]?.offsetTop ?? rowHeight;
+  const firstRendered = virtualRows ? Math.max(0, Math.min(rows.length - 1, Math.floor((scrollTop - bodyStart) / rowHeight) - overscan)) : 0;
+  const endRendered = virtualRows ? Math.min(rows.length, firstRendered + Math.ceil(virtualRows.height / rowHeight) + 2 * overscan + 2) : rows.length;
+  const visibleRows = Array.from({length:endRendered-firstRendered}, (_, offset)=>firstRendered+offset);
+  // Keep the current editing and tab stop mounted when the user scrolls away.
+  if (virtualRows && last && (last.row < firstRendered || last.row >= endRendered)) {
+    if (last.row < firstRendered) visibleRows.unshift(last.row);
+    else visibleRows.push(last.row);
+  }
+
+  function spacers(from: number, to: number): ReactNode {
+    if (to <= from) return null;
+    return <tr aria-hidden="true" className="flood-editable-grid__spacer">
+      <td colSpan={columns.length} style={{height:(to-from)*rowHeight}} />
+    </tr>;
+  }
 
   useBrowserLayoutEffect(()=>{
     if (pending && !draft) setPending(undefined);
     if (!active || draft) return;
     if (shouldFocus.current || (hasFocus.current && !point(selection?.active))) {
       shouldFocus.current=false;
-      cellNodes.current.get(key(active))?.focus();
+      const cell = cellNodes.current.get(key(active));
+      if (virtualRows && cell && viewport.current) {
+        const scrolling = viewport.current;
+        const bounds = scrolling.getBoundingClientRect();
+        const cellBounds = cell.getBoundingClientRect();
+        const header = grid.current?.rows[0];
+        const visibleTop = props.stickyHeader ? Math.max(bounds.top, header?.getBoundingClientRect().bottom ?? bounds.top) : bounds.top;
+        if (cellBounds.top < visibleTop) scrolling.scrollTop += cellBounds.top - visibleTop;
+        else if (cellBounds.bottom > bounds.bottom) scrolling.scrollTop += cellBounds.bottom - bounds.bottom;
+        const pinned = pinFirstColumn && last?.column !== 0 ? header?.cells[0]?.getBoundingClientRect() : undefined;
+        const rtl = getComputedStyle(scrolling).direction === "rtl";
+        const visibleLeft = !rtl && pinned ? pinned.right : bounds.left;
+        const visibleRight = rtl && pinned ? pinned.left : bounds.right;
+        if (cellBounds.left < visibleLeft) scrolling.scrollLeft += cellBounds.left - visibleLeft;
+        else if (cellBounds.right > visibleRight) scrolling.scrollLeft += cellBounds.right - visibleRight;
+        cell.focus({preventScroll:true});
+      } else cell?.focus();
     }
-  },[active?.rowId,active?.columnId,draftKey,selection?.active,pending]);
+  },[active?.rowId,active?.columnId,draftKey,selection?.active,pending,virtualRows,pinFirstColumn]);
 
   useBrowserLayoutEffect(()=>{
     if (!draftKey || !editor.current) return;
@@ -223,10 +265,18 @@ export const SheetGrid = /* @__PURE__ */ forwardRef<HTMLTableElement, EditableGr
   };
 
   return <>
-    <Table {...props} ref={grid} caption={caption} role="grid" aria-label={props["aria-label"] ?? caption}
+    <TabularData {...props} ref={grid} caption={caption} role="grid" aria-label={props["aria-label"] ?? caption}
+      maxViewportHeight={virtualRows ? `${virtualRows.height}px` : props.maxViewportHeight}
+      onViewportMount={node=>{viewport.current=node;}}
+      onViewportScroll={virtualRows ? event=>setScrollTop(event.currentTarget.scrollTop) : undefined}
       aria-describedby={[describedBy,problem && errorId].filter(Boolean).join(" ") || undefined}
       aria-multiselectable="true" aria-readonly={locked || undefined}
-      style={{...props.style,minInlineSize:props.style?.minInlineSize ?? `${columns.length*6.5}rem`}}
+      aria-rowcount={virtualRows && rows.length ? rows.length+1 : undefined}
+      data-virtual={virtualRows ? "" : undefined} data-pin-first={pinFirstColumn ? "" : undefined}
+      data-fixed-columns={columnLayout.fixedWidth !== undefined || undefined}
+      style={{...props.style,inlineSize:columnLayout.fixedWidth ?? props.style?.inlineSize,
+        minInlineSize:props.style?.minInlineSize ?? `max(${columns.length*6.5}rem, ${columns.reduce((total,column)=>total+Math.max(0,column.width ?? 0),0)}px)`,
+        ...(virtualRows ? {"--flood-editable-grid-fixed-row":`${rowHeight}px`} : {})} as CSSProperties}
       className={["flood-editable-grid",className].filter(Boolean).join(" ")}
       onFocus={event=>{hasFocus.current=true; onFocus?.(event);}}
       onBlur={event=>{
@@ -251,12 +301,19 @@ export const SheetGrid = /* @__PURE__ */ forwardRef<HTMLTableElement, EditableGr
         event.clipboardData.setData("text/plain",lines.join("\n"));
         event.preventDefault();
       }}>
-      <thead><tr role="row">
-        {columns.map(column=><th key={column.id} scope="col" role="columnheader" data-align={column.align}>{column.label}</th>)}
+      <thead><tr role="row" aria-rowindex={virtualRows ? 1 : undefined}>
+        {columns.map(column=><th {...columnLayout.columnCell(column,true)} key={column.id} scope="col" role="columnheader"
+          data-align={column.align} data-resize-edge={column.resizable ? "end" : undefined}>
+          {column.label}{columnLayout.renderHandle(column, `Resize ${column.label} column`, false)}
+        </th>)}
       </tr></thead>
       <tbody>
         {rows.length===0 && <tr role="row"><td role="gridcell" colSpan={columns.length}>{labels?.empty ?? "No rows"}</td></tr>}
-        {rows.map((row,rowIndex)=><tr key={row.id} role="row">
+        {visibleRows.map((rowIndex,position)=>{
+          const row=rows[rowIndex];
+          return <Fragment key={row.id}>
+          {virtualRows && spacers(position===0 ? 0 : visibleRows[position-1]+1, rowIndex)}
+          <tr role="row" aria-rowindex={virtualRows ? rowIndex+2 : undefined}>
           {columns.map((column,columnIndex)=>{
             const address = {rowId:row.id,columnId:column.id};
             const addressKey = key(address);
@@ -314,9 +371,11 @@ export const SheetGrid = /* @__PURE__ */ forwardRef<HTMLTableElement, EditableGr
               </div>
             </td>;
           })}
-        </tr>)}
+          </tr></Fragment>;
+        })}
+        {virtualRows && rows.length > 0 && spacers((visibleRows.at(-1) ?? -1)+1, rows.length)}
       </tbody>
-    </Table>
+    </TabularData>
     {problem && !props.hidden && <div ref={errorLayer} popover="manual" className="flood-overlay-panel flood-editable-grid__error">
       <Text as="div" id={errorId} role="status" size="helper" tone="error">{problem}</Text>
     </div>}

@@ -4,12 +4,13 @@ import { docPages, componentSlugs, pageMetadata, pagePaths } from "../apps/websi
 import { componentMarkdown, catalogMarkdown } from "../apps/website/component-docs.mjs";
 import { allDocPages, siteOrigin } from "../apps/website/site-guides.mjs";
 import { isPublicSite } from "../apps/website/site-scope.mjs";
-import { readComponentContract, readRecipeSlugs } from "./component-contract.mjs";
+import { loadComponentContractInputs, readComponentContract, readRecipeSlugs } from "./component-contract.mjs";
 import { readAgentWorkflows } from './agent-workflows.mjs';
 import { readWebsiteDocument } from './website-documents.mjs';
 
 const catalog = JSON.parse(await readFile("apps/website/src/component-catalog.json", "utf8"));
-const contract = readComponentContract(await readFile("packages/react/src/index.tsx", "utf8"));
+const componentInputs = await loadComponentContractInputs("packages/react/src/index.tsx");
+const contract = readComponentContract(componentInputs.source, componentInputs.modules);
 const recipes = readRecipeSlugs(await readFile("apps/website/src/component-workbench.tsx", "utf8"));
 const release = JSON.parse(await readFile("apps/website/src/release.json", "utf8"));
 const highlights = JSON.parse(await readFile("apps/website/src/release-highlights.json", "utf8"));

@@ -1,0 +1,14 @@
+.flood-root .flood-phone-input:not([hidden]) {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: start;
+  gap: var(--flood-sys-space-2);
+  min-inline-size: 0;
+}
+.flood-root :is(.flood-phone-input__country, .flood-phone-input__number) {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+.flood-root .flood-phone-input .flood-combobox__menu {
+  min-inline-size: min(14rem, var(--flood-overlay-available-width, 100vw));
+}

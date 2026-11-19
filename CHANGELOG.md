@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.16 — Product fundamentals and conversation
+
+- Add Carousel, MaskedInput, PhoneInput, TokenInput, Questionnaire, EventCalendar,
+  Cascader and DualListSelector.
+- Add CharacterAvatar with deterministic artwork, ChatMessage and MessageScroller.
+  The Chat Starter example includes streamed replies, cancellation and local history.
+  The Auth Card recipe covers sign-in, registration and code verification.
+- Add ComboChart, FunnelChart, RadarChart and SankeyChart. LineChart supports
+  multiple filled series, signed stacks and percent layouts. LineChart, BarChart
+  and Heatmap can report the active value for an adjacent metric.
+- Add grouped, size-encoded observations to ScatterChart.
+- Add opt-in fixed-height virtualization, column resizing and first-column pinning
+  to EditableGrid. The Inventory Grid recipe adds filtering, sorting and totals.
+- Expose common existing controls, chart metrics, file handling and conversation
+  pieces through the public component catalog and MCP.
+
 ## 0.2.15 — Extended controls and resilient workspaces
 
 - Add `NavigationMenu` for site links and disclosure groups, `CodeBlock` for
