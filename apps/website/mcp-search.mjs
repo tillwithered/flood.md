@@ -29,6 +29,14 @@ const synonyms = new Map([
   ["distribution", "распределение распределения распределению распределением"],
   ["service", "services сервис сервиса сервисам сервисов сервисами"],
   ["dashboard", "analytics аналитика дашборд дашборда дешборд панель"],
+  ["app", "application приложение приложения приложений"],
+  ["shell", "каркас оболочка оболочку"],
+  ["sortable", "sorting sort sorted сортировка сортировки сортировкой сортировать"],
+  ["search", "searchable поиск поиска поиском искать"],
+  ["single", "one один одного одиночный"],
+  ["multi", "multiple several несколько нескольких множественный"],
+  ["option", "options вариант варианта вариантов варианты"],
+  ["native", "нативный нативного системный системного"],
 ].flatMap(([canonical, alternatives]) => alternatives.split(" ").map(word => [word, canonical])));
 
 // Short product-specific queries can refer to several materials at once.
@@ -36,12 +44,17 @@ const synonyms = new Map([
 const hints = new Map([
   ["recipe:table-bulk-actions", "requests table search filters bulk actions selected rows archive approve"],
   ["recipe:collection-views", "table saved views filters search collection"],
-  ["component:data-table", "table filters bulk actions rows records grid"],
+  ["component:data-table", "table sortable filters bulk actions rows records grid"],
   ["component:collection-toolbar", "table filters search bulk actions toolbar"],
   ["component:bulk-action-bar", "table filters bulk actions selected rows"],
   ["recipe:navigation-workspace", "sidebar navigation collapsible groups rail workspace"],
+  ["component:app-shell", "app shell sidebar header workspace каркас"],
   ["component:sidebar", "sidebar navigation collapsible groups rail"],
   ["component:navigation-group", "sidebar navigation collapsible groups"],
+  ["component:select", "native system picker single option fixed choice"],
+  ["component:combobox", "searchable single select option fixed choice"],
+  ["component:multi-select", "searchable multiple select option fixed choice"],
+  ["component:autocomplete", "searchable select accepts free text arbitrary suggestions"],
   ["component:line-chart", "line chart comparison trends analytics"],
   ["guide:charts", "requests latency dashboard comparison distribution service filters"],
   ["component:histogram", "requests latency dashboard distribution service"],
@@ -76,6 +89,9 @@ function rank(index, query) {
   const title = normalizedLabel(query.search);
   const queryTerms = terms(query.search);
   if (!queryTerms.size) return [];
+  // A generic searchable select starts with one value. Explicit qualifiers
+  // such as multiple, tree or free text keep their own meaning.
+  if (queryTerms.size === 2 && queryTerms.has("search") && queryTerms.has("selection")) queryTerms.add("single");
   const materialId = /^(guide|workflow|reference|component|recipe|token):[a-z0-9][a-z0-9.-]*$/.test(query.search);
   const minimumMatches = Math.ceil(queryTerms.size / 2);
   const ranked = [];

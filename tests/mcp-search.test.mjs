@@ -58,6 +58,24 @@ test("public MCP search finds recipes and components from tasks in English and R
   assert.equal(await firstId("Дашборд задержек запросов: сравнение, распределение, фильтр по сервисам"), "guide:charts");
   assert.equal((await search({ search: "component:missing-thing" })).structuredContent.total, 0);
 
+  const componentTasks = [
+    ["searchable select", "combobox"],
+    ["выбрать один вариант с поиском", "combobox"],
+    ["searchable multi select", "multi-select"],
+    ["выбрать несколько вариантов с поиском", "multi-select"],
+    ["searchable select that accepts free text", "autocomplete"],
+    ["нативный выбор", "select"],
+    ["sortable table", "data-table"],
+    ["таблица с сортировкой", "data-table"],
+    ["application shell sidebar", "app-shell"],
+    ["каркас приложения с сайдбаром", "app-shell"],
+    ["code block copy command", "code-block"],
+  ];
+  for (const [phrase, slug] of componentTasks) {
+    const { items } = (await search({ search: phrase, kind: "component", limit: 4 })).structuredContent;
+    assert.equal(items[0]?.id, `component:${slug}`, phrase);
+  }
+
   const browse = (await search({ limit: 4 })).structuredContent;
   const reader = createKnowledgeReader({ root });
   const local = await reader.list({ limit: 4 });
