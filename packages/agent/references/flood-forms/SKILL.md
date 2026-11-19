@@ -433,6 +433,10 @@ workflow for placement and wording.
 
 ## Search values and remote collections
 
+Use Select for a short fixed list. For a fixed list that people search, start
+with Combobox for one selection or MultiSelect for several. Autocomplete suits
+fields that accept text outside the suggestions, such as a title.
+
 Selected chips supply a MultiSelect's visible context. Its empty query should
 not reserve a redundant placeholder row; account for actual action/caret space
 and let real search or overflowing chip content grow. Do not hide the combobox

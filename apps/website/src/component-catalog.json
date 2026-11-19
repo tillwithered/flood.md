@@ -3813,7 +3813,7 @@
     ],
     "notes": [
       "Native code semantics, bundled monospace stack and a quiet inline surface. Content is text; no HTML parsing or syntax highlighting is performed.",
-      "wrap defaults to true for long identifiers. wrap=false preserves the fragment on one line and the host must manage overflow. Use CodeSnippet for blocks of code and Kbd for keyboard input.",
+      "wrap defaults to true for long identifiers. wrap=false preserves the fragment on one line and the host must manage overflow. Use CodeSnippet for short commands, CodeBlock for multiline source and Kbd for keyboard input.",
       "Compatible addition in 0.2.5. Uses existing Flood semantic tokens and relative geometry."
     ]
   },

@@ -24,9 +24,10 @@ HTML tables and page grids remain website
 content rather than pretending to be library components. Document scrollbars use
 the same foundation tokens through the explicit dark scope on the HTML root;
 page scrolling remains native with forced-color fallback and a stable gutter.
-It has a focused home page, documentation guides, a catalog and a detail page
-for every documented export. Page inventory and counts follow the source catalog;
-installation availability follows the verified publication gate in src/release.json.
+The development build covers every documented export. Railway builds the public
+profile from `src/public-catalog.json`, including its curated component pages,
+charts, starter recipes and MCP inventory. Installation availability follows the
+verified publication gate in `src/release.json`.
 
 ## Content
 

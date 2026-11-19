@@ -98,17 +98,16 @@ export async function compileAgentKnowledge({version, definition, manifest, work
   return {catalog, bodies};
 }
 
-export async function buildAgentKnowledge() {
+export async function buildAgentKnowledge({ componentContracts, agentDocuments }) {
   const json = async path => JSON.parse(await readFile(path, 'utf8'));
-  const [pkg, definition, manifest, workflows, generated, tokenManifest] = await Promise.all([
+  const [pkg, definition, manifest, workflows, tokenManifest] = await Promise.all([
     json('packages/agent/package.json'), json('packages/agent/knowledge.json'), json('packages/agent/manifest.json'),
-    readAgentWorkflows(), json('apps/website/src/generated/content.json'), json('packages/tokens/dist/foundations.manifest.json'),
+    readAgentWorkflows(), json('packages/tokens/dist/foundations.manifest.json'),
   ]);
-  const {docPages} = await import('../apps/website/routes.mjs');
-  const components = await Promise.all(generated.components.map(async item => ({...item, markdown: await readFile(`apps/website/public/components/${item.slug}.md`, 'utf8')})));
-  const documents = docPages.filter(page => !page.websiteOnly).map(page => ({...page, content: generated.docs[page.file]}));
+  const {componentMarkdown} = await import('../apps/website/component-docs.mjs');
+  const components = componentContracts.map(item => ({ ...item, markdown: componentMarkdown(item) }));
   const sources = Object.fromEntries(await Promise.all(manifest.files.filter(item => ['skill','reference','contract','rules'].includes(item.kind)).map(async item => [item.source, await readFile('packages/agent/' + item.source, 'utf8')])));
-  const {catalog, bodies} = await compileAgentKnowledge({version: pkg.version, definition, manifest, workflows, components, documents, tokens: tokenManifest, sources});
+  const {catalog, bodies} = await compileAgentKnowledge({version: pkg.version, definition, manifest, workflows, components, documents: agentDocuments, tokens: tokenManifest, sources});
   const target = resolve('packages/agent/dist/materials'), workspace = resolve('.');
   if (!relative(workspace, target).startsWith('packages' + sep + 'agent' + sep + 'dist' + sep)) throw Error('Refusing an unexpected generated material destination.');
   await rm(target, {recursive: true, force: true});

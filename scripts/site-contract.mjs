@@ -4,6 +4,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { verifyPublicCatalog } from './verify-public-catalog.mjs';
 
 const workspace = fileURLToPath(new URL('../', import.meta.url));
 const website = join(workspace, 'apps/website');
@@ -18,7 +19,8 @@ export async function writeSiteMetadata() {
   const status = spawnSync('git', ['status', '--porcelain'], { cwd: workspace, encoding: 'utf8' });
   const release = await json(join(website, 'src/release.json'));
   const pluginSha256 = sha256(await readFile(join(website, 'dist/flood-plugin.zip')));
-  const metadata = { schemaVersion: 1, version: release.version, sourceCommit: hashPattern.test(sha ?? '') ? sha : null, sourceDirty: status.status === 0 ? Boolean(status.stdout.trim()) : false, pluginSha256 };
+  const profile = process.env.FLOOD_WEBSITE_PROFILE === 'public' ? 'public' : 'full';
+  const metadata = { schemaVersion: 1, profile, version: release.version, sourceCommit: hashPattern.test(sha ?? '') ? sha : null, sourceDirty: status.status === 0 ? Boolean(status.stdout.trim()) : false, pluginSha256 };
   await writeFile(join(website, 'dist/site-release.json'), JSON.stringify(metadata, null, 2) + '\n');
   return metadata;
 }
@@ -40,8 +42,8 @@ export async function prepareSiteBundle(parent = join(workspace, '.artifacts')) 
   try {
     const target = join(directory, 'apps/website');
     await mkdir(join(target, 'src'), { recursive: true });
-    for (const file of ['server.mjs', 'routes.mjs', 'site-guides.mjs', 'visitors.mjs']) await cp(join(website, file), join(target, file));
-    for (const file of ['component-catalog.json', 'component-groups.json']) await cp(join(website, 'src', file), join(target, 'src', file));
+    for (const file of ['server.mjs', 'routes.mjs', 'site-guides.mjs', 'site-scope.mjs', 'visitors.mjs']) await cp(join(website, file), join(target, file));
+    for (const file of ['component-catalog.json', 'component-groups.json', 'public-catalog.json']) await cp(join(website, 'src', file), join(target, 'src', file));
     await cp(join(website, 'dist'), join(target, 'dist'), { recursive: true });
     await cp(join(website, 'dist-server'), join(target, 'dist-server'), { recursive: true });
     await writeFile(join(directory, 'Dockerfile'), 'FROM node:24-alpine\nENV NODE_ENV=production\nWORKDIR /app\nCOPY --chown=node:node apps/website ./apps/website\nUSER node\nEXPOSE 4173\nCMD ["node", "apps/website/server.mjs"]\n');
@@ -117,6 +119,7 @@ export async function verifySite(base, { expectedCommit, expectedVersion, expect
   const rejected = await fetch(new URL('/', origin), { method: 'POST', redirect: 'error' });
   if (rejected.status !== 405) throw new Error('Static runtime accepted an unsupported method');
   await verifyIntegrations(origin, metadata);
+  if (metadata.profile === 'public') await verifyPublicCatalog(origin);
   return metadata;
 }
 

@@ -60,11 +60,13 @@ and bulk actions. It should link to the [table bulk actions recipe](https://floo
 
 | Tool | Use |
 | --- | --- |
-| `flood_info` | See the published catalog version and available groups. |
+| `flood_info` | See the catalog version, profile and available groups. |
 | `search_flood` | Discover matching components, recipes, guides, skills and tokens. |
 | `read_flood` | Read the source material for one result. |
 
-For existing projects, use the installed package and CLI to check available
+The hosted catalog covers Flood's core components, charts and starter recipes.
+Search a task first, then read the selected component or recipe by ID for its
+API and example. For existing projects, use the installed package and CLI to check available
 APIs and read project-owned guidance. The MCP serves public website materials.
 
 ## Install the catalog skill

@@ -1,8 +1,11 @@
 import { readFile, writeFile, mkdir, copyFile, cp, rm } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import { dirname, resolve, relative } from "node:path";
+import { createHash } from "node:crypto";
 import { compileTokens } from "./token-compiler.mjs";
 import { buildAgentKnowledge } from './agent-knowledge.mjs';
+import { isPublicMaterial, isPublicSite } from '../apps/website/site-scope.mjs';
+import { validateKnowledgeCatalog } from '../packages/agent/lib/index.mjs';
 
 const tokens = JSON.parse(
   await readFile("packages/tokens/src/tokens.json", "utf8"),
@@ -49,8 +52,8 @@ await writeFile("packages/react/dist/foundations.css", componentStyles.join("\n"
 await cp("packages/react/src/fonts", "packages/react/dist/fonts", { recursive: true });
 for (const name of ["tokens", "react", "agent", "cli"])
   await copyFile("LICENSE", `packages/${name}/LICENSE`);
-await import("./build-website-content.mjs");
-await buildAgentKnowledge();
+const websiteContent = await import("./build-website-content.mjs");
+const knowledge = await buildAgentKnowledge(websiteContent);
 await mkdir("apps/website/public/schema", { recursive: true });
 const publicAgent = resolve('apps/website/public/agent');
 if (relative(resolve('.'), publicAgent).replaceAll('\\','/') !== 'apps/website/public/agent') throw Error('Unexpected generated agent destination.');
@@ -63,7 +66,28 @@ for (const { source } of agentManifest.files) {
   await mkdir(dirname(destination), { recursive: true });
   await copyFile(`packages/agent/${source}`, destination);
 }
-await cp('packages/agent/dist', 'apps/website/public/agent/dist', {recursive:true});
+if (isPublicSite) {
+  const scopedMaterials = knowledge.materials.filter(item => isPublicMaterial(item.id));
+  const materials = await Promise.all(scopedMaterials.map(async item => {
+    const projected = { ...item, links: item.links.filter(isPublicMaterial) };
+    if (!item.file.startsWith('dist/materials/')) return projected;
+    const [kind, slug] = item.id.split(':');
+    const urlPath = { component: `/components/${slug}`, recipe: `/docs/recipes/${slug}`, guide: `/docs/${slug}` }[kind];
+    const original = await readFile(`packages/agent/${item.file}`);
+    const body = urlPath ? Buffer.from(websiteContent.siteMarkdown(original.toString('utf8'), urlPath)) : original;
+    const destination = `apps/website/public/agent/${item.file}`;
+    await mkdir(dirname(destination), { recursive: true });
+    await writeFile(destination, body);
+    return { ...projected, bytes: body.length, sha256: createHash('sha256').update(body).digest('hex') };
+  }));
+  const capabilities = knowledge.capabilities.map(item => ({ ...item, materials: item.materials.filter(isPublicMaterial) }))
+    .filter(item => item.status !== 'available' || item.materials.length > 0);
+  const catalog = { ...knowledge, materials, capabilities };
+  validateKnowledgeCatalog(catalog);
+  await writeFile('apps/website/public/agent/dist/catalog.json', JSON.stringify(catalog, null, 2) + '\n');
+} else {
+  await cp('packages/agent/dist', 'apps/website/public/agent/dist', {recursive:true});
+}
 await copyFile('packages/agent/package.json', 'apps/website/public/agent/package.json');
 const release = JSON.parse(
   await readFile("apps/website/src/release.json", "utf8"),

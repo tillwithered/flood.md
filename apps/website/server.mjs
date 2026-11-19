@@ -2,11 +2,13 @@ import { createServer } from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import { resolve, extname, join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { pagePaths, siteOrigin } from "./routes.mjs";
 import { visitorRequest } from './visitors.mjs';
 import { createFloodMcpHandler } from "./dist-server/mcp.mjs";
 
 const root = fileURLToPath(new URL("./dist", import.meta.url));
+const { profile } = JSON.parse(await readFile(join(root, "site-release.json"), "utf8"));
+process.env.FLOOD_WEBSITE_PROFILE = profile === "public" ? "public" : "full";
+const { pagePaths, siteOrigin } = await import("./routes.mjs");
 const floodMcp = createFloodMcpHandler({ root: join(root, "agent"), siteOrigin });
 const openAiChallenge = process.env.OPENAI_APPS_CHALLENGE;
 const documentPolicy = [

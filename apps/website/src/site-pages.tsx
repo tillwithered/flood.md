@@ -25,6 +25,7 @@ const recipePages = {
   "/playground/code-review": () => import("./recipes/code-review").then(module => ({ default: module.CodeReview })),
   "/playground/records": () => import("./recipes/record-management").then(module => ({ default: module.RecordManagement })),
   "/playground/settings": () => import("./recipes/settings-workspace").then(module => ({ default: module.SettingsWorkspace })),
+  "/playground/table-bulk-actions": () => import("./recipes/table-bulk-actions").then(module => ({ default: module.TableBulkActions })),
   "/playground/charts": () => import("./charts-playground"),
 };
 const filterModes = {
