@@ -7,6 +7,9 @@ Use PageHeader for the page's main heading and page-wide actions. Use Section
 for a named block within the page. Keep breadcrumbs outside the header and
 collection filters next to the collection. Add supporting copy only when it
 changes what the user can understand or do on this page.
+Keep a status or count that qualifies the title in PageHeader metadata when
+available. Put commands in actions. In a long header, compare the commands
+with the first title line, then check the order when the actions move below.
 
 # Structure before emphasis
 

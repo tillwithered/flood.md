@@ -63,7 +63,9 @@ async function tokenize(code: string, language: SupportedLanguage) {
   return highlighter.codeToTokens(code, { lang: language, theme }).tokens;
 }
 
-function tokenStyle(token: ThemedToken): CSSProperties {
+type DisplayToken = Pick<ThemedToken, "content" | "color" | "fontStyle">;
+
+function tokenStyle(token: DisplayToken): CSSProperties {
   const font = Math.max(0, token.fontStyle ?? 0);
   const decoration = [font & 4 ? "underline" : "", font & 8 ? "line-through" : ""].filter(Boolean).join(" ");
   return {
@@ -72,6 +74,22 @@ function tokenStyle(token: ThemedToken): CSSProperties {
     fontWeight: font & 2 ? 700 : undefined,
     textDecoration: decoration || undefined,
   };
+}
+
+function shellWords(line: readonly DisplayToken[]) {
+  const parts: { blank: boolean; tokens: DisplayToken[] }[] = [];
+  for (const token of line) {
+    for (const content of token.content.split(/([ \t]+)/).filter(Boolean)) {
+      const blank = !content.trim();
+      const previous = parts.at(-1);
+      if (previous && previous.blank === blank) previous.tokens.push({ ...token, content });
+      else parts.push({ blank, tokens: [{ ...token, content }] });
+    }
+  }
+  return parts.map(({ blank, tokens }, index) => blank
+    ? tokens.map(token => token.content).join("")
+    : <span key={index} className="site-code-block__shell-word">{tokens.map((token, tokenIndex) =>
+      <span key={tokenIndex} className="site-code-block__token" style={tokenStyle(token)}>{token.content}</span>)}</span>);
 }
 
 export interface CopyButtonProps {
@@ -102,9 +120,10 @@ export interface CodeBlockProps {
   label?: string;
   maxHeight?: string;
   compact?: boolean;
+  copyLabel?: string;
 }
 
-export function CodeBlock({ code, language = "plaintext", filename, label = "Code example", maxHeight = "38rem", compact = false }: CodeBlockProps) {
+export function CodeBlock({ code, language = "plaintext", filename, label = "Code example", maxHeight = "38rem", compact = false, copyLabel }: CodeBlockProps) {
   const normalizedLanguage = language.toLowerCase().trim();
   const canonical = Object.hasOwn(languageAliases, normalizedLanguage) ? languageAliases[normalizedLanguage] : undefined;
   const displayLanguage = canonical ? languageLabels[canonical] : "Plain text";
@@ -124,6 +143,8 @@ export function CodeBlock({ code, language = "plaintext", filename, label = "Cod
   }, [code, canonical]);
 
   const tokens = highlighted?.code === code && highlighted.language === canonical ? highlighted.tokens : null;
+  const shell = canonical === "shellscript";
+  const shellLines = shell ? tokens ?? code.split("\n").map(content => [{ content }]) : undefined;
   return (
     <figure className="site-code-block" data-compact={compact || undefined} data-flood-surface="filled" aria-label={label} data-language={canonical ?? "plaintext"} data-highlighted={tokens ? "true" : "false"}>
       <figcaption className="site-code-block__toolbar">
@@ -132,11 +153,13 @@ export function CodeBlock({ code, language = "plaintext", filename, label = "Cod
           <span className="site-code-block__filename" title={filename}>{filename || displayLanguage}</span>
           {filename && <span className="site-code-block__language">{displayLanguage}</span>}
         </span>
-        <CopyButton value={code} text={compact ? "Copy" : "Copy code"} />
+        <CopyButton value={code} label={copyLabel} text={compact ? "Copy" : "Copy code"} />
       </figcaption>
-      <ScrollArea orientation={compact ? "both" : "vertical"} contentInset="none" className="site-code-block__scroll" style={{ maxHeight }} role="group" aria-label={filename ? `${filename} source code` : `${displayLanguage} source code`}>
+      <ScrollArea orientation={compact || shell ? "both" : "vertical"} contentInset="none" className="site-code-block__scroll" style={{ maxHeight }} role="group" aria-label={filename ? `${filename} source code` : `${displayLanguage} source code`}>
       <pre className="site-code-block__pre">
-        <code className="site-code-block__code">{tokens ? tokens.map((line, lineIndex) => (
+        <code className="site-code-block__code">{shellLines ? shellLines.map((line, lineIndex) => (
+          <Fragment key={lineIndex}>{shellWords(line)}{lineIndex < shellLines.length - 1 ? "\n" : null}</Fragment>
+        )) : tokens ? tokens.map((line, lineIndex) => (
           <Fragment key={lineIndex}>
             <span className="site-code-block__line">{line.map((token, tokenIndex) => (
               <span key={tokenIndex} className="site-code-block__token" style={tokenStyle(token)}>{token.content}</span>

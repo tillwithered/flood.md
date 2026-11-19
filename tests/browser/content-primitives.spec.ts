@@ -125,6 +125,29 @@ test("Timestamp preview switches to a localized relative date", async ({page}) =
   await expect(value).toHaveText(/^2\s+ч\s+назад$/);
 });
 
+test("a relative Timestamp can reveal a localized exact time on hover and keyboard focus", async ({page}, info) => {
+  await page.goto("/components/timestamp");
+  const value = page.locator(".preview-stage time.flood-timestamp");
+  const tip = page.getByRole("tooltip", {name:/Nov 14, 2026/});
+  await page.getByRole("checkbox", {name:"Timestamp prop showExactTime"}).check();
+  await expect(value).not.toHaveAttribute("tabindex", "0");
+  await page.getByRole("checkbox", {name:"Timestamp prop relativeTo"}).check();
+  await expect(value).toHaveText("2 hr. ago");
+  await expect(value).toHaveAttribute("tabindex", "0");
+  await value.hover();
+  await expect(tip).toBeVisible();
+  await expect(tip).toContainText(/9:30:00\s*AM UTC/);
+  await expect(value).toHaveAttribute("aria-describedby", await tip.getAttribute("id") ?? "");
+  await page.mouse.move(1, 1);
+  await expect(tip).not.toBeVisible();
+  await value.focus();
+  await expect(tip).toBeVisible();
+  await page.screenshot({path:info.outputPath("timestamp-exact-time.png")});
+  await page.keyboard.press("Escape");
+  await expect(tip).not.toBeVisible();
+  await expect(value).toBeFocused();
+});
+
 test("new catalog previews and generated Markdown expose the same contracts", async ({ page, request }) => {
   for (const slug of ["badge", "spinner", "skeleton", "avatar"]) {
     await page.goto(`/components/${slug}`);

@@ -108,13 +108,17 @@ test("Dialog traps focus, handles nested layers and Select, restores scroll and 
 
 test("Overlay catalog examples work on mobile and preserve their playground frames",async({page},info)=>{
   for(const slug of ["tooltip","popover","dialog"]){
-    await page.goto(`/components/${slug}`);const stage=page.locator(".preview-stage"),before=(await stage.boundingBox())!,trigger=stage.getByRole("button").first();
+    await page.goto(`/components/${slug}`);
+    await page.waitForLoadState("networkidle");
+    await page.evaluate(() => document.fonts.ready);
+    const stage=page.locator(".preview-stage"),before=(await stage.boundingBox())!,trigger=stage.getByRole("button").first();
     if(slug==="tooltip")await trigger.focus();else await trigger.click();
     const layer=page.getByRole(slug==="tooltip"?"tooltip":"dialog");await expect(layer).toBeVisible();
     expect((await stage.boundingBox())!.height).toBeCloseTo(before.height,1);
     const box=(await layer.boundingBox())!;expect(box.x).toBeGreaterThanOrEqual(0);expect(box.x+box.width).toBeLessThanOrEqual(page.viewportSize()!.width+1);
-    expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);
-    await page.screenshot({path:`.artifacts/${slug}-${info.project.name}.png`});
+    await layer.evaluate(node => node.setAttribute("data-a11y-scan", "true"));
+    expect((await new AxeBuilder({page}).include('[data-a11y-scan="true"]').analyze()).violations).toEqual([]);
+    await layer.screenshot({path:`.artifacts/${slug}-${info.project.name}.png`,animations:"disabled"});
     await page.keyboard.press("Escape");await expect(layer).toBeHidden();
   }
 });

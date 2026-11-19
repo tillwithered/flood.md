@@ -7,6 +7,7 @@ import "./content-board.css";
 import { WorkspaceReview } from "./recipes/workspace-review";
 import { TableBulkActions } from './recipes/table-bulk-actions';
 import { RecordWorkspace } from './recipes/record-workspace';
+import { FileGallery } from './recipes/file-gallery';
 
 const projectActions: readonly MenuItem[] = [{id:"rename",label:"Rename…",icon:<Pencil />},{id:"duplicate",label:"Duplicate",icon:<Copy />},{id:"archive",label:"Archive",icon:<Archive />,disabled:true},{id:"divider",type:"separator"},{id:"delete",label:"Delete project",icon:<Trash2 />,tone:"danger"}];
 
@@ -137,12 +138,12 @@ export default function ContentBoard() {
         <div className="content-board-grid">
           <Surface padding="6"><Stack gap="6">
             <Inline gap="4"><Heading level={3} size="section">DescriptionList</Heading><Link href="/components/description-list">Explore</Link></Inline>
-            <DescriptionList aria-label="Project details" dividers items={[
+            <DescriptionList aria-label="Project details" layout="grid" items={[
               {id:"project",term:"Project",description:"Flood design system"},
               {id:"status",term:"Status",description:<Badge tone="success" size="sm">Active</Badge>},
               {id:"version",term:"Version",description:release.version},
               {id:"owner",term:"Owner",description:<Link href="https://github.com/tillwithered/flood.md">Design team</Link>},
-              {id:"description",term:"Description",description:"An independent foundation for thoughtful interfaces."},
+              {id:"description",term:"Description",layout:"stacked",description:"An independent foundation for thoughtful interfaces."},
             ]} />
           </Stack></Surface>
           <Surface padding="6"><Stack gap="4">
@@ -166,6 +167,7 @@ export default function ContentBoard() {
       <section id="workspace-review" className="content-board-feedback"><WorkspaceReview /></section>
       <section id="table-bulk-actions" className="content-board-feedback"><TableBulkActions /></section>
       <section id="record-workspace" className="content-board-feedback"><RecordWorkspace /></section>
+      <div id="file-gallery" className="content-board-feedback"><FileGallery /></div>
       <Link href="/components">Browse all components</Link>
     </main>
   </div></FloodRoot>;

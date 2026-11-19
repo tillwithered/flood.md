@@ -1,0 +1,44 @@
+import {expect, test} from "@playwright/test";
+import {chooseSelectOption} from "./select-helpers";
+
+test("CronScheduleField only exposes validation and dates for the current draft and zone", async ({page}, info) => {
+  await page.goto("/components/cron-schedule-field");
+  const panel = page.locator(".preview-stage .flood-surface");
+  const form = panel.getByRole("form",{name:"Job schedule"});
+  const expression = form.getByRole("textbox",{name:"Cron expression"});
+  const runs = form.getByRole("list",{name:"Upcoming runs"});
+  const scenario = page.getByRole("combobox",{name:"Scenario",exact:true});
+  const timeZone = page.getByRole("combobox",{name:"CronScheduleField prop timeZone"});
+  await expect(expression).toHaveValue("0 9 * * 1");
+  await expect(runs.getByRole("listitem")).toHaveCount(2);
+  await expect(runs.locator("time").first()).toHaveAttribute("datetime","2026-11-23T09:00:00Z");
+  await page.evaluate(() => document.fonts.ready);
+  await panel.screenshot({path:info.outputPath("cron-schedule-field.png"),animations:"disabled"});
+
+  await chooseSelectOption(scenario,"Stale");
+  await expression.fill("0 99 * * 1");
+  await expect(runs).toHaveCount(0);
+  await expect(expression).toBeFocused();
+  await chooseSelectOption(scenario,"Preview");
+  await expect(form.getByRole("alert")).toHaveText("Enter an hour from 0 to 23.");
+  await expect(expression).toHaveAttribute("aria-invalid","true");
+  await expression.fill("0 9 * * 1");
+  await expect(form.getByRole("alert")).toHaveCount(0);
+  await expect(expression).toBeFocused();
+  await chooseSelectOption(scenario,"Stale");
+  await chooseSelectOption(timeZone,"America/New_York");
+  await expect(runs).toHaveCount(0);
+  await chooseSelectOption(scenario,"Checking");
+  await expect(form.getByRole("status")).toHaveText("Checking schedule…");
+  await chooseSelectOption(scenario,"Preview");
+  await expect(runs.locator("time").first()).toHaveAttribute("datetime","2026-11-23T14:00:00Z");
+  await expect(form.getByText("America/New_York",{exact:true})).toBeVisible();
+  await page.getByRole("checkbox",{name:"CronScheduleField prop narrow"}).check();
+  await chooseSelectOption(page.getByRole("combobox",{name:"CronScheduleField prop surface"}),"overlay");
+  expect(await panel.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+  await panel.screenshot({path:info.outputPath("cron-schedule-field-narrow.png"),animations:"disabled"});
+  await chooseSelectOption(scenario,"No upcoming runs");
+  await expect(form.getByText("No runs in the preview window.")).toBeVisible();
+  const posted = await form.evaluate(node => new FormData(node as HTMLFormElement).get("schedule"));
+  expect(posted).toBe("0 9 * * 1");
+});

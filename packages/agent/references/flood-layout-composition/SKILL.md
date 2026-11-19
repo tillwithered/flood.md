@@ -19,6 +19,7 @@ align text when the child components have different internal padding.
 | Search and a few criteria serve one query | Keep them together on the same edge. Let search grow up to a useful query width. | Move a distinct set of result controls to the opposite edge when it has its own purpose and room for a visible gap. |
 | Search finds records and a second group refines or configures results | Anchor query on the leading edge and the result tools on the trailing edge of the same collection frame. | Combine or move secondary criteria into Filters when groups collide. Preserve the search and the highest-use control. |
 | Two comparable field groups share a form | Align corresponding controls on shared Grid tracks. Let a long field span those tracks. | Give a narrow control its own track only when its task differs and it still reads as part of the intended group. |
+| A collection contains unequal-height media | Use Masonry when the list can read down each column. Keep items in source order and reserve the artwork dimensions. | Use Grid where comparison, priority or keyboard traversal needs a row-first sequence. |
 | A bounded editor or detail panel has long text and short values | Limit prose to a readable measure. Align compact values and actions with the content region they govern. | Give a comparison table more room or its own scroll owner when it needs additional width. |
 
 Use logical start and end. The choice to split a row depends on the actions'

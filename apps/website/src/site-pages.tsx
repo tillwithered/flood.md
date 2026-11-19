@@ -1,8 +1,8 @@
-import type { ComponentType, ReactNode } from "react";
+import type { ComponentType, ReactNode, RefObject } from "react";
 import { usesDocumentation } from "../site-guides.mjs";
 
 export type PageContent = {
-  documentation?: ComponentType<{ path: string }>;
+  documentation?: ComponentType<{ path: string; scrollRootRef?: RefObject<HTMLDivElement | null> }>;
   preview?: ReactNode;
   standalone?: boolean;
   recipe?: boolean;
@@ -17,6 +17,12 @@ const standalonePages = {
   "/playground/motion": () => import("./motion-playground"),
 };
 const recipePages = {
+  "/playground/product-variants": () => import("./recipes/product-variants").then(module => ({ default: module.ProductVariants })),
+  "/playground/merge-records": () => import("./recipes/merge-records").then(module => ({ default: module.MergeRecords })),
+  "/playground/import-mapping": () => import("./recipes/import-mapping").then(module => ({ default: module.ImportMapping })),
+  "/playground/document-review": () => import("./recipes/document-review").then(module => ({ default: module.DocumentReview })),
+  "/playground/code-editor": () => import("./recipes/code-editor-workspace").then(module => ({ default: module.CodeEditorExample })),
+  "/playground/code-review": () => import("./recipes/code-review").then(module => ({ default: module.CodeReview })),
   "/playground/records": () => import("./recipes/record-management").then(module => ({ default: module.RecordManagement })),
   "/playground/settings": () => import("./recipes/settings-workspace").then(module => ({ default: module.SettingsWorkspace })),
   "/playground/charts": () => import("./charts-playground"),

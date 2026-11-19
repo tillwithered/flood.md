@@ -1,5 +1,5 @@
 import { useState, type CSSProperties } from "react";
-import { BoxPlot, Grid, Heading, Histogram, Inline, LineChart, SegmentedControl, Stack, Surface } from "@flood-md/react";
+import { BoxPlot, Grid, Heading, Histogram, Inline, LineChart, ScrollArea, SegmentedControl, Stack, Surface } from "@flood-md/react";
 
 const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const services = [
@@ -49,8 +49,10 @@ export default function ChartsPlayground({ headingLevel = 1 }: { headingLevel?: 
   return <Stack gap="4">
     <Inline align="center" gap="3" style={{ justifyContent: "space-between" }}>
       <Heading level={headingLevel} size={headingLevel === 1 ? "page" : "section"}>Request latency (ms)</Heading>
-      <SegmentedControl name="latency-service" label="Service" hideLabel controlSize="sm"
-        value={service} onValueChange={setService} options={options} />
+      <ScrollArea orientation="horizontal" tabIndex={-1} aria-label="Service choices">
+        <SegmentedControl name="latency-service" label="Service" hideLabel controlSize="sm"
+          value={service} onValueChange={setService} options={options} />
+      </ScrollArea>
     </Inline>
     <Surface padding="4">
       <Stack gap="3">

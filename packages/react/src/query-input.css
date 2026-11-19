@@ -1,0 +1,21 @@
+.flood-root .flood-query-input { min-inline-size: 0; }
+.flood-root .flood-query-input[hidden] { display: none; }
+.flood-root .flood-query-input__control { gap: var(--flood-sys-space-1); }
+.flood-root .flood-query-input__icon { color: var(--flood-sys-color-content-subtle); flex: none; }
+.flood-root .flood-query-input__control > .flood-query-input__draft {
+  flex: 1 1 9rem;
+  min-inline-size: min(100%, 9rem);
+  block-size: calc(var(--flood-group-height) - 2 * var(--flood-group-inset));
+  scrollbar-width: none;
+  padding-inline: var(--flood-sys-space-1);
+}
+.flood-root .flood-query-input__control > .flood-query-input__draft:focus-visible { padding-inline: var(--flood-sys-space-1); }
+.flood-root .flood-query-input__token {
+  --flood-tag-height: calc(var(--flood-group-height) - 2 * var(--flood-group-inset));
+  max-inline-size: 100%;
+}
+.flood-root .flood-query-input__token[data-status="error"] {
+  color: var(--flood-sys-color-feedback-error);
+  border-color: color-mix(in srgb, currentColor 50%, transparent);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}

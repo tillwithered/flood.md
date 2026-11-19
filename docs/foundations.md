@@ -1,6 +1,6 @@
-# Foundations tokens · 0.2.14
+# Foundations tokens · 0.2.15
 
-This guide describes the **0.2.14** foundation exports. Keep Flood packages at
+This guide describes the **0.2.15** foundation exports. Keep Flood packages at
 matching exact versions. Existing 0.1.1 installs use their earlier token contract.
 
 Foundations separates fixed reference values (`ref`) from semantic roles (`sys`).
@@ -84,7 +84,7 @@ prepend `--flood-`. The generated typed lookup is the complete contract.
 | `motion` | `duration-fast`, `duration-normal`, `duration-reduced`, `easing` |
 | `layer` | `base`, `sticky`, `popover`, `modal`, `toast` |
 
-### Material and nested control context
+## Color and surfaces
 
 Absolute `color.surface.canvas/default/raised/overlay/floating` roles describe
 materials. A component that draws a material establishes the context for its
@@ -127,7 +127,7 @@ Forced colors retain system backgrounds, boundaries and selection indicators.
 Translucency is a visual recipe, not an accessibility guarantee: inspect the
 composited background, content contrast and focus in the actual host.
 
-### Inter typography
+## Inter typography
 
 Size equivalents assume a 16px root for illustration. Flood does not set the
 host's root font size. Sizes use rem, line heights use ratios and tracking uses
@@ -156,7 +156,7 @@ clipping boxes. Touch target size, neighboring targets, long translations and
 increased text spacing require separate checks. Small controls are not ordinary
 text-field defaults.
 
-### Boundaries, focus and motion
+## Boundaries, focus and motion
 
 Version 0.2.3 uses the quiet `color.field.border` (#383838), matching the
 container-outline tone, for ordinary Input, Textarea, Select, unchecked choices,

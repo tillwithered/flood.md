@@ -1,6 +1,6 @@
 # Base component architecture
 
-The 0.2.14 source uses original React18.3/19 components and TypeScript
+The 0.2.15 source uses original React18.3/19 components and TypeScript
 declarations. The website catalog and individual component pages are generated
 from the [source catalog](../apps/website/src/component-catalog.json) and declarations.
 Use the catalog for inventory and the [component guide](components.md) for composition.
@@ -202,7 +202,17 @@ Figure uses native figure/figcaption and keeps its host-provided media and capti
 in DOM order. The media still needs its own alt text or accessible name.
 Blockquote keeps cite as a source URL and optional attribution as visible credit.
 InlineCode is a native inline code fragment; it escapes text, performs no syntax
-highlighting and wraps long identifiers by default. Use CodeSnippet for code blocks.
+highlighting and wraps long identifiers by default. Use `CodeSnippet` for a short
+command or a compact snippet. Use `CodeBlock` to show multiline source with an
+optional filename, language label and copy action. Set `wrap` for narrow readers
+and `maxBlockSize` to bound the scroll viewport. Copy uses the original string,
+including its indentation and line breaks.
+
+Use `NavigationMenu` in a site header when direct links share a row with
+expandable groups of links. Supply real URLs and pass the host's current URL as
+`currentHref`. The group button opens links in the regular Tab order. Escape
+closes the group and returns focus to that button. Use `Menubar` for application
+commands and `NavigationList` for a persistent list of destinations.
 
 Metric is a labeled value expressed as a native definition list. Formatting,
 calculation and trend wording belong to the host. Direction and tone are separate:
@@ -256,6 +266,10 @@ or mutate an editor. Keep its meaning explicit near the corresponding input.
 ### Clipboard and notifications
 
 Use NotificationInbox for a persistent list of updates with an unread view.
+Use NotificationListSkeleton for the first load of a standalone
+NotificationList. Match the expected title and description lines, timestamp
+and read action at the list's actual width. NotificationInbox accepts the same
+row shapes through `loadingPlaceholder.rows`.
 Use NotificationList when the surrounding page already owns filtering.
 The host decides what changes unread state and when to accept those changes.
 
@@ -404,7 +418,13 @@ tone="danger" for destructive commands within FloodRoot.
 Use PageHeader inside the main region for the page title and optional actions.
 It renders an h1. Use Section for a titled block within the page and
 CollectionToolbar for filters and search. Actions wrap within the available
-header width while keeping the title first.
+header width while keeping the title first. Use `metadata` for concise status
+or counts that qualify the title. Page actions align with the first title line
+when the title and actions share a row.
+
+For an application bar with a deep path, pair AppTopBar `layout="compact"`
+with a compact Breadcrumb in `start`. The path can shrink within its group
+and the commands can move to another row while keeping their order.
 
 DataTable's opt-in server mode receives one page, totalRows and controlled page.
 It neither slices that page again nor sorts it locally. Sort and selection have
@@ -421,6 +441,11 @@ Supply raw numeric `sortValues` for locale-formatted amounts and rich cells.
 Use Table for static details without managed sorting, selection or pagination.
 For a managed DataTable whose result range duplicates the visible context, set
 `showResults={false}`. Selection feedback and pagination stay available.
+
+Use EditableGrid when the main task is editing several cells. Keep accepted
+rows and save history in the host. Check keyboard navigation, the separate
+edit mode and a paste rejected in full by a protected or malformed cell.
+Read-only cells remain navigable and copyable. Use DataTable for record browsing.
 
 Date/calendar action labels must be forwarded through the composed owner.
 DatePicker/DateRangePicker expose viewLabels. DateTimePicker's datePickerLabels

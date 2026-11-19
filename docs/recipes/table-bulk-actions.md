@@ -10,10 +10,9 @@
   value and the search enough room for the queries users typically enter.
   Use `align="split"` when search leads a wide table and quick filters and
   commands form a separate group at the far edge.
-- Put BulkActionBar outside the table in a fixed host centered near the bottom
-  of the viewport. Render it when selected rows exist and pass showSelection={false}
-  to DataTable so the count appears once. Keep the filter controls in place as
-  selection changes.
+- Place BulkActionBar outside the table with `placement="viewport"`. Pass
+  `showSelection={false}` to DataTable so the visible count appears once.
+  Keep the filter controls in place as selection changes.
 - Use AlertDialog for confirmation and ToastRegion for the accepted result.
   The host owns the filter values, selected IDs and proposal.
 

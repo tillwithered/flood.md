@@ -1,4 +1,4 @@
-# Flood design system · 0.2.14
+# Flood design system · 0.2.15
 
 ListBox owns native required validation for accepted selection. Use its
 description/message/status props rather than duplicating feedback markup. Visual
@@ -432,8 +432,9 @@ or accessibility of the host application.
 
 HoverCard opens a named interactive preview on hover or focus and supports explicit
 activation. Use Tooltip for short noninteractive descriptions. ColorSwatch and
-ColorPicker use opaque RGB hex colors; they do not imply alpha, gradients or a
-contrast guarantee. TreeSelect provides single hierarchical selection; Tree
+ColorPalette use RGB or RGBA hex colors. ColorPicker starts in opaque mode and
+accepts RGBA when allowAlpha is enabled. GradientEditor composes ColorPicker
+with independently selectable stops. TreeSelect provides single hierarchical selection; Tree
 remains the standalone single/multiple control. DateTimePicker composes civil
 date and clock time with separate form values and no inferred timezone. Use
 application validation for relationships between the parts. Recipes for Select

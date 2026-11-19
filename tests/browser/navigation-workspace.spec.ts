@@ -133,6 +133,29 @@ test('workspace switching from the account menu restores route, branches and foc
   await expect(page.getByRole('heading',{name:'All projects',exact:true})).toBeVisible();
 });
 
+test('workspace breadcrumbs stay available beside the narrow bar commands',async({page},info)=>{
+  await page.setViewportSize({width:390,height:900});
+  await page.goto('/playground/navigation');
+  const bar=page.locator('.navigation-lab__main-header');
+  const path=bar.getByRole('navigation',{name:'Workspace path'});
+  const search=bar.getByRole('button',{name:'Go to page',exact:true});
+  const current=path.locator('[aria-current="page"] .flood-truncated-text');
+  await expect(current).toHaveText('All projects');
+  await page.evaluate(()=>document.fonts.ready);
+  expect(await current.evaluate(node=>node.scrollWidth)).toBeLessThanOrEqual(await current.evaluate(node=>node.clientWidth));
+  await expect(search).toBeVisible();
+  const ellipsis=path.getByRole('button',{name:'Earlier pages'});
+  await ellipsis.press('Enter');
+  await expect(page.getByRole('dialog',{name:'Earlier pages'}).getByRole('link',{name:'Projects',exact:true})).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(ellipsis).toBeFocused();
+  await bar.screenshot({path:info.outputPath('workspace-top-bar-narrow.png')});
+  await page.setViewportSize({width:320,height:900});
+  await expect(path).toBeVisible();
+  await expect(search).toBeVisible();
+  expect(await bar.evaluate(node=>node.scrollWidth)).toBeLessThanOrEqual(await bar.evaluate(node=>node.clientWidth));
+});
+
 test('full viewport workspaces do not reserve an unused document scrollbar strip',async({page})=>{
   await page.goto('/playground/navigation');
   await expect(page.getByRole('heading', { name: 'All projects', exact: true })).toBeVisible();
@@ -281,6 +304,18 @@ test('project filters stay scoped across modules and archived is a reachable All
     await chooseSelectOption(panel.getByRole('combobox',{name:'Status',exact:true}),value);
     await panel.getByRole('button',{name:'Apply filters',exact:true}).click();
   }
+  const search=page.getByRole('searchbox',{name:'Search projects',exact:true});
+  const clearFilters=page.getByRole('button',{name:'Clear filters',exact:true});
+  await search.fill('Design');
+  await expect(clearFilters).toHaveCount(0);
+  await filter('paused');
+  await expect(page.getByText('No matching projects',{exact:true})).toBeVisible();
+  await expect(clearFilters).toHaveCount(1);
+  await clearFilters.click();
+  await expect(search).toHaveValue('Design');
+  await expect(page.getByRole('button',{name:'Filters',exact:true})).toBeFocused();
+  await expect(page.getByRole('table',{name:'Projects',exact:true})).toContainText('Design system');
+  await page.getByRole('button',{name:'Clear search',exact:true}).click();
   await filter('paused');
   await rail.getByRole('link',{name:'Inbox',exact:true}).click();
   await expect(page.getByRole('button',{name:'Clear filters',exact:true})).toHaveCount(0);

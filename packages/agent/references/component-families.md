@@ -67,6 +67,11 @@ Use the dedicated workflows for measurements and state-specific checks.
 
 Compare different contexts when they change the decision:
 
+- A component repeated across canvas, raised, inset or floating surfaces needs
+  a review of each applicable backdrop. Read the nearest surface role and use
+  it when a marker, connector, border or action depends on the background.
+  Check that the mark exists in the reported state before tuning its color.
+  Capture the same state on the plain canvas and inside the real host.
 - A table footer shares the outer panel's perimeter. A flat table inside a
   Drawer may distinguish totals through spacing, alignment and type weight.
   Inspect the footer's outer corners as well as the alignment of the totals.

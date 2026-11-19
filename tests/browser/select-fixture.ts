@@ -15,6 +15,7 @@ import ${file("packages/react/dist/styles.css")};
 const h=React.createElement;
 function Fixture(){
  const form=useRef(null), native=useRef(null);
+ const presentation=location.hash==='#native'?'native':undefined;
  const[prevent,setPrevent]=useState(false),[status,setStatus]=useState(''),[rejected,setRejected]=useState('');
  const choices=[h('option',{value:'',disabled:true,key:'placeholder'},'Choose a region'),
   h('optgroup',{label:'Unavailable regions',disabled:true,key:'disabled'},h('option',{value:'blocked'},'Blocked region')),
@@ -24,7 +25,7 @@ function Fixture(){
   h('div',{id:'positioning-box',style:{maxWidth:'24rem'}},
    h('form',{ref:form,onReset:event=>{if(prevent)event.preventDefault()},onSubmit:event=>{event.preventDefault();setStatus(JSON.stringify(Object.fromEntries(new FormData(form.current))))}},
     h(Stack,{gap:'4'},
-     h(Field,{id:'contract-region',label:'Region',required:true,hint:'Choose one available region'},props=>h(Select,{...props,ref:native,name:'region',defaultValue:''},...choices)),
+     h(Field,{id:'contract-region',label:'Region',required:true,hint:'Choose one available region'},props=>h(Select,{...props,ref:native,name:'region',presentation,defaultValue:''},...choices)),
      h(Button,{type:'button',onClick:()=>{native.current.focus();setStatus(native.current.tagName)}},'Focus forwarded ref'),
      h(Button,{type:'submit'},'Submit selection'),h(Button,{type:'reset'},'Reset selection'),
      h(Checkbox,{label:'Prevent reset',checked:prevent,onChange:event=>setPrevent(event.currentTarget.checked)}),
@@ -47,10 +48,10 @@ function Fixture(){
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Select contract</title><style>body{margin:0}${css}</style></head><body><main id="app"></main><script>${script.replace(/<\/script/gi, "<\\/script")}</script></body></html>`;
 }
 
-export async function openSelectFixture(page: Page) {
+export async function openSelectFixture(page: Page, presentation?: "native") {
   bundled ??= fixtureHtml();
   const html = await bundled;
   await page.route("**/__flood-select-contract.html", route => route.fulfill({ contentType: "text/html", body: html }));
-  await page.goto("/__flood-select-contract.html");
+  await page.goto(presentation ? "/__flood-select-contract.html#native" : "/__flood-select-contract.html");
   await expect(page.getByRole("heading", { name: "Select contract fixture" })).toBeVisible();
 }

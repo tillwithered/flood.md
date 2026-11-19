@@ -99,6 +99,22 @@ export function readComponentContract(source) {
   function resolveProps(node, visiting = new Set()) {
     if (!node) throw new Error("Component contract: component props type is missing");
     if (node.type === "TSIntersectionType") return merge(node.types.map((part) => resolveProps(part, visiting)));
+    if (node.type === "TSUnionType") {
+      const branches = node.types.map((part) => resolveProps(part, visiting));
+      const { props, nativeProps } = merge(branches);
+      return {
+        nativeProps,
+        props: props.map((prop) => {
+          const entries = branches.flatMap((branch) => branch.props.filter((item) => item.name === prop.name));
+          return {
+            ...prop,
+            type: [...new Set(entries.map((item) => item.type))].join(" | "),
+            required: entries.length === branches.length && entries.every((item) => item.required),
+            options: entries.every((item) => item.options) ? [...new Set(entries.flatMap((item) => item.options))] : undefined,
+          };
+        }),
+      };
+    }
     if (node.type === "TSParenthesizedType") return resolveProps(node.typeAnnotation, visiting);
     if (node.type === "TSTypeLiteral") return members(node.members, visiting);
     const name = nameOf(node.typeName ?? node.expression);

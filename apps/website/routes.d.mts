@@ -1,4 +1,4 @@
-export { docPages, recipeCollections, siteOrigin } from "./site-guides.mjs";
+export { docPages, siteOrigin } from "./site-guides.mjs";
 export const componentSlugs: string[];
 export const pagePaths: Set<string>;
 export const indexablePaths: string[];

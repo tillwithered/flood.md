@@ -7,7 +7,7 @@ html:has(.site-page-scroll) { overflow: clip; }
 html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 .site-root {
   --site-frame-padding: clamp(var(--flood-sys-space-4), 4vw, 3.5rem);
-  --site-preview-background: var(--flood-sys-color-surface-canvas);
+  --site-preview-background: radial-gradient(circle, rgb(255 170 205 / .035) .045rem, transparent .045rem) 0 0 / 1.25rem 1.25rem #1a161a;
   --landing-panel-padding: clamp(var(--flood-sys-space-6), 3vw, 2.5rem);
   min-block-size: 100svh;
   -webkit-font-smoothing: antialiased;
@@ -265,6 +265,13 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 .markdown-content h3 { margin: 2rem 0 .75rem; font-size: var(--flood-sys-type-body-size); line-height: 1.5; font-weight: 600; }
 .markdown-content :is(h2,h3), .doc-section, .component-preview, .component-catalog section { scroll-margin-block-start: 2rem; }
 .chart-guide-example { margin-block-start: var(--flood-sys-space-8); scroll-margin-block-start: var(--flood-sys-space-4); }
+.site-preview-frame {
+  min-inline-size: 0;
+  padding: clamp(var(--flood-sys-space-2), 2vw, var(--flood-sys-space-4));
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-radius: var(--flood-sys-radius-block);
+  background: var(--site-preview-background);
+}
 .flood-root .chart-guide-example .chart-example-distributions { grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr)); }
 .markdown-content code, .doc-section code { font-family: var(--flood-sys-font-mono); font-size: .875em; }
 .markdown-content :not(pre) > code, .doc-section p > code { background: var(--flood-sys-color-surface-raised); border-radius: .25rem; padding: .125rem .25rem; overflow-wrap: anywhere; }

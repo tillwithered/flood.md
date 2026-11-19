@@ -1,0 +1,28 @@
+.flood-root .flood-button.flood-citation__trigger {
+  min-inline-size: var(--flood-sys-control-2xs-height);
+  padding-inline: var(--flood-sys-space-2);
+  border-radius: var(--flood-sys-radius-action);
+  vertical-align: baseline;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-citation__trigger[aria-expanded="true"] {
+  --flood-action-rest: var(--flood-sys-color-action-subtle-pressed);
+}
+
+.flood-root .flood-citation > .flood-overlay-body {
+  display: grid;
+  gap: var(--flood-sys-space-2);
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-citation__link {
+  justify-self: start;
+  max-inline-size: 100%;
+  font-weight: var(--flood-sys-type-label-weight);
+}
+
+@media (forced-colors: active) {
+  .flood-root .flood-button.flood-citation__trigger { border-color: ButtonText; }
+}

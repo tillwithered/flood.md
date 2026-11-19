@@ -1,0 +1,38 @@
+.flood-root .flood-overlay-panel.flood-suggestion-textarea__panel {
+  inline-size: 16rem;
+  overflow: hidden;
+  padding: var(--flood-sys-space-1);
+}
+.flood-root .flood-suggestion-textarea__viewport {
+  max-block-size: min(14rem, calc(var(--flood-overlay-available-height, 100dvh) - 2 * var(--flood-sys-space-1)));
+  overscroll-behavior: contain;
+}
+.flood-root .flood-overlay-panel.flood-suggestion-textarea__panel[data-compact-mentions] {
+  inline-size: 11rem;
+}
+.flood-root [data-compact-mentions] .flood-command-list__option {
+  grid-template-columns: minmax(0, 1fr);
+  padding-block: var(--flood-sys-space-1);
+}
+.flood-root [data-compact-mentions] .flood-command-list__copy { grid-column: 1; }
+@media (pointer: fine) {
+  .flood-root [data-compact-mentions]:is(.flood-control--sm,.flood-control--md) .flood-command-list__option {
+    min-block-size: var(--flood-sys-control-sm-height);
+  }
+}
+.flood-root .flood-overlay-panel.flood-suggestion-textarea__panel[data-query-suggestions] {
+  inline-size: 19rem;
+}
+.flood-root [data-query-suggestions] .flood-command-list__option {
+  grid-template-columns: minmax(0, 1fr);
+  padding-block: var(--flood-sys-space-1);
+}
+.flood-root [data-query-suggestions] .flood-command-list__copy {
+  grid-column: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  column-gap: var(--flood-sys-space-3);
+}
+.flood-root [data-query-suggestions] .flood-command-list__description { font-family: var(--flood-sys-font-mono); }

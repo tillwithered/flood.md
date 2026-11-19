@@ -74,14 +74,14 @@ test("search can reopen during its exit and skips animation with reduced motion"
   const dialog = page.getByRole("dialog", { name: "Search Flood" });
   const input = dialog.getByRole("combobox");
   await page.keyboard.press("Control+k");
-  await input.fill("Fintech");
-  await expect(dialog.getByRole("option", { name: /^Fintech/ }).first()).toBeVisible();
+  await input.fill("DataTable");
+  await expect(dialog.getByRole("option", { name: /^DataTable Component/ })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveAttribute("data-closing", "true");
   await page.keyboard.press("Control+k");
   await expect(dialog).not.toHaveAttribute("data-closing");
   await expect(input).toBeFocused();
-  await expect(input).toHaveValue("Fintech");
+  await expect(input).toHaveValue("DataTable");
   await page.mouse.click(1, 1);
   await expect(dialog).toBeHidden();
   await expect(opener).toBeFocused();
@@ -117,15 +117,29 @@ test("search finds a recipe from a task and opens it from the keyboard", async (
   const input = search.getByRole("combobox");
   await expect(input).toBeFocused();
   await expect(search.getByRole("button", { name: "Close" })).toHaveCount(0);
-  const tasks = search.getByRole("group", { name: "Start with a task" });
-  await expect(tasks.getByRole("option")).toHaveCount(3);
+  const foundations = search.getByRole("group", { name: "Design foundations" });
+  await expect(foundations.getByRole("option")).toHaveCount(4);
+  await expect(search.getByRole("option", { name: "Release notes" })).toHaveCount(0);
+  const tabs = search.getByRole("tablist", { name: "Search scope" });
+  await expect(tabs.getByRole("tab", { name: "Categories", exact: true })).toHaveCount(0);
+  for (const name of ["Components", "Recipes", "Docs", "Explore"]) {
+    await tabs.getByRole("tab", { name, exact: true }).click();
+    await expect(search.getByRole("option", { selected: true })).toHaveCount(0);
+  }
   const lastOption = search.getByRole("option").last();
+  const idleBackground = await lastOption.evaluate(node => getComputedStyle(node).backgroundColor);
   await lastOption.hover();
+  await expect(lastOption).not.toHaveCSS("background-color", idleBackground);
   await expect(lastOption).toHaveAttribute("aria-selected", "false");
   await input.hover();
+  await expect(lastOption).toHaveCSS("background-color", idleBackground);
   await expect(input).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await input.press("Enter");
+  await expect(search).toBeVisible();
   await input.press("ArrowDown");
-  await expect(search.getByRole("option").nth(1)).toHaveAttribute("aria-selected", "true");
+  await expect(search.getByRole("option").first()).toHaveAttribute("aria-selected", "true");
+  await input.press("ArrowUp");
+  await expect(lastOption).toHaveAttribute("aria-selected", "true");
   await input.fill("DataTable");
   await expect(search.getByRole("option").first()).toContainText("DataTable");
   await input.fill("DataTabel");
@@ -209,30 +223,29 @@ test("the shortcut hint follows the operating system and stays quiet on touch de
   await expect(page.getByRole("dialog", { name: "Search Flood" })).toBeVisible();
 });
 
-test("recipes and agent setup are discoverable from stable navigation routes", async ({ page }) => {
+test("recipes and agent setup are discoverable from the shared navigation", async ({ page, request }) => {
   await page.goto("/");
+  await expect(page.getByRole("link", { name: "Browse components", exact: true })).toHaveAttribute("href", "/components");
   await page.getByRole("searchbox", { name: "Search Flood" }).click();
   const search = page.getByRole("dialog", { name: "Search Flood" });
-  await search.getByRole("option", { name: /^Validate and submit a form/ }).click();
-  await expect(page).toHaveURL(/\/docs\/recipes\/form-submission$/);
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Recipes", exact: true }).click();
+  await search.getByRole("option", { name: "Typography", exact: true }).click();
+  await expect(page).toHaveURL(/\/docs\/foundations#inter-typography$/);
+  await expect(page.getByRole("heading", { name: "Inter typography" })).toBeInViewport();
+
+  await page.getByRole("searchbox", { name: "Search Flood" }).click();
+  await search.getByRole("tab", { name: "Recipes", exact: true }).click();
+  await expect(search.getByRole("option", { name: "Table bulk actions", exact: true })).toBeVisible();
+  await search.getByRole("option", { name: "Browse all recipes" }).click();
+  await expect(page).toHaveURL(/\/recipes$/);
   await expect(page.getByRole("heading", { name: "Recipes", exact: true })).toBeVisible();
-  await page.getByRole("link", { name: /^E-commerce / }).click();
-  await expect(page).toHaveURL(/\/recipes\/e-commerce$/);
-  await expect(page.getByRole("heading", { name: "E-commerce", exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: /^Table bulk actions / })).toBeVisible();
-  await page.getByRole("link", { name: "Categories", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Categories", exact: true })).toBeVisible();
-  await page.getByRole("banner").getByRole("searchbox", { name: "Search Flood" }).click();
-  const scopes = search.getByRole("tablist", { name: "Search scope" });
-  const explore = scopes.getByRole("tab", { name: "Explore" });
-  await explore.press((await scopes.getAttribute("aria-orientation")) === "vertical" ? "ArrowDown" : "ArrowRight");
-  await expect(scopes.getByRole("tab", { name: "Categories" })).toHaveAttribute("aria-selected", "true");
-  await expect(search.getByRole("option", { name: /^Fintech \d+ recipes/ })).toBeVisible();
-  await search.getByRole("combobox").fill("cloud");
-  await search.getByRole("option", { name: /^Cloud & hosting/ }).click();
-  await expect(page).toHaveURL(/\/recipes\/hosting$/);
+  await page.getByRole("searchbox", { name: "Filter recipes" }).fill("bulk edit");
+  await expect(page.getByRole("link", { name: /^Form submission / })).toHaveCount(0);
+  await page.getByRole("link", { name: /^Table bulk actions / }).click();
+  await expect(page).toHaveURL(/\/docs\/recipes\/table-bulk-actions$/);
+
   await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "For agents" }).click();
   await expect(page.getByRole("heading", { name: "Flood for coding agents" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /^Connect Flood MCP/ })).toHaveAttribute("href", "/docs/mcp");
+  await expect(page.getByRole("heading", { name: "Connect Flood MCP" })).toBeVisible();
+  expect((await request.get("/categories")).status()).toBe(404);
+  expect((await request.get("/recipes/fintech")).status()).toBe(404);
 });

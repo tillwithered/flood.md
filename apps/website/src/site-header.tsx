@@ -5,12 +5,12 @@ import { SiteSearch } from "./site-search";
 /** Website composition; control appearance and sizing belong to Flood. */
 export function SiteHeader({ path }: { path: string }) {
   const inComponents = path === "/components" || path.startsWith("/components/");
-  const inRecipes = path.startsWith("/recipes") || path.startsWith("/docs/recipes/");
-  const inAgents = ["/for-agents", "/docs/mcp", "/docs/agents", "/docs/skills", "/docs/agent-knowledge"].includes(path);
+  const inRecipes = path === "/recipes" || path.startsWith("/docs/recipes/");
+  const inAgents = path === "/for-agents";
   const destinations = [
     { href: "/components", label: "Components", icon: Boxes, current: inComponents },
     { href: "/recipes", label: "Recipes", icon: Rows3, current: inRecipes },
-    { href: "/docs", label: "Docs", icon: BookOpen, current: path.startsWith("/docs") && !inRecipes && !inAgents },
+    { href: "/docs", label: "Docs", icon: BookOpen, current: path.startsWith("/docs") && !inRecipes },
     { href: "/for-agents", label: "For agents", icon: Terminal, current: inAgents },
   ];
   return <header className="site-header">

@@ -41,9 +41,12 @@ condition editor when exclusions, multiple values or Any logic are needed.
 Use the Filters editor for exclusion, multiple values per property or Any across
 properties. It has a separate draft. Apply validates and commits, while Cancel or
 outside dismissal discards it. Advanced conditions are summarized by removable
-tags with their All/Any logic visible when relevant. Clear filters removes search
-and conditions, retaining sort. Unknown properties, values, operators, sort
-columns and schema versions fail explicitly rather than silently broadening a view.
+tags with their All/Any logic visible when relevant. Clear filters removes
+conditions and preserves search and sort. The clear action in the search field
+clears only that field. Reset view restores the selected definition and appears
+when it offers a different result from either available clear action.
+Unknown properties, values, operators, sort columns and schema versions fail
+explicitly rather than silently broadening a view.
 
 An applied query change outside the editor closes its obsolete draft. Applying
 conditions never restores an old search/sort value from when the editor opened.
@@ -107,9 +110,10 @@ rounded corners so the table footer cannot cover the outline.
 ## Working state and saved definitions
 
 Built-in presets are read-only. A saved view stores the query and supported sort,
-not record IDs or cached results. Dirty views offer Update and Reset. Save as new
-captures the current query; Rename changes only its name, even while filters are
-dirty. Deleting a definition leaves collection records unchanged.
+not record IDs or cached results. Dirty editable views offer Update. Reset view
+is useful when restoring the saved definition does more than a clear action.
+Save as new captures the current query. Rename changes only its name, even while
+filters are dirty. Deleting a definition leaves collection records unchanged.
 
 Working changes stay transient until saved. Reload starts at the default preset;
 saved definitions remain selectable. Choosing another view replaces the working

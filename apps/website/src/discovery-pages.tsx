@@ -1,105 +1,115 @@
-import { useState, type ReactNode } from "react";
-import { ArrowRight, ArrowUpRight, Box, ChartNoAxesCombined, Compass, Layers3, LayoutGrid, ListChecks, PanelsTopLeft, ShoppingBag, SlidersHorizontal, Terminal, TextCursor, Wallet, Workflow } from "lucide-react";
-import { Breadcrumb, CopyButton, Grid, Heading, IconSlot, Inline, Link, SearchInput, Stack, Surface, Text } from "@flood-md/react";
-import { directoryGroups, directoryComponents, matchesComponent, type ComponentSummary } from "./component-directory-data";
-import { recipeCategories, recipeGroups, recipes, recipePrompt, type Recipe } from "./recipe-directory";
-import { agentScenarios } from "./agent-scenarios";
-import { TableBulkActions } from "./recipes/table-bulk-actions";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { Breadcrumb, Grid, Heading, IconSlot, Inline, Link, SearchInput, Stack, Text } from "@flood-md/react";
+import { directoryGroups, directoryComponents, searchDirectoryComponents, type ComponentSummary } from "./component-directory-data";
+import { recipes, type Recipe } from "./recipe-directory";
 
-const categoryIcons = {
-  setup: Box, layout: LayoutGrid, typography: TextCursor, actions: Workflow, forms: SlidersHorizontal,
-  navigation: Compass, content: Layers3, charts: ChartNoAxesCombined, overlays: PanelsTopLeft, feedback: ListChecks,
-  tables: ListChecks, workspace: PanelsTopLeft, "e-commerce": ShoppingBag, fintech: Wallet, hosting: Terminal,
-  saas: PanelsTopLeft, operations: Workflow,
-} as const;
-const commonComponents = ["button", "data-table", "input", "select", "dialog", "app-shell"]
-  .flatMap(slug => directoryComponents.filter(component => component.slug === slug));
-
-function CategoryIcon({ name }: { name: string }) {
-  const Icon = categoryIcons[name as keyof typeof categoryIcons] ?? Box;
-  return <IconSlot size="lg" className="discovery-glyph"><Icon /></IconSlot>;
-}
+const catalogGroups = [
+  ...directoryGroups.filter(group => group.id === "actions" || group.id === "forms"),
+  ...directoryGroups.filter(group => group.id !== "actions" && group.id !== "forms"),
+];
 
 function DirectoryHeading({ title, description, parent }: {
   title: string;
-  description: string;
+  description?: string;
   parent?: { label: string; href: string };
 }) {
   return <Stack gap="3" className="discovery-heading">
     {parent && <Breadcrumb label="Page breadcrumb" items={[parent, { label: title }]} />}
     <Heading level={1} size="large" className="discovery-title">{title}</Heading>
-    <Text as="p" size="lead" tone="subtle">{description}</Text>
+    {description && <Text as="p" size="lead" tone="subtle">{description}</Text>}
   </Stack>;
 }
 
-function DirectoryCard({ href, title, description, icon, meta, id }: {
-  href: string; title: string; description: string; icon: string; meta?: ReactNode; id?: string;
-}) {
-  return <Link href={href} id={id} className="discovery-card">
-    <Surface padding="4" className="discovery-card-surface"
-      style={{ background: "var(--discovery-card-background, var(--flood-sys-color-surface-default))" }}>
-      <Stack gap="3">
-        <Inline gap="2" align="center" className="discovery-card-top">
-          <CategoryIcon name={icon} />
-          <IconSlot size="sm" className="discovery-arrow"><ArrowUpRight /></IconSlot>
-        </Inline>
+function ComponentLinks({ pages, compact = false }: { pages: readonly ComponentSummary[]; compact?: boolean }) {
+  return <Grid gap={compact ? "1" : "2"} minItemWidth={compact ? "10rem" : "15rem"}>
+    {pages.map(page => <Link key={page.slug} href={`/components/${page.slug}`} className="discovery-result"
+      data-compact={compact || undefined}>
+      {compact ? <Text size="compact">{page.name}</Text> : <>
         <Stack gap="1">
-          <Heading level={3} size="group">{title}</Heading>
-          <Text size="compact" tone="subtle">{description}</Text>
+          <Text size="compact" className="discovery-result-name">{page.name}</Text>
+          <Text size="helper" tone="subtle">{page.description}</Text>
         </Stack>
-        {meta && <Text size="helper" tone="subtle">{meta}</Text>}
-      </Stack>
-    </Surface>
-  </Link>;
-}
-
-function ComponentLinks({ pages }: { pages: readonly ComponentSummary[] }) {
-  return <Grid gap="2" minItemWidth="15rem" className="component-directory-links">
-    {pages.map(page => <Link key={page.slug} href={`/components/${page.slug}`} className="discovery-result">
-      <Stack gap="1">
-        <Text size="compact" className="discovery-result-name">{page.name}</Text>
-        <Text size="helper" tone="subtle">{page.description}</Text>
-      </Stack>
-      <IconSlot size="sm"><ArrowUpRight /></IconSlot>
+        <IconSlot size="sm"><ArrowUpRight /></IconSlot>
+      </>}
     </Link>)}
   </Grid>;
 }
 
 export function ComponentDirectory({ family }: { family?: string }) {
   const [query, setQuery] = useState("");
+  const [activeFamily, setActiveFamily] = useState<string | undefined>(catalogGroups[0]?.id);
+  const results = useRef<HTMLDivElement>(null);
   const group = directoryGroups.find(entry => entry.id === family);
   const pages = group?.components ?? directoryComponents;
   const searching = Boolean(query.trim());
-  const matches = searching ? pages.filter(page => matchesComponent(page, query)) : pages;
-  return <main id="main-content" tabIndex={-1} className="discovery-page">
+  const matches = searching ? searchDirectoryComponents(pages, query) : pages;
+  useEffect(() => {
+    const list = results.current;
+    if (query && list && list.getBoundingClientRect().top < 0) list.scrollIntoView({ block: "start" });
+  }, [query]);
+
+  useEffect(() => {
+    const list = results.current;
+    const viewport = list?.closest(".site-page-scroll");
+    if (!list || !viewport || searching) return;
+    const headings = Array.from(list.querySelectorAll("h2[id]")).reverse();
+    let frame = 0;
+    const update = () => {
+      const bounds = viewport.getBoundingClientRect();
+      const atEnd = viewport.scrollTop > 0 && viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 1;
+      const target = atEnd ? headings.find(heading => {
+        const top = heading.getBoundingClientRect().top;
+        return location.hash === `#${heading.id}` && top >= bounds.top && top < bounds.bottom;
+      }) : undefined;
+      const current = atEnd ? target ?? headings[0] :
+        headings.find(heading => heading.getBoundingClientRect().top <= bounds.top + 64) ?? headings.at(-1);
+      setActiveFamily(current?.id);
+    };
+    const schedule = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(update);
+    };
+    schedule();
+    viewport.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    window.addEventListener("hashchange", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      viewport.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      window.removeEventListener("hashchange", schedule);
+    };
+  }, [searching]);
+
+  const filter = <Inline gap="3" align="center" className="discovery-filter">
+    <SearchInput className="catalog-search" aria-label="Search components" placeholder={group ? `Search ${group.label.toLowerCase()}…` : "Find a component…"}
+      value={query} onChange={event => setQuery(event.currentTarget.value)}
+      onKeyDown={event => { if (event.key === "Escape") setQuery(""); }} />
+    <Text role="status" size="compact" tone="subtle">
+      {searching && !matches.length ? "No components found." : `${matches.length} ${matches.length === 1 ? "component" : "components"}`}
+    </Text>
+  </Inline>;
+  return <main id="main-content" tabIndex={-1} className="discovery-page library-directory">
     <DirectoryHeading title={group?.label ?? "Components"}
-      description={group?.description ?? "Explore the React components behind Flood interfaces."}
+      description={group?.description}
       parent={group ? { label: "Components", href: "/components" } : undefined} />
     <Stack gap="6">
-      <Inline gap="3" align="center" className="discovery-filter">
-        <SearchInput className="catalog-search" aria-label="Search components" placeholder={group ? `Search ${group.label.toLowerCase()}…` : "Find a component…"}
-          value={query} onChange={event => setQuery(event.currentTarget.value)}
-          onKeyDown={event => { if (event.key === "Escape") setQuery(""); }} />
-        <Text role="status" size="compact" tone="subtle">
-          {searching && !matches.length ? "No components found." : `${matches.length} ${matches.length === 1 ? "component" : "components"}`}
-        </Text>
-      </Inline>
-      {group || searching ? <ComponentLinks pages={matches} /> : <>
-      <section aria-labelledby="families-heading">
-        <Stack gap="4">
-          <Heading level={2} size="section" id="families-heading">Browse families</Heading>
-          <Grid gap="3" minItemWidth="15rem" className="discovery-family-grid" role="navigation" aria-label="Component categories">
-            {directoryGroups.map(item => <DirectoryCard id={item.id} key={item.id} href={`/components/category/${item.id}`}
-              title={item.label} description={item.description} icon={item.id}
-              meta={`${item.components.length} ${item.components.length === 1 ? "component" : "components"}`} />)}
-          </Grid>
-        </Stack>
-      </section>
-      <section aria-labelledby="common-components"><Stack gap="4">
-        <Heading level={2} size="section" id="common-components">Start with the essentials</Heading>
-        <ComponentLinks pages={commonComponents} />
-      </Stack></section>
-      </>}
+      {group ? <>{filter}<ComponentLinks pages={matches} /></> : <div className="component-directory-layout">
+        <div className="component-directory-controls">
+          {filter}
+          {!searching && <nav className="component-directory-families" aria-label="Component categories">
+            {catalogGroups.map(item => <Link key={item.id} href={`#${item.id}`} variant="ghost" size="sm"
+              aria-current={activeFamily === item.id ? "location" : undefined}>{item.label}</Link>)}
+          </nav>}
+        </div>
+        <div ref={results} className="component-directory-sections">
+          {searching ? <ComponentLinks pages={matches} /> : catalogGroups.map(item => <section key={item.id} aria-labelledby={item.id}>
+            <Heading level={2} id={item.id} size="section" tabIndex={-1}>{item.label}</Heading>
+            <ComponentLinks pages={item.components} compact />
+          </section>)}
+        </div>
+      </div>}
       <Inline gap="4">
         <Link href="/recipes">See components in recipes <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
         {(!group || group.id === "charts") && <Link href="/docs/charts">Chart guide</Link>}
@@ -109,112 +119,30 @@ export function ComponentDirectory({ family }: { family?: string }) {
   </main>;
 }
 
-export function RecipeCards({ items }: { items: readonly Recipe[] }) {
-  return <Grid gap="3" minItemWidth="16rem" className="discovery-recipe-grid">
-    {items.map(recipe => <DirectoryCard key={recipe.slug} href={recipe.path} title={recipe.label}
-      description={recipe.description} icon={recipe.groups?.[0] ?? "workspace"}
-      meta={recipe.preview ? "Live example and code" : "Guide and code"} />)}
+function RecipeCards({ items }: { items: readonly Recipe[] }) {
+  return <Grid gap="6" minItemWidth="25rem">
+    {items.map(recipe => <Link key={recipe.slug} href={recipe.path} className="recipe-result">
+      <Stack gap="1">
+        <Heading level={2} size="group">{recipe.label}</Heading>
+        <Text size="compact" tone="subtle">{recipe.description}</Text>
+      </Stack>
+      <IconSlot size="sm"><ArrowUpRight /></IconSlot>
+    </Link>)}
   </Grid>;
 }
 
-function RecipeCollectionCards({ items }: { items: typeof recipeGroups }) {
-  return <Grid gap="3" minItemWidth="19rem" className="recipe-collection-grid">
-    {items.map(item => <DirectoryCard key={item.id} href={`/recipes/${item.id}`} title={item.label}
-      description={item.description} icon={item.id} meta={`${item.recipes.length} recipes`} />)}
-  </Grid>;
-}
-
-export function CategoriesDirectory() {
-  return <main id="main-content" tabIndex={-1} className="discovery-page">
-    <DirectoryHeading title="Categories" description="Browse Flood recipes by industry and product type." />
-    <RecipeCollectionCards items={recipeCategories} />
-  </main>;
-}
-
-export function RecipesDirectory({ collection }: { collection?: string }) {
-  const group = recipeGroups.find(entry => entry.id === collection);
-  const taskGroups = recipeGroups.filter(entry => !entry.category);
-  return <main id="main-content" tabIndex={-1} className="discovery-page">
-    <DirectoryHeading title={group?.label ?? "Recipes"}
-      description={group?.description ?? "Working patterns for tables, forms and product workspaces."}
-      parent={group?.category ? { label: "Categories", href: "/categories" }
-        : group ? { label: "Recipes", href: "/recipes" } : undefined} />
-    <Stack gap="12">
-      {group ? <section aria-labelledby="collection-heading"><Stack gap="4">
-        <Heading id="collection-heading" level={2} size="section">Recipes in this collection</Heading>
-        <RecipeCards items={group.recipes} />
-      </Stack></section> : <>
-        <section aria-labelledby="tasks-heading"><Stack gap="4">
-          <Heading id="tasks-heading" level={2} size="section">Browse by task</Heading>
-          <RecipeCollectionCards items={taskGroups} />
-        </Stack></section>
-        <section aria-labelledby="industries-heading"><Stack gap="4">
-          <Heading id="industries-heading" level={2} size="section">Browse by category</Heading>
-          <RecipeCollectionCards items={recipeCategories} />
-        </Stack></section>
-        <section aria-labelledby="all-recipes-heading"><Stack gap="4">
-          <Heading id="all-recipes-heading" level={2} size="section">All recipes</Heading>
-          <RecipeCards items={recipes} />
-        </Stack></section>
-      </>}
-    </Stack>
-  </main>;
-}
-
-export function RecipeIntroduction({ recipe }: { recipe: Recipe }) {
-  return <Stack gap="4" className="recipe-introduction">
-    <Inline gap="2" align="center">
-      <CopyButton variant="subtle" size="sm" value={recipePrompt(recipe)} copyLabel="Copy for agent" />
-      {recipe.preview && <Link href={recipe.preview} variant="outline" size="sm">Open playground <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link>}
-      <Link href={recipe.path + ".md"} size="sm">Read Markdown</Link>
-    </Inline>
-    {recipe.uses?.length ? <section aria-label="Components in this recipe">
-      <Stack gap="2">
-        <Text size="label" className="discovery-result-name">Components used</Text>
-        <Inline gap="2">
-          {recipe.uses.map(slug => {
-            const component = directoryComponents.find(page => page.slug === slug);
-            return component && <Link key={slug} href={`/components/${slug}`} variant="ghost" size="sm">{component.name}</Link>;
-          })}
-        </Inline>
-      </Stack>
-    </section> : null}
-    {recipe.slug === "table-bulk-actions" && <section id="live-example" aria-labelledby="live-example-heading">
-      <Stack gap="3">
-        <Heading id="live-example-heading" level={2} size="section">Live example</Heading>
-        <TableBulkActions />
-      </Stack>
-    </section>}
-  </Stack>;
-}
-
-export function AgentsDirectory() {
-  return <main id="main-content" tabIndex={-1} className="discovery-page">
-    <DirectoryHeading title="Flood for coding agents" description="Give your agent the recipes and APIs that match your project." />
-    <Stack gap="12">
-      <section aria-labelledby="agent-setup-heading"><Stack gap="4">
-        <Heading id="agent-setup-heading" level={2} size="section">Setup and guidance</Heading>
-        <Grid minItemWidth="16rem">
-          <DirectoryCard href="/docs/mcp" title="Connect Flood MCP" description="Search the public catalog from Codex, Cursor, Claude Code and other clients." icon="hosting" />
-          <DirectoryCard href="/docs/skills" title="Explore skills" description="Read the guidance for component selection, layout and interface review." icon="workspace" />
-          <DirectoryCard href="/docs/agent-knowledge" title="Read the installed catalog" description="Find the matching component contract and project guidance by version." icon="content" />
-        </Grid>
-      </Stack></section>
-      <section aria-labelledby="try-agent-heading"><Stack gap="4">
-        <Heading id="try-agent-heading" level={2} size="section">Try a task</Heading>
-        <Grid minItemWidth="16rem">
-          {agentScenarios.map(item => <Surface key={item.href} padding="4" className="agent-prompt-card">
-            <Stack gap="3">
-              <Heading level={3} size="group">{item.title}</Heading>
-              <Text as="p" size="compact" tone="subtle">{item.prompt}</Text>
-              <Inline gap="2">
-                <CopyButton variant="subtle" size="sm" value={item.prompt} copyLabel="Copy prompt" aria-label={`Copy prompt for ${item.title}`} />
-                <Link href={item.href} size="sm">View example <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
-              </Inline>
-            </Stack>
-          </Surface>)}
-        </Grid>
-      </Stack></section>
+export function RecipesDirectory() {
+  const [query, setQuery] = useState("");
+  const text = query.trim().toLowerCase();
+  const matchingRecipes = recipes.filter(recipe =>
+    !text || [recipe.label, recipe.description, ...(recipe.keywords ?? [])].some(value => value.toLowerCase().includes(text)));
+  return <main id="main-content" tabIndex={-1} className="discovery-page library-directory">
+    <DirectoryHeading title="Recipes" />
+    <Stack gap="6">
+      <SearchInput className="catalog-search" aria-label="Filter recipes" placeholder="Find a recipe…"
+        value={query} onChange={event => setQuery(event.currentTarget.value)} />
+      {matchingRecipes.length ? <RecipeCards items={matchingRecipes} /> :
+        <Text role="status" tone="subtle" size="compact">No matching recipes.</Text>}
     </Stack>
   </main>;
 }

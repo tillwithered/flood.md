@@ -13,8 +13,7 @@ const release = JSON.parse(await readFile("apps/website/src/release.json", "utf8
 const highlights = JSON.parse(await readFile("apps/website/src/release-highlights.json", "utf8"));
 for (const [version, items] of Object.entries(highlights)) {
   if (!/^\d+\.\d+\.\d+$/.test(version) || !Array.isArray(items) || items.length > 3 ||
-      items.some(item => !item || !componentSlugs.includes(item.slug) || typeof item.summary !== "string" || !item.summary.trim()) ||
-      new Set(items.map(item => item.slug)).size !== items.length) {
+      items.some(slug => !componentSlugs.includes(slug)) || new Set(items).size !== items.length) {
     throw new Error(`Invalid website search highlights for ${version}`);
   }
 }

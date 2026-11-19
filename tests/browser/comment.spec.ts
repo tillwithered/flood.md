@@ -156,6 +156,16 @@ test("a reply is added inside its parent branch and leaves the editor ready", as
   const thread = page.getByRole("list", {name:"Review comments"});
   const branch = thread.locator(".flood-comment-thread__replies");
   const editor = page.getByRole("textbox", {name:"Reply",exact:true});
+  const send = page.getByRole("button", {name:"Post reply",exact:true});
+  await expect.poll(async () => {
+    const [draft, action] = await Promise.all([editor.boundingBox(), send.boundingBox()]);
+    return draft!.x + draft!.width <= action!.x;
+  }).toBe(true);
+  await page.getByRole("checkbox", {name:"CommentThread prop constrainWidth"}).check();
+  await expect.poll(async () => {
+    const [draft, action] = await Promise.all([editor.boundingBox(), send.boundingBox()]);
+    return draft!.y + draft!.height <= action!.y && draft!.width > action!.width * 2;
+  }).toBe(true);
   await expect(branch.getByRole("article")).toHaveCount(1);
   await editor.fill("The corrected export is ready.");
   await editor.press("Enter");
@@ -165,6 +175,42 @@ test("a reply is added inside its parent branch and leaves the editor ready", as
   await expect(editor).toBeFocused();
   await editor.blur();
   await thread.locator("..").screenshot({path:info.outputPath("thread-reply.png")});
+});
+
+test("a disclosed reply stays on its parent comment's track when opened in either direction", async ({page}) => {
+  await page.goto("/components/comment-thread");
+  await page.getByRole("checkbox", {name:"CommentThread prop constrainWidth"}).check();
+  await page.getByRole("checkbox", {name:"CommentThread prop discloseReplies"}).check();
+  const thread = page.getByRole("list", {name:"Review comments"});
+  const toggle = thread.getByRole("button", {name:"1 reply"});
+  const panel = thread.locator(".flood-disclosure__panel");
+  const reply = thread.getByRole("article").filter({hasText:"Sam Rivera"});
+  const geometry = () => thread.evaluate(node => {
+    const parent = node.querySelector(":scope > li > .flood-comment")!;
+    const message = parent.querySelector(".flood-comment__message")!.getBoundingClientRect();
+    const heading = node.querySelector(".flood-disclosure__heading")!;
+    const label = heading.querySelector(".flood-disclosure__title")!.getBoundingClientRect();
+    const rightToLeft = getComputedStyle(node).direction === "rtl";
+    return {
+      labelAligns: Math.abs(rightToLeft ? message.right - label.right : label.left - message.left) <= 1,
+      attachesToParent: getComputedStyle(parent, "::before").content !== "none",
+      continuesToReplies: getComputedStyle(heading, "::after").content !== "none",
+      overflows: node.scrollWidth > node.clientWidth,
+    };
+  });
+  for (const direction of ["ltr", "rtl"]) {
+    await thread.evaluate((node, dir) => {node.dir = dir;}, direction);
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(reply).toBeHidden();
+    expect(await geometry()).toEqual({labelAligns:true, attachesToParent:true, continuesToReplies:false, overflows:false});
+    await toggle.press("Enter");
+    await expect(reply).toBeVisible();
+    await expect(toggle).toBeFocused();
+    expect(await geometry()).toEqual({labelAligns:true, attachesToParent:true, continuesToReplies:true, overflows:false});
+    await toggle.press("Space");
+    await expect(panel).toBeHidden();
+    await expect(reply).toBeHidden();
+  }
 });
 
 test("comment composer shows reply context above the shared editor and posts the draft", async ({page}) => {

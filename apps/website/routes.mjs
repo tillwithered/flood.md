@@ -1,15 +1,13 @@
 /** Explicit page allowlist shared by the static server and website navigation. */
 import catalog from "./src/component-catalog.json" with { type: "json" };
 import componentGroups from "./src/component-groups.json" with { type: "json" };
-import { docPages, recipeCollections, siteOrigin } from "./site-guides.mjs";
-export { docPages, recipeCollections, siteOrigin };
+import { docPages, siteOrigin } from "./site-guides.mjs";
+export { docPages, siteOrigin };
 
 export const componentSlugs = catalog.map(component => component.slug);
 const discoveryPages = [
-  { path: "/categories", label: "Categories", description: "Explore Flood recipes by industry and product type." },
   { path: "/recipes", label: "Recipes", description: "Explore runnable interface recipes built with Flood." },
   { path: "/for-agents", label: "For agents", description: "Connect your coding agent to Flood and try a real task." },
-  ...recipeCollections.map(item => ({ ...item, path: `/recipes/${item.id}` })),
   ...componentGroups.map(item => ({ ...item, label: `${item.label} components`, path: `/components/category/${item.id}` })),
 ];
 export const pagePaths = new Set([
@@ -17,6 +15,12 @@ export const pagePaths = new Set([
   "/playground/collections/format", "/playground/collections/active-format", "/playground/collections/filter-group",
   "/playground/collections/saved-views", "/components", ...docPages.map(page => page.path),
   "/playground/records", "/playground/settings", "/playground/charts",
+  "/playground/product-variants",
+  "/playground/merge-records",
+  "/playground/import-mapping",
+  "/playground/document-review",
+  "/playground/code-editor",
+  "/playground/code-review",
   ...componentSlugs.map(slug => `/components/${slug}`), ...discoveryPages.map(page => page.path),
 ]);
 
@@ -29,6 +33,12 @@ export function pageMetadata(path) {
   const component = catalog.find(page => path === `/components/${page.slug}`);
   const discovery = discoveryPages.find(page => page.path === path);
   const playgroundLabels = {
+    "/playground/product-variants": "Product variants",
+    "/playground/merge-records": "Merge duplicate contacts",
+    "/playground/import-mapping": "Map import columns",
+    "/playground/document-review": "Document review",
+    "/playground/code-editor": "Query workspace",
+    "/playground/code-review": "Code review",
     "/playground": "Playground",
     "/playground/content": "Content playground",
     "/playground/collections": "Collections playground",

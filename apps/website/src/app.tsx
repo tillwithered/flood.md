@@ -1,11 +1,12 @@
-import { Fragment, useRef } from "react";
+import { Fragment, useRef, type RefObject } from "react";
 import { FloodRoot, Grid, ScrollArea, Skeleton, SkipLink, Stack, VisuallyHidden } from "@flood-md/react";
 import "@flood-md/react/styles.css";
 import "./site.css";
 import "./discovery.css";
 import "./site-navigation.css";
 import { Home } from "./home";
-import { AgentsDirectory, CategoriesDirectory, ComponentDirectory, RecipesDirectory } from "./discovery-pages";
+import { ComponentDirectory, RecipesDirectory } from "./discovery-pages";
+import { AgentsDirectory } from "./agents-directory";
 import { SiteHeader } from "./site-header";
 import { SiteFooter } from "./site-footer";
 import { usesDocumentation } from "../site-guides.mjs";
@@ -19,10 +20,10 @@ export function App(initial: AppProps) {
   const { route, pending } = useSiteNavigation(initial, pageScroll);
   return <ScrollArea ref={pageScroll} className="site-page-scroll" contentInset="none" tabIndex={-1}
     onFocus={event => {
-      if (event.target.matches("[data-route-focus], [data-preserve-page-scroll], [data-returned-focus]")) event.preventDefault();
+      if (event.target.matches("main[tabindex='-1'], [data-route-focus], [data-preserve-page-scroll], [data-returned-focus]")) event.preventDefault();
     }}
     data-route-arriving={route.revision > 0 && !pending || undefined}>
-    <Page {...route} pending={pending} />
+    <Page {...route} pending={pending} scrollRootRef={pageScroll} />
   </ScrollArea>;
 }
 
@@ -63,7 +64,7 @@ function RouteLoading({ path }: { path: string }) {
   </main>;
 }
 
-function Page({ path, documentation: Reader, preview, standalone, recipe, pending }: AppProps & { pending?: string }) {
+function Page({ path, documentation: Reader, preview, standalone, recipe, pending, scrollRootRef }: AppProps & { pending?: string; scrollRootRef: RefObject<HTMLDivElement | null> }) {
   if (standalone && !pending) return preview;
   const home = path === "/";
   const destination = pending ?? path;
@@ -76,11 +77,10 @@ function Page({ path, documentation: Reader, preview, standalone, recipe, pendin
         <Fragment key={path}>
           {home ? <Home /> :
             path === "/components" || path.startsWith("/components/category/") ? <ComponentDirectory family={path.split("/")[3]} /> :
-            path === "/categories" ? <CategoriesDirectory /> :
-            path === "/recipes" || path.startsWith("/recipes/") ? <RecipesDirectory collection={path.split("/")[2]} /> :
+            path === "/recipes" ? <RecipesDirectory /> :
             path === "/for-agents" ? <AgentsDirectory /> :
             recipe ? <main id="main-content" tabIndex={-1} className="recipe-playground">{preview}</main> :
-            preview ?? (Reader ? <Reader path={path} /> : <RouteLoading path={path} />)}
+            preview ?? (Reader ? <Reader path={path} scrollRootRef={scrollRootRef} /> : <RouteLoading path={path} />)}
         </Fragment>}
       <SiteFooter />
     </div>

@@ -37,4 +37,23 @@ test("documentation navigation opens a guide and preserves section links", async
   await outline.getByRole("link", { name: "Connect with the CLI" }).click();
   await expect(page).toHaveURL(/#connect-with-the-cli$/);
   await expect(page.getByRole("heading", { name: "Connect with the CLI" })).toBeInViewport();
+  await expect(outline.getByRole("link", { name: "Connect with the CLI" })).toHaveAttribute("aria-current", "location");
+});
+
+test("table of contents follows native fragments and scrolling in its own region", async ({ page }) => {
+  await page.goto("/components/table-of-contents");
+
+  const outline = page.getByRole("navigation", { name: "On this page" });
+  const viewport = page.getByRole("region", { name: "Setup guide" });
+  await expect(outline.getByRole("link", { name: "Installation" })).toHaveAttribute("aria-current", "location");
+
+  const tokens = outline.getByRole("link", { name: "Import tokens" });
+  await tokens.press("Enter");
+  await expect(page).toHaveURL(/#outline-tokens$/);
+  await expect(tokens).toHaveAttribute("aria-current", "location");
+
+  await viewport.evaluate(element => { element.scrollTop = element.scrollHeight; });
+  await expect(outline.getByRole("link", { name: "Verification" })).toHaveAttribute("aria-current", "location");
+  await expect(outline.locator('[aria-current="location"]')).toHaveCount(1);
+  await expect(page).toHaveURL(/#outline-tokens$/);
 });

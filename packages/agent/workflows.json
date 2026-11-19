@@ -140,6 +140,7 @@
         "NavigationGroup",
         "NavigationTree",
         "NavigationList",
+        "NavigationMenu",
         "AppShell",
         "AppTopBar",
         "Sidebar"
@@ -209,6 +210,7 @@
         "Select",
         "ListBox",
         "CopyButton",
+        "CodeBlock",
         "Badge",
         "UploadItem",
         "UploadList"

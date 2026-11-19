@@ -60,7 +60,7 @@ export function TableBulkActions() {
   return <Surface padding="4">
     <Section title="Projects">
       <Stack gap="4">
-        <DataTable caption="Project list" hideCaption selectable pageSize={3} page={page} onPageChange={setPage} minWidth="28rem"
+        <DataTable caption="Project list" hideCaption selectable pageSize={3} page={page} onPageChange={setPage} minWidth="14rem"
           toolbar={<CollectionToolbar ref={toolbar} label="Project filters" searchLabel="Search projects" searchValue={search} controlSize="sm" align="split"
             onSearchValueChange={value=>changeQuery(value,scope)}
             quickFilters={<Field label="Scope" hideLabel>{field=><Select {...field} controlSize="sm" value={scope}
@@ -78,15 +78,9 @@ export function TableBulkActions() {
           columns={[{id:'name',label:'Project',sortable:true},{id:'scope',label:'Scope'}]}
           rows={visible.map(project=>({id:project.id,label:project.name,selectionDisabled:project.id==='locked',cells:{name:project.name,scope:project.id==='locked'?'Protected':'Standard'}}))}
           selectedIds={selection} onSelectionChange={setSelected} showSelection={false} />
-        {selection.length>0 && <div style={{
-          position:'fixed', insetInline:0, insetBlockEnd:'var(--flood-sys-space-4)', marginInline:'auto',
-          inlineSize:'max-content', maxInlineSize:'calc(100% - 2 * var(--flood-sys-space-4))',
-          zIndex:'var(--flood-sys-layer-sticky)',
-        }}>
-          <BulkActionBar label="Bulk project actions" selectionCount={selection.length}
-            items={[{id:'archive',label:'Archive projects'}]} onAction={()=>setProposal([...selection])}
-            onClear={()=>{getSearchInput()?.focus({preventScroll:true});setSelected([]);}} />
-        </div>}
+        <BulkActionBar label="Bulk project actions" selectionCount={selection.length} placement="viewport"
+          items={[{id:'archive',label:'Archive projects'}]} onAction={()=>setProposal([...selection])}
+          onClear={()=>{getSearchInput()?.focus({preventScroll:true});setSelected([]);}} />
         <AlertDialog open={proposal!==null} onOpenChange={open=>{if(!open)setProposal(null);}}
           trigger={()=>null} title="Archive selected projects?"
           description={`${proposal?.length??0} selected projects will leave this list.`}

@@ -1,16 +1,8 @@
 {
+  "0.2.15": ["navigation-menu", "code-block", "select"],
   "0.2.14": [
-    {
-      "slug": "message-composer",
-      "summary": "Write and send messages with attachments."
-    },
-    {
-      "slug": "comparison-table",
-      "summary": "Compare options against the same criteria."
-    },
-    {
-      "slug": "image-gallery",
-      "summary": "Inspect images in one dialog with a thumbnail rail."
-    }
+    "message-composer",
+    "comparison-table",
+    "image-gallery"
   ]
 }

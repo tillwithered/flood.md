@@ -22,7 +22,21 @@ Use TruncatedText for a passive plain-text value once its visible prefix is
 enough to recognize it. In SettingRow, opt in with valueOverflow=truncate.
 Tabs reach the full-value tooltip only when the line clips. For a command,
 keep the tooltip on the existing action target.
+
+Use Heading wrap=balance for short multiline titles, and Text as=p wrap=pretty
+for supporting prose when the final line reads awkwardly. Compare the same
+copy and width before choosing. Keep normal wrapping for controls and dense
+data. Browser-specific wrapping improvements fall back to ordinary wrapping.
+
+Use HighlightText to show the matching part of a visible search result.
+Keep the title or excerpt readable with an empty query and where the result
+matched a synonym or metadata that is absent from the visible text.
 | Amounts, timings and counts compared down a column | Align values to the same edge, use tabular figures when supported, and place a shared unit in the header when the scope stays clear. Keep sign and value together. | Check missing, signed and larger values using the host locale. Preserve an explicit currency on mixed-currency rows. |
+
+Use NumericValue for locale-formatted numbers. When updates move nearby
+content, reserve a representative width that includes the sign, separators
+and unit in the active locale. Check a digit-count boundary and a value
+that legitimately exceeds the reservation.
 
 Review the glyphs on the rendered surface. Font size declarations alone miss
 weight, line height, contrast and the space a line break occupies. Use softer
@@ -33,9 +47,10 @@ scoped through Flood's typography roles and token customizations.
 Use ExpandableText for an optional, multi-line plain-text excerpt in a card,
 comment or feed. Keep the first lines useful and the full passage available
 in place. Render text needed for the next decision in full. Use Collapsible
-for rich content with links or controls. Keep the disclosure action beside
-the ellipsis at the end of the excerpt. Check short copy, long copy and keyboard focus after expanding or
-collapsing, then widen the example until the toggle disappears.
+for rich content with links or controls. Reserve space on the final line for
+the ellipsis and inline disclosure label. Keep the line height the same as
+the surrounding prose. Check short copy, long copy and keyboard focus after
+expanding or collapsing, then widen the example until the toggle disappears.
 
 Typographic roles and readable measure draw on Ruder and Lupton. Use them to
 choose which role to change, and exercise both scanning and full reading with

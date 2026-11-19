@@ -1,4 +1,4 @@
-import { CodeSnippet, CopyButton, Heading, Link, Text } from "@flood-md/react";
+import { CodeSnippet, CopyButton, Heading, Inline, Link, Text } from "@flood-md/react";
 import release from "./release.json";
 
 const command = `npx @flood-md/cli@${release.version} init`;
@@ -16,7 +16,10 @@ export function Home() {
       <div className="home-install">
         {release.published ? <CodeSnippet code={command} prompt="$" aria-label="Installation command"
           action={<CopyButton value={command} iconOnly size="sm" variant="ghost" aria-label="Copy installation command" />} /> : null}
-        <Link href="/docs/installation" className="home-install-link">Install Flood</Link>
+        <Inline gap="4" className="home-destinations">
+          <Link href="/docs/installation" className="home-install-link">Install Flood</Link>
+          <Link href="/components" className="home-install-link">Browse components</Link>
+        </Inline>
       </div>
     </section>
   </main>;

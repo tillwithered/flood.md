@@ -1,11 +1,13 @@
-import { forwardRef } from "react";
+import { forwardRef, useImperativeHandle, useRef } from "react";
 import { parseDate } from "./date-value.js";
-import type { TimestampProps } from "./index.js";
+import { mergeDescriptions } from "./field-state.js";
+import type { TimestampProps, TooltipTriggerProps } from "./index.js";
+import { AnchoredOverlay } from "./overlays.js";
 
-function parseInstant(value: string): Date {
+export function parseInstant(value: string, owner = "Timestamp"): Date {
   const parts = /^(\d{4}-\d{2}-\d{2})(T(?:[01]\d|2[0-3]):[0-5]\d)(?::([0-5]\d)(?:\.(\d+))?)?(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.exec(value);
   if (!parts || !parseDate(parts[1])) {
-    throw new Error("Flood Timestamp requires an ISO timestamp with an explicit offset");
+    throw new Error(`Flood ${owner} requires an ISO timestamp with an explicit offset`);
   }
   const [, date, time, seconds = "00", fraction, offset] = parts;
   const milliseconds = fraction ? `.${fraction.slice(0, 3).padEnd(3, "0")}` : "";
@@ -38,10 +40,35 @@ function formatTimestamp(dateTime: string, format: NonNullable<TimestampProps["f
 }
 
 export const EventTimestamp = /* @__PURE__ */ forwardRef<HTMLTimeElement, TimestampProps>(function EventTimestamp({
-  dateTime, children, format = "date", relativeTo, timeZone = "UTC", lang, size = "helper", className, ...props
+  dateTime, children, format = "date", relativeTo, showExactTime = false, timeZone = "UTC", lang, size = "helper", className, ...props
 }, ref) {
   const locale = lang || "en";
   const content = children ?? formatTimestamp(dateTime, format, locale, timeZone, relativeTo);
-  return <time {...props} ref={ref} dateTime={dateTime} lang={children == null ? locale : lang}
-    className={["flood-timestamp", className].filter(Boolean).join(" ")} data-size={size}>{content}</time>;
+  const hasExactTime = showExactTime && relativeTo !== undefined && !props.hidden;
+  const time = useRef<HTMLTimeElement>(null);
+  useImperativeHandle(ref, () => time.current!, [hasExactTime]);
+
+  function renderTime(trigger?: TooltipTriggerProps) {
+    return <time {...props}
+      ref={node => { time.current = node; trigger?.ref(node); }}
+      dateTime={dateTime} lang={children == null ? locale : lang}
+      className={["flood-timestamp", className].filter(Boolean).join(" ")} data-size={size}
+      data-exact-time={trigger ? "" : undefined}
+      tabIndex={props.tabIndex ?? (trigger ? 0 : undefined)}
+      aria-describedby={mergeDescriptions(props["aria-describedby"], trigger?.["aria-describedby"])}
+      onPointerEnter={trigger ? event => { props.onPointerEnter?.(event); trigger.onPointerEnter?.(event); } : props.onPointerEnter}
+      onPointerLeave={trigger ? event => { props.onPointerLeave?.(event); trigger.onPointerLeave?.(event); } : props.onPointerLeave}
+      onFocus={trigger ? event => { props.onFocus?.(event); trigger.onFocus?.(event); } : props.onFocus}
+      onBlur={trigger ? event => { props.onBlur?.(event); trigger.onBlur?.(event); } : props.onBlur}>
+      {content}
+    </time>;
+  }
+
+  if (!hasExactTime) return renderTime();
+  const exact = new Intl.DateTimeFormat(locale, {
+    timeZone, year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+    second: "2-digit", timeZoneName: "short",
+  }).format(parseInstant(dateTime));
+  return <AnchoredOverlay kind="tooltip" inlineTooltip side="top" align="center" content={exact}
+    lang={locale} dir={props.dir} trigger={renderTime} />;
 });

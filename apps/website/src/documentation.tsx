@@ -1,15 +1,14 @@
-import { RecipeIntroduction } from "./discovery-pages";
-import { recipeByPath, recipes } from "./recipe-directory";
+import { recipeByPath, recipePrompt, recipes } from "./recipe-directory";
 import { isValidElement, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ArrowLeft, ArrowRight, ArrowUpRight, List } from "lucide-react";
-import { Breadcrumb, Button, CodeSnippet, Collapsible, Drawer, Heading, IconButton, IconSlot, Inline, KeyboardShortcut, Link, NavigationItem, PageHeader, ScrollArea, SearchInput, Select, SegmentedControl, Sheet, Stack, Surface, Text } from "@flood-md/react";
+import { Breadcrumb, Button, Collapsible, Drawer, Heading, IconButton, IconSlot, Inline, KeyboardShortcut, Link, NavigationItem, PageHeader, ScrollArea, SearchInput, Select, SegmentedControl, Sheet, Stack, Text } from "@flood-md/react";
 import { docPages, siteOrigin } from "../site-guides.mjs";
 import { componentPages, componentGroups, matchesComponent } from "./component-catalog";
 import { ComponentWorkbench } from "./component-workbench";
 import { CodeBlock, CopyButton } from "./code-block";
-import { AgentConnection, connectionSections } from "./agent-connection";
+import { connectionSections } from "./agent-setup-content";
 import { DocsNavigation, GuideOutline, MobileDocsNavigation } from "./docs-navigation";
 import { compactNavigation, phoneViewport, useStudioMedia } from "./studio-media";
 import { usageCode, componentMarkdown } from "../component-docs.mjs";
@@ -17,6 +16,8 @@ import content from "./generated/content.json";
 import { projectAdapters } from "../project-imports.mjs";
 import ChartsPlayground from "./charts-playground";
 import release from "./release.json";
+import { TableBulkActions } from "./recipes/table-bulk-actions";
+import "./reader.css";
 
 const sources: Record<string, string> = content.docs;
 const repository = "https://github.com/tillwithered/flood.md";
@@ -112,7 +113,7 @@ function ComponentNavigation({ path, query, onQueryChange, initialFocusRef }: { 
   </nav>;
 }
 
-export default function Documentation({ path }: { path: string }) {
+export default function Documentation({ path, scrollRootRef }: { path: string; scrollRootRef?: RefObject<HTMLDivElement | null> }) {
   const doc = docPages.find(page => page.path === path);
   const component = componentPages.find(page => path === `/components/${page.slug}`);
   const [query, setQuery] = useState("");
@@ -182,17 +183,19 @@ export default function Documentation({ path }: { path: string }) {
   const title = doc?.label ?? component?.name ?? "Page not found";
   const description = doc?.description ?? component?.description;
   const raw = doc ? sources[doc.file] : "";
-  const markdown = raw?.replace(/^# .*\r?\n/, "") ?? "";
-  const connection = doc?.file === "mcp.md" ? connectionSections(markdown) : null;
+  const documentSource = raw?.replace(/^# .*\r?\n/, "") ?? "";
+  const mcpReference = doc?.file === "mcp.md";
+  const markdown = mcpReference ? connectionSections(documentSource).reference || documentSource : documentSource;
   const [importMode, setImportMode] = useState<"package" | "project">("package");
   const [exampleImports, setExampleImports] = useState(() => component ? ["FloodRoot", ...component.imports.filter(name => componentPages.some(page => page.name === name))] : []);
   const [exampleCode, setExampleCode] = useState(() => component ? usageCode(component) : "");
   const docSections = doc ? sections(markdown) : [];
-  if (recipe?.slug === "table-bulk-actions") docSections.unshift({ id: "live-example", label: "Live example", line: -1 });
+  const hasLiveRecipe = recipe?.slug === "table-bulk-actions";
+  if (hasLiveRecipe) docSections.unshift({ id: "live-example", label: "Live example", line: -1 });
   const toc = doc ? (doc.file === "charts.md" ? [...docSections, { id: "latency-example", label: "Request latency example" }] : docSections) : component
     ? [{ id: "preview", label: "Component lab" }, { id: "usage", label: "Use in your project" }, { id: "design-notes", label: "Design notes" }, { id: "api", label: "API reference" }]
     : [];
-  const ordered = [...docPages.map(page => ({ path: page.path, name: page.label })), { path: "/components", name: "Components" }, ...componentGroups.flatMap(group => group.components).map(page => ({ path: `/components/${page.slug}`, name: page.name }))];
+  const ordered = docPages.filter(page => (page.group === "recipes") === Boolean(recipe));
   const current = ordered.findIndex(page => page.path === path);
   const previous = ordered[current - 1]; const next = ordered[current + 1];
   const pageMarkdown = component ? componentMarkdown(component, exampleCode) + (importMode === "project" ? `\n## Project UI setup\n\n${projectAdapters(exampleImports)}` : "") : "";
@@ -204,15 +207,7 @@ export default function Documentation({ path }: { path: string }) {
     `The example below reflects the current playground settings. Keep native semantics and accessibility, import Flood styles once, and use semantic tokens before overrides. Do not invent unavailable components or claim that source-only APIs are already published.\n\n${pageMarkdown}`;
   const renderMarkdown = (source: string) => <div className="markdown-content"><Markdown remarkPlugins={[remarkGfm]} skipHtml components={{
     a: ({ href, children }) => <Link href={markdownLink(href)}>{children}</Link>,
-    pre: ({ children }) => {
-      if (connection && isValidElement<{ className?: string }>(children) && children.props.className === "language-sh") {
-        const command = textOf(children).trim();
-        return <CodeSnippet className="agent-install-command" code={command} prompt="$" action={
-          <CopyButton value={command} label="Copy installation command" text="Copy" errorText="Select the command to copy it manually." />
-        } />;
-      }
-      return <MarkdownCodeBlock>{children}</MarkdownCodeBlock>;
-    },
+    pre: ({ children }) => <MarkdownCodeBlock>{children}</MarkdownCodeBlock>,
     h2: ({ children, node }) => <h2 id={(source === markdown ? toc.find(section => "line" in section && section.line === node?.position?.start.line)?.id : undefined) ?? slug(textOf(children))}>{children}</h2>,
     table: ({ children, node }) => {
       const line = node?.position?.start.line ?? 0;
@@ -252,30 +247,39 @@ export default function Documentation({ path }: { path: string }) {
           <Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link><Link href="/agent/SKILL.md">Agent skill</Link><Link href="/docs/mcp">Connect your agent</Link></Inline>
           </div>
   );
-  return <div className="docs-layout" data-preview-layout={workspacePreview ? "workspace" : undefined}>
+  return <div className="docs-layout" data-preview-layout={workspacePreview ? "workspace" : undefined} data-reader={doc ? "" : undefined}>
     {(doc || component) && <aside className="desktop-sidebar" id={workspacePreview ? "studio-catalog" : undefined} aria-label={doc ? "Documentation navigation" : "Component navigation"}>
       <ScrollArea contentInset={doc ? "scrollbar" : "none"} aria-label={doc ? "Documentation sections scroll" : "Component list scroll"} className={doc ? "guide-navigation-scroll" : undefined} style={component ? { maxHeight: "100%" } : undefined}>
         {doc ? <DocsNavigation path={path} /> : <ComponentNavigation path={path} query={query} onQueryChange={setQuery} />}
       </ScrollArea>
     </aside>}
     <div className="doc-center">
-      {doc && <MobileDocsNavigation path={path} />}
       <main tabIndex={-1} id="main-content" className="doc-article">
-        {recipe && <div className="doc-breadcrumb"><Breadcrumb label="Page breadcrumb"
-          items={[{ label: "Recipes", href: "/recipes" }, { label: title }]} /></div>}
         {component && <div className="doc-breadcrumb"><Breadcrumb label="Page breadcrumb" layout="compact" maxVisibleItems={3} items={[
           { label: "Components", href: "/components" },
-          { label: componentGroups.find(group => group.id === component.group)?.label ?? component.group, href: `/components/category/${component.group}` },
+          { label: componentGroups.find(group => group.id === component.group)?.label ?? component.group, href: `/components#${component.group}` },
           { label: title },
         ]} /></div>}
-        {!workspacePreview && <PageHeader className="doc-heading" title={title} description={description} />}
-        {doc && <GuideOutline items={toc} mobile />}
+        {!workspacePreview && <PageHeader className="doc-heading" title={title}
+          description={doc?.file === "README.md" ? undefined : description}
+          actions={recipe && <CopyButton value={recipePrompt(recipe)} label="Copy for agent" text="Copy for agent"
+            errorText="Share the recipe Markdown with your agent." />} />}
+        {doc && <div className="reader-utilities">
+          <MobileDocsNavigation path={path} />
+          <GuideOutline items={toc} scrollRootRef={scrollRootRef} mobile />
+        </div>}
         <div className="doc-body">
-        {recipe && <RecipeIntroduction recipe={recipe} />}
-        {doc && (connection
-          ? <AgentConnection {...connection} markdown={markdown} renderMarkdown={renderMarkdown} />
-          : renderMarkdown(markdown))}
-        {doc?.file === "charts.md" && <section id="latency-example" className="chart-guide-example" aria-label="Request latency example">
+        {hasLiveRecipe && <section id="live-example" className="reader-live-example" aria-labelledby="live-example-heading">
+          <Stack gap="3">
+            <Heading id="live-example-heading" level={2} size="section">Live example</Heading>
+            <div className="site-preview-frame"><TableBulkActions /></div>
+          </Stack>
+        </section>}
+        {mcpReference && <p id="set-up-your-client" className="reader-setup-link">
+          <Link id="try-flood" href="/for-agents#connect-flood">Client setup <IconSlot size="sm"><ArrowRight /></IconSlot></Link>
+        </p>}
+        {doc && renderMarkdown(markdown)}
+        {doc?.file === "charts.md" && <section id="latency-example" className="chart-guide-example site-preview-frame" aria-label="Request latency example">
           <ChartsPlayground headingLevel={2} />
         </section>}
         {component && <>
@@ -305,14 +309,17 @@ export default function Documentation({ path }: { path: string }) {
         </>}
         {!doc && !component && <Link href="/docs">Back to documentation</Link>}
         </div>
-        {doc && <><Inline gap="4" className="doc-resources"><Link href={`${path}.md`}>Page Markdown</Link></Inline>
+        {doc && <><Inline gap="4" className="doc-resources">
+          <Link href={`${path}.md`}>Page Markdown</Link>
+          {recipe?.preview && <Link href={recipe.preview}>Open playground <IconSlot size="sm"><ArrowUpRight /></IconSlot></Link>}
+        </Inline>
         <nav aria-label="Previous and next page"><Inline gap="4" className="doc-pagination">
-          {previous && <Link href={previous.path} variant="subtle" size="sm"><IconSlot size="sm"><ArrowLeft /></IconSlot><Text style={{font:"inherit"}}>{previous.name}</Text></Link>}
-          {next && <Link href={next.path} variant="subtle" size="sm" style={{marginInlineStart:"auto"}}><Text style={{font:"inherit"}}>{next.name}</Text><IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
+          {previous && <Link href={previous.path} variant="ghost" size="sm"><IconSlot size="sm"><ArrowLeft /></IconSlot>{previous.label}</Link>}
+          {next && <Link href={next.path} variant="ghost" size="sm" style={{marginInlineStart:"auto"}}>{next.label}<IconSlot size="sm"><ArrowRight /></IconSlot></Link>}
         </Inline>
         </nav></>}
       </main>
     </div>
-    {doc && <GuideOutline items={toc} />}
+    {doc && <GuideOutline items={toc} scrollRootRef={scrollRootRef} />}
   </div>;
 }

@@ -1,0 +1,19 @@
+.flood-root .flood-project-update {
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-project-update__identity {
+  flex: 1 1 14rem;
+}
+
+.flood-root .flood-project-update__body {
+  max-inline-size: 70ch;
+}
+
+.flood-root .flood-project-update__body > :where(p, ul, ol):first-child {
+  margin-block-start: 0;
+}
+
+.flood-root .flood-project-update__body > :where(p, ul, ol):last-child {
+  margin-block-end: 0;
+}

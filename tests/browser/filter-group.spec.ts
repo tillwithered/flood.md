@@ -11,6 +11,26 @@ async function open(page:Page){
 }
 const ids=(group:ReturnType<Page['locator']>)=>group.locator('[data-filter-condition-id]').evaluateAll(rows=>rows.map(row=>(row as HTMLElement).dataset.filterConditionId));
 
+test('typed conditions use their own operators and keep stable row identity',async({page},info)=>{
+  const group=await open(page);
+  await chooseSelectOption(page.getByRole('combobox',{name:'FilterGroup prop mode',exact:true}),'typed');
+  const initial=await ids(group);
+  const amount=group.getByRole('spinbutton',{name:'Condition 1 values',exact:true});
+  const title=group.getByRole('textbox',{name:'Condition 2 values',exact:true});
+  await amount.fill('1250');
+  await chooseSelectOption(group.getByRole('combobox',{name:'Condition 1 operator',exact:true}),'at-most');
+  await expect(amount).toHaveValue('1250');
+  await expect(title).toHaveValue('Design');
+  await group.getByRole('button',{name:'Add condition',exact:true}).click();
+  await expect(group.getByRole('combobox',{name:'Condition 3 property',exact:true})).toBeFocused();
+  await expect(group.getByRole('group',{name:'Condition 3 values',exact:true})).toBeVisible();
+  await chooseSelectOption(group.getByRole('combobox',{name:'Condition 3 operator',exact:true}),'after');
+  expect((await ids(group)).slice(0,2)).toEqual(initial);
+  await group.screenshot({path:info.outputPath('typed-filter-group.png')});
+  await group.getByRole('button',{name:'Remove condition 3',exact:true}).click();
+  expect(await ids(group)).toEqual(initial);
+});
+
 test('accepted row management preserves IDs and matching, with useful addition/removal focus and a minimal empty state',async({page})=>{
   const group=await open(page),initial=await ids(group);
   await group.getByRole('radio',{name:'Any condition',exact:true}).check();

@@ -1,0 +1,69 @@
+.flood-root .flood-dependency-graph { min-inline-size: 0; }
+.flood-root .flood-dependency-graph__canvas {
+  position: relative;
+  inline-size: max-content;
+  min-inline-size: 100%;
+  box-sizing: border-box;
+  padding: var(--flood-sys-space-2);
+}
+.flood-root .flood-dependency-graph__columns {
+  position: relative;
+  grid-template-columns: repeat(var(--flood-dependency-columns), minmax(10rem, 13rem));
+  align-items: center;
+  justify-content: center;
+}
+.flood-root .flood-dependency-graph__column { display: grid; gap: var(--flood-sys-space-3); }
+.flood-root .flood-dependency-graph__record { min-inline-size: 0; }
+.flood-root .flood-dependency-graph__node {
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-radius: var(--flood-sys-radius-field);
+  overflow-wrap: anywhere;
+}
+.flood-root .flood-dependency-graph[data-presentation="graph"] .flood-dependency-graph__record[data-active] .flood-dependency-graph__node {
+  border-color: color-mix(in srgb, var(--flood-sys-color-accent-content), var(--flood-sys-color-border-decorative));
+}
+.flood-root .flood-dependency-graph[data-presentation="list"] .flood-dependency-graph__record[data-active] {
+  background: var(--flood-sys-color-selection-background);
+  border-radius: var(--flood-sys-radius-field);
+}
+.flood-root .flood-dependency-graph[data-presentation="list"] .flood-dependency-graph__record {
+  --flood-data-row-padding: var(--flood-sys-space-2);
+  padding-inline: var(--flood-sys-space-3);
+}
+@container flood-data-list (width > 30rem) {
+  .flood-root .flood-dependency-graph[data-presentation="list"] .flood-data-list-item__copy {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+    align-items: center;
+    column-gap: var(--flood-sys-space-3);
+  }
+}
+.flood-root .flood-dependency-graph__action {
+  align-self: flex-start;
+  max-inline-size: 100%;
+  margin-inline-start: calc(-1 * var(--flood-control-padding));
+  white-space: normal;
+  text-align: start;
+}
+.flood-root .flood-dependency-graph__connections {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.flood-root .flood-dependency-graph__connections path {
+  fill: none;
+  stroke: var(--flood-sys-color-content-subtle);
+  stroke-opacity: .43;
+  stroke-width: var(--flood-sys-stroke-width);
+  vector-effect: non-scaling-stroke;
+}
+.flood-root .flood-dependency-graph__connections path[data-active] {
+  stroke: var(--flood-sys-color-accent-content);
+  stroke-opacity: 1;
+}
+@media (forced-colors: active) {
+  .flood-root .flood-dependency-graph__connections path { stroke: CanvasText; stroke-opacity: 1; }
+  .flood-root .flood-dependency-graph__connections path[data-active] { stroke: Highlight; }
+}

@@ -1,18 +1,16 @@
 import catalog from "./generated/component-summaries.json";
 import groups from "./component-groups.json";
 import { docPages } from "../site-guides.mjs";
-import { recipeByPath, recipeGroups } from "./recipe-directory";
+import { recipeByPath } from "./recipe-directory";
 import release from "./release.json";
 import releaseHighlights from "./release-highlights.json";
-
 type Kind = "Component" | "Recipe" | "Guide" | "Collection";
-export type SearchScope = "all" | "categories" | "components" | "recipes" | "docs";
+export type SearchScope = "all" | "components" | "recipes" | "docs";
 type Entry = {
   id: string;
   label: string;
   kind: Kind;
-  scope: Exclude<SearchScope, "all" | "categories">;
-  category?: boolean;
+  scope: Exclude<SearchScope, "all">;
   description: string;
   aliases?: readonly string[];
   context?: string;
@@ -30,14 +28,18 @@ const guideAliases: Record<string, readonly string[]> = {
   "/docs/installation": ["install Flood", "install CLI", "get started", "set up Flood", "add Flood to React", "установка"],
   "/docs/foundations": ["design tokens", "typography", "color tokens", "spacing tokens"],
   "/docs/theming": ["change theme", "custom theme", "dark mode", "theme colors"],
-  "/docs/mcp": ["connect agent", "set up MCP", "Flood MCP", "coding agent integration"],
+  "/docs/mcp": ["MCP tools", "MCP transport", "MCP protocol"],
   "/docs/agents": ["agent instructions", "agent setup", "coding agent guide"],
 };
-const highlightsByVersion: Record<string, readonly { slug: string }[]> = releaseHighlights;
-const highlightedSlugs = new Set(highlightsByVersion[release.version]?.map(highlight => highlight.slug));
+const highlightsByVersion: Record<string, readonly string[]> = releaseHighlights;
+const highlightedSlugs = new Set(highlightsByVersion[release.version]);
 const releaseAliases = ["what's new", "new components", `release ${release.version}`];
 
 const entries: Entry[] = [
+  { id: "/for-agents", label: "Connect your agent", kind: "Guide", scope: "docs",
+    description: "Set up Flood MCP in your coding agent.", aliases: ["connect agent", "set up MCP", "Flood MCP", "coding agent integration"] },
+  { id: "/recipes", label: "Recipes", kind: "Collection", scope: "recipes",
+    description: "Browse examples of composing Flood components." },
   ...catalog.map(page => ({
     id: "/components/" + page.slug, label: page.name, kind: "Component" as const, scope: "components" as const,
     description: page.description, aliases: highlightedSlugs.has(page.slug) ? [page.slug, ...releaseAliases] : [page.slug],
@@ -49,12 +51,8 @@ const entries: Entry[] = [
       scope: recipe ? "recipes" as const : "docs" as const,
       aliases: recipe?.keywords ?? guideAliases[page.path] };
   }),
-  ...recipeGroups.map(group => ({
-    id: "/recipes/" + group.id, label: group.label, description: group.description, kind: "Collection" as const, scope: "recipes" as const,
-    aliases: [group.id], category: group.category,
-  })),
   ...groups.map(group => ({
-    id: "/components/category/" + group.id, label: group.label + " components",
+    id: "/components#" + group.id, label: group.label + " components",
     description: group.description, aliases: [group.label], kind: "Collection" as const, scope: "components" as const,
   })),
 ];
@@ -98,7 +96,7 @@ export function searchSite(query: string, scope: SearchScope): Entry[] {
   const joined = compact(phrase);
   const intentKey = terms.join("");
   return indexed.flatMap(({ entry, titleKey, aliasKeys, titleTerms, aliasTerms, names, words }) => {
-    if (scope === "categories" ? !entry.category : scope !== "all" && scope !== entry.scope) return [];
+    if (scope !== "all" && scope !== entry.scope) return [];
     if (titleKey === joined) return [{ entry, score: 100 }];
     if (aliasKeys.has(joined) || aliasKeys.has(intentKey)) return [{ entry, score: 95 }];
     if (titleKey.startsWith(joined)) return [{ entry, score: 90 }];

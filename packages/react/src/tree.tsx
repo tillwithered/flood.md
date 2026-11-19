@@ -1,6 +1,6 @@
 import {forwardRef,useEffect,useId,useImperativeHandle,useLayoutEffect,useRef,useState} from "react";
 import type {CSSProperties} from "react";
-import type {TreeItem,TreeProps} from "./index.js";
+import {IconButton,Toggle,type TreeItem,type TreeProps} from "./index.js";
 
 const useBrowserLayoutEffect=typeof window==="undefined"?useEffect:useLayoutEffect;
 const searchable=(value:string)=>value.normalize("NFKD").replace(/\p{M}/gu,"").toLocaleLowerCase();
@@ -20,6 +20,9 @@ export const SelectionTree=/* @__PURE__ */ forwardRef<HTMLDivElement,TreeProps>(
     if(level>256)throw new Error("Flood Tree nesting exceeds the supported depth");
     siblings.forEach((item,index)=>{
       if(!item.value.trim()||!item.label.trim()||all.has(item.value))throw new Error("Flood Tree items require globally unique nonempty values and labels");
+      if(item.actions&&(new Set(item.actions.map(action=>action.id)).size!==item.actions.length||
+        item.actions.some(action=>!action.id.trim()||!action.label.trim())))
+        throw new Error("Flood Tree actions require named controls and unique IDs within each item");
       all.set(item.value,{item,parent,level,position:index+1,size:siblings.length,branch:!!item.hasChildren||!!item.loading||!!item.children?.length});
       if(item.children)collect(item.children,item.value,level+1);
     });
@@ -40,7 +43,7 @@ export const SelectionTree=/* @__PURE__ */ forwardRef<HTMLDivElement,TreeProps>(
   const [focused,setFocused]=useState<string>();
   const [direction,setDirection]=useState("ltr");
   const document=root.current?.ownerDocument,domFocused=document?.activeElement as HTMLElement|null|undefined;
-  const wasFocused=!!domFocused&&!!root.current?.contains(domFocused)&&domFocused.hasAttribute("data-tree-value");
+  const wasFocused=!!domFocused&&!!root.current?.contains(domFocused)&&!!domFocused.closest("[data-tree-value]");
   let active=focused&&visibleValues.has(focused)?focused:undefined;
   if(!active&&focused){
     let ancestor=all.get(focused)?.parent??previous.current.all.get(focused)?.parent;
@@ -63,7 +66,8 @@ export const SelectionTree=/* @__PURE__ */ forwardRef<HTMLDivElement,TreeProps>(
     if(focused!==active)setFocused(active);
     const current=document?.activeElement;
     if(wasFocused&&!disabled&&(current===document?.body||!!current&&!!root.current?.contains(current))){
-      if(active&&nodes.current.get(active)!==current)nodes.current.get(active)?.focus({preventScroll:true});
+      const currentValue=current?.closest<HTMLElement>("[data-tree-value]")?.dataset.treeValue;
+      if(active&&(currentValue!==active||current?.matches(":disabled")))nodes.current.get(active)?.focus({preventScroll:true});
       else if(!active&&tree.current!==current)tree.current?.focus({preventScroll:true});
     }
   });
@@ -98,6 +102,17 @@ export const SelectionTree=/* @__PURE__ */ forwardRef<HTMLDivElement,TreeProps>(
         <span className="flood-tree__disclosure" data-tree-toggle={entry.branch?"true":undefined} aria-hidden="true">{entry.branch&&<svg viewBox="0 0 24 24" fill="none" className="flood-tree__chevron" data-expanded={open||undefined}><path d="m9 5 7 7-7 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}</span>
         {item.icon!=null&&<span className="flood-tree__icon" aria-hidden="true">{item.icon}</span>}
         <span className="flood-tree__text"><span id={`${itemId(item.value)}-label`} className="flood-tree__label">{item.label}</span>{item.description&&<> <span id={`${itemId(item.value)}-description`} className="flood-tree__description">{item.description}</span></>}</span>
+        {!!item.actions?.length&&<span className="flood-tree__actions" data-tree-actions>
+          {item.actions.map(action=>{
+            const inactive=disabled||readOnly||item.disabled||item.readOnly||action.disabled;
+            const control={size:"xs" as const,variant:"ghost" as const,disabled:inactive,
+              tabIndex:!inactive&&active===item.value?0:-1,title:action.label};
+            return action.kind==="toggle"
+              ? <Toggle key={action.id} {...control} iconOnly aria-label={action.label} pressed={action.pressed}
+                  onPressedChange={action.onPressedChange}>{action.icon}</Toggle>
+              : <IconButton key={action.id} {...control} label={action.label} onClick={action.onAction}>{action.icon}</IconButton>;
+          })}
+        </span>}
       </div>
       </div>
       {open&&!!item.children?.length&&<div id={`${itemId(item.value)}-group`} role="group" className="flood-tree__group">{render(item.children)}</div>}
@@ -107,14 +122,20 @@ export const SelectionTree=/* @__PURE__ */ forwardRef<HTMLDivElement,TreeProps>(
   return <div {...props} id={id} ref={root} className={["flood-tree",`flood-control--${controlSize}`,className].filter(Boolean).join(" ")} data-disabled={disabled||undefined} data-readonly={readOnly||undefined} data-tree-direction={direction}
     onFocus={event=>{onFocus?.(event);const entry=eventEntry(event.target);if(entry)setFocused(entry.item.value);}}
     onBlur={onBlur} onClick={event=>{
-      onClick?.(event);if(event.defaultPrevented||disabled)return;const entry=eventEntry(event.target);if(!entry)return;
+      onClick?.(event);if(event.defaultPrevented||disabled)return;
+      const entry=eventEntry(event.target);if(!entry||(event.target as Element).closest("[data-tree-actions]"))return;
       focusItem(entry.item.value);if(event.detail>1)return;
       if((event.target as Element).closest("[data-tree-toggle='true']"))toggle(entry);else if(entry.item.selectable===false&&entry.branch)toggle(entry);else select(entry);
     }} onDoubleClick={event=>{
-      onDoubleClick?.(event);if(event.defaultPrevented||disabled)return;const entry=eventEntry(event.target);if(entry&&entry.item.selectable!==false&&!(event.target as Element).closest("[data-tree-toggle='true']"))toggle(entry);
+      onDoubleClick?.(event);if(event.defaultPrevented||disabled)return;
+      const entry=eventEntry(event.target);if(entry&&entry.item.selectable!==false&&!(event.target as Element).closest("[data-tree-actions],[data-tree-toggle='true']"))toggle(entry);
     }} onKeyDown={event=>{
       onKeyDown?.(event);if(event.defaultPrevented||disabled||event.nativeEvent.isComposing||event.keyCode===229||event.altKey||event.ctrlKey||event.metaKey||(event.shiftKey&&event.key.length!==1))return;
       const entry=eventEntry(event.target);if(!entry)return;const index=visible.findIndex(item=>item.item.value===entry.item.value);
+      if((event.target as Element).closest("[data-tree-actions]")){
+        if(event.key==="Escape"){event.preventDefault();event.stopPropagation();focusItem(entry.item.value);}
+        return;
+      }
       const rtl=root.current?.ownerDocument.defaultView!.getComputedStyle(root.current).direction==="rtl";
       const forward=rtl?"ArrowLeft":"ArrowRight",back=rtl?"ArrowRight":"ArrowLeft";
       if(event.key==="ArrowDown"||event.key==="ArrowUp"||event.key==="Home"||event.key==="End"){

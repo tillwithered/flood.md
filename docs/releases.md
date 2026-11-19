@@ -105,7 +105,7 @@ changes into a reviewed candidate and choose its version deliberately.
 
 For the website search panel, add up to three component highlights for the
 candidate version in `apps/website/src/release-highlights.json`. Use catalog slugs
-and short descriptions that match the release notes. The panel shows these as
+for components featured in the release notes. The panel shows these as
 preview items until `apps/website/src/release.json` marks the version published.
 
 For an interactive first release, npm 12 staged publishing can submit tarballs

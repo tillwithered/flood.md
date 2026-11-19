@@ -11,16 +11,58 @@ object selection; Tabs for associated panels; Accordion/Collapsible for disclosu
 SegmentedControl selects one value and is not a tab panel controller. Do not use
 Menu just because links appear vertically.
 
+Use NavigationMenu for a site header that combines direct destinations with
+disclosure groups. Supply real URLs and derive currentHref from the host route.
+Check Tab into the open group, Escape back to its trigger, and a wrapped header.
+
+Use ProfileLinks for a short set of destinations attached to a profile.
+Keep labels distinct, validate supplied URLs in the host and feature a single
+destination only when it serves the profile's main task. Use LinkPreview when
+the user needs an excerpt before deciding whether to open a resource.
+
+Use CardDeck for a short sequence of related cards when one is read at a time.
+Keep browsing user-driven and preserve focus on the previous and next controls.
+Use Grid when people need to compare cards at the same time, and keep any draft
+that must survive a card change in the host.
+
+Use Tree item actions for secondary commands and controlled toggles. A layer can
+be locked against editing while still selectable for inspection. Keep the
+toggle available so the person can unlock it. Tab enters actions from the
+focused row and Escape returns to that row. Use ReorderList for a hierarchy
+whose main task is moving items between positions or parents.
+
 Use SearchTrigger when an action opens a search surface. Use SearchInput for
 queries typed in place. Keep the launcher named when it becomes icon-only.
 Show a keyboard hint only for a shortcut the host actually handles.
 Use Breadcrumb layout=compact when a deep path shares a narrow header with
 actions. Preserve the root and current page, use the earlier-pages control
 for intermediate destinations, and check clipped titles on keyboard focus.
+In AppTopBar layout=compact, place that Breadcrumb directly in start. Keep the
+path and commands accessible when the bar shrinks. Check both the sidebar's
+expanded width and the narrow layout before hiding context.
 Use a Tabs item count when the total helps people choose a panel. Keep the
 tab name stable, expose the exact value and localize it with formatCountLabel.
+For constrained horizontal Tabs, use `overflowControls` when more panels need
+visible navigation. Check at the first overflow: arrows share the row's center,
+edge labels never show in fragments, and scrolling keeps the current panel.
+In contained Tabs, keep the selected fill inset from the shell's curved edge
+and use the same surface behind the tab row and panel. Check the first and last
+tab after scrolling, then compare with the line variant's underline.
+
+Use TableOfContents for headings within one document. Match stable heading IDs
+in document order and nest links only for real subsections. For an article
+inside ScrollArea, pass the scroll viewport ref so reading position follows that
+region. Verify a deep link and manual scrolling independently. The active link
+marks a location within the page.
+
 Use KeyboardShortcut for multiple keys. Provide a spoken label for platform
-symbols and use the compact keycap in dense action rows.
+symbols and use the compact keycap in dense action rows. Use nested chords for
+steps pressed in order.
+
+Use ShortcutReference for searchable help, grouped by the context where each
+binding works. Searches can combine the group, action, key names and aliases.
+Supply the host's actual platform-specific keys and spoken names for symbols.
+Use a command palette for actions that people should execute from the results.
 
 Use numbered Pagination when jumping directly to a page matters. In narrow
 panels or table footers, use compact Pagination when sequential navigation
@@ -33,6 +75,14 @@ Use CursorPagination when the data source supplies cursors without a total.
 Pass real previous and next destinations or request callbacks. Show a range
 only when its values are known. Keep the initiating action mounted while a
 request is pending and pass the pending direction.
+
+Use RecordNavigator for adjacent records in the current ordered results.
+Choose labeled destinations when the record names matter before opening them.
+Keep the list scope intact and move focus to the next detail heading when
+an in-place transition removes or disables the activating control.
+Use ResponseVariants to move among versions of the same generated result.
+Keep the selected version ID and branch data in the host. Check that reaching
+an endpoint retains keyboard focus and a single version has no arrows.
 
 For a new shell, use the [destination and width decision](../flood-screen-composition/SKILL.md#choose-navigation-from-real-destinations)
 before allocating space to a Sidebar. Count destinations across the real host

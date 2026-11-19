@@ -1,6 +1,32 @@
-.flood-root .flood-copy-button__labels { display: inline-grid; min-inline-size: 0; gap: inherit; }
-.flood-root .flood-copy-button__labels > span { grid-area: 1 / 1; visibility: hidden; display: inline-flex; align-items: center; justify-content: center; gap: inherit; }
-.flood-root .flood-copy-button__labels > span[data-visible] { visibility: visible; }
+.flood-root .flood-action-labels { display: inline-grid; min-inline-size: 0; gap: inherit; }
+.flood-root .flood-action-labels > span { grid-area: 1 / 1; visibility: hidden; display: inline-flex; align-items: center; justify-content: center; gap: inherit; }
+.flood-root .flood-action-labels > span[data-visible] { visibility: visible; }
+.flood-root .flood-copy-button .flood-action-labels > span { justify-content: flex-start; }
+.flood-root .flood-notification-subscription .flood-menu__group-label { display: none; }
+.flood-root .flood-button.flood-reply-audience__trigger { min-inline-size: 0; text-align: start; white-space: normal; overflow-wrap: anywhere; }
+.flood-root .flood-reply-audience__trigger .flood-action-labels > span { justify-content: flex-start; }
+.flood-root .flood-reply-audience .flood-menu__group-label { display: none; }
+.flood-root .flood-response-variants__position { display: inline-grid; text-align: center; font-variant-numeric: tabular-nums; }
+.flood-root .flood-response-variants__position > span { grid-area: 1 / 1; }
+.flood-root .flood-response-variants__measure { visibility: hidden; }
+.flood-root .flood-response-variants__arrow:dir(rtl) > :is(svg, .flood-icon) { transform: scaleX(-1); }
+.flood-root .flood-response-variants__arrow[aria-disabled="true"] { color: var(--flood-sys-color-field-disabled-content); background: transparent; cursor: default; }
+.flood-root .flood-zoom-control { flex-wrap: nowrap; }
+.flood-root .flood-zoom-control__scale {
+  display: inline-grid;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding-inline: var(--flood-sys-space-1);
+}
+.flood-root .flood-zoom-control__scale > span { grid-area: 1 / 1; white-space: nowrap; }
+.flood-root .flood-zoom-control__scale > [aria-hidden="true"] { visibility: hidden; }
+.flood-root .flood-zoom-control__step[aria-disabled="true"] {
+  --flood-action-hover: transparent;
+  --flood-action-pressed: transparent;
+  color: var(--flood-sys-color-field-disabled-content);
+  background: transparent;
+  cursor: default;
+}
 .flood-root .flood-toast-region { position: fixed; z-index: var(--flood-sys-layer-toast); inline-size: min(24rem, calc(100vw - 2 * var(--flood-sys-space-4))); max-block-size: calc(100dvh - 2 * var(--flood-sys-space-4)); outline-offset: 0; }
 .flood-root .flood-toast-region[data-placement^="bottom"] { inset-block-end: max(var(--flood-sys-space-4), env(safe-area-inset-bottom)); }
 .flood-root .flood-toast-region[data-placement^="top"] { inset-block-start: max(var(--flood-sys-space-4), env(safe-area-inset-top)); }

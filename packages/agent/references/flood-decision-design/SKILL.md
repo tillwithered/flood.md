@@ -17,15 +17,43 @@ collection context available when the user finishes.
   at the point of commitment. Confirm an approval separately from a later
   payment when the host treats them as separate operations. Put the evidence
   within reach before asking for commitment.
+- **Delegated or connected access.** Use AccessSummary to show the identity
+  that can act, the account it acts for, and the affected scope. Show the
+  actual read and write capabilities for each relevant resource. Explain a
+  meaningful restriction beside that resource. Keep pending verification,
+  confirmed denial and granting access as distinct host states.
+- **Connected accounts.** Use ConnectedAccountList to show the relevant
+  provider identity and verified connection state. Send reconnect actions
+  to the affected account. Keep workspace integrations in their own scope.
+- **Active account sessions.** Use SessionList to distinguish this session
+  from other devices. Name the affected device in any sign-out confirmation.
+  Keep the row until the host confirms sign-out and move focus to a stable
+  list heading if the originating action is removed.
 - **Batch with partial results.** If supported by the host, show which items
-  succeeded and which still need work. Keep the affected items reachable and
-  retry their failed work only. Preserve filters, selection and return focus
-  according to what remains actionable. For atomic operations, report the batch
+  succeeded and which still need work. Use BatchResult when a completed batch
+  needs persistent, item-level recovery. Keep the affected items reachable and
+  retry only the failed IDs the host has marked safe to reattempt. Preserve
+  filters, selection and return focus according to what remains actionable.
+  For atomic operations, report the batch
   outcome as one result.
 
 Use [records](../flood-records/SKILL.md) to choose which evidence belongs in
 the list and which belongs in details. Use
 [feedback](../flood-feedback/SKILL.md) for message placement and lifetime.
+
+Use PolicyEvaluation to explain a policy test or an assigned route. Keep the
+reported outcome and the inputs that led to it together. Distinguish a condition
+that evaluated false from skipped branches and conditions without enough data.
+Use EvaluationResult to inspect a single test's expected and actual outputs.
+Keep completed assertion failures distinct from execution errors and only show
+checks that the evaluator reported.
+Use RestrictionSummary when reading configured rules. Say whether each list
+allows only the named items or blocks them, and name the source when scopes
+differ. Show an unrestricted scope only when the policy confirms that state.
+Keep evaluation in the host and use ApprovalChain to show the review in progress.
+Include the host's received and required approval counts when reviewers need to
+understand a parallel stage's threshold. Keep the count, individual decisions
+and the accepted stage outcome visible in their respective roles.
 
 ## Give every summary a decision
 

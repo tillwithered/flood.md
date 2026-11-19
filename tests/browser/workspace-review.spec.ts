@@ -30,6 +30,34 @@ async function open(page:Page) {
   await page.goto("/__workspace-review");
 }
 
+test("attachment preview returns to the same file in its drawer", async ({page}, info) => {
+  await open(page);
+  const launcher = page.getByRole("button", {name:"Review files", exact:true});
+  await launcher.click();
+  const drawer = page.getByRole("dialog", {name:"Files", exact:true});
+  const opener = drawer.getByRole("button", {name:/^Preview: Research findings/});
+  await expect(opener).toHaveCount(1);
+  await expect(opener).toHaveAttribute("aria-expanded", "false");
+  const viewerId = await opener.getAttribute("aria-controls");
+  expect(viewerId).toBeTruthy();
+  await page.evaluate(() => document.fonts.ready);
+  await drawer.screenshot({path:info.outputPath("files-with-preview.png"), animations:"disabled"});
+  await opener.click();
+  const viewer = page.getByRole("dialog", {name:/^Research findings —/});
+  await expect(viewer).toHaveAttribute("id", viewerId!);
+  await viewer.getByRole("button", {name:"Next page"}).click();
+  await expect(viewer.getByRole("heading", {name:"Recommended changes"})).toBeVisible();
+  await viewer.screenshot({path:info.outputPath("document-from-files.png"), animations:"disabled"});
+  await page.keyboard.press("Escape");
+  await expect(viewer).toBeHidden();
+  await expect(drawer).toBeVisible();
+  await expect(opener).toBeFocused();
+  await expect(opener).toHaveAttribute("aria-expanded", "false");
+  await page.keyboard.press("Escape");
+  await expect(drawer).toBeHidden();
+  await expect(launcher).toBeFocused();
+});
+
 test("workspace composition preserves validation, real form values, snapshot and reset", async ({page}) => {
   await open(page);
   const form = page.getByRole("form", {name:"Workspace review settings"});
@@ -91,11 +119,16 @@ test("workspace composition remains reachable at enlarged narrow RTL sizes", asy
   const size = files.locator(".flood-file-meta bdi").first();
   await expect(size).toHaveText("2.5 MB");
   await expect(size).toHaveCSS("direction","ltr");
+  const clippedName = files.locator(".flood-file-name__line").first();
+  await expect(clippedName).toHaveAttribute("tabindex","0");
+  await clippedName.focus();
+  await expect(dialog.getByRole("tooltip")).toHaveText(/^Research findings —/);
+  await page.keyboard.press("Escape");
   expect(await files.evaluate(root => {
     const box=root.getBoundingClientRect(), walker=document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let node:Node|null;
     while(node=walker.nextNode()) {
-      if (!node.textContent?.trim()) continue;
+      if (!node.textContent?.trim() || node.parentElement?.closest(".flood-file-name__line")) continue;
       const range=document.createRange(); range.selectNodeContents(node);
       if(Array.from(range.getClientRects()).some(rect=>rect.left < box.left-1 || rect.right > box.right+1)) return false;
     }

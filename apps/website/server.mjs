@@ -63,6 +63,11 @@ const server = createServer(async (request, response) => {
       return;
     }
     const normalized = pathname === "/index.html" ? "/" : pathname.replace(/\/index\.html$|\/$/, "") || "/";
+    if (normalized === "/components/category/setup") {
+      response.writeHead(301, { Location: "/components/flood-root" + new URL(request.url, "http://localhost").search });
+      response.end();
+      return;
+    }
     if (normalized !== pathname && pagePaths.has(normalized)) {
       response.writeHead(301, { Location: normalized + new URL(request.url, "http://localhost").search });
       response.end();

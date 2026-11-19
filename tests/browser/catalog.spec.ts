@@ -22,24 +22,45 @@ test("catalog families, scoped search and canonical Markdown agree", async ({ pa
   const groups = taxonomy.filter(group => catalog.some(component => component.group === group.id));
   const categories = page.getByRole("navigation", { name: "Component categories" });
   await expect(categories.getByRole("link")).toHaveCount(groups.length);
+  await expect(categories.getByRole("link", { name: "Setup", exact: true })).toHaveCount(0);
+  await expect(main.getByRole("region", { name: "Layout", exact: true }).getByRole("link", { name: "FloodRoot", exact: true }))
+    .toHaveAttribute("href", "/components/flood-root");
+  await expect(main.locator(".discovery-result")).toHaveCount(catalog.length);
+  await expect(main.getByRole("link", { name: "Button", exact: true })).toBeInViewport();
+  if (info.project.name === "desktop") {
+    await categories.getByRole("link", { name: "Charts", exact: true }).click();
+    await expect(main.getByRole("heading", { name: "Charts", exact: true })).toBeInViewport();
+    await expect(categories.getByRole("link", { name: "Charts", exact: true })).toHaveAttribute("aria-current", "location");
+    await expect(search).toBeInViewport();
+  }
+  await search.fill("button");
+  const firstResult = main.locator(".discovery-result").first();
+  await expect(firstResult).toHaveAttribute("href", "/components/button");
+  await expect(firstResult).toBeInViewport();
   await search.fill("SCROLL area");
   await expect(main.getByRole("link", { name: /^ScrollArea / })).toBeVisible();
   await search.fill("not-a-component");
   await expect(main.getByRole("status")).toHaveText("No components found.");
   await main.getByRole("button", { name: "Clear search" }).click();
   await expect(search).toBeFocused();
-  await categories.getByRole("link", { name: /^Forms / }).click();
-  await expect(page).toHaveURL(/\/components\/category\/forms$/);
-  await expect(main.getByRole("heading", { name: "Forms", exact: true })).toBeVisible();
-  await expect(main.locator(".discovery-result")).toHaveCount(catalog.filter(component => component.group === "forms").length);
+  await categories.getByRole("link", { name: "Forms", exact: true }).click();
+  await expect(page).toHaveURL(/\/components#forms$/);
+  await expect(main.getByRole("heading", { name: "Forms", exact: true })).toBeInViewport();
+  const forms = main.getByRole("region", { name: "Forms", exact: true });
+  await expect(forms.getByRole("link")).toHaveCount(catalog.filter(component => component.group === "forms").length);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  await page.screenshot({ path: `.artifacts/catalog-groups-${info.project.name}.png` });
+  await forms.getByRole("link", { name: "Input", exact: true }).click();
+  await expect(page).toHaveURL(/\/components\/input$/);
+  await expect(main.getByRole("heading", { name: "Input", exact: true, level: 1 })).toBeVisible();
+
+  await page.goto("/components/category/forms");
   await search.fill("ScrollArea");
   await expect(main.getByRole("status")).toHaveText("No components found.");
   await search.press("Escape");
   await expect(main.getByRole("link", { name: /^Input / })).toBeVisible();
   const markdown = await (await request.get("/components.md")).text();
   for (const group of groups) expect(markdown).toContain(`## ${group.label}`);
-  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-  await page.screenshot({ path: `.artifacts/catalog-groups-${info.project.name}.png` });
 });
 
 test("catalog category and active item survive direct component navigation", async ({ page }, info) => {

@@ -25,19 +25,12 @@
   max-block-size: calc(100svh - 6rem);
 }
 
-.guide-outline-links .flood-link {
-  overflow-wrap: anywhere;
-}
-
 @media (max-width: 75rem) {
   .flood-root .guide-outline-mobile {
     display: block;
     margin-block-end: var(--flood-sys-space-6);
   }
 
-  .guide-outline-mobile .guide-outline-links > .flood-stack {
-    align-items: flex-start;
-  }
 }
 
 @media (max-width: 50rem) {

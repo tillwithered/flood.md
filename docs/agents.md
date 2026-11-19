@@ -1,33 +1,12 @@
 # Using Flood with an agent
 
-Flood pairs a React design system with a workflow for agents building and
-reviewing interfaces. Each release connects component contracts, runnable
-recipes and focused skills through the same catalog.
-
 Start with the host's instructions, package.json, flood.json and installed
 flood/DESIGN.md. Use matching package/CLI versions and declarations. A newer
 website example does not add APIs to an older installation.
 
-Version 0.2.3 includes the expanded skill, rules and reference bundle, including
-spacing guidance. Existing projects keep their installed files; compare new
-guidance before updating customized instructions.
-
-Version 0.2.9 adds ten specialized routed skills for stabilizing and
-composing the dark base. See [Skills](skills.md) for their applicability and full
-sources. The website index is generated from the same bundle metadata rather
-than a second handwritten skill catalog. Source additions do not update an
-already installed package; use the guide set matching your installation.
-
-Version 0.2.11 adds [versioned knowledge discovery](agent-knowledge.md):
-info reports installation context, catalog discovers compact metadata, and read
-loads a selected contract or workflow. The catalog includes typed recipes and
-semantic token records. Unknown capabilities and version mismatches are explicit;
-copied host guides remain project-owned.
-
-For discovery, give an agent [flood.md/llms.txt](https://flood.md/llms.txt).
-It identifies deployed status and entry points. Follow [installation](installation.md);
-preview the matching CLI's init with --dry-run before applying it within the user's
-scope. The CLI does not install an agent runtime or require a hosted Flood service.
+Use [versioned knowledge discovery](agent-knowledge.md) to check the installed
+version, find a component or workflow, and read its contract. For public discovery,
+give the agent [flood.md/llms.txt](https://flood.md/llms.txt).
 
 ## Compose from primitives
 

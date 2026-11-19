@@ -7,22 +7,39 @@ const cx = (...parts: Array<string | undefined>) => parts.filter(Boolean).join("
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export const OverflowingText = /* @__PURE__ */ forwardRef<HTMLSpanElement, TruncatedTextProps & {appearance?: "text" | "code"}>(function OverflowingText(
-  {children, className, dir, hidden, appearance, tooltipSide = "bottom", ...props}, forwardedRef,
+  {children, className, dir, hidden, appearance, preserveEnd = 0, tooltipSide = "bottom", ...props}, forwardedRef,
 ) {
-  const {ref, overflow} = useInlineOverflow(children, !hidden);
-  useImperativeHandle(forwardedRef, () => ref.current!, []);
+  if (!Number.isSafeInteger(preserveEnd) || preserveEnd < 0) throw new RangeError("Flood TruncatedText expects a nonnegative preserveEnd count");
+  const characters = preserveEnd ? (typeof Intl.Segmenter === "function"
+    ? Array.from(new Intl.Segmenter().segment(children), part => part.segment) : Array.from(children)) : [];
+  const split = preserveEnd > 0 && characters.length > preserveEnd;
+  const prefix = split ? characters.slice(0, -preserveEnd).join("") : children;
+  const suffix = split ? characters.slice(-preserveEnd).join("") : "";
+  const head = useInlineOverflow(prefix, !hidden, split);
+  const tail = useInlineOverflow(suffix, split && !hidden);
+  const root = useRef<HTMLSpanElement>(null);
+  const overflow = head.overflow || tail.overflow;
+  useImperativeHandle(forwardedRef, () => root.current!, []);
   return <AnchoredOverlay kind="tooltip" inlineTooltip className="flood-truncated-text__tooltip"
     content={children} dir={dir} side={tooltipSide} align="center" disabled={!overflow} trigger={trigger => {
       const triggerProps = {
-        ...props, ...trigger, ref: (node: HTMLElement | null) => {ref.current = node; trigger.ref(node);},
-        "aria-describedby": undefined, dir, hidden, tabIndex: overflow ? 0 : undefined,
+        ...props, ...trigger, ref: (node: HTMLSpanElement | null) => {
+          root.current = node;
+          if (!split) head.ref.current = node;
+          trigger.ref(node);
+        },
+        "aria-describedby": undefined, dir, hidden, tabIndex: overflow ? 0 : undefined, "data-preserve-end": split || undefined,
         className: cx("flood-truncated-text", className),
       };
-      if (appearance === "code") return <InlineCode {...triggerProps} size="sm" wrap={false}>{children}</InlineCode>;
-      if (appearance === "text") return <Text {...triggerProps} size="compact">{children}</Text>;
-      return <span {...triggerProps}>{children}</span>;
+      const content = split ? <><span ref={head.ref}>{prefix}</span><span ref={tail.ref}>{suffix}</span></> : children;
+      if (appearance === "code") return <InlineCode {...triggerProps} size="sm" wrap={false}>{content}</InlineCode>;
+      if (appearance === "text") return <Text {...triggerProps} size="compact">{content}</Text>;
+      return <span {...triggerProps}>{content}</span>;
     }} />;
 });
+
+// Join the ellipsis to the excerpt and the action to the ellipsis.
+const excerptEnding = "\u2060…\u00a0";
 
 export const ExpandableParagraph = /* @__PURE__ */ forwardRef<HTMLDivElement, ExpandableTextProps>(function ExpandableParagraph(
   {children, lines = 3, size, tone, expanded, defaultExpanded = false, onExpandedChange,
@@ -54,7 +71,8 @@ export const ExpandableParagraph = /* @__PURE__ */ forwardRef<HTMLDivElement, Ex
       if (!Number.isFinite(lineHeight) || !node.getBoundingClientRect().width) return;
       measurement.style.inlineSize = typography.inlineSize;
       const limit = lineHeight * lines + 0.5;
-      const fits = () => Number.parseFloat(view.getComputedStyle(measurement).height) <= limit;
+      const fits = () => Number.parseFloat(view.getComputedStyle(measurement).height) <= limit
+        && measurement.scrollWidth <= measurement.clientWidth;
       tail.hidden = true;
       text.textContent = children;
       if (fits()) {
@@ -96,10 +114,10 @@ export const ExpandableParagraph = /* @__PURE__ */ forwardRef<HTMLDivElement, Ex
 
   return <div {...props} ref={ref} className={cx("flood-expandable-text", className)}>
     <Text as="p" id={paragraphId} ref={paragraph} tabIndex={-1} size={size} tone={tone} className="flood-expandable-text__passage">
-      <span className="flood-expandable-text__copy" aria-hidden={collapsed || undefined}>{collapsed ? excerpt : children}</span>
       {collapsed && <VisuallyHidden className="flood-expandable-text__accessible">{children}</VisuallyHidden>}
+      <span className="flood-expandable-text__copy" aria-hidden={collapsed || undefined}>{collapsed ? excerpt : children}</span>
       {excerpt !== null && <span className="flood-expandable-text__tail">
-        {collapsed ? <span aria-hidden="true">…{"\u00a0"}</span> : "\u00a0"}
+        {collapsed ? <span aria-hidden="true">{excerptEnding}</span> : " "}
         <Button ref={toggle} size="xs" variant="ghost" aria-controls={paragraphId} aria-expanded={open}
           className="flood-expandable-text__toggle"
           onClick={() => {
@@ -112,7 +130,8 @@ export const ExpandableParagraph = /* @__PURE__ */ forwardRef<HTMLDivElement, Ex
       <Text as="p" ref={probe} size={size} tone={tone} className="flood-expandable-text__passage">
         <span ref={probeText}/>
         <span ref={probeTail} hidden className="flood-expandable-text__tail">
-          …{"\u00a0"}<span className="flood-expandable-text__toggle">{moreLabel}</span>
+          <span>{excerptEnding}</span>
+          <Button tabIndex={-1} size="xs" variant="ghost" className="flood-expandable-text__toggle">{moreLabel}</Button>
         </span>
       </Text>
     </div>
@@ -210,7 +229,7 @@ export const GroupedAvatars = /* @__PURE__ */ forwardRef<HTMLUListElement, Avata
   </ul>;
 });
 
-export const NamedStatus = /* @__PURE__ */ forwardRef<HTMLSpanElement, StatusIndicatorProps>(function NamedStatus({label, tone = "neutral", size = "md", announce = false, presentation = "label", icon, className, role, tabIndex, ...props}, forwardedRef) {
+export const NamedStatus = /* @__PURE__ */ forwardRef<HTMLSpanElement, StatusIndicatorProps & {showLabelIcon?: boolean}>(function NamedStatus({label, tone = "neutral", size = "md", announce = false, presentation = "label", icon, showLabelIcon = false, className, role, tabIndex, ...props}, forwardedRef) {
   const root = useRef<HTMLSpanElement>(null);
   useImperativeHandle(forwardedRef, () => root.current!, []);
   const {ref: text, overflow} = useInlineOverflow(label, presentation === "label" || presentation === "chip");
@@ -230,7 +249,7 @@ export const NamedStatus = /* @__PURE__ */ forwardRef<HTMLSpanElement, StatusInd
     role={announce ? "status" : role} tabIndex={tabIndex ?? (hasTooltip ? 0 : undefined)}
     className={cx("flood-status-indicator", className)} data-tone={tone} data-size={size} data-presentation={presentation}>
     <span className="flood-status-indicator__mark" aria-hidden="true">
-      {iconOnly ? <IconSlot size={size}>{icon}</IconSlot> : <span className="flood-status-indicator__dot"/>}
+      {iconOnly || showLabelIcon ? <IconSlot size={size}>{icon}</IconSlot> : <span className="flood-status-indicator__dot"/>}
     </span>
     {iconOnly ? <VisuallyHidden>{label}</VisuallyHidden> : <span ref={text} className="flood-status-indicator__label">{label}</span>}
   </Indicator>}/>;

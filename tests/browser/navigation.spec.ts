@@ -74,6 +74,54 @@ test("Tabs retains panel values, respects controlled owners and restores hidden-
   await page.getByRole("button",{name:"Focus tabs ref"}).click();await expect(controlled.getByRole("tab",{name:"Alpha"})).toBeFocused();
 });
 
+test("RecordNavigator uses named neighbors in the current view and mirrors them in RTL", async ({page}) => {
+  await page.goto("/components/record-navigator");
+  const nav = page.getByRole("navigation",{name:"Adjacent requests",exact:true});
+  const previous = nav.getByRole("button",{name:/^Previous record/});
+  const next = nav.getByRole("button",{name:/^Next record/});
+  await expect(previous).toHaveAccessibleName("Previous record: Review access logs");
+  await expect(next).toHaveAccessibleName("Next record: Audit export retention across workspaces");
+  await page.getByRole("checkbox",{name:"RecordNavigator prop rtl",exact:true}).check();
+  expect((await previous.boundingBox())!.x).toBeGreaterThan((await next.boundingBox())!.x);
+  await next.press("Enter");
+  await expect(page.getByRole("heading",{name:"Audit export retention across workspaces",exact:true})).toBeFocused();
+  await expect(next).toBeDisabled();
+  await previous.press("Enter");
+  await expect(page.getByRole("heading",{name:"Restore export permissions",exact:true})).toBeVisible();
+  const presentation = page.getByRole("combobox",{name:"RecordNavigator prop presentation",exact:true});
+  if (await presentation.isVisible()) await chooseSelectOption(presentation,"labeled");
+  else await chooseStudioSheetOption(page,"Presentation","labeled");
+  await page.getByRole("checkbox",{name:"RecordNavigator prop narrow",exact:true}).check();
+  await expect(next).toHaveAccessibleName("Next record: Audit export retention across workspaces");
+  expect(await next.locator('span[dir="auto"]').evaluate(node => node.scrollWidth > node.clientWidth)).toBe(true);
+});
+
+test("ResponseVariants switches existing responses and preserves focus at the boundary", async ({page}) => {
+  await page.goto("/components/response-variants");
+  const nav = page.getByRole("group", {name:"Response versions"});
+  const next = nav.getByRole("button", {name:"Next response"});
+  const previous = nav.getByRole("button", {name:"Previous response"});
+  await expect(previous).toHaveAttribute("aria-disabled", "true");
+  const initial = await next.boundingBox();
+  await next.press("Enter");
+  await expect(nav.getByRole("status")).toHaveText("2 / 3");
+  await expect(page.getByText("Delete exported copies after 30 days. The source records remain available.", {exact:true})).toBeVisible();
+  await expect(page.getByText("Keep customer exports for 30 days after creation.", {exact:true})).toHaveCount(0);
+  expect((await next.boundingBox())!.x).toBeCloseTo(initial!.x, 0);
+  await next.press("Enter");
+  await expect(next).toHaveAttribute("aria-disabled", "true");
+  await expect(next).toBeFocused();
+  await next.press("Enter");
+  await expect(nav.getByRole("status")).toHaveText("3 / 3");
+  await previous.press("Space");
+  await expect(nav.getByRole("status")).toHaveText("2 / 3");
+  await page.getByRole("checkbox", {name:"ResponseVariants prop rtl"}).check();
+  expect((await previous.boundingBox())!.x).toBeGreaterThan((await next.boundingBox())!.x);
+  await page.getByRole("checkbox", {name:"ResponseVariants prop single"}).check();
+  await expect(nav).toHaveCount(0);
+  await expect(page.getByText("Keep customer exports for 30 days after creation.", {exact:true})).toBeVisible();
+});
+
 test("Breadcrumb and Pagination retain link/current/disabled semantics and host ownership",async({page})=>{
   await open(page);const crumbs=page.getByRole("navigation",{name:"Breadcrumb"});
   await expect(crumbs.getByRole("link",{name:"Workspace"})).toHaveAttribute("href","/workspace");await expect(crumbs.locator('[aria-current="page"]')).toHaveText("Current");
@@ -181,15 +229,17 @@ test("Navigation playgrounds reflow, expose valid recipes and preserve panel beh
     if(slug==="tabs"){
       await chooseSelectOption(page.getByRole("combobox",{name:"Tabs prop orientation",exact:true}),"vertical");
       await stage.getByRole("tab",{name:"Overview"}).focus();await page.keyboard.press("ArrowDown");await expect(stage.getByRole("tab",{name:"Activity"})).toHaveAttribute("aria-selected","true");
-      const assertJoined=async(vertical:boolean)=>{
+      const assertInset=async(vertical:boolean)=>{
         const tab=await stage.getByRole("tab",{name:"Activity"}).boundingBox(),panel=await stage.getByRole("tabpanel",{name:"Activity"}).boundingBox();
-        expect(Math.abs(vertical?tab!.x+tab!.width-panel!.x:tab!.y+tab!.height-panel!.y)).toBeLessThan(1);
+        const gap=vertical?panel!.x-tab!.x-tab!.width:panel!.y-tab!.y-tab!.height;
+        expect(gap).toBeGreaterThan(2);
+        expect(gap).toBeLessThan(8);
       };
-      await assertJoined(true);
+      await assertInset(true);
       await page.locator(".component-workbench").screenshot({path:`.artifacts/tabs-vertical-${info.project.name}.png`});
       await page.getByRole("checkbox",{name:"Tabs prop disabled",exact:true}).check();await expect(stage.getByRole("tabpanel",{name:"Activity"})).toBeVisible();await page.getByRole("checkbox",{name:"Tabs prop disabled",exact:true}).uncheck();
       await chooseSelectOption(page.getByRole("combobox",{name:"Tabs prop orientation",exact:true}),"horizontal");
-      await assertJoined(false);
+      await assertInset(false);
       const variant = page.getByRole("combobox", { name: "Tabs prop variant", exact: true });
       const activity = stage.getByRole("tab", { name: "Activity" });
       await chooseSelectOption(variant, "pill");

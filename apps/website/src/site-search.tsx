@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CommandList, Dialog, IconSlot, InputGroup, KeyboardShortcut, Tabs, type CommandListItem } from "@flood-md/react";
-import { BookOpen, Boxes, Layers3, LayoutGrid, Rows3, Search } from "lucide-react";
+import { BookOpen, Boxes, Layers3, Rows3, Search } from "lucide-react";
 import { browseItems } from "./site-search-browse";
 import type { SearchScope } from "./site-search-model";
 import { navigateSite } from "./site-navigation";
@@ -9,7 +9,6 @@ const glyphs = { Component: Boxes, Recipe: Rows3, Guide: BookOpen, Collection: L
 
 const scopes = [
   { id: "all", label: "Explore", icon: Search },
-  { id: "categories", label: "Categories", icon: LayoutGrid },
   { id: "components", label: "Components", icon: Boxes },
   { id: "recipes", label: "Recipes", icon: Rows3 },
   { id: "docs", label: "Docs", icon: BookOpen },
@@ -116,15 +115,14 @@ export function SiteSearch() {
 
   const browsing = !query.trim();
   const items: readonly CommandListItem[] = browsing ? browseItems[scope] : (model?.searchSite(query, scope) ?? []).map(entry => {
-    const Icon = entry.category ? LayoutGrid : glyphs[entry.kind];
-    const kind = entry.category ? "Category" : entry.kind;
+    const Icon = glyphs[entry.kind];
     return { id: entry.id, label: entry.label, icon: <Icon />,
-      description: kind + " · " + entry.description, keywords: [query] };
+      description: entry.kind + " · " + entry.description, keywords: [query] };
   });
   const searchLabel = scope === "all" ? "Search the library" : `Search ${scope}`;
   const searchPanel = <CommandList ref={searchInput} label={searchLabel} hideLabel
     controlSize="md" items={items} placeholder={`${searchLabel}…`}
-    query={query} onQueryChange={setQuery}
+    query={query} onQueryChange={setQuery} autoHighlight={!browsing}
     onPointerMoveCapture={event => {
       if (event.pointerType === "mouse" && event.target instanceof Element && event.target.closest('[role="option"]')) {
         event.stopPropagation();
@@ -132,8 +130,8 @@ export function SiteSearch() {
     }}
     loading={!browsing && !model && !error}
     emptyMessage={error ? "Search couldn’t load. Reload the page and try again." : scope === "all"
-      ? "No results. Try a component name or describe what you want to build."
-      : `No results in ${scope}. Choose All to search the whole library.`}
+      ? "No results."
+      : `No results in ${scope}.`}
     onAction={href => {
       finishClose();
       navigateSite(href);

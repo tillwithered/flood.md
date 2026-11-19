@@ -16,6 +16,15 @@
 .flood-root .flood-tree__text { display:grid; gap:var(--flood-sys-space-1); min-inline-size:0; }
 .flood-root .flood-tree__label { min-inline-size:0; overflow-wrap: break-word; }
 .flood-root .flood-tree__description { color:var(--flood-sys-color-content-subtle); font-size:var(--flood-sys-type-helper-size); line-height:var(--flood-sys-type-helper-line-height); overflow-wrap: break-word; }
+.flood-root .flood-tree__row:has(> .flood-tree__actions) .flood-tree__text { flex: 1; }
+.flood-root .flood-tree__actions {
+  flex: 0 1 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-inline-size: 50%;
+  gap: var(--flood-sys-space-1);
+}
 .flood-root .flood-tree__item[data-disabled]>.flood-tree__row { color:var(--flood-sys-color-field-disabled-content); }
 .flood-root .flood-tree__item[data-disabled]>.flood-tree__row:hover { background:transparent; }
 .flood-root .flood-tree__item[data-disabled]>.flood-tree__row .flood-tree__disclosure { cursor:default; }

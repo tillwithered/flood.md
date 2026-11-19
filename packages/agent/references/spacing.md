@@ -45,6 +45,22 @@ When a circular avatar sits against the rounded end of a pill control, use the
 same inset at the top, bottom and avatar-side edge. Keep the label gap and the
 trailing action inset separate from that geometry.
 
+## Check clearance inside a rounded corner
+
+Measure from the painted outer edge to a nested surface. With circular corners
+and an even inset, use the outer radius minus the inset and outer stroke when
+the inset was measured from the inside of that stroke. This keeps the curves
+concentric. With unequal block and inline insets, compare the curves in the
+rendered result. A single radius subtraction can only match one of those insets.
+
+Check text and icons separately from nested surfaces. For a circular corner of
+radius 24px, a point 4px from both edges falls outside the arc. A point 8px from
+both edges is inside, but can still look crowded. Inspect the nearest glyph
+and its focus indication in the output. When the title needs more room, try a
+larger block-start inset while keeping the common text axis, or choose a less
+rounded shell. Compare the first and last corners at narrow width, enlarged type
+and with logical start moved to the right.
+
 ## Check the composition
 
 - Inspect short and wrapping labels, narrow/wide widths and larger root text.

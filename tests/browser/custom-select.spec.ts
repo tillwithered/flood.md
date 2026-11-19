@@ -107,6 +107,31 @@ test("forwarded native ref, required validation, form submission and prevented r
   await expect(locked).toContainText("Alpha");
 });
 
+test("native presentation exposes one platform control with the same field and form contract", async ({ page }, info) => {
+  await openSelectFixture(page, "native");
+  const field = page.getByRole("combobox", { name: "Region", exact: true });
+  await expect(field).toHaveJSProperty("tagName", "SELECT");
+  await expect(field).toHaveAccessibleDescription("Choose one available region");
+  await expect(field.locator("..").locator("select")).toHaveCount(1);
+  await expect(field.locator("..").locator("button")).toHaveCount(0);
+  await expect(field).toHaveAttribute("required", "");
+
+  const custom = page.getByRole("combobox", { name: "Locked choice", exact: true });
+  expect((await field.boundingBox())!.height).toBeCloseTo((await custom.boundingBox())!.height, 1);
+  await page.getByRole("button", { name: "Focus forwarded ref" }).click();
+  await expect(field).toBeFocused();
+  await page.getByRole("button", { name: "Submit selection" }).click();
+  await expect(field).toBeFocused();
+  expect(await field.evaluate((node: HTMLSelectElement) => node.validity.valueMissing)).toBe(true);
+  await field.selectOption("beta");
+  await page.getByRole("button", { name: "Submit selection" }).click();
+  await expect(page.getByRole("status", { name: "Form result" })).toHaveText('{"region":"beta"}');
+  await page.getByRole("button", { name: "Reset selection" }).click();
+  await expect(field).toHaveValue("");
+  await expect(page.locator(".flood-select__menu:popover-open")).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath("native-select-closed.png") });
+});
+
 test("top-layer popup escapes clipped ancestors and clamps or flips within the viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 420 });
   await openSelectFixture(page);
