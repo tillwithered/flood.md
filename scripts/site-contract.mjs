@@ -1,4 +1,5 @@
-import { readFile, writeFile, mkdir, mkdtemp, cp, readdir, lstat } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, mkdtemp, cp, readdir, lstat, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { spawn, spawnSync } from 'node:child_process';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,19 +32,24 @@ async function regularTree(directory) {
   }
 }
 
-export async function prepareSiteBundle() {
+export async function prepareSiteBundle(parent = join(workspace, '.artifacts')) {
   await regularTree(join(website, 'dist'));
   await regularTree(join(website, 'dist-server'));
-  await mkdir(join(workspace, '.artifacts'), { recursive: true });
-  const directory = await mkdtemp(join(workspace, '.artifacts/website-runtime-'));
-  const target = join(directory, 'apps/website');
-  await mkdir(join(target, 'src'), { recursive: true });
-  for (const file of ['server.mjs', 'routes.mjs', 'visitors.mjs']) await cp(join(website, file), join(target, file));
-  await cp(join(website, 'src/component-catalog.json'), join(target, 'src/component-catalog.json'));
-  await cp(join(website, 'dist'), join(target, 'dist'), { recursive: true });
-  await cp(join(website, 'dist-server'), join(target, 'dist-server'), { recursive: true });
-  await writeFile(join(directory, 'Dockerfile'), 'FROM node:24-alpine\nENV NODE_ENV=production\nWORKDIR /app\nCOPY --chown=node:node apps/website ./apps/website\nUSER node\nEXPOSE 4173\nCMD ["node", "apps/website/server.mjs"]\n');
-  return directory;
+  await mkdir(parent, { recursive: true });
+  const directory = await mkdtemp(join(parent, 'website-runtime-'));
+  try {
+    const target = join(directory, 'apps/website');
+    await mkdir(join(target, 'src'), { recursive: true });
+    for (const file of ['server.mjs', 'routes.mjs', 'site-guides.mjs', 'visitors.mjs']) await cp(join(website, file), join(target, file));
+    for (const file of ['component-catalog.json', 'component-groups.json']) await cp(join(website, 'src', file), join(target, 'src', file));
+    await cp(join(website, 'dist'), join(target, 'dist'), { recursive: true });
+    await cp(join(website, 'dist-server'), join(target, 'dist-server'), { recursive: true });
+    await writeFile(join(directory, 'Dockerfile'), 'FROM node:24-alpine\nENV NODE_ENV=production\nWORKDIR /app\nCOPY --chown=node:node apps/website ./apps/website\nUSER node\nEXPOSE 4173\nCMD ["node", "apps/website/server.mjs"]\n');
+    return directory;
+  } catch (error) {
+    await rm(directory, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 export async function verifySite(base, { expectedCommit, expectedVersion, expectedFiles } = {}) {
@@ -207,10 +213,17 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const command = process.argv[2];
   if (command === 'metadata') await writeSiteMetadata();
   else if (command === 'check' || command === 'bundle') {
-    const bundle = await prepareSiteBundle();
-    const metadata = await checkLocalSite(bundle, { expectedCommit: process.env.GITHUB_SHA });
-    if (command === 'bundle' && process.env.GITHUB_OUTPUT) await writeFile(process.env.GITHUB_OUTPUT, 'directory=' + bundle + '\n', { flag: 'a' });
-    console.log('Verified isolated website runtime for ' + metadata.version + ': ' + bundle);
+    const keepBundle = command === 'bundle';
+    const bundle = await prepareSiteBundle(keepBundle ? undefined : tmpdir());
+    let verified = false;
+    try {
+      const metadata = await checkLocalSite(bundle, { expectedCommit: process.env.GITHUB_SHA });
+      if (keepBundle && process.env.GITHUB_OUTPUT) await writeFile(process.env.GITHUB_OUTPUT, 'directory=' + bundle + '\n', { flag: 'a' });
+      verified = true;
+      console.log('Verified isolated website runtime for ' + metadata.version + (keepBundle ? ': ' + bundle : ''));
+    } finally {
+      if (!keepBundle || !verified) await rm(bundle, { recursive: true, force: true });
+    }
   } else if (command === 'wait') {
     const metadata = await waitForSite(process.env.WEBSITE_URL ?? process.argv[3], process.env.EXPECTED_COMMIT ?? process.argv[4], Number(process.env.VERIFY_TIMEOUT_MS ?? 600000));
     console.log('Verified live website source commit ' + metadata.sourceCommit);

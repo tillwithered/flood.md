@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.15 — Extended controls and resilient workspaces
+
+- Add `NavigationMenu` for site links and disclosure groups, `CodeBlock` for
+  multiline source and exact copying, and an opt-in native picker on `Select`.
+
+- Add the next cohort of application primitives for review, operations, records,
+  content, scheduling, data inspection and workspace workflows; the catalog now
+  contains 443 documented components with runnable Studio states.
+- Add new recipes for review, collaboration, import mapping, confirmation,
+  version history, galleries, dependent filters and code-oriented workspaces.
+- Improve shared collection, feedback, navigation, form, data-table, calendar,
+  surface and overflow behavior, including documented guidance for resilient
+  control density, typography, hierarchy, motion and visual review.
+- Update the Next.js verification fixture to 16.4.6, resolving the published
+  security advisory that blocked production builds of 16.4.2.
+
 ## 0.2.14 — Component families and agent guidance
 
 - Expand the component catalog from 149 to 213 entries, including application

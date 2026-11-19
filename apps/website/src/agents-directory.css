@@ -1,0 +1,77 @@
+.agents-directory {
+  --agents-panel-inset: clamp(var(--flood-sys-space-4), 2.5vw, var(--flood-sys-space-6));
+  display: grid;
+  gap: clamp(var(--flood-sys-space-8), 5vw, 4.5rem);
+  max-inline-size: 74rem;
+  margin-inline: auto;
+  padding-block: clamp(var(--flood-sys-space-8), 6vw, 5rem) clamp(var(--flood-sys-space-12), 8vw, 7rem);
+}
+
+.agents-directory .agents-directory-heading > h1 {
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  line-height: 1.04;
+  letter-spacing: -.045em;
+}
+
+.agents-directory-section {
+  display: grid;
+  grid-template-columns: minmax(13rem, 1fr) minmax(0, 2.6fr);
+  align-items: start;
+  gap: clamp(var(--flood-sys-space-6), 5vw, 4rem);
+  min-inline-size: 0;
+}
+
+.agents-directory-section > .flood-stack {
+  max-inline-size: 25ch;
+}
+
+.agents-directory :is(.agents-setup-panel, .agents-prompt-panel) {
+  min-inline-size: 0;
+}
+
+.agents-directory .agents-client-panel {
+  overflow-wrap: anywhere;
+}
+
+.agents-client-panel .flood-icon img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
+.agents-instructions {
+  display: grid;
+  gap: var(--flood-sys-space-3);
+  min-inline-size: 0;
+}
+
+.agents-instructions > :is(p, .site-code-block) {
+  margin: 0;
+}
+
+.agents-instructions p {
+  font-size: var(--flood-sys-type-compact-size);
+  line-height: var(--flood-sys-type-compact-line-height);
+}
+
+.agents-instructions code {
+  font-family: var(--flood-sys-font-mono);
+}
+
+.agents-directory .agents-client-heading { display: none; }
+
+@media (max-width: 52rem) {
+  .agents-directory-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--flood-sys-space-4);
+  }
+
+  .agents-directory-section > .flood-stack { max-inline-size: none; }
+}
+
+@media (scripting: none) {
+  .agents-directory :is(.flood-tabs__scroll, .agents-manual > .flood-disclosure__heading) { display: none; }
+  .agents-directory :is(.flood-tabs__panel, .agents-manual > .flood-disclosure__panel)[hidden] { display: block !important; }
+  .agents-directory .agents-client-heading { display: block; }
+  .agents-directory .flood-tabs__panel + .flood-tabs__panel { margin-block-start: var(--flood-sys-space-8); }
+}

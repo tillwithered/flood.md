@@ -13,6 +13,9 @@ Flood SkipLink with a focusable main target; installation, code and agent action
 use Flood CopyButton. Guide readers link to their Markdown source. The component
 Reference drawer contains the agent action with the current example. Only brand and
 page layout remain website styles. Component studio uses the compact header.
+On phones, pair each card with its skeleton at the same canvas height. Check
+the default loaded and loading examples at 320 and 390 px with touch targets
+enabled. Keep the canvas scrollable for larger examples and explicit zoom.
 The reader composes SegmentedControl (import mode), Sheet (mobile navigation,
 reference and touch choices), Drawer (wide component reference), Collapsible (compact outline and adapter source),
 Surface/Stack/Inline/Text (catalog cards), Link button variants (sidebar,
@@ -123,6 +126,10 @@ The website's GitHub mark comes from GitHub's Primer Octicons, pinned at
 `9a274e212ee25c400ff666ce25a57866b7eacc25/icons/mark-github-16.svg`.
 The original MIT notice is retained in `public/licenses/github-mark.txt`.
 The asset is used to link to the Flood repository, not as Flood branding.
+
+The editor installation links use the official [Cursor cube](https://cursor.com/en-US/brand)
+and [Visual Studio Code stable icon](https://code.visualstudio.com/brand).
+Their visible link labels provide the accessible names.
 
 Inter is bundled with the React stylesheet under SIL OFL 1.1; Lucide supplies
 website/example SVGs under ISC with upstream Feather MIT notices. Full notices

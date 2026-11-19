@@ -133,7 +133,10 @@ export const ScatterPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, ScatterCha
     return id;
   };
   const trackPointer = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== "touch") setHover(nearest(event));
+    if (event.pointerType !== "touch") { setFocused(false); setCursor(undefined); setHover(nearest(event)); }
+  };
+  const enterPointer = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "touch" && !focused) trackPointer(event);
   };
   const navigate = (event: KeyboardEvent<HTMLDivElement>) => {
     let next: number;
@@ -171,7 +174,7 @@ export const ScatterPlot = /* @__PURE__ */ forwardRef<HTMLDivElement, ScatterCha
           aria-valuenow={canNavigate ? index + 1 : undefined} aria-valuetext={canNavigate ? valueText : undefined}
           onFocus={event => setFocused(event.currentTarget.matches(":focus-visible"))}
           onBlur={() => setFocused(false)} onKeyDown={navigate}
-          onPointerEnter={trackPointer} onPointerMove={trackPointer} onPointerLeave={() => setHover(undefined)}
+          onPointerEnter={enterPointer} onPointerMove={trackPointer} onPointerLeave={() => setHover(undefined)}
           onPointerUp={event => {
             if (event.pointerType !== "touch") return;
             const next = nearest(event);

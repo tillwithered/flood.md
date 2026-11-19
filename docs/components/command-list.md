@@ -31,8 +31,10 @@ command execution engine. The input query is never a form value.
 Groups follow their first occurrence; item order within a group is retained.
 Disabled matching items remain visible and announced as unavailable but are
 skipped by active keyboard movement. No selection is persisted after invocation.
-The first enabled match is initially active; `aria-selected` describes the current
-suggestion, not a submitted domain value.
+The first enabled match is initially active by default. Set
+`autoHighlight={false}` for a browse list that should open with no active action.
+Arrow Down then starts at the first enabled action and Arrow Up at the last.
+`aria-selected` describes the current suggestion, not a submitted domain value.
 
 `query` / `defaultQuery` and `onQueryChange` control search text. Refused controlled
 changes leave the applied query and visible results unchanged. The host replaces

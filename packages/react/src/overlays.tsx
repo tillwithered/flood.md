@@ -1,4 +1,4 @@
-import {forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState} from "react";
+import {forwardRef, useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState, type ReactNode} from "react";
 import type {TooltipProps,TooltipTriggerProps,PopoverProps,DialogProps,OverlayTriggerProps} from "./index.js";
 import {IconButton,ScrollArea,VisuallyHidden} from "./index.js";
 import {positionLayer,registerLayer,returnFocus,lockScroll,tabbables,useLayerExitContent} from "./overlay-runtime.js";
@@ -22,11 +22,19 @@ function OverlayClose({label,onClick}:{label:string;onClick:()=>void}){
   </IconButton>;
 }
 
-type AnchoredProps=(TooltipProps&{kind:"tooltip";inlineTooltip?:boolean})|(PopoverProps&{kind:"popover";inlineTooltip?:never});
+type AnchoredTooltipProps = Omit<TooltipProps, "content"> & {
+  kind: "tooltip"; content?: ReactNode; inlineTooltip?: boolean; inlinePopover?: never;
+};
+type AnchoredProps =
+  | AnchoredTooltipProps
+  | (PopoverProps & { kind: "popover"; inlineTooltip?: never; inlinePopover?: false })
+  | (PopoverProps & { kind: "popover"; inlineTooltip?: never; inlinePopover: true; chrome: "minimal" });
 export const AnchoredOverlay=/* @__PURE__ */ forwardRef<HTMLDivElement,AnchoredProps>(function AnchoredOverlay(allProps,forwardedRef){
-  const {kind,trigger,side="bottom",align="start",disabled=false,id:explicitId,className,style,inlineTooltip=false,...native}=allProps;
-  const Panel=kind==="tooltip"&&inlineTooltip?"span":"div";
-  const pop=allProps as PopoverProps,tip=allProps as TooltipProps;
+  const {kind,trigger,side="bottom",align="start",disabled=false,id:explicitId,className,style,inlineTooltip=false,inlinePopover=false,...native}=allProps;
+  const Panel=inlineTooltip||inlinePopover?"span":"div";
+  const Body=inlinePopover?"span":"div";
+  const HiddenTitle=inlinePopover?"span":"h2";
+  const pop=allProps as PopoverProps,tip=allProps as AnchoredTooltipProps;
   const [local,setLocal]=useState(kind==="popover"?Boolean(pop.defaultOpen):false);
   const open=kind==="tooltip"?local:pop.open??local;
   const anchor=useRef<HTMLElement>(null),panel=useRef<HTMLElement>(null),generated=useId();
@@ -41,7 +49,7 @@ export const AnchoredOverlay=/* @__PURE__ */ forwardRef<HTMLDivElement,AnchoredP
   const current=useCurrent({close,request,disabled,open,focusOnOpen,initialFocusRef:pop.initialFocusRef,positionReference:pop.positionReference});
   const previousFocusOnOpen=useRef(focusOnOpen);
   const positionReference=()=>{const node=current.current.positionReference?.current;return node?.isConnected&&node.ownerDocument===panel.current?.ownerDocument?node:anchor.current;};
-  // The public Tooltip and Popover always render a div. The inline tooltip is private.
+  // Public Tooltip and Popover forward div refs. Inline usages do not take a panel ref.
   useImperativeHandle(forwardedRef,()=>panel.current as HTMLDivElement,[]);
   useEffect(()=>()=>clearTimeout(timer.current),[]);
   useEffect(()=>{if(kind==="tooltip"&&disabled){clear();setLocal(false)}},[disabled,kind]);
@@ -50,6 +58,7 @@ export const AnchoredOverlay=/* @__PURE__ */ forwardRef<HTMLDivElement,AnchoredP
   useBrowserLayoutEffect(()=>{
     if(!open||!panel.current)return;
     const element=panel.current,document=element.ownerDocument,view=document.defaultView!;
+    const opener=anchor.current;
     let alive=true,unregister=()=>{},frame=0;
     const start=()=>{
       if(!alive||!anchor.current?.isConnected)return;
@@ -68,7 +77,7 @@ export const AnchoredOverlay=/* @__PURE__ */ forwardRef<HTMLDivElement,AnchoredP
       queueMicrotask(()=>{if(alive&&current.current.open&&element.isConnected&&!element.matches(":popover-open")&&anchor.current?.isConnected){element.showPopover();positionLayer(positionReference()!,element,side,align);if(kind==="popover"&&current.current.focusOnOpen)focusContent(element,current.current.initialFocusRef?.current)}});
     };
     element.addEventListener("toggle",toggle);
-    return ()=>{alive=false;view.cancelAnimationFrame(frame);unregister();element.removeEventListener("toggle",toggle);if(kind==="popover"&&(previousFocusOnOpen.current||element.contains(document.activeElement)))returnFocus(element,anchor.current);if(element.matches(":popover-open"))element.hidePopover();};
+    return ()=>{alive=false;view.cancelAnimationFrame(frame);unregister();element.removeEventListener("toggle",toggle);if(kind==="popover"&&(previousFocusOnOpen.current||element.contains(document.activeElement)))returnFocus(element,anchor.current??opener);if(element.matches(":popover-open"))element.hidePopover();};
   },[open,side,align,kind]);
   const titleOnly=kind==="popover"&&pop.chrome==="title-only";
   const showContent=useLayerExitContent(panel,open,titleOnly);
@@ -91,7 +100,7 @@ export const AnchoredOverlay=/* @__PURE__ */ forwardRef<HTMLDivElement,AnchoredP
   return <>{kind==="tooltip"?tip.trigger(tooltipTriggerProps):pop.trigger(popoverTriggerProps)}<Panel {...attributes} ref={setPanel} id={id} popover="manual" role={kind==="tooltip"?"tooltip":"dialog"} aria-labelledby={kind==="popover"?`${id}-title`:undefined}
     tabIndex={kind==="popover"?-1:undefined} aria-hidden={titleOnly&&!open?true:attributes["aria-hidden"]} data-chrome={kind==="popover"?pop.chrome:undefined} className={["flood-overlay-panel",kind==="tooltip"?"flood-tooltip":"flood-popover",className].filter(Boolean).join(" ")} style={style}
     onPointerEnter={event=>{attributes.onPointerEnter?.(event);if(kind==="tooltip"){overPanel.current=true;clear()}}} onPointerLeave={event=>{attributes.onPointerLeave?.(event);if(kind==="tooltip"){overPanel.current=false;leave()}}}>
-    {kind==="tooltip"?tip.content:<>{pop.chrome==="minimal"?<VisuallyHidden><h2 id={`${id}-title`}>{pop.title}</h2></VisuallyHidden>:<div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{pop.title}</h2>{!titleOnly&&<OverlayClose label={pop.closeLabel??"Close"} onClick={close} />}</div>}{showContent&&<div className="flood-overlay-body">{pop.children}</div>}</>}
+    {kind==="tooltip"?tip.content:<>{pop.chrome==="minimal"?<VisuallyHidden><HiddenTitle id={`${id}-title`}>{pop.title}</HiddenTitle></VisuallyHidden>:<div className="flood-overlay-header"><h2 id={`${id}-title`} className="flood-overlay-title">{pop.title}</h2>{!titleOnly&&<OverlayClose label={pop.closeLabel??"Close"} onClick={close} />}</div>}{showContent&&<Body className="flood-overlay-body">{pop.children}</Body>}</>}
   </Panel></>;
 });
 

@@ -12,6 +12,86 @@ content specification for every surface. Use the
 [interface-content workflow](../flood-interface-content/SKILL.md) for wording and
 [hierarchy workflow](../flood-hierarchy/SKILL.md) for visual relationships.
 
+Use ApprovalChain to show who has decided and where a request is waiting. Group
+reviewers who act in parallel under their actual stage, and identify a delegate
+with the identity they represent. Use ApprovalRequest for the decision form.
+Read the accepted route and outcomes from the host.
+
+Use RecordRelationSuggestion when a service proposes a connection that needs
+human review. Keep the target link, reason and decision controls available in
+the same row. When a duplicate will merge into a selected record, use
+RecordMergeReview to name both records and show where their related data goes.
+Keep the destination and its reference readable during pending and retry.
+Use RecordRelations after the host accepts a simple link.
+
+Use ChangeRegion for block-level edits. Preserve the wrapper when the marker
+clears so the reading position stays stable. Give the marker an accessible
+label and keep the actual review controls in the host.
+For document-backed review, read `recipe:document-review` for TextRevision,
+TextAnnotation and CommentThread. Use ReplyReference in a published comment
+when its original would be hard to locate. When the original is already
+obvious from the thread, omit the reference. Give same-page sources a unique
+CommentThreadItem.anchorId and show an unavailable label when the viewer no
+longer has access to the message. Use QuotedPost when the quoted content itself
+should be readable in the new message. Supply only the excerpt and media the
+viewer may read. Keep the original link independent of any attachment
+actions. In an existing details section, use embedded QuotedPost so the
+excerpt shares that surface. Give the original link a recognizable source
+label, and include a timestamp when it helps locate the exchange.
+Use TextAnnotation for discussion of existing
+words. Preserve the thread if its anchor is removed, and keep
+ordinary thread resolution independent of the text decision.
+Use FeedAttribution above an entry when the reason it appears is useful
+context, such as a repost. Keep the original author with the entry. Link the
+attribution only when the destination matches the person or source named.
+Use PublicationPreview for an article with an independent subscription
+action for the named publication. Keep that action outside the article link.
+Keep the accepted subscription visible while the host processes a change.
+Use one UnreadMarker before the first unread item in a chronological view.
+Pass the host's visible boundary to CommentThread; focus for a jump belongs on
+the target message. Keep the marker passive and remove it when the read update
+is accepted.
+Use ThreadTrigger below a parent message when its replies open in a separate
+panel. Keep the count visible, show unread only for confirmed unseen replies,
+and pass the panel's controls to the trigger. Use CommentThread for the replies.
+Use TypingIndicator beside a composer for transient participant presence.
+Give it a short localized label, let the host expire typing events, and
+preserve the composer position between typing and idle.
+Use MessageReceipt for delivery feedback on one outgoing message. Reflect
+only transport and read states confirmed for the viewer. Pair a failed state
+with a separate host-owned retry control when retry is available.
+Use GroupReadReceipt beside the timestamp when a group message has confirmed
+readers the viewer can inspect. Omit identities withheld by privacy settings.
+An empty roster can fall back to the last confirmed MessageReceipt state.
+Use ParticipantPopover to disclose a complete roster, including a short role
+when the relationship affects the task. Keep subscription controls with the
+host and use AvatarGroup when visible identities are part of the record.
+Use CollaboratorPresence in the current record toolbar when readers need to
+inspect confirmed viewing or editing activity. Keep an empty live roster
+distinct from unavailable presence, and clearly qualify a retained snapshot.
+Use NotificationSubscription for the viewer's notification scope on one
+record. Keep the accepted mode visible during a request and leave the
+previous mode selected if the host declines the change.
+Use SaveToCollection when a record has a personal save action and can belong
+to several named collections. Keep the accepted memberships visible while the
+host processes a change. Use a searchable picker when collections are paged or
+too numerous for a short menu.
+Use ReminderControl to schedule a personal follow-up while keeping the record
+in place. Show the accepted time beside the trigger. The host resolves presets
+at activation and owns delivery and cancellation.
+Use SnoozeMenu when an existing item should leave a queue temporarily and
+return at a chosen time. Keep the accepted schedule visible until the host
+confirms a change. If acceptance removes the item, move focus to the next item
+or the queue heading. Keep ordinary subscription preferences independent.
+Use ReplyAudience near Send or Publish when a draft can restrict who may reply.
+Supply the actual policy choices and keep the selected rule visible. Changing
+that rule preserves the draft. The host accepts and enforces the restriction.
+
+Use VersionHistory when people switch between saved checkpoints of one
+artifact and inspect the selected version. Keep restoring separate from
+selection. Identify the checkpoint in the confirmation and update the current
+version only after the host accepts the restore.
+
 Before JSX, make a short field -> decision -> list/detail placement record in
 development notes. Include the reason for an omitted field; do not place this
 planning text in the interface. Read the
@@ -38,9 +118,20 @@ authored copy as data.
   For cursor-backed tables, use DataTable's cursor mode and pass
   cursorPagination. It places navigation in the shared footer and can show
   the known range. Keep cursor, sort and request state in the host.
+- Use AmountBreakdown after invoice, billing or approval detail when the
+  subtotal, taxes, credits and final amount help verify the total. Pass
+  formatted values and the authoritative total from the host. If the enclosing
+  table already prints the same total, keep one visible total in the workflow.
+- Use CurrencyConversion when the same transaction has amounts in two
+  currencies. Keep the ISO codes visible, mark estimated values, and show the
+  statement amount as pending until it is available. Use a provider-reported
+  rate when available. Treat fees as separate reported amounts.
 - Use DescriptionList for named values in details. Each item requires a unique,
   stable string `id` alongside `term` and `description`. A detail view can expose
   more information than a list; it does not need to repeat the list's chip arrangement.
+  When one value needs the full width for reading, set `layout="stacked"` on
+  that item and keep peer facts on their shared tracks. Check the longest value
+  and any copy action at the actual panel width.
 
 Use MetadataList for related secondary facts that travel with a record title.
 DataListItem details places them in the copy column. Keep comparison values in
@@ -68,7 +159,7 @@ structure or move secondary attributes into the copy area.
 | --- | --- |
 | Lifecycle or operation state | StatusIndicator with accurate text; color is supplementary |
 | Category, type or membership | Badge when a tag-shaped marker helps recognition; otherwise named/subordinate text |
-| Priority or urgency | Keep visible when it drives triage/comparison; use an explicit column or named value if needed |
+| Priority or urgency | PriorityIndicator in an explicitly named column or field when urgency drives comparison. Keep one presentation across peers. Choose icon only where the rank is recognizable and the full label is available on hover and keyboard focus. |
 | Creation, update, due or event time | Identify the event and appropriate precision; do not treat every date as a status |
 | An available operation | Button/IconButton/Menu; do not make an informational badge look actionable |
 
@@ -94,6 +185,9 @@ Check full names, focus return and scrolling when many people are hidden.
 Nest replies under the item they answer. Keep short branches visible and
 give larger ones a named disclosure. Use the thread's own indentation and
 connectors so a reply stays attached to its parent when the message grows.
+In a collapsed branch, the connector leads to the disclosure on the parent
+message's text edge. Expand it to verify that the same track continues to
+the reply avatars, including at narrow widths and in right-to-left layouts.
 Separate peer comments and inbox updates through spacing and hierarchy first.
 Enable dividers when those cues leave dense adjacent items hard to distinguish.
 Use CommentComposer beside the thread
@@ -104,30 +198,88 @@ replyContext for a top-level comment. The host owns the reply target,
 submission and focus return if cancellation closes the editor.
 Pass onReply on Comment or its thread item for the standard reply action.
 Focus the draft when it opens and return focus to that action on cancellation.
+Use ImageAnnotations when a discussion refers to a specific part of an image.
+Use coordinates from that image and keep its original proportions. Show the
+associated ReviewThread in a persistent panel when the user checks multiple points.
+Use ImageFocalPoint in an image edit form when banner and card crops need to
+keep the same subject in frame. Store the physical coordinates with the host
+record and show representative cover crops alongside the editable source.
+Use ReviewThread when a discussion itself can be resolved and reopened.
+Keep the original messages reachable in either state. Show a resolution when
+it records the accepted decision. Pass onResolvedChange only for an allowed
+action and pass pending and error from the host. Keep the accepted resolved
+value and focused action in place while the request runs or is refused.
 Put FileList and ReactionButton in the dedicated Comment slots. Reactions
 share the command row and keep their count visible when copy and other
 secondary commands are quiet. Update the reaction count and pressed state
 together from the accepted host state.
 Pass ReactionPicker to Comment's reactionPicker slot. Its trigger stays next
 to existing reactions. Reveal it with secondary actions when no reactions exist.
+Use ProjectHealth in an overview or collection. Lead with the missing or
+overdue report when it changes the next action. Qualify the old assessment
+as historical and keep a route to its source available when one exists.
+Use ProjectUpdate for a posted project-health report with a narrative, author
+and date. Include the project name when the enclosing region mixes projects.
+Show recorded field changes when their exact values clarify the update. Keep
+posting, history and the snapshot values in the host.
+Use ServiceIncident for one service incident. Lead with its current phase
+and user-facing impact. Put dated updates in newest-first order and phrase
+their titles around what changed. Use UptimeHistory for an availability window
+and Timeline for a mixed event feed. The host supplies published incident data.
+Use MaintenanceWindow for one published service window. Surface the affected
+scope, explicitly zoned interval, phase and user-facing impact together. A
+clock change can repeat a wall time, so preserve both offsets when they differ.
+Use RecurrenceEditor for editing a repeating schedule.
 For a mixed activity feed, use Timeline mode="activity" layout="feed". Keep
 simple events in a compact heading and time row. Use rich content only for
 the attachment, mention or thread the event refers to. Use layout="schedule"
 when times need a shared leading track, and supply explicit names for
 intervals such as handoffs rather than relying on connector style alone.
+ActivityTimeline and AuditTimeline connect periods by default, including dates
+with one event. Verify the join on the actual surface. Add connector="none"
+to the preceding event when the history has a deliberate break.
 Use ValueChange for the previous and current values of a named field.
 Use ChangeList when one event changes several fields. Put field changes in
 that event's content and keep actor and time in the event header. Omit the
 missing side for additions or removals. Use stacked values when wrapping
-would obscure which value came first. Keep the field's existing value
-presentation, such as a status chip.
+would obscure which value came first. In a tight inspector or timeline, verify
+localized Before and After labels stay attached to their own values, including
+when each label sits above its value. Keep the field's existing presentation,
+such as a status chip.
+Use AuditTimeline when readers scan grouped events and open field changes
+only for the event they need. Verify each disclosure opens independently
+and that events with no field changes have no disclosure. Use ActivityTimeline
+for feeds with mixed content such as comments, files and field changes.
 Use FileList appearance="embedded" for attachments and Alert
 appearance="inline" for brief contextual warnings in the feed. Reactions
 belong to the specific Comment even when the thread appears in Timeline.
-For a gallery where image inspection is a frequent task, use FileCard
-with onPreview and previewPlacement="thumbnail". Open an ImagePreview or
-ImageGallery in the host. Keep filename navigation, downloads and selection
-as separate controls.
+Use CollectionCard for a destination that groups several items. Keep its
+title visible and use CollectionCover as passive artwork in other collection
+compositions. Use distinct actions for tasks like copying a collection link.
+For a gallery where image inspection is a frequent task, use FileCard with
+previewPlacement="thumbnail". Use renderPreview on FileCard or FileItem and
+pass the supplied trigger directly to ImagePreview or ImageGallery. Use
+DocumentPreview for review across numbered pages. This keeps the file's named
+button as the opener and the focus target when the preview closes. UploadItem
+makes the same preview available once the file reaches success.
+Keep filename navigation, downloads and selection as separate controls.
+Use AltTextDisclosure beside an image when readers need to inspect its authored
+description. Use the same value for the native image alt. Keep its control
+separate from any preview button, and use Figure for editorial captions.
+Use ImageAltTextEditor when authors edit an image's alternative text. Keep the
+preview bounded and its own accessible text independent of the draft. Apply
+the publishing limit and decorative-image decision from the host.
+Use FileCardGrid for a gallery whose descriptions or available commands vary.
+Keep thumbnail ratio, placement and density consistent across cards. Compare
+the artwork and footer axes within a row, then narrow the grid and verify the
+source order and loading geometry.
+Choose minItemWidth at a width where a card's filename and controls still
+fit. Use maxColumns to cap the number on a wide surface. Check just before
+a new column fits for an artwork frame that has grown too tall.
+In a narrow file list, check the visible name prefix, extension and complete
+size with touch targets enabled. Keep a single preview beside the copy when it
+fits. Multiple commands can move below the copy. In truncation mode, verify
+that focus reveals the full name and that the preview returns focus.
 Use ImageComparison when the reviewer needs to see what changed between two
 images of the same subject. Match the crop, give both versions short labels
 and alternative text, and verify that both endpoints keep the frame in place.
@@ -188,8 +340,11 @@ views with space-reserving system scrollbars enabled. Check which element
 scrolls, that the document reserves zero scrollbar width, and that table edges
 stay put when the app scrollbar appears or disappears.
 
-Place BulkActionBar in a fixed host centered near the bottom
-of the viewport. Keep the host outside the table toolbar. Budget any needed
+Use BulkActionBar placement="viewport" outside the table toolbar and any
+transformed container that would capture fixed positioning. For a selectable
+FileCardGrid, start from `recipe:file-gallery`. Keep the accepted selected IDs in the gallery host and use the
+same bar for actions on those IDs. Keep individual previews and downloads
+on their own cards. Budget any needed
 bottom clearance in the base layout so selecting rows preserves both the table
 position and the scroll height. Use `showSelection={false}` when BulkActionBar displays the count.
 The table still announces selection and can show its result range and pagination.

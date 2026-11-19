@@ -9,7 +9,9 @@ import {dateFromOrdinal,dateOrdinal,dateWeekday,formattingDate,lastDateOrdinal,m
 const cx=(...values:Array<string|undefined|false>)=>values.filter(Boolean).join(" ");
 const titleCase=(text:string,locale:string)=>text.replace(/^\p{L}/u,letter=>letter.toLocaleUpperCase(locale));
 export interface CalendarDayMetadata {rangeStart?:boolean;rangeEnd?:boolean;inRange?:boolean;preview?:boolean;unavailable?:boolean;}
-export interface CalendarGridProps extends Omit<CalendarProps,"value"|"defaultValue"|"onValueChange"|"onDateSelect"> {
+export interface CalendarGridProps extends Omit<CalendarProps,
+  "value"|"defaultValue"|"onValueChange"|"onDateSelect"|"selectionMode"|"selectedDates"|"defaultSelectedDates"|"onSelectedDatesChange"|"clearSelectionLabel"
+> {
   selectedDate?:string;
   isSelected?:(date:string)=>boolean;
   dayMetadata?:(date:string)=>CalendarDayMetadata;
@@ -177,16 +179,49 @@ export const CalendarGrid=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarGrid
     </div>
     :<CalendarPeriodGrid key={view} focusValue={view==="years"?String(year).padStart(4,"0"):month} choices={periodChoices} label={view==="years"?viewNames.year:`${viewNames.month}: ${year}`} onChoose={choosePeriod} autoFocus={focusView||autoFocus} disabled={effectiveDisabled} readOnly={readOnly&&(granularity==="year"||granularity==="month"&&view==="months")}/> }
     </div>
-    {footer}
+    {(multiple || footer) && <div className="flood-calendar__footer">{footer}</div>}
   </div>;
 });
 
-export const DateCalendar=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarProps>(function DateCalendar({value,defaultValue="",onValueChange,onDateSelect,granularity="day",min,max,isDateDisabled,...props},ref){
+export const DateCalendar=/* @__PURE__ */ forwardRef<HTMLDivElement,CalendarProps>(function DateCalendar({
+  value,defaultValue="",onValueChange,onDateSelect,granularity="day",min,max,isDateDisabled,
+  selectionMode="single",selectedDates,defaultSelectedDates,onSelectedDatesChange,clearSelectionLabel,...props
+},ref){
   const valid=(date:string)=>granularity==="day"?!!parseDate(date):granularity==="month"?!!monthParts(date):/^\d{4}$/.test(date)&&Number(date)>=1&&Number(date)<=9999;
   if(!["day","month","year"].includes(granularity))throw new Error("Flood Calendar granularity must be day, month or year");
   for(const date of [value,defaultValue,min,max])if(date!==undefined&&date!==""&&!valid(date))throw new Error("Flood Calendar values and bounds must match granularity");
   if(isDateDisabled&&granularity!=="day")throw new Error("Flood Calendar isDateDisabled applies only to day selection");
   const [local,setLocal]=useState(defaultValue),selected=value??local;
+  const [localDates,setLocalDates]=useState<readonly string[]>(()=>[...(defaultSelectedDates??[])]);
+  if(selectionMode==="multiple"){
+    if(granularity!=="day"||value!==undefined||defaultValue!==""||onValueChange||onDateSelect)
+      throw new Error("Flood Calendar multiple selection uses day granularity and the selectedDates API");
+    const accepted=selectedDates??localDates;
+    if(accepted.some(date=>!parseDate(date))||new Set(accepted).size!==accepted.length)
+      throw new Error("Flood Calendar selectedDates must contain unique ISO Gregorian dates");
+    if(clearSelectionLabel!==undefined&&!clearSelectionLabel.trim())
+      throw new Error("Flood Calendar clearSelectionLabel must be nonempty");
+    const dates=new Set(accepted);
+    const update=(next:string[])=>{
+      if(selectedDates===undefined)setLocalDates(next);
+      onSelectedDatesChange?.(next);
+    };
+    const clear=clearSelectionLabel&&!props.readOnly
+      ? <div className="flood-calendar__clear">
+          <Button size="sm" variant="ghost" disabled={props.disabled||!dates.size} onClick={event=>{
+            const target=event.currentTarget.closest(".flood-calendar")?.querySelector<HTMLButtonElement>('[role="grid"] button[tabindex="0"]');
+            update([]);
+            target?.focus({preventScroll:true});
+          }}>{clearSelectionLabel}</Button>
+        </div>
+      : undefined;
+    return <CalendarGrid {...props} ref={ref} min={min} max={max} isDateDisabled={isDateDisabled}
+      multiple selectedDate={accepted[0]} isSelected={date=>dates.has(date)} footer={clear}
+      onDayActivate={date=>{
+        if(dates.has(date))dates.delete(date);else dates.add(date);
+        update([...dates].sort());
+      }} />;
+  }
   const start=(date:string)=>granularity==="day"?date:granularity==="month"?`${date}-01`:`${date}-01-01`;
   const end=(date:string)=>granularity==="day"?date:granularity==="year"?`${date}-12-31`:`${date}-${String(daysInMonth(Number(date.slice(0,4)),Number(date.slice(5)))).padStart(2,"0")}`;
   return <CalendarGrid {...props} ref={ref} granularity={granularity} min={min?start(min):undefined} max={max?end(max):undefined} isDateDisabled={isDateDisabled} selectedDate={selected?start(selected):""} onDayActivate={date=>{const next=granularity==="day"?date:granularity==="month"?date.slice(0,7):date.slice(0,4);if(selected!==next){if(value===undefined)setLocal(next);onValueChange?.(next);}onDateSelect?.(next);}}/>;

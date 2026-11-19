@@ -1,0 +1,13 @@
+.flood-root .flood-json-inspector { min-inline-size: 0; }
+.flood-root .flood-json-inspector > .flood-search-input { inline-size: 100%; }
+.flood-root .flood-json-inspector .flood-tree__text {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: var(--flood-sys-space-2);
+}
+.flood-root .flood-json-inspector .flood-tree__label,
+.flood-root .flood-json-inspector .flood-tree__description,
+.flood-root .flood-json-inspector__path { min-inline-size: 0; overflow-wrap: anywhere; }
+.flood-root .flood-json-inspector__path { align-self: flex-start; max-inline-size: 100%; }
+.flood-root .flood-json-inspector__code { padding: var(--flood-sys-space-2) var(--flood-sys-space-3); }

@@ -1,0 +1,128 @@
+.flood-root .flood-kanban-board {
+  --flood-kanban-title-row: var(--flood-sys-control-xs-height);
+  min-inline-size: 0;
+}
+@media (pointer: coarse) {
+  .flood-root .flood-kanban-board[data-card-layout="project"] {
+    --flood-kanban-title-row: max(var(--flood-sys-control-md-height), var(--flood-sys-size-touch));
+  }
+}
+.flood-root .flood-kanban-board__columns {
+  display: flex;
+  gap: var(--flood-sys-space-3);
+  align-items: stretch;
+  inline-size: max-content;
+  min-inline-size: 100%;
+  padding-block-end: var(--flood-sys-space-3);
+}
+.flood-root .flood-kanban-board__column {
+  position: relative;
+  box-sizing: border-box;
+  flex: 1 0 14rem;
+  inline-size: 14rem;
+  max-inline-size: 20rem;
+  min-block-size: 7rem;
+  border-radius: var(--flood-sys-radius-block);
+}
+.flood-root .flood-kanban-board__header {
+  padding-inline: calc(var(--flood-sys-space-3) + var(--flood-sys-stroke-width));
+  min-block-size: var(--flood-sys-control-sm-height);
+}
+.flood-root .flood-kanban-board[data-appearance="contained"] .flood-kanban-board__header {
+  padding-block-start: var(--flood-sys-space-1);
+}
+.flood-root .flood-kanban-board__card.flood-card {
+  position: relative;
+  gap: var(--flood-sys-space-1);
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-radius: var(--flood-sys-radius-field);
+}
+.flood-root .flood-kanban-board[data-card-layout="project"] .flood-kanban-board__column {
+  flex-basis: 17rem;
+  inline-size: 17rem;
+}
+.flood-root .flood-kanban-board[data-card-layout="project"] .flood-kanban-board__card {
+  gap: var(--flood-sys-space-3);
+}
+.flood-root .flood-kanban-board[data-card-layout="project"] :is(.flood-kanban-board__header, .flood-kanban-board__cards:has(> .flood-text:only-child)) {
+  padding-inline: calc(var(--flood-sys-space-4) + var(--flood-sys-stroke-width));
+}
+.flood-root .flood-kanban-board[data-card-layout="project"] .flood-card__intro > .flood-heading {
+  --flood-type-size: var(--flood-sys-type-compact-size);
+  --flood-type-line: var(--flood-sys-type-compact-line-height);
+  --flood-type-tracking: var(--flood-sys-type-compact-tracking);
+}
+.flood-root .flood-kanban-board__card .flood-card__header-main { flex-wrap: nowrap; gap: var(--flood-sys-space-1); }
+.flood-root .flood-kanban-board__card .flood-card__intro { flex-basis: 0; }
+.flood-root .flood-kanban-board__card .flood-card__actions { flex: none; }
+.flood-root .flood-kanban-board__title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--flood-sys-space-2);
+}
+.flood-root .flood-kanban-board__title-text { overflow-wrap: anywhere; }
+.flood-root .flood-kanban-board__title .flood-kanban-board__project-icon {
+  margin-block-start: calc((var(--flood-kanban-title-row) - var(--flood-icon-size)) / 2);
+  color: var(--flood-sys-color-content-subtle);
+}
+.flood-root .flood-kanban-board__title > .flood-kanban-board__title-text {
+  min-block-size: var(--flood-kanban-title-row);
+  box-sizing: border-box;
+  padding-block-start: max(0px, calc((var(--flood-kanban-title-row) - 1lh) / 2));
+}
+.flood-root .flood-kanban-board__card .flood-kanban-board__open {
+  min-block-size: var(--flood-sys-control-xs-height);
+  padding: 0;
+  border: 0;
+  max-inline-size: 100%;
+  justify-content: flex-start;
+  font: inherit;
+  text-align: start;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  background: transparent;
+}
+.flood-root .flood-kanban-board[data-card-layout="project"] .flood-kanban-board__open {
+  min-block-size: var(--flood-kanban-title-row);
+  align-items: start;
+  padding-block-start: max(0px, calc((var(--flood-kanban-title-row) - 1lh) / 2));
+}
+.flood-root .flood-kanban-board__card .flood-kanban-board__open:enabled:hover {
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: .2em;
+}
+.flood-root .flood-kanban-board__description { margin: 0; }
+.flood-root .flood-kanban-board__details { flex-wrap: wrap; }
+.flood-root .flood-kanban-board__details > .flood-text { min-inline-size: 0; overflow-wrap: anywhere; }
+.flood-root .flood-kanban-board__assignee { margin-inline-start: auto; }
+.flood-root .flood-kanban-board__card :is(.flood-kanban-board__grip,.flood-kanban-board__menu):not(:hover,:focus-visible) {
+  color: var(--flood-sys-color-content-subtle);
+}
+.flood-root .flood-kanban-board__cards { position: relative; }
+.flood-root .flood-kanban-board__cards:has(> .flood-text:only-child) {
+  padding-inline: calc(var(--flood-sys-space-3) + var(--flood-sys-stroke-width));
+}
+.flood-root .flood-kanban-board__card[data-moving-card] { opacity: .55; }
+.flood-root .flood-kanban-board__card[data-surface-drag] { cursor: grab; }
+.flood-root .flood-kanban-board__card[data-surface-drag][data-moving-card] { cursor: grabbing; }
+.flood-root .flood-kanban-board__card[data-surface-drag] :is(.flood-kanban-board__title-text, .flood-kanban-board__description, .flood-card__footer) { cursor: auto; }
+.flood-root .flood-kanban-board__grip:enabled { cursor: grab; touch-action: none; }
+.flood-root .flood-kanban-board[data-moving="pointer"] .flood-kanban-board__grip:enabled { cursor: grabbing; }
+.flood-root .flood-kanban-board[data-moving="pointer"] .flood-kanban-board__grip:focus-visible { outline: none; }
+.flood-root .flood-kanban-board :is([data-drop-end] .flood-kanban-board__cards,[data-drop-before])::after {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+  content: "";
+  inset-inline: var(--flood-sys-space-2);
+  block-size: var(--flood-sys-focus-width);
+  background: var(--flood-sys-color-focus-ring);
+  border-radius: var(--flood-sys-radius-action);
+}
+.flood-root .flood-kanban-board [data-drop-before]::after { inset-block-start: calc(-1 * var(--flood-sys-space-1)); }
+.flood-root .flood-kanban-board [data-drop-end] .flood-kanban-board__cards::after { inset-block-end: calc(-1 * var(--flood-sys-space-1)); }
+.flood-root .flood-kanban-board__error { margin-block: var(--flood-sys-space-2) 0; }
+@media (forced-colors: active) {
+  .flood-root .flood-kanban-board :is([data-drop-end] .flood-kanban-board__cards,[data-drop-before])::after { forced-color-adjust: none; background: Highlight; }
+}

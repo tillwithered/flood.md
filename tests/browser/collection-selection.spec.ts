@@ -3,7 +3,7 @@ import { build } from 'vite';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-let fixtureHTML: Promise<string>;
+let fixtureBuild: ReturnType<typeof fixture> | undefined;
 
 async function fixture() {
   const file = (path: string) => JSON.stringify(resolve(path).replaceAll('\\', '/'));
@@ -29,18 +29,24 @@ async function fixture() {
     );
   `);
   const built = await build({ configFile: false, logLevel: 'silent', define: { 'process.env.NODE_ENV': JSON.stringify('production') }, build: {
-    write: false, cssCodeSplit: false, lib: { entry, formats: ['iife'], name: 'CollectionSelectionFixture' },
+    write: false, cssCodeSplit: false, lib: { entry, formats: ['es'] },
   }});
   const outputs = (Array.isArray(built) ? built : [built]).flatMap(result => 'output' in result ? result.output : []);
-  const javascript = outputs.filter(item => item.type === 'chunk').map(item => item.type === 'chunk' ? item.code : '').join('\n');
+  const chunks = outputs.filter(item => item.type === 'chunk');
+  const entryChunk = chunks.find(chunk => chunk.isEntry);
+  if (!entryChunk) throw new Error('Collection fixture entry was not built');
   const css = outputs.filter(item => item.type === 'asset' && item.fileName.endsWith('.css')).map(item => item.type === 'asset' ? String(item.source) : '').join('\n');
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css}</style></head><body><main id="app"></main><script>${javascript.replace(/<\/script/gi, '<\\/script')}</script></body></html>`;
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${css}</style></head><body><main id="app"></main><script type="module" src="/__collection-selection/${entryChunk.fileName}"></script></body></html>`;
+  return { html, chunks };
 }
 
 async function open(page: Page, deferred = false) {
   if (deferred) {
-    fixtureHTML ??= fixture();
-    const html = await fixtureHTML;
+    fixtureBuild ??= fixture();
+    const { html, chunks } = await fixtureBuild;
+    for (const chunk of chunks) {
+      await page.route(`**/__collection-selection/${chunk.fileName}`, route => route.fulfill({ contentType: 'text/javascript', body: chunk.code }));
+    }
     await page.route('**/__collection-selection.html', route => route.fulfill({ contentType: 'text/html', body: html }));
     await page.goto('/__collection-selection.html');
   } else await page.goto('/playground/collections');

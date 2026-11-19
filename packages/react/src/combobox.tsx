@@ -57,7 +57,7 @@ export const SearchSelection = /* @__PURE__ */ forwardRef<HTMLInputElement, Sear
   const hasOptionAvatars = options.some(option => option.avatar) || selectedOptions.some(option => option.avatar);
   const display = useSelectionTags(selections,{maxVisibleTags,moreTagsLabel,fewerTagsLabel},disabled,() => setOpen(false));
   const {setExpanded: setTagsExpanded} = display;
-  const displayed = freeText ? text : query ?? (multiple ? "" : selected?.label ?? "");
+  const displayed = freeText ? text : query ?? (multiple ? "" : selected?.selectedLabel ?? selected?.label ?? "");
   const resultQuery = freeText ? text : controlledQuery ?? draftQuery ?? "";
   const pending = loadState === "loading" || (filtering === "manual" && optionsQuery !== resultQuery);
   const failed = loadState === "error" && !pending;

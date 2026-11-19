@@ -6,24 +6,395 @@ HTML semantics and refs, no third-party component library or Tailwind dependency
 Named imports support tree shaking in optimizing ES-module bundlers. Import the
 shared stylesheet explicitly; styles are not split by component.
 
+Use `PaymentMethodPicker` to compare delivery estimates, fees and restrictions
+before choosing a payment method.
+Use `ServiceRuntimeStatus` to show the reported state of an idle-sleeping
+service and its measured startup time.
+Use `HandleField` to edit a public account address and display availability for
+the current draft.
+Use `EnvironmentCreationForm` to start an empty environment or duplicate an
+eligible source with the copy scope visible before submission.
+Use `EstimateMenu` to set or clear a task estimate from a discrete team scale.
+Use `TemporarySpendLimit` to review a requested increase and the active limit
+for one card or fund.
+Use `DatabaseWebhookForm` to choose a table, row events and an HTTP destination
+for a webhook.
+Use `CronScheduleField` to edit a cron expression and display the host
+scheduler’s validation and next occurrences.
+Use `TemplatePicker` to preview template values and flag replacements in an
+existing draft before applying them.
+Use `ModelPicker` to choose an inference model by provider, name or technical
+identifier and explain unavailable choices.
+Use `SharingPanel` to review direct grants and stage a resource-wide access
+change independently of the currently enforced scope.
+Use `BillPaymentSchedule` to review a bill’s outstanding balance and the
+recorded state of its individual payments.
+Use `ContentLanguagePicker` to set multilingual content metadata with
+localized names, endonym search and stable language tags.
+Use `RestartPolicyEditor` to configure one service’s automatic restart policy
+and the retry ceiling that applies after an unsuccessful exit.
+Use `LogExportForm` to set a format and row limit for a scoped export of
+log results. The host runs the authorized query and delivers the file.
+Use `ColorContrast` to inspect a pair of opaque sRGB colors with a text
+sample and a WCAG AA contrast readout.
+Use `IdentityVerificationBadge` beside an identity to disclose the active
+verifications that the viewer may see.
+Use `MigrationHistory` to compare recorded migrations across sources.
+Use `SaveToCollection` for a personal save and a short menu of collection
+memberships on a record.
+Use `AdvisorFinding` to show the scope and impact of a diagnostic with
+disclosable evidence and a host-owned next step.
+Use `ServiceAvailability` to compare current service states and historical
+availability on one aligned timeline.
+Use `AgentHandoff` to inspect the source, recipient and observed outcome of a
+transfer between agents within a run.
+Use `ReplicationStatus` to compare database roles, reported health and observed
+lag across read replicas. Pass zero for measured zero lag and omit missing lag.
+Use `ReminderControl` to schedule personal follow-up from a record and display
+the accepted reminder time beside the menu trigger.
+Use `RefundLinkSummary` beside one refund to show its amount, the accepted
+original purchase and any reason editing the link is restricted.
+Use `ProfileLinks` for direct destinations under a profile. Keep their labels
+distinct and feature one destination when it matches the profile's main task.
+Use `CardDeck` for a short sequence of related cards read one at a time with
+previous and next controls.
+Use `VolumeMountSummary` to show a persistent volume's runtime attachment,
+exact mount path and observed storage usage.
+Use `CollectionImportReview` to disclose the destination, eligible items and
+assessed exclusions before a collection import.
+Use `CycleCapacity` to compare planned work with a forecast for an upcoming
+cycle, showing the exact difference and the estimate’s basis when known.
+Use `EvidenceChecklist` to track requested material separately from the overall
+approval decision.
+Use `ScheduledTaskList` to show time- and event-based tasks with their accepted
+scheduler state.
+Use `HoldToConfirm` to offer hold-and-release for a known consequence, with an
+ordinary confirmation dialog on click, tap or keyboard activation.
+Use `AccessInviteForm` to invite someone to a named resource and show what
+their selected role allows.
+Use `PendingInvitationList` to review outstanding invitations and offer the
+management actions allowed for each recipient.
+Use `AccessRequestForm` when the current account needs to request permission
+to open a known restricted resource.
+Use `SpendLimitForm` when an account can configure a notification threshold
+and an independent enforcement limit.
+Use `LiveFollowControl` to pause or resume following incoming entries in a
+host-owned viewport. LogViewer already includes this control.
+Use `LogContext` to inspect surrounding events and keep a selected log entry
+in place when loading earlier records.
+Use `HttpRequestRow` to review the safe endpoint, response outcome, and
+observed duration in a diagnostic list.
+Use `HttpExchangeDetails` to inspect the explicitly captured request and
+response headers or bodies for a selected HTTP exchange.
+Use `MeetingAvailability` to review a proposed slot in attendees’ local
+time zones, including conflicts, working hours and unshared availability.
+Use `MaintenanceWindow` to publish the exact timing, scope, phase and expected
+impact of planned service work.
+Use `CurrencyConversion` to compare original and statement amounts across
+currencies, including an estimate or a pending statement amount.
+Use `ExpenseSettlement` to show the direction, amount and status of a
+reimbursement or repayment.
+Use `CycleProgress` when the scope of a work cycle can change over time.
+Use `VisualSearchForm` when search accepts a reference image with optional text.
+Use `NumericValue` for localized counts with stable spacing across updates.
+Use `RowChangeDetails` to inspect the captured row data from a database event.
+Use `TokenUsageBreakdown` for recorded input and output counts on an agent run.
+Use `Duration` for measured elapsed time in logs, records and comparison
+columns with consistent units.
+Use `CollaboratorPresence` for the current document's active collaborators and
+an explicitly labeled snapshot during reconnection.
+Use `ConnectedAccountList` to show which provider accounts are connected and
+which require follow-up in account settings.
+Use `PasskeyList` for registered sign-in keys. Supply display-safe metadata
+and let the host confirm and perform removal.
+Use `ReleaseTargetMatrix` to compare one rollout across environments with
+the version currently serving on each.
+Use `PublicationPreview` to link to an article and give its publication an
+independent, host-controlled subscription action.
+Use `HttpMethod` for a method column and `EndpointLabel` when method and path
+share one label.
+Use `ImageAltTextEditor` when an author needs the image beside its alternative
+text draft and publishing limit.
+Use `ImportColumnMapping` to edit destination fields after parsing source
+columns and retain the examples during validation.
+Use `AccountStanding` for the reported overall account status and known active
+strike details. Use `ModerationNotice` for a specific decision.
+Use `RecordMergeReview` after choosing a duplicate's destination. Show the
+record that will remain canonical and what happens to related data.
+Use `VariableReferencePicker` to choose one configuration reference by source
+and key. The form carries the reference ID.
+Use `ColorFilter` beside search when results can be narrowed to a chosen color.
+Use `SwipeActions` for one or two secondary commands on a compact record row.
+The visible disclosure and horizontal gesture reveal the same commands. The
+host owns command execution. Use a Menu for a longer command list.
+Use `ContextWindowMeter` for a session's recorded token use, effective limit,
+and compaction threshold when known.
+
+Use `ServiceIncident` to show the current impact and published updates for
+one incident. The host supplies the status and newest-first update order.
+Use `DeploymentHandoff` to show two releases during a takeover. Pass the
+effective phase from the host and an expected overlap or drain end if known.
+Use `ReplicaAllocation` to edit a regional scaling draft under a shared limit.
+The host reviews and applies the plan.
+Use `DatabaseSessionList` to inspect database sessions and confirmed lock waits.
+Pass the observed blocker when its identity can be disclosed.
+Use `IndexRecommendation` to inspect planner cost estimates and copy a proposed
+index script for review.
+Use `RecordRelationForm` to draft a direct relation and `RecordRelations` to
+display the accepted links.
+Use `RecordRelationSuggestion` to review a proposed connection and its evidence
+inside a `DataList`.
+Use `ServiceLevelTargets` to show independent timing targets and their
+recorded outcomes, including work completed after a missed target.
+Use `ExpenseAllocationForm` to reconcile a split against one expense total.
+Supply decimal strings in the original currency.
+Use `ReceiptMatchReview` to compare receipt and transaction evidence. Supply
+the recorded outcome and the fields flagged by the host.
+
+Use `ContentReportStatus` to show the review state and published outcome of a
+submitted report. Pass only details the reporter is allowed to see.
+Use `ModerationNotice` to explain a restriction to the affected person and
+show an appeal action while the host allows it.
+Use `ModerationAppealForm` to draft reconsideration of a specific decision.
+Keep the explanation on refusal and update the notice after acceptance.
+
+Use `ReviewThread` when a discussion has a resolution that reviewers can
+reopen. The host supplies the accepted state and the original comments.
+
+Use `DeprecationNotice` next to an affected feature to show its retirement
+state, published cutoff and replacement.
+
+Use `AmountBreakdown` to align monetary details and emphasize an accepted
+total. Pass formatted amounts and the total from the host.
+
+Use `AltTextDisclosure` to let readers inspect an image description. Pass
+the same authored value to the image's native alt and the disclosure.
+
+Use `ImageFocalPoint` to choose one point for responsive cropping. Use
+`ImageAnnotations` to select a discussion anchored to a location on the image.
+
+Use `MediaSeekBar` with time from the player. Share that time and the seek
+handler with `MediaTranscript` when the recording has a transcript.
+Use `MediaChapterList` with the same player state to jump to named sections.
+
+Use `BackupPicker` for choosing an existing backup. Use `BackupRestoreDialog`
+to confirm the selected point and destination before the host restores it.
+
+Use `DeploymentRollbackDialog` after choosing a deployment to restore.
+Supply the observed live deployment, the exact target and the effect of the
+rollback. The host checks eligibility and executes the request.
+
+Use `IconSwap` inside an icon slot to show changed state without moving the
+control. The control supplies the accessible name and state.
+
+Use `Masonry` with native list items for a column-first collection of
+unequal-height cards or images.
+
+Use `RolloutAllocation` for a binary candidate and baseline split. The
+host supplies the candidate percentage, accepts changes and publishes them.
+
+Use `EvaluationResult` to compare an expected and actual output with a
+host-reported verdict and optional assertion checks.
+
+Use `MediaCredit` in a `Figure` caption to show the known creator, source and
+publication date. The host can identify a source it has not verified.
+
+Use `ProjectHealth` in a portfolio row or card to show the latest assessment
+and whether a new update is expected. The host supplies the report state.
+
+Use `ServiceEndpointList` to compare public and private network addresses for
+one service. Pass each endpoint's actual access scope and credential-free
+address, including its external port when relevant.
+
+Use `ContentAdvisory` with `mediaRatio` when one inline image or video needs
+a reserved frame before the person chooses to reveal it. Set the ratio to the
+intended width divided by height and supply an accessible image or video.
+
+Use `RestrictionSummary` to show configured allow lists and block lists beside
+their policy scopes. The host owns precedence and actual access decisions.
+
+Use `KeyRotationSummary` to review a replacement key and the old key's cutoff.
+Supply display-safe names and fingerprints. The host confirms and executes
+the rotation.
+
+Use `RecoveryWindow` beside a restore form when the available instants form a
+continuous range. Pass the same display time zone as the form. The application
+supplies the bounds, resolves the selected instant and validates the restore.
+
+Use `QueryPlan` to inspect a normalized execution-plan tree. Supply stable node
+IDs and preserve the database's planner units for estimated cost. Pass observed
+rows and time per loop with the loop count when measured values are available.
+
+On an `ApprovalChain` stage, supply `approvals` when readers need to see the
+received and required approval counts. The host supplies the overall decision
+and can localize the count with `formatApprovalCount`.
+
+Use `UsageForecast` when a recorded amount and a period-end estimate need to
+share a scale with a budget. The host supplies the estimate and may set
+`scaleMax` to keep that scale stable across comparable records.
+
+Use `FeedAttribution` above an entry when the current feed needs a reason
+such as who reposted it. Keep the original author with the entry itself.
+
+Use `FilePath` to keep the file name visible when a long path is clipped.
+Supply the matching separator for Windows paths.
+
+Use `ChangedFileList` as the index beside a multi-file diff. The host supplies
+the current file and review state. Changing one file's review state preserves
+its link and position in the list.
+
+Use `CheckRunList` for independent verification results on a specific revision.
+Supply blocking separately from execution status and link checks to their evidence.
+
+Use `ReviewRevision` to show the commit a review covered and the commit now
+being considered. Pass the current review state from the host.
+
+Use `DataFreshness` when the age of the displayed data affects a decision.
+Pass the last accepted snapshot time and the current update state from the host.
+The optional `relativeTo` instant enables relative time and exact-time inspection.
+
+Use `RetrySchedule` alongside a failed operation or its `DeliveryAttempts`.
+Pass the service's scheduled time and remaining automatic attempts when known.
+Render the exhausted state when the service confirms its retry budget is spent.
+
+Use `SearchResultItem` inside `DataList` for a result with a match excerpt.
+The host supplies result order, a short plain-text excerpt and the destination.
+Supply a source label when the hit lives in a field such as a comment.
+
+Use `LogViewer searchable` to find literal text in the supplied messages. Match
+navigation pauses following and keeps the surrounding rows available. Querying
+archived entries and payloads stays with the host.
+
+Use `GroupReadReceipt` beside a group message's timestamp when confirmed reader
+identities can be shown. It uses the inline trigger of `ParticipantPopover`.
+An empty roster renders nothing, so the host can keep ordinary delivery feedback.
+
+Use `ThreadTrigger` below a parent message to open its `CommentThread`.
+The host supplies reply count, unread state and optional participant previews.
+It can pass through a Popover trigger or wire the button to its own panel.
+
+Use `ReplyAudience` in `MessageComposer`'s `leadingActions` to display the
+chosen reply policy before sending. Supply the host's allowed policies and
+keep the value controlled. Slot controls own their disabled behavior.
+
+Use `ThumbnailStrip` beside a persistent image preview or review pane.
+Supply thumbnail-sized assets and a controlled selection. `ImageGallery`
+uses the same strip for thumbnail navigation inside a dialog.
+
+Use `ImageMeta` for the original pixel dimensions beside an image or as an
+`ImagePreview` caption. It can include the matching file format and byte size.
+
+Use `ZoomControl` beside a host-owned canvas or preview. Supply the current
+scale and step choices. Implement Fit using the host viewport's dimensions.
+
+`KanbanBoard` defaults to open lanes that share the parent surface. Use
+`appearance="contained"` for bounded lanes. Both appearances keep the same
+card, keyboard, pointer and move-menu behavior.
+Use `onCardOpen` to open host-owned card details from the title.
+Use `cardLayout="project"` for wider lanes with room for a project icon,
+assignee, target date and an independent health signal. These card fields
+are optional. Use `dragActivation="card"` to add mouse and pen pickup from
+the card's open areas. The grip supports touch and keyboard, and the move menu
+offers both in-lane and cross-lane actions.
+
+Use `EnvironmentSwitcher` in persistent workspace chrome when subsequent work
+applies to the selected environment. Supply a named scope if the environment
+name alone is ambiguous. The host accepts a switch by updating `value` after
+handling routing and any outstanding edits.
+
+Use `ChangeRegion` to mark an edited document block. Keep the wrapper in
+place with `state="unmarked"` when the review marker clears.
+
+Use `CollectionCard` for a named collection destination, with optional
+artwork, count and independent actions. Use `CollectionCover` inside an
+existing composition that already owns navigation.
+
+Use `PolicyEvaluation` to explain a host-reported policy outcome. Pass ordered
+checks with observed values and distinguish unmatched, skipped and unavailable.
+
+Use `GenerationPreview` to reserve a media frame across queued, generating,
+ready, failed and cancelled states. Supply passive partial media when it is
+available and the final media on completion. The host owns generation and
+recovery actions.
+
+Use `FeedUpdate` in a positioned feed header or above a feed's `ScrollArea`
+to offer buffered items without shifting existing content. The host applies
+the items on activation and owns scroll and focus after that update.
+
+Use `EnvironmentVariableList` for a configuration inventory. Plain entries
+carry display-safe values, references carry a source label, and sealed entries
+carry only a name and ID. Add host-managed actions through `renderActions`.
+
+Use `ConnectionDetails` to show connection methods, their exact strings
+and the corresponding client parameters. Use credential placeholders in
+connection strings. Supply `value` and `onValueChange` if the host owns
+the current method.
+
+Use `PriorityIndicator` when urgency helps people triage records. Keep a
+consistent presentation across peers. Use `presentation="icon"` in a named,
+compact column when the glyphs can be recognized, and pass `label` for
+localization. Priority ordering and editing belong to the host.
+
+Use `MilestoneProgress` for named milestones with completed and total work
+counts. It distinguishes an empty scope from a nonempty scope with zero
+completed work. Supply a target date or link when that context is useful.
+
+Use `TextRevision` in prose for a prepared insertion, deletion or replacement.
+Provide `before`, `after` or both. Localize the spoken marks with `labels`,
+and pass `accepted` or `rejected` after the application confirms the decision.
+Keep actions in the corresponding discussion or review toolbar. Use a ref and
+`tabIndex={-1}` when a separate action jumps to the marked fragment.
+
+Use `MoneyField` for amounts in a named currency and `UnitNumberField` for a
+numeric quantity paired with a unit. Keep monetary amounts as decimal strings.
+Use `KeyValueEditor` when people add and remove labeled pairs, and
+`KeyValueRow` when the host already provides row management. Give rows stable
+IDs and key validation errors by ID.
+
+Use `FilterCondition` and `FilterGroup` with `mode="typed"` for choice, text,
+number and calendar-date operands. The original choice mode still accepts
+`is` and `is-not` predicates. Keep the draft distinct from the applied query.
+
+Use `DeadlineStatus` when people need the urgency and exact time of a due date.
+Use `RelativeTimeRangePicker` for both rolling and absolute query windows.
+Pass an explicit reference time or selected zone. Resolve business calendars
+and convert query bounds in the host.
+
+Use `JsonInspector` for navigable structured values and a copy action scoped
+to the selected JSON Pointer.
+
+Use `HighlightText` for a literal query match in a search result title or
+excerpt. The original text remains readable and selectable. The host owns
+which results to include and how to rank them.
+
 Use `RatingSummary` to present a weighted score and its distribution together.
 Pass counts in ascending order from one star through the highest score. The
 summary stacks in a narrow surface. The host supplies the review data.
 
 Use `ImageComparison` to inspect two aligned images in the same frame. Supply
-matching crops, alternative text and short version labels. The divider can
-move with a pointer or keyboard. Use `value` and `onValueChange` when the host
-owns the visible percentage of the original image.
+matching crops, alternative text and short version labels. The default divider
+reveals regions. Use `mode="overlay"` to blend the full frames and inspect small
+alignment changes. Label the slider for the selected mode. In both modes
+`value` is the percentage of the before image, from 0 to 100.
 
 Use `ImageGallery` for a set of images inspected in one dialog. It shares the
 fitted and intrinsic-size views of `ImagePreview`, loads the active source on
 demand and cycles through items by stable ID.
+Use `DocumentPreview` for a file with a known page count and bounded page
+navigation. Its active page scrolls independently of the controls. Provide
+the page content, loading state or error through `renderPage`, keeping
+decoding and access in the host. Only the open preview calls the renderer.
 Set `navigation="thumbnails"` and provide a small `thumbnailSrc` per item for
 direct selection in a horizontal rail.
 
 Use `RevealValue` for a read-only value that starts visually concealed. Name
 the reveal action and enable the optional clipboard action when needed. Keep
-authorization and retrieval in the host.
+authorization and retrieval in the host. In tight value slots the actions
+stay together beneath the value. Allow enough room to recognize a clipped
+prefix and find the exact value on focus or through copying.
+Set `preserveEnd` on `TruncatedText` or a copyable value in truncate mode when
+nearby identifiers share a prefix. Check the entire distinguishing suffix at
+the intended width. The tooltip and clipboard still use the full value.
 
 Use `AuthorMeta metadataPlacement="inline"` for a short date beside a name.
 Use `nameOverflow="truncate"` in a narrow row with a recognizable name prefix.
@@ -32,6 +403,10 @@ Clipped names are available on hover and keyboard focus. Use
 Use `layout="fit"` in a width-constrained row to keep the avatars and overflow
 on a single line. Pair it with `overflowPresentation="popover"` when readers
 need to see the remaining people.
+
+Use `ProjectUpdate` for an authored project-health report. Supply the visible
+health state, author, posting date and narrative. Add the project name in a
+cross-project feed and include recorded field changes when they explain the update.
 
 In a person `Combobox`, pass `avatar` on the options. The input keeps one
 leading slot for the committed avatar or the search glyph during editing.
@@ -75,24 +450,45 @@ still needs server-side work before it is available.
 Use `FileItem downloadHref` for a separate download beside a preview or
 filename link. `UploadItem` offers it after a successful upload. The action
 uses `IconLink`, a named native anchor with `IconButton` geometry.
+Use `FileItem renderPreview` to pass its named preview trigger directly to
+DocumentPreview, ImagePreview or ImageGallery. The same button opens the
+overlay and receives focus when it closes.
 Use `ImagePreview zoomable` when people need to inspect an image at its
 intrinsic size. It opens fitted and scrolls the image independently in actual
 size mode.
 Use `FileCard` in a file gallery when a thumbnail helps identify the asset.
+Use `FileCardGrid` with direct FileCard or FileCardSkeleton children to align
+headings, artwork and footers across each row. Use consistent density, ratios
+and artwork placement within the gallery.
+Use `preserveColumns` to keep card widths steady when filtering or archiving
+leaves fewer cards. The width still responds to the available space.
+Use `maxColumns` on Grid or FileCardGrid to cap automatic columns while
+keeping `minItemWidth` as the width at which another column may fit.
 Give peer cards the same `thumbnailRatio`. File details and selection use the
 same contracts as FileName, FileMeta and Card.
 FileCard uses the top `Card media` slot by default. Set
-`thumbnailPlacement="body"` for filename-first layouts. When a Card has a
-top image, set the same `mediaRatio` on its CardSkeleton.
-Set `previewPlacement="thumbnail"` to place `onPreview` over the artwork.
-Use a host-controlled ImagePreview or ImageGallery for inspection.
+`thumbnailPlacement="body"` for filename-first layouts. For a first-load
+gallery, use `FileCardSkeleton` with the same thumbnail ratio and placement.
+Both `CardSkeleton` and `FileCardSkeleton` accept `descriptionLines` to reserve
+the expected number of lines at the card width. The `description` flag
+reserves one line when no count is supplied.
+Match metadata, footer action count and selection to the loaded card. A known
+file with an image still loading uses the FileCard thumbnail fallback.
+Set `previewPlacement="thumbnail"` to place the preview action over the artwork.
+Use the same `renderPreview` contract as FileItem to connect the card's trigger
+to an inspection overlay. In UploadItem, the preview becomes available on success.
 Use `FileThumbnail` for a decorative image beside a filename or in a gallery
 tile. FileItem, UploadItem and FileCard accept `thumbnailSrc` and share its
 stable fallback.
 Use `FileList appearance="plain"` inside a Drawer or another surface that
-already groups its files. Inside a compact attachment, `metadataVariant="plain"`
+already groups its files. In narrow rows, truncated names get more of the copy
+track and metadata can move underneath. One file command can remain beside the
+copy when there is room. Inside a compact attachment, `metadataVariant="plain"`
 keeps the file size readable without a second fill. Pass `format={null}` when
 the filename itself gives sufficient format information.
+Use `FileListSkeleton` for the first load of a panel or plain file list. Pass
+the list's density and divider settings. Describe expected metadata, secondary
+text and action counts through a repeated shape or one shape per row.
 
 Use `NoResults` when search or filters exclude every record. Keep the controls
 available and pass a reset focus ref when reset replaces the empty view.
@@ -107,12 +503,19 @@ with visible category values or shares.
 Use `MetricGroup` for related metrics that share a value axis. Its responsive
 grid aligns values and keeps labels on one line. Clipped labels disclose
 the full text on hover or keyboard focus. Set `layout="rows"` in a narrow summary column to align labels
-and values to opposite edges. In a very narrow container, each value stacks
-under its own label. Both layouts support the shared panel surface.
+and values to opposite edges. Longer values can use more of the row, and
+`size="lg"` scales with the available width. In a very narrow container, each
+value stacks under its own label. Both layouts support the shared panel surface.
 
 Use `Timestamp` for date and time metadata in lists, comments and records.
 Pass a civil date or a zoned ISO instant for formatting, or provide your own
 text as children. Specify `relativeTo` when displaying elapsed time.
+Use `TimestampLink` when that time is also a permanent link to the entry.
+Supply the destination and keep the time in any custom accessible label.
+
+Use `QuotedPost` with `appearance="embedded"` for a sourced excerpt in an
+existing details section. The quote aligns with the author's name and the
+original link appears with the author metadata.
 
 Use `Avatar` with `presence` to show availability beside a person’s photo or
 initials. Supply a localized label and keep the same presence when the person
@@ -164,6 +567,9 @@ stage and position in a narrow form. The host owns validation and navigation.
 Use `SettingGroup` for rows with independent actions or row-layout switches.
 Use `Field layout="adaptive"` for a labeled editable value in the same group.
 The hint stays with its label and validation feedback stays with the control.
+Choose `SettingGroup layout="aligned"` to give direct adaptive fields and rows
+shared columns when the group has room and stack them together in a narrow panel.
+Row-layout switches keep their trailing edge.
 Use `RadioCard` and `CheckCard` for choices with supporting details. Their
 metadata moves beneath the description in a narrow card.
 `SettingRow` can show the current value beside its action, with adaptive
@@ -189,6 +595,8 @@ loading label. DataTable can use `loadingAppearance="skeleton"` to place
 decorative rows inside the existing table.
 Use `CardSkeleton` for the initial load of a Card with a short text body. Match
 the card's density, elevation, optional slots and expected body line count.
+Set `reserveSelectionSpace` when the loaded card has `selection` to preserve
+the checkbox track with a decorative placeholder.
 Give a group of loading cards one localized status message.
 DataTable defaults to a spinner. Use
 `refreshing` during a background request while the current rows stay usable.
@@ -213,8 +621,18 @@ Use `ValueChange` for a previous and current value. Omit the absent side
 for an addition or removal. Use `ChangeList` for named changes from one
 event and compose it in the Timeline content slot or a detail panel.
 Use `layout="adaptive"` to show the arrow on wide rows and label each side
-when the comparison is narrow. The same treatment is available through
+when the comparison is narrow. At 13rem or less, `adaptive` and `stacked`
+give each label and value their own line. The same treatment is available through
 `ChangeList valueLayout="adaptive"`.
+In the wide adaptive layout, long values can wrap within their side of the
+comparison while the arrow stays between the two sides.
+Use `AuditTimeline` for dated event groups with recorded changes. Each event
+can disclose its own `changes`. Use stable event IDs and pass
+`formatChangesLabel` and `changeLabels` for localized labels.
+ActivityTimeline and AuditTimeline connect adjacent nonempty periods. Use
+`connector="none"` on the preceding event for a deliberate break or
+`connector="dashed"` for a dashed interval. Connectors adapt to the nearest
+Flood surface.
 In activity mode, `layout="feed"` puts time beside the event heading, while
 `layout="schedule"` gives times a shared leading track when supplied. Optional item content
 can compose file rows, threads or contextual messages on the same timeline.
@@ -273,9 +691,17 @@ and description their own row, then align time and actions below.
 unread markers and optional media across rows. The title can be a native
 destination link, while the optional read control uses a separate host callback.
 Use `NotificationInbox` for All and Unread views of a supplied collection.
+For a standalone `NotificationList`'s first load, use `NotificationListSkeleton`
+with the same density and expected row shapes. For an inbox, pass those shapes
+to `loadingPlaceholder.rows`. Match the title and description line counts,
+media, timestamp and read-action positions to the expected rows at that width.
+In `appearance="overlay"`, its list has a bounded `ScrollArea` below the
+filter and bulk command. Use `maxListHeight` for a custom bound. To retain
+the filter when an overlay closes, keep `filter` and `onFilterChange` in the host.
 The host accepts read changes by updating `items`. Use `markingAllRead` to keep
-the bulk action focused during a request. A focused row that disappears
-returns focus to the current filter.
+the bulk action focused during a request. When the focused read action's row
+leaves, focus goes to the next surviving read action, then the previous one.
+When neither is available, focus returns to the current filter.
 During the first request, use `state="loading"` and match
 `loadingPlaceholder` to expected row anatomy. An error can expose `onRetry`;
 set `retrying` to keep that action focused until the request finishes.
@@ -329,7 +755,7 @@ the interactive size. It defaults to size; shrinking a supporting glyph must
 not shrink its target or bypass IconSlot with a custom SVG width. Existing glyph
 roles at a 16px root are 2xs=14px, xs/sm=16px and md/lg=20px.
 
-This package documents the **0.2.14** source API. Keep Flood package versions aligned and follow the guide matching
+This package documents the **0.2.15** source API. Keep Flood package versions aligned and follow the guide matching
 your installed declarations; source changes do not modify an existing npm release.
 
 NavigationItem (0.2.11 candidate) is the shared small row for destinations,
@@ -476,8 +902,10 @@ Read-only text controls retain keyboard focus and copying while preventing edits
 and picker activation; they are not disabled controls.
 
 Tabs uses `variant="contained"` by default. Choose `variant="line"` for page
-sections with a selection marker along the edge next to the panel. Both variants
-support horizontal and vertical orientation and the same keyboard behavior.
+sections with a selection marker along the edge next to the panel. Use
+`variant="pill"` for capsule tabs and `variant="round"` for rounded rectangles
+on an existing surface. All variants support horizontal and vertical orientation
+and the same keyboard behavior.
 
 Version 0.2.10 adds Fieldset legendSize="label" | "section"
 (default label). Independent section legends use a 1rem/600 role; named fields
@@ -585,10 +1013,12 @@ host SVG artwork without bundling an icon pack.
 Version 0.2.3 adds **Select**. It accepts native select props/ref, options and optgroups,
 plus `invalid` and `controlSize="sm" | "md" | "lg" | "xl"` (md by default).
 Use Field's callback props on Select to associate the label and descriptions.
-Single selection uses a custom Flood trigger/listbox popup with a native select
-bridge for form values and the HTMLSelectElement ref. Native numeric `size` and
+Single selection defaults to a Flood trigger/listbox popup with a native select
+bridge for form values and the HTMLSelectElement ref. Since 0.2.15,
+`presentation="native"` shows the native select and uses the platform's picker.
+Native numeric `size` and
 `multiple` retain an inline listbox without a dropdown chevron or OS popup.
-For single selection, arrows/Home/End highlight without committing; Enter,
+In the custom popup, arrows/Home/End highlight without committing; Enter,
 Space or Tab commits, and Escape closes without changing the value. Typeahead
 matches option labels. Focus stays on the trigger; `ref.current.focus()` targets
 it while the ref itself remains the native select. Read changes from
@@ -852,6 +1282,9 @@ This compatible prop addition is available in 0.2.3. It requires Flood CSS.
 
 ## Collapsible and Accordion
 
+Use `triggerWidth="fit"` to keep a short label and chevron together while
+the expanded panel uses the full available width.
+
 Collapsible takes a plain-text title, React children and open/onOpenChange or
 local defaultOpen. Default closed; native Enter/Space activate its named button.
 The trigger owns aria-expanded and aria-controls with stable instance IDs. Its
@@ -983,6 +1416,10 @@ focusable, labelled by their tabs and retained with hidden when inactive, preser
 state and native form constraints. Hosts own inactive-field validation. External
 selection changes return focus from a hidden panel to the selected tab if needed.
 Horizontal overflow uses Flood ScrollArea; vertical layout wraps its tab labels.
+Use `overflowControls` for narrow horizontal tablists that need visible scroll
+arrows. Keep names short. A tab wider than the rail truncates within its button
+and retains its full accessible name. Arrows reveal more tabs without activating
+them, and partially visible buttons are hidden between the arrows.
 Sizes are controlSize sm/md/lg/xl. There is no tab deletion/loading/fetch model.
 The dark recipe is one contained surface: the active tab shares the panel's
 background, while inactive tabs sit on the recessed navigation strip. Both
@@ -1158,14 +1595,15 @@ values and supplies fallback text for missing data. An empty items array stays
 an empty list, without invented placeholder content. Native dl props,
 className/style and HTMLDListElement ref target the list.
 
-layout defaults inline: term and value share a row. Use `layout="columns"` to
-retain shared term and value tracks for concise facts in a narrow inspector.
-The default becomes stacked below a
-22rem component container width, independently of viewport width. layout=stacked
+Use `layout="columns"` for concise facts in a narrow inspector. The default
+`inline` layout stacks at a component width of 22rem or less, and `columns`
+stacks at 10rem or less. Both respond to the component's width. `layout="stacked"`
 always puts the value below its term. Density defaults compact; comfortable adds
 space between pairs, without inflating the term/value relationship. dividers is
 false by default and adds quiet separators when enabled. This is not an editable
 form and its terms do not label controls; use Field/Fieldset for form inputs.
+Set `layout="stacked"` on an individual item to give its value the full width
+under the term. In a grid, that item spans all tracks. Other facts keep the list's layout.
 Use an item's `action` for a compact utility tied to that value, such as an
 icon-only CopyButton with a specific accessible label. Actions align to the
 trailing edge and can move below their value as space runs out.
@@ -1300,9 +1738,10 @@ digits so changing selection does not move commands. counterWidth customizes
 that reservation for translations or larger counts; long summaries truncate
 visually while retaining their full text/title. A hidden counter frees its slot.
 The host owns accepted changes, captured IDs, confirmation and focus after the
-bar disappears. Positioning is host-owned: use a stable bounded width for a
-floating rail, plus viewport safe-area spacing and measured scroll clearance.
-For table selection, place the rail at the viewport's bottom center. Set
+bar disappears. Set `placement="viewport"` to float the bar at the bottom
+center of the viewport with safe-area spacing. Mount it within FloodRoot and
+outside transformed ancestors. Allow bottom clearance in the base layout for the
+last row or card. Inline placement is the default. Set
 `showSelection={false}` on DataTable to keep its count available to assistive
 technology while BulkActionBar displays the visible count.
 For tables with their own visible count, `showSelection="replace-results"`
@@ -1576,7 +2015,9 @@ An optional `position` shows a known range without requiring a total.
 The host owns request execution and cancellation, remote query selection and
 virtualization. DataTable supports optional column visibility, width preferences,
 logical edge pinning and expandable record details. Use Sparkline for a compact
-trend cell. See [DataTable](../../docs/components/data-table.md) and
+trend cell. Use `columnLayout="fixed"` with explicit column widths and a readable
+minimum table width when filtering or loading must preserve the header tracks.
+See [DataTable](../../docs/components/data-table.md) and
 [Sparkline](../../docs/components/sparkline.md).
 
 MetricCard composes a medium-sized Metric and optional Sparkline on one Surface.
@@ -1589,6 +2030,9 @@ Inside `Metric`, set `trend.variant` to choose the same treatment.
 While the metric loads, the label stays visible and a supplied chart uses a
 compact Skeleton. Use `chartLoading={true}` to reserve the plot before history
 arrives, or `chartLoading={false}` to keep valid history during a value refresh.
+Set `chartMinHeight` to the expected block size when the chart is taller than
+the default compact sparkline. Include its caption in that measurement so the
+chart and its loading placeholder occupy the same space.
 
 DatePicker and DateRangePicker pass viewLabels to their calendars. Calendar panels
 use minimal Popover chrome, with Escape/selection/trigger dismissal; there is no
@@ -1601,3 +2045,44 @@ or inspector surface. The default `framed` appearance is unchanged. Flush remove
 the outer frame and horizontal inset; the parent owns that inset, while Accordion
 keeps separators between items. Expansion, focus and mounted panel state are
 unchanged. Combine with `controlSize="sm"` for compact inspector headings.
+
+Use `EnvironmentSyncReview` to show the direction and planned destination
+changes of a one-way environment sync. Pass display-safe resource changes,
+`null` when the plan is unavailable, or `[]` after a comparison finds no changes.
+The host owns refreshing, confirming and applying the plan.
+
+Use `ScheduledRunHistory` for actual and skipped executions of a scheduled job.
+Started runs accept a timestamp and trigger. Skipped slots retain their scheduled
+time and can explain the reason. Use `ScheduledTaskList` for job configuration
+and the confirmed next run.
+
+Use `StorageBucketPolicy` for a bucket's effective read access, per-file
+limit and allowed content types. Pass the source of the effective limit and
+distinguish unknown policy data from confirmed unrestricted file types.
+
+`TemporaryAccessLink` explains the scope and expiry of an issued download or
+upload link and copies its address while active. The host supplies and updates
+`now`, issues links, and enforces authorization and expiration.
+
+Use `DependencySchedule` for a finish-to-start comparison at calendar-day
+granularity. Both dates use `YYYY-MM-DD`. Mark a forecast finish explicitly
+and omit unknown dates. The host owns scheduling and date changes.
+
+`ExpenseAllocationReview` reads a saved split and the current expense total
+using canonical decimal strings in one currency. It reports any unallocated or
+excess amount. Use `ExpenseAllocationForm` for editing.
+
+Use `StarterPackPreview` for a curated pack of recommended people and feeds.
+Supply the complete lists for accurate counts and an optional destination for
+the full pack. The host owns following and subscribing.
+
+`Heading wrap="balance"` balances a short title across lines.
+`Text as="p" wrap="pretty"` opts supporting prose into prettier wrapping.
+Browsers that lack these modes use ordinary line wrapping.
+
+`FilteredImage` applies a viewer's show, blur or hide preference to an image.
+Choose a neutral label for Blur and omit restricted sources in the host.
+
+Use `IncompleteResponseNotice` for a terminal incomplete answer. The host
+keeps partial output in context or selects the no-output state and supplies
+an authorized recovery action when available.

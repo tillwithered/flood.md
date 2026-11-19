@@ -1,6 +1,37 @@
 import {expect, test} from "@playwright/test";
 import {chooseSelectOption, selectBridge} from "./select-helpers";
 
+test.describe("request detail facts", () => {
+  test.use({hasTouch:true,viewport:{width:320,height:760},reducedMotion:"reduce"});
+
+  test("short fact pairs stay aligned and reflow with enlarged text", async ({page}) => {
+    await page.goto("/playground/records");
+    await page.getByRole("searchbox",{name:"Search requests"}).fill("REQ-115");
+    await page.getByRole("button",{name:/REQ-115/}).click();
+    const drawer = page.getByRole("dialog",{name:"Recover archived access settings"});
+    const facts = drawer.locator(".flood-description-list");
+    await expect(facts.locator("dt")).toHaveCount(3);
+    await page.evaluate(()=>document.fonts.ready);
+    const term = facts.getByText("Request ID",{exact:true});
+    const value = facts.locator(".flood-copyable-value__text");
+    const copy = facts.getByRole("button",{name:"Copy request ID"});
+    const [label, id, owner] = await Promise.all([term.boundingBox(),value.boundingBox(),facts.getByText("Noah Park",{exact:true}).boundingBox()]);
+    expect(id!.x).toBeGreaterThan(label!.x+label!.width);
+    expect(id!.y+id!.height/2).toBeCloseTo(label!.y+label!.height/2,0);
+    expect(owner!.x).toBeCloseTo(id!.x,0);
+    await expect(copy).toHaveCSS("min-block-size","44px");
+    await page.evaluate(()=>{document.documentElement.style.fontSize="32px";document.documentElement.dir="rtl";});
+    const [enlargedLabel,enlargedValue] = await Promise.all([term.boundingBox(),facts.locator("dd").first().boundingBox()]);
+    expect(enlargedValue!.y).toBeGreaterThan(enlargedLabel!.y+enlargedLabel!.height);
+    expect(enlargedValue!.x+enlargedValue!.width).toBeCloseTo(enlargedLabel!.x+enlargedLabel!.width,0);
+    expect(await facts.evaluate(node=>node.scrollWidth-node.clientWidth)).toBeLessThanOrEqual(1);
+    await copy.scrollIntoViewIfNeeded();
+    await expect(copy).toBeInViewport({ratio:1});
+    await drawer.getByRole("button",{name:"Edit request"}).click();
+    await expect(page.getByRole("dialog",{name:"Edit REQ-115"})).toBeVisible();
+  });
+});
+
 test("bounded request rows keep their end clearance as the scrollbar comes and goes", async ({page}) => {
   await page.goto("/playground/records");
   const frame = page.locator(".request-table-frame");
@@ -44,6 +75,16 @@ test("clearing an empty request result returns focus to the original search", as
   await expect(page.getByRole("button", {name:/REQ-105/})).toBeVisible();
 });
 
+test("single-event periods connect in the request Drawer", async ({page}) => {
+  await page.goto("/playground/records");
+  await page.getByRole("searchbox",{name:"Search requests"}).fill("REQ-105");
+  await page.getByRole("button",{name:/REQ-105/}).click();
+  const history = page.getByRole("dialog").getByRole("region",{name:"Request activity"});
+  const connectors = await history.locator(".flood-timeline__item").evaluateAll(nodes=>
+    nodes.map(node=>getComputedStyle(node,"::before").content));
+  expect(connectors).toEqual(['""','""',"none"]);
+});
+
 test("request edit returns to the same query, filter, scroll position and row", async ({page}) => {
   await page.goto("/playground/records");
   const workspace = page.getByRole("region", {name: "Request workspace"});
@@ -60,7 +101,8 @@ test("request edit returns to the same query, filter, scroll position and row", 
   await opener.press("Enter");
   const drawer = workspace.getByRole("dialog", {name: "Review regional account permissions"});
   await expect(drawer.getByRole("heading", {name: "Activity"})).toBeVisible();
-  await expect(drawer.getByRole("table", {name: "Request activity"})).toContainText("Regional roles exported");
+  const activity = drawer.getByRole("region", {name: "Request activity"});
+  await expect(activity).toContainText("Regional roles exported");
   await expect(drawer.getByRole("button", {name: "Edit request"})).toBeInViewport({ratio: 1});
   await expect(drawer.getByRole("button", {name: "Edit request"})).toBeFocused();
   await drawer.getByRole("button", {name: "Edit request"}).click();
@@ -81,6 +123,22 @@ test("request edit returns to the same query, filter, scroll position and row", 
   await expect(opener).toBeFocused();
   await expect(opener).toHaveAccessibleName("Review regional billing permissions, REQ-117");
   expect(await results.evaluate(node => node.scrollTop)).toBe(position);
+  await opener.press("Enter");
+  const updatedDrawer = workspace.getByRole("dialog", {name: "Review regional billing permissions"});
+  const updatedActivity = updatedDrawer.getByRole("region", {name: "Request activity"});
+  await expect(updatedActivity.getByText("Request updated", {exact:true})).toHaveCount(1);
+  const disclosure = updatedActivity.getByRole("button", {name: "1 change", exact:true});
+  await disclosure.press("Enter");
+  await expect(updatedActivity.getByText("Review regional account permissions", {exact:true})).toBeVisible();
+  await expect(updatedActivity.getByText("Review regional billing permissions", {exact:true})).toBeVisible();
+  const [beforeTop, afterTop] = await updatedActivity.locator(".flood-value-change__content")
+    .evaluateAll(values => values.map(value => value.getBoundingClientRect().top));
+  expect(beforeTop).toBeCloseTo(afterTop, 0);
+  await updatedDrawer.getByRole("button", {name:"Edit request"}).click();
+  await editor.getByRole("button", {name:"Save changes"}).click();
+  await expect(editor).toBeHidden();
+  await opener.press("Enter");
+  await expect(updatedActivity.getByText("Request updated", {exact:true})).toHaveCount(1);
 });
 
 test("a request leaving the filter returns focus to search and keeps its saved status", async ({page}) => {

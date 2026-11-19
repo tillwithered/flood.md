@@ -9,32 +9,99 @@ Use installed declarations and [accessibility](../accessibility.md). Assign the
 visible role before choosing color: StatusIndicator names a state, Badge marks
 metadata, Progress describes task progress, Meter describes a bounded measurement,
 Alert gives contextual feedback and EmptyState explains missing content.
+Use TokenUsageBreakdown for recorded consumption. Put cached input under
+input and reasoning output under output. A reported zero and missing
+accounting need distinct states.
+Use IncompleteResponseNotice only after the host confirms a terminal,
+incomplete response. Preserve partial text in the same response region. Use
+the no-output state when the user has no usable text and offer one recovery
+action only when the host can perform it in context.
+Use ContextWindowMeter for one agent session's effective context limit. Pass
+recorded token usage and a separate known compaction threshold. Keep the
+breakdown optional and report the actual running compaction state from the host.
+Use ModerationNotice for a persistent account or content restriction. Put
+the effect and published reason first. Keep the restriction end and appeal
+deadline distinct. Expose the appeal action only when the service allows it.
+Use AccountStanding for the affected person's aggregate state. Read standing,
+confirmed strike count and expiry separately from the service. Preserve the
+difference between a confirmed zero and an unreported count.
+Use ContentReportStatus for updates to the person who filed a report.
 Use NoResults for a collection narrowed by search or filters. Keep the relevant
 input or filter in place and provide one reset action. If that action sits in
 the empty region, return focus to a persistent control before replacing it.
 Use NotificationInbox when people revisit persistent updates and filter by
 unread state. Open destinations via NotificationItem links and let the host
 own accepted read state. Keep the filter in place after a read action.
+In Unread, verify that marking a row read with the keyboard moves focus to a
+surviving read action. After the last unread row leaves, focus returns to Unread.
 Use NotificationTrigger for the header action that opens that inbox. Derive
 the button's unread count from accepted host data so its marker clears when
 the inbox is caught up. The overlay owns expanded state and return focus.
+Use FeedUpdate when new feed items arrive while a person is reading. Buffer in
+the host and keep the feed and scroll position stable until activation. Mount
+the action in a positioned header with placement="header" when the header has
+room. Use the overlay beside its ScrollArea when that placement leaves the
+reading area clear. On success, transfer keyboard focus to the newly available
+content. Preserve the buffered count and reading context if applying it fails.
+Use GenerationPreview for one generated media result when its space can be
+reserved at the requested ratio. Partial media stays passive while generating.
+Bind state to backend events and show recovery actions only when available.
+Keep one live announcement owner for that result.
+Use FollowButton for an account or feed relationship. An in-flight action uses
+pending. An accepted request awaiting a third party uses requested and offers
+cancellation. Keep a separate notification preference beside the relationship.
 Use NotificationInbox appearance=overlay for the floating inbox. It keeps the
-filter and read action close and uses the unread dot for scan emphasis.
-For a first load, use its loading state and match the placeholder media and
-description to the accepted rows. Keep the error visible during an in-place
-retry so the retry action can retain focus.
+filter and read action visible while its notification rows scroll. Use
+maxListHeight for a custom bound and keep filter state in the host when the
+choice should persist across closing and reopening. Check the last notification,
+then switch to Unread and verify the control edges stay aligned as the rail clears.
+For a first load, use NotificationInbox's loading state or
+NotificationListSkeleton for a standalone notification list. Match the expected
+line counts, media, timestamps and read actions at the actual panel width.
+Check that the timestamp and read action move below the copy at the same width
+in both states. Keep the error visible during an in-place retry so the retry
+action can retain focus.
 For the initial load of a plain Table, match its structure with TableSkeleton.
+For a panel or plain FileList, use FileListSkeleton. Match its thumbnail,
+metadata and command tracks to the expected rows. Check the narrow layout with
+touch targets enabled, including where one command stays beside the copy.
 In DataTable, use the built-in skeleton state. Set two placeholder lines only
 where the loaded cell normally includes secondary text.
 Use Metric state loading for a pending value and unavailable when a value
 cannot be shown. Keep real zeroes visible. In a group, keep accepted sibling
 values while one measure loads. If a refresh can retain a valid value, keep it
 visible and let the host announce the refresh at the region level.
+For a collection with manual refresh and a selectable schedule, use
+recipe:refresh-controls. Keep accepted rows and selection while a request is
+pending, and bind the result to the active query.
+For a failed background job or webhook, use RetrySchedule when the service
+reports a future automatic retry or confirms that retries are exhausted.
+Keep DeliveryAttempts as the history of what already happened. Place one manual
+retry action where the host supports it and the user can act on it.
+Use recipe:collaborative-save when another writer can change a record during
+editing. Presence is contextual. Compare the preserved draft against the latest
+revision and require a deliberate save after keeping the user's edits.
 
 For several record attributes, use the [records skill](../flood-records/SKILL.md).
 A category called Error is not a failed operation; priority is not lifecycle state.
 Choose the semantic owner before its appearance, and keep essential triage data
 visible even when reducing decorative emphasis.
+
+Use DeadlineStatus when the remaining or overdue time affects what to handle
+next. Supply zoned instants for the deadline and the shared clock. The product
+chooses its warning threshold, business calendar and pause rules. Keep the
+exact time visible unless the surrounding record already shows it. In a
+compact row, inspect due-soon, overdue and paused states without adding an
+announcement for each change in the countdown.
+
+Use ServiceLevelTargets to show multiple targets on the same record. Keep
+the first response and resolution independent. Show a late completion beside
+the missed outcome. Compute pause rules and effective deadlines in the host.
+
+Use DeprecationNotice next to the affected feature when its retirement can
+change a user's decision. Show the published cutoff when known and provide
+a replacement link when available. The host supplies the lifecycle state.
+Use a separate action or form when migration changes a saved configuration.
 
 ## Keep one owner for each message
 
@@ -46,6 +113,13 @@ visible even when reducing decorative emphasis.
 - Use CapacityMeter for fixed quotas that usage can exceed. Pass actual usage
   and a capacity in the same units. Use warningAt only when the product has a
   defined threshold. Keep the actual amount and the limit in the readout.
+- Use UsageLimit when the boundary has a product consequence people need to
+  distinguish, such as paid overage, a budget notice, or suspended workloads.
+  Name the boundary and state the consequence beside the amount. Give an
+  earlier notification its own mark only when it is configured.
+- Use UsageForecast for cumulative recorded use, a period-end estimate and a
+  budget boundary. Label the forecast horizon, omit unavailable estimates and
+  give peer rows a shared scaleMax when readers compare them.
 - Use the Meter reference mark for a named point inside the displayed scale.
   Use BulletChart to compare actual and target values across several rows.
 - Use ProgressRing for a single task in a compact row or card. Supply localized
@@ -76,7 +150,12 @@ visible even when reducing decorative emphasis.
   owner. Keep existing results visible on refresh.
 - For an initial card load, match CardSkeleton to the Card's density, short
   body line count and optional slots. Compare the card's top and bottom edges
-  at replacement. Announce loading once across a card grid. During a refresh,
+  at replacement. Use descriptionLines on CardSkeleton or FileCardSkeleton
+  for the expected wrapping description. Compare the actual line count at
+  each supported card width before claiming the tracks stay fixed. For
+  placeholders that stand in for actions, compare the
+  footprint with the ready control on both fine and coarse pointers. Announce
+  loading once across a card grid. During a refresh,
   preserve accepted cards and put the busy state on the relevant region.
 - EmptyState identifies the actual condition. A title can be enough; add a
   description only for new decision-relevant information, not an instruction

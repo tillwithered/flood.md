@@ -9,7 +9,7 @@ test("home stays focused and navigation exposes documentation and GitHub", async
   await expect(page.getByRole("form")).toHaveCount(0);
   const nav = page.getByRole("navigation", { name: "Main navigation" });
   await expect(nav.getByRole("link", { name: "Docs", exact: true })).toHaveAttribute("href", "/docs");
-  const github = nav.getByRole("link", { name: "GitHub", exact: true });
+  const github = page.getByRole("banner").getByRole("link", { name: "GitHub", exact: true });
   await expect(github).toHaveAttribute("href", "https://github.com/tillwithered/flood.md");
   await expect.poll(() => github.locator("img").evaluate((node: HTMLImageElement) => node.naturalWidth)).toBe(16);
   await expect(page.getByRole("contentinfo")).toBeVisible();
@@ -62,6 +62,12 @@ test("the chart guide opens a shared latency example and inspects values by keyb
   await expect(spread).toBeFocused();
   expect(await axisLabels()).toEqual(allServicesAxisLabels);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.setViewportSize({ width: 320, height: 760 });
+  const article = page.getByRole("main");
+  await expect.poll(() => article.evaluate(node => node.scrollWidth - node.clientWidth)).toBe(0);
+  const billing = example.getByRole("radio", { name: "Billing", exact: true });
+  await billing.focus();
+  await expect(billing).toBeInViewport();
 });
 
 for (const slug of catalogCohort(componentSlugs)) test(`published component loads directly: ${slug}`, async ({ page }) => {

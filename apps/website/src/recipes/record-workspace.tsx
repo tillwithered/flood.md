@@ -122,16 +122,10 @@ export function RecordWorkspace({storageKey="flood-recipe-projects-v1",storage,l
       <Field label="Status">{props=><Select {...props} value={status} onChange={event=>updateFilter(search,event.target.value)}><option value="all">All statuses</option><option value="active">Active</option><option value="archived">Archived</option></Select>}</Field>
     </Grid>
     {(search||status!=="all")&&<Inline gap="2">{search&&<Tag onRemove={()=>updateFilter("",status)} removeLabel="Remove search filter">{search}</Tag>}{status!=="all"&&<Tag onRemove={()=>updateFilter(search,"all")} removeLabel="Remove status filter">{status==="active"?"Active":"Archived"}</Tag>}<Button variant="ghost" size="sm" onClick={()=>updateFilter("","all")}>Clear filters</Button></Inline>}
-    {selected.length > 0 && <div style={{
-      position:"fixed", insetInline:0, insetBlockEnd:"var(--flood-sys-space-4)", marginInline:"auto",
-      inlineSize:"max-content", maxInlineSize:"calc(100% - 2 * var(--flood-sys-space-4))",
-      zIndex:"var(--flood-sys-layer-sticky)",
-    }}>
-      <BulkActionBar label="Selected projects" selectionCount={selected.length}
-        items={[{id:"delete",label:"Delete selected",tone:"danger"}]}
-        onAction={() => setConfirmation({kind:"delete",ids:[...selected]})}
-        onClear={() => {searchInput.current?.focus({preventScroll:true}); setSelected([]);}} />
-    </div>}
+    <BulkActionBar label="Selected projects" selectionCount={selected.length} placement="viewport"
+      items={[{id:"delete",label:"Delete selected",tone:"danger"}]}
+      onAction={() => setConfirmation({kind:"delete",ids:[...selected]})}
+      onClear={() => {searchInput.current?.focus({preventScroll:true}); setSelected([]);}} />
     {operationError&&<Alert tone="error" announcement="polite">{operationError}</Alert>}
     {state==="ready"&&!result.total&&!search&&status==="all"?<EmptyState title="No projects"/>:<DataTable caption="Projects" hideCaption paginationMode="server" page={page} pageSize={pageSize} totalRows={result.total}
       sort={sort} onSortChange={next=>{setSort(next);setPage(1);}} onPageChange={setPage} state={state} loadingAppearance="message"

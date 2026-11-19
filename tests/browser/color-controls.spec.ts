@@ -13,10 +13,10 @@ async function fixture() {
 import{createRoot}from ${file("node_modules/react-dom/client.js")};
 import{FloodRoot,ColorPicker,ColorSwatch,Button,Checkbox}from ${file("packages/react/dist/index.js")};
 import ${file("packages/react/dist/styles.css")};const h=React.createElement;
-function App(){const[readOnly,R]=useState(false),[disabled,D]=useState(false),[cancel,C]=useState(false),[accept,A]=useState(false),[color,S]=useState('#ffffff'),[requested,Q]=useState('');return h(FloodRoot,null,h('h1',null,'Color controls'),
-h('form',{id:'colors',onReset:e=>{if(cancel)e.preventDefault()},onSubmit:e=>e.preventDefault()},h('fieldset',{disabled},h('legend',null,'Colors'),h(ColorPicker,{id:'brand',label:'Brand color',name:'brand',defaultValue:'#f49',required:true,readOnly,presets:['#ffffff','#000000','#f49']}),h(Button,{type:'reset'},'Reset colors'))),
+function App(){const[readOnly,R]=useState(false),[disabled,D]=useState(false),[cancel,C]=useState(false),[accept,A]=useState(false),[color,S]=useState('#ffffff'),[requested,Q]=useState(''),[alpha,setAlpha]=useState(false);return h(FloodRoot,null,h('h1',null,'Color controls'),
+h('form',{id:'colors',onReset:e=>{if(cancel)e.preventDefault()},onSubmit:e=>e.preventDefault()},h('fieldset',{disabled},h('legend',null,'Colors'),h(ColorPicker,{id:'brand',label:'Brand color',name:'brand',defaultValue:'#f49',required:true,readOnly,allowAlpha:alpha,presets:['#ffffff','#000000','#f49']}),h(Button,{type:'reset'},'Reset colors'))),
 h(ColorPicker,{id:'fixed',label:'Fixed color',value:color,onValueChange:next=>{Q(next);if(accept)S(next)}}),
-h(Checkbox,{label:'Read only',checked:readOnly,onChange:e=>R(e.currentTarget.checked)}),h(Checkbox,{label:'Disable fieldset',checked:disabled,onChange:e=>D(e.currentTarget.checked)}),h(Checkbox,{label:'Cancel reset',checked:cancel,onChange:e=>C(e.currentTarget.checked)}),h(Checkbox,{label:'Accept changes',checked:accept,onChange:e=>A(e.currentTarget.checked)}),h('output',{'aria-label':'Requested color'},requested),h(ColorSwatch,{value:'#abc',label:'Pale blue'}));}createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
+h(Checkbox,{label:'Allow alpha',checked:alpha,onChange:e=>setAlpha(e.currentTarget.checked)}),h(Checkbox,{label:'Read only',checked:readOnly,onChange:e=>R(e.currentTarget.checked)}),h(Checkbox,{label:'Disable fieldset',checked:disabled,onChange:e=>D(e.currentTarget.checked)}),h(Checkbox,{label:'Cancel reset',checked:cancel,onChange:e=>C(e.currentTarget.checked)}),h(Checkbox,{label:'Accept changes',checked:accept,onChange:e=>A(e.currentTarget.checked)}),h('output',{'aria-label':'Requested color'},requested),h(ColorSwatch,{value:'#abc',label:'Pale blue'}));}createRoot(document.getElementById('app')).render(h(StrictMode,null,h(App)));`);
   const result = await build({configFile:false,logLevel:"silent",define:{"process.env.NODE_ENV":JSON.stringify("development")},build:{write:false,cssCodeSplit:false,lib:{entry,formats:["iife"],name:"ColorFixture"}}});
   const outputs = (Array.isArray(result) ? result : [result]).flatMap(result => "output" in result ? result.output : []);
   const css = outputs.filter(item => item.type === "asset" && item.fileName.endsWith(".css")).map(item => item.type === "asset" ? String(item.source) : "").join("\n");
@@ -29,6 +29,68 @@ async function open(page:Page) {
   await page.goto("/__colors.html");
 }
 const formValue = (page:Page) => page.locator("#colors").evaluate((form:HTMLFormElement) => new FormData(form).get("brand"));
+
+test("ColorPicker opt-in alpha edits exact RGBA and preserves alpha in RGB edits", async({page},info)=>{
+  await page.goto("/components/color-picker");
+  await page.getByRole("checkbox",{name:"ColorPicker prop allowAlpha",exact:true}).check();
+  const picker=page.locator(".preview-stage .flood-color-picker");
+  const hex=picker.getByRole("textbox",{name:"Accent color Hex",exact:true});
+  await hex.fill("#Abc8");
+  await hex.blur();
+  await expect(hex).toHaveValue("#aabbcc88");
+  await picker.getByRole("slider",{name:"Red",exact:true}).press("Home");
+  await expect(hex).toHaveValue("#00bbcc88");
+  await expect(picker.locator('input[type="hidden"][name="accent"]')).toHaveValue("#00bbcc88");
+  await expect(picker.locator(".flood-color-picker__value .flood-color-swatch")).toHaveAttribute("data-alpha","true");
+  await picker.screenshot({path:info.outputPath("color-picker-alpha.png")});
+  await picker.getByRole("slider",{name:"Opacity (%)",exact:true}).press("End");
+  await expect(hex).toHaveValue("#00bbccff");
+});
+
+test("ColorPicker submits the current format when alpha support changes", async({page})=>{
+  await open(page);
+  const mode=page.getByRole("checkbox",{name:"Allow alpha",exact:true});
+  const input=page.locator("#brand-hex");
+  await mode.check();
+  await expect(input).toHaveValue("#ff4499ff");
+  await input.fill("#00aa1180");
+  await mode.uncheck();
+  await expect(input).toHaveValue("#00aa11");
+  expect(await formValue(page)).toBe("#00aa11");
+  await mode.check();
+  await expect(input).toHaveValue("#00aa1180");
+  await page.getByRole("button",{name:"Reset colors"}).click();
+  await expect(input).toHaveValue("#ff4499ff");
+  expect(await formValue(page)).toBe("#ff4499ff");
+});
+
+test("GradientEditor keeps coincident stops individually selectable and bounds removal", async({page},info)=>{
+  await page.goto("/components/gradient-editor");
+  const editor=page.locator(".preview-stage .flood-gradient-editor");
+  const group=editor.getByRole("group",{name:"Color stops",exact:true});
+  const first=group.getByRole("button",{name:"Stop 1: 0%",exact:true});
+  const [pill,swatch]=await Promise.all([first.boundingBox(),first.locator(".flood-color-swatch").boundingBox()]);
+  expect(Math.abs((swatch!.x-pill!.x)-(swatch!.y-pill!.y))).toBeLessThan(1);
+  await group.getByRole("button",{name:"Stop 2: 55%",exact:true}).click();
+  await editor.getByRole("spinbutton",{name:"Position (%)",exact:true}).fill("100");
+  await expect(group.getByRole("button",{name:"Stop 2: 100%",exact:true})).toHaveAttribute("aria-pressed","true");
+  await group.getByRole("button",{name:"Stop 3: 100%",exact:true}).press("Enter");
+  await expect(group.getByRole("button",{name:"Stop 3: 100%",exact:true})).toHaveAttribute("aria-pressed","true");
+  await editor.screenshot({path:info.outputPath("gradient-stops.png")});
+  const channels=editor.getByRole("button",{name:"Color channels",exact:true});
+  const alpha=editor.getByRole("slider",{name:"Opacity (%)",exact:true});
+  await expect(alpha).toBeHidden();
+  await channels.press("Enter");
+  await expect(alpha).toBeVisible();
+  await alpha.press("Home");
+  await expect(editor.getByRole("textbox",{name:"Stop color Hex",exact:true})).toHaveValue(/00$/);
+  await editor.getByRole("button",{name:"Remove stop",exact:true}).click();
+  await expect(editor.getByRole("button",{name:"Remove stop",exact:true})).toBeDisabled();
+  await expect(group.getByRole("button",{name:"Stop 2: 100%",exact:true})).toBeFocused();
+  await editor.getByRole("button",{name:"Add stop",exact:true}).press("Enter");
+  await expect(group.getByRole("button",{pressed:true})).toHaveAccessibleName(/50%/);
+  await expect(group.getByRole("button",{pressed:true})).toBeFocused();
+});
 
 test("ColorPicker normalizes hex and invalid drafts never submit the previous color", async({page}) => {
   await open(page); const input = page.locator("#brand-hex");

@@ -1,10 +1,5 @@
 [
   {
-    "id": "setup",
-    "label": "Setup",
-    "description": "Apply Flood's foundations to a part of your application."
-  },
-  {
     "id": "layout",
     "label": "Layout",
     "description": "Arrange, separate and contain interface elements."

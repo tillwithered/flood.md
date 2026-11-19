@@ -1,0 +1,69 @@
+.docs-layout[data-reader] .doc-heading {
+  align-items: start;
+  gap: var(--flood-sys-space-3) var(--flood-sys-space-6);
+  margin-block-end: var(--flood-sys-space-8);
+}
+
+.docs-layout[data-reader] .doc-heading .flood-heading {
+  font-size: clamp(var(--flood-sys-type-large-size), 3.4vw, 2.75rem);
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.docs-layout[data-reader] .flood-section__description { max-inline-size: 58ch; }
+.docs-layout[data-reader] .reader-utilities { display: none; }
+.docs-layout[data-reader] .reader-live-example { margin-block-end: var(--flood-sys-space-8); }
+.docs-layout[data-reader] .reader-setup-link { margin: 0 0 var(--flood-sys-space-8); }
+.docs-layout[data-reader] :is(.reader-setup-link, .doc-resources) .flood-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--flood-sys-space-1);
+}
+.docs-layout[data-reader] .doc-pagination {
+  margin-block-start: var(--flood-sys-space-8);
+  padding-block-start: 0;
+  border-block-start: 0;
+}
+
+@media (max-width: 75rem) {
+  .docs-layout[data-reader] .doc-heading { margin-block-end: var(--flood-sys-space-4); }
+  .docs-layout[data-reader] .reader-utilities {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    gap: var(--flood-sys-space-2) var(--flood-sys-space-4);
+    margin-block-end: var(--flood-sys-space-6);
+  }
+  .docs-layout[data-reader] .reader-utilities > :is(.guide-mobile-navigation, .guide-outline-mobile) {
+    margin-block-end: 0;
+  }
+  .docs-layout[data-reader] .guide-outline-mobile > .flood-disclosure__heading .flood-disclosure__trigger {
+    gap: var(--flood-sys-space-2);
+  }
+  .docs-layout[data-reader] .guide-outline-mobile[data-open="true"] {
+    flex-basis: 100%;
+  }
+  .docs-layout[data-reader] .guide-outline-mobile[data-open="true"] > .flood-disclosure__heading {
+    inline-size: fit-content;
+  }
+}
+
+@media (scripting: none) {
+  .docs-layout[data-reader] .reader-utilities { display: none; }
+}
+
+@media (max-width: 45rem) {
+  .docs-layout[data-reader] .markdown-content .table-scroll table:has(th:nth-child(3)):not(:has(th:nth-child(4))) {
+    min-inline-size: 0;
+  }
+  .docs-layout[data-reader] .table-scroll :is(td, th) { padding: var(--flood-sys-space-2); }
+  .docs-layout[data-reader] .table-scroll th { white-space: normal; }
+  .docs-layout[data-reader] .table-scroll :is(th, td:first-child) { overflow-wrap: normal; }
+  .docs-layout[data-reader] .table-scroll td > code { white-space: nowrap; }
+}
+
+@media (max-width: 22rem) {
+  .flood-root .reader-live-example .flood-data-table__table :is(th, td) {
+    padding-inline: var(--flood-sys-space-2);
+  }
+}

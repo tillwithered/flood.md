@@ -46,6 +46,10 @@ Honor `prefers-reduced-motion: reduce` with immediate state changes and static
 loading indicators. Never require motion to distinguish two states. For infinite
 motion, verify the activity ends with its actual loading state.
 
+Use IconSwap when a control changes between distinct decorative glyphs.
+Keep the containing IconSlot and control mounted. Update the accessible state
+immediately and let the glyph transition reverse from its current position.
+
 Review actual controls in the same screen and at their supported density. Verify
 pointer, keyboard, touch, interrupted transitions and reduced motion. For
 overlays, also check repeated open/close, focus restoration and nested dismissal

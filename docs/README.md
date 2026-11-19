@@ -1,38 +1,30 @@
 # Flood documentation
 
-Flood provides original React components, semantic CSS tokens and versioned
-instructions for coding agents. Start with the guide for your task:
+Flood provides React components, semantic CSS tokens and versioned guidance for
+coding agents.
 
-The website renders these guides at [/docs](https://flood.md/docs) and provides
-live examples at [/components](https://flood.md/components). Edit the Markdown
-here and review changes through a pull request; the next website build includes
-them without a separate content service.
+## Set up a project
 
-| Guide | What it covers |
-| --- | --- |
-| [Skills](skills.md) | Task-focused composition and verification workflows |
-| [Interface content](interface-content.md) | Editorial decisions, purposeful copy and contextual reference adaptation |
-| [Installation](installation.md) | React, Next.js, CLI setup and manual installation |
-| [Project UI](project-ui.md) | Optional semantic @/ui/button imports in your application |
-| [Layout](layout.md) | Intrinsic actions, responsive forms, choice sizing, gaps and hierarchy |
-| [Components](components.md) | Available controls, props and form composition |
-| [Charts](charts.md) | Choose a chart by the question it answers and try the live latency example |
-| [Base component inventory](base-components.md) | Available primitives and controls in the base release |
-| [Customization](theming.md) | Scoped dark foundations overrides and legacy theme boundaries |
-| [Foundations](foundations.md) | Typed semantic tokens and neutral dark profile for 0.2.11 |
-| [Agents](agents.md) | Installing and using the matching agent instructions |
-| [Connect your agent](https://flood.md/docs/mcp) | Connecting an MCP client and trying Flood workflows |
-| [Agent knowledge](agent-knowledge.md) | Versioned discovery, selected reads and preserved project guides |
-| [FAQ](faq.md) | Compatibility, customization, updates and common problems |
-| [Command palette](recipes/command-palette.md) | Compose Dialog and CommandList with host-owned actions |
-| [Table bulk actions](recipes/table-bulk-actions.md) | Controlled cross-page selection and local confirmation |
-| [Grouped form](recipes/grouped-form.md) | Shared tracks, semantic groups and optional fields |
-| [Record management](recipes/record-management.md) | Search, filter and edit records without losing the working list |
-| [Settings workspace](recipes/settings-workspace.md) | Group settings, validate a draft and save changes |
+[Install Flood](installation.md) in React or Next.js. Use
+[Project UI](project-ui.md) if your app needs project-owned imports such as
+`@/ui/button`.
+
+## Design and build
+
+Start with [Foundations](foundations.md) for tokens and typography,
+[Layout](layout.md) for responsive composition or [Charts](charts.md) for data
+visualization. Explore live examples in the [component catalog](components.md)
+and complete interactions in [Recipes](https://flood.md/recipes).
+
+## Work with an agent
+
+[Connect your agent](https://flood.md/for-agents) to the public Flood catalog.
+For an existing project, read the [Agent guide](agents.md) to work from its
+installed version and local instructions.
 
 ## Versions
 
-This branch documents **version 0.2.14**; source availability does
+This branch documents **version 0.2.15**; source availability does
 not establish npm publication. Use matching exact versions of the Flood packages. Documentation on `main` can describe later work; the
 [release tags](https://github.com/tillwithered/flood.md/releases) preserve the
 source and docs for each release. Installed `flood/DESIGN.md` takes precedence

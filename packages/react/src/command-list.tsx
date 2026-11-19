@@ -10,7 +10,7 @@ interface SearchCommandListProps extends CommandListProps {
 
 /** Searchable action suggestions. No selected form value or modal lifecycle. */
 export const SearchCommandList = /* @__PURE__ */ forwardRef<HTMLInputElement, SearchCommandListProps>(function SearchCommandList({
-  label, hideLabel = false, items, query, defaultQuery = "", onQueryChange, onAction,
+  label, hideLabel = false, items, query, defaultQuery = "", onQueryChange, onAction, autoHighlight = true,
   disabled = false, loading = false, placeholder = "Search commands…", emptyMessage = "No commands found.",
   loadingMessage = "Loading commands…", controlSize = "md", integrated = false, id: explicitId, className, onKeyDown, ...props
 }, forwardedRef) {
@@ -33,7 +33,7 @@ export const SearchCommandList = /* @__PURE__ */ forwardRef<HTMLInputElement, Se
   }
   const effectiveDisabled = disabled || inheritedDisabled;
   const enabled = loading || effectiveDisabled ? [] : [...groups.values()].flat().filter(item => !item.disabled);
-  const active = enabled.find(item => item.id === activeId) ?? enabled[0];
+  const active = enabled.find(item => item.id === activeId) ?? (autoHighlight ? enabled[0] : undefined);
   const positions = new Map(items.map((item,index) => [item.id,index]));
   const optionId = (item: CommandListItem) => `${listId}-option-${positions.get(item.id)}`;
   const hasIcons = items.some(item => hasFieldContent(item.icon));
@@ -71,7 +71,9 @@ export const SearchCommandList = /* @__PURE__ */ forwardRef<HTMLInputElement, Se
       if (!["ArrowDown","ArrowUp","Home","End"].includes(event.key)) return;
       event.preventDefault();
       const index = enabled.findIndex(item => item.id === active?.id);
-      const next = event.key === "Home" ? 0 : event.key === "End" ? enabled.length-1 : (index + (event.key === "ArrowDown" ? 1 : -1) + enabled.length) % enabled.length;
+      const step = event.key === "ArrowUp" ? -1 : 1;
+      const next = event.key === "Home" ? 0 : event.key === "End" ? enabled.length-1 :
+        index === -1 ? (step === 1 ? 0 : enabled.length-1) : (index + step + enabled.length) % enabled.length;
       setActiveId(enabled[next].id);
     }}>
     <Label htmlFor={inputId} className={hideLabel ? "flood-visually-hidden" : undefined}>{label}</Label>

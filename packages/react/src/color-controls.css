@@ -1,9 +1,46 @@
 .flood-root .flood-color-swatch { display:inline-block; flex:none; box-sizing:border-box; inline-size:2rem; block-size:2rem; border:var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius:var(--flood-sys-radius-field); vertical-align:middle; }
-.flood-root .flood-color-swatch--sm { inline-size:1.5rem; block-size:1.5rem; border-radius:var(--flood-sys-radius-action); }
+.flood-root .flood-color-swatch--sm { inline-size:var(--flood-sys-space-6); block-size:var(--flood-sys-space-6); border-radius:var(--flood-sys-radius-action); }
 .flood-root .flood-color-swatch--lg { inline-size:3rem; block-size:3rem; }
+.flood-root .flood-color-swatch[data-alpha], .flood-root .flood-gradient-editor__sample {
+  background-image:var(--flood-color-preview),
+    conic-gradient(var(--flood-sys-color-surface-muted) 25%, var(--flood-sys-color-surface-default) 0 50%,
+      var(--flood-sys-color-surface-muted) 0 75%, var(--flood-sys-color-surface-default) 0);
+  background-size:auto,var(--flood-sys-space-3) var(--flood-sys-space-3);
+}
+.flood-root .flood-color-swatch[data-alpha] {
+  --flood-color-preview:linear-gradient(var(--flood-color-sample),var(--flood-color-sample));
+}
+.flood-root .flood-gradient-editor { min-inline-size:0; }
+.flood-root .flood-gradient-editor .flood-gradient-editor__stop {
+  --flood-gradient-stop-diameter: var(--flood-sys-space-6);
+  --flood-gradient-stop-height: var(--flood-control-height);
+  --flood-gradient-stop-inset: calc((var(--flood-gradient-stop-height) - var(--flood-gradient-stop-diameter)) / 2 - var(--flood-sys-stroke-width));
+  padding-block: max(0px, var(--flood-gradient-stop-inset));
+  padding-inline-start: max(0px, var(--flood-gradient-stop-inset));
+  gap: var(--flood-sys-space-1);
+}
+@media (pointer: coarse) {
+  .flood-root .flood-gradient-editor .flood-gradient-editor__stop {
+    --flood-gradient-stop-height: max(var(--flood-control-height), var(--flood-sys-size-touch));
+  }
+}
+.flood-root .flood-gradient-editor__sample {
+  min-block-size:4rem;
+  border:var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-radius:var(--flood-sys-radius-field);
+}
 .flood-root .flood-color-picker { display:grid; gap:var(--flood-sys-space-1); min-inline-size:0; inline-size:20rem; max-inline-size:100%; }
 .flood-root .flood-color-picker[hidden], .flood-root .flood-color-swatch[hidden] { display:none; }
 .flood-root .flood-color-picker__panel { display:grid; gap:var(--flood-sys-space-4); padding:var(--flood-sys-space-4); border:var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative); border-radius:var(--flood-sys-radius-field); background:var(--flood-sys-color-surface-default); }
+.flood-root .flood-color-picker[data-channel-disclosure] .flood-color-picker__panel {
+  gap:var(--flood-sys-space-2);
+  padding:var(--flood-sys-space-3);
+}
+.flood-root .flood-color-picker[data-appearance="embedded"] > .flood-color-picker__panel {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
 .flood-root .flood-color-picker__value { display:flex; align-items:center; gap:var(--flood-sys-space-3); min-inline-size:0; }
 .flood-root .flood-color-picker__hex { display:grid; gap:var(--flood-sys-space-1); flex:1; min-inline-size:0; }
 .flood-root .flood-color-picker__hex .flood-input { inline-size:100%; font-family:var(--flood-sys-font-mono); }
@@ -28,4 +65,11 @@
 }
 @media (forced-colors:active) {
   .flood-root .flood-color-swatch { forced-color-adjust:none; border-color:CanvasText; }
+}
+.flood-root .flood-popover.flood-color-filter {
+  inline-size: 19rem;
+}
+.flood-root .flood-color-filter__trigger .flood-color-swatch {
+  inline-size: var(--flood-sys-space-4);
+  block-size: var(--flood-sys-space-4);
 }

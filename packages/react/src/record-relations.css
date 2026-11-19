@@ -1,0 +1,26 @@
+.flood-root .flood-record-relations {
+  overflow-wrap: anywhere;
+}
+
+.flood-root .flood-record-relations__reference {
+  margin-inline-end: var(--flood-sys-space-1);
+}
+
+.flood-root .flood-record-relations__link {
+  overflow-wrap: anywhere;
+}
+
+@container flood-data-list (width > 30rem) {
+  .flood-root .flood-record-relations .flood-data-list-item__trailing {
+    flex: 0 0 8rem;
+    justify-content: flex-start;
+  }
+}
+
+@media (pointer: coarse) {
+  .flood-root .flood-record-relations__link {
+    display: block;
+    min-block-size: var(--flood-sys-size-touch);
+    align-content: center;
+  }
+}

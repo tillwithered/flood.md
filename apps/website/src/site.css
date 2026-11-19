@@ -6,19 +6,20 @@ html:has(.site-page-scroll) { overflow: clip; }
    when wheel or touch movement reaches a modal body's scroll boundary. */
 html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 .site-root {
+  --site-frame-padding: clamp(var(--flood-sys-space-4), 4vw, 3.5rem);
   --site-preview-background: radial-gradient(circle, rgb(255 170 205 / .035) .045rem, transparent .045rem) 0 0 / 1.25rem 1.25rem #1a161a;
   --landing-panel-padding: clamp(var(--flood-sys-space-6), 3vw, 2.5rem);
   min-block-size: 100svh;
   -webkit-font-smoothing: antialiased;
 }
 .site-root * { box-sizing: border-box; }
-.site-shell { max-inline-size: 90rem; min-block-size: 100svh; margin-inline: auto; padding-inline: clamp(var(--flood-sys-space-4), 4vw, 3.5rem); }
+.site-shell { max-inline-size: 90rem; min-block-size: 100svh; margin-inline: auto; padding-inline: var(--site-frame-padding); }
 .home-site .site-shell { display: flex; flex-direction: column; }
 .home-main { flex: 1; display: grid; align-content: center; padding-block: clamp(2.5rem, 7vw, 6rem); }
 .home-main .hero { padding-block: 0; }
 .home-site .site-footer { padding-block: var(--flood-sys-space-6); }
 .site-header, .site-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--flood-sys-space-6); }
-.site-header { min-block-size: 5.5rem; padding-block: var(--flood-sys-space-4); border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative); }
+.site-header { min-block-size: 5.5rem; padding-block: var(--flood-sys-space-4); }
 .site-header .wordmark { display: inline-flex; align-items: center; gap: var(--flood-sys-space-2); color: inherit; text-decoration: none; font-size: var(--flood-sys-type-page-size); line-height: var(--flood-sys-type-page-line-height); letter-spacing: var(--flood-sys-type-page-tracking); font-weight: 500; }
 .wordmark img { inline-size: 2.375rem; block-size: 2.375rem; object-fit: contain; }
 .wordmark-suffix { color: var(--flood-sys-color-content-subtle); }
@@ -71,8 +72,6 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
   .site-header .wordmark { font-size: var(--flood-sys-type-section-size); }
   .wordmark img { inline-size: 2rem; block-size: 2rem; }
   .site-header .header-links { gap: var(--flood-sys-space-1); }
-  .site-header .header-links .flood-link { padding-inline: var(--flood-sys-space-2); }
-  .header-github > span:last-child { display: none; }
   .hero { padding-block-start: var(--flood-sys-space-6); }
   .hero .hero-title { font-size: clamp(2rem, 8vw, 2.75rem); }
   .hero-line + .hero-line { margin-block-start: var(--flood-sys-space-1); }
@@ -89,7 +88,7 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 
 /* Documentation composes the public library; page layout belongs to the website. */
 .docs-layout { display: grid; grid-template-columns: 13rem minmax(0, 1fr) 10rem; gap: clamp(2rem, 4vw, 4rem); padding-block: 2.5rem 4rem; }
-.site-shell:has(.docs-layout[data-preview-layout="workspace"]) {
+.site-shell[data-studio] {
   display: flex;
   flex-direction: column;
   block-size: 100dvh;
@@ -99,14 +98,12 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
   background: var(--flood-sys-color-surface-canvas);
   overflow: hidden;
 }
-.site-shell:has(.docs-layout[data-preview-layout="workspace"]) > .site-header {
+.site-shell[data-studio] > .site-header {
   flex: none;
-  min-block-size: 3.5rem;
-  padding-block: var(--flood-sys-space-2);
-  padding-inline: var(--flood-sys-space-4);
-  border-block-end: 0;
+  inline-size: calc(min(100%, 90rem) - 2 * var(--site-frame-padding));
+  margin-inline: auto;
 }
-.site-shell:has(.docs-layout[data-preview-layout="workspace"]) > .site-footer { display: none; }
+.site-shell[data-studio] > .site-footer { display: none; }
 .docs-layout[data-preview-layout="workspace"] {
   display: grid;
   grid-template: minmax(0, 1fr) / 12.75rem minmax(0, 1fr);
@@ -176,7 +173,7 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 .studio-reference-content .doc-section[tabindex="-1"]:focus,
 .studio-catalog-sheet .side-nav[tabindex="-1"]:focus { outline: none; }
 @media (scripting: none) {
-  .site-shell:has(.docs-layout[data-preview-layout="workspace"]) { block-size: auto; overflow: visible; }
+  .site-shell[data-studio] { block-size: auto; overflow: visible; }
   .docs-layout[data-preview-layout="workspace"] .doc-article { block-size: auto; overflow: visible; }
   .docs-layout[data-preview-layout="workspace"] :is(.studio-catalog-toggle, .studio-action-row) { display: none; }
   .docs-layout[data-preview-layout="workspace"] .component-workbench[data-studio] {
@@ -199,10 +196,7 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
   .flood-root .studio-reference-trigger .flood-keyboard-shortcut { display: none; }
 }
 @media (max-width: 36rem) {
-  .site-shell:has(.docs-layout[data-preview-layout="workspace"]) { block-size: auto; overflow: visible; }
-  .site-shell:has(.docs-layout[data-preview-layout="workspace"]) > .site-header {
-    border-block-end: var(--flood-sys-stroke-width) solid var(--flood-sys-color-divider-decorative);
-  }
+  .site-shell[data-studio] { block-size: auto; overflow: visible; }
   .docs-layout[data-preview-layout="workspace"] {
     display: block;
     padding: var(--flood-sys-space-3) var(--flood-sys-space-4) var(--flood-sys-space-8);
@@ -271,6 +265,13 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 .markdown-content h3 { margin: 2rem 0 .75rem; font-size: var(--flood-sys-type-body-size); line-height: 1.5; font-weight: 600; }
 .markdown-content :is(h2,h3), .doc-section, .component-preview, .component-catalog section { scroll-margin-block-start: 2rem; }
 .chart-guide-example { margin-block-start: var(--flood-sys-space-8); scroll-margin-block-start: var(--flood-sys-space-4); }
+.site-preview-frame {
+  min-inline-size: 0;
+  padding: clamp(var(--flood-sys-space-2), 2vw, var(--flood-sys-space-4));
+  border: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-radius: var(--flood-sys-radius-block);
+  background: var(--site-preview-background);
+}
 .flood-root .chart-guide-example .chart-example-distributions { grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr)); }
 .markdown-content code, .doc-section code { font-family: var(--flood-sys-font-mono); font-size: .875em; }
 .markdown-content :not(pre) > code, .doc-section p > code { background: var(--flood-sys-color-surface-raised); border-radius: .25rem; padding: .125rem .25rem; overflow-wrap: anywhere; }
@@ -331,7 +332,6 @@ html:has(dialog:modal) .site-page-scroll { overflow-y: hidden; }
 @media (max-width: 23rem) {
   .site-header .wordmark { font-size: var(--flood-sys-type-body-size); gap: var(--flood-sys-space-1); }
   .site-header .wordmark img { inline-size: 1.625rem; block-size: 1.625rem; }
-  .site-header .header-links .flood-link { padding-inline: var(--flood-sys-space-1); }
 }
 @media (forced-colors: active) {
   .side-nav .side-link[aria-current="page"] { outline: 1px solid Highlight; }

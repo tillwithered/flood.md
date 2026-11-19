@@ -235,13 +235,43 @@
     block-size: clamp(12rem, 34svh, 17rem);
   }
   .component-workbench[data-studio] .workbench-stage[data-wide-frame],
-  .component-workbench[data-studio] .workbench-stage[data-size="display"] {
+  .component-workbench[data-studio] .workbench-stage[data-component="connected-account-list"],
+  .component-workbench[data-studio] .workbench-stage[data-component="image-alt-text-editor"],
+  .component-workbench[data-studio] .workbench-stage[data-component="import-column-mapping"],
+  .component-workbench[data-studio] .workbench-stage:is([data-size="display"], [data-component="query-plan"], [data-component="approval-chain"], [data-component="changed-file-list"], [data-component="check-run-list"], [data-component="evaluation-result"], [data-component="review-thread"], [data-component="service-incident"], [data-component="backup-picker"], [data-component="masonry"], [data-component="image-annotations"], [data-component="image-focal-point"], [data-component="media-seek-bar"], [data-component="media-chapter-list"]) {
     block-size: clamp(22rem, 60svh, 36rem);
+  }
+  .component-workbench[data-studio] .workbench-stage:is([data-component="card"], [data-component="card-skeleton"]):not([data-wide-frame]) {
+    min-block-size: 19rem;
+  }
+  .component-workbench[data-studio] .workbench-stage:is([data-component="file-card"], [data-component="file-card-skeleton"]):not([data-wide-frame]) {
+    block-size: clamp(23rem, 46svh, 28rem);
   }
 }
 .component-workbench:has(.workbench-stage[data-component="app-shell"], .workbench-stage[data-component="sidebar"]) .workbench-title { flex-wrap: wrap; }
 @media (max-width: 36rem) {
+  .component-workbench[data-studio] .workbench-stage[data-component="content-report-form"] {
+    block-size: clamp(34rem, 71svh, 40rem);
+  }
+  .component-workbench[data-studio] .workbench-stage:is([data-component="moderation-notice"], [data-component="deployment-handoff"], [data-component="replica-allocation"], [data-component="service-level-targets"], [data-component="receipt-match-review"], [data-component="record-relation-suggestion"], [data-component="migration-history"], [data-component="context-window-meter"]) {
+    block-size: clamp(20rem, 42svh, 24rem);
+  }
+  .component-workbench[data-studio] .workbench-stage:is([data-component="moderation-appeal-form"], [data-component="record-relation-form"], [data-component="expense-allocation-form"]) {
+    block-size: clamp(27rem, 56svh, 32rem);
+  }
+  .component-workbench[data-studio] .workbench-stage[data-component="database-session-list"] {
+    block-size: clamp(23rem, 55svh, 29rem);
+  }
+  .component-workbench[data-studio] .workbench-stage[data-component="index-recommendation"] {
+    block-size: clamp(22rem, 48svh, 27rem);
+  }
   .component-workbench[data-studio] .workbench-stage[data-component="heatmap"] { min-block-size: 24rem; }
+  .component-workbench[data-studio] .workbench-stage[data-component="deployment-region-picker"] {
+    block-size: clamp(24rem, 70svh, 38rem);
+  }
+  .component-workbench[data-studio] .workbench-stage:is([data-component="network-allowlist"], [data-component="cidr-field"]) {
+    block-size: clamp(21rem, 53svh, 30rem);
+  }
 }
 .workbench-stage[data-component="app-shell"] .flood-app-shell {
   container: app-shell-preview / inline-size;
@@ -266,6 +296,8 @@
 .workbench-stage[data-component="label"] > .flood-scroll-area__content > .flood-root { inline-size: min(100%, 26rem); }
 .component-workbench .workbench-stage:is([data-component="filter-condition"],[data-component="filter-group"],[data-component="collection-toolbar"]) > .flood-scroll-area__content > .flood-root { inline-size:100%; }
 .component-workbench .workbench-stage[data-component="filter-group"] > .flood-scroll-area__content { align-items:start; }
+.component-workbench .workbench-stage[data-component="staged-changes"],
+.component-workbench .workbench-stage[data-component="staged-changes"] > .flood-scroll-area__content { align-items:start; }
 .flood-root .workbench-filter-panel { inline-size:min(42rem,calc(100vw - 2rem)); }
 .workbench-stage[data-component="table"] > .flood-scroll-area__content > .flood-root { inline-size: 100%; max-inline-size: 42rem; }
 .workbench-stage:is([data-component="progress"], [data-component="meter"]) .flood-indicator[data-layout="stacked"] { display: grid; grid-template-rows: minmax(1.25rem, auto) .5rem; gap: var(--flood-sys-space-2); }
@@ -319,6 +351,9 @@
 .workbench-stage[data-component="multi-select"] .flood-multi-select { align-self: start; }
 
 .preview-stage :is(.flood-search-input, .flood-password-input) { width: min(100%, 26rem); }
+.flood-root .preview-stage[data-component="save-bar"] .flood-save-bar[data-placement="viewport"] {
+  inset-block-end: var(--studio-panel-bottom, 4rem);
+}
 
 .component-workbench .workbench-stage[data-component="file-input"] { align-items: start; block-size: 32rem; }
 

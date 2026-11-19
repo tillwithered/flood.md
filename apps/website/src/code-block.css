@@ -75,6 +75,11 @@
 }
 .site-root .site-code-block__line, .site-root .site-code-block__token { white-space: inherit; overflow-wrap: inherit; }
 .site-root .site-code-block[data-compact] .site-code-block__pre { white-space: pre; }
+.site-root .site-code-block[data-language="shellscript"] .site-code-block__pre {
+  white-space: pre-wrap;
+  overflow-wrap: normal;
+}
+.site-root .site-code-block__shell-word { white-space: nowrap; }
 .site-root .site-copy-control {
   display: inline-flex;
   flex-wrap: wrap;

@@ -52,12 +52,17 @@ reading area. Compose the body from Section for separately named content,
 DescriptionList for facts and Fieldset for related controls. Check wrapping and
 scrolling with the longest title and a real footer action before selecting a size.
 Use the group heading size inside a detail Drawer to keep the record name prominent.
-Keep the request facts in one DescriptionList and use a compact, captioned Table
-for related records that have comparable columns, such as activity dates and events.
-Use Timestamp with its compact size in the date column. Keep the full civil
-date in `dateTime` when the visible label omits the year.
-Give that table its own heading when it identifies a distinct section. The Drawer
-body owns vertical scrolling and the footer keeps the next action within reach.
+Keep the request facts in one DescriptionList. Use AuditTimeline when the
+reader needs to scan chronological events and open the changed fields for an
+individual event. This example keeps both the request and its activity in local
+state. A save records only fields whose values changed.
+Use `layout="columns"` when the record has short facts whose labels and values
+both fit in the drawer. The list stacks in a very tight container. Check the
+copyable ID alongside its label with enlarged text and touch targets enabled.
+Give the history its own heading when it identifies a distinct section. The
+Drawer body owns vertical scrolling and the footer keeps the next action within
+reach while the changes expand. Keep a table for related records with comparable
+columns.
 
 When the detail contains line items and a total, use the Table footer to mark
 the summary and keep its amount aligned with the line-item amounts. A row header

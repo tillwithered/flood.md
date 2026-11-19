@@ -38,8 +38,12 @@ export async function compileAgentKnowledge({version, definition, manifest, work
     const coverage = workflows.coverage.find(item => item.name === component.name);
     if (!coverage || !component.markdown) throw Error(`Component lacks knowledge contract: ${component.name}`);
     add({id: 'component:' + component.slug, name: component.name, description: component.description,
-      groups: definition.componentGroups[component.group], source: `component:${component.slug}`, body: component.markdown,
+      groups: definition.componentGroupOverrides?.[component.slug] ?? definition.componentGroups[component.group],
+      source: `component:${component.slug}`, body: component.markdown,
       links: coverage.workflows.map(id => 'workflow:' + id)});
+  }
+  if (Object.keys(definition.componentGroupOverrides ?? {}).some(slug => !components.some(component => component.slug === slug))) {
+    throw Error('Stale component knowledge group override.');
   }
   for (const document of documents) {
     const recipe = document.path.startsWith('/docs/recipes/');

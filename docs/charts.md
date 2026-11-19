@@ -8,6 +8,7 @@ For setup in React or Next.js, see [Installation](installation.md).
 
 - [LineChart](https://flood.md/components/line-chart) shows how a measure changes over time. Compare this week with last week on the same scale.
 - [Sparkline](https://flood.md/components/sparkline) shows a small trend beside a value in a table or summary.
+- [UptimeHistory](https://flood.md/components/uptime-history) shows service availability across equal periods. Include explicit unknown periods and use a host-calculated uptime summary for the same window.
 - [BarChart](https://flood.md/components/bar-chart) compares categories. Group series to compare actual and planned values, or use percent stacks to compare their shares.
 - [BarList](https://flood.md/components/bar-list) ranks named values, such as traffic sources, where the labels and counts matter as much as the bars.
 - [BulletChart](https://flood.md/components/bullet-chart) compares a single value with a target and optional reference bands.

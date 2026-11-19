@@ -1,0 +1,58 @@
+/* The page uses a Flood overlay rail after hydration. Keep the same width before it mounts. */
+@media (scripting: enabled) and (forced-colors: none) {
+  .site-page-scroll { scrollbar-width: none; }
+  .site-page-scroll::-webkit-scrollbar { display: none; }
+}
+@media (forced-colors: active) {
+  .site-page-scroll { scrollbar-gutter: stable both-edges; }
+}
+
+.site-route-loading {
+  inline-size: 100%;
+  flex: 1;
+}
+.site-route-loading[data-loading-layout="directory"] {
+  padding-block: var(--flood-sys-space-8) var(--flood-sys-space-12);
+}
+.site-route-loading[data-loading-layout="document"] .site-route-loading-body { inline-size: 100%; }
+.site-route-loading[data-loading-layout="document"] .site-route-loading-sidebar { padding: var(--flood-sys-space-2) 0; }
+.site-route-loading .site-route-loading-mobile { display: none; }
+.site-route-loading[data-loading-layout="studio"] {
+  display: grid;
+  grid-template-columns: 12.75rem minmax(0, 1fr);
+  gap: var(--flood-sys-space-3);
+  min-block-size: 0;
+  padding: var(--flood-sys-space-2) 0 0 var(--flood-sys-space-3);
+}
+.site-route-loading-sidebar {
+  min-inline-size: 0;
+  padding: var(--flood-sys-space-3);
+}
+.site-route-loading[data-loading-layout="studio"] .site-route-loading-body {
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: var(--flood-sys-space-4);
+  border-start-start-radius: var(--flood-sys-radius-block);
+  border-block-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  border-inline-start: var(--flood-sys-stroke-width) solid var(--flood-sys-color-border-decorative);
+  background: var(--site-preview-background);
+}
+.site-route-loading .site-route-loading-preview {
+  flex: 1;
+  min-block-size: min(12rem, 32dvh);
+}
+.site-page-scroll [data-route-focus]:focus { outline: none; }
+@media (max-width: 50rem) {
+  .site-route-loading[data-loading-layout="studio"] { grid-template-columns: minmax(0, 1fr); }
+  .site-route-loading[data-loading-layout="studio"] .site-route-loading-sidebar { display: none; }
+  .site-route-loading .site-route-loading-mobile { display: block; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-page-scroll[data-route-arriving] > .flood-scroll-area__content > .site-root > .site-shell > :is(main, .docs-layout),
+  .site-page-scroll[data-route-arriving] > .flood-scroll-area__content > :not(.site-root) {
+    animation: site-route-reveal var(--flood-sys-motion-duration-enter) var(--flood-sys-motion-easing-enter) both;
+  }
+  @keyframes site-route-reveal {
+    from { opacity: .84; }
+  }
+}

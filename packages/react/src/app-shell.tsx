@@ -4,9 +4,10 @@ import {AppTopBar, Button, Drawer, Inline, ScrollArea, SkipLink, type AppShellPr
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export const ApplicationTopBar = /* @__PURE__ */ forwardRef<HTMLElement, AppTopBarProps>(function ApplicationTopBar({
-  start, end, bordered, className, ...props
+  start, end, layout = "wrap", bordered, className, ...props
 }, ref) {
-  return <header {...props} ref={ref} className={["flood-app-top-bar", className].filter(Boolean).join(" ")} data-bordered={bordered || undefined}>
+  return <header {...props} ref={ref} className={["flood-app-top-bar", className].filter(Boolean).join(" ")}
+    data-layout={layout} data-bordered={bordered || undefined}>
     {start != null && <Inline align="center" gap="2" className="flood-app-top-bar__start">{start}</Inline>}
     {end != null && <Inline align="center" gap="2" className="flood-app-top-bar__end">{end}</Inline>}
   </header>;

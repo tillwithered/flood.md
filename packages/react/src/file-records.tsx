@@ -1,5 +1,5 @@
-import {forwardRef,useEffect,useLayoutEffect,useRef,useState,type ReactNode} from "react";
-import {AspectRatio,Card,CursorPagination,DataListItem,IconSlot,IconButton,IconLink,Link,Badge,FileMeta,FileName,FileThumbnail,StatusIndicator,Progress,Dialog,Image,Spinner,Inline,Text,Toggle,Toolbar,ScrollArea,VisuallyHidden,type FileCardProps,type FileThumbnailProps,type FileMetaProps,type FileNameProps,type FileItemProps,type UploadItemProps,type ImagePreviewProps,type ImageGalleryProps} from "./index.js";
+import {Fragment,forwardRef,useEffect,useImperativeHandle,useLayoutEffect,useRef,useState,type ReactNode} from "react";
+import {AspectRatio,Card,CursorPagination,DataListItem,IconSlot,IconButton,IconLink,Link,Badge,FileMeta,FileName,FileThumbnail,StatusIndicator,Progress,Dialog,Image,Spinner,Inline,Text,Toggle,Toolbar,ScrollArea,VisuallyHidden,ThumbnailStrip,type FileCardProps,type FileThumbnailProps,type FileMetaProps,type FileNameProps,type FilePathProps,type FileItemProps,type UploadItemProps,type ImagePreviewProps,type ImageGalleryProps,type OverlayTriggerProps,type ThumbnailStripProps} from "./index.js";
 import {hasFieldContent} from "./field-state.js";
 import {AnchoredOverlay} from "./overlays.js";
 import {useInlineOverflow} from "./use-inline-overflow.js";
@@ -10,14 +10,15 @@ function sizeText(bytes:number,locale?:string){
   const units=["B","kB","MB","GB","TB"],unit=bytes===0?0:Math.max(0,Math.min(4,Math.floor(Math.log10(bytes)/3)));
   return `${new Intl.NumberFormat(locale,{maximumFractionDigits:1}).format(bytes/1000**unit)} ${units[unit]}`;
 }
-export const FileMetadata = /* @__PURE__ */ forwardRef<HTMLSpanElement,FileMetaProps>(function FileMetadata({format,size,formatSize,variant="chip",className,...props},ref){
+export const FileMetadata = /* @__PURE__ */ forwardRef<HTMLSpanElement,FileMetaProps & {dimensionsLabel?: string}>(function FileMetadata({format,size,formatSize,dimensionsLabel,variant="chip",className,...props},ref){
   if(format!==undefined&&!format.trim())throw new Error("Flood FileMeta format must be nonempty when supplied");
   if(size!==undefined&&(!Number.isFinite(size)||size<0))throw new Error("Flood file size must be finite and nonnegative");
-  if(format===undefined&&size===undefined)return null;
+  if(format===undefined&&size===undefined&&dimensionsLabel===undefined)return null;
   const bytes=size===undefined?undefined:(formatSize??((value:number)=>sizeText(value,props.lang)))(size);
-  const content = <>
-    {format&&<bdi>{format}</bdi>}{format&&bytes&&<span aria-hidden="true">·</span>}{bytes&&<bdi>{bytes}</bdi>}
-  </>;
+  const facts = [format,dimensionsLabel,bytes].filter(Boolean);
+  const content = facts.map((value,index)=><Fragment key={index}>
+    {index>0&&<span aria-hidden="true">·</span>}<bdi>{value}</bdi>
+  </Fragment>);
   const frame = {...props, className:cx("flood-file-meta",className)};
   return variant === "plain"
     ? <Text {...frame} ref={ref} as="span" size="helper" tone="subtle" data-file-meta-plain="">{content}</Text>
@@ -30,23 +31,37 @@ function fileExtension(name: string) {
   return /^[a-z0-9]{1,12}$/i.test(extension) ? extension : "";
 }
 
-function CompactFileName({name, href, download, hidden}: Pick<FileNameProps, "name" | "href" | "download" | "hidden">) {
+function CompactFileName({name, directory, href, download, hidden, current}:
+  Pick<FileNameProps, "name" | "href" | "download" | "hidden"> & {directory?: string; current?: FilePathProps["aria-current"]}) {
   const extension = fileExtension(name);
   const suffix = extension ? `.${extension}` : "";
   const stem = suffix ? name.slice(0, -suffix.length) : name;
   const base = useInlineOverflow(stem, !hidden);
   const end = useInlineOverflow(suffix, Boolean(suffix) && !hidden);
-  const clipped = base.overflow || end.overflow;
+  const parent = useInlineOverflow(directory ?? "", Boolean(directory) && !hidden);
+  const clipped = base.overflow || end.overflow || parent.overflow;
+  const fullName = (directory ?? "") + name;
+  const separator = directory?.slice(-1);
+  const tooltip = directory && separator ? <>
+    {directory.slice(0, -1).split(separator).map((segment, index) =>
+      <Fragment key={index}>{segment}{separator}<wbr /></Fragment>)}
+    {name}
+  </> : fullName;
   return <AnchoredOverlay kind="tooltip" inlineTooltip className="flood-truncated-text__tooltip"
-    content={name} dir="auto" align="center" disabled={!clipped} trigger={trigger => {
+    content={tooltip} dir={directory ? "ltr" : "auto"} align="center" disabled={!clipped} trigger={trigger => {
       const pieces = <>
         <span ref={base.ref}>{stem}</span>
         {suffix && <span dir="ltr" ref={end.ref}>{suffix}</span>}
       </>;
       const shared = {...trigger, "aria-describedby":undefined, className:"flood-file-name__line"};
+      const content = directory ? <>
+        {!href && <VisuallyHidden>{fullName}</VisuallyHidden>}
+        <span className="flood-file-path__directory" ref={parent.ref} aria-hidden="true"><bdi dir="ltr">{directory}</bdi></span>
+        <span className="flood-file-path__name" aria-hidden="true">{pieces}</span>
+      </> : pieces;
       return href
-        ? <Link {...shared} href={href} download={download ? name : undefined} aria-label={name}>{pieces}</Link>
-        : <span {...shared} tabIndex={clipped ? 0 : undefined}>{pieces}</span>;
+        ? <Link {...shared} href={href} download={download ? name : undefined} aria-label={fullName} aria-current={current}>{content}</Link>
+        : <span {...shared} tabIndex={clipped ? 0 : undefined}>{content}</span>;
     }} />;
 }
 
@@ -57,6 +72,18 @@ export const FileNameText = /* @__PURE__ */ forwardRef<HTMLSpanElement, FileName
   return <span {...props} ref={ref} hidden={hidden} dir={dir} data-overflow={overflow} className={cx("flood-file-name",className)}>
     {overflow === "truncate" ? <CompactFileName key={href ? "link" : "text"} name={name} href={href} download={download} hidden={hidden} />
       : href ? <Link href={href} download={download ? name : undefined}>{name}</Link> : name}
+  </span>;
+});
+export const FilePathText = /* @__PURE__ */ forwardRef<HTMLSpanElement, FilePathProps>(function FilePathText(
+  {path, separator = "/", href, hidden, className, dir = "ltr", "aria-current": current, ...props}, ref,
+) {
+  if (!path.trim()) throw new Error("Flood FilePath requires a nonempty path");
+  const boundary = path.lastIndexOf(separator);
+  const split = boundary < path.length - 1 ? boundary + 1 : 0;
+  return <span {...props} ref={ref} hidden={hidden} dir={dir} aria-current={href ? undefined : current}
+    className={cx("flood-file-name","flood-file-path",className)}>
+    <CompactFileName key={href ? "link" : "text"} name={path.slice(split)} directory={path.slice(0, split)}
+      href={href} hidden={hidden} current={current} />
   </span>;
 });
 function Glyph({kind}:{kind:"file"|"preview"|"download"|"remove"|"retry"|"cancel"|"pause"|"resume"}){
@@ -75,13 +102,26 @@ function fileFormat(name:string,format:FileItemProps["format"],mimeType:string|u
   return format === null ? undefined : format ?? mimeType ?? (extension ? extension.toUpperCase() : undefined);
 }
 
-type FileCommandsProps = Pick<FileItemProps,"name"|"onPreview"|"downloadHref"|"onRemove"|"disabled"|"labels"> & {extraActions?:ReactNode};
-function fileCommands({name,onPreview,downloadHref,onRemove,disabled,labels={},extraActions}:FileCommandsProps) {
+type FilePreviewProps = Pick<FileItemProps,"name"|"onPreview"|"renderPreview"|"disabled"|"labels">;
+function filePreview({name,onPreview,renderPreview,disabled,labels={}}:FilePreviewProps, onThumbnail=false) {
+  const previewLabel = labels.preview ?? "Preview";
+  const previewButton = (props: Partial<OverlayTriggerProps>) =>
+    <IconButton {...props} label={`${previewLabel}: ${name}`} title={previewLabel} size="sm"
+      className={onThumbnail ? "flood-file-card__preview-action" : undefined} variant={onThumbnail ? "subtle" : "ghost"}
+      disabled={disabled || props.disabled}><Glyph kind="preview"/></IconButton>;
+  if (renderPreview) return renderPreview(previewButton);
+  return onPreview && previewButton({onClick:onThumbnail ? event=>{
+    event.currentTarget.focus({preventScroll:true});
+    onPreview();
+  } : onPreview});
+}
+
+type FileCommandsProps = Pick<FileItemProps,"name"|"downloadHref"|"onRemove"|"disabled"|"labels"> & {preview?:ReactNode;extraActions?:ReactNode};
+function fileCommands({name,preview,downloadHref,onRemove,disabled,labels={},extraActions}:FileCommandsProps) {
   const downloadDestination = disabled ? undefined : downloadHref;
-  if (!onPreview && !downloadDestination && !onRemove && !hasFieldContent(extraActions)) return undefined;
+  if (!hasFieldContent(preview) && !downloadDestination && !onRemove && !hasFieldContent(extraActions)) return undefined;
   return <>
-    {onPreview && <IconButton label={`${labels.preview ?? "Preview"}: ${name}`} title={labels.preview ?? "Preview"}
-      variant="ghost" size="sm" disabled={disabled} onClick={onPreview}><Glyph kind="preview"/></IconButton>}
+    {preview}
     {downloadDestination && <IconLink href={downloadDestination} download={name} label={`${labels.download ?? "Download"}: ${name}`}
       title={labels.download ?? "Download"} variant="ghost" size="sm"><Glyph kind="download"/></IconLink>}
     {extraActions}
@@ -92,7 +132,7 @@ function fileCommands({name,onPreview,downloadHref,onRemove,disabled,labels={},e
 
 interface RowProps extends FileItemProps { extraActions?:ReactNode; }
 const FileRow = /* @__PURE__ */ forwardRef<HTMLLIElement,RowProps>(function FileRow({
-  name,nameOverflow,size,mimeType,format,metadataVariant,thumbnail,thumbnailSrc,thumbnailFit,description,href,download=false,onPreview,downloadHref,onRemove,disabled=false,
+  name,nameOverflow,size,mimeType,format,metadataVariant,thumbnail,thumbnailSrc,thumbnailFit,description,href,download=false,onPreview,renderPreview,downloadHref,onRemove,disabled=false,
   labels={},formatSize,className,extraActions,...props
 },ref){
   if(!name.trim())throw new Error("Flood FileItem requires a nonempty file name");
@@ -107,7 +147,7 @@ const FileRow = /* @__PURE__ */ forwardRef<HTMLLIElement,RowProps>(function File
       <FileMeta format={displayedFormat} size={size} variant={metadataVariant} formatSize={formatSize} lang={props.lang}/>
     </span>}
     description={hasFieldContent(description)?description:undefined}
-    actions={fileCommands({name,onPreview,downloadHref,onRemove,disabled,labels,extraActions})}/>;
+    actions={fileCommands({name,preview:filePreview({name,onPreview,renderPreview,disabled,labels}),downloadHref,onRemove,disabled,labels,extraActions})}/>;
 });
 export const FileRecord = /* @__PURE__ */ forwardRef<HTMLLIElement,FileItemProps>(function FileRecord(props,ref){return <FileRow {...props} ref={ref}/>;});
 
@@ -137,30 +177,26 @@ export const FileThumbnailSurface = /* @__PURE__ */ forwardRef<HTMLDivElement,Fi
 });
 
 export const FileGalleryCard = /* @__PURE__ */ forwardRef<HTMLDivElement,FileCardProps>(function FileGalleryCard({
-  name,nameOverflow="truncate",size,mimeType,format,description,href,download,onPreview,downloadHref,onRemove,
+  name,nameOverflow="truncate",size,mimeType,format,description,href,download,onPreview,renderPreview,downloadHref,onRemove,
   disabled=false,labels,formatSize,thumbnailSrc,thumbnailFit="cover",thumbnailRatio=4/3,thumbnailPlacement="top",previewPlacement="footer",selection,
   density="compact",headingSize="group",footerDivider=false,className,...props
 },ref){
   const displayedFormat = fileFormat(name,format,mimeType);
-  const previewOnThumbnail = previewPlacement === "thumbnail" && onPreview;
-  const commands = fileCommands({name,onPreview:previewOnThumbnail ? undefined : onPreview,downloadHref,onRemove,disabled,labels});
+  const previewOnThumbnail = previewPlacement === "thumbnail";
+  const previewAction = filePreview({name,onPreview,renderPreview,disabled,labels},previewOnThumbnail);
+  const commands = fileCommands({name,preview:previewOnThumbnail ? undefined : previewAction,downloadHref,onRemove,disabled,labels});
   const meta = displayedFormat !== undefined || size !== undefined;
   const artwork = <FileThumbnail className="flood-file-card__preview" presentation="tile" src={thumbnailSrc} fit={thumbnailFit} ratio={thumbnailRatio}/>;
-  const previewLabel = labels?.preview ?? "Preview";
-  const preview = previewOnThumbnail ? <div className="flood-file-card__media">
+  const preview = previewOnThumbnail && hasFieldContent(previewAction) ? <div className="flood-file-card__media">
     {artwork}
-    <IconButton className="flood-file-card__preview-action" label={`${previewLabel}: ${name}`} title={previewLabel}
-      size="sm" variant="subtle" disabled={disabled} onClick={event=>{
-        event.currentTarget.focus({preventScroll:true});
-        onPreview();
-      }}><Glyph kind="preview"/></IconButton>
+    {previewAction}
   </div> : artwork;
   return <Card {...props} ref={ref} density={density} headingSize={headingSize} footerDivider={footerDivider} className={cx("flood-file-card",className)}
     media={thumbnailPlacement === "top" ? preview : undefined}
     title={<FileName name={name} href={disabled ? undefined : href} download={download} overflow={nameOverflow} hidden={props.hidden}/>}
     description={description} selection={selection && {...selection,disabled:disabled || selection.disabled}}
     footer={(meta || commands) && <Inline gap="2" className="flood-file-card__footer">
-      {meta && <FileMeta format={displayedFormat} size={size} formatSize={formatSize} lang={props.lang}/>}
+      {meta && <div className="flood-file-card__metadata"><FileMeta format={displayedFormat} size={size} formatSize={formatSize} lang={props.lang}/></div>}
       {commands && <Inline gap="1" className="flood-file-card__commands">{commands}</Inline>}
     </Inline>}>
     {thumbnailPlacement === "body" ? preview : undefined}
@@ -173,7 +209,7 @@ const uploadStatus = {
 } satisfies Record<UploadItemProps["state"], string>;
 
 export const UploadRecord = /* @__PURE__ */ forwardRef<HTMLLIElement,UploadItemProps>(function UploadRecord({
-  state,progress,error,onPause,onResume,onCancel,onRetry,onPreview,onRemove,href,downloadHref,labels={},disabled=false,className,...props
+  state,progress,error,onPause,onResume,onCancel,onRetry,onPreview,renderPreview,onRemove,href,downloadHref,labels={},disabled=false,className,...props
 },ref){
   if(!Object.hasOwn(uploadStatus,state))throw new Error("Flood UploadItem requires a supported state");
   if(progress!==undefined&&(!Number.isFinite(progress)||progress<0||progress>100))throw new Error("Flood upload progress must be between 0 and 100");
@@ -192,7 +228,7 @@ export const UploadRecord = /* @__PURE__ */ forwardRef<HTMLLIElement,UploadItemP
     ? {label: labels.cancel??"Cancel upload", glyph: "cancel" as const, action: onCancel}
     : {label: labels.retry??"Retry upload", glyph: "retry" as const, action: retry ? onRetry : undefined};
   return <FileRow {...props} ref={ref} labels={labels} disabled={disabled} href={state==="success"?href:undefined}
-    onPreview={state==="success"?onPreview:undefined} downloadHref={state==="success"?downloadHref:undefined}
+    onPreview={state==="success"?onPreview:undefined} renderPreview={state==="success"?renderPreview:undefined} downloadHref={state==="success"?downloadHref:undefined}
     onRemove={active?undefined:onRemove} className={cx("flood-upload-item",className)}
     data-upload-state={state} description={<div className="flood-upload-item__status-row">
       <StatusIndicator label={status+percent} tone={state==="error"?"error":state==="success"?"success":"neutral"} size="sm" presentation="wrap"/>
@@ -260,42 +296,45 @@ export const ModalImagePreview = /* @__PURE__ */ forwardRef<HTMLDialogElement,Im
   </Dialog>;
 });
 
-function GalleryThumbnails({items, selectedId, label, getPositionLabel, onSelect}: {
-  items: ImageGalleryProps["items"];
-  selectedId: string;
-  label: string;
-  getPositionLabel: NonNullable<ImageGalleryProps["getPositionLabel"]>;
-  onSelect: (id: string) => void;
-}) {
+export const ImageThumbnailStrip = /* @__PURE__ */ forwardRef<HTMLDivElement, ThumbnailStripProps>(function ImageThumbnailStrip(
+  {items, value, label, onValueChange, align = "start", className, ...props}, ref,
+) {
   const viewport = useRef<HTMLDivElement>(null);
+  const activeIndex = items.findIndex(item => item.id === value);
+  useImperativeHandle(ref, () => viewport.current!, [items.length > 0]);
   useBrowserLayoutEffect(() => {
     const rail = viewport.current;
-    if (!rail) return;
+    if (!rail || activeIndex < 0) return;
     const showSelected = () => {
       const selected = rail.querySelector('[aria-pressed="true"]');
-      if (!selected || !rail.clientWidth) return;
-      const {left,right} = rail.getBoundingClientRect();
+      const {left,right,width} = rail.getBoundingClientRect();
+      if (!selected || !width || !rail.clientWidth) return;
       const button = selected.getBoundingClientRect();
-      rail.scrollLeft += button.left < left ? button.left-left : button.right > right ? button.right-right : 0;
+      const offset = button.left < left ? button.left-left : button.right > right ? button.right-right : 0;
+      rail.scrollLeft += offset * rail.clientWidth / width;
     };
     showSelected();
     const observer = new ResizeObserver(showSelected);
     observer.observe(rail);
     return () => observer.disconnect();
-  }, [selectedId, items]);
-  return <ScrollArea ref={viewport} orientation="horizontal" contentInset="none" tabIndex={-1} className="flood-image-gallery__thumbnails">
-    <Toolbar label={label} variant="plain" className="flood-image-gallery__strip">
-      {items.map((item,index) => {
-        const name = item.thumbnailLabel?.trim() || item.alt.trim() || getPositionLabel(index+1,items.length);
-        return <div key={item.id} className="flood-image-gallery__thumbnail">
-          <FileThumbnail src={item.thumbnailSrc} presentation="tile" fit="contain" />
-          <Toggle size="sm" variant="ghost" className="flood-image-gallery__thumbnail-action"
-            aria-label={name} title={name} pressed={item.id===selectedId} onPressedChange={()=>onSelect(item.id)}/>
-        </div>;
-      })}
+  }, [value, activeIndex]);
+  if (!label.trim() || items.some(item => !item.id.trim() || !item.label.trim()) ||
+      new Set(items.map(item => item.id)).size !== items.length) {
+    throw new Error("Flood ThumbnailStrip requires a label and unique nonempty item IDs and labels");
+  }
+  if (!items.length) return null;
+  return <ScrollArea {...props} ref={viewport} orientation="horizontal" contentInset="none" tabIndex={-1}
+    className={cx("flood-thumbnail-strip",className)}>
+    <Toolbar label={label} variant="plain" className="flood-thumbnail-strip__items" data-align={align}>
+      {items.map(item => <div key={item.id} className="flood-thumbnail-strip__tile">
+        <FileThumbnail src={item.src} presentation="tile" fit="contain" />
+        <Toggle size="sm" variant="ghost" className="flood-thumbnail-strip__action"
+          aria-label={item.label} title={item.label} pressed={item.id===value}
+          onPressedChange={()=>{ if (item.id!==value) onValueChange(item.id); }}/>
+      </div>)}
     </Toolbar>
   </ScrollArea>;
-}
+});
 
 export const ModalImageGallery = /* @__PURE__ */ forwardRef<HTMLDialogElement, ImageGalleryProps>(function ModalImageGallery({
   items,currentId,defaultCurrentId,onCurrentIdChange,zoomable=false,actualSizeLabel="Actual size",viewportLabel="Image at actual size",
@@ -331,7 +370,10 @@ export const ModalImageGallery = /* @__PURE__ */ forwardRef<HTMLDialogElement, I
     <PreviewContent key={JSON.stringify([image.id,image.src])} {...image} zoomable={zoomable} actualSizeLabel={actualSizeLabel} viewportLabel={viewportLabel}
       loadingLabel={loadingLabel} errorLabel={errorLabel} downloadLabel={downloadLabel}/>
     {items.length > 1 && (navigation === "thumbnails"
-      ? <GalleryThumbnails items={items} selectedId={image.id} label={navigationLabel} getPositionLabel={getPositionLabel} onSelect={select}/>
+      ? <ThumbnailStrip className="flood-image-gallery__thumbnails" align="center" label={navigationLabel} value={image.id}
+        items={items.map((item,index)=>({id:item.id,src:item.thumbnailSrc,
+          label:item.thumbnailLabel?.trim() || item.alt.trim() || getPositionLabel(index+1,items.length)}))}
+        onValueChange={select}/>
       : <CursorPagination className="flood-image-gallery__navigation" label={navigationLabel}
         previousLabel={previousLabel} nextLabel={nextLabel} position={position} variant="ghost"
         previous={{onSelect:()=>navigate(-1)}} next={{onSelect:()=>navigate(1)}}/>)}

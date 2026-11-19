@@ -2,6 +2,7 @@ import {forwardRef, useId} from "react";
 import type {CSSProperties} from "react";
 import type {NavigationListProps, NavigationListItem, StepsProps, SectionProps, PageHeaderProps, SplitProps, CenterProps, SkipLinkProps} from "./index.js";
 import {Button,Heading,NavigationGroup,NavigationItem} from "./index.js";
+import {hasFieldContent} from "./field-state.js";
 
 const classes = (...names: Array<string | undefined | false>) => names.filter(Boolean).join(" ");
 function uniqueValues(items: readonly {value:string}[], component:string) {
@@ -61,11 +62,15 @@ type ContentHeaderProps = Omit<PageHeaderProps, "headingSize" | "headingLevel"> 
 };
 
 const ContentHeader = /* @__PURE__ */ forwardRef<HTMLElement, ContentHeaderProps>(function ContentHeader({
-  title, description, actions, headingId, headingLevel, headingSize, className, ...props
+  title, metadata, description, actions, headingId, headingLevel, headingSize, className, ...props
 }, ref) {
+  const heading = <Heading id={headingId} level={headingLevel} size={headingSize} className="flood-section__title">{title}</Heading>;
   return <header {...props} ref={ref} className={classes("flood-section__header", className)}>
     <div className="flood-section__heading">
-      <Heading id={headingId} level={headingLevel} size={headingSize} className="flood-section__title">{title}</Heading>
+      {hasFieldContent(metadata) ? <div className="flood-page-header__title-row">
+        {heading}
+        <div className="flood-page-header__metadata">{metadata}</div>
+      </div> : heading}
       {description != null && <div className="flood-section__description">{description}</div>}
     </div>
     {actions != null && <div className="flood-section__actions">{actions}</div>}

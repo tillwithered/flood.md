@@ -39,15 +39,57 @@ test('Columns shares the tool row and Filters stays anchored when reset appears'
   await expect(columns).toBeFocused();
   await expect(clear).toHaveCount(0);
   await search.fill('Design');
+  await expect(scope.getByRole('button', { name: 'Clear projects search', exact: true })).toBeVisible();
+  await expect(clear).toHaveCount(0);
+  await expect(scope.getByRole('button', { name: 'Reset view', exact: true })).toHaveCount(0);
+  await trigger.click();
+  const panel = page.getByRole('dialog', { name: 'Projects filters', exact: true });
+  await chooseSelectOption(panel.getByRole('combobox', { name: 'Status', exact: true }), 'paused');
+  await panel.getByRole('button', { name: 'Apply filters', exact: true }).click();
+  await expect(scope.getByText('No matching projects', { exact: true })).toBeVisible();
   await expect(clear).toBeVisible();
+  await scope.getByRole('button', { name: 'Clear projects search', exact: true }).click();
+  await expect(search).toHaveValue('');
+  await expect(scope.getByRole('button', { name: 'Remove status filter: Paused', exact: true })).toBeVisible();
+  await search.fill('Design');
   const active = (await trigger.boundingBox())!;
   expect(Math.abs(active.x - initial.x)).toBeLessThan(1);
   const reset = (await clear.boundingBox())!;
   expect(reset.x + reset.width).toBeLessThanOrEqual(active.x);
   await clear.press('Enter');
   await expect(trigger).toBeFocused();
+  await expect(search).toHaveValue('Design');
+  await expect(scope.getByRole('table', { name: 'Projects', exact: true })).toContainText('Design system');
   await expect(clear).toHaveCount(0);
   expect(Math.abs((await trigger.boundingBox())!.x - initial.x)).toBeLessThan(1);
+});
+
+test('Projects keeps its column tracks across populated, filtered and empty results', async ({ page }, info) => {
+  const scope = await open(page);
+  const table = scope.getByRole('table', { name: 'Projects', exact: true });
+  const search = scope.getByRole('searchbox', { name: 'Search projects', exact: true });
+  const tracks = () => table.locator('thead th').evaluateAll(headers =>
+    headers.map(header => {
+      const {x, width} = header.getBoundingClientRect();
+      return [x, width];
+    }));
+
+  await page.evaluate(() => document.fonts.ready);
+  await expect(table).toHaveCSS('table-layout', 'fixed');
+  const populated = await tracks();
+  await scope.screenshot({path:info.outputPath('projects-tracks-populated.png')});
+  await search.fill('Design');
+  await expect(table.locator('tbody tr')).toHaveCount(1);
+  await expect(table).toContainText('Design system');
+  expect(await tracks()).toEqual(populated);
+  await search.fill('no such project');
+  await expect(table.getByText('No matching projects')).toBeVisible();
+  await expect(search).toBeFocused();
+  expect(await tracks()).toEqual(populated);
+  await scope.screenshot({path:info.outputPath('projects-tracks-empty.png')});
+  await scope.getByRole('button', { name: 'Clear projects search' }).click();
+  await expect(table.locator('tbody tr')).toHaveCount(5);
+  expect(await tracks()).toEqual(populated);
 });
 
 test('three secondary filters collapse into a staged panel and restore with search and sort', async ({ page }) => {
@@ -128,6 +170,28 @@ test('saved query and sort restore across reload; the second consumer has its ow
  await chooseSelectOption(files.getByRole('combobox',{name:'Files view',exact:true}),'design');await chooseSelectOption(files.getByRole('combobox',{name:'Sort files',exact:true}),'size:descending');await saveAs(page,files,'Large design assets');
  const fileKey='flood-file-views-v1',id=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)!).views[0].id,fileKey);await page.reload();await page.getByRole('tab',{name:'Files',exact:true}).click();files=page.getByRole('region',{name:'Files collection',exact:true});await chooseSelectOption(files.getByRole('combobox',{name:'Files view',exact:true}),id);await expect(files.getByRole('list',{name:'Files',exact:true}).locator('li')).toHaveCount(3);await expect(files.getByRole('list',{name:'Files',exact:true}).locator('li').first()).toContainText('Component library.fig');await expect(files.getByRole('combobox',{name:'Sort files',exact:true})).toContainText('Size large–small');
  await page.getByRole('tab',{name:'Projects',exact:true}).click();await projects.getByRole('combobox',{name:'Projects view',exact:true}).click();await expect(page.getByRole('option',{name:'Large design assets',exact:true})).toHaveCount(0);await page.keyboard.press('Escape');
+});
+
+test('clearing an unsaved search restores a saved view without a second reset action', async ({page}) => {
+  await page.addInitScript(({key,raw})=>localStorage.setItem(key,raw),{key:projectKey,raw:stored('')});
+  const scope = await open(page);
+  await chooseSelectOption(scope.getByRole('combobox',{name:'Projects view',exact:true}), 'saved-existing');
+  await page.evaluate(key=>{
+    const original=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(entry,value){
+      if(entry===key) throw new DOMException('Denied','SecurityError');
+      original.call(this,entry,value);
+    };
+  },projectKey);
+  const search = scope.getByRole('searchbox',{name:'Search projects',exact:true});
+  await search.fill('Checkout');
+  await action(page,scope,'Update view');
+  const error = scope.getByRole('status').filter({hasText:'The view could not be updated. Try again.'});
+  await expect(error).toBeVisible();
+  await expect(scope.getByRole('button',{name:'Reset view',exact:true})).toHaveCount(0);
+  await scope.getByRole('button',{name:'Clear projects search',exact:true}).click();
+  await expect(search).toHaveValue('');
+  await expect(error).toHaveCount(0);
 });
 
 test('bad or obsolete definitions preserve raw bytes and block saved-view writes without hiding the collection',async({page})=>{

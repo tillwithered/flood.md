@@ -1,0 +1,8 @@
+{
+  "0.2.15": ["navigation-menu", "code-block", "select"],
+  "0.2.14": [
+    "message-composer",
+    "comparison-table",
+    "image-gallery"
+  ]
+}

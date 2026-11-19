@@ -15,6 +15,8 @@
     .flood-choice-card,
     .flood-scroll-area__thumb,
     .flood-data-table tbody > tr,
+    .flood-editable-grid__cell,
+    .flood-reorder-list > .flood-data-list-item,
     .flood-menu__item,
     .flood-segmented .flood-choice
   ):not(:where([data-flood-motion="reduce"] *)) {
@@ -51,6 +53,9 @@
   .flood-root:not([data-flood-motion="reduce"]) .flood-tabs__panel:not(:where([data-flood-motion="reduce"] *)):not([hidden]) {
     animation: flood-reveal-content var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing-enter) both;
   }
+  .flood-root .flood-card-deck__content:not(:where([data-flood-motion="reduce"] *)) {
+    animation: flood-reveal-content var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing-enter);
+  }
   .flood-root:not([data-flood-motion="reduce"]) .flood-navigation-tree__branch:not(:where([data-flood-motion="reduce"] *)) {
     animation: flood-reveal-navigation-branch var(--flood-sys-motion-duration-enter) var(--flood-sys-motion-easing-enter);
   }
@@ -58,8 +63,13 @@
     animation: flood-reveal-mark var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing-enter) both;
   }
 
-  .flood-root:not([data-flood-motion="reduce"]) .flood-copy-button__labels > span[data-visible]:not(:first-child) > .flood-icon:not(:where([data-flood-motion="reduce"] *)) {
-    animation: flood-reveal-mark var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing-enter) both;
+  .flood-root:not([data-flood-motion="reduce"]) .flood-icon-swap__glyph:not(:where([data-flood-motion="reduce"] *)) {
+    scale: .88;
+    transition: opacity var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing),
+      scale var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing-enter);
+  }
+  .flood-root:not([data-flood-motion="reduce"]) .flood-icon-swap__glyph[data-active]:not(:where([data-flood-motion="reduce"] *)) {
+    scale: 1;
   }
   .flood-root:not([data-flood-motion="reduce"]) .flood-avatar .flood-avatar__image:not(:where([data-flood-motion="reduce"] *)) {
     transition: opacity var(--flood-sys-motion-duration-normal) var(--flood-sys-motion-easing-enter);
@@ -83,7 +93,7 @@
       background-color var(--flood-sys-motion-duration-fast) var(--flood-sys-motion-easing);
   }
   .flood-root :is(
-    button.flood-button:not(.flood-button-group > .flood-button, .flood-disclosure__trigger, .flood-navigation-item__control):active,
+    button.flood-button:not(.flood-button-group > .flood-button, .flood-disclosure__trigger, .flood-navigation-item__control, .flood-hold-to-confirm__trigger):active,
     .flood-choice:active > :is(.flood-check:not(.flood-segmented .flood-check), .flood-switch-input),
     .flood-segmented .flood-choice:active
   ):not(:where([data-flood-motion="reduce"] *, :disabled, [aria-disabled="true"], [aria-busy="true"], :has(input:disabled))) {

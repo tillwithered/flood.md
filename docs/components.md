@@ -9,7 +9,7 @@ the parent destination and children remain reachable.
 
 ## Dark foundations · 0.2.5
 
-This guide describes the **0.2.14** API. See the [base component inventory](base-components.md)
+This guide describes the **0.2.15** API. See the [base component inventory](base-components.md)
 for the complete set. New APIs extend earlier 0.2 releases; source changes do not
 modify published npm versions. Existing 0.1.1 installs follow their
 version-specific guides.
@@ -74,6 +74,7 @@ may render from server components; the React entry retains its client boundary.
 | IconSlot | `size` (md); optional `label` | Host SVG adapter; decorative without label |
 | IconButton | Required `label`; Button props; optional `iconSize` independent of `size`; subtle by default | Names the action; child icon stays decorative; target size is preserved |
 | CodeSnippet | Required `code` string; optional `prompt`, `action`; native div props/ref | Selectable wrapping code; host owns copy behavior and feedback |
+| CodeBlock | `code`, optional `filename`, `language`, `wrap`, `maxBlockSize`, `showCopy`, `copyLabel` | Bounded multiline source with optional exact copying |
 
 Space keys are strings `"0"`, `"1"`, `"2"`, `"3"`, `"4"`, `"6"`, `"8"`, `"12"`:
 0/4/8/12/16/24/32/48px equivalents at a 16px reference root. Actual dimensions
@@ -119,10 +120,11 @@ indicator/label gap is .5rem; separate choices usually use `Inline gap="4"`
 ### Select
 
 Select is available in 0.2.3.
-Use it only with matching package declarations. Single selection uses a Flood
-trigger and listbox popup rather than the operating system's dropdown. A native
-select remains the form-value/ref bridge. The application supplies ordinary
-option and optgroup children:
+Use it only with matching package declarations. Single selection defaults to a
+Flood trigger and listbox popup with a native select as its form-value/ref
+bridge. In 0.2.15, set `presentation="native"` to show the native select and use
+the platform's picker. Both presentations use ordinary option and optgroup
+children:
 
 ```tsx
 "use client";
@@ -152,12 +154,12 @@ export function NotificationPreference() {
 options. `multiple` and `size` greater than one render an inline native listbox,
 without a dropdown arrow or operating-system popup. Controlled value/onChange,
 defaultValue, name, required, disabled, form and the HTMLSelectElement ref retain
-their native form contract through the bridge. The custom popup is a single-choice
+their native form contract. The custom popup is a single-choice
 listbox, not a general menu or searchable combobox engine.
 Select has no native readOnly state. Do not invent a readOnly interaction by
 preventing keyboard events; use a suitable non-editable presentation when needed.
 
-The visible trigger carries Field's label, descriptions, required and invalid
+The custom trigger carries Field's label, descriptions, required and invalid
 states. Keyboard focus stays on that trigger while the active option is exposed
 through `aria-activedescendant`:
 
@@ -170,9 +172,11 @@ through `aria-activedescendant`:
 - Typing an option's label highlights a match. Disabled options and disabled
   optgroups cannot be selected. Long lists scroll within the popup.
 
-The public ref points to the native select bridge; `ref.current.focus()` focuses
-the visible trigger. Read selected values from `onChange`'s native select
-`currentTarget` or from FormData. Uncontrolled `defaultValue` participates in
+The public ref points to an HTMLSelectElement. Calling `ref.current.focus()`
+focuses the custom trigger or the visible native select. The platform owns the
+native picker, including its presentation and dismissal. Read the selected value
+from `event.currentTarget.value` in `onChange` or from FormData. Uncontrolled
+`defaultValue` participates in
 form reset; controlled `value` remains the host's responsibility. Required
 validation focuses the trigger and associates its validation message. Keep the
 ordinary option/optgroup children and explicit option values; the popup displays
@@ -362,6 +366,11 @@ See the React package guide for full contracts.
 
 
 ## Navigation components
+
+`NavigationMenu` combines direct links and expandable groups of links in a site
+header. Pass `label`, `items` with stable IDs and `currentHref` for the current
+route. The group trigger is a button. Links retain their normal Tab order and
+browser navigation. Escape returns focus to the open group's trigger.
 
 Link remains a native anchor. Its optional `variant` (solid/subtle/outline/ghost)
 and `size` use the same recipes as Button for navigation that looks like an

@@ -13,10 +13,27 @@ Use HelpTip for a brief optional explanation the user can explicitly open,
 including on touch. Name the actual subject of the help. Keep fill instructions
 or errors that the user needs to act on visible beside the corresponding field.
 
+Use IdentityVerificationBadge beside an identity when viewers can inspect
+confirmed issuers. Keep the opener independent of the name link and omit it
+when no verification is visible to the viewer. Use a subject-specific
+accessible name when several marks appear in one list.
+
 For a short Select trigger, verify that the open list can fit the longest
 ordinary label, then repeat near the viewport edge with a very long label.
 
 ## Preserve trigger and state
+
+Use HoldToConfirm when a familiar action targets a known item and its
+consequence is already clear. Keep the hold hint visible. Verify that ordinary
+activation opens the dialog, leaving the button cancels, and reaching the hold
+threshold commits only after release. Use AlertDialog alone when the decision
+requires reading the consequence or checking the affected items.
+
+Use DeploymentRollbackDialog to confirm an already selected deployment target.
+Supply the live and target IDs and describe what switching production restores
+in the actual platform. Supply the known reason when the target is ineligible.
+The host rechecks the observed live ID and target eligibility at execution.
+Show completion only after the host accepts the rollback.
 
 Use ImageGallery to inspect several related images in the same dialog.
 Keep the next and previous controls in place through loading and failure.
@@ -24,6 +41,32 @@ Use thumbnail navigation when users can identify a target by its artwork.
 Supply small thumbnail sources and keep the current image and keyboard focus
 visually distinct along the rail.
 Intrinsic-size inspection owns its own scrolling, including the arrow keys.
+Use ThumbnailStrip when the artwork switches a preview already embedded on
+the page. Use one controlled image ID for the strip and its preview. Preserve
+the preview frame and keep arrow-key focus separate from activation.
+Use ImageMeta in the caption when original pixel dimensions matter to the
+viewer. Pass dimensions and file facts from the same asset. The preview's
+layout and thumbnail dimensions do not describe the original.
+Use ZoomControl when a viewport needs scale stops plus an optional fit action.
+Keep calculation, layout and scroll anchoring with the viewport. When checking
+the integrated preview, exercise both endpoints and keep focus on the control.
+
+Use DocumentPreview for a paged document that must stay in the review flow.
+Supply the known count and the accepted page through the render callback.
+Keep document decoding, text layers and request recovery in the host. Confirm
+that Next stops at the last page and the page change resets only the inner
+scroll area. Exercise a direct jump and dismiss back to the original action.
+For opening or downloading a file directly, use the existing file link.
+
+Use ImageComparison for two versions of the same crop. The default divider
+compares regions. Use its overlay mode when a small change in position is
+easier to see by blending full frames. Label the slider for the active mode
+and check both endpoints.
+
+Use ImageMosaic in a comment or record when related images should be visible
+before inspection. Give each tile its own description, and verify that opening
+any tile starts at that image and that closing returns to the same tile.
+Use FileCardGrid when the assets are independently managed records.
 
 Forward trigger props/ref onto one mounted native action. Preserve its accessible
 name and open/controls semantics. Choose host-controlled open state or a default,
