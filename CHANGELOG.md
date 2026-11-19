@@ -7,7 +7,7 @@
 
 - Add the next cohort of application primitives for review, operations, records,
   content, scheduling, data inspection and workspace workflows; the catalog now
-  contains 441 documented components with runnable Studio states.
+  contains 443 documented components with runnable Studio states.
 - Add new recipes for review, collaboration, import mapping, confirmation,
   version history, galleries, dependent filters and code-oriented workspaces.
 - Improve shared collection, feedback, navigation, form, data-table, calendar,

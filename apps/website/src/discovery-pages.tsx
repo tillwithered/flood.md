@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
-import { Breadcrumb, Grid, Heading, IconSlot, Inline, Link, SearchInput, Stack, Text } from "@flood-md/react";
+import { Breadcrumb, Grid, Heading, HighlightText, IconSlot, Inline, Link, SearchInput, Stack, Text } from "@flood-md/react";
 import { directoryGroups, directoryComponents, searchDirectoryComponents, type ComponentSummary } from "./component-directory-data";
 import { recipes, type Recipe } from "./recipe-directory";
 
@@ -21,14 +21,18 @@ function DirectoryHeading({ title, description, parent }: {
   </Stack>;
 }
 
-function ComponentLinks({ pages, compact = false }: { pages: readonly ComponentSummary[]; compact?: boolean }) {
+function ComponentLinks({ pages, compact = false, query = "" }: {
+  pages: readonly ComponentSummary[];
+  compact?: boolean;
+  query?: string;
+}) {
   return <Grid gap={compact ? "1" : "2"} minItemWidth={compact ? "10rem" : "15rem"}>
     {pages.map(page => <Link key={page.slug} href={`/components/${page.slug}`} className="discovery-result"
       data-compact={compact || undefined}>
       {compact ? <Text size="compact">{page.name}</Text> : <>
         <Stack gap="1">
-          <Text size="compact" className="discovery-result-name">{page.name}</Text>
-          <Text size="helper" tone="subtle">{page.description}</Text>
+          <Text size="compact" className="discovery-result-name"><HighlightText query={query}>{page.name}</HighlightText></Text>
+          <Text size="helper" tone="subtle"><HighlightText query={query}>{page.description}</HighlightText></Text>
         </Stack>
         <IconSlot size="sm"><ArrowUpRight /></IconSlot>
       </>}
@@ -95,7 +99,7 @@ export function ComponentDirectory({ family }: { family?: string }) {
       description={group?.description}
       parent={group ? { label: "Components", href: "/components" } : undefined} />
     <Stack gap="6">
-      {group ? <>{filter}<ComponentLinks pages={matches} /></> : <div className="component-directory-layout">
+      {group ? <>{filter}<ComponentLinks pages={matches} query={query.trim()} /></> : <div className="component-directory-layout">
         <div className="component-directory-controls">
           {filter}
           {!searching && <nav className="component-directory-families" aria-label="Component categories">
@@ -104,7 +108,7 @@ export function ComponentDirectory({ family }: { family?: string }) {
           </nav>}
         </div>
         <div ref={results} className="component-directory-sections">
-          {searching ? <ComponentLinks pages={matches} /> : catalogGroups.map(item => <section key={item.id} aria-labelledby={item.id}>
+          {searching ? <ComponentLinks pages={matches} query={query.trim()} /> : catalogGroups.map(item => <section key={item.id} aria-labelledby={item.id}>
             <Heading level={2} id={item.id} size="section" tabIndex={-1}>{item.label}</Heading>
             <ComponentLinks pages={item.components} compact />
           </section>)}

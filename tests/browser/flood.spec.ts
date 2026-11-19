@@ -87,13 +87,18 @@ test("idea showcase uses keyboard-operable choices and adds visible ideas", asyn
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
 });
 
-test("installation is available from the landing page", async ({ page, context }) => {
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+test("the landing page links to installation and gates the copy command until publication", async ({ page, context }) => {
   await page.goto("/");
   await expect(page.getByRole("main").getByRole("table")).toHaveCount(0);
   await expect(page.getByRole("link", { name: /For your agent/i })).toHaveAttribute("href", "/agent/SKILL.md");
-  await page.getByRole("button", { name: "Copy installation command" }).click();
-  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(`npx @flood-md/cli@${release.version} init`);
+  const copy = page.getByRole("button", { name: "Copy installation command" });
+  if (release.published) {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await copy.click();
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(`npx @flood-md/cli@${release.version} init`);
+  } else {
+    await expect(copy).toHaveCount(0);
+  }
   await page.getByRole("main").getByRole("link", { name: "Install Flood" }).click();
   await expect(page).toHaveURL(/\/docs\/installation$/);
   await expect(page.locator("code").filter({ hasText: `npx @flood-md/cli@${release.version} init` })).toBeVisible();

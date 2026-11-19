@@ -517,7 +517,7 @@ test("HighlightText marks literal matches in the component and the catalog", asy
   await page.goto("/components");
   const search = page.locator("main .catalog-search").getByRole("searchbox");
   await search.fill("panel");
-  const result = page.locator('main a.catalog-card[href="/components/tabs"]');
+  const result = page.getByRole("main").getByRole("link", {name:/^Tabs\b/});
   await expect(result.locator("mark")).toHaveText(["panel"]);
   await expect(result).toHaveAccessibleName(/Tabs.*panels/i);
   await result.screenshot({path:info.outputPath("highlight-catalog.png")});
