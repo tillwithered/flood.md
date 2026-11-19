@@ -2,9 +2,10 @@
 import catalog from "./src/component-catalog.json" with { type: "json" };
 import componentGroups from "./src/component-groups.json" with { type: "json" };
 import { docPages, siteOrigin } from "./site-guides.mjs";
+import { isPublicComponent, isPublicSite, isSitePreview } from "./site-scope.mjs";
 export { docPages, siteOrigin };
 
-export const componentSlugs = catalog.map(component => component.slug);
+export const componentSlugs = catalog.map(component => component.slug).filter(slug => !isPublicSite || isPublicComponent(slug));
 const discoveryPages = [
   { path: "/recipes", label: "Recipes", description: "Explore runnable interface recipes built with Flood." },
   { path: "/for-agents", label: "For agents", description: "Connect your coding agent to Flood and try a real task." },
@@ -15,6 +16,7 @@ export const pagePaths = new Set([
   "/playground/collections/format", "/playground/collections/active-format", "/playground/collections/filter-group",
   "/playground/collections/saved-views", "/components", ...docPages.map(page => page.path),
   "/playground/records", "/playground/settings", "/playground/charts",
+  "/playground/table-bulk-actions",
   "/playground/product-variants",
   "/playground/merge-records",
   "/playground/import-mapping",
@@ -22,7 +24,7 @@ export const pagePaths = new Set([
   "/playground/code-editor",
   "/playground/code-review",
   ...componentSlugs.map(slug => `/components/${slug}`), ...discoveryPages.map(page => page.path),
-]);
+].filter(path => !path.startsWith("/playground") || isSitePreview(path)));
 
 export const indexablePaths = [...pagePaths].filter(path => !path.startsWith("/playground"));
 
@@ -47,6 +49,7 @@ export function pageMetadata(path) {
     "/playground/motion": "Motion playground",
     "/playground/records": "Record management",
     "/playground/settings": "Settings workspace",
+    "/playground/table-bulk-actions": "Table bulk actions",
     "/playground/charts": "Request latency",
     "/playground/collections/format": "Format filter",
     "/playground/collections/active-format": "Active format filter",

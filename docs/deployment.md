@@ -16,7 +16,11 @@ npm start
 ```
 
 The server listens on PORT, defaulting to 4173. The root Dockerfile builds the same
-output in a Node 24 image and starts the server. Container runtime contents are
+website in a Node 24 image with `FLOOD_WEBSITE_PROFILE=public` and starts the server.
+The default local build serves the full authoring catalog. The public profile
+publishes the selection in `apps/website/src/public-catalog.json` across the website,
+Markdown, sitemap and MCP. The build records its profile in `/site-release.json`
+so the bundled server can start with the same route inventory. Container runtime contents are
 limited to the built website and server entry; source and build dependencies stay
 in the build stage.
 

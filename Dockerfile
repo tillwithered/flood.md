@@ -10,6 +10,7 @@ COPY packages/tokens/package.json packages/tokens/
 RUN npm ci --ignore-scripts --no-audit --no-fund
 COPY . .
 ARG RAILWAY_GIT_COMMIT_SHA
+ENV FLOOD_WEBSITE_PROFILE=public
 RUN npm run build && npm run site:bundle && mv .artifacts/website-runtime-* /opt/flood-site-runtime
 
 FROM node:24-alpine

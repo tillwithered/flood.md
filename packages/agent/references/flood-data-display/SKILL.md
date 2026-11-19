@@ -1,9 +1,26 @@
 ---
 name: flood-data-display
-description: Assemble Flood tables, lists, cards and file records with long or changing data. Use for content hierarchy, overflow, row actions and data-state composition.
+description: Choose and compose Flood tables, lists, cards, code displays and charts. Use for content hierarchy, overflow, row actions and changing data.
 ---
 
 # Compose meaningful data structures
+
+## Start with what the user needs to read or compare
+
+| Task | Starting choice |
+| --- | --- |
+| Read named rows and columns | Table for static values, DataTable when people sort, select or page through records. |
+| Read or copy code | InlineCode in a sentence, CodeSnippet for a short command with a host-owned action, CodeBlock for multiline source with built-in copying and bounded scrolling. |
+| Compare observations across ordered steps | LineChart when the axis and exact values matter, Sparkline for a compact trend next to a value. |
+| Compare discrete groups or ranked values | BarChart for groups and series, BarList for a short ranking of comparable nonnegative values. |
+| See the parts of a total | DonutChart for mutually exclusive parts of one total. |
+
+For code, pass the original source text and keep shell prompts separate.
+CodeBlock's language is a label. Check keyboard access at the narrowest width
+and verify that copying preserves line breaks. Use a Table with Sparkline when
+ranked rows also need a column for individual trends. See
+[chart guidance](#choose-a-chart-by-the-question) for axes, inspection and missing
+data.
 
 Use AgentHandoff to inspect a recorded transfer of responsibility. Keep the
 intended recipient visible in failure and unavailable states. Show the outcome
@@ -163,7 +180,7 @@ invocation stable when its output arrives. Use a single announcement owner
 for a stream of parallel calls. Use ToolCallGroup for one visible workflow
 step with several invocations. Check that a failed call stays easy to find
 while other calls are active and expanded details survive status updates.
-Use CodeSnippet to show raw text without branch selection. Keep active
+Use a code display to show raw text without branch selection. Keep active
 selection and the full JSON Pointer available when keys repeat at different
 depths. Exercise a match inside an unopened branch and copy one nested value.
 
@@ -569,8 +586,8 @@ criterion stays readable as people scroll to the last option in a narrow panel.
 
 ## Choose a chart by the question
 
-Use Metric for a current value, MetricCard for a prominent value and its
-optional history on a dashboard surface, and Sparkline for a compact trend in a row.
+Use Metric for a current value and MetricCard for a prominent value with
+optional history on a dashboard surface.
 Use CycleCapacity before a cycle begins to compare planned work with an
 estimate in the same unit. Keep the basis visible when known. Reaching an
 estimate informs planning and does not establish a quota.
@@ -603,12 +620,10 @@ In a MetricGroup summary column, check the longest localized number and its
 unit at the actual panel width. The row gives longer values more room while
 clipped labels retain their tooltip. Choose a smaller value size or a broader
 layout if the complete number still wraps.
-Keep the chart and comparison grounded in the same measure. Use
-LineChart for comparing observations over ordered, equally spaced categories,
-BarChart for comparing discrete groups such as actual and planned values per
-team, and BarList for ranking a few comparable nonnegative values. Sort BarList
-items in the host and retain their exact labels, values and units. Use the same
-domain or max across panels that readers must compare. Keep zero distinct
+Keep the chart and comparison grounded in the same measure. LineChart categories
+are equally spaced on the axis. Sort BarList items in the host and retain their
+exact labels, values and units. Use the same domain or max across panels that
+readers must compare. Keep zero distinct
 from a missing observation and identify comparison series by line pattern
 as well as color. In a LineChart review, traverse dates by keyboard and check
 that the value readout exposes missing data without inventing a value.
@@ -620,9 +635,9 @@ active category on the axis, where it stays tied to the guide. Exercise a dense
 series as well as a short one and keep only the axis labels that fit.
 Enable LineChart's numeric axis when the reader needs to estimate levels
 or compare them at a glance.
-Use DonutChart for mutually exclusive parts of one total. Group small categories
-only when a combined bucket is meaningful, and prefer BarList for precise
-comparisons between similar values. Check zero and empty separately. Keep the
+In DonutChart, group small categories only when a combined bucket is meaningful.
+Prefer BarList for precise comparisons between similar values. Check zero and
+empty separately. Keep the
 center readout as the single source for an inspected category's name and share.
 Keep pointer inspection continuous through the visual gaps between segments.
 Check that the center readout moves directly to the next share at each boundary.
@@ -693,8 +708,7 @@ before filling metadata and actions. Identity, supporting context, lifecycle sta
 priority and timestamps have different purposes. Use Table/DataTable when users
 need several named comparisons; a trailing Inline of values is not a column model.
 
-Use Table for short static details, such as receipt lines. When DataTable owns
-sorting or selection and its result range adds no useful information, set
+When DataTable's result range adds no useful information, set
 `showResults={false}`. Keep the range when it helps explain pagination or
 the scope of filtered results. Selection feedback and page controls remain.
 

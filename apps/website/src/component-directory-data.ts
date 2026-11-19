@@ -1,5 +1,7 @@
 import componentSummaries from "./generated/component-summaries.json";
 import taxonomy from "./component-groups.json";
+import publicCatalog from "./public-catalog.json";
+import { isPublicSite } from "../site-scope.mjs";
 
 export interface ComponentSummary {
   slug: string;
@@ -11,7 +13,10 @@ export interface ComponentSummary {
 export const directoryComponents = componentSummaries satisfies ComponentSummary[];
 export const directoryGroups = taxonomy.map(group => ({
   ...group,
-  components: directoryComponents.filter(page => page.group === group.id).sort((a, b) => a.name.localeCompare(b.name)),
+  components: directoryComponents.filter(page => page.group === group.id).sort((a, b) =>
+    isPublicSite && group.id === "charts"
+      ? publicCatalog.charts.indexOf(a.slug) - publicCatalog.charts.indexOf(b.slug)
+      : a.name.localeCompare(b.name)),
 })).filter(group => group.components.length > 0);
 
 export function matchesComponent(page: ComponentSummary, query: string) {

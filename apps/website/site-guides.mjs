@@ -1,4 +1,6 @@
-export const docPages = [
+import { isPublicRecipe, isPublicSite } from "./site-scope.mjs";
+
+export const allDocPages = [
   { path: "/docs", label: "Introduction", file: "README.md", description: "A calm foundation for React interfaces." },
   { path: "/docs/installation", label: "Installation", file: "installation.md", description: "Connect Flood to React or Next.js." },
   { path: "/docs/project-ui", label: "Project UI", file: "project-ui.md", description: "Give your app a short, project-owned UI boundary." },
@@ -48,6 +50,9 @@ export const docPages = [
   { path: "/docs/recipes/product-variants", label: "Product variants", file: "recipes/product-variants.md", description: "Edit variant SKUs, prices and stock in a matrix with atomic batch validation.", group: "recipes" },
   { path: "/docs/recipes/merge-records", label: "Merge records", file: "recipes/merge-records.md", description: "Compare duplicate contacts, resolve differing values and review the merge before removing a record.", group: "recipes" },
 ];
+export const docPages = isPublicSite
+  ? allDocPages.filter(page => page.group !== "recipes" || isPublicRecipe(page.path.split("/").at(-1)))
+  : allDocPages;
 export const siteOrigin = "https://flood.md";
 
 export function usesDocumentation(path) {

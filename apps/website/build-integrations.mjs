@@ -6,6 +6,7 @@ import { build } from "vite";
 const local = path => new URL(path, import.meta.url);
 await build({
   configFile: false,
+  define: { __FLOOD_PUBLIC_SITE__: JSON.stringify(process.env.FLOOD_WEBSITE_PROFILE === "public") },
   publicDir: false,
   build: {
     target: "node22",

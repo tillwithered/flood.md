@@ -11,6 +11,51 @@ current object, the next action, and the state that needs to survive return.
 Use that outline in development notes and keep the interface focused on work.
 Reuse the host's existing shell, conventions and components where available.
 
+## Start a full-window workspace
+
+Use AppShell for persistent navigation and a bounded working area. AppTopBar
+holds application context and global actions. PageHeader holds the current
+destination and its actions. For a document that scrolls as a whole, use
+`scroll="page"`.
+
+```tsx
+"use client";
+import type { ReactNode } from "react";
+import { AppShell, AppTopBar, FloodRoot, PageHeader, Sidebar, Text } from "@flood-md/react";
+import "@flood-md/react/styles.css";
+
+export function ProjectsWorkspace({ children }: { children: ReactNode }) {
+  return (
+    <FloodRoot>
+      <AppShell
+        scroll="content"
+        scrollOrientation="vertical"
+        navigation={<Sidebar
+          label="Workspace navigation"
+          groups={[{
+            id: "workspace", label: "Workspace", hideLabel: true, items: [
+              { value: "overview", label: "Overview", href: "/overview" },
+              { value: "projects", label: "Projects", href: "/projects" },
+            ],
+          }]}
+          currentValue="projects"
+        />}
+        topBar={<AppTopBar start={<Text>Workspace</Text>} />}
+      >
+        <PageHeader title="Projects" />
+        {children}
+      </AppShell>
+    </FloodRoot>
+  );
+}
+```
+
+Reuse the application's root and stylesheet import if they already exist. The
+host supplies real routes and derives `currentValue` from the accepted route.
+For navigation that must collapse into a drawer on a narrow host, read the
+installed `recipe:navigation-workspace`. Check that overflow scrolls inside the
+working area and that the skip link reaches it.
+
 ## Choose what the user can recognize everywhere
 
 | Region | Keep stable across equivalent destinations | Adapt to the task |

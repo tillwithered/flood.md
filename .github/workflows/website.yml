@@ -35,4 +35,5 @@ jobs:
         env:
           WEBSITE_URL: ${{ vars.WEBSITE_URL || 'https://flood.md' }}
           EXPECTED_COMMIT: ${{ github.event.deployment.sha }}
+          EXPECTED_WEBSITE_PROFILE: public
           VERIFY_TIMEOUT_MS: 120000

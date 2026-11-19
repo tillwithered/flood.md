@@ -22,7 +22,7 @@ scrolling. Reset the host body's default margin. Padded content can use
 `scrollContentInset="none"` to preserve its width when the scrollbar appears.
 Keep the fixed bulk overlay out of normal flow and horizontal scrolling inside
 DataTable. The embedded preview uses `TableBulkActions` from the same source.
-[Try the collection workspace](/playground/collections).
+[Try the table bulk actions example](/playground/table-bulk-actions).
 
 ## Choose the operation scope
 

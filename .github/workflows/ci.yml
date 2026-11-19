@@ -62,16 +62,6 @@ jobs:
       - name: Pack immutable release candidate
         if: github.event_name == 'push' && steps.scope.outputs.scope == 'full' && steps.affected.outputs.full_coverage == 'true'
         run: npm run ci:candidate
-      - name: Prepare verified website runtime
-        id: website
-        run: npm run site:bundle
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: website-runtime-${{ github.sha }}
-          path: ${{ steps.website.outputs.directory }}
-          overwrite: true
-          retention-days: 14
-          if-no-files-found: error
       - name: Bundle build outputs once for browser workers
         if: steps.browser.outputs.reused != 'true' || (github.event_name == 'push' && steps.scope.outputs.scope == 'full' && steps.affected.outputs.full_coverage == 'true')
         shell: bash
@@ -86,6 +76,18 @@ jobs:
           name: browser-build-${{ github.sha }}
           path: .artifacts/browser-build.tgz
           compression-level: 0
+          overwrite: true
+          retention-days: 14
+          if-no-files-found: error
+      - name: Build and verify the public website runtime
+        id: website
+        env:
+          FLOOD_WEBSITE_PROFILE: public
+        run: npm run build && npm run site:bundle
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: website-runtime-${{ github.sha }}
+          path: ${{ steps.website.outputs.directory }}
           overwrite: true
           retention-days: 14
           if-no-files-found: error

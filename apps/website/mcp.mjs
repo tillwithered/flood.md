@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createKnowledgeReader } from "../../packages/agent/lib/index.mjs";
 import { version } from "./src/release.json" with { type: "json" };
 import { pagePaths } from "./routes.mjs";
+import { isPublicSite } from "./site-scope.mjs";
 import { createMcpSearch } from "./mcp-search.mjs";
 
 const annotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
@@ -36,7 +37,7 @@ function configureServer(reader, searchCatalog, siteOrigin) {
     title: "Flood catalog version",
     description: "Report the version, scope and coverage of the public Flood catalog.",
     annotations,
-  }, toolResult(async () => ({ ...await reader.info(), docs: siteOrigin + "/docs/mcp" })));
+  }, toolResult(async () => ({ ...await reader.info(), profile: isPublicSite ? "public" : "full", docs: siteOrigin + "/docs/mcp" })));
   server.registerTool("search_flood", {
     title: "Search Flood",
     description: "Find public Flood components, ready-to-use compositions, tokens and agent guidance by name or by describing the UI task in English or Russian. Pass a result ID to read_flood for the full contract.",
